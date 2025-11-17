@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const tags = searchParams.get("tags");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = parseInt(searchParams.get("skip") || "0");
     const showOrphaned = searchParams.get("showOrphaned") === "true";
@@ -32,6 +33,12 @@ export async function GET(request: NextRequest) {
       );
       const bookIds = statusRecords.map((s) => s.bookId);
       query._id = { $in: bookIds };
+    }
+
+    // Tag filtering
+    if (tags) {
+      const tagList = tags.split(",").map((t) => t.trim());
+      query.tags = { $in: tagList };
     }
 
     // Text search

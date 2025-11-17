@@ -1,4 +1,3 @@
-* Tag filter in library page
 * "Read Next" status
 * Annual goals
 * Streak graph

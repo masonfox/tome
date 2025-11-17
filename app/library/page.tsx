@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { BookCard } from "@/components/BookCard";
-import { Search, Filter, RefreshCw, Library as LibraryIcon } from "lucide-react";
+import { Search, Filter, RefreshCw, Library as LibraryIcon, X, Tag } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface Book {
@@ -11,6 +11,7 @@ interface Book {
   authors: string[];
   coverPath?: string;
   status: string | null;
+  tags: string[];
 }
 
 const BOOKS_PER_PAGE = 50;
@@ -21,18 +22,36 @@ export default function LibraryPage() {
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [tagSearchInput, setTagSearchInput] = useState("");
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalBooks, setTotalBooks] = useState(0);
   const observerTarget = useRef<HTMLDivElement>(null);
 
+  // Fetch available tags on mount
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const response = await fetch("/api/tags");
+        const data = await response.json();
+        setAvailableTags(data.tags || []);
+      } catch (error) {
+        console.error("Failed to fetch tags:", error);
+      }
+    }
+    fetchTags();
+  }, []);
+
   useEffect(() => {
     setBooks([]);
     setCurrentPage(0);
     setHasMore(true);
     fetchBooks(0);
-  }, [statusFilter, search]);
+  }, [statusFilter, search, selectedTags]);
 
   async function fetchBooks(page: number) {
     if (page === 0) {
@@ -48,6 +67,9 @@ export default function LibraryPage() {
       }
       if (search) {
         params.set("search", search);
+      }
+      if (selectedTags.length > 0) {
+        params.set("tags", selectedTags.join(","));
       }
       params.set("limit", BOOKS_PER_PAGE.toString());
       params.set("skip", (page * BOOKS_PER_PAGE).toString());
@@ -156,40 +178,133 @@ export default function LibraryPage() {
 
       {/* Filters */}
       <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-4">
-        <form onSubmit={handleSearch} className="flex gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-              <input
-                type="text"
-                placeholder="Search books..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
-              />
+        <form onSubmit={handleSearch} className="space-y-3">
+          {/* Search and Status Filter Row */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+                <input
+                  type="text"
+                  placeholder="Search books..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+              >
+                <option value="all">All Books</option>
+                <option value="to-read">To Read</option>
+                <option value="reading">Reading</option>
+                <option value="read">Read</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="px-6 py-2 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold"
             >
-              <option value="all">All Books</option>
-              <option value="to-read">To Read</option>
-              <option value="reading">Reading</option>
-              <option value="read">Read</option>
-            </select>
+              Search
+            </button>
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold"
-          >
-            Search
-          </button>
+          {/* Tag Filter Row */}
+          {availableTags.length > 0 && (
+            <div className="flex gap-3 items-start">
+              <div className="flex items-center gap-2 pt-2 shrink-0">
+                <Tag className="w-5 h-5 text-[var(--foreground)]/40" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                {/* Tag search input */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search tags..."
+                    value={tagSearchInput}
+                    onChange={(e) => {
+                      setTagSearchInput(e.target.value);
+                      setShowTagSuggestions(true);
+                    }}
+                    onFocus={() => setShowTagSuggestions(true)}
+                    onBlur={() => {
+                      // Delay to allow clicking on suggestions
+                      setTimeout(() => setShowTagSuggestions(false), 200);
+                    }}
+                    className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  />
+
+                  {/* Tag suggestions dropdown */}
+                  {showTagSuggestions && tagSearchInput.trim() && (() => {
+                    const filteredTags = availableTags
+                      .filter((tag) =>
+                        tag.toLowerCase().includes(tagSearchInput.toLowerCase()) &&
+                        !selectedTags.includes(tag)
+                      )
+                      .slice(0, 15);
+
+                    return filteredTags.length > 0 ? (
+                      <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-60 overflow-y-auto shadow-lg">
+                        {filteredTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTags([...selectedTags, tag]);
+                              setTagSearchInput("");
+                              setShowTagSuggestions(false);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] px-4 py-2 text-sm text-[var(--foreground)]/50">
+                        No matching tags found
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {selectedTags.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTags([])}
+                  className="px-3 py-2 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] transition-colors shrink-0"
+                >
+                  Clear ({selectedTags.length})
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Selected tags */}
+          {selectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 pl-9">
+              {selectedTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTags(selectedTags.filter((t) => t !== tag))}
+                  className="px-3 py-1 text-sm bg-[var(--accent)] text-white border border-[var(--accent)] flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors"
+                >
+                  {tag}
+                  <X className="w-3 h-3" />
+                </button>
+              ))}
+            </div>
+          )}
         </form>
       </div>
 
