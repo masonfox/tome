@@ -10,16 +10,17 @@
     "sync-calibre": "bun run scripts/sync-calibre.ts"
   },
   "dependencies": {
+    "better-sqlite3": "^9.4.0",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.3.0",
+    "lucide-react": "^0.344.0",
+    "mongodb": "^6.3.0",
+    "mongoose": "^8.1.0",
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "mongodb": "^6.3.0",
-    "better-sqlite3": "^9.4.0",
-    "date-fns": "^3.3.0",
-    "mongoose": "^8.1.0",
     "recharts": "^2.12.0",
-    "lucide-react": "^0.344.0",
-    "clsx": "^2.1.0",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^2.2.0"
   },
   "devDependencies": {

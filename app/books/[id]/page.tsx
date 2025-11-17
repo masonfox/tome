@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
+import { toast } from "@/utils/toast";
 
 interface Book {
   _id: string;
@@ -116,7 +117,7 @@ export default function BookDetailPage() {
       const pageValue = parseInt(currentPage);
       // Validate that the new page is greater than the latest progress
       if (book?.latestProgress && pageValue <= book.latestProgress.currentPage) {
-        alert("Please enter a page number greater than the current page.");
+        toast.error("Please enter a page number greater than the current page.");
         return;
       }
       payload.currentPage = pageValue;
@@ -125,7 +126,7 @@ export default function BookDetailPage() {
       const percentValue = parseFloat(currentPercentage);
       // Validate that the new percentage is greater than the latest progress
       if (book?.latestProgress && percentValue <= book.latestProgress.currentPercentage) {
-        alert("Please enter a percentage greater than the current progress.");
+        toast.error("Please enter a percentage greater than the current progress.");
         return;
       }
       payload.currentPercentage = percentValue;
@@ -143,7 +144,7 @@ export default function BookDetailPage() {
       if (response.ok) {
         const newProgressEntry = await response.json();
         setNotes("");
-        
+
         // Update the book with the new progress without overwriting form inputs
         setBook((prevBook) => {
           if (!prevBook) return null;
@@ -156,8 +157,9 @@ export default function BookDetailPage() {
             },
           };
         });
-        
+
         fetchProgress();
+        toast.success("Progress logged!");
       }
     } catch (error) {
       console.error("Failed to log progress:", error);
@@ -187,6 +189,7 @@ export default function BookDetailPage() {
       if (response.ok) {
         setSelectedStatus(newStatus);
         fetchBook();
+        toast.success("Status updated");
       }
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -232,6 +235,7 @@ export default function BookDetailPage() {
         setSelectedStatus("read");
         fetchBook();
         fetchProgress();
+        toast.success("Marked as read!");
       }
     } catch (error) {
       console.error("Failed to mark book as read:", error);
@@ -255,6 +259,7 @@ export default function BookDetailPage() {
       if (response.ok) {
         setTotalPages("");
         fetchBook();
+        toast.success("Pages updated");
       }
     } catch (error) {
       console.error("Failed to update total pages:", error);

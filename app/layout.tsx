@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
+import { ToastProvider } from "@/components/ToastProvider";
 
 export const metadata: Metadata = {
   title: "Tome",
@@ -33,6 +34,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[var(--background)] text-[var(--foreground)]">
+        <ToastProvider />
         <Navigation />
         <main className="container mx-auto px-4 py-12 max-w-7xl">
           {children}
