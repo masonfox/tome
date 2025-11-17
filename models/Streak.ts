@@ -12,7 +12,7 @@ export interface IStreak extends Document {
 
 const StreakSchema = new Schema<IStreak>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", unique: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
     currentStreak: { type: Number, default: 0, min: 0 },
     longestStreak: { type: Number, default: 0, min: 0 },
     lastActivityDate: { type: Date, required: true, default: Date.now },
