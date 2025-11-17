@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock } from "lucide-react";
+import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 
@@ -327,55 +327,60 @@ export default function BookDetailPage() {
               {showStatusDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
                   {[
-                    { value: "to-read", label: "Want to Read", disabled: false },
-                    { value: "read-next", label: "Read Next", disabled: false },
-                    { value: "reading", label: "Reading", disabled: !book.totalPages },
-                    { value: "read", label: "Read", disabled: !book.totalPages },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        if (!option.disabled) {
-                          handleUpdateStatus(option.value);
-                          setShowStatusDropdown(false);
-                        }
-                      }}
-                      disabled={option.disabled}
-                      className={cn(
-                        "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group",
-                        option.disabled
-                          ? "cursor-not-allowed bg-[var(--card-bg)]"
-                          : "cursor-pointer hover:bg-[var(--background)]",
-                        selectedStatus === option.value && !option.disabled && "bg-[var(--accent)]/10"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 flex-1">
-                        {option.disabled && (
-                          <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
+                    { value: "to-read", label: "Want to Read", disabled: false, icon: Bookmark },
+                    { value: "read-next", label: "Read Next", disabled: false, icon: Clock },
+                    { value: "reading", label: "Reading", disabled: !book.totalPages, icon: BookOpen },
+                    { value: "read", label: "Read", disabled: !book.totalPages, icon: BookCheck },
+                  ].map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          if (!option.disabled) {
+                            handleUpdateStatus(option.value);
+                            setShowStatusDropdown(false);
+                          }
+                        }}
+                        disabled={option.disabled}
+                        className={cn(
+                          "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group",
+                          option.disabled
+                            ? "cursor-not-allowed bg-[var(--card-bg)]"
+                            : "cursor-pointer hover:bg-[var(--background)]",
+                          selectedStatus === option.value && !option.disabled && "bg-[var(--accent)]/10"
                         )}
-                        <div className="flex flex-col">
-                          <span
-                            className={cn(
-                              "font-medium",
-                              option.disabled
-                                ? "text-[var(--foreground)]/40"
-                                : "text-[var(--foreground)]"
-                            )}
-                          >
-                            {option.label}
-                          </span>
-                          {option.disabled && (
-                            <span className="text-xs text-[var(--foreground)]/30 mt-0.5">
-                              Set pages
-                            </span>
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          {option.disabled ? (
+                            <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
+                          ) : (
+                            <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
                           )}
+                          <div className="flex flex-col">
+                            <span
+                              className={cn(
+                                "font-medium",
+                                option.disabled
+                                  ? "text-[var(--foreground)]/40"
+                                  : "text-[var(--foreground)]"
+                              )}
+                            >
+                              {option.label}
+                            </span>
+                            {option.disabled && (
+                              <span className="text-xs text-[var(--foreground)]/30 mt-0.5">
+                                Set pages
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {selectedStatus === option.value && !option.disabled && (
-                        <Check className="w-5 h-5 text-[var(--accent)]" />
-                      )}
-                    </button>
-                  ))}
+                        {selectedStatus === option.value && !option.disabled && (
+                          <Check className="w-5 h-5 text-[var(--accent)]" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

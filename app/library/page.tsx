@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { BookCard } from "@/components/BookCard";
-import { Search, Filter, RefreshCw, Library as LibraryIcon, X, Tag } from "lucide-react";
+import { Search, Filter, RefreshCw, Library as LibraryIcon, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface Book {
@@ -24,17 +24,20 @@ function LibraryPageContent() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tagSearchInput, setTagSearchInput] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalBooks, setTotalBooks] = useState(0);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   // Initialize from URL params ONCE on mount
   useEffect(() => {
@@ -43,6 +46,7 @@ function LibraryPageContent() {
     const tagsParam = searchParams.get("tags");
 
     if (searchParam) {
+      setSearchInput(searchParam);
       setSearch(searchParam);
     }
     if (statusParam) {
@@ -54,6 +58,27 @@ function LibraryPageContent() {
 
     // Mark as ready after state has been set
     setIsReady(true);
+  }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Close status dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setShowStatusDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Fetch available tags on mount
@@ -171,10 +196,8 @@ function LibraryPageContent() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    setBooks([]);
-    setCurrentPage(0);
-    setHasMore(true);
-    fetchBooks(0);
+    // Immediately apply search when form is submitted (bypass debounce)
+    setSearch(searchInput);
   }
 
   return (
@@ -214,34 +237,89 @@ function LibraryPageContent() {
                 <input
                   type="text"
                   placeholder="Search books..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className={cn(
+                    "w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors",
+                    searchInput ? "pr-10" : "pr-4"
+                  )}
                 />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchInput("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors"
-              >
-                <option value="all">All Books</option>
-                <option value="to-read">To Read</option>
-                <option value="read-next">Read Next</option>
-                <option value="reading">Reading</option>
-                <option value="read">Read</option>
-              </select>
-            </div>
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px]"
+                >
+                  <span>
+                    {statusFilter === "all"
+                      ? "All Books"
+                      : statusFilter === "to-read"
+                      ? "To Read"
+                      : statusFilter === "read-next"
+                      ? "Read Next"
+                      : statusFilter === "reading"
+                      ? "Reading"
+                      : "Read"}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 transition-transform ml-auto",
+                      showStatusDropdown && "rotate-180"
+                    )}
+                  />
+                </button>
 
-            <button
-              type="submit"
-              className="px-6 py-2 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold"
-            >
-              Search
-            </button>
+                {/* Dropdown Menu */}
+                {showStatusDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
+                    {[
+                      { value: "all", label: "All Books", icon: LibraryIcon },
+                      { value: "to-read", label: "To Read", icon: Bookmark },
+                      { value: "read-next", label: "Read Next", icon: Clock },
+                      { value: "reading", label: "Reading", icon: BookOpen },
+                      { value: "read", label: "Read", icon: BookCheck },
+                    ].map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            setStatusFilter(option.value);
+                            setShowStatusDropdown(false);
+                          }}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            statusFilter === option.value && "bg-[var(--accent)]/10"
+                          )}
+                        >
+                          <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
+                          <span className="font-medium flex-1">{option.label}</span>
+                          {statusFilter === option.value && (
+                            <Check className="w-5 h-5 text-[var(--accent)]" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Tag Filter Row */}
