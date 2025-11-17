@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck } from "lucide-react";
 import { format } from "date-fns";
@@ -44,6 +44,7 @@ interface ProgressEntry {
 
 export default function BookDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const bookId = params?.id as string;
 
   const [book, setBook] = useState<Book | null>(null);
@@ -160,6 +161,7 @@ export default function BookDetailPage() {
 
         fetchProgress();
         toast.success("Progress logged!");
+        router.refresh(); // Refresh server-cached data
       }
     } catch (error) {
       console.error("Failed to log progress:", error);
@@ -190,6 +192,7 @@ export default function BookDetailPage() {
         setSelectedStatus(newStatus);
         fetchBook();
         toast.success("Status updated");
+        router.refresh(); // Refresh server-cached data
       }
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -236,6 +239,7 @@ export default function BookDetailPage() {
         fetchBook();
         fetchProgress();
         toast.success("Marked as read!");
+        router.refresh(); // Refresh server-cached data
       }
     } catch (error) {
       console.error("Failed to mark book as read:", error);
@@ -260,6 +264,7 @@ export default function BookDetailPage() {
         setTotalPages("");
         fetchBook();
         toast.success("Pages updated");
+        router.refresh(); // Refresh server-cached data
       }
     } catch (error) {
       console.error("Failed to update total pages:", error);

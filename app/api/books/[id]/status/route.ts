@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongodb";
 import ReadingStatus from "@/models/ReadingStatus";
 
@@ -83,6 +84,11 @@ export async function POST(
         ...updateData,
       });
     }
+
+    // Revalidate pages that display book status/reading lists
+    revalidatePath("/"); // Dashboard
+    revalidatePath("/library"); // Library page
+    revalidatePath("/stats"); // Stats page
 
     return NextResponse.json(readingStatus);
   } catch (error) {

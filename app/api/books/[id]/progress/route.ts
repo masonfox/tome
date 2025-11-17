@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
 import ProgressLog from "@/models/ProgressLog";
@@ -78,7 +79,19 @@ export async function POST(
     });
 
     // Update streak
-    await updateStreaks();
+    try {
+      console.log("[Streak] Updating streak after progress log");
+      const updatedStreak = await updateStreaks();
+      console.log("[Streak] Updated:", {
+        currentStreak: updatedStreak.currentStreak,
+        longestStreak: updatedStreak.longestStreak,
+        lastActivityDate: updatedStreak.lastActivityDate,
+        totalDaysActive: updatedStreak.totalDaysActive,
+      });
+    } catch (streakError) {
+      console.error("[Streak] Failed to update streak:", streakError);
+      // Don't fail the entire request if streak update fails
+    }
 
     // If book is completed, update status
     if (finalCurrentPercentage >= 100) {
@@ -96,6 +109,10 @@ export async function POST(
         });
       }
     }
+
+    // Revalidate pages that display streak data
+    revalidatePath("/"); // Dashboard
+    revalidatePath("/stats"); // Stats page
 
     return NextResponse.json(progressLog);
   } catch (error) {
