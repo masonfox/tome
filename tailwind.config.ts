@@ -12,6 +12,9 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        serif: ["Crimson Text", "Lora", "serif"],
+      },
     },
   },
   plugins: [],

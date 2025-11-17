@@ -14,9 +14,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const savedMode = localStorage.getItem("darkMode");
+                if (savedMode !== null) {
+                  document.documentElement.setAttribute("data-theme", savedMode === "true" ? "dark" : "light");
+                } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                  document.documentElement.setAttribute("data-theme", "dark");
+                } else {
+                  document.documentElement.setAttribute("data-theme", "light");
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="bg-[var(--background)] text-[var(--foreground)]">
         <Navigation />
-        <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <main className="container mx-auto px-4 py-12 max-w-7xl">
           {children}
         </main>
       </body>

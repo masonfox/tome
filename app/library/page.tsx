@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { BookCard } from "@/components/BookCard";
-import { Search, Filter, RefreshCw } from "lucide-react";
+import { Search, Filter, RefreshCw, Library as LibraryIcon } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface Book {
@@ -130,12 +130,13 @@ export default function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-5xl font-serif font-bold text-[var(--foreground)] flex items-center gap-3">
+            <LibraryIcon className="w-8 h-8" />
             Library
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-[var(--foreground)]/70 mt-2 font-light">
             {totalBooks} {totalBooks === 1 ? "book" : "books"}
           </p>
         </div>
@@ -144,7 +145,7 @@ export default function LibraryPage() {
           onClick={syncCalibre}
           disabled={syncing}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors",
+            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold",
             syncing && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -154,27 +155,27 @@ export default function LibraryPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700">
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-4">
         <form onSubmit={handleSearch} className="flex gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
               <input
                 type="text"
                 placeholder="Search books..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-400" />
+            <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors"
             >
               <option value="all">All Books</option>
               <option value="to-read">To Read</option>
@@ -185,7 +186,7 @@ export default function LibraryPage() {
 
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold"
           >
             Search
           </button>
@@ -195,8 +196,8 @@ export default function LibraryPage() {
       {/* Books Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600 dark:text-gray-400 mt-4">
+          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[var(--foreground)]/70 mt-4 font-light">
             Loading books...
           </p>
         </div>
@@ -221,16 +222,16 @@ export default function LibraryPage() {
           {/* Loading indicator for next page */}
           {loadingMore && (
             <div className="text-center py-8">
-              <div className="inline-block w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
+              <div className="inline-block w-6 h-6 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[var(--foreground)]/70 mt-2 font-light">
                 Loading more books...
               </p>
             </div>
           )}
         </>
       ) : (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-12 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-12 text-center">
+          <p className="text-[var(--foreground)]/70 font-light">
             No books found. Try syncing with Calibre or adjusting your filters.
           </p>
         </div>

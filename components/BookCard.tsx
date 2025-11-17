@@ -22,51 +22,51 @@ export function BookCard({
   className,
 }: BookCardProps) {
   const statusColors = {
-    "to-read": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-    reading: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    read: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+    "to-read": "bg-[#deb887] text-[#5c4033]",
+    reading: "bg-[#d4af85] text-[#3a3a3a]",
+    read: "bg-[#c9a876] text-[#3a3a3a]",
   };
 
   const statusLabels = {
-    "to-read": "To Read",
-    reading: "Reading",
-    read: "Read",
+    "to-read": "WANT TO READ",
+    reading: "READING",
+    read: "READ",
   };
 
   return (
     <Link href={`/books/${id}`}>
       <div
         className={cn(
-          "bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer",
+          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group",
           className
         )}
       >
-        <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+        <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
           {coverPath ? (
             <img
               src={coverPath}
               alt={title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
               loading="lazy"
             />
           ) : (
-            <BookOpen className="w-16 h-16 text-gray-400" />
+            <BookOpen className="w-16 h-16 text-[var(--accent)]/40" />
           )}
         </div>
 
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1">
+        <div className="p-4 space-y-2">
+          <h3 className="font-serif text-sm font-semibold text-[var(--foreground)] line-clamp-2 leading-snug">
             {title}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+          <p className="text-xs text-[var(--foreground)]/70 line-clamp-1 font-light">
             {authors.join(", ")}
           </p>
 
           {status && (
-            <div className="mt-3">
+            <div className="pt-2">
               <span
                 className={cn(
-                  "text-xs px-2 py-1 rounded-full font-medium",
+                  "inline-block text-xs px-2 py-1 font-medium tracking-wide uppercase",
                   statusColors[status as keyof typeof statusColors]
                 )}
               >
@@ -76,14 +76,14 @@ export function BookCard({
           )}
 
           {currentProgress !== undefined && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                <span>Progress</span>
-                <span>{Math.round(currentProgress)}%</span>
+            <div className="pt-3 border-t border-[var(--border-color)]">
+              <div className="flex items-center justify-between text-xs text-[var(--foreground)]/60 mb-2">
+                <span>READ</span>
+                <span className="font-semibold">{Math.round(currentProgress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-[var(--border-color)] h-1.5">
                 <div
-                  className="bg-green-500 h-2 rounded-full transition-all"
+                  className="bg-[var(--accent)] h-1.5 transition-all"
                   style={{ width: `${Math.min(100, currentProgress)}%` }}
                 />
               </div>

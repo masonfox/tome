@@ -2,48 +2,76 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Library, BarChart3, Settings } from "lucide-react";
+import { BookOpen, Library, BarChart3, Settings, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
-import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export function Navigation() {
   const pathname = usePathname();
+  const [darkMode, setDarkMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Get current theme from DOM (already set by layout script)
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    setDarkMode(currentTheme === "dark");
+  }, []);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  const applyTheme = (isDark: boolean) => {
+    const html = document.documentElement;
+    html.setAttribute("data-theme", isDark ? "dark" : "light");
+  };
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("darkMode", newMode.toString());
+    applyTheme(newMode);
+  };
 
   const links = [
-    { href: "/", label: "Dashboard", icon: BookOpen },
-    { href: "/library", label: "Library", icon: Library },
-    { href: "/stats", label: "Statistics", icon: BarChart3 },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/", label: "DASHBOARD", icon: BookOpen },
+    { href: "/library", label: "LIBRARY", icon: Library },
+    { href: "/stats", label: "STATS", icon: BarChart3 },
+    { href: "/settings", label: "SETTINGS", icon: Settings },
   ];
 
   return (
-    <nav className="border-b bg-white dark:bg-gray-900 dark:border-gray-800">
+    <nav className="bg-[var(--card-bg)] border-b border-[var(--border-color)] sticky top-0 z-50">
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <Image 
-              src="/logo.png" 
-              alt="Tome logo" 
-              width={32} 
-              height={32}
-              className="w-8 h-8"
-            />
-            <span className="text-xl font-bold text-gray-900 dark:text-white">Tome</span>
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[var(--accent)] flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-2xl font-serif font-bold text-[var(--foreground)]">
+              Tome
+            </span>
           </Link>
-          <div className="flex space-x-4">
+
+          {/* Center Navigation */}
+          <div className="hidden md:flex items-center gap-8">
             {links.map((link) => {
-              const Icon = link.icon;
               const isActive = pathname === link.href;
+              const Icon = link.icon;
 
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={clsx(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "flex items-center gap-2 text-xs font-medium tracking-wider uppercase transition-colors py-2 border-b-2",
                     isActive
-                      ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                      ? "text-[var(--accent)] border-[var(--accent)]"
+                      : "text-[var(--foreground)]/70 border-transparent hover:text-[var(--accent)]"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -52,7 +80,72 @@ export function Navigation() {
               );
             })}
           </div>
+
+          {/* Right side controls */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
+              title={darkMode ? "Light mode" : "Dark mode"}
+              aria-label="Toggle dark mode"
+            >
+              {!mounted ? (
+                <Moon className="w-5 h-5" />
+              ) : darkMode ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
+            <div className="md:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-[var(--foreground)] hover:text-[var(--accent)]"
+                aria-label="Toggle mobile menu"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-[var(--bg)] border-t border-[var(--border-color)] py-4">
+            {links.map((link) => {
+              const isActive = pathname === link.href;
+              const Icon = link.icon;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={clsx(
+                    "flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wider uppercase transition-colors",
+                    isActive
+                      ? "text-[var(--accent)] bg-[var(--accent)]/10"
+                      : "text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </nav>
   );

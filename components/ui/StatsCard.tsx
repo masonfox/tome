@@ -19,26 +19,26 @@ export function StatsCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700",
+        "bg-[var(--card-bg)] border border-[var(--border-color)] p-6 hover:shadow-md transition-shadow",
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          <p className="text-xs uppercase tracking-wide font-light text-[var(--foreground)]/70">
             {title}
           </p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          <p className="text-4xl font-serif font-bold text-[var(--foreground)] mt-3">
             {value}
           </p>
           {subtitle && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-[var(--foreground)]/60 mt-2 font-light">
               {subtitle}
             </p>
           )}
         </div>
         {icon && (
-          <div className="text-gray-400 dark:text-gray-500">{icon}</div>
+          <div className="text-[var(--accent)]/60">{icon}</div>
         )}
       </div>
     </div>

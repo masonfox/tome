@@ -17,38 +17,48 @@ export function StreakDisplay({
   return (
     <div
       className={cn(
-        "bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-lg p-6 text-white",
+        "bg-[var(--card-bg)] border border-[var(--border-color)] p-8",
         className
       )}
     >
-      <div className="flex items-center gap-3 mb-4">
-        <Flame className="w-8 h-8" />
-        <h2 className="text-2xl font-bold">Reading Streak</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <Flame className="w-8 h-8 text-[var(--accent)]" />
+        <h2 className="text-2xl font-serif font-bold text-[var(--foreground)]">
+          Reading Streak
+        </h2>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-          <p className="text-sm opacity-90">Current Streak</p>
-          <p className="text-4xl font-bold mt-1">{currentStreak}</p>
-          <p className="text-sm opacity-90 mt-1">
+      <div className="grid grid-cols-2 gap-6">
+        <div className="border-r border-[var(--border-color)] pr-6">
+          <p className="text-xs uppercase tracking-wide font-light text-[var(--foreground)]/70">
+            Current Streak
+          </p>
+          <p className="text-5xl font-serif font-bold text-[var(--accent)] mt-2">
+            {currentStreak}
+          </p>
+          <p className="text-sm text-[var(--foreground)]/60 mt-1 font-light">
             {currentStreak === 1 ? "day" : "days"}
           </p>
         </div>
 
-        <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-          <p className="text-sm opacity-90">Best Streak</p>
-          <p className="text-4xl font-bold mt-1">{longestStreak}</p>
-          <p className="text-sm opacity-90 mt-1">
+        <div className="pl-6">
+          <p className="text-xs uppercase tracking-wide font-light text-[var(--foreground)]/70">
+            Best Streak
+          </p>
+          <p className="text-5xl font-serif font-bold text-[var(--light-accent)] mt-2">
+            {longestStreak}
+          </p>
+          <p className="text-sm text-[var(--foreground)]/60 mt-1 font-light">
             {longestStreak === 1 ? "day" : "days"}
           </p>
         </div>
       </div>
 
       {currentStreak > 0 && (
-        <p className="text-sm mt-4 opacity-90">
+        <p className="text-sm mt-6 pt-6 border-t border-[var(--border-color)] text-[var(--foreground)]/70 font-light">
           {currentStreak >= longestStreak
-            ? "You're on fire! Keep it up!"
-            : "Keep reading to beat your record!"}
+            ? "✓ You're on fire! Keep it up!"
+            : "✓ Keep reading to beat your record!"}
         </p>
       )}
     </div>

@@ -2,22 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e8dcc4;
+  --foreground: #3a3a3a;
+  --accent: #8b6f47;
+  --light-accent: #c9a876;
+  --card-bg: #f5f1e8;
+  --border-color: #d4cbbe;
 }
 
+/* Dark mode via data attribute */
+html[data-theme="dark"] {
+  --background: #2a2622;
+  --foreground: #e8dcc4;
+  --accent: #a89968;
+  --light-accent: #c9a876;
+  --card-bg: #3d3935;
+  --border-color: #4a4640;
+}
+
+/* Light mode explicitly set */
+html[data-theme="light"] {
+  --background: #e8dcc4;
+  --foreground: #3a3a3a;
+  --accent: #8b6f47;
+  --light-accent: #c9a876;
+  --card-bg: #f5f1e8;
+  --border-color: #d4cbbe;
+}
+
+/* System preference fallback only if no manual preference saved */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html:not([data-theme]) {
+    --background: #2a2622;
+    --foreground: #e8dcc4;
+    --accent: #a89968;
+    --light-accent: #c9a876;
+    --card-bg: #3d3935;
+    --border-color: #4a4640;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Lora', 'Crimson Text', serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @layer utilities {

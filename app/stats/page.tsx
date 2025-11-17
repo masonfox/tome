@@ -5,6 +5,7 @@ import {
   TrendingUp,
   Calendar,
   Flame,
+  BarChart3,
 } from "lucide-react";
 
 async function getStats() {
@@ -50,12 +51,13 @@ export default async function StatsPage() {
   const streak = await getStreak();
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+    <div className="space-y-10">
+      <div className="border-b border-[var(--border-color)] pb-6">
+        <h1 className="text-5xl font-serif font-bold text-[var(--foreground)] flex items-center gap-3">
+          <BarChart3 className="w-8 h-8" />
           Reading Statistics
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-[var(--foreground)]/70 mt-2 font-light">
           Track your reading progress and achievements
         </p>
       </div>
@@ -63,7 +65,7 @@ export default async function StatsPage() {
       {/* Streak Stats */}
       {streak && (
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
             Reading Streaks
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -71,22 +73,19 @@ export default async function StatsPage() {
               title="Current Streak"
               value={streak.currentStreak}
               subtitle={streak.currentStreak === 1 ? "day" : "days"}
-              icon={<Flame className="w-6 h-6 text-orange-500" />}
-              className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20"
+              icon={<Flame className="w-6 h-6" />}
             />
             <StatsCard
               title="Longest Streak"
               value={streak.longestStreak}
               subtitle={streak.longestStreak === 1 ? "day" : "days"}
-              icon={<Flame className="w-6 h-6 text-red-600" />}
-              className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20"
+              icon={<Flame className="w-6 h-6" />}
             />
             <StatsCard
               title="Total Active Days"
               value={streak.totalDaysActive}
               subtitle="All time"
-              icon={<Calendar className="w-6 h-6 text-blue-500" />}
-              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+              icon={<Calendar className="w-6 h-6" />}
             />
           </div>
         </div>
@@ -96,7 +95,7 @@ export default async function StatsPage() {
       {stats && (
         <>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
               Books Read
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -122,7 +121,7 @@ export default async function StatsPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
               Pages Read
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -148,14 +147,13 @@ export default async function StatsPage() {
                 title="Today"
                 value={stats.pagesRead.today.toLocaleString()}
                 subtitle="Pages read"
-                icon={<Flame className="w-6 h-6 text-orange-500" />}
-                className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20"
+                icon={<Flame className="w-6 h-6" />}
               />
             </div>
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
               Reading Velocity
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,7 +162,6 @@ export default async function StatsPage() {
                 value={stats.avgPagesPerDay}
                 subtitle="Last 30 days"
                 icon={<TrendingUp className="w-6 h-6" />}
-                className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20"
               />
             </div>
           </div>
