@@ -78,6 +78,16 @@ export default function BookDetailPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Load saved progress input mode preference
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedMode = localStorage.getItem("progressInputMode");
+      if (savedMode === "page" || savedMode === "percentage") {
+        setProgressInputMode(savedMode);
+      }
+    }
+  }, []);
+
   async function fetchBook() {
     try {
       const response = await fetch(`/api/books/${bookId}`);
@@ -568,6 +578,7 @@ export default function BookDetailPage() {
                 type="button"
                 onClick={() => {
                   setProgressInputMode("page");
+                  localStorage.setItem("progressInputMode", "page");
                   if (book.latestProgress) {
                     setCurrentPage(book.latestProgress.currentPage.toString());
                   }
@@ -585,6 +596,7 @@ export default function BookDetailPage() {
                 type="button"
                 onClick={() => {
                   setProgressInputMode("percentage");
+                  localStorage.setItem("progressInputMode", "percentage");
                   if (book.latestProgress) {
                     setCurrentPercentage(book.latestProgress.currentPercentage.toString());
                   }
