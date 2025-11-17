@@ -41,6 +41,7 @@ export interface CalibreBook {
   timestamp: string;
   path: string;
   has_cover: number;
+  description: string | null;
 }
 
 export function getAllBooks(): CalibreBook[] {
@@ -65,13 +66,15 @@ export function getAllBooks(): CalibreBook[] {
       GROUP_CONCAT(DISTINCT a.name) as authors,
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
-      GROUP_CONCAT(DISTINCT i.val) as isbn
+      GROUP_CONCAT(DISTINCT i.val) as isbn,
+      c.text as description
     FROM books b
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
     ${hasPublisher ? 'LEFT JOIN publishers p ON b.publisher = p.id' : ''}
     ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
+    LEFT JOIN comments c ON b.id = c.book
     GROUP BY b.id
     ORDER BY b.title
   `;
@@ -101,13 +104,15 @@ export function getBookById(id: number): CalibreBook | undefined {
       GROUP_CONCAT(DISTINCT a.name) as authors,
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
-      GROUP_CONCAT(DISTINCT i.val) as isbn
+      GROUP_CONCAT(DISTINCT i.val) as isbn,
+      c.text as description
     FROM books b
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
     ${hasPublisher ? 'LEFT JOIN publishers p ON b.publisher = p.id' : ''}
     ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
+    LEFT JOIN comments c ON b.id = c.book
     WHERE b.id = ?
     GROUP BY b.id
   `;
@@ -137,13 +142,15 @@ export function searchBooks(query: string): CalibreBook[] {
       GROUP_CONCAT(DISTINCT a.name) as authors,
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
-      GROUP_CONCAT(DISTINCT i.val) as isbn
+      GROUP_CONCAT(DISTINCT i.val) as isbn,
+      c.text as description
     FROM books b
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
     ${hasPublisher ? 'LEFT JOIN publishers p ON b.publisher = p.id' : ''}
     ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
+    LEFT JOIN comments c ON b.id = c.book
     WHERE b.title LIKE ? OR a.name LIKE ?
     GROUP BY b.id
     ORDER BY b.title

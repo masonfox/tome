@@ -15,6 +15,7 @@ interface Book {
   publisher?: string;
   pubDate?: string;
   series?: string;
+  description?: string;
   tags: string[];
   status?: {
     status: string;
@@ -41,7 +42,7 @@ interface ProgressEntry {
 
 export default function BookDetailPage() {
   const params = useParams();
-  const bookId = params.id as string;
+  const bookId = params?.id as string;
 
   const [book, setBook] = useState<Book | null>(null);
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
@@ -248,7 +249,7 @@ export default function BookDetailPage() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -256,7 +257,7 @@ export default function BookDetailPage() {
   if (!book) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600 dark:text-gray-400">Book not found</p>
+        <p className="text-[var(--foreground)]/60">Book not found</p>
       </div>
     );
   }
@@ -268,7 +269,7 @@ export default function BookDetailPage() {
       {/* Book Header */}
       <div className="grid md:grid-cols-[250px_1fr] gap-8">
         {/* Cover */}
-        <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center">
           {book.coverPath ? (
             <img
               src={book.coverPath}
@@ -277,60 +278,60 @@ export default function BookDetailPage() {
               loading="eager"
             />
           ) : (
-            <BookOpen className="w-24 h-24 text-gray-400" />
+            <BookOpen className="w-24 h-24 text-[var(--foreground)]/40" />
           )}
         </div>
 
         {/* Info */}
         <div className="space-y-6">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-4xl font-serif font-bold text-[var(--foreground)] mb-2">
               {book.title}
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
+            <p className="text-xl text-[var(--foreground)]/70">
               {book.authors.join(", ")}
             </p>
 
             {book.series && (
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+              <p className="text-sm text-[var(--foreground)]/60 mt-1 font-light">
                 {book.series}
               </p>
             )}
           </div>
 
           {/* Metadata */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm border-t border-[var(--border-color)] pt-4">
             {book.publisher && (
               <div>
-                <span className="text-gray-500 dark:text-gray-400">
-                  Publisher:
+                <span className="text-[var(--foreground)]/60 font-light uppercase tracking-wide text-xs">
+                  Publisher
                 </span>
-                <span className="ml-2 text-gray-900 dark:text-white">
+                <p className="text-[var(--foreground)] mt-1">
                   {book.publisher}
-                </span>
+                </p>
               </div>
             )}
             <div>
-              <span className="text-gray-500 dark:text-gray-400">
-                Pages:
+              <span className="text-[var(--foreground)]/60 font-light uppercase tracking-wide text-xs">
+                Pages
               </span>
-              <span className="ml-2 text-gray-900 dark:text-white">
+              <p className="text-[var(--foreground)] mt-1">
                 {book.totalPages || "Not set"}
-              </span>
+              </p>
             </div>
           </div>
 
           {/* Tags */}
           {book.tags.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
                 Tags
               </label>
               <div className="flex flex-wrap gap-2">
                 {book.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm"
+                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] rounded text-sm font-light"
                   >
                     {tag}
                   </span>
@@ -339,10 +340,22 @@ export default function BookDetailPage() {
             </div>
           )}
 
+          {/* Description */}
+          {book.description && (
+            <div>
+              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
+                Description
+              </label>
+              <p className="text-sm text-[var(--foreground)]/80 font-light leading-relaxed whitespace-pre-wrap">
+                {book.description.replace(/<[^>]*>/g, "")}
+              </p>
+            </div>
+          )}
+
           {/* Pages Setting - Required Before Status Change */}
           {!book.totalPages && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-3">
+            <div className="bg-[var(--light-accent)]/10 border border-[var(--light-accent)]/40 rounded-lg p-4">
+              <p className="text-sm font-light text-[var(--foreground)] mb-3">
                 📖 Set total pages first to track your reading progress
               </p>
               <form onSubmit={handleUpdateTotalPages} className="flex gap-2">
@@ -351,13 +364,13 @@ export default function BookDetailPage() {
                   value={totalPages}
                   onChange={(e) => setTotalPages(e.target.value)}
                   min="1"
-                  className="flex-1 px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                   placeholder="Total pages in this book"
                   autoFocus
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
                 >
                   Set Pages
                 </button>
@@ -367,7 +380,7 @@ export default function BookDetailPage() {
 
           {/* Status Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
               Reading Status
             </label>
             <div className="flex gap-2">
@@ -380,12 +393,12 @@ export default function BookDetailPage() {
                     disabled={isDisabled}
                     title={isDisabled ? "Set total pages first to track reading progress" : ""}
                     className={cn(
-                      "px-4 py-2 rounded-lg font-medium transition-colors",
+                      "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
                       selectedStatus === status
-                        ? "bg-blue-600 text-white"
+                        ? "bg-[var(--accent)] text-white"
                         : isDisabled
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                        ? "bg-[var(--card-bg)] text-[var(--foreground)]/40 cursor-not-allowed"
+                        : "bg-[var(--card-bg)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
                     )}
                   >
                     {status === "to-read"
@@ -402,17 +415,17 @@ export default function BookDetailPage() {
           {/* Progress Bar */}
           {book.totalPages && (
             <div>
-              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                <span>Progress</span>
-                <span>{Math.round(progressPercentage)}%</span>
+              <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-3 font-light">
+                <span>PROGRESS</span>
+                <span className="font-semibold">{Math.round(progressPercentage)}%</span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+              <div className="w-full bg-[var(--border-color)] rounded-full h-2">
                 <div
-                  className="bg-green-500 h-3 rounded-full transition-all"
+                  className="bg-[var(--accent)] h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(100, progressPercentage)}%` }}
                 />
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-[var(--foreground)]/60 mt-2 font-light">
                 Page {book.latestProgress?.currentPage || 0} of {book.totalPages}
               </p>
             </div>
@@ -422,14 +435,14 @@ export default function BookDetailPage() {
 
       {/* Progress Tracker */}
       {book.totalPages && selectedStatus === "reading" && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
             Log Progress
           </h2>
 
           <form onSubmit={handleLogProgress} className="space-y-4">
             {/* Input Mode Toggle */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
+            <div className="flex gap-2 border-b border-[var(--border-color)] pb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -439,10 +452,10 @@ export default function BookDetailPage() {
                   }
                 }}
                 className={cn(
-                  "px-4 py-2 rounded-lg font-medium transition-colors",
+                  "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
                   progressInputMode === "page"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    ? "bg-[var(--accent)] text-white"
+                    : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
                 )}
               >
                 By Page
@@ -456,10 +469,10 @@ export default function BookDetailPage() {
                   }
                 }}
                 className={cn(
-                  "px-4 py-2 rounded-lg font-medium transition-colors",
+                  "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
                   progressInputMode === "percentage"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    ? "bg-[var(--accent)] text-white"
+                    : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
                 )}
               >
                 By Percentage
@@ -469,7 +482,7 @@ export default function BookDetailPage() {
             {/* Page Input */}
             {progressInputMode === "page" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
                   Current Page
                 </label>
                 <input
@@ -479,7 +492,7 @@ export default function BookDetailPage() {
                   min="0"
                   max={book.totalPages}
                   step="1"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                   placeholder="Enter current page"
                 />
               </div>
@@ -488,7 +501,7 @@ export default function BookDetailPage() {
             {/* Percentage Input */}
             {progressInputMode === "percentage" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
                   Progress Percentage
                 </label>
                 <div className="flex gap-2">
@@ -499,10 +512,10 @@ export default function BookDetailPage() {
                     min="0"
                     max="100"
                     step="1"
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                     placeholder="Enter percentage (0-100)"
                   />
-                  <span className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">
+                  <span className="flex items-center px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)]/70 rounded-lg">
                     %
                   </span>
                 </div>
@@ -510,21 +523,21 @@ export default function BookDetailPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
                 Notes (optional)
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 placeholder="Add notes about this reading session..."
               />
             </div>
 
             <button
               type="submit"
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold uppercase tracking-wide"
             >
               Log Progress
             </button>
@@ -534,8 +547,8 @@ export default function BookDetailPage() {
 
       {/* Progress History */}
       {progress.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
             Progress History
           </h2>
 
@@ -543,24 +556,24 @@ export default function BookDetailPage() {
             {progress.map((entry) => (
               <div
                 key={entry._id}
-                className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
               >
-                <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                <Calendar className="w-5 h-5 text-[var(--accent)]/60 mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-semibold text-[var(--foreground)]">
                       Page {entry.currentPage}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-[var(--foreground)]/60 font-light">
                       {format(new Date(entry.progressDate), "MMM d, yyyy")}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <p className="text-sm text-[var(--foreground)]/70 font-light">
                     {Math.round(entry.currentPercentage)}% complete
                     {entry.pagesRead > 0 && ` • ${entry.pagesRead} pages read`}
                   </p>
                   {entry.notes && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
+                    <p className="text-sm text-[var(--foreground)]/60 mt-2 italic font-light">
                       {entry.notes}
                     </p>
                   )}
@@ -574,26 +587,26 @@ export default function BookDetailPage() {
       {/* Read Confirmation Dialog */}
       {showReadConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-xl font-serif font-bold text-[var(--foreground)] mb-2">
               Mark as Read?
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-[var(--foreground)]/70 mb-4 font-light">
               Marking this book as read will set your progress to 100%.
             </p>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-bold">
+            <p className="text-[var(--foreground)] mb-6 font-semibold">
               Are you sure you've finished reading?
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowReadConfirmation(false)}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmRead}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
               >
                 Confirm
               </button>

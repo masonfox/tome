@@ -15,6 +15,7 @@ export interface IBook extends Document {
   seriesIndex?: number;
   tags: string[];
   path: string;
+  description?: string;
   orphaned?: boolean;
   orphanedAt?: Date;
 }
@@ -35,6 +36,7 @@ const BookSchema = new Schema<IBook>(
     seriesIndex: { type: Number },
     tags: [{ type: String }],
     path: { type: String, required: true },
+    description: { type: String },
     orphaned: { type: Boolean, default: false },
     orphanedAt: { type: Date },
   },
