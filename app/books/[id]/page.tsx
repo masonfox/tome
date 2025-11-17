@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { BookOpen, Calendar, TrendingUp, Star } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 
@@ -55,11 +56,25 @@ export default function BookDetailPage() {
   const [rating, setRating] = useState(0);
   const [totalPages, setTotalPages] = useState("");
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchBook();
     fetchProgress();
   }, [bookId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowStatusDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function fetchBook() {
     try {
@@ -268,157 +283,192 @@ export default function BookDetailPage() {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Book Header */}
       <div className="grid md:grid-cols-[250px_1fr] gap-8">
-        {/* Cover */}
-        <div className="aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center">
-          {book.coverPath ? (
-            <img
-              src={book.coverPath}
-              alt={book.title}
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
-          ) : (
-            <BookOpen className="w-24 h-24 text-[var(--foreground)]/40" />
-          )}
+        {/* Left Column - Cover and Status */}
+        <div className="space-y-4">
+          {/* Cover */}
+          <div className="aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center">
+            {book.coverPath ? (
+              <img
+                src={book.coverPath}
+                alt={book.title}
+                className="w-full h-full object-cover"
+                loading="eager"
+              />
+            ) : (
+              <BookOpen className="w-24 h-24 text-[var(--foreground)]/40" />
+            )}
+          </div>
+
+          {/* Status Dropdown */}
+          <div className="space-y-2">
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className="w-full px-4 py-2.5 bg-[var(--accent)] text-white font-semibold rounded cursor-pointer hover:bg-[var(--light-accent)] transition-colors flex items-center justify-between"
+              >
+                <span>
+                  {selectedStatus === "to-read"
+                    ? "Want to Read"
+                    : selectedStatus === "read-next"
+                    ? "Read Next"
+                    : selectedStatus === "reading"
+                    ? "Reading"
+                    : "Read"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-5 h-5 transition-transform",
+                    showStatusDropdown && "rotate-180"
+                  )}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showStatusDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
+                  {[
+                    { value: "to-read", label: "Want to Read", disabled: false },
+                    { value: "read-next", label: "Read Next", disabled: false },
+                    { value: "reading", label: "Reading", disabled: !book.totalPages },
+                    { value: "read", label: "Read", disabled: !book.totalPages },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        if (!option.disabled) {
+                          handleUpdateStatus(option.value);
+                          setShowStatusDropdown(false);
+                        }
+                      }}
+                      disabled={option.disabled}
+                      className={cn(
+                        "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group",
+                        option.disabled
+                          ? "cursor-not-allowed bg-[var(--card-bg)]"
+                          : "cursor-pointer hover:bg-[var(--background)]",
+                        selectedStatus === option.value && !option.disabled && "bg-[var(--accent)]/10"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 flex-1">
+                        {option.disabled && (
+                          <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
+                        )}
+                        <div className="flex flex-col">
+                          <span
+                            className={cn(
+                              "font-medium",
+                              option.disabled
+                                ? "text-[var(--foreground)]/40"
+                                : "text-[var(--foreground)]"
+                            )}
+                          >
+                            {option.label}
+                          </span>
+                          {option.disabled && (
+                            <span className="text-xs text-[var(--foreground)]/30 mt-0.5">
+                              Set pages
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {selectedStatus === option.value && !option.disabled && (
+                        <Check className="w-5 h-5 text-[var(--accent)]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Rating */}
+            {selectedStatus === "read" && (
+              <div className="flex justify-center gap-1 py-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => {
+                      setRating(star);
+                      handleUpdateStatus("read");
+                    }}
+                    className="transition-colors"
+                  >
+                    <Star
+                      className={cn(
+                        "w-6 h-6",
+                        star <= rating
+                          ? "fill-[var(--accent)] text-[var(--accent)]"
+                          : "text-[var(--foreground)]/30"
+                      )}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Info */}
+        {/* Right Column - Info */}
         <div className="space-y-6">
           <div>
             <h1 className="text-4xl font-serif font-bold text-[var(--foreground)] mb-2">
               {book.title}
             </h1>
-            <p className="text-xl text-[var(--foreground)]/70">
-              {book.authors.join(", ")}
-            </p>
+            <div className="text-xl text-[var(--foreground)]/70 mb-3">
+              {book.authors.map((author, index) => (
+                <span key={author}>
+                  <Link
+                    href={`/library?search=${encodeURIComponent(author)}`}
+                    className="hover:text-[var(--accent)] transition-colors hover:underline"
+                  >
+                    {author}
+                  </Link>
+                  {index < book.authors.length - 1 && ", "}
+                </span>
+              ))}
+            </div>
 
             {book.series && (
-              <p className="text-sm text-[var(--foreground)]/60 mt-1 font-light">
+              <p className="text-sm text-[var(--foreground)]/60 mb-3 font-light italic">
                 {book.series}
               </p>
             )}
-          </div>
 
-          {/* Metadata */}
-          <div className="grid grid-cols-2 gap-4 text-sm border-t border-[var(--border-color)] pt-4">
-            {book.publisher && (
-              <div>
-                <span className="text-[var(--foreground)]/60 font-light uppercase tracking-wide text-xs">
-                  Publisher
-                </span>
-                <p className="text-[var(--foreground)] mt-1">
-                  {book.publisher}
-                </p>
-              </div>
-            )}
-            <div>
-              <span className="text-[var(--foreground)]/60 font-light uppercase tracking-wide text-xs">
-                Pages
-              </span>
-              <p className="text-[var(--foreground)] mt-1">
-                {book.totalPages || "Not set"}
-              </p>
-            </div>
-          </div>
-
-          {/* Tags */}
-          {book.tags.length > 0 && (
-            <div>
-              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
-                Tags
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {book.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] rounded text-sm font-light"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Description */}
-          {book.description && (
-            <div>
-              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
-                Description
-              </label>
-              <p className="text-sm text-[var(--foreground)]/80 font-light leading-relaxed whitespace-pre-wrap">
-                {book.description.replace(/<[^>]*>/g, "")}
-              </p>
-            </div>
-          )}
-
-          {/* Pages Setting - Required Before Status Change */}
-          {!book.totalPages && (
-            <div className="bg-[var(--light-accent)]/10 border border-[var(--light-accent)]/40 rounded-lg p-4">
-              <p className="text-sm font-light text-[var(--foreground)] mb-3">
-                📖 Set total pages first to track your reading progress
-              </p>
-              <form onSubmit={handleUpdateTotalPages} className="flex gap-2">
-                <input
-                  type="number"
-                  value={totalPages}
-                  onChange={(e) => setTotalPages(e.target.value)}
-                  min="1"
-                  className="flex-1 px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                  placeholder="Total pages in this book"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
-                >
-                  Set Pages
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* Status Selector */}
-          <div>
-            <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
-              Reading Status
-            </label>
-            <div className="flex gap-2">
-              {["to-read", "read-next", "reading", "read"].map((status) => {
-                const isDisabled = !book.totalPages && status !== "to-read" && status !== "read-next";
-                return (
-                  <button
-                    key={status}
-                    onClick={() => handleUpdateStatus(status)}
-                    disabled={isDisabled}
-                    title={isDisabled ? "Set total pages first to track reading progress" : ""}
-                    className={cn(
-                      "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
-                      selectedStatus === status
-                        ? "bg-[var(--accent)] text-white"
-                        : isDisabled
-                        ? "bg-[var(--card-bg)] text-[var(--foreground)]/40 cursor-not-allowed"
-                        : "bg-[var(--card-bg)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
-                    )}
-                  >
-                    {status === "to-read"
-                      ? "To Read"
-                      : status === "read-next"
-                      ? "Read Next"
-                      : status === "reading"
-                      ? "Reading"
-                      : "Read"}
-                  </button>
-                );
-              })}
+            {/* Metadata - integrated into header */}
+            <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--foreground)]/60">
+              {book.totalPages ? (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4" />
+                    <span className="font-medium">{book.totalPages.toLocaleString()} pages</span>
+                  </div>
+                  {(book.publisher || book.pubDate) && <span className="text-[var(--foreground)]/30">•</span>}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5 text-[var(--foreground)]/40 italic">
+                    <BookOpen className="w-4 h-4" />
+                    <span>Pages not set</span>
+                  </div>
+                  {(book.publisher || book.pubDate) && <span className="text-[var(--foreground)]/30">•</span>}
+                </>
+              )}
+              {book.publisher && (
+                <span>{book.publisher}</span>
+              )}
+              {book.pubDate && (
+                <>
+                  {book.publisher && <span className="text-[var(--foreground)]/30">•</span>}
+                  <span>Published {new Date(book.pubDate).getFullYear()}</span>
+                </>
+              )}
             </div>
           </div>
 
           {/* Progress Bar */}
-          {book.totalPages && (
+          {book.totalPages && selectedStatus === "reading" && (
             <div>
-              <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-3 font-light">
-                <span>PROGRESS</span>
+              <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-2 font-light">
+                <span>Progress</span>
                 <span className="font-semibold">{Math.round(progressPercentage)}%</span>
               </div>
               <div className="w-full bg-[var(--border-color)] rounded-full h-2">
@@ -430,6 +480,60 @@ export default function BookDetailPage() {
               <p className="text-sm text-[var(--foreground)]/60 mt-2 font-light">
                 Page {book.latestProgress?.currentPage || 0} of {book.totalPages}
               </p>
+            </div>
+          )}
+
+          {/* Pages Setting */}
+          {!book.totalPages && (
+            <div className="border-l-4 border-[var(--accent)] bg-[var(--card-bg)] pl-4 py-3">
+              <p className="text-sm text-[var(--foreground)]/70 mb-3">
+                Add page count to enable progress tracking
+              </p>
+              <form onSubmit={handleUpdateTotalPages} className="flex gap-2 max-w-xs">
+                <input
+                  type="number"
+                  value={totalPages}
+                  onChange={(e) => setTotalPages(e.target.value)}
+                  min="1"
+                  className="flex-1 px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  placeholder="e.g. 320"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[var(--accent)] text-white text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
+                >
+                  Save
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Description */}
+          {book.description && (
+            <div>
+              <p className="text-sm text-[var(--foreground)]/80 font-light leading-relaxed">
+                {book.description.replace(/<[^>]*>/g, "")}
+              </p>
+            </div>
+          )}
+
+          {/* Tags */}
+          {book.tags.length > 0 && (
+            <div>
+              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {book.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/library?tags=${encodeURIComponent(tag)}`}
+                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm font-light transition-colors"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>

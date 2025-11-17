@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { BookCard } from "@/components/BookCard";
 import { Search, Filter, RefreshCw, Library as LibraryIcon, X, Tag } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -16,7 +17,10 @@ interface Book {
 
 const BOOKS_PER_PAGE = 50;
 
-export default function LibraryPage() {
+function LibraryPageContent() {
+  const searchParams = useSearchParams();
+  const [isReady, setIsReady] = useState(false);
+
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -31,6 +35,26 @@ export default function LibraryPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalBooks, setTotalBooks] = useState(0);
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Initialize from URL params ONCE on mount
+  useEffect(() => {
+    const searchParam = searchParams.get("search");
+    const statusParam = searchParams.get("status");
+    const tagsParam = searchParams.get("tags");
+
+    if (searchParam) {
+      setSearch(searchParam);
+    }
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+    if (tagsParam) {
+      setSelectedTags([tagsParam]);
+    }
+
+    // Mark as ready after state has been set
+    setIsReady(true);
+  }, []);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -47,11 +71,14 @@ export default function LibraryPage() {
   }, []);
 
   useEffect(() => {
+    // Don't fetch until after URL params have been initialized
+    if (!isReady) return;
+
     setBooks([]);
     setCurrentPage(0);
     setHasMore(true);
     fetchBooks(0);
-  }, [statusFilter, search, selectedTags]);
+  }, [statusFilter, search, selectedTags, isReady]);
 
   async function fetchBooks(page: number) {
     if (page === 0) {
@@ -353,5 +380,17 @@ export default function LibraryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={
+      <div className="text-center py-12">
+        <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <LibraryPageContent />
+    </Suspense>
   );
 }
