@@ -3,6 +3,19 @@ import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById } from "@/lib/db/calibre";
 
+// Helper function to serve the placeholder "no cover" image
+function servePlaceholderImage() {
+  const placeholderPath = path.join(process.cwd(), "public", "cover-fallback.png");
+  const imageBuffer = readFileSync(placeholderPath);
+
+  return new NextResponse(imageBuffer, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { path: string[] } }
@@ -12,10 +25,7 @@ export async function GET(
 
     if (!CALIBRE_LIBRARY_PATH) {
       console.error("CALIBRE_LIBRARY_PATH not configured");
-      return NextResponse.json(
-        { error: "CALIBRE_LIBRARY_PATH not configured" },
-        { status: 500 }
-      );
+      return servePlaceholderImage();
     }
 
     // Extract book ID from the first path parameter
@@ -24,10 +34,7 @@ export async function GET(
 
     if (isNaN(bookId)) {
       console.error("Invalid book ID:", bookIdStr);
-      return NextResponse.json(
-        { error: "Invalid book ID" },
-        { status: 400 }
-      );
+      return servePlaceholderImage();
     }
 
     // Look up the book in Calibre to get its path
@@ -35,18 +42,12 @@ export async function GET(
 
     if (!calibreBook) {
       console.error("Book not found in Calibre:", bookId);
-      return NextResponse.json(
-        { error: "Book not found" },
-        { status: 404 }
-      );
+      return servePlaceholderImage();
     }
 
     if (!calibreBook.has_cover) {
       console.error("Book has no cover:", bookId);
-      return NextResponse.json(
-        { error: "Book has no cover" },
-        { status: 404 }
-      );
+      return servePlaceholderImage();
     }
 
     // Construct the file path
@@ -78,10 +79,7 @@ export async function GET(
     // Check if file exists
     if (!existsSync(resolvedPath)) {
       console.error("Image not found:", resolvedPath);
-      return NextResponse.json(
-        { error: "Image not found", path: resolvedPath },
-        { status: 404 }
-      );
+      return servePlaceholderImage();
     }
 
     // Read the file
@@ -108,9 +106,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Error serving cover image:", error);
-    return NextResponse.json(
-      { error: "Failed to serve image" },
-      { status: 500 }
-    );
+    return servePlaceholderImage();
   }
 }
