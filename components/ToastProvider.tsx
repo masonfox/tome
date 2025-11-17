@@ -8,6 +8,7 @@ export function ToastProvider() {
       position="top-center"
       expand={false}
       richColors
+      closeButton
       toastOptions={{
         classNames: {
           toast:
