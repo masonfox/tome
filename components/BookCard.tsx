@@ -23,12 +23,14 @@ export function BookCard({
 }: BookCardProps) {
   const statusColors = {
     "to-read": "bg-[#deb887] text-[#5c4033]",
+    "read-next": "bg-[#e8c5a0] text-[#4a3728]",
     reading: "bg-[#d4af85] text-[#3a3a3a]",
     read: "bg-[#c9a876] text-[#3a3a3a]",
   };
 
   const statusLabels = {
     "to-read": "WANT TO READ",
+    "read-next": "READ NEXT",
     reading: "READING",
     read: "READ",
   };

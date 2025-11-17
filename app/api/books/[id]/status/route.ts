@@ -35,9 +35,9 @@ export async function POST(
     const body = await request.json();
     const { status, rating, review, startedDate, completedDate } = body;
 
-    if (!status || !["to-read", "reading", "read"].includes(status)) {
+    if (!status || !["to-read", "read-next", "reading", "read"].includes(status)) {
       return NextResponse.json(
-        { error: "Invalid status. Must be 'to-read', 'reading', or 'read'" },
+        { error: "Invalid status. Must be 'to-read', 'read-next', 'reading', or 'read'" },
         { status: 400 }
       );
     }

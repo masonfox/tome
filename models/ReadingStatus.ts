@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export type StatusType = "to-read" | "reading" | "read";
+export type StatusType = "to-read" | "read-next" | "reading" | "read";
 
 export interface IReadingStatus extends Document {
   userId?: mongoose.Types.ObjectId;
@@ -20,7 +20,7 @@ const ReadingStatusSchema = new Schema<IReadingStatus>(
     bookId: { type: Schema.Types.ObjectId, ref: "Book", required: true },
     status: {
       type: String,
-      enum: ["to-read", "reading", "read"],
+      enum: ["to-read", "read-next", "reading", "read"],
       required: true,
       default: "to-read",
     },

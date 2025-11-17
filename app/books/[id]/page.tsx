@@ -384,8 +384,8 @@ export default function BookDetailPage() {
               Reading Status
             </label>
             <div className="flex gap-2">
-              {["to-read", "reading", "read"].map((status) => {
-                const isDisabled = !book.totalPages && status !== "to-read";
+              {["to-read", "read-next", "reading", "read"].map((status) => {
+                const isDisabled = !book.totalPages && status !== "to-read" && status !== "read-next";
                 return (
                   <button
                     key={status}
@@ -403,6 +403,8 @@ export default function BookDetailPage() {
                   >
                     {status === "to-read"
                       ? "To Read"
+                      : status === "read-next"
+                      ? "Read Next"
                       : status === "reading"
                       ? "Reading"
                       : "Read"}

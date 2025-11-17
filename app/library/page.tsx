@@ -203,6 +203,7 @@ export default function LibraryPage() {
               >
                 <option value="all">All Books</option>
                 <option value="to-read">To Read</option>
+                <option value="read-next">Read Next</option>
                 <option value="reading">Reading</option>
                 <option value="read">Read</option>
               </select>

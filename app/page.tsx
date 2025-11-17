@@ -64,10 +64,33 @@ async function getCurrentlyReading() {
   }
 }
 
+async function getReadNext() {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/books?status=read-next&limit=6`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      return { books: [] };
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Failed to fetch read next:", error);
+    return { books: [] };
+  }
+}
+
 export default async function Dashboard() {
   const stats = await getStats();
   const streak = await getStreak();
   const currentlyReading = await getCurrentlyReading();
+  const readNext = await getReadNext();
 
   return (
     <div className="space-y-10">
@@ -122,6 +145,50 @@ export default async function Dashboard() {
             <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
             <p className="text-[var(--foreground)]/70">
               No books in progress. Start reading from your{" "}
+              <Link
+                href="/library"
+                className="text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold"
+              >
+                library
+              </Link>
+              !
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Read Next */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)]">
+            Read Next
+          </h2>
+          <Link
+            href="/library?status=read-next"
+            className="text-sm text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
+          >
+            View all →
+          </Link>
+        </div>
+
+        {readNext.books.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {readNext.books.map((book: any) => (
+              <BookCard
+                key={book._id}
+                id={book._id}
+                title={book.title}
+                authors={book.authors}
+                coverPath={book.coverPath}
+                status={book.status}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
+            <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
+            <p className="text-[var(--foreground)]/70">
+              No books in your reading queue. Add books from your{" "}
               <Link
                 href="/library"
                 className="text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold"
