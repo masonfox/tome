@@ -1,5 +1,4 @@
 # Now
-* Simple cookie-based password auth
 * Finish book and update rating
     * Sets the rating value in Calibre DB (update) - add test coverage
     * Modal-like experience 
