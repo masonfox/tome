@@ -16,8 +16,6 @@
     * "Journal" page
         * Similar to Thoreau's design
         * Reusable component for the /book/:id page
-* Allow log progress on dashboard
-    * Reuse component on book/:id page
 * Replace BookCard status colors with icons from library and /book/:id pages
 * Centralize agent documentation and add copilot instructions
 * Review the "orphaned book" workflow
@@ -30,7 +28,8 @@
     * Trace log calibre syncs
 * Add logo to navigation and favicon
 * Harder push to Thoreau UI/UX design
-
+* Allow log progress on dashboard
+    * Reuse component on book/:id page
 
 # Later
 * Import from Goodreads or TheStoryGraph

@@ -1,22 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { BookOpen, Library, BarChart3, Settings, Sun, Moon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { BookOpen, Library, BarChart3, Settings, Sun, Moon, LogOut } from "lucide-react";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authEnabled, setAuthEnabled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     // Get current theme from DOM (already set by layout script)
     const currentTheme = document.documentElement.getAttribute("data-theme");
     setDarkMode(currentTheme === "dark");
+
+    // Check if auth is enabled
+    fetch("/api/auth/status")
+      .then((res) => res.json())
+      .then((data) => setAuthEnabled(data.enabled))
+      .catch(() => setAuthEnabled(false));
   }, []);
 
   // Close mobile menu when route changes
@@ -34,6 +42,16 @@ export function Navigation() {
     setDarkMode(newMode);
     localStorage.setItem("darkMode", newMode.toString());
     applyTheme(newMode);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   const links = [
@@ -97,6 +115,17 @@ export function Navigation() {
                 <Moon className="w-5 h-5" />
               )}
             </button>
+            {authEnabled && mounted && (
+              <button
+                onClick={handleLogout}
+                className="hidden md:flex items-center gap-2 px-3 py-2 text-xs font-medium text-[var(--foreground)]/70 hover:text-[var(--accent)] transition-colors"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="uppercase tracking-wider">Logout</span>
+              </button>
+            )}
             <div className="md:hidden">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -144,6 +173,15 @@ export function Navigation() {
                 </Link>
               );
             })}
+            {authEnabled && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wider uppercase transition-colors text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--accent)]/5 w-full"
+              >
+                <LogOut className="w-4 h-4" />
+                LOGOUT
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -39,7 +39,7 @@ export function BookCard({
     <Link href={`/books/${id}`}>
       <div
         className={cn(
-          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-md rounded-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group",
+          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl rounded-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group",
           className
         )}
       >
