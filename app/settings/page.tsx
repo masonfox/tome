@@ -84,7 +84,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Calibre Integration */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6">
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
         <div className="flex items-start gap-4">
           <Database className="w-6 h-6 text-[var(--accent)] mt-1" />
           <div className="flex-1">
@@ -145,7 +145,7 @@ export default function SettingsPage() {
                   onClick={handleSync}
                   disabled={syncing || syncStatus?.syncInProgress}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-medium",
+                    "flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] rounded-sm transition-colors font-medium",
                     (syncing || syncStatus?.syncInProgress) && "opacity-50 cursor-not-allowed"
                   )}
                 >
@@ -174,7 +174,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Setup Instructions */}
-      <div className="bg-[var(--background)] border border-[var(--border-color)] p-6">
+      <div className="bg-[var(--background)] border border-[var(--border-color)] rounded-md p-6">
         <h3 className="font-bold text-[var(--foreground)] mb-3">
           Setup Instructions
         </h3>
@@ -191,7 +191,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Database Info */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6">
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
         <h2 className="text-xl font-serif font-bold text-[var(--foreground)] mb-4">
           Database Configuration
         </h2>

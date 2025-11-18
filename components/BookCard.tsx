@@ -39,7 +39,7 @@ export function BookCard({
     <Link href={`/books/${id}`}>
       <div
         className={cn(
-          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group",
+          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-md rounded-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group",
           className
         )}
       >
@@ -68,7 +68,7 @@ export function BookCard({
             <div className="pt-2">
               <span
                 className={cn(
-                  "inline-block text-xs px-2 py-1 font-medium tracking-wide uppercase",
+                  "inline-block text-xs px-2 py-1 font-medium tracking-wide uppercase rounded-sm",
                   statusColors[status as keyof typeof statusColors]
                 )}
               >

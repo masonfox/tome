@@ -17,7 +17,7 @@ export function StreakDisplay({
   return (
     <div
       className={cn(
-        "bg-[var(--card-bg)] border border-[var(--border-color)] p-8",
+        "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8",
         className
       )}
     >

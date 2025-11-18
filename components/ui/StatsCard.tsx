@@ -19,7 +19,7 @@ export function StatsCard({
   return (
     <div
       className={cn(
-        "bg-[var(--card-bg)] border border-[var(--border-color)] p-6 hover:shadow-md transition-shadow",
+        "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6 hover:shadow-md transition-shadow",
         className
       )}
     >

@@ -191,7 +191,7 @@ export default function BookDetailPage() {
       if (rating > 0) {
         body.rating = rating;
       }
-      
+
       const response = await fetch(`/api/books/${bookId}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -258,7 +258,7 @@ export default function BookDetailPage() {
 
   async function handleUpdateTotalPages(e: React.FormEvent) {
     e.preventDefault();
-    
+
     if (!totalPages || parseInt(totalPages) <= 0) return;
 
     try {
@@ -330,10 +330,10 @@ export default function BookDetailPage() {
                   {selectedStatus === "to-read"
                     ? "Want to Read"
                     : selectedStatus === "read-next"
-                    ? "Read Next"
-                    : selectedStatus === "reading"
-                    ? "Reading"
-                    : "Read"}
+                      ? "Read Next"
+                      : selectedStatus === "reading"
+                        ? "Reading"
+                        : "Read"}
                 </span>
                 <ChevronDown
                   className={cn(
@@ -561,161 +561,161 @@ export default function BookDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Progress Tracker */}
+          {book.totalPages && selectedStatus === "reading" && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+              <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
+                Log Progress
+              </h2>
+
+              <form onSubmit={handleLogProgress} className="space-y-4">
+                {/* Input Mode Toggle */}
+                <div className="flex gap-2 border-b border-[var(--border-color)] pb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgressInputMode("page");
+                      localStorage.setItem("progressInputMode", "page");
+                      if (book.latestProgress) {
+                        setCurrentPage(book.latestProgress.currentPage.toString());
+                      }
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
+                      progressInputMode === "page"
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
+                    )}
+                  >
+                    By Page
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgressInputMode("percentage");
+                      localStorage.setItem("progressInputMode", "percentage");
+                      if (book.latestProgress) {
+                        setCurrentPercentage(book.latestProgress.currentPercentage.toString());
+                      }
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
+                      progressInputMode === "percentage"
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
+                    )}
+                  >
+                    By Percentage
+                  </button>
+                </div>
+
+                {/* Page Input */}
+                {progressInputMode === "page" && (
+                  <div>
+                    <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
+                      Current Page
+                    </label>
+                    <input
+                      type="number"
+                      value={currentPage}
+                      onChange={(e) => setCurrentPage(e.target.value)}
+                      min="0"
+                      max={book.totalPages}
+                      step="1"
+                      className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                      placeholder="Enter current page"
+                    />
+                  </div>
+                )}
+
+                {/* Percentage Input */}
+                {progressInputMode === "percentage" && (
+                  <div>
+                    <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
+                      Progress Percentage
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={currentPercentage}
+                        onChange={(e) => setCurrentPercentage(e.target.value)}
+                        min="0"
+                        max="100"
+                        step="1"
+                        className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                        placeholder="Enter percentage (0-100)"
+                      />
+                      <span className="flex items-center px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)]/70 rounded-lg">
+                        %
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                    placeholder="Add notes about this reading session..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold uppercase tracking-wide"
+                >
+                  Log Progress
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Progress History */}
+          {progress.length > 0 && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+              <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
+                Progress History
+              </h2>
+
+              <div className="space-y-4">
+                {progress.map((entry) => (
+                  <div
+                    key={entry._id}
+                    className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
+                  >
+                    <Calendar className="w-5 h-5 text-[var(--accent)]/60 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-semibold text-[var(--foreground)]">
+                          Page {entry.currentPage}
+                        </p>
+                        <p className="text-sm text-[var(--foreground)]/60 font-light">
+                          {format(new Date(entry.progressDate), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                      <p className="text-sm text-[var(--foreground)]/70 font-light">
+                        {Math.round(entry.currentPercentage)}% complete
+                        {entry.pagesRead > 0 && ` • ${entry.pagesRead} pages read`}
+                      </p>
+                      {entry.notes && (
+                        <p className="text-sm text-[var(--foreground)]/60 mt-2 italic font-light">
+                          {entry.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Progress Tracker */}
-      {book.totalPages && selectedStatus === "reading" && (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
-            Log Progress
-          </h2>
-
-          <form onSubmit={handleLogProgress} className="space-y-4">
-            {/* Input Mode Toggle */}
-            <div className="flex gap-2 border-b border-[var(--border-color)] pb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setProgressInputMode("page");
-                  localStorage.setItem("progressInputMode", "page");
-                  if (book.latestProgress) {
-                    setCurrentPage(book.latestProgress.currentPage.toString());
-                  }
-                }}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
-                  progressInputMode === "page"
-                    ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
-                )}
-              >
-                By Page
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setProgressInputMode("percentage");
-                  localStorage.setItem("progressInputMode", "percentage");
-                  if (book.latestProgress) {
-                    setCurrentPercentage(book.latestProgress.currentPercentage.toString());
-                  }
-                }}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-semibold transition-colors text-sm uppercase tracking-wide",
-                  progressInputMode === "percentage"
-                    ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--light-accent)]/30"
-                )}
-              >
-                By Percentage
-              </button>
-            </div>
-
-            {/* Page Input */}
-            {progressInputMode === "page" && (
-              <div>
-                <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
-                  Current Page
-                </label>
-                <input
-                  type="number"
-                  value={currentPage}
-                  onChange={(e) => setCurrentPage(e.target.value)}
-                  min="0"
-                  max={book.totalPages}
-                  step="1"
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                  placeholder="Enter current page"
-                />
-              </div>
-            )}
-
-            {/* Percentage Input */}
-            {progressInputMode === "percentage" && (
-              <div>
-                <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
-                  Progress Percentage
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={currentPercentage}
-                    onChange={(e) => setCurrentPercentage(e.target.value)}
-                    min="0"
-                    max="100"
-                    step="1"
-                    className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                    placeholder="Enter percentage (0-100)"
-                  />
-                  <span className="flex items-center px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)]/70 rounded-lg">
-                    %
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
-                Notes (optional)
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                placeholder="Add notes about this reading session..."
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold uppercase tracking-wide"
-            >
-              Log Progress
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Progress History */}
-      {progress.length > 0 && (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
-            Progress History
-          </h2>
-
-          <div className="space-y-4">
-            {progress.map((entry) => (
-              <div
-                key={entry._id}
-                className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
-              >
-                <Calendar className="w-5 h-5 text-[var(--accent)]/60 mt-0.5" />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold text-[var(--foreground)]">
-                      Page {entry.currentPage}
-                    </p>
-                    <p className="text-sm text-[var(--foreground)]/60 font-light">
-                      {format(new Date(entry.progressDate), "MMM d, yyyy")}
-                    </p>
-                  </div>
-                  <p className="text-sm text-[var(--foreground)]/70 font-light">
-                    {Math.round(entry.currentPercentage)}% complete
-                    {entry.pagesRead > 0 && ` • ${entry.pagesRead} pages read`}
-                  </p>
-                  {entry.notes && (
-                    <p className="text-sm text-[var(--foreground)]/60 mt-2 italic font-light">
-                      {entry.notes}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Read Confirmation Dialog */}
       {showReadConfirmation && (

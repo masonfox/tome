@@ -217,7 +217,7 @@ function LibraryPageContent() {
           onClick={syncCalibre}
           disabled={syncing}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold",
+            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-semibold",
             syncing && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -227,7 +227,7 @@ function LibraryPageContent() {
       </div>
 
       {/* Filters */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-4">
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
         <form onSubmit={handleSearch} className="space-y-3">
           {/* Search and Status Filter Row */}
           <div className="flex gap-3">
@@ -240,7 +240,7 @@ function LibraryPageContent() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   className={cn(
-                    "w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors",
+                    "w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors",
                     searchInput ? "pr-10" : "pr-4"
                   )}
                 />
@@ -262,7 +262,7 @@ function LibraryPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px]"
+                  className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px]"
                 >
                   <span>
                     {statusFilter === "all"
@@ -345,7 +345,7 @@ function LibraryPageContent() {
                       // Delay to allow clicking on suggestions
                       setTimeout(() => setShowTagSuggestions(false), 200);
                     }}
-                    className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
+                    className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
                   />
 
                   {/* Tag suggestions dropdown */}
