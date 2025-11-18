@@ -57,7 +57,7 @@ export default async function StatsPage() {
           <BarChart3 className="w-8 h-8" />
           Reading Statistics
         </h1>
-        <p className="text-[var(--foreground)]/70 mt-2 font-medium">
+        <p className="text-[var(--subheading-text)] mt-2 font-medium">
           Track your reading progress and achievements
         </p>
       </div>

@@ -100,7 +100,7 @@ export default async function Dashboard() {
           <BookOpen className="w-8 h-8" />
           Dashboard
         </h1>
-        <p className="text-[var(--foreground)]/70 mt-2 font-medium">
+        <p className="text-[var(--subheading-text)] mt-2 font-medium">
           Welcome back to your reading journey
         </p>
       </div>
