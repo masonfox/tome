@@ -84,14 +84,14 @@ export function BookCard({
           )}
 
           {currentProgress !== undefined && (
-            <div className="pt-3 border-t border-[var(--border-color)]">
-              <div className="flex items-center justify-between text-xs text-[var(--foreground)]/60 mb-2">
-                <span className="uppercase tracking-wider font-semibold">Read</span>
-                <span className="font-mono font-semibold">{Math.round(currentProgress)}%</span>
+            <div className="pt-3 mt-1 border-t border-[var(--border-color)]">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-xs uppercase tracking-wider font-semibold text-[var(--foreground)]/60">Progress</span>
+                <span className="text-sm font-mono font-bold text-[var(--accent)]">{Math.round(currentProgress)}%</span>
               </div>
-              <div className="w-full bg-[var(--border-color)] h-1.5">
+              <div className="w-full bg-[var(--background)] rounded-full h-2.5 shadow-inner">
                 <div
-                  className="bg-[var(--accent)] h-1.5 transition-all"
+                  className="bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)] h-2.5 rounded-full transition-all duration-300 ease-out shadow-sm"
                   style={{ width: `${Math.min(100, currentProgress)}%` }}
                 />
               </div>
