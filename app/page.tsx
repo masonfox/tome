@@ -180,7 +180,6 @@ export default async function Dashboard() {
                 title={book.title}
                 authors={book.authors}
                 coverPath={book.coverPath}
-                status={book.status}
               />
             ))}
           </div>
