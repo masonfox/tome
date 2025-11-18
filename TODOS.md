@@ -18,7 +18,6 @@
 * Centralize agent documentation and add copilot instructions
 * Review the "orphaned book" workflow
 * Remove stats from the dashboard - UI and data
-* Consider NOT using internal IDs for logs and statuses, but defer to calibre ID?
 
 # Next
 * If filtering on "Read", allow year filtering
