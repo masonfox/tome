@@ -57,10 +57,10 @@ export function BookCard({
         </div>
 
         <div className="p-4 space-y-2">
-          <h3 className="font-serif text-sm font-semibold text-[var(--foreground)] line-clamp-2 leading-snug">
+          <h3 className="font-serif text-md font-semibold text-[var(--foreground)] line-clamp-2 leading-snug">
             {title}
           </h3>
-          <p className="text-xs text-[var(--foreground)]/70 line-clamp-1 font-light">
+          <p className="text-sm text-[var(--foreground)]/70 line-clamp-1 font-light">
             {authors.join(", ")}
           </p>
 
