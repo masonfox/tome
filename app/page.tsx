@@ -116,12 +116,15 @@ export default async function Dashboard() {
       {/* Currently Reading */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
-            Currently Reading
+          <h2 className="text-2xl font-serif font-bold">
+            <span className="text-[var(--heading-text)]">Currently Reading</span>
+            <span className="ml-2 text-[var(--accent)]">
+              ({currentlyReading.books.length})
+            </span>
           </h2>
           <Link
             href="/library?status=reading"
-            className="text-sm text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
+            className="text-md text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
           >
             View all →
           </Link>
@@ -160,12 +163,15 @@ export default async function Dashboard() {
       {/* Read Next */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
-            Read Next
+          <h2 className="text-2xl font-serif font-bold">
+            <span className="text-[var(--heading-text)]">Read Next</span>
+            <span className="ml-2 text-[var(--accent)]">
+              ({readNext.books.length})
+            </span>
           </h2>
           <Link
             href="/library?status=read-next"
-            className="text-sm text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
+            className="text-md text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
           >
             View all →
           </Link>
