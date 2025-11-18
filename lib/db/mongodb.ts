@@ -22,6 +22,11 @@ if (!cached) {
 }
 
 export async function connectDB() {
+  // If mongoose is already connected (e.g., in tests), return it
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
