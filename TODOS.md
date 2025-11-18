@@ -21,7 +21,7 @@
 * Replace BookCard status colors with icons from library and /book/:id pages
 * Centralize agent documentation and add copilot instructions
 * Review the "orphaned book" workflow
-
+* Remove stats from the dashboard - UI and data
 
 # Next
 * If filtering on "Read", allow year filtering
