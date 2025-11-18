@@ -39,6 +39,23 @@ Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre libra
 - **Statistics Dashboard**: Comprehensive reading statistics and analytics
 - **Self-Hosted**: Full control over your data
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`/docs`](./docs) directory:
+
+- **[Documentation Index](./docs/README.md)** - Start here! Complete guide to all documentation
+- **[System Architecture](./docs/BOOK_TRACKER_ARCHITECTURE.md)** - Complete technical architecture and design
+- **[Quick Reference](./docs/BOOK_TRACKER_QUICK_REFERENCE.md)** - Code patterns and examples
+- **[Testing Guide](./\_\_tests\_\_/README.md)** - Testing patterns and best practices (99 tests)
+
+### For AI Coding Assistants
+
+**Please read [`AI_INSTRUCTIONS.md`](./AI_INSTRUCTIONS.md) before making changes.** This file contains essential patterns and guidelines for maintaining code consistency.
+
+Tool-specific instructions:
+- **Claude Code**: See [`.claude/instructions.md`](./.claude/instructions.md)
+- **GitHub Copilot**: See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md)
+
 ## Tech Stack
 
 - **Frontend**: Next.js 14 (App Router)
@@ -279,6 +296,19 @@ MIT
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+### For Contributors
+
+Before contributing, please:
+1. Read the [Architecture Documentation](./docs/BOOK_TRACKER_ARCHITECTURE.md) to understand the system design
+2. Review the [Quick Reference](./docs/BOOK_TRACKER_QUICK_REFERENCE.md) for code patterns
+3. Check the [Testing Guide](./__tests__/README.md) for testing best practices
+4. Ensure all tests pass: `bun test` (99 tests must pass)
+5. Follow the established SQLite runtime detection pattern in `lib/db/calibre.ts`
+
+### For AI Assistants Contributing
+
+If you're an AI coding assistant helping with contributions, please read [`AI_INSTRUCTIONS.md`](./AI_INSTRUCTIONS.md) for critical patterns and guidelines.
 
 ## Acknowledgments
 
