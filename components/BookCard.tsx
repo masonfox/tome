@@ -63,10 +63,10 @@ export function BookCard({
         </div>
 
         <div className="p-4 space-y-2">
-          <h3 className="font-serif text-md font-semibold text-[var(--foreground)] line-clamp-2 leading-snug">
+          <h3 className="text-md font-semibold text-[var(--heading-text)] line-clamp-2 leading-snug">
             {title}
           </h3>
-          <p className="text-sm text-[var(--foreground)]/70 line-clamp-1 font-light">
+          <p className="text-md font-serif text-[var(--subheading-text)] line-clamp-1 font-medium">
             {authors.join(", ")}
           </p>
 
@@ -86,8 +86,8 @@ export function BookCard({
           {currentProgress !== undefined && (
             <div className="pt-3 border-t border-[var(--border-color)]">
               <div className="flex items-center justify-between text-xs text-[var(--foreground)]/60 mb-2">
-                <span>READ</span>
-                <span className="font-semibold">{Math.round(currentProgress)}%</span>
+                <span className="uppercase tracking-wider font-semibold">Read</span>
+                <span className="font-mono font-semibold">{Math.round(currentProgress)}%</span>
               </div>
               <div className="w-full bg-[var(--border-color)] h-1.5">
                 <div

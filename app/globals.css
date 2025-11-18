@@ -2,11 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --background: #e8dcc4;
+  --background: #F0EAE3;
   --foreground: #3a3a3a;
+  --heading-text: #4F4739;
+  --subheading-text: #5F5F5F;
   --accent: #8b6f47;
   --light-accent: #c9a876;
   --card-bg: #f5f1e8;
@@ -15,8 +17,10 @@
 
 /* Dark mode via data attribute */
 html[data-theme="dark"] {
-  --background: #2a2622;
+  --background: #1f1c19;
   --foreground: #e8dcc4;
+  --heading-text: #e8dcc4;
+  --subheading-text: #bdb4a1;
   --accent: #a89968;
   --light-accent: #c9a876;
   --card-bg: #3d3935;
@@ -25,8 +29,10 @@ html[data-theme="dark"] {
 
 /* Light mode explicitly set */
 html[data-theme="light"] {
-  --background: #e8dcc4;
+  --background: #F0EAE3;
   --foreground: #3a3a3a;
+  --heading-text: #4F4739;
+  --subheading-text: #5F5F5F;
   --accent: #8b6f47;
   --light-accent: #c9a876;
   --card-bg: #f5f1e8;
@@ -36,8 +42,10 @@ html[data-theme="light"] {
 /* System preference fallback only if no manual preference saved */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]) {
-    --background: #2a2622;
+    --background: #1f1c19;
     --foreground: #e8dcc4;
+    --heading-text: #e8dcc4;
+    --subheading-text: #bdb4a1;
     --accent: #a89968;
     --light-accent: #c9a876;
     --card-bg: #3d3935;
@@ -48,7 +56,7 @@ html[data-theme="light"] {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Lora', 'Crimson Text', serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

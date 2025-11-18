@@ -293,7 +293,7 @@ export default function BookDetailPage() {
   if (!book) {
     return (
       <div className="text-center py-12">
-        <p className="text-[var(--foreground)]/60">Book not found</p>
+        <p className="text-[var(--foreground)]/60 font-medium">Book not found</p>
       </div>
     );
   }
@@ -382,7 +382,7 @@ export default function BookDetailPage() {
                           <div className="flex flex-col">
                             <span
                               className={cn(
-                                "font-medium",
+                                "font-semibold",
                                 option.disabled
                                   ? "text-[var(--foreground)]/40"
                                   : "text-[var(--foreground)]"
@@ -391,7 +391,7 @@ export default function BookDetailPage() {
                               {option.label}
                             </span>
                             {option.disabled && (
-                              <span className="text-xs text-[var(--foreground)]/30 mt-0.5">
+                              <span className="text-xs text-[var(--foreground)]/30 mt-0.5 font-medium">
                                 Set pages
                               </span>
                             )}
@@ -437,10 +437,10 @@ export default function BookDetailPage() {
         {/* Right Column - Info */}
         <div className="space-y-6">
           <div>
-            <h1 className="text-4xl font-serif font-bold text-[var(--foreground)] mb-2">
+            <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)] mb-2">
               {book.title}
             </h1>
-            <div className="text-xl text-[var(--foreground)]/70 mb-3">
+            <div className="text-xl text-[var(--subheading-text)] mb-3 font-medium">
               {book.authors.map((author, index) => (
                 <span key={author}>
                   <Link
@@ -455,18 +455,18 @@ export default function BookDetailPage() {
             </div>
 
             {book.series && (
-              <p className="text-sm text-[var(--foreground)]/60 mb-3 font-light italic">
+              <p className="text-sm text-[var(--foreground)]/60 mb-3 italic font-medium">
                 {book.series}
               </p>
             )}
 
             {/* Metadata - integrated into header */}
-            <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--foreground)]/60">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--foreground)]/60 font-medium">
               {book.totalPages ? (
                 <>
                   <div className="flex items-center gap-1.5">
                     <BookOpen className="w-4 h-4" />
-                    <span className="font-medium">{book.totalPages.toLocaleString()} pages</span>
+                    <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
                   </div>
                   {(book.publisher || book.pubDate) && <span className="text-[var(--foreground)]/30">•</span>}
                 </>
@@ -474,18 +474,18 @@ export default function BookDetailPage() {
                 <>
                   <div className="flex items-center gap-1.5 text-[var(--foreground)]/40 italic">
                     <BookOpen className="w-4 h-4" />
-                    <span>Pages not set</span>
+                    <span className="font-medium">Pages not set</span>
                   </div>
                   {(book.publisher || book.pubDate) && <span className="text-[var(--foreground)]/30">•</span>}
                 </>
               )}
               {book.publisher && (
-                <span>{book.publisher}</span>
+                <span className="font-medium">{book.publisher}</span>
               )}
               {book.pubDate && (
                 <>
                   {book.publisher && <span className="text-[var(--foreground)]/30">•</span>}
-                  <span>Published {new Date(book.pubDate).getFullYear()}</span>
+                  <span className="font-medium">Published {new Date(book.pubDate).getFullYear()}</span>
                 </>
               )}
             </div>
@@ -494,9 +494,9 @@ export default function BookDetailPage() {
           {/* Progress Bar */}
           {book.totalPages && selectedStatus === "reading" && (
             <div>
-              <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-2 font-light">
-                <span>Progress</span>
-                <span className="font-semibold">{Math.round(progressPercentage)}%</span>
+              <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-2">
+                <span className="font-semibold">Progress</span>
+                <span className="font-mono font-semibold">{Math.round(progressPercentage)}%</span>
               </div>
               <div className="w-full bg-[var(--border-color)] rounded-full h-2">
                 <div
@@ -504,7 +504,7 @@ export default function BookDetailPage() {
                   style={{ width: `${Math.min(100, progressPercentage)}%` }}
                 />
               </div>
-              <p className="text-sm text-[var(--foreground)]/60 mt-2 font-light">
+              <p className="text-sm text-[var(--foreground)]/60 mt-2 font-mono font-medium">
                 Page {book.latestProgress?.currentPage || 0} of {book.totalPages}
               </p>
             </div>
@@ -513,7 +513,7 @@ export default function BookDetailPage() {
           {/* Pages Setting */}
           {!book.totalPages && (
             <div className="border-l-4 border-[var(--accent)] bg-[var(--card-bg)] pl-4 py-3">
-              <p className="text-sm text-[var(--foreground)]/70 mb-3">
+              <p className="text-sm text-[var(--foreground)]/70 mb-3 font-medium">
                 Add page count to enable progress tracking
               </p>
               <form onSubmit={handleUpdateTotalPages} className="flex gap-2 max-w-xs">
@@ -538,7 +538,7 @@ export default function BookDetailPage() {
           {/* Description */}
           {book.description && (
             <div>
-              <p className="text-sm text-[var(--foreground)]/80 font-light leading-relaxed">
+              <p className="text-sm text-[var(--foreground)]/80 leading-relaxed font-medium">
                 {book.description.replace(/<[^>]*>/g, "")}
               </p>
             </div>
@@ -547,7 +547,7 @@ export default function BookDetailPage() {
           {/* Tags */}
           {book.tags.length > 0 && (
             <div>
-              <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-3">
+              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-3 font-semibold">
                 Tags
               </label>
               <div className="flex flex-wrap gap-2">
@@ -555,8 +555,7 @@ export default function BookDetailPage() {
                   <Link
                     key={tag}
                     href={`/library?tags=${encodeURIComponent(tag)}`}
-                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm font-light transition-colors"
-                  >
+                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium">
                     {tag}
                   </Link>
                 ))}
@@ -567,7 +566,7 @@ export default function BookDetailPage() {
           {/* Progress Tracker */}
           {book.totalPages && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-              <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
+              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
                 Log Progress
               </h2>
 
@@ -615,7 +614,7 @@ export default function BookDetailPage() {
                 {/* Page Input */}
                 {progressInputMode === "page" && (
                   <div>
-                    <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
+                    <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                       Current Page
                     </label>
                     <input
@@ -634,7 +633,7 @@ export default function BookDetailPage() {
                 {/* Percentage Input */}
                 {progressInputMode === "percentage" && (
                   <div>
-                    <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
+                    <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                       Progress Percentage
                     </label>
                     <div className="flex gap-2">
@@ -656,7 +655,7 @@ export default function BookDetailPage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-light uppercase tracking-wide text-[var(--foreground)]/60 mb-2">
+                  <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                     Notes (optional)
                   </label>
                   <textarea
@@ -681,7 +680,7 @@ export default function BookDetailPage() {
           {/* Progress History */}
           {progress.length > 0 && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-              <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-6">
+              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
                 Progress History
               </h2>
 
@@ -695,18 +694,23 @@ export default function BookDetailPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <p className="font-semibold text-[var(--foreground)]">
-                          Page {entry.currentPage}
+                          Page <span className="font-mono">{entry.currentPage}</span>
                         </p>
-                        <p className="text-sm text-[var(--foreground)]/60 font-light">
+                        <p className="text-sm text-[var(--foreground)]/60 font-mono font-semibold">
                           {format(new Date(entry.progressDate), "MMM d, yyyy")}
                         </p>
                       </div>
-                      <p className="text-sm text-[var(--foreground)]/70 font-light">
-                        {Math.round(entry.currentPercentage)}% complete
-                        {entry.pagesRead > 0 && ` • ${entry.pagesRead} pages read`}
+                      <p className="text-sm text-[var(--foreground)]/70 font-medium">
+                        <span className="font-mono font-semibold">{Math.round(entry.currentPercentage)}%</span> complete
+                        {entry.pagesRead > 0 && (
+                          <>
+                            {" • "}
+                            <span className="font-mono font-semibold">{entry.pagesRead}</span> pages read
+                          </>
+                        )}
                       </p>
                       {entry.notes && (
-                        <p className="text-sm text-[var(--foreground)]/60 mt-2 italic font-light">
+                        <p className="text-sm text-[var(--foreground)]/60 mt-2 italic font-medium">
                           {entry.notes}
                         </p>
                       )}
@@ -723,10 +727,10 @@ export default function BookDetailPage() {
       {showReadConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-xl font-serif font-bold text-[var(--foreground)] mb-2">
+            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">
               Mark as Read?
             </h2>
-            <p className="text-[var(--foreground)]/70 mb-4 font-light">
+            <p className="text-[var(--foreground)]/70 mb-4 font-medium">
               Marking this book as read will set your progress to 100%.
             </p>
             <p className="text-[var(--foreground)] mb-6 font-semibold">

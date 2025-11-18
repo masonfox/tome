@@ -53,11 +53,11 @@ export default async function StatsPage() {
   return (
     <div className="space-y-10">
       <div className="border-b border-[var(--border-color)] pb-6">
-        <h1 className="text-5xl font-serif font-bold text-[var(--foreground)] flex items-center gap-3">
+        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
           <BarChart3 className="w-8 h-8" />
           Reading Statistics
         </h1>
-        <p className="text-[var(--foreground)]/70 mt-2 font-light">
+        <p className="text-[var(--foreground)]/70 mt-2 font-medium">
           Track your reading progress and achievements
         </p>
       </div>
@@ -65,7 +65,7 @@ export default async function StatsPage() {
       {/* Streak Stats */}
       {streak && (
         <div>
-          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
             Reading Streaks
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -95,7 +95,7 @@ export default async function StatsPage() {
       {stats && (
         <>
           <div>
-            <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
               Books Read
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -121,7 +121,7 @@ export default async function StatsPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
               Pages Read
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -153,7 +153,7 @@ export default async function StatsPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-serif font-bold text-[var(--foreground)] mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
               Reading Velocity
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

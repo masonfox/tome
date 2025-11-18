@@ -70,7 +70,7 @@ export function Navigation() {
             <div className="w-10 h-10 bg-[var(--accent)] rounded-md flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-serif font-bold text-[var(--foreground)]">
+            <span className="text-2xl font-serif font-bold text-[var(--heading-text)]">
               Tome
             </span>
           </Link>

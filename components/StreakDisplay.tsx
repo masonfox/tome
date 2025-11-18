@@ -23,39 +23,39 @@ export function StreakDisplay({
     >
       <div className="flex items-center gap-3 mb-6">
         <Flame className="w-8 h-8 text-[var(--accent)]" />
-        <h2 className="text-2xl font-serif font-bold text-[var(--foreground)]">
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
           Reading Streak
         </h2>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
         <div className="border-r border-[var(--border-color)] pr-6">
-          <p className="text-xs uppercase tracking-wide font-light text-[var(--foreground)]/70">
+          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
             Current Streak
           </p>
           <p className="text-5xl font-serif font-bold text-[var(--accent)] mt-2">
             {currentStreak}
           </p>
-          <p className="text-sm text-[var(--foreground)]/60 mt-1 font-light">
+          <p className="text-sm text-[var(--foreground)]/60 mt-1 font-medium">
             {currentStreak === 1 ? "day" : "days"}
           </p>
         </div>
 
         <div className="pl-6">
-          <p className="text-xs uppercase tracking-wide font-light text-[var(--foreground)]/70">
+          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
             Best Streak
           </p>
           <p className="text-5xl font-serif font-bold text-[var(--light-accent)] mt-2">
             {longestStreak}
           </p>
-          <p className="text-sm text-[var(--foreground)]/60 mt-1 font-light">
+          <p className="text-sm text-[var(--foreground)]/60 mt-1 font-medium">
             {longestStreak === 1 ? "day" : "days"}
           </p>
         </div>
       </div>
 
       {currentStreak > 0 && (
-        <p className="text-sm mt-6 pt-6 border-t border-[var(--border-color)] text-[var(--foreground)]/70 font-light">
+        <p className="text-sm mt-6 pt-6 border-t border-[var(--border-color)] text-[var(--foreground)]/70 font-medium">
           {currentStreak >= longestStreak
             ? "✓ You're on fire! Keep it up!"
             : "✓ Keep reading to beat your record!"}

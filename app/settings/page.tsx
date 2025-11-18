@@ -74,11 +74,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-10">
       <div className="border-b border-[var(--border-color)] pb-6">
-        <h1 className="text-5xl font-serif font-bold text-[var(--foreground)] flex items-center gap-3">
+        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
           <SettingsIcon className="w-8 h-8" />
           Settings
         </h1>
-        <p className="text-[var(--foreground)]/70 mt-2 font-light">
+        <p className="text-[var(--foreground)]/70 mt-2 font-medium">
           Configure your book tracker
         </p>
       </div>
@@ -88,10 +88,10 @@ export default function SettingsPage() {
         <div className="flex items-start gap-4">
           <Database className="w-6 h-6 text-[var(--accent)] mt-1" />
           <div className="flex-1">
-            <h2 className="text-xl font-serif font-bold text-[var(--foreground)] mb-2">
+            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">
               Calibre Integration
             </h2>
-            <p className="text-[var(--foreground)]/70 mb-4 font-light">
+            <p className="text-[var(--foreground)]/70 mb-4 font-medium">
               Sync your book library with Calibre database
             </p>
 
@@ -100,12 +100,12 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-[var(--foreground)]/70 mb-2">
                   Calibre Library Path
                 </label>
-                <p className="text-sm text-[var(--foreground)]/60 bg-[var(--background)] p-3 font-mono">
+                <p className="text-sm text-[var(--foreground)]/60 bg-[var(--background)] p-3 font-mono font-medium">
                   {process.env.NEXT_PUBLIC_CALIBRE_LIBRARY_PATH ||
                     process.env.CALIBRE_LIBRARY_PATH ||
                     "Not configured - set CALIBRE_LIBRARY_PATH in .env"}
                 </p>
-                <p className="text-xs text-[var(--foreground)]/60 mt-2 font-light">
+                <p className="text-xs text-[var(--foreground)]/60 mt-2 font-medium">
                   Point to your Calibre library folder (metadata.db should be at the root)
                 </p>
               </div>
@@ -119,18 +119,18 @@ export default function SettingsPage() {
                       <h3 className="font-semibold text-[var(--foreground)] mb-1">
                         Automatic Sync {syncStatus.autoSyncEnabled ? "Enabled" : "Disabled"}
                       </h3>
-                      <p className="text-sm text-[var(--foreground)]/70 font-light">
+                      <p className="text-sm text-[var(--foreground)]/70 font-medium">
                         {syncStatus.autoSyncEnabled
                           ? "The app automatically syncs when Calibre's database is modified"
                           : "Set CALIBRE_LIBRARY_PATH in .env to enable automatic sync"}
                       </p>
                       {syncStatus.lastSync && (
-                        <p className="text-sm text-[var(--foreground)]/70 mt-2 font-light">
-                          Last synced: {formatLastSync(syncStatus.lastSync)}
+                        <p className="text-sm text-[var(--foreground)]/70 mt-2 font-medium">
+                          Last synced: <span className="font-mono font-semibold">{formatLastSync(syncStatus.lastSync)}</span>
                         </p>
                       )}
                       {syncStatus.syncInProgress && (
-                        <p className="text-sm text-[var(--foreground)]/70 mt-2 flex items-center gap-2 font-light">
+                        <p className="text-sm text-[var(--foreground)]/70 mt-2 flex items-center gap-2 font-medium">
                           <RefreshCw className="w-4 h-4 animate-spin" />
                           Sync in progress...
                         </p>
@@ -178,7 +178,7 @@ export default function SettingsPage() {
         <h3 className="font-bold text-[var(--foreground)] mb-3">
           Setup Instructions
         </h3>
-        <div className="text-sm text-[var(--foreground)]/70 space-y-2 font-light">
+        <div className="text-sm text-[var(--foreground)]/70 space-y-2 font-medium">
           <p>1. Locate your Calibre library folder on your computer</p>
           <p>2. Copy the .env.example file to .env</p>
           <p>
@@ -192,12 +192,12 @@ export default function SettingsPage() {
 
       {/* Database Info */}
       <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
-        <h2 className="text-xl font-serif font-bold text-[var(--foreground)] mb-4">
+        <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-4">
           Database Configuration
         </h2>
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3 text-sm font-medium">
           <div className="flex justify-between items-center">
-            <span className="text-[var(--foreground)]/70 font-light">
+            <span className="text-[var(--foreground)]/70 font-medium">
               MongoDB URI:
             </span>
             <span className="font-mono text-[var(--foreground)]">
@@ -207,7 +207,7 @@ export default function SettingsPage() {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[var(--foreground)]/70 font-light">Port:</span>
+            <span className="text-[var(--foreground)]/70 font-medium">Port:</span>
             <span className="font-mono text-[var(--foreground)]">
               {process.env.NEXT_PUBLIC_PORT || process.env.PORT || "3000"}
             </span>

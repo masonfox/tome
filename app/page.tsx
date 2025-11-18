@@ -96,11 +96,11 @@ export default async function Dashboard() {
     <div className="space-y-10">
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-6">
-        <h1 className="text-5xl font-serif font-bold text-[var(--foreground)] flex items-center gap-3">
+        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
           <BookOpen className="w-8 h-8" />
           Dashboard
         </h1>
-        <p className="text-[var(--foreground)]/70 mt-2 font-light">
+        <p className="text-[var(--foreground)]/70 mt-2 font-medium">
           Welcome back to your reading journey
         </p>
       </div>
@@ -116,7 +116,7 @@ export default async function Dashboard() {
       {/* Currently Reading */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)]">
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
             Currently Reading
           </h2>
           <Link
@@ -143,7 +143,7 @@ export default async function Dashboard() {
         ) : (
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
             <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-            <p className="text-[var(--foreground)]/70">
+            <p className="text-[var(--foreground)]/70 font-medium">
               No books in progress. Start reading from your{" "}
               <Link
                 href="/library"
@@ -160,7 +160,7 @@ export default async function Dashboard() {
       {/* Read Next */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--foreground)]">
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
             Read Next
           </h2>
           <Link
@@ -186,7 +186,7 @@ export default async function Dashboard() {
         ) : (
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
             <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-            <p className="text-[var(--foreground)]/70">
+            <p className="text-[var(--foreground)]/70 font-medium">
               No books in your reading queue. Add books from your{" "}
               <Link
                 href="/library"

@@ -204,11 +204,11 @@ function LibraryPageContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-6">
         <div>
-          <h1 className="text-5xl font-serif font-bold text-[var(--foreground)] flex items-center gap-3">
+          <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
             <LibraryIcon className="w-8 h-8" />
             Library
           </h1>
-          <p className="text-[var(--foreground)]/70 mt-2 font-light">
+          <p className="text-[var(--foreground)]/70 mt-2 font-medium">
             {totalBooks} {totalBooks === 1 ? "book" : "books"}
           </p>
         </div>
@@ -217,7 +217,7 @@ function LibraryPageContent() {
           onClick={syncCalibre}
           disabled={syncing}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-semibold",
+            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium",
             syncing && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -418,7 +418,7 @@ function LibraryPageContent() {
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[var(--foreground)]/70 mt-4 font-light">
+          <p className="text-[var(--foreground)]/70 mt-4 font-medium">
             Loading books...
           </p>
         </div>
@@ -444,7 +444,7 @@ function LibraryPageContent() {
           {loadingMore && (
             <div className="text-center py-8">
               <div className="inline-block w-6 h-6 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[var(--foreground)]/70 mt-2 font-light">
+              <p className="text-[var(--foreground)]/70 mt-2 font-medium">
                 Loading more books...
               </p>
             </div>
@@ -452,7 +452,7 @@ function LibraryPageContent() {
         </>
       ) : (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-12 text-center">
-          <p className="text-[var(--foreground)]/70 font-light">
+          <p className="text-[var(--foreground)]/70 font-medium">
             No books found. Try syncing with Calibre or adjusting your filters.
           </p>
         </div>

@@ -25,14 +25,14 @@ export function StatsCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs uppercase tracking-wide font-light text-[var(--foreground)]/70">
+          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
             {title}
           </p>
-          <p className="text-4xl font-serif font-bold text-[var(--foreground)] mt-3">
+          <p className="text-4xl font-serif font-bold text-[var(--heading-text)] mt-3">
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-[var(--foreground)]/60 mt-2 font-light">
+            <p className="text-xs text-[var(--foreground)]/60 mt-2 font-medium">
               {subtitle}
             </p>
           )}

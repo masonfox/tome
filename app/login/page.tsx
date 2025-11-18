@@ -39,14 +39,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="max-w-md w-full p-8 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-sm">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-[var(--accent)] rounded-lg flex items-center justify-center mb-4">
-            <BookOpen className="w-8 h-8 text-white" />
+                  <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-[var(--accent)] rounded-lg flex items-center justify-center mb-4">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-center text-3xl font-serif font-bold text-[var(--heading-text)]">
+              Tome
+            </h2>
           </div>
-          <h2 className="text-center text-3xl font-serif font-bold text-[var(--foreground)]">
-            Tome
-          </h2>
-        </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="password" className="sr-only">
@@ -68,7 +68,7 @@ export default function LoginPage() {
 
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              <p className="text-sm text-red-800 dark:text-red-200 font-medium">{error}</p>
             </div>
           )}
 
