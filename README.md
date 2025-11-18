@@ -1,4 +1,6 @@
-# Book Tracker
+# 📚️ Tome
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
 
 A self-hosted book tracking web application that integrates directly with Calibre's database to provide reading progress tracking, status management, and streak functionality. Think Goodreads/StoryGraph but powered by your personal Calibre library.
 
