@@ -1,5 +1,8 @@
-import Database from "better-sqlite3";
 import path from "path";
+
+// Type definition for SQLite database interface
+// Both bun:sqlite and better-sqlite3 have compatible APIs
+type SQLiteDatabase = any;
 
 const CALIBRE_LIBRARY_PATH = process.env.CALIBRE_LIBRARY_PATH || "";
 const CALIBRE_DB_PATH = CALIBRE_LIBRARY_PATH ? path.join(CALIBRE_LIBRARY_PATH, "metadata.db") : "";
@@ -8,7 +11,7 @@ if (!CALIBRE_LIBRARY_PATH) {
   console.warn("CALIBRE_LIBRARY_PATH not set. Calibre integration will not work.");
 }
 
-let db: Database.Database | null = null;
+let db: SQLiteDatabase | null = null;
 
 export function getCalibreDB() {
   if (!CALIBRE_DB_PATH) {
@@ -17,10 +20,18 @@ export function getCalibreDB() {
 
   if (!db) {
     try {
-      db = new Database(CALIBRE_DB_PATH, {
-        readonly: true,
-        fileMustExist: true,
-      });
+      // Runtime detection: Use bun:sqlite in Bun, better-sqlite3 in Node.js
+      if (typeof Bun !== 'undefined') {
+        // Bun runtime
+        const { Database } = require('bun:sqlite');
+        db = new Database(CALIBRE_DB_PATH, { readonly: true });
+        console.log("Calibre DB: Using bun:sqlite (Bun runtime)");
+      } else {
+        // Node.js runtime
+        const Database = require('better-sqlite3');
+        db = new Database(CALIBRE_DB_PATH, { readonly: true });
+        console.log("Calibre DB: Using better-sqlite3 (Node.js runtime)");
+      }
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database: ${error}`);
     }

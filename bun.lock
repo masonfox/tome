@@ -4,7 +4,7 @@
     "": {
       "name": "book-tracker",
       "dependencies": {
-        "better-sqlite3": "^12.4.1",
+        "better-sqlite3": "^11.0.0",
         "clsx": "^2.1.0",
         "date-fns": "^3.3.0",
         "lucide-react": "^0.344.0",
@@ -20,7 +20,7 @@
       "devDependencies": {
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.0",
-        "@types/better-sqlite3": "^7.6.9",
+        "@types/better-sqlite3": "^7.6.0",
         "@types/bun": "^1.3.2",
         "@types/node": "^20",
         "@types/react": "^18",
@@ -288,7 +288,7 @@
 
     "baseline-browser-mapping": ["baseline-browser-mapping@2.8.28", "", { "bin": { "baseline-browser-mapping": "dist/cli.js" } }, "sha512-gYjt7OIqdM0PcttNYP2aVrr2G0bMALkBaoehD4BuRGjAOtipg0b6wHg1yNL+s5zSnLZZrGHOw4IrND8CD+3oIQ=="],
 
-    "better-sqlite3": ["better-sqlite3@12.4.1", "", { "dependencies": { "bindings": "^1.5.0", "prebuild-install": "^7.1.1" } }, "sha512-3yVdyZhklTiNrtg+4WqHpJpFDd+WHTg2oM7UcR80GqL05AOV0xEJzc6qNvFYoEtE+hRp1n9MpN6/+4yhlGkDXQ=="],
+    "better-sqlite3": ["better-sqlite3@11.10.0", "", { "dependencies": { "bindings": "^1.5.0", "prebuild-install": "^7.1.1" } }, "sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ=="],
 
     "binary-extensions": ["binary-extensions@2.3.0", "", {}, "sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw=="],
 

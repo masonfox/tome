@@ -1,28 +1,35 @@
 # Now
+* Simple cookie-based password auth
+* Finish book and update rating
+    * Sets the rating value in Calibre DB (update) - add test coverage
+    * Modal-like experience 
+    * UI confetti on modal confirmation
+    * Filter by rating in library page
+    * Sort in library
+* Critical architectural review
 * Test suite
-* Docker package deployment
 * Annual goals
 * Reading Streak
-    * Add dedicated page
-    * Dashboard: consolidate the reading streak
+    * Shift primarily to stats page
+    * Dashboard: consolidate the reading streak UI component, similar to TSG
     * GitHub style activity chart
     * "Journal" page
         * Similar to Thoreau's design
         * Reusable component for the /book/:id page
-* Simple password auth
 * Allow log progress on dashboard
     * Reuse component on book/:id page
+* Replace BookCard status colors with icons from library and /book/:id pages
+* Centralize agent documentation and add copilot instructions
+* Review the "orphaned book" workflow
 
 
 # Next
-* Import (or update?) rating
-    * Filter by rating in library page
-    * Sort Library
 * If filtering on "Read", allow year filtering
 * Integrate Pino logger
     * File logging
     * Trace log calibre syncs
-* UI confetti on "Book Read" event
+* Add logo to navigation and favicon
+* Harder push to Thoreau UI/UX design
 
 
 # Later

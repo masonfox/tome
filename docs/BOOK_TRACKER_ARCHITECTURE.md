@@ -8,7 +8,9 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 - Backend: Next.js API Routes (Node.js)
 - Databases: MongoDB (tracking data) + SQLite (Calibre library)
 - UI: Tailwind CSS + Lucide React icons
-- Runtime: Bun (package manager)
+- Runtime: Node.js (dev) / Bun (production optional)
+- Package Manager: Bun
+- SQLite Adapters: better-sqlite3 (Node.js) / bun:sqlite (Bun)
 - Charts: Recharts
 - Deployment: Docker + Docker Compose
 
@@ -159,6 +161,13 @@ Book (from Calibre)
 #### Calibre Reader (`/lib/db/calibre.ts`)
 **Purpose:** Read-only SQLite interface to Calibre database
 
+**Runtime Adapter Pattern:**
+- Detects runtime environment (Node.js vs Bun)
+- Uses `better-sqlite3` in Node.js (dev mode)
+- Uses `bun:sqlite` in Bun runtime (production)
+- Both libraries have compatible APIs
+- Enables automatic sync in both dev and production
+
 **Key Functions:**
 - `getCalibreDB()` - Singleton connection manager (read-only)
 - `getAllBooks()` - Fetch all books with metadata
@@ -234,18 +243,21 @@ Two-layer automatic sync system:
 #### 2. Server Instrumentation (`/instrumentation.ts`)
 **Hook Type:** Next.js Instrumentation Hook
 **Trigger:** Server startup (Node.js runtime only)
+**Works In:** Both development (Node.js) and production (Bun)
 
 **Behavior:**
 ```typescript
 if CALIBRE_DB_PATH is set:
+    Detect runtime (Node.js or Bun)
     calibreWatcher.start(CALIBRE_DB_PATH, syncCalibreLibrary)
     Register SIGTERM/SIGINT handlers to stop watcher
+    Log which SQLite adapter is being used
 
 else:
     Log warning that auto-sync is disabled
 ```
 
-**Result:** When a user adds/updates books in Calibre, the watcher detects changes and triggers `syncCalibreLibrary()` automatically.
+**Result:** When a user adds/updates books in Calibre, the watcher detects changes and triggers `syncCalibreLibrary()` automatically. Works identically in both dev and production modes.
 
 ---
 
