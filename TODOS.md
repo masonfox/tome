@@ -6,7 +6,6 @@
     * Filter by rating in library page
     * Sort in library
 * Critical architectural review
-* Test suite
 * Annual goals
 * Reading Streak
     * Shift primarily to stats page
