@@ -54,7 +54,7 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
         calibreId: calibreBook.id,
         title: calibreBook.title,
         authors: calibreBook.authors
-          ? calibreBook.authors.split(",").map((a) => a.trim())
+          ? calibreBook.authors.split(/\s*[,|]\s*/).map((a) => a.trim()).filter(a => a)
           : [],
         isbn: calibreBook.isbn || undefined,
         publisher: calibreBook.publisher || undefined,

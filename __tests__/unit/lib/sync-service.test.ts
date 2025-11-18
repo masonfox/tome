@@ -211,6 +211,49 @@ describe("syncCalibreLibrary", () => {
     ]);
   });
 
+  test("parses pipe-delimited authors correctly", async () => {
+    // Arrange
+    mockGetAllBooks = mock(() => [
+      {
+        ...mockCalibreBook,
+        authors: "Brian Herbert| Kevin J. Anderson",
+      },
+    ]);
+    mockGetBookTags = mock(() => []);
+
+    // Act
+    await syncCalibreLibrary();
+
+    // Assert
+    const book = await Book.findOne({ calibreId: 1 });
+    expect(book?.authors).toEqual([
+      "Brian Herbert",
+      "Kevin J. Anderson",
+    ]);
+  });
+
+  test("handles mixed comma and pipe delimiters", async () => {
+    // Arrange
+    mockGetAllBooks = mock(() => [
+      {
+        ...mockCalibreBook,
+        authors: "Author One, Author Two | Author Three",
+      },
+    ]);
+    mockGetBookTags = mock(() => []);
+
+    // Act
+    await syncCalibreLibrary();
+
+    // Assert
+    const book = await Book.findOne({ calibreId: 1 });
+    expect(book?.authors).toEqual([
+      "Author One",
+      "Author Two",
+      "Author Three",
+    ]);
+  });
+
   test("handles books without optional fields", async () => {
     // Arrange
     mockGetAllBooks = mock(() => [
