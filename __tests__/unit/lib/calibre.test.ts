@@ -5,7 +5,6 @@ import {
   getBookById,
   searchBooks,
   getBookTags,
-  getCoverPath,
 } from "@/lib/db/calibre";
 
 /**
@@ -458,27 +457,6 @@ describe("Calibre Query Functions with Full Schema", () => {
       expect(tags).toHaveLength(2);
       expect(tags).toContain("fantasy");
       expect(tags).toContain("humor");
-    });
-  });
-
-  describe("getCoverPath", () => {
-    test("returns API path for book cover", () => {
-      const path = getCoverPath(1);
-
-      expect(path).toBe("/api/covers/1/cover.jpg");
-    });
-
-    test("uses book ID in path", () => {
-      const path = getCoverPath(42);
-
-      expect(path).toBe("/api/covers/42/cover.jpg");
-    });
-
-    test("always returns same format regardless of has_cover status", () => {
-      // Even if book doesn't have cover in DB, path format is consistent
-      const path = getCoverPath(3);
-
-      expect(path).toBe("/api/covers/3/cover.jpg");
     });
   });
 });

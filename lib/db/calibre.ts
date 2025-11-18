@@ -185,9 +185,3 @@ export function getBookTags(bookId: number): string[] {
   const tags = db.prepare(query).all(bookId) as { name: string }[];
   return tags.map((tag) => tag.name);
 }
-
-export function getCoverPath(bookId: number): string {
-  // Return API path using book ID instead of file system path
-  // This avoids encoding issues with special characters in folder names
-  return `/api/covers/${bookId}/cover.jpg`;
-}

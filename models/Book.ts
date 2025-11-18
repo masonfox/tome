@@ -5,7 +5,6 @@ export interface IBook extends Document {
   title: string;
   authors: string[];
   isbn?: string;
-  coverPath?: string;
   totalPages?: number;
   addedToLibrary: Date;
   lastSynced: Date;
@@ -26,7 +25,6 @@ const BookSchema = new Schema<IBook>(
     title: { type: String, required: true },
     authors: [{ type: String }],
     isbn: { type: String },
-    coverPath: { type: String },
     totalPages: { type: Number },
     addedToLibrary: { type: Date, default: Date.now },
     lastSynced: { type: Date, default: Date.now },

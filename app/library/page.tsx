@@ -431,7 +431,7 @@ function LibraryPageContent() {
                 id={book._id}
                 title={book.title}
                 authors={book.authors}
-                coverPath={book.coverPath}
+                calibreId={book.calibreId}
                 status={book.status}
               />
             ))}

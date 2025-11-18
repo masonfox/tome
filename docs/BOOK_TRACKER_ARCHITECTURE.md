@@ -59,7 +59,6 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 - `title` (String) - Book title
 - `authors` (String[]) - Author names
 - `isbn` (String, optional)
-- `coverPath` (String, optional) - API route to cover image
 - `totalPages` (Number, optional) - Total page count
 - `publisher` (String, optional)
 - `pubDate` (Date, optional) - Publication date
@@ -174,7 +173,6 @@ Book (from Calibre)
 - `getBookById(id)` - Get specific book details
 - `searchBooks(query)` - Full-text search by title/author
 - `getBookTags(bookId)` - Fetch tags for a book
-- `getCoverPath(bookPath)` - Generate cover image API path
 
 **Query Strategy:**
 - Uses SQL JOINs to gather related data
@@ -184,8 +182,8 @@ Book (from Calibre)
 
 **Cover Image Handling:**
 - Calibre stores cover.jpg in book folders
-- Returns API path: `/api/covers/{bookPath}/cover.jpg`
-- Actual file serving handled by covers route
+- Cover API route (`/api/covers/[id]`) constructs paths dynamically using `calibreId`
+- No cover paths stored in MongoDB - generated on-demand in UI components
 
 ---
 
@@ -196,7 +194,6 @@ Book (from Calibre)
 2. Fetches all books from Calibre
 3. For each book:
    - Extracts metadata (title, authors, ISBN, tags, etc.)
-   - Constructs cover path
    - Checks if book exists in MongoDB (by calibreId)
    - Creates new Book or updates existing one
 4. Tracks: syncedCount (new), updatedCount (existing), totalBooks
@@ -207,11 +204,13 @@ Book (from Calibre)
 ```
 Calibre SQLite
     ↓
-getAllBooks() + getBookTags() + getCoverPath()
+getAllBooks() + getBookTags()
     ↓
 Book metadata with enriched data
     ↓
 MongoDB Book collection
+    ↓
+UI generates cover paths from calibreId dynamically
     ↓
 UI displays books with Calibre metadata
 ```

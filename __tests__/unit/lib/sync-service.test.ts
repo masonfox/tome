@@ -13,13 +13,11 @@ import { mockCalibreBook } from "@/__tests__/fixtures/test-data";
 // Mock Calibre DB functions
 let mockGetAllBooks: ReturnType<typeof mock>;
 let mockGetBookTags: ReturnType<typeof mock>;
-let mockGetCoverPath: ReturnType<typeof mock>;
 
 // Set up module mocks before imports
 mock.module("@/lib/db/calibre", () => ({
   getAllBooks: () => mockGetAllBooks(),
   getBookTags: (id: number) => mockGetBookTags(id),
-  getCoverPath: (id: number) => mockGetCoverPath(id),
 }));
 
 describe("syncCalibreLibrary", () => {
@@ -37,7 +35,6 @@ describe("syncCalibreLibrary", () => {
     // Reset mocks with default implementations
     mockGetAllBooks = mock(() => []);
     mockGetBookTags = mock(() => []);
-    mockGetCoverPath = mock(() => "/api/covers/1/cover.jpg");
   });
 
   test("prevents concurrent syncs", async () => {
@@ -65,7 +62,6 @@ describe("syncCalibreLibrary", () => {
     // Arrange
     mockGetAllBooks = mock(() => [mockCalibreBook]);
     mockGetBookTags = mock(() => ["fantasy", "epic"]);
-    mockGetCoverPath = mock(() => "/api/covers/1/cover.jpg");
 
     // Act
     const result = await syncCalibreLibrary();
@@ -251,7 +247,6 @@ describe("syncCalibreLibrary", () => {
     expect(book?.series).toBeUndefined();
     expect(book?.seriesIndex).toBeUndefined();
     expect(book?.description).toBeUndefined();
-    expect(book?.coverPath).toBeUndefined();
   });
 
   test("converts dates correctly", async () => {

@@ -135,7 +135,7 @@ export default async function Dashboard() {
                 id={book._id}
                 title={book.title}
                 authors={book.authors}
-                coverPath={book.coverPath}
+                calibreId={book.calibreId}
                 currentProgress={book.latestProgress?.currentPercentage}
               />
             ))}
@@ -179,7 +179,7 @@ export default async function Dashboard() {
                 id={book._id}
                 title={book.title}
                 authors={book.authors}
-                coverPath={book.coverPath}
+                calibreId={book.calibreId}
               />
             ))}
           </div>

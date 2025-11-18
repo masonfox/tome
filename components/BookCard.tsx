@@ -1,12 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { useState } from "react";
 
 interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  coverPath?: string;
+  calibreId: number;
   status?: string | null;
   currentProgress?: number;
   className?: string;
@@ -16,11 +19,13 @@ export function BookCard({
   id,
   title,
   authors,
-  coverPath,
+  calibreId,
   status,
   currentProgress,
   className,
 }: BookCardProps) {
+  const [imageError, setImageError] = useState(false);
+
   const statusColors = {
     "to-read": "bg-[#deb887] text-[#5c4033]",
     "read-next": "bg-[#e8c5a0] text-[#4a3728]",
@@ -44,12 +49,13 @@ export function BookCard({
         )}
       >
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
-          {coverPath ? (
+          {!imageError ? (
             <img
-              src={coverPath}
+              src={`/api/covers/${calibreId}/cover.jpg`}
               alt={title}
               className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
               loading="lazy"
+              onError={() => setImageError(true)}
             />
           ) : (
             <BookOpen className="w-16 h-16 text-[var(--accent)]/40" />

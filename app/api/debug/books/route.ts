@@ -6,15 +6,14 @@ export async function GET() {
   try {
     await connectDB();
 
-    const books = await Book.find().limit(5).select("title coverPath path");
+    const books = await Book.find().limit(5).select("title path calibreId");
 
     return NextResponse.json({
       books: books.map((book) => ({
         title: book.title,
-        coverPath: book.coverPath,
+        calibreId: book.calibreId,
         calibrePath: book.path,
         pathBytes: book.path ? Buffer.from(book.path).toString('hex') : null,
-        coverPathBytes: book.coverPath ? Buffer.from(book.coverPath).toString('hex') : null,
       })),
     });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { connectDB } from "@/lib/db/mongodb";
-import { getAllBooks, getBookTags, getCoverPath } from "@/lib/db/calibre";
+import { getAllBooks, getBookTags } from "@/lib/db/calibre";
 import Book from "@/models/Book";
 import ReadingStatus from "@/models/ReadingStatus";
 
@@ -45,9 +45,6 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
 
     for (const calibreBook of calibreBooks) {
       const tags = getBookTags(calibreBook.id);
-      const coverPath = calibreBook.has_cover
-        ? getCoverPath(calibreBook.id)
-        : undefined;
 
       const existingBook = await Book.findOne({
         calibreId: calibreBook.id,
@@ -68,7 +65,6 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
         seriesIndex: calibreBook.series_index || undefined,
         tags,
         path: calibreBook.path,
-        coverPath,
         description: calibreBook.description || undefined,
         lastSynced: new Date(),
         addedToLibrary: calibreBook.timestamp

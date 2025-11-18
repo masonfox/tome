@@ -10,9 +10,9 @@ import { toast } from "@/utils/toast";
 
 interface Book {
   _id: string;
+  calibreId: number;
   title: string;
   authors: string[];
-  coverPath?: string;
   totalPages?: number;
   publisher?: string;
   pubDate?: string;
@@ -50,6 +50,7 @@ export default function BookDetailPage() {
   const [book, setBook] = useState<Book | null>(null);
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
   const [currentPage, setCurrentPage] = useState("");
   const [currentPercentage, setCurrentPercentage] = useState("");
   const [progressInputMode, setProgressInputMode] = useState<"page" | "percentage">("page");
@@ -307,12 +308,13 @@ export default function BookDetailPage() {
         <div className="space-y-4">
           {/* Cover */}
           <div className="aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center">
-            {book.coverPath ? (
+            {!imageError ? (
               <img
-                src={book.coverPath}
+                src={`/api/covers/${book.calibreId}/cover.jpg`}
                 alt={book.title}
                 className="w-full h-full object-cover"
                 loading="eager"
+                onError={() => setImageError(true)}
               />
             ) : (
               <BookOpen className="w-24 h-24 text-[var(--foreground)]/40" />

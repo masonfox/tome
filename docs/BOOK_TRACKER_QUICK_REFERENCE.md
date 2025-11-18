@@ -60,9 +60,6 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
     
     for (const calibreBook of calibreBooks) {
       const tags = getBookTags(calibreBook.id);
-      const coverPath = calibreBook.has_cover 
-        ? getCoverPath(calibreBook.path) 
-        : undefined;
 
       const existingBook = await Book.findOne({ 
         calibreId: calibreBook.id 
@@ -87,6 +84,7 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
 }
 ```
 **Key Pattern:** Try/finally ensures isSyncing is always reset
+**Note:** Cover paths are now generated dynamically in UI components using `calibreId`
 
 ---
 
