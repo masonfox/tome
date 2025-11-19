@@ -3,94 +3,10 @@ import { StatsCard } from "@/components/ui/StatsCard";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { BookCard } from "@/components/BookCard";
 import Link from "next/link";
-
-async function getStats() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-  try {
-    const response = await fetch(`${baseUrl}/api/stats/overview`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("Failed to fetch stats:", error);
-    return null;
-  }
-}
-
-async function getStreak() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-  try {
-    const response = await fetch(`${baseUrl}/api/streaks`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("Failed to fetch streak:", error);
-    return null;
-  }
-}
-
-async function getCurrentlyReading() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-  try {
-    const response = await fetch(
-      `${baseUrl}/api/books?status=reading&limit=6`,
-      {
-        cache: "no-store",
-      }
-    );
-
-    if (!response.ok) {
-      return { books: [] };
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("Failed to fetch currently reading:", error);
-    return { books: [] };
-  }
-}
-
-async function getReadNext() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-  try {
-    const response = await fetch(
-      `${baseUrl}/api/books?status=read-next&limit=6`,
-      {
-        cache: "no-store",
-      }
-    );
-
-    if (!response.ok) {
-      return { books: [] };
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("Failed to fetch read next:", error);
-    return { books: [] };
-  }
-}
+import { getDashboardData } from "@/lib/dashboard-service";
 
 export default async function Dashboard() {
-  const stats = await getStats();
-  const streak = await getStreak();
-  const currentlyReading = await getCurrentlyReading();
-  const readNext = await getReadNext();
+  const { stats, streak, currentlyReading, readNext } = await getDashboardData();
 
   return (
     <div className="space-y-10">
@@ -119,7 +35,7 @@ export default async function Dashboard() {
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Currently Reading</span>
             <span className="ml-2 text-[var(--accent)]">
-              ({currentlyReading.books.length})
+              ({currentlyReading.length})
             </span>
           </h2>
           <Link
@@ -130,9 +46,9 @@ export default async function Dashboard() {
           </Link>
         </div>
 
-        {currentlyReading.books.length > 0 ? (
+        {currentlyReading.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {currentlyReading.books.map((book: any) => (
+            {currentlyReading.map((book: any) => (
               <BookCard
                 key={book._id}
                 id={book._id}
@@ -166,7 +82,7 @@ export default async function Dashboard() {
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Read Next</span>
             <span className="ml-2 text-[var(--accent)]">
-              ({readNext.books.length})
+              ({readNext.length})
             </span>
           </h2>
           <Link
@@ -177,9 +93,9 @@ export default async function Dashboard() {
           </Link>
         </div>
 
-        {readNext.books.length > 0 ? (
+        {readNext.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {readNext.books.map((book: any) => (
+            {readNext.map((book: any) => (
               <BookCard
                 key={book._id}
                 id={book._id}
