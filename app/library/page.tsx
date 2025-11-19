@@ -1,94 +1,70 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { BookCard } from "@/components/BookCard";
-import { Search, Filter, RefreshCw, Library as LibraryIcon, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck } from "lucide-react";
-import { cn } from "@/utils/cn";
-
-interface Book {
-  _id: string;
-  calibreId: number;
-  title: string;
-  authors: string[];
-  coverPath?: string;
-  status: string | null;
-  tags: string[];
-}
-
-const BOOKS_PER_PAGE = 50;
+import { useLibraryData } from "@/hooks/useLibraryData";
+import { libraryService } from "@/lib/library-service";
+import { LibraryHeader } from "@/components/LibraryHeader";
+import { LibraryFilters } from "@/components/LibraryFilters";
+import { BookGrid } from "@/components/BookGrid";
+import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
   const searchParams = useSearchParams();
   const [isReady, setIsReady] = useState(false);
-
-  const [books, setBooks] = useState<Book[]>([]);
-  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [tagSearchInput, setTagSearchInput] = useState("");
-  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [totalBooks, setTotalBooks] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
   const observerTarget = useRef<HTMLDivElement>(null);
-  const statusDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Initialize from URL params ONCE on mount
+  // Parse initial filters from URL params
   useEffect(() => {
     const searchParam = searchParams.get("search");
     const statusParam = searchParams.get("status");
     const tagsParam = searchParams.get("tags");
 
-    if (searchParam) {
-      setSearchInput(searchParam);
-      setSearch(searchParam);
-    }
-    if (statusParam) {
-      setStatusFilter(statusParam);
-    }
-    if (tagsParam) {
-      setSelectedTags([tagsParam]);
-    }
-
-    // Mark as ready after state has been set
+    if (searchParam) setSearchInput(searchParam);
+    
     setIsReady(true);
-  }, []);
+  }, [searchParams]);
+
+  // Initialize useLibraryData hook with filters from URL
+  const {
+    books,
+    total,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    loadMore,
+    setSearch,
+    setStatus,
+    setTags,
+    filters,
+    refresh,
+  } = useLibraryData({
+    search: searchParams.get("search") || undefined,
+    status: searchParams.get("status") || undefined,
+    tags: searchParams.get("tags")?.split(",").filter(Boolean) || undefined,
+  });
 
   // Debounce search input
   useEffect(() => {
+    if (!isReady) return;
+    
     const timer = setTimeout(() => {
       setSearch(searchInput);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  // Close status dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
-        setShowStatusDropdown(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [searchInput, setSearch, isReady]);
 
   // Fetch available tags on mount
   useEffect(() => {
     async function fetchTags() {
       try {
-        const response = await fetch("/api/tags");
-        const data = await response.json();
-        setAvailableTags(data.tags || []);
+        const tags = await libraryService.getAvailableTags();
+        setAvailableTags(tags);
       } catch (error) {
         console.error("Failed to fetch tags:", error);
       }
@@ -96,69 +72,11 @@ function LibraryPageContent() {
     fetchTags();
   }, []);
 
-  useEffect(() => {
-    // Don't fetch until after URL params have been initialized
-    if (!isReady) return;
-
-    setBooks([]);
-    setCurrentPage(0);
-    setHasMore(true);
-    fetchBooks(0);
-  }, [statusFilter, search, selectedTags, isReady]);
-
-  async function fetchBooks(page: number) {
-    if (page === 0) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
-
-    try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") {
-        params.set("status", statusFilter);
-      }
-      if (search) {
-        params.set("search", search);
-      }
-      if (selectedTags.length > 0) {
-        params.set("tags", selectedTags.join(","));
-      }
-      params.set("limit", BOOKS_PER_PAGE.toString());
-      params.set("skip", (page * BOOKS_PER_PAGE).toString());
-
-      const response = await fetch(`/api/books?${params.toString()}`);
-      const data = await response.json();
-      const newBooks = data.books || [];
-
-      if (page === 0) {
-        setBooks(newBooks);
-        setTotalBooks(data.total || 0);
-      } else {
-        setBooks((prev) => [...prev, ...newBooks]);
-      }
-
-      setCurrentPage(page);
-      setHasMore(newBooks.length === BOOKS_PER_PAGE);
-    } catch (error) {
-      console.error("Failed to fetch books:", error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }
-
-  const loadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchBooks(currentPage + 1);
-    }
-  }, [currentPage, loadingMore, hasMore]);
-
   // Set up intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+        if (entries[0].isIntersecting && hasMore && !loading) {
           loadMore();
         }
       },
@@ -170,294 +88,68 @@ function LibraryPageContent() {
     }
 
     return () => observer.disconnect();
-  }, [loadMore, hasMore, loadingMore, loading]);
+  }, [loadMore, hasMore, loading]);
 
-  async function syncCalibre() {
+  async function handleSync() {
     setSyncing(true);
     try {
-      const response = await fetch("/api/calibre/sync");
-      const result = await response.json();
+      const result = await libraryService.syncCalibre();
 
       if (result.success) {
-        alert(result.message);
-        setBooks([]);
-        setCurrentPage(0);
-        setHasMore(true);
-        fetchBooks(0);
+        toast.success(`Sync successful: ${result.syncedCount} new books, ${result.updatedCount} updated`);
+        await refresh();
       } else {
-        alert(`Sync failed: ${result.error}`);
+        toast.error(`Sync failed: ${result.error}`);
       }
     } catch (error) {
       console.error("Sync failed:", error);
-      alert("Failed to sync with Calibre");
+      toast.error("Failed to sync with Calibre");
     } finally {
       setSyncing(false);
     }
   }
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    // Immediately apply search when form is submitted (bypass debounce)
-    setSearch(searchInput);
+  function handleClearAll() {
+    setSearchInput("");
+    setSearch("");
+    setStatus(undefined);
+    setTags(undefined);
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-6">
-        <div>
-          <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
-            <LibraryIcon className="w-8 h-8" />
-            Library
-          </h1>
-          <p className="text-[var(--subheading-text)] mt-2 font-medium">
-            {totalBooks} {totalBooks === 1 ? "book" : "books"}
-          </p>
-        </div>
+      <LibraryHeader
+        totalBooks={total}
+        syncing={syncing}
+        onSync={handleSync}
+      />
 
-        <button
-          onClick={syncCalibre}
-          disabled={syncing}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium",
-            syncing && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-          {syncing ? "Syncing..." : "Sync Calibre"}
-        </button>
-      </div>
+      <LibraryFilters
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        statusFilter={filters.status || "all"}
+        onStatusFilterChange={(status) => setStatus(status === "all" ? undefined : status)}
+        selectedTags={filters.tags || []}
+        onTagsChange={(tags) => setTags(tags.length > 0 ? tags : undefined)}
+        availableTags={availableTags}
+        loading={loading}
+        onClearAll={handleClearAll}
+      />
 
-      {/* Filters */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
-        <form onSubmit={handleSearch} className="space-y-3">
-          {/* Search and Status Filter Row */}
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-                <input
-                  type="text"
-                  placeholder="Search books..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className={cn(
-                    "w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors",
-                    searchInput ? "pr-10" : "pr-4"
-                  )}
-                />
-                {searchInput && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchInput("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
-              <div className="relative" ref={statusDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className="px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px]"
-                >
-                  <span>
-                    {statusFilter === "all"
-                      ? "All Books"
-                      : statusFilter === "to-read"
-                      ? "To Read"
-                      : statusFilter === "read-next"
-                      ? "Read Next"
-                      : statusFilter === "reading"
-                      ? "Reading"
-                      : "Read"}
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform ml-auto",
-                      showStatusDropdown && "rotate-180"
-                    )}
-                  />
-                </button>
-
-                {/* Dropdown Menu */}
-                {showStatusDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                    {[
-                      { value: "all", label: "All Books", icon: LibraryIcon },
-                      { value: "to-read", label: "To Read", icon: Bookmark },
-                      { value: "read-next", label: "Read Next", icon: Clock },
-                      { value: "reading", label: "Reading", icon: BookOpen },
-                      { value: "read", label: "Read", icon: BookCheck },
-                    ].map((option) => {
-                      const Icon = option.icon;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => {
-                            setStatusFilter(option.value);
-                            setShowStatusDropdown(false);
-                          }}
-                          className={cn(
-                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                            statusFilter === option.value && "bg-[var(--accent)]/10"
-                          )}
-                        >
-                          <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
-                          <span className="font-medium flex-1">{option.label}</span>
-                          {statusFilter === option.value && (
-                            <Check className="w-5 h-5 text-[var(--accent)]" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Tag Filter Row */}
-          {availableTags.length > 0 && (
-            <div className="flex gap-3 items-start">
-              <div className="flex items-center gap-2 pt-2 shrink-0">
-                <Tag className="w-5 h-5 text-[var(--foreground)]/40" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                {/* Tag search input */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search tags..."
-                    value={tagSearchInput}
-                    onChange={(e) => {
-                      setTagSearchInput(e.target.value);
-                      setShowTagSuggestions(true);
-                    }}
-                    onFocus={() => setShowTagSuggestions(true)}
-                    onBlur={() => {
-                      // Delay to allow clicking on suggestions
-                      setTimeout(() => setShowTagSuggestions(false), 200);
-                    }}
-                    className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
-                  />
-
-                  {/* Tag suggestions dropdown */}
-                  {showTagSuggestions && tagSearchInput.trim() && (() => {
-                    const filteredTags = availableTags
-                      .filter((tag) =>
-                        tag.toLowerCase().includes(tagSearchInput.toLowerCase()) &&
-                        !selectedTags.includes(tag)
-                      )
-                      .slice(0, 15);
-
-                    return filteredTags.length > 0 ? (
-                      <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-60 overflow-y-auto shadow-lg">
-                        {filteredTags.map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => {
-                              setSelectedTags([...selectedTags, tag]);
-                              setTagSearchInput("");
-                              setShowTagSuggestions(false);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] px-4 py-2 text-sm text-[var(--foreground)]/50">
-                        No matching tags found
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {selectedTags.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedTags([])}
-                  className="px-3 py-2 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] transition-colors shrink-0"
-                >
-                  Clear ({selectedTags.length})
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Selected tags */}
-          {selectedTags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pl-9">
-              {selectedTags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setSelectedTags(selectedTags.filter((t) => t !== tag))}
-                  className="px-3 py-1 text-sm bg-[var(--accent)] text-white border border-[var(--accent)] flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors"
-                >
-                  {tag}
-                  <X className="w-3 h-3" />
-                </button>
-              ))}
-            </div>
-          )}
-        </form>
-      </div>
-
-      {/* Books Grid */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[var(--foreground)]/70 mt-4 font-medium">
-            Loading books...
-          </p>
-        </div>
-      ) : books.length > 0 ? (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {books.map((book) => (
-              <BookCard
-                key={book._id}
-                id={book._id}
-                title={book.title}
-                authors={book.authors}
-                calibreId={book.calibreId}
-                status={book.status}
-              />
-            ))}
-          </div>
-
-          {/* Infinite scroll trigger */}
-          <div ref={observerTarget} className="py-8" />
-
-          {/* Loading indicator for next page */}
-          {loadingMore && (
-            <div className="text-center py-8">
-              <div className="inline-block w-6 h-6 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[var(--foreground)]/70 mt-2 font-medium">
-                Loading more books...
-              </p>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-12 text-center">
-          <p className="text-[var(--foreground)]/70 font-medium">
-            No books found. Try syncing with Calibre or adjusting your filters.
-          </p>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+          {error}
         </div>
       )}
+
+      <BookGrid
+        books={books}
+        loading={loading && books.length === 0}
+        loadingMore={loadingMore}
+      />
+
+      {/* Infinite scroll trigger */}
+      <div ref={observerTarget} className="py-8" />
     </div>
   );
 }

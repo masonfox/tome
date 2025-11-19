@@ -514,7 +514,7 @@ describe("GET /api/books", () => {
         });
       }
 
-      const request = createMockRequest("GET", "/api/books?limit=2&skip=2");
+      const request = createMockRequest("GET", "/api/books?limit=2&skip=2&sortBy=title");
       const response = await GET(request);
       const data = await response.json();
 

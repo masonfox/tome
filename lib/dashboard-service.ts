@@ -220,9 +220,9 @@ async function getBooksByStatus(status: string, limit: number): Promise<{ books:
     }).limit(limit);
 
     // Create a map of books by ID for easy lookup
-    const bookMap = new Map();
+    const bookMap = new Map<string, any>();
     books.forEach(book => {
-      bookMap.set(book._id.toString(), book);
+      bookMap.set((book._id as any).toString(), book);
     });
 
     // Build results in the order of sessionRecords (sorted by updatedAt)

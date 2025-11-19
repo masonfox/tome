@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongodb";
+import mongoose from "mongoose";
 import Book from "@/models/Book";
 import ProgressLog from "@/models/ProgressLog";
 import ReadingSession from "@/models/ReadingSession";
@@ -12,6 +13,14 @@ export async function GET(
 ) {
   try {
     await connectDB();
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid book ID format" },
+        { status: 400 }
+      );
+    }
 
     // Check for sessionId query parameter
     const sessionId = request.nextUrl.searchParams.get("sessionId");
@@ -53,6 +62,14 @@ export async function POST(
 ) {
   try {
     await connectDB();
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid book ID format" },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json();
     const { currentPage, currentPercentage, notes } = body;

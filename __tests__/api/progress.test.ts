@@ -134,8 +134,8 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to fetch progress");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid book ID format");
   });
 });
 
@@ -437,8 +437,8 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to log progress");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid book ID format");
   });
 
   test("updates session updatedAt timestamp when logging progress", async () => {

@@ -4,6 +4,43 @@ import Book from "@/models/Book";
 import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 
+interface SortOptions {
+  field: string;
+  order: 1 | -1;
+}
+
+function getSortOptions(sortBy?: string): SortOptions {
+  switch (sortBy) {
+    case 'title':
+      return { field: 'title', order: 1 };
+    case 'title_desc':
+      return { field: 'title', order: -1 };
+    case 'author':
+      return { field: 'authors', order: 1 };
+    case 'author_desc':
+      return { field: 'authors', order: -1 };
+    case 'rating':
+      return { field: 'rating', order: -1 };
+    case 'rating_desc':
+      return { field: 'rating', order: 1 };
+    case 'recently_read':
+      return { field: 'completedDate', order: -1 };
+    case 'recently_read_desc':
+      return { field: 'completedDate', order: 1 };
+    case 'createdAt':
+      return { field: 'createdAt', order: 1 };
+    case 'createdAt_desc':
+      return { field: 'createdAt', order: -1 };
+    case 'created':
+      return { field: '_id', order: -1 };
+    case 'created_desc':
+      return { field: '_id', order: 1 };
+    default:
+      // Default to createdAt ascending for consistent pagination
+      return { field: 'createdAt', order: 1 };
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -15,6 +52,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = parseInt(searchParams.get("skip") || "0");
     const showOrphaned = searchParams.get("showOrphaned") === "true";
+    const sortBy = searchParams.get("sortBy");
+    
+    const sortOptions = getSortOptions(sortBy || undefined);
 
     let query: any = {};
 
@@ -27,16 +67,18 @@ export async function GET(request: NextRequest) {
     }
 
     // If filtering by status, we need to join with ReadingSession
-    // For 'read' status, include archived sessions (isActive: false)
-    // For other statuses, only include active sessions (isActive: true)
+    // For 'read' status, look for completed sessions (can be active or archived)
+    // For other statuses (to-read, read-next, reading), only look at active sessions
     if (status) {
       const sessionQuery: any = { status };
       
       if (status === "read") {
-        // Include archived sessions for 'read' status
-        sessionQuery.isActive = false;
+        // For 'read' status, we want books that have been completed
+        // This could be archived sessions OR active sessions that are marked as "read"
+        // We'll look for any session with status="read" regardless of isActive
+        // (In practice, most will be archived, but user might have an active "read" status temporarily)
       } else {
-        // Only active sessions for other statuses
+        // For to-read, read-next, reading: only active sessions matter
         sessionQuery.isActive = true;
       }
       
@@ -60,7 +102,7 @@ export async function GET(request: NextRequest) {
     }
 
     const books = await Book.find(query)
-      .sort({ title: 1 })
+      .sort({ [sortOptions.field]: sortOptions.order })
       .limit(limit)
       .skip(skip);
 

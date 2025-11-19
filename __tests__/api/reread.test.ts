@@ -394,7 +394,9 @@ describe("POST /api/books/[id]/reread", () => {
       isActive: false, // Archived
     });
 
-    // Make two concurrent requests
+    // Make two concurrent requests to test race condition protection
+    // Expected: One succeeds, one fails with duplicate key error (E11000)
+    // This error is EXPECTED and proves database constraint is working
     const request1 = createMockRequest("POST", `/api/books/${book._id}/reread`);
     const request2 = createMockRequest("POST", `/api/books/${book._id}/reread`);
 

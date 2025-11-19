@@ -36,7 +36,10 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 │   │   └── calibre.ts       # Calibre SQLite reader
 │   ├── sync-service.ts      # Calibre library sync logic
 │   ├── calibre-watcher.ts   # File system watcher for auto-sync
+│   ├── library-service.ts   # Client-side library data service
 │   └── streaks.ts           # Reading streak calculations
+├── /hooks                   # Custom React hooks
+│   └── useLibraryData.ts    # Library state management hook
 ├── /components              # React components
 ├── /utils                   # Utility functions
 ├── instrumentation.ts       # Next.js instrumentation hook
@@ -547,13 +550,21 @@ bun run scripts/migrateToSessions.ts --rollback --backup=backups/migration-backu
 - Uses: StatsCard, StreakDisplay, BookCard components
 
 #### Library (`/app/library/page.tsx`) - Client Component
-- Full book library browsing
+- Full book library browsing with client service layer architecture
+- **Architecture Pattern:** Page → Hook → Service → API Routes → Database
 - Features:
   - Text search (title, authors)
   - Filter by status (all, to-read, reading, read)
+  - Filter by tags (multiple selection)
+  - Sorting (title, author, rating, recently read)
+  - Infinite scroll pagination
   - Manual Calibre sync trigger
   - Responsive grid layout
-- Uses: BookCard component for display
+- Components:
+  - `LibraryHeader` - Title, book count, sync button
+  - `LibraryFilters` - Search, status dropdown, tag selector
+  - `BookGrid` - Book cards with loading states
+- Uses: `useLibraryData` hook → `LibraryService` → `/api/books`
 
 #### Book Detail (`/app/books/:id/page.tsx`) - Client Component
 - Complete book information
@@ -611,9 +622,303 @@ bun run scripts/migrateToSessions.ts --rollback --backup=backups/migration-backu
 - Icon, title, value, subtitle
 - Optional custom styling
 
+**LibraryHeader (`/components/LibraryHeader.tsx`)**
+- Library page header with book count and sync button
+- Props: totalBooks, syncing state, onSync callback
+
+**LibraryFilters (`/components/LibraryFilters.tsx`)**
+- Complete filtering UI for library
+- Search input with clear button
+- Status dropdown (All, To Read, Read Next, Reading, Read)
+- Tag search with autocomplete suggestions
+- Selected tag pills with remove functionality
+- Props: all filter values and change handlers
+
+**BookGrid (`/components/BookGrid.tsx`)**
+- Grid display of book cards
+- Loading states (initial and "load more")
+- Empty state message
+- Props: books array, loading flags
+
 ---
 
-## 7. DATA FLOW EXAMPLES
+## 7. CLIENT SERVICE LAYER ARCHITECTURE
+
+### Overview
+
+The library page demonstrates a clean separation of concerns using a **Client Service Layer** pattern that keeps business logic separate from UI components and provides client-side caching.
+
+**Architecture Flow:**
+```
+┌─────────────────┐
+│  Library Page   │ (Orchestration, URL params)
+└────────┬────────┘
+         │
+         ↓
+┌─────────────────┐
+│ useLibraryData  │ (State management, infinite scroll)
+│     Hook        │
+└────────┬────────┘
+         │
+         ↓
+┌─────────────────┐
+│ LibraryService  │ (Client-side caching, API abstraction)
+│    (Singleton)  │
+└────────┬────────┘
+         │
+         ↓
+┌─────────────────┐
+│  /api/books     │ (Server-side DB queries)
+│   API Route     │
+└────────┬────────┘
+         │
+         ↓
+┌─────────────────┐
+│    MongoDB      │ (Data persistence)
+└─────────────────┘
+```
+
+### LibraryService (`/lib/library-service.ts`)
+
+**Purpose:** Client-side service that abstracts API calls and provides intelligent caching
+
+**Key Features:**
+- Singleton instance exported for app-wide usage
+- In-memory cache with intelligent key generation
+- Separate caches for books and tags
+- Type-safe interfaces for all data structures
+
+**Public Methods:**
+```typescript
+getBooks(filters: LibraryFilters): Promise<PaginatedBooks>
+  // Fetches paginated books with filters
+  // Caches results by filter combination
+  // Returns: books[], total, limit, skip, hasMore
+
+getAvailableTags(): Promise<string[]>
+  // Fetches all unique tags sorted alphabetically
+  // Caches results for subsequent calls
+
+syncCalibre(): Promise<SyncResult>
+  // Triggers Calibre sync via API
+  // Clears all caches on success
+
+clearCache(): void
+  // Clears all cached data (books and tags)
+  // Called after sync or manual refresh
+
+invalidateCache(filters: Partial<LibraryFilters>): void
+  // Selectively invalidates cache entries
+  // Used for targeted cache busting
+```
+
+**Cache Strategy:**
+- Cache keys generated from filter combinations (status, search, tags, pagination)
+- Results cached indefinitely until explicitly cleared
+- Separate tag cache for autocomplete performance
+- `hasMore` calculation: `skip + books.length < total`
+
+**Example Usage:**
+```typescript
+import { libraryService } from "@/lib/library-service";
+
+const result = await libraryService.getBooks({
+  status: "reading",
+  search: "Harry",
+  tags: ["fantasy"],
+  pagination: { limit: 50, skip: 0 },
+});
+// Returns: { books, total, limit, skip, hasMore }
+
+// Clear cache after sync
+libraryService.clearCache();
+```
+
+### useLibraryData Hook (`/hooks/useLibraryData.ts`)
+
+**Purpose:** Custom React hook that manages library page state and data fetching
+
+**Key Features:**
+- Encapsulates all filter state management
+- Handles infinite scroll pagination
+- Debounces search input
+- Manages loading and error states
+- Provides convenient setter functions
+
+**Hook Interface:**
+```typescript
+const {
+  // Data
+  books,           // Current books array
+  total,           // Total count from server
+  hasMore,         // More pages available?
+  loading,         // Loading state
+  error,           // Error message
+  
+  // Actions
+  loadMore,        // Load next page (infinite scroll)
+  refresh,         // Clear cache and refetch
+  updateFilters,   // Generic filter update
+  
+  // Specific setters
+  setSearch,       // Update search query
+  setStatus,       // Update status filter
+  setTags,         // Update tag filters
+  setLimit,        // Update page size
+  setSkip,         // Update pagination offset
+  
+  // Current state
+  filters,         // Current filter values
+} = useLibraryData(initialFilters?);
+```
+
+**Smart Features:**
+- Resets pagination (skip=0) when core filters change
+- Cancels in-flight requests on unmount
+- Memoizes service instance to prevent recreation
+- Accumulates results for infinite scroll
+
+**Example Usage:**
+```typescript
+const {
+  books,
+  total,
+  hasMore,
+  loading,
+  loadMore,
+  setSearch,
+  setStatus,
+} = useLibraryData({
+  status: searchParams.get("status") || undefined,
+});
+
+// Filter changes automatically trigger refetch
+setStatus("reading");
+
+// Infinite scroll
+useEffect(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore && !loading) {
+        loadMore();
+      }
+    },
+    { threshold: 0.1 }
+  );
+  // ...
+}, [loadMore, hasMore, loading]);
+```
+
+### Library Page Component Structure
+
+**File:** `/app/library/page.tsx` (135 lines, down from 485)
+
+**Responsibilities:**
+- URL parameter handling (search, status, tags)
+- Debounced search input (300ms delay)
+- Infinite scroll observer setup
+- Sync button handler with toast notifications
+- Renders: LibraryHeader, LibraryFilters, BookGrid
+
+**Key Pattern:**
+```typescript
+// Initialize hook with URL params
+const { books, total, hasMore, loading, ... } = useLibraryData({
+  search: searchParams.get("search") || undefined,
+  status: searchParams.get("status") || undefined,
+  tags: searchParams.get("tags")?.split(",") || undefined,
+});
+
+// Debounce search
+useEffect(() => {
+  const timer = setTimeout(() => setSearch(searchInput), 300);
+  return () => clearTimeout(timer);
+}, [searchInput]);
+
+// Infinite scroll
+useEffect(() => {
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && hasMore && !loading) {
+      loadMore();
+    }
+  });
+  // ...
+});
+```
+
+### Benefits of This Architecture
+
+1. **Separation of Concerns**
+   - Page: Orchestration and UI coordination
+   - Hook: State management and data fetching logic
+   - Service: API abstraction and caching
+   - Components: Pure presentation logic
+
+2. **Testability**
+   - Service can be tested in isolation with mocked fetch
+   - Hook can be tested with custom React testing utilities
+   - Components can be tested with mock props
+   - Integration tests validate the full flow
+
+3. **Reusability**
+   - Service can be used from any component
+   - Hook can be used on other pages with similar needs
+   - Components are generic and reusable
+
+4. **Performance**
+   - Client-side caching reduces API calls
+   - Debounced search prevents excessive requests
+   - Infinite scroll loads data progressively
+   - Smart cache invalidation after mutations
+
+5. **Maintainability**
+   - Single responsibility for each layer
+   - Easy to modify filtering/pagination logic
+   - Clear data flow from UI to database
+   - Type-safe interfaces throughout
+
+### Testing Pattern
+
+**Integration Tests:** `__tests__/integration/library-service-api.test.ts`
+
+Tests the complete flow from service → API routes → database:
+
+```typescript
+// Mock fetch to call actual API handlers
+global.fetch = async (input, init) => {
+  const url = typeof input === "string" ? input : input.toString();
+  
+  if (url.includes("/api/books")) {
+    const request = createMockRequest("GET", url);
+    return await GET_BOOKS(request); // Actual handler
+  }
+  // ...
+};
+
+test("should handle pagination correctly", async () => {
+  // Create test data
+  await Book.create({ /* ... */ });
+  
+  // Test via service (which calls API which queries DB)
+  const page1 = await service.getBooks({
+    pagination: { limit: 5, skip: 0 },
+  });
+  
+  expect(page1.books).toHaveLength(5);
+  expect(page1.hasMore).toBe(true);
+});
+```
+
+**Key Testing Principles:**
+- Don't mock the layer being tested
+- Use actual API handlers (not mocked fetch responses)
+- Validate complete data flow
+- Test cache behavior with real API responses
+- Cover edge cases (pagination boundaries, filters, etc.)
+
+---
+
+## 8. DATA FLOW EXAMPLES
 
 ### Reading Progress Workflow
 ```

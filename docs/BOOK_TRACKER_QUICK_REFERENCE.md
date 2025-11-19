@@ -477,6 +477,104 @@ export default function LibraryPage() {
 ```
 **Pattern:** Client components manage loading state, respond to user interactions
 
+#### Client Service Layer Pattern (Library Page)
+```typescript
+// lib/library-service.ts - Client-side service with caching
+export class LibraryService {
+  private cache = new Map<string, PaginatedBooks>();
+  
+  async getBooks(filters: LibraryFilters): Promise<PaginatedBooks> {
+    const cacheKey = this.buildCacheKey(filters);
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
+    }
+    
+    const response = await fetch(`/api/books?${params}`);
+    const data = await response.json();
+    
+    const result = {
+      books: data.books || [],
+      total: data.total || 0,
+      hasMore: skip + data.books.length < data.total,
+    };
+    
+    this.cache.set(cacheKey, result);
+    return result;
+  }
+}
+
+export const libraryService = new LibraryService(); // Singleton
+
+// hooks/useLibraryData.ts - State management hook
+export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
+  const [filters, setFilters] = useState<LibraryFilters>({
+    pagination: { limit: 50, skip: 0 },
+    ...initialFilters,
+  });
+  const [data, setData] = useState<PaginatedBooks | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const result = await libraryService.getBooks(filters);
+      setData(result);
+      setLoading(false);
+    };
+    fetchData();
+  }, [filters]);
+  
+  const loadMore = useCallback(async () => {
+    const nextFilters = {
+      ...filters,
+      pagination: { skip: filters.pagination.skip + 50, limit: 50 },
+    };
+    const result = await libraryService.getBooks(nextFilters);
+    setData(prev => ({
+      ...result,
+      books: [...(prev?.books || []), ...result.books],
+    }));
+    setFilters(nextFilters);
+  }, [filters]);
+  
+  return { 
+    books: data?.books || [], 
+    total: data?.total || 0, 
+    hasMore: data?.hasMore || false,
+    loading,
+    loadMore,
+    setSearch,
+    setStatus,
+    setTags,
+  };
+}
+
+// app/library/page.tsx - Page orchestration (135 lines, down from 485)
+"use client";
+
+export default function LibraryPage() {
+  const { books, total, hasMore, loading, loadMore, setSearch, setStatus } = 
+    useLibraryData({ status: searchParams.get("status") || undefined });
+  
+  return (
+    <>
+      <LibraryHeader totalBooks={total} />
+      <LibraryFilters onSearchChange={setSearch} onStatusChange={setStatus} />
+      <BookGrid books={books} loading={loading} />
+    </>
+  );
+}
+```
+
+**Architecture:** Page → Hook → Service → API → Database
+
+**Key Points:**
+- **Singleton Service:** Single instance with in-memory cache
+- **Smart hasMore:** `skip + books.length < total` (not `books.length === limit`)
+- **Cache Invalidation:** Clear after sync or mutations
+- **Pagination Reset:** Reset skip=0 when filters change
+- **Integration Tests:** Mock fetch to call actual API handlers
+
 ---
 
 ## Re-Reading Feature Implementation

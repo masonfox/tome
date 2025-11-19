@@ -224,12 +224,188 @@ export async function POST(request: NextRequest) {
 }
 ```
 
+### Client Service Layer
+
+```typescript
+// Client-side service for API abstraction with caching
+import { libraryService } from "@/lib/library-service";
+
+// Custom hook for state management
+import { useLibraryData } from "@/hooks/useLibraryData";
+
+// In components:
+const { books, total, hasMore, loading, loadMore } = useLibraryData({
+  status: "reading",
+  pagination: { limit: 50, skip: 0 },
+});
+```
+
 ### Testing
 
 ```typescript
 import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
+```
+
+---
+
+## 🏗️ Client Service Layer Pattern
+
+**Location:** Library page (`/app/library/page.tsx`, `/lib/library-service.ts`, `/hooks/useLibraryData.ts`)
+
+### The Pattern
+
+Use a **three-layer architecture** for complex client-side data management:
+
+```
+Page Component → Custom Hook → Client Service → API Route → Database
+```
+
+**Layer Responsibilities:**
+1. **Page Component**: Orchestration, URL params, user interactions
+2. **Custom Hook**: State management, filter coordination, loading states
+3. **Client Service**: API abstraction, caching, data transformation
+4. **API Route**: Server-side queries, business logic
+5. **Database**: Data persistence
+
+### When to Use
+
+✅ **Use this pattern when:**
+- Page has complex filtering/searching/sorting
+- Need client-side caching to reduce API calls
+- Want to share data fetching logic across components
+- Implementing infinite scroll or pagination
+- Managing multiple interdependent filters
+
+❌ **Don't use this pattern for:**
+- Simple pages with one API call
+- Server components (use direct API calls)
+- Pages with no filtering or state management
+
+### Implementation Example
+
+**1. Client Service (`/lib/library-service.ts`):**
+```typescript
+export class LibraryService {
+  private cache = new Map<string, PaginatedBooks>();
+  
+  async getBooks(filters: LibraryFilters): Promise<PaginatedBooks> {
+    const cacheKey = this.buildCacheKey(filters);
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
+    }
+    
+    const response = await fetch(`/api/books?${params}`);
+    const data = await response.json();
+    
+    const result = {
+      books: data.books || [],
+      total: data.total || 0,
+      hasMore: skip + data.books.length < data.total,
+    };
+    
+    this.cache.set(cacheKey, result);
+    return result;
+  }
+  
+  clearCache(): void {
+    this.cache.clear();
+  }
+}
+
+export const libraryService = new LibraryService(); // Singleton
+```
+
+**2. Custom Hook (`/hooks/useLibraryData.ts`):**
+```typescript
+export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
+  const [filters, setFilters] = useState<LibraryFilters>({
+    pagination: { limit: 50, skip: 0 },
+    ...initialFilters,
+  });
+  const [data, setData] = useState<PaginatedBooks | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const result = await libraryService.getBooks(filters);
+      setData(result);
+      setLoading(false);
+    };
+    fetchData();
+  }, [filters]);
+  
+  const loadMore = useCallback(async () => {
+    const nextFilters = {
+      ...filters,
+      pagination: { ...filters.pagination, skip: filters.pagination.skip + 50 },
+    };
+    const result = await libraryService.getBooks(nextFilters);
+    setData(prev => ({
+      ...result,
+      books: [...(prev?.books || []), ...result.books],
+    }));
+    setFilters(nextFilters);
+  }, [filters]);
+  
+  return { books: data?.books || [], total: data?.total || 0, loadMore };
+}
+```
+
+**3. Page Component (`/app/library/page.tsx`):**
+```typescript
+"use client";
+
+export default function LibraryPage() {
+  const { books, total, hasMore, loading, loadMore, setSearch, setStatus } = 
+    useLibraryData({ status: searchParams.get("status") || undefined });
+  
+  return (
+    <LibraryHeader totalBooks={total} />
+    <LibraryFilters onSearchChange={setSearch} onStatusChange={setStatus} />
+    <BookGrid books={books} loading={loading} />
+  );
+}
+```
+
+### Key Principles
+
+✅ **DO:**
+- Use singleton service instances
+- Cache results with smart key generation
+- Calculate `hasMore` as: `skip + books.length < total`
+- Clear cache after mutations (create, update, delete)
+- Reset pagination when filters change
+- Debounce search input (300ms)
+- Cancel in-flight requests on unmount
+
+❌ **DON'T:**
+- Access MongoDB directly from client service (security risk!)
+- Use fetch mocks in integration tests (test real API handlers)
+- Put business logic in hooks (belongs in service or API)
+- Forget to handle loading and error states
+
+### Testing Integration
+
+```typescript
+// Integration test: Service → API → Database
+global.fetch = async (input, init) => {
+  if (url.includes("/api/books")) {
+    return await GET_BOOKS(createMockRequest("GET", url)); // Real handler
+  }
+};
+
+test("should handle pagination correctly", async () => {
+  await Book.create({ /* test data */ });
+  
+  const page1 = await service.getBooks({ pagination: { limit: 5, skip: 0 } });
+  expect(page1.hasMore).toBe(true);
+  
+  const page2 = await service.getBooks({ pagination: { limit: 5, skip: 5 } });
+  expect(page2.hasMore).toBe(false);
+});
 ```
 
 ---

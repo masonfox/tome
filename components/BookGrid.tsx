@@ -1,0 +1,71 @@
+"use client";
+
+import { BookCard } from "@/components/BookCard";
+import { cn } from "@/utils/cn";
+
+interface BookGridProps {
+  books: Array<{
+    _id: string;
+    calibreId: number;
+    title: string;
+    authors: string[];
+    coverPath?: string;
+    status: string | null;
+    tags: string[];
+    totalPages?: number;
+    latestProgress?: {
+      currentPage: number;
+      currentPercentage: number;
+      progressDate: string;
+    };
+  }>;
+  loading?: boolean;
+  loadingMore?: boolean;
+}
+
+export function BookGrid({ books, loading = false, loadingMore = false }: BookGridProps) {
+  return (
+    <>
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[var(--foreground)]/70 mt-4 font-medium">
+            Loading books...
+          </p>
+        </div>
+      ) : books.length > 0 ? (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {books.map((book) => (
+              <BookCard
+                key={book._id}
+                id={book._id}
+                title={book.title}
+                authors={book.authors}
+                calibreId={book.calibreId}
+                status={book.status}
+                currentProgress={book.latestProgress?.currentPercentage}
+              />
+            ))}
+          </div>
+
+          {/* Loading indicator for next page */}
+          {loadingMore && (
+            <div className="text-center py-8">
+              <div className="inline-block w-6 h-6 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[var(--foreground)]/70 mt-2 font-medium">
+                Loading more books...
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-12 text-center">
+          <p className="text-[var(--foreground)]/70 font-medium">
+            No books found. Try syncing with Calibre or adjusting your filters.
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
