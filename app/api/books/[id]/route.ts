@@ -23,7 +23,7 @@ export async function GET(
       isActive: true,
     });
 
-    // Get latest progress for active session
+    // Get latest progress for active session only
     let latestProgress = null;
     if (activeSession) {
       latestProgress = await ProgressLog.findOne({
@@ -34,17 +34,18 @@ export async function GET(
         .limit(1);
     }
 
-    // Get total number of completed reads for this book
-    const totalReads = await ReadingSession.countDocuments({
+    // Check if there are any completed reads (for re-reading feature)
+    const completedReadsCount = await ReadingSession.countDocuments({
       bookId: book._id,
       status: "read",
     });
 
     return NextResponse.json({
       ...book.toObject(),
-      status: activeSession ? activeSession.toObject() : null,
+      activeSession: activeSession ? activeSession.toObject() : null,
       latestProgress: latestProgress ? latestProgress.toObject() : null,
-      totalReads,
+      hasCompletedReads: completedReadsCount > 0,
+      totalReads: completedReadsCount,
     });
   } catch (error) {
     console.error("Error fetching book:", error);

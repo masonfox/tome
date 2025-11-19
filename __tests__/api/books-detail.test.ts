@@ -37,12 +37,13 @@ describe("GET /api/books/[id]", () => {
       path: "Author One/Test Book (1)",
     });
 
-    // Create one reading session
+    // Create one completed reading session
     await ReadingSession.create({
       bookId: book._id,
       sessionNumber: 1,
-      status: "reading",
-      isActive: true,
+      status: "read",
+      isActive: false,
+      completedDate: new Date("2024-11-01"),
     });
 
     const request = new Request("http://localhost:3000/api/books/1");
@@ -51,6 +52,7 @@ describe("GET /api/books/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(data.totalReads).toBe(1);
+    expect(data.hasCompletedReads).toBe(true);
     expect(data.title).toBe("Test Book");
   });
 
@@ -95,7 +97,9 @@ describe("GET /api/books/[id]", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalReads).toBe(3);
+    expect(data.totalReads).toBe(2); // Only completed reads count
+    expect(data.hasCompletedReads).toBe(true);
+    expect(data.activeSession).toBeTruthy(); // Has active session
     expect(data.title).toBe("Re-read Book");
   });
 
@@ -144,11 +148,12 @@ describe("GET /api/books/[id]", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalReads).toBe(1);
-    expect(data.status).toBeTruthy();
-    expect(data.status.status).toBe("reading");
-    expect(data.status.sessionNumber).toBe(1);
-    expect(data.status.isActive).toBe(true);
+    expect(data.totalReads).toBe(0); // Active reading session is not completed yet
+    expect(data.hasCompletedReads).toBe(false);
+    expect(data.activeSession).toBeTruthy();
+    expect(data.activeSession.status).toBe("reading");
+    expect(data.activeSession.sessionNumber).toBe(1);
+    expect(data.activeSession.isActive).toBe(true);
   });
 
   test("should return latest progress for active session with totalReads", async () => {
@@ -194,7 +199,8 @@ describe("GET /api/books/[id]", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalReads).toBe(1);
+    expect(data.totalReads).toBe(0); // Active reading session is not completed
+    expect(data.hasCompletedReads).toBe(false);
     expect(data.latestProgress).toBeTruthy();
     expect(data.latestProgress.currentPage).toBe(150);
     expect(data.latestProgress.currentPercentage).toBe(42.86);
@@ -249,7 +255,9 @@ describe("GET /api/books/[id]", () => {
     const data1 = await response1.json();
 
     expect(response1.status).toBe(200);
-    expect(data1.totalReads).toBe(2);
+    expect(data1.totalReads).toBe(1); // Only one completed read (session 2 is reading)
+    expect(data1.hasCompletedReads).toBe(true);
+    expect(data1.activeSession).toBeTruthy();
 
     // Check book2
     const request2 = new Request("http://localhost:3000/api/books/7");
@@ -257,7 +265,9 @@ describe("GET /api/books/[id]", () => {
     const data2 = await response2.json();
 
     expect(response2.status).toBe(200);
-    expect(data2.totalReads).toBe(1);
+    expect(data2.totalReads).toBe(0); // No completed reads yet (session is reading)
+    expect(data2.hasCompletedReads).toBe(false);
+    expect(data2.activeSession).toBeTruthy();
   });
 
   test("should return 404 for non-existent book", async () => {
@@ -304,7 +314,8 @@ describe("GET /api/books/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(data.totalReads).toBe(2);
-    expect(data.status).toBeNull(); // No active session
+    expect(data.hasCompletedReads).toBe(true);
+    expect(data.activeSession).toBeNull(); // No active session
     expect(data.latestProgress).toBeNull(); // No progress for inactive session
   });
 });

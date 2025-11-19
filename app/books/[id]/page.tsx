@@ -21,7 +21,8 @@ interface Book {
   description?: string;
   tags: string[];
   totalReads?: number;
-  status?: {
+  hasCompletedReads?: boolean;
+  activeSession?: {
     status: string;
     startedDate?: string;
     completedDate?: string;
@@ -104,9 +105,12 @@ export default function BookDetailPage() {
       const response = await fetch(`/api/books/${bookId}`);
       const data = await response.json();
       setBook(data);
-      if (data.status) {
-        setSelectedStatus(data.status.status);
-        setRating(data.status.rating || 0);
+      if (data.activeSession) {
+        setSelectedStatus(data.activeSession.status);
+        setRating(data.activeSession.rating || 0);
+      } else if (data.hasCompletedReads) {
+        // Show "read" status for completed books with no active session
+        setSelectedStatus("read");
       }
       if (data.latestProgress) {
         setCurrentPage(data.latestProgress.currentPage.toString());
@@ -508,8 +512,8 @@ export default function BookDetailPage() {
               </div>
             )}
 
-            {/* Start Re-reading Button */}
-            {selectedStatus === "read" && (
+            {/* Start Re-reading Button - only show if there are completed reads and no active session */}
+            {!book.activeSession && book.hasCompletedReads && (
               <button
                 onClick={handleStartReread}
                 className="w-full px-4 py-2.5 bg-[var(--background)] text-[var(--foreground)] font-semibold rounded border border-[var(--border-color)] hover:bg-[var(--card-bg)] transition-colors flex items-center justify-center gap-2"
