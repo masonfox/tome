@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useLibraryData } from "@/hooks/useLibraryData";
 import { libraryService } from "@/lib/library-service";
 import { LibraryHeader } from "@/components/LibraryHeader";
@@ -11,6 +11,7 @@ import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -27,6 +28,26 @@ function LibraryPageContent() {
     
     setIsReady(true);
   }, [searchParams]);
+
+  // Function to update URL with current filters
+  const updateURL = useCallback((currentFilters: any) => {
+    const params = new URLSearchParams();
+    
+    if (currentFilters.search) {
+      params.set('search', currentFilters.search);
+    }
+    if (currentFilters.status && currentFilters.status !== 'all') {
+      params.set('status', currentFilters.status);
+    }
+    if (currentFilters.tags && currentFilters.tags.length > 0) {
+      params.set('tags', currentFilters.tags.join(','));
+    }
+    
+    const queryString = params.toString();
+    const newPath = queryString ? `/library?${queryString}` : '/library';
+    
+    router.replace(newPath);
+  }, [router]);
 
   // Initialize useLibraryData hook with filters from URL
   const {
@@ -48,16 +69,41 @@ function LibraryPageContent() {
     tags: searchParams.get("tags")?.split(",").filter(Boolean) || undefined,
   });
 
-  // Debounce search input
+  // Create wrapped setters that also update URL
+  const handleStatusChange = useCallback((status: string | undefined) => {
+    setStatus(status);
+    updateURL({
+      search: filters.search,
+      status: status || 'all',
+      tags: filters.tags || []
+    });
+  }, [setStatus, updateURL, filters.search, filters.tags]);
+
+  const handleTagsChange = useCallback((tags: string[] | undefined) => {
+    setTags(tags);
+    updateURL({
+      search: filters.search,
+      status: filters.status || 'all',
+      tags: tags || []
+    });
+  }, [setTags, updateURL, filters.search, filters.status]);
+
+  // Debounce search input and URL update
   useEffect(() => {
     if (!isReady) return;
     
     const timer = setTimeout(() => {
       setSearch(searchInput);
+      // Update URL with current filters including search
+      updateURL({
+        search: searchInput,
+        status: filters.status || 'all',
+        tags: filters.tags || []
+      });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchInput, setSearch, isReady]);
+  }, [searchInput, setSearch, isReady, filters.status, filters.tags, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -114,6 +160,9 @@ function LibraryPageContent() {
     setSearch("");
     setStatus(undefined);
     setTags(undefined);
+    
+    // Update URL to remove all filter parameters
+    router.replace('/library');
   }
 
   return (
@@ -128,9 +177,9 @@ function LibraryPageContent() {
         search={searchInput}
         onSearchChange={setSearchInput}
         statusFilter={filters.status || "all"}
-        onStatusFilterChange={(status) => setStatus(status === "all" ? undefined : status)}
+        onStatusFilterChange={(status) => handleStatusChange(status === "all" ? undefined : status)}
         selectedTags={filters.tags || []}
-        onTagsChange={(tags) => setTags(tags.length > 0 ? tags : undefined)}
+        onTagsChange={(tags) => handleTagsChange(tags.length > 0 ? tags : undefined)}
         availableTags={availableTags}
         loading={loading}
         onClearAll={handleClearAll}
