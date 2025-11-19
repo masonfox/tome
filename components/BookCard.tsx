@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Bookmark, Clock, BookCheck } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState } from "react";
 
@@ -26,18 +26,23 @@ export function BookCard({
 }: BookCardProps) {
   const [imageError, setImageError] = useState(false);
 
-  const statusColors = {
-    "to-read": "bg-[#deb887] text-[#5c4033]",
-    "read-next": "bg-[#e8c5a0] text-[#4a3728]",
-    reading: "bg-[#d4af85] text-[#3a3a3a]",
-    read: "bg-[#c9a876] text-[#3a3a3a]",
-  };
-
-  const statusLabels = {
-    "to-read": "WANT TO READ",
-    "read-next": "READ NEXT",
-    reading: "READING",
-    read: "READ",
+  const statusConfig = {
+    "to-read": {
+      icon: Bookmark,
+      label: "Want to Read",
+    },
+    "read-next": {
+      icon: Clock,
+      label: "Read Next",
+    },
+    reading: {
+      icon: BookOpen,
+      label: "Reading",
+    },
+    read: {
+      icon: BookCheck,
+      label: "Read",
+    },
   };
 
   return (
@@ -72,14 +77,15 @@ export function BookCard({
 
           {status && (
             <div className="pt-2">
-              <span
-                className={cn(
-                  "inline-block text-xs px-2 py-1 font-medium tracking-wide uppercase rounded-sm",
-                  statusColors[status as keyof typeof statusColors]
-                )}
-              >
-                {statusLabels[status as keyof typeof statusLabels]}
-              </span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#c9a876] text-[#3a3a3a] rounded-sm font-medium text-xs">
+                {(() => {
+                  const Icon = statusConfig[status as keyof typeof statusConfig].icon;
+                  return <Icon className="w-3 h-3" />;
+                })()}
+                <span>
+                  {statusConfig[status as keyof typeof statusConfig].label}
+                </span>
+              </div>
             </div>
           )}
 
