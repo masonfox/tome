@@ -26,12 +26,21 @@ export async function GET(request: NextRequest) {
       query.orphaned = true;
     }
 
-    // If filtering by status, we need to join with active ReadingSession
+    // If filtering by status, we need to join with ReadingSession
+    // For 'read' status, include archived sessions (isActive: false)
+    // For other statuses, only include active sessions (isActive: true)
     if (status) {
-      const sessionRecords = await ReadingSession.find({
-        status,
-        isActive: true,
-      }).select("bookId");
+      const sessionQuery: any = { status };
+      
+      if (status === "read") {
+        // Include archived sessions for 'read' status
+        sessionQuery.isActive = false;
+      } else {
+        // Only active sessions for other statuses
+        sessionQuery.isActive = true;
+      }
+      
+      const sessionRecords = await ReadingSession.find(sessionQuery).select("bookId");
       const bookIds = sessionRecords.map((s) => s.bookId);
       query._id = { $in: bookIds };
     }
@@ -57,27 +66,50 @@ export async function GET(request: NextRequest) {
 
     const total = await Book.countDocuments(query);
 
-    // Get active session and latest progress for each book
+    // Get session and latest progress for each book
     const booksWithStatus = await Promise.all(
       books.map(async (book) => {
-        const activeSession = await ReadingSession.findOne({
-          bookId: book._id,
-          isActive: true,
-        });
+        let session;
+        
+        // When filtering by 'read', use archived session
+        // (even if there's an active session for re-reading)
+        if (status === "read") {
+          session = await ReadingSession.findOne({
+            bookId: book._id,
+            status: "read",
+            isActive: false,
+          }).sort({ completedDate: -1 }); // Get most recent read
+        } else {
+          // For all other cases (including no filter), prefer active session
+          session = await ReadingSession.findOne({
+            bookId: book._id,
+            isActive: true,
+          });
+          
+          // If no active session and no status filter, also check for archived "read" session
+          // This ensures library view shows books that have been read but aren't currently being re-read
+          if (!session && !status) {
+            session = await ReadingSession.findOne({
+              bookId: book._id,
+              status: "read",
+              isActive: false,
+            }).sort({ completedDate: -1 });
+          }
+        }
 
         let latestProgress = null;
-        if (activeSession) {
+        if (session) {
           latestProgress = await ProgressLog.findOne({
             bookId: book._id,
-            sessionId: activeSession._id,
+            sessionId: session._id,
           }).sort({ progressDate: -1 });
         }
 
         return {
-          ...book.toObject(),
-          status: activeSession ? activeSession.status : null,
-          rating: activeSession?.rating,
-          latestProgress: latestProgress ? latestProgress.toObject() : null,
+          ...JSON.parse(JSON.stringify(book)),
+          status: session ? session.status : null,
+          rating: session?.rating,
+          latestProgress: latestProgress ? JSON.parse(JSON.stringify(latestProgress)) : null,
         };
       })
     );
@@ -122,7 +154,7 @@ export async function POST(request: NextRequest) {
       await book.save();
     }
 
-    return NextResponse.json(book);
+    return NextResponse.json(JSON.parse(JSON.stringify(book)));
   } catch (error) {
     console.error("Error updating book:", error);
     return NextResponse.json(

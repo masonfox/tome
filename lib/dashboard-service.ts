@@ -222,9 +222,9 @@ async function getBooksByStatus(status: string, limit: number): Promise<BookWith
         }
 
         return {
-          ...book.toObject(),
+          ...JSON.parse(JSON.stringify(book)),
           status: activeSession ? activeSession.status : null,
-          latestProgress: latestProgress ? latestProgress.toObject() : null,
+          latestProgress: latestProgress ? JSON.parse(JSON.stringify(latestProgress)) : null,
         };
       })
     );

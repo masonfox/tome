@@ -9,6 +9,7 @@ export interface IReadingSession extends Document {
   status: StatusType;
   startedDate?: Date;
   completedDate?: Date;
+  rating?: number; // 1-5 rating
   review?: string;
   isActive: boolean; // Only one active session per book
   createdAt: Date;
@@ -28,6 +29,7 @@ const ReadingSessionSchema = new Schema<IReadingSession>(
     },
     startedDate: { type: Date },
     completedDate: { type: Date },
+    rating: { type: Number, min: 1, max: 5 },
     review: { type: String },
     isActive: { type: Boolean, required: true, default: true },
   },

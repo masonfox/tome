@@ -8,7 +8,7 @@ export async function GET() {
 
     const streak = await getOrCreateStreak();
 
-    return NextResponse.json(streak);
+    return NextResponse.json(JSON.parse(JSON.stringify(streak)));
   } catch (error) {
     console.error("Error fetching streak:", error);
     return NextResponse.json(

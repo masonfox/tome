@@ -22,7 +22,7 @@ export async function GET(
       return NextResponse.json({ status: null });
     }
 
-    return NextResponse.json(session);
+    return NextResponse.json(JSON.parse(JSON.stringify(session)));
   } catch (error) {
     console.error("Error fetching status:", error);
     return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(
     await connectDB();
 
     const body = await request.json();
-    const { status, review, startedDate, completedDate } = body;
+    const { status, rating, review, startedDate, completedDate } = body;
 
     if (!status || !["to-read", "read-next", "reading", "read"].includes(status)) {
       return NextResponse.json(
@@ -104,7 +104,7 @@ export async function POST(
       revalidatePath(`/books/${params.id}`);
 
       return NextResponse.json({
-        ...newSession.toObject(),
+        ...JSON.parse(JSON.stringify(newSession)),
         sessionArchived: true,
         archivedSessionNumber: readingSession.sessionNumber,
       });
@@ -127,6 +127,10 @@ export async function POST(
       updateData.completedDate = completedDate || new Date();
       // Auto-archive session when marked as read
       updateData.isActive = false;
+    }
+
+    if (rating !== undefined) {
+      updateData.rating = rating;
     }
 
     if (review !== undefined) {
@@ -163,7 +167,7 @@ export async function POST(
     revalidatePath("/stats"); // Stats page
     revalidatePath(`/books/${params.id}`); // Book detail page
 
-    return NextResponse.json(readingSession);
+    return NextResponse.json(JSON.parse(JSON.stringify(readingSession)));
   } catch (error) {
     console.error("Error updating status:", error);
     return NextResponse.json(

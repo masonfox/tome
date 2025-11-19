@@ -41,9 +41,9 @@ export async function GET(
     });
 
     return NextResponse.json({
-      ...book.toObject(),
-      activeSession: activeSession ? activeSession.toObject() : null,
-      latestProgress: latestProgress ? latestProgress.toObject() : null,
+      ...JSON.parse(JSON.stringify(book)),
+      activeSession: activeSession ? JSON.parse(JSON.stringify(activeSession)) : null,
+      latestProgress: latestProgress ? JSON.parse(JSON.stringify(latestProgress)) : null,
       hasCompletedReads: completedReadsCount > 0,
       totalReads: completedReadsCount,
     });
@@ -76,7 +76,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    return NextResponse.json(book);
+    return NextResponse.json(JSON.parse(JSON.stringify(book)));
   } catch (error) {
     console.error("Error updating book:", error);
     return NextResponse.json(

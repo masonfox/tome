@@ -37,7 +37,7 @@ export async function GET(
       progressDate: -1,
     });
 
-    return NextResponse.json(progressLogs);
+    return NextResponse.json(JSON.parse(JSON.stringify(progressLogs)));
   } catch (error) {
     console.error("Error fetching progress:", error);
     return NextResponse.json(
@@ -139,7 +139,7 @@ export async function POST(
     }
 
     // If book is completed, update session status to "read"
-    if (finalCurrentPercentage >= 100 && activeSession.status !== "read") {
+    if (finalCurrentPercentage >= 100 && activeSession.status === "reading") {
       activeSession.status = "read";
       activeSession.completedDate = new Date();
       await activeSession.save();
@@ -150,7 +150,7 @@ export async function POST(
     revalidatePath("/"); // Dashboard
     revalidatePath("/stats"); // Stats page
 
-    return NextResponse.json(progressLog);
+    return NextResponse.json(JSON.parse(JSON.stringify(progressLog)));
   } catch (error) {
     console.error("Error logging progress:", error);
     return NextResponse.json(
