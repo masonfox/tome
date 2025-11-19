@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard-service";
 
 export default async function Dashboard() {
-  const { stats, streak, currentlyReading, readNext } = await getDashboardData();
+  const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal } = await getDashboardData();
 
   return (
     <div className="space-y-10">
@@ -35,15 +35,17 @@ export default async function Dashboard() {
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Currently Reading</span>
             <span className="ml-2 text-[var(--accent)]">
-              ({currentlyReading.length})
+              ({currentlyReadingTotal})
             </span>
           </h2>
-          <Link
-            href="/library?status=reading"
-            className="text-md text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
-          >
-            View all →
-          </Link>
+          {currentlyReadingTotal > 6 && (
+            <Link
+              href="/library?status=reading"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+            >
+              View all →
+            </Link>
+          )}
         </div>
 
         {currentlyReading.length > 0 ? (
@@ -82,15 +84,17 @@ export default async function Dashboard() {
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Read Next</span>
             <span className="ml-2 text-[var(--accent)]">
-              ({readNext.length})
+              ({readNextTotal})
             </span>
           </h2>
-          <Link
-            href="/library?status=read-next"
-            className="text-md text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold transition-colors"
-          >
-            View all →
-          </Link>
+          {readNextTotal > 6 && (
+            <Link
+              href="/library?status=read-next"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+            >
+              View all →
+            </Link>
+          )}
         </div>
 
         {readNext.length > 0 ? (

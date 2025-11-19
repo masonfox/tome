@@ -440,4 +440,43 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(response.status).toBe(500);
     expect(data.error).toBe("Failed to log progress");
   });
+
+  test("updates session updatedAt timestamp when logging progress", async () => {
+    // Arrange: Find the session created in beforeEach and set old timestamp
+    const oldTime = new Date(Date.now() - 60000); // 1 minute ago
+    const session = await ReadingSession.findOne({
+      bookId: testBook._id,
+      isActive: true,
+    });
+    expect(session).toBeTruthy();
+
+    // Update the session with an old timestamp (use collection to bypass Mongoose timestamps)
+    await ReadingSession.collection.updateOne(
+      { _id: session!._id },
+      { $set: { updatedAt: oldTime } }
+    );
+
+    // Verify the old timestamp is set
+    const sessionBefore = await ReadingSession.findById(session!._id);
+    const sessionBeforeTime = sessionBefore?.updatedAt.getTime() || 0;
+    expect(sessionBeforeTime).toBeLessThanOrEqual(oldTime.getTime() + 100); // Allow small variance
+
+    // Wait a bit to ensure different timestamp
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Act: Log progress
+    const request = createMockRequest("POST", `/api/books/${testBook._id}/progress`, {
+      currentPage: 100,
+    });
+    const params = { id: testBook._id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    expect(response.status).toBe(200);
+
+    // Assert: Session updatedAt should be newer
+    const sessionAfter = await ReadingSession.findById(session!._id);
+    expect(sessionAfter).toBeTruthy();
+    expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(oldTime.getTime());
+    expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds
+  });
 });

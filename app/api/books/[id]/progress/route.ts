@@ -123,6 +123,13 @@ export async function POST(
       pagesRead,
     });
 
+    // Touch the session to update its updatedAt timestamp (for sorting on dashboard)
+    // Using findByIdAndUpdate triggers the timestamps automatically
+    await ReadingSession.findByIdAndUpdate(
+      activeSession._id,
+      { $set: { updatedAt: new Date() } }
+    );
+
     // Update streak
     try {
       console.log("[Streak] Updating streak after progress log");

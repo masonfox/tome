@@ -35,7 +35,9 @@ export interface DashboardData {
   stats: DashboardStats | null;
   streak: DashboardStreak | null;
   currentlyReading: BookWithStatus[];
+  currentlyReadingTotal: number;
   readNext: BookWithStatus[];
+  readNextTotal: number;
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
@@ -48,17 +50,19 @@ export async function getDashboardData(): Promise<DashboardData> {
     // Get streak
     const streak = await getStreak();
     
-    // Get currently reading books
-    const currentlyReading = await getBooksByStatus("reading", 6);
+    // Get currently reading books with total count
+    const { books: currentlyReading, total: currentlyReadingTotal } = await getBooksByStatus("reading", 6);
     
-    // Get read next books
-    const readNext = await getBooksByStatus("read-next", 6);
+    // Get read next books with total count
+    const { books: readNext, total: readNextTotal } = await getBooksByStatus("read-next", 6);
 
     return {
       stats,
       streak,
       currentlyReading,
+      currentlyReadingTotal,
       readNext,
+      readNextTotal,
     };
   } catch (error) {
     console.error("Failed to fetch dashboard data:", error);
@@ -66,7 +70,9 @@ export async function getDashboardData(): Promise<DashboardData> {
       stats: null,
       streak: null,
       currentlyReading: [],
+      currentlyReadingTotal: 0,
       readNext: [],
+      readNextTotal: 0,
     };
   }
 }
@@ -188,17 +194,24 @@ async function getStreak(): Promise<DashboardStreak | null> {
   }
 }
 
-async function getBooksByStatus(status: string, limit: number): Promise<BookWithStatus[]> {
+async function getBooksByStatus(status: string, limit: number): Promise<{ books: BookWithStatus[], total: number }> {
   try {
+    // Get total count for this status
+    const total = await ReadingSession.countDocuments({
+      status,
+      isActive: true,
+    });
+
+    // Get limited session records sorted by most recently updated
     const sessionRecords = await ReadingSession.find({
       status,
       isActive: true,
-    }).select("bookId").limit(limit);
+    }).select("bookId _id updatedAt").sort({ updatedAt: -1 }).limit(limit);
 
     const bookIds = sessionRecords.map((s) => s.bookId);
 
     if (bookIds.length === 0) {
-      return [];
+      return { books: [], total };
     }
 
     const books = await Book.find({
@@ -206,32 +219,35 @@ async function getBooksByStatus(status: string, limit: number): Promise<BookWith
       orphaned: { $ne: true },
     }).limit(limit);
 
-    const booksWithStatus = await Promise.all(
-      books.map(async (book) => {
-        const activeSession = await ReadingSession.findOne({
-          bookId: book._id,
-          isActive: true,
-        });
+    // Create a map of books by ID for easy lookup
+    const bookMap = new Map();
+    books.forEach(book => {
+      bookMap.set(book._id.toString(), book);
+    });
 
-        let latestProgress = null;
-        if (activeSession) {
-          latestProgress = await ProgressLog.findOne({
-            bookId: book._id,
-            sessionId: activeSession._id,
-          }).sort({ progressDate: -1 });
-        }
+    // Build results in the order of sessionRecords (sorted by updatedAt)
+    const booksWithStatus = [];
+    for (const session of sessionRecords) {
+      const book = bookMap.get(session.bookId.toString());
+      if (!book) continue; // Skip if book was filtered out (orphaned)
 
-        return {
-          ...JSON.parse(JSON.stringify(book)),
-          status: activeSession ? activeSession.status : null,
-          latestProgress: latestProgress ? JSON.parse(JSON.stringify(latestProgress)) : null,
-        };
-      })
-    );
+      // Use the session we already have from sessionRecords (maintains sort order)
+      let latestProgress = null;
+      latestProgress = await ProgressLog.findOne({
+        bookId: book._id,
+        sessionId: session._id,
+      }).sort({ progressDate: -1 });
 
-    return booksWithStatus;
+      booksWithStatus.push({
+        ...JSON.parse(JSON.stringify(book)),
+        status: status,
+        latestProgress: latestProgress ? JSON.parse(JSON.stringify(latestProgress)) : null,
+      });
+    }
+
+    return { books: booksWithStatus, total };
   } catch (error) {
     console.error(`Failed to fetch books with status ${status}:`, error);
-    return [];
+    return { books: [], total: 0 };
   }
 }
