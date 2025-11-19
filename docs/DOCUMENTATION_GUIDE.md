@@ -10,7 +10,7 @@ This folder contains comprehensive documentation for the Book Tracker codebase. 
 Contains:
 - Overall architecture overview
 - Complete directory structure
-- Database models and relationships (Book, ReadingStatus, ProgressLog, Streak)
+- Database models and relationships (Book, ReadingSession, ProgressLog, Streak)
 - Calibre integration explanation
 - Automatic sync mechanism (watcher + instrumentation)
 - Complete API routes reference with examples
@@ -88,7 +88,7 @@ Contains:
 | File | Purpose | Documentation |
 |------|---------|---|
 | Book.ts | Calibre metadata | Arch 2 |
-| ReadingStatus.ts | Status tracking | Arch 2 |
+| ReadingSession.ts | Session tracking | Arch 2 |
 | ProgressLog.ts | Progress entries | Arch 2 |
 | Streak.ts | Streak tracking | Arch 2 |
 
@@ -126,8 +126,8 @@ See: ARCHITECTURE.md sections 3-4, QUICK_REFERENCE.md sections 2-3
 
 ### Data Model
 - **Books:** From Calibre (read-only in app)
-- **ReadingStatus:** User's current status per book
-- **ProgressLog:** Individual reading sessions
+- **ReadingSession:** User's reading sessions per book (supports re-reading)
+- **ProgressLog:** Individual reading progress entries
 - **Streak:** Consistency metric from progress
 
 See: ARCHITECTURE.md section 2

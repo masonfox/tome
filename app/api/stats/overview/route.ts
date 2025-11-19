@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 
@@ -15,23 +15,24 @@ export async function GET() {
     const today = startOfDay(now);
 
     // Books read (all time, this year, this month)
-    const booksReadTotal = await ReadingStatus.countDocuments({
+    const booksReadTotal = await ReadingSession.countDocuments({
       status: "read",
     });
 
-    const booksReadThisYear = await ReadingStatus.countDocuments({
+    const booksReadThisYear = await ReadingSession.countDocuments({
       status: "read",
       completedDate: { $gte: yearStart },
     });
 
-    const booksReadThisMonth = await ReadingStatus.countDocuments({
+    const booksReadThisMonth = await ReadingSession.countDocuments({
       status: "read",
       completedDate: { $gte: monthStart },
     });
 
-    // Currently reading
-    const currentlyReading = await ReadingStatus.countDocuments({
+    // Currently reading (only count active sessions)
+    const currentlyReading = await ReadingSession.countDocuments({
       status: "reading",
+      isActive: true,
     });
 
     // Pages read (total, this year, this month, today)

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress } from "@/lib/sync-service";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { mockCalibreBook } from "@/__tests__/fixtures/test-data";
 
@@ -84,10 +84,12 @@ describe("syncCalibreLibrary", () => {
     expect(book?.series).toBe("A Song of Ice and Fire");
     expect(book?.orphaned).toBe(false);
 
-    // Assert - Reading status was auto-created
-    const status = await ReadingStatus.findOne({ bookId: book?._id });
-    expect(status).toBeDefined();
-    expect(status?.status).toBe("to-read");
+    // Assert - Reading session was auto-created
+    const session = await ReadingSession.findOne({ bookId: book?._id });
+    expect(session).toBeDefined();
+    expect(session?.status).toBe("to-read");
+    expect(session?.sessionNumber).toBe(1);
+    expect(session?.isActive).toBe(true);
   });
 
   test("updates existing books without creating duplicate status", async () => {
@@ -101,9 +103,11 @@ describe("syncCalibreLibrary", () => {
       orphaned: false,
     });
 
-    await ReadingStatus.create({
+    await ReadingSession.create({
       bookId: existingBook._id,
       status: "reading",
+      sessionNumber: 1,
+      isActive: true,
     });
 
     // Mock Calibre with updated data
@@ -131,13 +135,13 @@ describe("syncCalibreLibrary", () => {
     expect(updatedBook?.publisher).toBe("New Publisher");
     expect(updatedBook?.tags).toEqual(["fantasy", "updated"]);
 
-    // Assert - No duplicate status created
-    const statusCount = await ReadingStatus.countDocuments({ bookId: existingBook._id });
-    expect(statusCount).toBe(1);
+    // Assert - No duplicate session created
+    const sessionCount = await ReadingSession.countDocuments({ bookId: existingBook._id });
+    expect(sessionCount).toBe(1);
 
-    // Assert - Status still "reading" (not overwritten)
-    const status = await ReadingStatus.findOne({ bookId: existingBook._id });
-    expect(status?.status).toBe("reading");
+    // Assert - Session still "reading" (not overwritten)
+    const session = await ReadingSession.findOne({ bookId: existingBook._id });
+    expect(session?.status).toBe("reading");
   });
 
   test("detects and marks orphaned books", async () => {
@@ -388,8 +392,8 @@ describe("syncCalibreLibrary", () => {
     const bookCount = await Book.countDocuments();
     expect(bookCount).toBe(3);
 
-    const statusCount = await ReadingStatus.countDocuments();
-    expect(statusCount).toBe(3); // All should have auto-created status
+    const sessionCount = await ReadingSession.countDocuments();
+    expect(sessionCount).toBe(3); // All should have auto-created session
   });
 
   test("doesn't re-orphan already orphaned books", async () => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 
 export async function GET(request: NextRequest) {
@@ -26,12 +26,13 @@ export async function GET(request: NextRequest) {
       query.orphaned = true;
     }
 
-    // If filtering by status, we need to join with ReadingStatus
+    // If filtering by status, we need to join with active ReadingSession
     if (status) {
-      const statusRecords = await ReadingStatus.find({ status }).select(
-        "bookId"
-      );
-      const bookIds = statusRecords.map((s) => s.bookId);
+      const sessionRecords = await ReadingSession.find({
+        status,
+        isActive: true,
+      }).select("bookId");
+      const bookIds = sessionRecords.map((s) => s.bookId);
       query._id = { $in: bookIds };
     }
 
@@ -56,17 +57,26 @@ export async function GET(request: NextRequest) {
 
     const total = await Book.countDocuments(query);
 
-    // Get status for each book
+    // Get active session and latest progress for each book
     const booksWithStatus = await Promise.all(
       books.map(async (book) => {
-        const status = await ReadingStatus.findOne({ bookId: book._id });
-        const latestProgress = await ProgressLog.findOne({
+        const activeSession = await ReadingSession.findOne({
           bookId: book._id,
-        }).sort({ progressDate: -1 });
+          isActive: true,
+        });
+
+        let latestProgress = null;
+        if (activeSession) {
+          latestProgress = await ProgressLog.findOne({
+            bookId: book._id,
+            sessionId: activeSession._id,
+          }).sort({ progressDate: -1 });
+        }
+
         return {
           ...book.toObject(),
-          status: status ? status.status : null,
-          rating: status?.rating,
+          status: activeSession ? activeSession.status : null,
+          rating: activeSession?.rating,
           latestProgress: latestProgress ? latestProgress.toObject() : null,
         };
       })

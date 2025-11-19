@@ -8,6 +8,7 @@ import { cn } from "@/utils/cn";
 
 interface Book {
   _id: string;
+  calibreId: number;
   title: string;
   authors: string[];
   coverPath?: string;

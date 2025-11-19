@@ -180,7 +180,7 @@ export async function POST(request, { params }) {
 
   // Auto-mark as read if 100%
   if (finalPercentage >= 100) {
-    const status = await ReadingStatus.findOne({ bookId: params.id });
+    const session = await ReadingSession.findOne({ bookId: params.id });
     if (status && status.status !== "read") {
       status.status = "read";
       status.completedDate = new Date();
@@ -239,14 +239,14 @@ export async function updateStreaks(userId?: string): Promise<IStreak> {
 #### Query Joining Pattern (Books with Status)
 ```typescript
 // app/api/books/route.ts - GET
-const statusRecords = await ReadingStatus.find({ status }).select("bookId");
+const sessionRecords = await ReadingSession.find({ status }).select("bookId");
 const bookIds = statusRecords.map(s => s.bookId);
 const books = await Book.find({ _id: { $in: bookIds } });
 
 // Enrich with status data
 const booksWithStatus = await Promise.all(
   books.map(async (book) => {
-    const status = await ReadingStatus.findOne({ bookId: book._id });
+    const session = await ReadingSession.findOne({ bookId: book._id });
     return {
       ...book.toObject(),
       status: status?.status || null,
@@ -393,13 +393,13 @@ if (rating !== undefined) {
 }
 
 if (readingStatus) {
-  readingStatus = await ReadingStatus.findByIdAndUpdate(
-    readingStatus._id,
+  readingSession = await ReadingSession.findByIdAndUpdate(
+    readingSession._id,
     updateData,
     { new: true }
   );
 } else {
-  readingStatus = await ReadingStatus.create({
+  readingSession = await ReadingSession.create({
     bookId: params.id,
     ...updateData,
   });
@@ -479,6 +479,269 @@ export default function LibraryPage() {
 
 ---
 
+## Re-Reading Feature Implementation
+
+### Overview
+The re-reading feature allows users to read books multiple times with separate tracking for each reading session.
+
+### Key Patterns
+
+#### 1. Creating a New Reading Session (Re-read)
+```typescript
+// POST /api/books/:id/reread
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  await connectDB();
+
+  // 1. Find and validate active session
+  const activeSession = await ReadingSession.findOne({
+    bookId: params.id,
+    isActive: true,
+  });
+
+  if (!activeSession || activeSession.status !== "read") {
+    return NextResponse.json({ error: "Can only re-read completed books" }, { status: 400 });
+  }
+
+  // 2. Archive current session
+  activeSession.isActive = false;
+  await activeSession.save();
+
+  // 3. Create new session
+  const newSession = new ReadingSession({
+    userId: activeSession.userId,
+    bookId: params.id,
+    sessionNumber: activeSession.sessionNumber + 1,
+    status: "reading",
+    startedDate: new Date(),
+    isActive: true,
+  });
+  await newSession.save();
+
+  // 4. Rebuild streak from all progress logs
+  await rebuildStreak();
+
+  return NextResponse.json({ session: newSession });
+}
+```
+
+#### 2. Linking Progress to Active Session
+```typescript
+// POST /api/books/:id/progress
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  await connectDB();
+
+  // Get active session (critical for re-reading)
+  const activeSession = await ReadingSession.findOne({
+    bookId: params.id,
+    isActive: true,
+  });
+
+  if (!activeSession) {
+    return NextResponse.json(
+      { error: "No active reading session found" },
+      { status: 400 }
+    );
+  }
+
+  // Link progress to active session
+  const progressLog = await ProgressLog.create({
+    bookId: params.id,
+    sessionId: activeSession._id,  // Critical link
+    currentPage,
+    currentPercentage,
+    progressDate: new Date(),
+    notes,
+    pagesRead,
+  });
+
+  // Update streak (counts all sessions)
+  await updateStreaks();
+
+  return NextResponse.json(progressLog);
+}
+```
+
+#### 3. Fetching Session-Specific Progress
+```typescript
+// GET /api/books/:id/progress?sessionId=...
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  await connectDB();
+
+  const sessionId = request.nextUrl.searchParams.get("sessionId");
+
+  let query: any = { bookId: params.id };
+
+  if (sessionId) {
+    // Get progress for specific session
+    query.sessionId = sessionId;
+  } else {
+    // Get progress for active session only
+    const activeSession = await ReadingSession.findOne({
+      bookId: params.id,
+      isActive: true,
+    });
+
+    if (activeSession) {
+      query.sessionId = activeSession._id;
+    }
+  }
+
+  const progressLogs = await ProgressLog.find(query).sort({ progressDate: -1 });
+  return NextResponse.json(progressLogs);
+}
+```
+
+#### 4. Rebuilding Streaks After Re-read
+```typescript
+// lib/streaks.ts
+export async function rebuildStreak(userId?: string): Promise<IStreak> {
+  await connectDB();
+
+  // Get ALL progress logs (across all sessions and books)
+  const progressLogs = await ProgressLog.find({ userId: userId || null })
+    .sort({ progressDate: 1 })
+    .lean();
+
+  // Extract unique dates
+  const uniqueDatesSet = new Set<string>();
+  progressLogs.forEach((log) => {
+    const dateStr = startOfDay(new Date(log.progressDate)).toISOString();
+    uniqueDatesSet.add(dateStr);
+  });
+
+  const uniqueDates = Array.from(uniqueDatesSet)
+    .map((dateStr) => new Date(dateStr))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  // Calculate current streak (backwards from most recent)
+  let currentStreak = 0;
+  const today = startOfDay(new Date());
+  const lastActivityDate = uniqueDates[uniqueDates.length - 1];
+  const daysSinceLastActivity = differenceInDays(today, lastActivityDate);
+
+  if (daysSinceLastActivity <= 1) {
+    currentStreak = 1;
+    // Walk backwards to find consecutive days
+    for (let i = uniqueDates.length - 2; i >= 0; i--) {
+      const diff = differenceInDays(uniqueDates[i + 1], uniqueDates[i]);
+      if (diff === 1) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  // Calculate longest streak
+  let longestStreak = currentStreak;
+  let tempStreak = 1;
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const diff = differenceInDays(uniqueDates[i], uniqueDates[i - 1]);
+    if (diff === 1) {
+      tempStreak++;
+      longestStreak = Math.max(longestStreak, tempStreak);
+    } else {
+      tempStreak = 1;
+    }
+  }
+
+  // Update streak record
+  const streak = await Streak.findOneAndUpdate(
+    { userId: userId || null },
+    {
+      currentStreak,
+      longestStreak,
+      lastActivityDate,
+      totalDaysActive: uniqueDates.length,
+    },
+    { upsert: true, new: true }
+  );
+
+  return streak;
+}
+```
+
+#### 5. Displaying Reading History (Frontend)
+```typescript
+// components/ReadingHistoryTab.tsx
+export default function ReadingHistoryTab({ bookId }: { bookId: string }) {
+  const [sessions, setSessions] = useState<ReadingSession[]>([]);
+
+  useEffect(() => {
+    async function fetchSessions() {
+      const response = await fetch(`/api/books/${bookId}/sessions`);
+      const data = await response.json();
+
+      // Filter to show only archived sessions
+      const archivedSessions = data.filter((s: ReadingSession) => !s.isActive);
+      setSessions(archivedSessions);
+    }
+
+    fetchSessions();
+  }, [bookId]);
+
+  if (sessions.length === 0) return null;
+
+  return (
+    <div>
+      <h2>Reading History</h2>
+      {sessions.map((session) => (
+        <div key={session._id}>
+          <h3>Read #{session.sessionNumber}</h3>
+          <p>Started: {session.startedDate}</p>
+          <p>Completed: {session.completedDate}</p>
+          <p>Rating: {session.rating}/5</p>
+          <p>Total Progress Entries: {session.progressSummary.totalEntries}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Data Migration Pattern
+```bash
+# scripts/migrateToSessions.ts
+
+# 1. Create backup
+const backup = {
+  timestamp: new Date().toISOString(),
+  readingSessions: await ReadingSession.find({}).lean(),
+  progressLogs: await ProgressLog.find({}).lean(),
+};
+fs.writeFileSync(backupFile, JSON.stringify(backup));
+
+# 2. Migrate each status to session
+for (const status of readingStatuses) {
+  const session = new ReadingSession({
+    userId: status.userId,
+    bookId: status.bookId,
+    sessionNumber: 1,  // First read
+    status: status.status,
+    startedDate: status.startedDate,
+    completedDate: status.completedDate,
+    rating: status.rating,
+    review: status.review,
+    isActive: true,
+  });
+  await session.save();
+
+  # 3. Link progress logs to new session
+  await ProgressLog.updateMany(
+    { bookId: status.bookId },
+    { $set: { sessionId: session._id } }
+  );
+}
+```
+
+### Important Constraints
+1. **Only one active session per book:** Enforced by partial unique index on `(bookId, isActive=true)`
+2. **Progress requires active session:** Progress logging fails if no active session exists
+3. **Re-read requires completed session:** Can only start re-read when active session status is "read"
+4. **Streak continuity:** All progress logs count toward streaks regardless of which session they belong to
+
+---
+
 ## Environment Variables Reference
 
 ```bash
@@ -513,7 +776,7 @@ NEXT_PUBLIC_MONGODB_URI=      # Only safe if no auth required
 - implicit index on _id
 ```
 
-### ReadingStatus Collection
+### ReadingSession Collection
 ```
 - unique compound: (userId, bookId)
 - index: bookId

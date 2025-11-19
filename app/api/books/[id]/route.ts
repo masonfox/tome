@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 
 export async function GET(
@@ -17,18 +17,33 @@ export async function GET(
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    // Get status
-    const status = await ReadingStatus.findOne({ bookId: book._id });
+    // Get active reading session
+    const activeSession = await ReadingSession.findOne({
+      bookId: book._id,
+      isActive: true,
+    });
 
-    // Get latest progress
-    const latestProgress = await ProgressLog.findOne({ bookId: book._id })
-      .sort({ progressDate: -1 })
-      .limit(1);
+    // Get latest progress for active session
+    let latestProgress = null;
+    if (activeSession) {
+      latestProgress = await ProgressLog.findOne({
+        bookId: book._id,
+        sessionId: activeSession._id,
+      })
+        .sort({ progressDate: -1 })
+        .limit(1);
+    }
+
+    // Get total number of reading sessions (reads) for this book
+    const totalReads = await ReadingSession.countDocuments({
+      bookId: book._id,
+    });
 
     return NextResponse.json({
       ...book.toObject(),
-      status: status ? status.toObject() : null,
+      status: activeSession ? activeSession.toObject() : null,
       latestProgress: latestProgress ? latestProgress.toObject() : null,
+      totalReads,
     });
   } catch (error) {
     console.error("Error fetching book:", error);

@@ -1,7 +1,7 @@
 import { connectDB } from "@/lib/db/mongodb";
 import { getAllBooks, getBookTags } from "@/lib/db/calibre";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 
 export interface SyncResult {
   success: boolean;
@@ -77,10 +77,12 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
         updatedCount++;
       } else {
         const newBook = await Book.create(bookData);
-        // Auto-create "to-read" status for new books
-        await ReadingStatus.create({
+        // Auto-create "to-read" session for new books
+        await ReadingSession.create({
           bookId: newBook._id,
           status: "to-read",
+          sessionNumber: 1,
+          isActive: true,
         });
         syncedCount++;
       }

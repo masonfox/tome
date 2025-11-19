@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "b
 import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
@@ -88,22 +88,28 @@ describe("Stats API - GET /api/stats/overview", () => {
   });
 
   test("counts books read correctly", async () => {
-    // Create reading statuses
-    await ReadingStatus.create({
+    // Create reading sessions
+    await ReadingSession.create({
       bookId: testBook1._id,
       status: "read",
       completedDate: new Date("2025-11-15"),
+      sessionNumber: 1,
+      isActive: false, // Completed books are archived
     });
 
-    await ReadingStatus.create({
+    await ReadingSession.create({
       bookId: testBook2._id,
       status: "read",
       completedDate: new Date("2024-05-10"),
+      sessionNumber: 1,
+      isActive: false, // Completed books are archived
     });
 
-    await ReadingStatus.create({
+    await ReadingSession.create({
       bookId: testBook3._id,
       status: "reading",
+      sessionNumber: 1,
+      isActive: true, // Currently reading
     });
 
     const response = await getOverview();
@@ -119,16 +125,20 @@ describe("Stats API - GET /api/stats/overview", () => {
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 15);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 15);
 
-    await ReadingStatus.create({
+    await ReadingSession.create({
       bookId: testBook1._id,
       status: "read",
       completedDate: thisMonth,
+      sessionNumber: 1,
+      isActive: false,
     });
 
-    await ReadingStatus.create({
+    await ReadingSession.create({
       bookId: testBook2._id,
       status: "read",
       completedDate: lastMonth,
+      sessionNumber: 1,
+      isActive: false,
     });
 
     const response = await getOverview();

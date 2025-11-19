@@ -1,7 +1,7 @@
 import type { IStreak } from "@/models/Streak";
 import type { IBook } from "@/models/Book";
 import type { IProgressLog } from "@/models/ProgressLog";
-import type { IReadingStatus } from "@/models/ReadingStatus";
+import type { IReadingSession } from "@/models/ReadingSession";
 
 /**
  * Test fixtures and utilities for tests
@@ -12,7 +12,6 @@ import type { IReadingStatus } from "@/models/ReadingStatus";
 // ============================================================================
 
 export const mockStreakInitial: Partial<IStreak> = {
-  userId: null,
   currentStreak: 0,
   longestStreak: 0,
   lastActivityDate: new Date("2025-11-17T05:00:00.000Z"),
@@ -22,7 +21,6 @@ export const mockStreakInitial: Partial<IStreak> = {
 };
 
 export const mockStreakActive: Partial<IStreak> = {
-  userId: null,
   currentStreak: 5,
   longestStreak: 10,
   lastActivityDate: new Date("2025-11-16T05:00:00.000Z"),
@@ -32,7 +30,6 @@ export const mockStreakActive: Partial<IStreak> = {
 };
 
 export const mockStreakBroken: Partial<IStreak> = {
-  userId: null,
   currentStreak: 3,
   longestStreak: 5,
   lastActivityDate: new Date("2025-11-14T05:00:00.000Z"),
@@ -56,7 +53,7 @@ export const mockBook1: Partial<IBook> = {
   tags: ["fantasy", "epic", "dragons"],
   isbn: "9780553801477",
   description: "In the aftermath of a colossal battle...",
-  hasCover: true,
+  path: "George R. R. Martin/A Dance with Dragons (1)",
   orphaned: false,
 };
 
@@ -71,7 +68,7 @@ export const mockBook2: Partial<IBook> = {
   tags: ["fantasy", "magic"],
   isbn: "9780756404079",
   description: "Told in Kvothe's own voice...",
-  hasCover: true,
+  path: "Patrick Rothfuss/The Name of the Wind (2)",
   orphaned: false,
 };
 
@@ -80,6 +77,7 @@ export const mockOrphanedBook: Partial<IBook> = {
   title: "Orphaned Book",
   authors: ["Unknown Author"],
   totalPages: 300,
+  path: "Unknown Author/Orphaned Book (999)",
   orphaned: true,
   orphanedAt: new Date("2025-11-01"),
 };
@@ -105,24 +103,55 @@ export const mockProgressLog2: Partial<IProgressLog> = {
 };
 
 // ============================================================================
-// READING STATUS FIXTURES
+// READING STATUS FIXTURES (Removed - use ReadingSession instead)
 // ============================================================================
 
-export const mockReadingStatusToRead: Partial<IReadingStatus> = {
+// ============================================================================
+// READING SESSION FIXTURES
+// ============================================================================
+
+export const mockSessionToRead: Partial<IReadingSession> = {
+  sessionNumber: 1,
   status: "to-read",
+  isActive: true,
 };
 
-export const mockReadingStatusReading: Partial<IReadingStatus> = {
+export const mockSessionReadNext: Partial<IReadingSession> = {
+  sessionNumber: 1,
+  status: "read-next",
+  isActive: true,
+};
+
+export const mockSessionReading: Partial<IReadingSession> = {
+  sessionNumber: 1,
   status: "reading",
-  startedDate: new Date("2025-11-15"),
+  startedDate: new Date("2025-11-15T05:00:00.000Z"),
+  isActive: true,
 };
 
-export const mockReadingStatusRead: Partial<IReadingStatus> = {
+export const mockSessionRead: Partial<IReadingSession> = {
+  sessionNumber: 1,
   status: "read",
-  startedDate: new Date("2025-11-01"),
-  completedDate: new Date("2025-11-16"),
-  rating: 5,
+  startedDate: new Date("2025-11-01T05:00:00.000Z"),
+  completedDate: new Date("2025-11-16T05:00:00.000Z"),
   review: "Amazing book!",
+  isActive: true,
+};
+
+export const mockSessionArchived: Partial<IReadingSession> = {
+  sessionNumber: 1,
+  status: "read",
+  startedDate: new Date("2025-10-01T05:00:00.000Z"),
+  completedDate: new Date("2025-10-20T05:00:00.000Z"),
+  review: "Great first read!",
+  isActive: false,
+};
+
+export const mockSessionReread: Partial<IReadingSession> = {
+  sessionNumber: 2,
+  status: "reading",
+  startedDate: new Date("2025-11-15T05:00:00.000Z"),
+  isActive: true,
 };
 
 // ============================================================================

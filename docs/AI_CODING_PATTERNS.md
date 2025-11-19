@@ -185,7 +185,7 @@ export function BookCard({ book }: { book: Book }) {
 | Components | PascalCase | `BookCard.tsx`, `StatsCard.tsx` |
 | Functions | camelCase | `getAllBooks`, `updateStreak` |
 | Constants | UPPER_SNAKE_CASE | `CALIBRE_DB_PATH`, `MAX_RETRIES` |
-| Interfaces | PascalCase | `CalibreBook`, `ReadingStatus` |
+| Interfaces | PascalCase | `CalibreBook`, `ReadingSession` |
 | Files (routes) | kebab-case | `sync-service.ts`, `calibre-watcher.ts` |
 | Files (utilities) | camelCase | `dateUtils.ts`, `formatters.ts` |
 
@@ -199,7 +199,7 @@ export function BookCard({ book }: { book: Book }) {
 // MongoDB
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 import Streak from "@/models/Streak";
 
@@ -301,7 +301,7 @@ tome/
 │   └── streaks.ts        # Streak calculations
 ├── models/               # Mongoose schemas
 │   ├── Book.ts
-│   ├── ReadingStatus.ts
+│   ├── ReadingSession.ts
 │   └── ProgressLog.ts
 └── __tests__/           # Test files
     ├── api/            # API route tests

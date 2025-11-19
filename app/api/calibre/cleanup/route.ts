@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import ProgressLog from "@/models/ProgressLog";
 
 export async function POST(request: NextRequest) {
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
       const orphanedBooks = await Book.find({ orphaned: true });
       const bookIds = orphanedBooks.map((b) => b._id);
 
-      const [deletedBooks, deletedStatuses, deletedLogs] = await Promise.all([
+      const [deletedBooks, deletedSessions, deletedLogs] = await Promise.all([
         Book.deleteMany({ _id: { $in: bookIds } }),
-        ReadingStatus.deleteMany({ bookId: { $in: bookIds } }),
+        ReadingSession.deleteMany({ bookId: { $in: bookIds } }),
         ProgressLog.deleteMany({ bookId: { $in: bookIds } }),
       ]);
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         deletedCount: bookIds.length,
         details: {
           books: deletedBooks.deletedCount,
-          statuses: deletedStatuses.deletedCount,
+          sessions: deletedSessions.deletedCount,
           logs: deletedLogs.deletedCount,
         },
         message: `Permanently deleted ${bookIds.length} orphaned books and their records`,

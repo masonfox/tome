@@ -76,30 +76,40 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 
 ---
 
-#### ReadingStatus Model (`/models/ReadingStatus.ts`)
-**Purpose:** Tracks current reading status per book
+#### ReadingSession Model (`/models/ReadingSession.ts`)
+**Purpose:** Tracks reading sessions per book (supports re-reading)
 **Fields:**
 - `userId` (ObjectId, optional) - For multi-user support
 - `bookId` (ObjectId, required, ref: Book) - References Book
-- `status` (String, enum: "to-read" | "reading" | "read")
-- `startedDate` (Date, optional) - When user started reading
-- `completedDate` (Date, optional) - When user finished
-- `rating` (Number 1-5, optional) - User's rating
-- `review` (String, optional) - User's review
+- `sessionNumber` (Number, required) - Which read-through (1, 2, 3...)
+- `status` (String, enum: "to-read" | "read-next" | "reading" | "read")
+- `startedDate` (Date, optional) - When user started this session
+- `completedDate` (Date, optional) - When user finished this session
+- `rating` (Number 1-5, optional) - User's rating for this read
+- `review` (String, optional) - User's review for this read
+- `isActive` (Boolean, required) - Only one active session per book
 - `timestamps` - createdAt, updatedAt
 
 **Indexes:**
-- Unique compound index on (userId, bookId)
-- Index on `bookId`
+- Unique compound index on (bookId, sessionNumber)
+- Composite index on (userId, bookId)
 - Index on `status`
+- Partial unique index on (bookId, isActive=true) - Ensures only one active session per book
+
+**Re-reading Support:**
+- Users can read the same book multiple times
+- Each reading session is tracked separately with its own progress
+- Only one session can be active (isActive=true) at a time
+- Previous sessions are archived (isActive=false) and displayed in Reading History
 
 ---
 
 #### ProgressLog Model (`/models/ProgressLog.ts`)
-**Purpose:** Tracks individual reading sessions and page progress
+**Purpose:** Tracks individual reading progress entries per session
 **Fields:**
 - `userId` (ObjectId, optional, ref: User) - For multi-user support
 - `bookId` (ObjectId, required, ref: Book) - References Book
+- `sessionId` (ObjectId, optional, ref: ReadingSession) - Links to specific reading session
 - `currentPage` (Number) - Current page user is on
 - `currentPercentage` (Number, 0-100) - Completion percentage
 - `progressDate` (Date) - When this update was recorded
@@ -110,6 +120,7 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 **Indexes:**
 - Composite index on (bookId, progressDate DESC)
 - Composite index on (userId, progressDate DESC)
+- Composite index on (sessionId, progressDate DESC)
 - Index on progressDate DESC
 
 ---
@@ -130,13 +141,21 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 ### Relationship Diagram
 ```
 Book (from Calibre)
-├── ReadingStatus (1:1 per user/book)
-│   └── userId, status, dates, rating, review
-├── ProgressLog (1:many)
-│   └── Each progress entry for tracking
-└── Streak (aggregated from ProgressLog)
-    └── Calculated streak metrics
+├── ReadingSession (1:many per book - supports re-reading)
+│   ├── sessionNumber (1, 2, 3...)
+│   ├── isActive (only one active session per book)
+│   ├── status, dates, rating, review
+│   └── ProgressLog (1:many per session)
+│       └── sessionId links progress to specific reading session
+└── Streak (global - aggregated from all ProgressLog entries across all sessions)
+    └── Calculated streak metrics (all sessions count toward streaks)
 ```
+
+**Key Relationships:**
+- One Book can have multiple ReadingSessions (for re-reading)
+- Only one ReadingSession per book can be active (isActive=true)
+- Each ProgressLog entry links to a specific ReadingSession via sessionId
+- Streaks are calculated from ALL progress logs across ALL sessions and books
 
 ---
 
@@ -268,9 +287,9 @@ else:
 
 **GET /api/books**
 - Fetch paginated book list
-- Query params: `status`, `search`, `limit`, `skip`
-- Returns: books array with status and rating, total count
-- Joins with ReadingStatus for user data
+- Query params: `status`, `search`, `tags`, `limit`, `skip`, `showOrphaned`
+- Returns: books array with active session status and rating, total count
+- Joins with active ReadingSession (isActive=true) for user data
 
 **POST /api/books**
 - Update book totalPages
@@ -279,8 +298,8 @@ else:
 
 **GET /api/books/:id**
 - Fetch single book with full details
-- Returns: Book + ReadingStatus + latest ProgressLog
-- Includes: book metadata, status, current progress
+- Returns: Book + active ReadingSession + latest ProgressLog for active session
+- Includes: book metadata, current session status, current progress
 
 **PATCH /api/books/:id**
 - Update book (totalPages)
@@ -292,36 +311,56 @@ else:
 #### Progress Tracking
 
 **GET /api/books/:id/progress**
-- Fetch all progress logs for a book
+- Fetch progress logs for a book's active session (or specific session with `?sessionId=...`)
+- Query params: `sessionId` (optional - defaults to active session)
 - Sorted by progressDate descending
-- Returns: array of ProgressLog entries
+- Returns: array of ProgressLog entries for the session
 
 **POST /api/books/:id/progress**
-- Log reading progress
+- Log reading progress for active session
 - Body: `{ currentPage?, currentPercentage?, notes? }`
+- Requires active ReadingSession to exist
 - Calculates:
   - Final percentage from pages (if not provided)
   - Final pages from percentage (if not provided)
-  - pagesRead as delta from last entry
-- Auto-updates ReadingStatus if 100% reached
-- Triggers streak update
+  - pagesRead as delta from last entry in this session
+- Auto-updates active session status to "read" if 100% reached
+- Links progress entry to active session via sessionId
+- Triggers streak update (counts across all sessions)
 - Returns: created ProgressLog
 
 ---
 
-#### Status Management
+#### Session Management (Re-reading Support)
 
 **GET /api/books/:id/status**
-- Fetch reading status for a book
-- Returns: ReadingStatus or null
+- Fetch active reading session for a book
+- Returns: active ReadingSession (isActive=true) or null
 
 **POST /api/books/:id/status**
-- Update reading status
+- Update active reading session status
 - Body: `{ status, rating?, review?, startedDate?, completedDate? }`
+- Creates new session if none exists (auto-increments sessionNumber)
 - Auto-sets dates when status changes:
   - "reading" → sets startedDate
   - "read" → sets completedDate
-- Returns: updated ReadingStatus
+- Returns: updated ReadingSession
+
+**GET /api/books/:id/sessions**
+- Fetch all reading sessions for a book (supports re-reading history)
+- Returns: array of ReadingSession objects (sorted by sessionNumber desc)
+- Each session includes:
+  - Session metadata (sessionNumber, status, dates, rating, review)
+  - Progress summary (totalEntries, totalPagesRead, latestProgress, date range)
+
+**POST /api/books/:id/reread**
+- Start a new reading session for a book (re-reading)
+- Requirements: active session must have status="read"
+- Process:
+  1. Archives current active session (sets isActive=false)
+  2. Creates new session (sessionNumber++, status="reading", isActive=true)
+  3. Rebuilds streak from all progress logs
+- Returns: new session + archived session info
 
 ---
 
@@ -402,7 +441,100 @@ else:
 
 ---
 
-## 6. FRONTEND ARCHITECTURE
+## 6. RE-READING FEATURE
+
+### Overview
+The re-reading feature allows users to read the same book multiple times while preserving complete history of each reading session. Each re-read maintains separate progress tracking, ratings, and reviews.
+
+### Architecture
+
+**Reading Sessions:**
+- Each book can have multiple `ReadingSession` records
+- Only one session can be active (isActive=true) at a time
+- Sessions are numbered sequentially (Read #1, Read #2, Read #3, etc.)
+- Archived sessions preserve all historical data
+
+**Progress Isolation:**
+- Progress logs link to specific sessions via `sessionId`
+- Each session has independent progress tracking
+- Previous session progress remains intact when starting a new read
+
+**Streak Continuity:**
+- All progress logs from all sessions count toward reading streaks
+- Re-reading doesn't reset or break streaks
+- Streak is rebuilt from all progress logs when starting a re-read
+
+### User Flow
+
+1. **Complete First Read:**
+   - User marks book as "Read" (status=read, completedDate set)
+   - Can add rating and review
+   - "Start Re-reading" button appears
+
+2. **Start Re-reading:**
+   - User clicks "Start Re-reading" button
+   - API call to `POST /api/books/:id/reread`
+   - Current session archived (isActive=false)
+   - New session created (sessionNumber++, status=reading, isActive=true)
+   - Streak recalculated from all progress logs
+
+3. **Track New Progress:**
+   - User logs progress as normal
+   - Progress links to new active session
+   - Previous session progress remains separate
+
+4. **View History:**
+   - "Reading History" section shows all archived sessions
+   - Each session displays:
+     - Session number (Read #1, #2, etc.)
+     - Start/completion dates
+     - Rating and review
+     - Progress summary (total logs, pages read, final %)
+
+### Components
+
+**ReadingHistoryTab** (`/components/ReadingHistoryTab.tsx`)
+- Displays all archived reading sessions
+- Fetches from `GET /api/books/:id/sessions`
+- Shows session cards with metadata and progress summaries
+- Only renders if archived sessions exist
+
+**Book Detail Page** (`/app/books/[id]/page.tsx`)
+- "Start Re-reading" button (visible when status=read)
+- Integrates ReadingHistoryTab component
+- Handles re-read initiation with toast notifications
+
+### Migration
+
+**Script:** `/scripts/migrateToSessions.ts`
+
+**Process:**
+1. Creates backup of ReadingSession and ProgressLog collections
+2. Migrates each existing reading status to ReadingSession (sessionNumber=1, isActive=true)
+3. Links all ProgressLog entries to migrated sessions
+4. Verifies migration success
+5. Supports rollback via backup file
+
+**Usage:**
+```bash
+# Run migration
+bun run scripts/migrateToSessions.ts
+
+# Rollback if needed
+bun run scripts/migrateToSessions.ts --rollback --backup=backups/migration-backup-xxxxx.json
+```
+
+### Benefits
+
+- **Complete History:** Every read is preserved with full context
+- **Separate Ratings:** Rate books differently on subsequent reads
+- **Progress Isolation:** Each reading session has independent progress
+- **Streak Preservation:** Re-reading maintains and contributes to streaks
+- **No Data Loss:** All historical data migrated and preserved
+
+---
+
+## 7. FRONTEND ARCHITECTURE
 
 ### Page Structure
 
@@ -494,7 +626,7 @@ Backend:
   - Calculate pagesRead delta
   - Create new ProgressLog
   - Check if 100% complete
-    ├─ If yes: Update ReadingStatus to "read"
+    ├─ If yes: Update ReadingSession to "read"
   - Call updateStreaks()
     ├─ Update Streak record
     ├─ Check if consecutive day
@@ -552,13 +684,13 @@ handleUpdateStatus() - POST /api/books/:id/status
     ↓
 Backend:
   - Validate status value
-  - Find or create ReadingStatus
+  - Find or create ReadingSession
   - Set status = "reading"
   - Auto-set startedDate if not exists
   - Update rating if provided
   - Save to MongoDB
     ↓
-Response: ReadingStatus object
+  Response: ReadingSession object
     ↓
 Frontend:
   - Update selected status button UI
@@ -653,7 +785,7 @@ ENABLE_AUTH=false
 
 ### Data Consistency
 - ProgressLog automatically calculates pagesRead delta
-- ReadingStatus auto-updated when progress reaches 100%
+  - ReadingSession auto-updated when progress reaches 100%
 - Streak calculations based on date boundaries (start-of-day)
 - lastSynced timestamp tracks MongoDB data freshness
 
@@ -664,7 +796,7 @@ ENABLE_AUTH=false
 - No direct file system access from frontend
 
 ### Multi-User Support (Infrastructure)
-- ReadingStatus and ProgressLog have optional userId field
+  - ReadingSession and ProgressLog have optional userId field
 - Streak model has optional userId with unique constraint
 - Future: Add authentication and user context middleware
 
@@ -730,7 +862,7 @@ bun run lint
 
 1. **User Authentication**: Implement with next-auth
 2. **User-Specific Data**: Filter by userId in queries
-3. **Book Ratings/Reviews**: Already in ReadingStatus schema
+  3. **Book Ratings/Reviews**: Planned for ReadingSession schema
 4. **Reading Goals**: New model for goal tracking
 5. **Export Features**: CSV/PDF exports of reading data
 6. **Mobile App**: API is REST-friendly for mobile clients

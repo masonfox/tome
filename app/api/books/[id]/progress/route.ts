@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongodb";
 import Book from "@/models/Book";
 import ProgressLog from "@/models/ProgressLog";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import { updateStreaks } from "@/lib/streaks";
 
 export async function GET(
@@ -13,7 +13,27 @@ export async function GET(
   try {
     await connectDB();
 
-    const progressLogs = await ProgressLog.find({ bookId: params.id }).sort({
+    // Check for sessionId query parameter
+    const sessionId = request.nextUrl.searchParams.get("sessionId");
+
+    let query: any = { bookId: params.id };
+
+    if (sessionId) {
+      // Get progress for specific session
+      query.sessionId = sessionId;
+    } else {
+      // Get progress for active session only
+      const activeSession = await ReadingSession.findOne({
+        bookId: params.id,
+        isActive: true,
+      });
+
+      if (activeSession) {
+        query.sessionId = activeSession._id;
+      }
+    }
+
+    const progressLogs = await ProgressLog.find(query).sort({
       progressDate: -1,
     });
 
@@ -43,8 +63,32 @@ export async function POST(
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    // Get the last progress entry to calculate pages read
-    const lastProgress = await ProgressLog.findOne({ bookId: params.id })
+    // Get the active reading session
+    const activeSession = await ReadingSession.findOne({
+      bookId: params.id,
+      isActive: true,
+    });
+
+    if (!activeSession) {
+      return NextResponse.json(
+        { error: "No active reading session found. Please set a reading status first." },
+        { status: 400 }
+      );
+    }
+
+    // Only allow progress logging for books currently being read
+    if (activeSession.status !== "reading") {
+      return NextResponse.json(
+        { error: "Can only log progress for books with 'reading' status" },
+        { status: 400 }
+      );
+    }
+
+    // Get the last progress entry for this session to calculate pages read
+    const lastProgress = await ProgressLog.findOne({
+      bookId: params.id,
+      sessionId: activeSession._id,
+    })
       .sort({ progressDate: -1 })
       .limit(1);
 
@@ -71,6 +115,7 @@ export async function POST(
 
     const progressLog = await ProgressLog.create({
       bookId: params.id,
+      sessionId: activeSession._id,
       currentPage: finalCurrentPage,
       currentPercentage: finalCurrentPercentage,
       progressDate: new Date(),
@@ -93,21 +138,12 @@ export async function POST(
       // Don't fail the entire request if streak update fails
     }
 
-    // If book is completed, update status
-    if (finalCurrentPercentage >= 100) {
-      const status = await ReadingStatus.findOne({ bookId: params.id });
-      if (status && status.status !== "read") {
-        status.status = "read";
-        status.completedDate = new Date();
-        await status.save();
-      } else if (!status) {
-        await ReadingStatus.create({
-          bookId: params.id,
-          status: "read",
-          completedDate: new Date(),
-          startedDate: new Date(),
-        });
-      }
+    // If book is completed, update session status to "read"
+    if (finalCurrentPercentage >= 100 && activeSession.status !== "read") {
+      activeSession.status = "read";
+      activeSession.completedDate = new Date();
+      await activeSession.save();
+      console.log(`[Progress] Book completed, session status updated to 'read'`);
     }
 
     // Revalidate pages that display streak data

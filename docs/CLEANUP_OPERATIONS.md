@@ -141,7 +141,7 @@ All cleanup operations are available at: `POST /api/calibre/cleanup`
 
 **What gets deleted:**
 - Book documents from `Book` collection
-- Associated `ReadingStatus` records
+- Associated `ReadingSession` records
 - Associated `ProgressLog` entries (reading history)
 
 **⚠️ Warning:** This action is permanent and cannot be undone!
@@ -268,7 +268,7 @@ Consider adding a settings or admin page with:
 
 The cleanup system maintains referential integrity:
 
-- **Books → ReadingStatus**: When a book is deleted, all reading statuses are deleted
+- **Books → ReadingSession**: When a book is deleted, all reading sessions are deleted
 - **Books → ProgressLog**: When a book is deleted, all progress entries are deleted
 - **Orphaned flag**: Books marked `orphaned: true` don't break any relationships
 

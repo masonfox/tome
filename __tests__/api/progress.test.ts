@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "b
 import { GET, POST } from "@/app/api/books/[id]/progress/route";
 import Book from "@/models/Book";
 import ProgressLog from "@/models/ProgressLog";
-import ReadingStatus from "@/models/ReadingStatus";
+import ReadingSession from "@/models/ReadingSession";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
@@ -162,6 +162,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       path: "Test/Book",
       orphaned: false,
     });
+
+    // Create active reading session (required for logging progress)
+    await ReadingSession.create({
+      bookId: testBook._id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+      startedDate: new Date("2025-11-01"),
+    });
   });
 
   test("creates progress log with page number and calculates percentage", async () => {
@@ -197,9 +206,13 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   });
 
   test("calculates pagesRead based on last progress", async () => {
+    // Get the active session
+    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+
     // Create initial progress
     await ProgressLog.create({
       bookId: testBook._id,
+      sessionId: session!._id,
       currentPage: 100,
       currentPercentage: 20,
       progressDate: new Date("2025-11-01"),
@@ -220,9 +233,13 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   });
 
   test("handles negative pagesRead (when going backwards)", async () => {
+    // Get the active session
+    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+
     // Create progress at page 300
     await ProgressLog.create({
       bookId: testBook._id,
+      sessionId: session!._id,
       currentPage: 300,
       currentPercentage: 60,
       progressDate: new Date("2025-11-01"),
@@ -243,13 +260,6 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   });
 
   test("marks book as completed when progress reaches 100%", async () => {
-    // Create initial reading status
-    await ReadingStatus.create({
-      bookId: testBook._id,
-      status: "reading",
-      startedDate: new Date("2025-11-01"),
-    });
-
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 500, // 100%
     });
@@ -258,10 +268,10 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const response = await POST(request as NextRequest, { params });
     expect(response.status).toBe(200);
 
-    // Check status was updated
-    const status = await ReadingStatus.findOne({ bookId: testBook._id });
-    expect(status!.status).toBe("read");
-    expect(status!.completedDate).toBeDefined();
+    // Check session status was updated
+    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    expect(session!.status).toBe("read");
+    expect(session!.completedDate).toBeDefined();
   });
 
   test("creates completed status if none exists when book reaches 100%", async () => {
@@ -273,21 +283,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const response = await POST(request as NextRequest, { params });
     expect(response.status).toBe(200);
 
-    // Check status was created
-    const status = await ReadingStatus.findOne({ bookId: testBook._id });
-    expect(status).toBeDefined();
-    expect(status!.status).toBe("read");
-    expect(status!.completedDate).toBeDefined();
-    expect(status!.startedDate).toBeDefined();
+    // Check session status was updated
+    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    expect(session).toBeDefined();
+    expect(session!.status).toBe("read");
+    expect(session!.completedDate).toBeDefined();
+    expect(session!.startedDate).toBeDefined();
   });
 
   test("doesn't mark as complete for progress below 100%", async () => {
-    await ReadingStatus.create({
-      bookId: testBook._id,
-      status: "reading",
-      startedDate: new Date("2025-11-01"),
-    });
-
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPercentage: 99,
     });
@@ -295,10 +299,10 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
 
     await POST(request as NextRequest, { params });
 
-    // Status should still be "reading"
-    const status = await ReadingStatus.findOne({ bookId: testBook._id });
-    expect(status!.status).toBe("reading");
-    expect(status!.completedDate).toBeUndefined();
+    // Session status should still be "reading"
+    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    expect(session!.status).toBe("reading");
+    expect(session!.completedDate).toBeUndefined();
   });
 
   test("returns 404 for non-existent book", async () => {
@@ -337,6 +341,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       // No totalPages
     });
 
+    // Create active session for this book
+    await ReadingSession.create({
+      bookId: bookNoPages._id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+      startedDate: new Date("2025-11-01"),
+    });
+
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 100,
     });
@@ -357,6 +370,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       authors: ["Author"],
       path: "No/Pages",
       orphaned: false,
+    });
+
+    // Create active session for this book
+    await ReadingSession.create({
+      bookId: bookNoPages._id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+      startedDate: new Date("2025-11-01"),
     });
 
     const request = createMockRequest("POST", "/api/books/123/progress", {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthPassword, getAuthCookieName, isAuthEnabled } from "@/lib/auth";
+import { getAuthPassword, isAuthEnabled, createAuthResponse } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   if (!isAuthEnabled()) {
@@ -15,20 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (password === getAuthPassword()) {
-      const response = NextResponse.json({ success: true });
-      
-      // Set authentication cookie
-      response.cookies.set({
-        name: getAuthCookieName(),
-        value: "authenticated",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: "/",
-      });
-
-      return response;
+      return createAuthResponse();
     } else {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }

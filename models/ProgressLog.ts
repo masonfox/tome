@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IProgressLog extends Document {
   userId?: mongoose.Types.ObjectId;
   bookId: mongoose.Types.ObjectId;
+  sessionId?: mongoose.Types.ObjectId; // Links to ReadingSession
   currentPage: number;
   currentPercentage: number;
   progressDate: Date;
@@ -15,6 +16,7 @@ const ProgressLogSchema = new Schema<IProgressLog>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     bookId: { type: Schema.Types.ObjectId, ref: "Book", required: true },
+    sessionId: { type: Schema.Types.ObjectId, ref: "ReadingSession" },
     currentPage: { type: Number, required: true, min: 0 },
     currentPercentage: { type: Number, required: true, min: 0, max: 100 },
     progressDate: { type: Date, required: true, default: Date.now },
@@ -29,6 +31,7 @@ const ProgressLogSchema = new Schema<IProgressLog>(
 ProgressLogSchema.index({ bookId: 1, progressDate: -1 });
 ProgressLogSchema.index({ userId: 1, progressDate: -1 });
 ProgressLogSchema.index({ progressDate: -1 });
+ProgressLogSchema.index({ sessionId: 1, progressDate: -1 });
 
 let ProgressLog: Model<IProgressLog>;
 

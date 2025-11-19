@@ -7,6 +7,7 @@ import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmar
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 import { toast } from "@/utils/toast";
+import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 
 interface Book {
   _id: string;
@@ -19,6 +20,7 @@ interface Book {
   series?: string;
   description?: string;
   tags: string[];
+  totalReads?: number;
   status?: {
     status: string;
     startedDate?: string;
@@ -59,8 +61,11 @@ export default function BookDetailPage() {
   const [rating, setRating] = useState(0);
   const [totalPages, setTotalPages] = useState("");
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
+  const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -191,6 +196,23 @@ export default function BookDetailPage() {
       return;
     }
 
+    // Check if this is backward movement from "reading" to planning statuses
+    const isBackwardMovement =
+      selectedStatus === "reading" &&
+      (newStatus === "read-next" || newStatus === "to-read");
+
+    // If backward movement and we have progress, show confirmation
+    if (isBackwardMovement && progress.length > 0) {
+      setPendingStatusChange(newStatus);
+      setShowStatusChangeConfirmation(true);
+      return;
+    }
+
+    // Proceed with status change
+    await performStatusChange(newStatus);
+  }
+
+  async function performStatusChange(newStatus: string) {
     try {
       const body: any = { status: newStatus };
       // Only include rating if it's been set (greater than 0)
@@ -205,14 +227,39 @@ export default function BookDetailPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         setSelectedStatus(newStatus);
         fetchBook();
-        toast.success("Status updated");
+        fetchProgress(); // Refresh progress to show new session
+
+        // Check if session was archived
+        if (data.sessionArchived) {
+          toast.success(
+            `Session archived as Read #${data.archivedSessionNumber}. Starting fresh with ${newStatus === "read-next" ? "Read Next" : "Want to Read"} status.`
+          );
+        } else {
+          toast.success("Status updated");
+        }
+
         router.refresh(); // Refresh server-cached data
       }
     } catch (error) {
       console.error("Failed to update status:", error);
+      toast.error("Failed to update status");
     }
+  }
+
+  async function handleConfirmStatusChange() {
+    setShowStatusChangeConfirmation(false);
+    if (pendingStatusChange) {
+      await performStatusChange(pendingStatusChange);
+      setPendingStatusChange(null);
+    }
+  }
+
+  function handleCancelStatusChange() {
+    setShowStatusChangeConfirmation(false);
+    setPendingStatusChange(null);
   }
 
   async function handleConfirmRead() {
@@ -259,6 +306,30 @@ export default function BookDetailPage() {
       }
     } catch (error) {
       console.error("Failed to mark book as read:", error);
+    }
+  }
+
+  async function handleStartReread() {
+    try {
+      const response = await fetch(`/api/books/${bookId}/reread`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        toast.success("Started re-reading! Your previous read has been archived.");
+        // Increment key to force ReadingHistoryTab remount and refetch
+        setHistoryRefreshKey(prev => prev + 1);
+        await fetchBook();
+        await fetchProgress();
+        router.refresh();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to start re-reading");
+      }
+    } catch (error) {
+      console.error("Failed to start re-reading:", error);
+      toast.error("Failed to start re-reading");
     }
   }
 
@@ -436,6 +507,17 @@ export default function BookDetailPage() {
                 ))}
               </div>
             )}
+
+            {/* Start Re-reading Button */}
+            {selectedStatus === "read" && (
+              <button
+                onClick={handleStartReread}
+                className="w-full px-4 py-2.5 bg-[var(--background)] text-[var(--foreground)] font-semibold rounded border border-[var(--border-color)] hover:bg-[var(--card-bg)] transition-colors flex items-center justify-center gap-2"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Start Re-reading</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -467,13 +549,22 @@ export default function BookDetailPage() {
 
             {/* Metadata - integrated into header */}
             <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
+              {book.totalReads && book.totalReads >= 1 && (
+                <>
+                  <div className="flex items-center gap-1.5 text-[var(--accent)]">
+                    <BookCheck className="w-4 h-4" />
+                    <span className="font-semibold">{book.totalReads} {book.totalReads === 1 ? 'session' : 'sessions'}</span>
+                  </div>
+                  {(book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
+                </>
+              )}
               {book.totalPages ? (
                 <>
                   <div className="flex items-center gap-1.5 text-[var(--accent)]">
                     <BookOpen className="w-4 h-4" />
                     <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
                   </div>
-                  {(book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
+                  {(book.totalReads || book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
                 </>
               ) : (
                 <>
@@ -481,7 +572,7 @@ export default function BookDetailPage() {
                     <BookOpen className="w-4 h-4" />
                     <span className="font-medium">Pages not set</span>
                   </div>
-                  {(book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
+                  {(book.totalReads || book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
                 </>
               )}
               {book.publisher && (
@@ -702,11 +793,11 @@ export default function BookDetailPage() {
             </div>
           )}
 
-          {/* Progress History */}
-          {progress.length > 0 && (
+          {/* Progress History - Only show for active reading session */}
+          {progress.length > 0 && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
               <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-                Progress History
+                Current Reading Progress
               </h2>
 
               <div className="space-y-4">
@@ -745,6 +836,9 @@ export default function BookDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Reading History */}
+          <ReadingHistoryTab key={historyRefreshKey} bookId={bookId} />
         </div>
       </div>
 
@@ -773,6 +867,42 @@ export default function BookDetailPage() {
                 className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Confirmation Dialog */}
+      {showStatusChangeConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-md w-full">
+            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">
+              Archive Reading Session?
+            </h2>
+            <p className="text-[var(--foreground)]/70 mb-4 font-medium">
+              You have logged progress for this book. Changing the status will:
+            </p>
+            <ul className="list-disc list-inside text-[var(--foreground)]/70 mb-4 space-y-1 font-medium">
+              <li>Archive your current reading session with its progress</li>
+              <li>Start a fresh session with {pendingStatusChange === "read-next" ? "Read Next" : "Want to Read"} status</li>
+              <li>Preserve your reading history (viewable in Reading History)</li>
+            </ul>
+            <p className="text-[var(--foreground)] mb-6 font-semibold">
+              Continue with status change?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleCancelStatusChange}
+                className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmStatusChange}
+                className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
+              >
+                Archive & Change Status
               </button>
             </div>
           </div>
