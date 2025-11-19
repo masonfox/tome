@@ -549,39 +549,38 @@ export default function BookDetailPage() {
 
             {/* Metadata - integrated into header */}
             <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
-              {book.totalReads && book.totalReads >= 1 && (
+              {(book.totalReads ?? 0) > 0 && (
                 <>
                   <div className="flex items-center gap-1.5 text-[var(--accent)]">
                     <BookCheck className="w-4 h-4" />
-                    <span className="font-semibold">{book.totalReads} {book.totalReads === 1 ? 'session' : 'sessions'}</span>
+                    <span className="font-semibold">{book.totalReads} {book.totalReads === 1 ? 'read' : 'reads'}</span>
                   </div>
-                  {(book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
+                  <span className="text-[var(--border-color)]">•</span>
                 </>
               )}
               {book.totalPages ? (
-                <>
-                  <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                    <BookOpen className="w-4 h-4" />
-                    <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
-                  </div>
-                  {(book.totalReads || book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
-                </>
+                <div className="flex items-center gap-1.5 text-[var(--accent)]">
+                  <BookOpen className="w-4 h-4" />
+                  <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
+                </div>
               ) : (
-                <>
-                  <div className="flex items-center gap-1.5 text-[var(--accent)] italic">
-                    <BookOpen className="w-4 h-4" />
-                    <span className="font-medium">Pages not set</span>
-                  </div>
-                  {(book.totalReads || book.publisher || book.pubDate) && <span className="text-[var(--border-color)]">•</span>}
-                </>
+                <div className="flex items-center gap-1.5 text-[var(--accent)] italic">
+                  <BookOpen className="w-4 h-4" />
+                  <span className="font-medium">Pages not set</span>
+                </div>
               )}
-              {book.publisher && (
-                <span className="font-medium text-[var(--accent)]">{book.publisher}</span>
-              )}
-              {book.pubDate && (
+              {(book.publisher || book.pubDate) && (
                 <>
-                  {book.publisher && <span className="text-[var(--foreground)]/30">•</span>}
-                  <span className="font-medium text-[var(--accent)]">Published {new Date(book.pubDate).getFullYear()}</span>
+                  <span className="text-[var(--border-color)]">•</span>
+                  {book.publisher && (
+                    <span className="font-medium text-[var(--accent)]">{book.publisher}</span>
+                  )}
+                  {book.publisher && book.pubDate && (
+                    <span className="text-[var(--foreground)]/30">•</span>
+                  )}
+                  {book.pubDate && (
+                    <span className="font-medium text-[var(--accent)]">Published {new Date(book.pubDate).getFullYear()}</span>
+                  )}
                 </>
               )}
             </div>
@@ -627,7 +626,7 @@ export default function BookDetailPage() {
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[var(--accent)] text-white text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
+                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-sm text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
                 >
                   Save
                 </button>

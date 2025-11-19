@@ -34,9 +34,10 @@ export async function GET(
         .limit(1);
     }
 
-    // Get total number of reading sessions (reads) for this book
+    // Get total number of completed reads for this book
     const totalReads = await ReadingSession.countDocuments({
       bookId: book._id,
+      status: "read",
     });
 
     return NextResponse.json({
