@@ -1,5 +1,6 @@
 import { sqlite } from "@/lib/db/sqlite";
-import { runMigrations, runMigrationsOnDatabase } from "@/lib/db/migrate";
+import { runMigrationsOnDatabase } from "@/lib/db/migrate";
+import { setDatabase } from "@/lib/db/context";
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "@/lib/db/schema";
@@ -29,6 +30,9 @@ export async function setupTestDatabase(): Promise<void> {
   testDb = drizzle(testSqlite, { schema });
   console.log("Test database created successfully");
   
+  // Set the test database as the current database for repositories
+  setDatabase(testDb);
+  
   // Run migrations on test database - pass the Drizzle instance, not the raw SQLite
   await runMigrationsOnDatabase(testDb);
   isSetup = true;
@@ -39,9 +43,8 @@ export async function setupTestDatabase(): Promise<void> {
  * Call this in afterAll()
  */
 export async function teardownTestDatabase(): Promise<void> {
-  // SQLite connection is managed by the test database
-  // For in-memory DB, it will be cleaned up on process exit
-  // For file-based DB in tests, we could delete the file here if needed
+  // Reset database context to production database
+  setDatabase(null);
   isSetup = false;
 }
 

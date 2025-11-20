@@ -1,7 +1,6 @@
 import { eq, SQL } from "drizzle-orm";
 import { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
-import { db } from "@/lib/db/sqlite";
-import { getTestDatabase } from "@/__tests__/helpers/db-setup";
+import { getDatabase } from "@/lib/db/context";
 
 /**
  * Base repository with common CRUD operations
@@ -18,15 +17,13 @@ export abstract class BaseRepository<
     this.table = tableSchema;
   }
 
-  /**
-   * Get the appropriate database instance (test or production)
-   * Called for each operation to allow test database switching
-   */
-  protected getDatabase() {
-    // Check if we're in a test environment and use test database if available
-    const testDb = getTestDatabase();
-    return testDb || db;
-  }
+   /**
+    * Get the appropriate database instance (test or production)
+    * Called for each operation to allow test database switching
+    */
+   protected getDatabase() {
+     return getDatabase();
+   }
 
   /**
    * Find a single record by ID
