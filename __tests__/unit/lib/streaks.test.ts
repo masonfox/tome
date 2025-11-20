@@ -10,6 +10,11 @@ import { startOfDay } from "date-fns";
  * Using SQLite for accurate testing
  */
 
+// Helper to convert Unix timestamp (seconds) from createTestDate to Date object
+function unixSecondsToDate(unixSeconds: number): Date {
+  return new Date(unixSeconds * 1000);
+}
+
 describe("updateStreaks", () => {
   beforeAll(async () => {
     await setupTestDatabase();
@@ -38,25 +43,25 @@ describe("updateStreaks", () => {
     expect(found).toBeDefined();
   });
 
-  test("initializes streak to 1 when currentStreak is 0 on same day", async () => {
-    // Arrange - Create streak with 0 values (edge case from getOrCreateStreak)
-    const existingStreak = await streakRepository.create({
-      userId: null,
-      currentStreak: 1,
-      longestStreak: 1,
-      lastActivityDate: Math.floor(startOfDay(new Date()).getTime() / 1000),
-      streakStartDate: Math.floor(startOfDay(new Date()).getTime() / 1000),
-      totalDaysActive: 1,
-    });
+   test("initializes streak to 1 when currentStreak is 0 on same day", async () => {
+     // Arrange - Create streak with values from today
+     const existingStreak = await streakRepository.create({
+       userId: null,
+       currentStreak: 1,
+       longestStreak: 1,
+       lastActivityDate: startOfDay(new Date()),
+       streakStartDate: startOfDay(new Date()),
+       totalDaysActive: 1,
+     });
 
-    // Act
-    const result = await updateStreaks();
+     // Act
+     const result = await updateStreaks();
 
-    // Assert
-    expect(result.currentStreak).toBe(1);
-    expect(result.longestStreak).toBe(1);
-    expect(result.totalDaysActive).toBe(1);
-  });
+     // Assert
+     expect(result.currentStreak).toBe(1);
+     expect(result.longestStreak).toBe(1);
+     expect(result.totalDaysActive).toBe(1);
+   });
 
   test("returns unchanged streak when activity on same day with existing streak", async () => {
     // Arrange - Create active streak from today
