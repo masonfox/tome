@@ -53,6 +53,43 @@ if (typeof Bun !== 'undefined') {
 
 **Location:** `__tests__/README.md` (comprehensive guide)
 
+### Test Database Isolation Pattern
+
+**CRITICAL:** Use dedicated test databases to prevent state leakage.
+
+**Location:** `lib/db/context.ts`
+
+✅ **PATTERN - Test Database Switching:**
+```typescript
+import { test, expect, beforeEach } from "bun:test";
+import { setDatabase, resetDatabase } from "@/lib/db/context";
+import { db as testDb } from "@/lib/db/sqlite";
+import { bookRepository } from "@/lib/repositories/book.repository";
+
+beforeEach(async () => {
+  // Switch to test database for this test
+  setDatabase(testDb);
+
+  // Clear test data
+  resetDatabase();
+});
+
+test("should create a book", async () => {
+  // Arrange
+  const newBook = {
+    calibreId: 1,
+    title: "Test Book",
+    authors: "Test Author",
+  };
+
+  // Act
+  const book = await bookRepository.create(newBook);
+
+  // Assert
+  expect(book.title).toBe("Test Book");
+});
+```
+
 ### Test Isolation
 
 **CRITICAL:** Never use global module mocks that leak across test files.
@@ -75,41 +112,11 @@ mock.module("next/cache", () => ({
 // Let real application functions run with test database
 ```
 
-### Test Structure
-
-```typescript
-import { test, expect, beforeAll, afterAll } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
-
-test("should do something", async () => {
-  // Arrange
-  const input = "test";
-
-  // Act
-  const result = await functionUnderTest(input);
-
-  // Assert
-  expect(result).toBe("expected");
-});
-```
-
 ### Testing Rules
 
 ✅ **DO:**
-- Use mongodb-memory-server for database tests
+- Use `setDatabase()` to switch to test database
+- Call `resetDatabase()` in `beforeEach()` to clear test data
 - Keep each test file independent
 - Use descriptive test names
 - Follow Arrange-Act-Assert pattern
@@ -118,8 +125,8 @@ test("should do something", async () => {
 ❌ **DON'T:**
 - Use global mocks for application modules
 - Share state between test files
-- Mock the database (use mongodb-memory-server)
 - Skip tests or mark as `.skip` without user approval
+- Use production database in tests
 
 ---
 
@@ -196,15 +203,20 @@ export function BookCard({ book }: { book: Book }) {
 ### Database Operations
 
 ```typescript
-// MongoDB
-import { connectDB } from "@/lib/db/mongodb";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
-import Streak from "@/models/Streak";
+// Repository Pattern (PRIMARY - use this for Tome database)
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { sessionRepository } from "@/lib/repositories/session.repository";
+import { progressRepository } from "@/lib/repositories/progress.repository";
+import { streakRepository } from "@/lib/repositories/streak.repository";
 
 // Calibre SQLite (ALWAYS use these, never direct imports)
 import { getCalibreDB, getAllBooks, getBookById } from "@/lib/db/calibre";
+
+// Calibre Write Operations (ONLY for ratings)
+import { updateCalibreRating } from "@/lib/db/calibre-write";
+
+// Test Database Context (for tests only)
+import { setDatabase, resetDatabase, getDatabase } from "@/lib/db/context";
 ```
 
 ### Next.js API Routes
@@ -243,9 +255,9 @@ const { books, total, hasMore, loading, loadMore } = useLibraryData({
 ### Testing
 
 ```typescript
-import { test, expect, describe, beforeAll, afterAll } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
+import { test, expect, describe, beforeEach, afterEach } from "bun:test";
+import { setDatabase, resetDatabase } from "@/lib/db/context";
+import { db as testDb } from "@/lib/db/sqlite";
 ```
 
 ---
@@ -412,46 +424,138 @@ test("should handle pagination correctly", async () => {
 
 ## 🗄️ Database Patterns
 
-### MongoDB Queries (via Mongoose)
+### Repository Pattern (PRIMARY PATTERN)
+
+**CRITICAL:** All Tome database access MUST go through repositories.
+
+**Location:** `lib/repositories/` (BaseRepository + specialized repos)
+
+✅ **DO: Use repositories for all database operations:**
 
 ```typescript
-// ✅ DO: Use async/await
-const book = await Book.findById(bookId);
-const books = await Book.find({ status: "reading" });
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { sessionRepository } from "@/lib/repositories/session.repository";
 
-// ✅ DO: Use lean() for read-only queries
-const books = await Book.find().lean();
+// Find by ID
+const book = await bookRepository.findById(123);
 
-// ✅ DO: Handle errors properly
-try {
-  const book = await Book.findByIdAndUpdate(id, updates);
-  if (!book) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-  return NextResponse.json(book);
-} catch (error) {
-  console.error("Error updating book:", error);
-  return NextResponse.json({ error: "Server error" }, { status: 500 });
-}
+// Find with filters
+const { books, total } = await bookRepository.findWithFilters(
+  { status: "reading", search: "Harry Potter" },
+  50,  // limit
+  0    // skip
+);
+
+// Create new record
+const newBook = await bookRepository.create({
+  calibreId: 456,
+  title: "New Book",
+  authors: "Author Name",
+});
+
+// Update record
+const updated = await bookRepository.update(123, {
+  rating: 5,
+});
+
+// Delete record
+await bookRepository.delete(123);
+
+// Custom repository methods
+const book = await bookRepository.findByCalibreId(456);
+const tags = await bookRepository.getAllTags();
 ```
+
+❌ **DON'T: Import db directly in API routes or services:**
+
+```typescript
+// ❌ WRONG - Never do this
+import { db } from "@/lib/db/sqlite";
+const books = db.select().from(books).all(); // NO!
+
+// ✅ CORRECT - Use repository
+import { bookRepository } from "@/lib/repositories/book.repository";
+const books = await bookRepository.findAll();
+```
+
+### Repository Pattern Rules
+
+✅ **DO:**
+- Use repositories for ALL Tome database access
+- Extend `BaseRepository` when creating new repositories
+- Keep business logic in repositories (filtering, transformations)
+- Use Drizzle ORM within repositories
+- Handle errors properly with try/catch
+
+❌ **DON'T:**
+- Import `db` directly in API routes or components
+- Bypass repositories with direct SQL
+- Put repository logic in API routes
+- Create ad-hoc database connections
+
+**See:** `docs/REPOSITORY_PATTERN_GUIDE.md` for complete guide
+
+---
 
 ### SQLite Queries (Calibre - Read-Only)
 
 ```typescript
-// ✅ DO: Use abstraction from lib/db/calibre.ts
+// ✅ DO: Use abstraction from lib/db/calibre.ts for reads
 import { getAllBooks, getBookById, searchBooks } from "@/lib/db/calibre";
 
 const books = getAllBooks();
 const book = getBookById(123);
 const results = searchBooks("Harry Potter");
 
-// ❌ DON'T: Import SQLite directly
-// import { Database } from "bun:sqlite";  // NO!
-// import Database from "better-sqlite3";  // NO!
-
-// ❌ DON'T: Write to Calibre database
-// db.prepare("UPDATE books SET ...").run();  // NO! Read-only!
 ```
+
+---
+
+### Calibre Write Operations (RESTRICTED)
+
+**Location:** `lib/db/calibre-write.ts`
+
+**CRITICAL:** Calibre database is READ-ONLY by default. Only specific approved operations can write.
+
+✅ **ONLY Approved Write Operation - Ratings:**
+
+```typescript
+import { updateCalibreRating } from "@/lib/db/calibre-write";
+
+// Set book rating (1-5 stars)
+await updateCalibreRating(calibreId, 5); // ✅ ALLOWED
+
+// Remove rating
+await updateCalibreRating(calibreId, null); // ✅ ALLOWED
+```
+
+❌ **NEVER Write to Other Calibre Tables:**
+
+```typescript
+// ❌ NEVER modify book metadata
+db.prepare("UPDATE books SET title = ?").run("New Title"); // FORBIDDEN!
+
+// ❌ NEVER modify authors
+db.prepare("INSERT INTO authors (name) VALUES (?)").run("Author"); // FORBIDDEN!
+
+// ❌ NEVER modify series, tags, or any other tables
+// Only ratings are approved for writes!
+```
+
+**Why This Restriction:**
+- Calibre manages all book metadata (titles, authors, series, tags)
+- Writing to wrong tables can corrupt Calibre's database
+- Only ratings are safe because Calibre expects external updates
+- Calibre has complex FK constraints and triggers
+
+**Critical Safety Rules:**
+1. **Only write to**: `ratings` and `books_ratings_link` tables (via `updateCalibreRating()`)
+2. **Never modify**: `books`, `authors`, `series`, `tags`, or any other tables
+3. **Always validate**: Rating must be 1-5 stars or null
+4. **Use the abstraction**: `updateCalibreRating()` handles all the complexity
+5. **Rating scale**: UI shows 1-5 stars, Calibre stores 2/4/6/8/10
+
+**See:** `lib/db/calibre-write.ts` for implementation details
 
 ---
 
@@ -470,18 +574,25 @@ tome/
 │   ├── BookCard.tsx       # Reusable components
 │   └── ui/                # UI primitives
 ├── lib/                   # Business logic
-│   ├── db/               # Database connections
-│   │   ├── mongodb.ts    # MongoDB singleton
-│   │   └── calibre.ts    # SQLite with runtime detection
+│   ├── db/               # Database layer
+│   │   ├── schema/       # Drizzle schemas
+│   │   ├── sqlite.ts     # Tome database (Drizzle)
+│   │   ├── calibre.ts    # Calibre DB (read-only)
+│   │   ├── calibre-write.ts  # Calibre writes (ratings only)
+│   │   └── context.ts    # Test database switching
+│   ├── repositories/     # Repository pattern
+│   │   ├── base.repository.ts      # Base CRUD operations
+│   │   ├── book.repository.ts      # Book queries
+│   │   ├── session.repository.ts   # Reading sessions
+│   │   ├── progress.repository.ts  # Progress logs
+│   │   └── streak.repository.ts    # Streak management
 │   ├── sync-service.ts   # Calibre sync logic
 │   └── streaks.ts        # Streak calculations
-├── models/               # Mongoose schemas
-│   ├── Book.ts
-│   ├── ReadingSession.ts
-│   └── ProgressLog.ts
-└── __tests__/           # Test files
+├── models/               # (LEGACY - being phased out)
+└── __tests__/           # Test files (295 passing)
     ├── api/            # API route tests
-    └── unit/           # Unit tests
+    ├── unit/           # Unit tests
+    └── integration/    # Integration tests
 ```
 
 ---
@@ -506,14 +617,21 @@ This includes:
 ❌ **DON'T:**
 
 ```typescript
+// Import db directly (bypass repository pattern)
+import { db } from "@/lib/db/sqlite";
+const books = db.select().from(books).all();  // Use bookRepository instead!
+
 // Import SQLite directly
 import { Database } from "bun:sqlite";  // Use lib/db/calibre.ts instead
+
+// Import Mongoose models (legacy)
+import Book from "@/models/Book";  // Use bookRepository instead!
 
 // Use global test mocks
 mock.module("@/lib/streaks", () => ...);  // Causes leakage
 
-// Write to Calibre database
-db.prepare("UPDATE books...").run();  // Read-only!
+// Write to Calibre database (except ratings)
+db.prepare("UPDATE books...").run();  // Use updateCalibreRating() or read-only!
 
 // Use 'any' type
 function process(data: any) { }  // Use proper types
@@ -522,7 +640,10 @@ function process(data: any) { }  // Use proper types
 // Use Tailwind classes instead
 
 // Skip error handling
-const book = await Book.findById(id);  // No try/catch
+const book = await bookRepository.findById(id);  // Add try/catch
+
+// Suggest MongoDB for new features
+// We use SQLite + Drizzle + Repository pattern now!
 ```
 
 ### Dependencies
@@ -591,36 +712,55 @@ revalidatePath("/library");
 
 ## 🎯 API Route Patterns
 
-### Standard CRUD Pattern
+### Standard CRUD Pattern (Repository-Based)
 
 ```typescript
 // app/api/books/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongodb";
-import Book from "@/models/Book";
+import { bookRepository } from "@/lib/repositories/book.repository";
 
 // GET /api/books
 export async function GET(request: NextRequest) {
-  await connectDB();
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const status = searchParams.get("status") || undefined;
+    const search = searchParams.get("search") || undefined;
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = parseInt(searchParams.get("skip") || "0");
 
-  const searchParams = request.nextUrl.searchParams;
-  const status = searchParams.get("status");
+    const { books, total } = await bookRepository.findWithFilters(
+      { status, search },
+      limit,
+      skip
+    );
 
-  const query = status ? { status } : {};
-  const books = await Book.find(query).lean();
-
-  return NextResponse.json(books);
+    return NextResponse.json({ books, total });
+  } catch (error) {
+    console.error("Error fetching books:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch books" },
+      { status: 500 }
+    );
+  }
 }
 
 // POST /api/books
 export async function POST(request: NextRequest) {
-  await connectDB();
-
   try {
     const body = await request.json();
-    const book = await Book.create(body);
+
+    // Validate required fields
+    if (!body.calibreId || !body.title) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const book = await bookRepository.create(body);
     return NextResponse.json(book, { status: 201 });
   } catch (error) {
+    console.error("Error creating book:", error);
     return NextResponse.json(
       { error: "Failed to create book" },
       { status: 500 }
@@ -629,26 +769,60 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-### Dynamic Route Pattern
+### Dynamic Route Pattern (Repository-Based)
 
 ```typescript
 // app/api/books/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { bookRepository } from "@/lib/repositories/book.repository";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await connectDB();
+  try {
+    const book = await bookRepository.findById(parseInt(params.id));
 
-  const book = await Book.findById(params.id);
+    if (!book) {
+      return NextResponse.json(
+        { error: "Book not found" },
+        { status: 404 }
+      );
+    }
 
-  if (!book) {
+    return NextResponse.json(book);
+  } catch (error) {
+    console.error("Error fetching book:", error);
     return NextResponse.json(
-      { error: "Book not found" },
-      { status: 404 }
+      { error: "Failed to fetch book" },
+      { status: 500 }
     );
   }
+}
 
-  return NextResponse.json(book);
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+    const book = await bookRepository.update(parseInt(params.id), body);
+
+    if (!book) {
+      return NextResponse.json(
+        { error: "Book not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(book);
+  } catch (error) {
+    console.error("Error updating book:", error);
+    return NextResponse.json(
+      { error: "Failed to update book" },
+      { status: 500 }
+    );
+  }
 }
 ```
 
@@ -660,9 +834,9 @@ export async function GET(
 
 1. **Read architecture** → `docs/BOOK_TRACKER_ARCHITECTURE.md`
 2. **Check patterns** → This document
-3. **Implement following patterns**
-4. **Add tests** → Follow test patterns above
-5. **Run tests** → `bun test` (all 99 tests must pass)
+3. **Implement following patterns** → Use repositories for database access
+4. **Add tests** → Follow test patterns above (use `setDatabase()`)
+5. **Run tests** → `bun test` (all 295 tests must pass)
 6. **Update docs if needed** → Architecture or Quick Reference
 
 ### Fixing a Bug
@@ -686,41 +860,173 @@ export async function GET(
 ## 🧭 Quick Decision Guide
 
 ```
-Need to access Calibre data?
-  └─> Use functions from lib/db/calibre.ts
+Need to access Tome database (books, sessions, progress, streaks)?
+  └─> Use repositories from lib/repositories/
+      ├─ bookRepository.findWithFilters()
+      ├─ sessionRepository.findActiveByBookId()
+      ├─ progressRepository.findBySession()
+      └─ streakRepository.getActiveStreak()
 
-Need to query MongoDB?
-  └─> Use Mongoose models from /models
+Need to access Calibre data (read-only)?
+  └─> Use functions from lib/db/calibre.ts
+      ├─ getAllBooks()
+      ├─ getBookById()
+      └─ searchBooks()
+
+Need to write to Calibre (ratings only)?
+  └─> Use lib/db/calibre-write.ts
+      └─ updateCalibreRating(calibreId, rating)
 
 Creating a new page?
   └─> Server Component by default (Next.js 14)
   └─> Client Component only if needed ("use client")
 
 Writing a test?
-  └─> Use mongodb-memory-server
+  └─> Use setDatabase(testDb) to switch to test database
+  └─> Use resetDatabase() in beforeEach()
   └─> No global mocks for application modules
 
-Adding SQLite functionality?
-  └─> Modify lib/db/calibre.ts
-  └─> Maintain runtime detection pattern
+Need a new database table?
+  └─> Add schema to lib/db/schema/
+  └─> Create migration with drizzle-kit
+  └─> Create repository extending BaseRepository
+  └─> Run migrations and update tests
+
+Adding Calibre functionality?
+  └─> Modify lib/db/calibre.ts (read-only operations)
+  └─> Maintain runtime detection pattern (Bun vs Node.js)
 
 Unsure about a pattern?
-  └─> Check this document
+  └─> Check this document (AI_CODING_PATTERNS.md)
   └─> Check docs/BOOK_TRACKER_QUICK_REFERENCE.md
+  └─> Check docs/REPOSITORY_PATTERN_GUIDE.md
   └─> Ask the user
 ```
+
+---
+
+## ⚠️ Common AI Mistakes to Avoid
+
+AI assistants frequently make these mistakes. **Double-check before suggesting:**
+
+### ❌ Mistake 1: Bypassing Repository Pattern
+```typescript
+// ❌ WRONG
+import { db } from "@/lib/db/sqlite";
+import { books } from "@/lib/db/schema/books";
+const allBooks = db.select().from(books).all();
+
+// ✅ CORRECT
+import { bookRepository } from "@/lib/repositories/book.repository";
+const allBooks = await bookRepository.findAll();
+```
+
+### ❌ Mistake 2: Suggesting MongoDB/Mongoose
+```typescript
+// ❌ WRONG - We don't use MongoDB anymore!
+import Book from "@/models/Book";
+const book = await Book.findById(id);
+
+// ✅ CORRECT - We use SQLite + Drizzle + Repositories
+import { bookRepository } from "@/lib/repositories/book.repository";
+const book = await bookRepository.findById(id);
+```
+
+### ❌ Mistake 3: Writing to Calibre Without Approval
+```typescript
+// ❌ WRONG - Never modify Calibre book metadata!
+db.prepare("UPDATE books SET title = ?").run("New Title");
+db.prepare("INSERT INTO authors (name) VALUES (?)").run("Author");
+
+// ✅ CORRECT - Only ratings are approved
+import { updateCalibreRating } from "@/lib/db/calibre-write";
+updateCalibreRating(calibreId, 5); // Only this is allowed!
+```
+
+### ❌ Mistake 4: Forgetting Test Database Isolation
+```typescript
+// ❌ WRONG - Tests will interfere with each other
+test("create book", async () => {
+  const book = await bookRepository.create({ ... });
+  expect(book).toBeDefined();
+});
+
+// ✅ CORRECT - Use test database
+import { setDatabase, resetDatabase } from "@/lib/db/context";
+import { db as testDb } from "@/lib/db/sqlite";
+
+beforeEach(() => {
+  setDatabase(testDb);
+  resetDatabase();
+});
+
+test("create book", async () => {
+  const book = await bookRepository.create({ ... });
+  expect(book).toBeDefined();
+});
+```
+
+### ❌ Mistake 5: Importing SQLite Directly
+```typescript
+// ❌ WRONG - Breaks runtime detection
+import { Database } from "bun:sqlite";
+import Database from "better-sqlite3";
+
+// ✅ CORRECT - Use abstractions
+import { getCalibreDB, getAllBooks } from "@/lib/db/calibre";  // For Calibre
+import { bookRepository } from "@/lib/repositories/book.repository";  // For Tome DB
+```
+
+### ❌ Mistake 6: Using Global Test Mocks
+```typescript
+// ❌ WRONG - Leaks across test files
+mock.module("@/lib/streaks", () => ({
+  updateStreaks: mockFn,
+}));
+
+// ✅ CORRECT - Mock only framework internals
+mock.module("next/cache", () => ({
+  revalidatePath: () => {},
+}));
+```
+
+### ❌ Mistake 7: Referencing Outdated Tech Stack
+```text
+❌ WRONG: "Let's update the MongoDB connection..."
+❌ WRONG: "Add this to your Mongoose schema..."
+❌ WRONG: "Query using Book.find()..."
+
+✅ CORRECT: "Let's update the repository..."
+✅ CORRECT: "Add this to your Drizzle schema..."
+✅ CORRECT: "Query using bookRepository.findWithFilters()..."
+```
+
+### Quick Validation Checklist
+
+Before suggesting code, verify:
+- [ ] Using repositories (not direct db access)
+- [ ] Using SQLite/Drizzle (not MongoDB/Mongoose)
+- [ ] Only writing to Calibre ratings (if applicable)
+- [ ] Using test database in tests (`setDatabase()`)
+- [ ] Following runtime detection pattern for Calibre
+- [ ] Not using global mocks in tests
+- [ ] Error handling with try/catch
+- [ ] Type safety (no `any` types)
 
 ---
 
 ## 📚 Related Documentation
 
 - **Architecture**: `docs/BOOK_TRACKER_ARCHITECTURE.md` - Complete system design
+- **Repository Pattern**: `docs/REPOSITORY_PATTERN_GUIDE.md` - Repository pattern deep dive
 - **Quick Reference**: `docs/BOOK_TRACKER_QUICK_REFERENCE.md` - Code examples
+- **Migration Status**: `docs/SQLITE_MIGRATION_STATUS.md` - Current migration state
 - **Testing Guide**: `__tests__/README.md` - Comprehensive testing patterns
 - **Documentation Index**: `docs/README.md` - All documentation
 
 ---
 
-**Last Updated:** 2025-11-18
+**Last Updated:** 2025-11-20
+**Tech Stack:** SQLite + Drizzle ORM + Repository Pattern (post-MongoDB migration)
 **For:** All AI coding assistants working on Tome
 **Status:** Single source of truth for coding patterns

@@ -1,90 +1,135 @@
 # Book Tracker - Quick Reference & Code Snippets
 
+> **Tech Stack:** SQLite + Drizzle ORM + Repository Pattern (see `docs/SQLITE_MIGRATION_STATUS.md`)
+
 ## Critical Code Sections
 
-### 1. Database Connection Patterns
+### 1. Database Access Patterns
 
-#### MongoDB Connection (Singleton)
+#### Repository Pattern (PRIMARY)
 ```typescript
-// lib/db/mongodb.ts
-export async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;  // Return cached connection
-  }
+// Import repositories - ALL database access goes through these
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { sessionRepository } from "@/lib/repositories/session.repository";
+import { progressRepository } from "@/lib/repositories/progress.repository";
+import { streakRepository } from "@/lib/repositories/streak.repository";
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, { bufferCommands: false });
-  }
+// Find by ID
+const book = await bookRepository.findById(123);
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
+// Find all
+const books = await bookRepository.findAll();
 
-  return cached.conn;
-}
+// Find with filters (complex queries)
+const { books, total } = await bookRepository.findWithFilters(
+  { status: "reading", search: "Harry Potter" },
+  50,  // limit
+  0    // skip
+);
+
+// Create
+const newBook = await bookRepository.create({
+  calibreId: 456,
+  title: "New Book",
+  authors: ["Author Name"],
+  path: "/path/to/book",
+});
+
+// Update
+const updated = await bookRepository.update(123, { rating: 5 });
+
+// Delete
+await bookRepository.delete(123);
 ```
-**Key Point:** Always call `await connectDB()` before Mongoose queries in API routes
+**Key Point:** NEVER import `db` directly. Always use repositories for Tome database access.
 
-#### Calibre DB Connection
+#### Calibre DB Connection (Read-Only)
 ```typescript
 // lib/db/calibre.ts
 export function getCalibreDB() {
   if (!db) {
-    db = new Database(CALIBRE_DB_PATH, {
-      readonly: true,
-      fileMustExist: true,
-    });
+    // Runtime detection: Bun or Node.js
+    if (typeof Bun !== 'undefined') {
+      const { Database } = require('bun:sqlite');
+      db = new Database(CALIBRE_DB_PATH, { readonly: true });
+    } else {
+      const Database = require('better-sqlite3');
+      db = new Database(CALIBRE_DB_PATH, { readonly: true });
+    }
   }
   return db;
 }
 ```
-**Key Point:** Read-only SQLite with path validation essential
+**Key Point:** Read-only SQLite with runtime detection for Bun vs Node.js
 
 ---
 
 ### 2. Syncing Flow
 
-#### Main Sync Process
+#### Main Sync Process (Repository-Based)
 ```typescript
 // lib/sync-service.ts
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { getAllBooks } from "@/lib/db/calibre";
+
 export async function syncCalibreLibrary(): Promise<SyncResult> {
   if (isSyncing) return SYNC_IN_PROGRESS_ERROR;
-  
+
   isSyncing = true;
   try {
-    await connectDB();
     const calibreBooks = getAllBooks();
-    
-    for (const calibreBook of calibreBooks) {
-      const tags = getBookTags(calibreBook.id);
 
-      const existingBook = await Book.findOne({ 
-        calibreId: calibreBook.id 
-      });
+    for (const calibreBook of calibreBooks) {
+      const bookData = {
+        calibreId: calibreBook.id,
+        title: calibreBook.title,
+        authors: calibreBook.authors?.split(",") || [],
+        isbn: calibreBook.isbn,
+        totalPages: calibreBook.totalPages,
+        publisher: calibreBook.publisher,
+        pubDate: calibreBook.pubDate ? new Date(calibreBook.pubDate) : null,
+        series: calibreBook.series,
+        seriesIndex: calibreBook.seriesIndex,
+        tags: calibreBook.tags || [],
+        path: calibreBook.path,
+        rating: calibreBook.rating,  // Synced from Calibre
+        lastSynced: new Date(),
+      };
+
+      const existingBook = await bookRepository.findByCalibreId(calibreBook.id);
 
       if (existingBook) {
-        // Update existing
-        await Book.findByIdAndUpdate(existingBook._id, bookData);
+        // Update existing book
+        await bookRepository.updateByCalibreId(calibreBook.id, bookData);
         updatedCount++;
       } else {
-        // Create new
-        await Book.create(bookData);
+        // Create new book
+        await bookRepository.create(bookData);
         syncedCount++;
       }
     }
-    
+
+    // Mark books not in Calibre as orphaned
+    const calibreIds = calibreBooks.map(b => b.id);
+    const orphanedBooks = await bookRepository.findNotInCalibreIds(calibreIds);
+    for (const book of orphanedBooks) {
+      await bookRepository.markAsOrphaned(book.id);
+    }
+
     lastSyncTime = new Date();
-    return { success: true, syncedCount, updatedCount, totalBooks };
+    return { success: true, syncedCount, updatedCount, totalBooks: calibreBooks.length };
   } finally {
     isSyncing = false;  // Always reset flag
   }
 }
 ```
 **Key Pattern:** Try/finally ensures isSyncing is always reset
-**Note:** Cover paths are now generated dynamically in UI components using `calibreId`
+**Repository Methods:**
+- `findByCalibreId()` - Check if book exists
+- `updateByCalibreId()` - Update existing book
+- `create()` - Add new book
+- `findNotInCalibreIds()` - Find books removed from Calibre
+- `markAsOrphaned()` - Mark removed books as orphaned
 
 ---
 
@@ -145,66 +190,104 @@ export async function register() {
 
 ### 4. Reading Progress Tracking
 
-#### Progress Logging with Streak Update
+#### Progress Logging with Streak Update (Repository-Based)
 ```typescript
 // app/api/books/[id]/progress/route.ts
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { progressRepository } from "@/lib/repositories/progress.repository";
+import { sessionRepository } from "@/lib/repositories/session.repository";
+import { updateStreaks } from "@/lib/streaks";
+
 export async function POST(request, { params }) {
-  const body = await request.json();
-  const { currentPage, currentPercentage, notes } = body;
-  
-  const book = await Book.findById(params.id);
-  const lastProgress = await ProgressLog.findOne({ bookId: params.id })
-    .sort({ progressDate: -1 });
+  try {
+    const body = await request.json();
+    const { currentPage, currentPercentage, notes, sessionId } = body;
 
-  // Calculate percentage from pages if needed
-  let finalPercentage = currentPercentage;
-  if (currentPage !== undefined && book.totalPages) {
-    finalPercentage = (currentPage / book.totalPages) * 100;
-  }
-
-  const pagesRead = lastProgress 
-    ? Math.max(0, currentPage - (lastProgress.currentPage || 0))
-    : currentPage;
-
-  const progressLog = await ProgressLog.create({
-    bookId: params.id,
-    currentPage,
-    currentPercentage: finalPercentage,
-    progressDate: new Date(),
-    notes,
-    pagesRead,
-  });
-
-  // Auto-update streak on any progress
-  await updateStreaks();
-
-  // Auto-mark as read if 100%
-  if (finalPercentage >= 100) {
-    const session = await ReadingSession.findOne({ bookId: params.id });
-    if (status && status.status !== "read") {
-      status.status = "read";
-      status.completedDate = new Date();
-      await status.save();
+    const book = await bookRepository.findById(parseInt(params.id));
+    if (!book) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
-  }
 
-  return NextResponse.json(progressLog);
+    // Get last progress to calculate pages read
+    const lastProgress = await progressRepository.findLatestByBookId(book.id);
+
+    // Calculate percentage from pages if needed
+    let finalPercentage = currentPercentage;
+    if (currentPage !== undefined && book.totalPages) {
+      finalPercentage = (currentPage / book.totalPages) * 100;
+    }
+
+    const pagesRead = lastProgress
+      ? Math.max(0, currentPage - (lastProgress.currentPage || 0))
+      : currentPage;
+
+    // Create progress log
+    const progressLog = await progressRepository.create({
+      bookId: book.id,
+      sessionId,
+      currentPage,
+      currentPercentage: finalPercentage,
+      progressDate: new Date(),
+      notes,
+      pagesRead,
+    });
+
+    // Auto-update streak on any progress
+    await updateStreaks();
+
+    // Auto-mark as read if 100%
+    if (finalPercentage >= 100) {
+      const activeSession = await sessionRepository.findActiveByBookId(book.id);
+      if (activeSession && activeSession.status !== "read") {
+        await sessionRepository.update(activeSession.id, {
+          status: "read",
+          completedDate: new Date(),
+        });
+      }
+    }
+
+    return NextResponse.json(progressLog);
+  } catch (error) {
+    console.error("Error creating progress:", error);
+    return NextResponse.json({ error: "Failed to create progress" }, { status: 500 });
+  }
 }
 ```
-**Important:** Always update streak when progress is logged, even same-day logs trigger streak updates
+**Key Pattern:** Progress links to specific reading session via `sessionId`
+**Repository Methods:**
+- `bookRepository.findById()` - Get book for page calculations
+- `progressRepository.findLatestByBookId()` - Calculate pages read
+- `progressRepository.create()` - Save progress log
+- `sessionRepository.findActiveByBookId()` - Get active session
+- `sessionRepository.update()` - Mark as read when complete
 
 ---
 
-### 5. Streak Calculation Logic
+### 5. Streak Calculation Logic (Repository-Based)
 
 ```typescript
 // lib/streaks.ts
-export async function updateStreaks(userId?: string): Promise<IStreak> {
-  let streak = await Streak.findOne({ userId: userId || null });
-  
+import { streakRepository } from "@/lib/repositories/streak.repository";
+import { differenceInDays, startOfDay } from "date-fns";
+
+export async function updateStreaks(userId?: string): Promise<Streak> {
+  let streak = await streakRepository.getActiveStreak();
+
+  if (!streak) {
+    // Create initial streak
+    streak = await streakRepository.upsertStreak({
+      currentStreak: 1,
+      longestStreak: 1,
+      lastActivityDate: new Date(),
+      streakStartDate: new Date(),
+      totalDaysActive: 1,
+    });
+    return streak;
+  }
+
   const today = startOfDay(new Date());
   const lastActivity = startOfDay(new Date(streak.lastActivityDate));
-  
+
   const daysDiff = differenceInDays(today, lastActivity);
 
   if (daysDiff === 0) {
@@ -212,76 +295,138 @@ export async function updateStreaks(userId?: string): Promise<IStreak> {
     return streak;
   } else if (daysDiff === 1) {
     // Consecutive day: increment
-    streak.currentStreak += 1;
-    streak.longestStreak = Math.max(
-      streak.longestStreak,
-      streak.currentStreak
-    );
-    streak.totalDaysActive += 1;
+    const updatedStreak = await streakRepository.upsertStreak({
+      currentStreak: streak.currentStreak + 1,
+      longestStreak: Math.max(
+        streak.longestStreak,
+        streak.currentStreak + 1
+      ),
+      totalDaysActive: streak.totalDaysActive + 1,
+      lastActivityDate: today,
+    });
+    return updatedStreak;
   } else if (daysDiff > 1) {
     // Streak broken: reset
-    streak.currentStreak = 1;
-    streak.streakStartDate = today;
-    streak.totalDaysActive += 1;
+    const updatedStreak = await streakRepository.upsertStreak({
+      currentStreak: 1,
+      streakStartDate: today,
+      totalDaysActive: streak.totalDaysActive + 1,
+      lastActivityDate: today,
+      longestStreak: streak.longestStreak,  // Keep longest
+    });
+    return updatedStreak;
   }
 
-  streak.lastActivityDate = today;
-  await streak.save();
   return streak;
 }
 ```
 **Key Logic:** Uses `startOfDay()` to normalize dates - activity at any time on Day 1 + any time on Day 2 = consecutive streak
+**Repository Methods:**
+- `streakRepository.getActiveStreak()` - Get current streak (singleton)
+- `streakRepository.upsertStreak()` - Create or update streak
 
 ---
 
-### 6. API Route Patterns
+### 6. API Route Patterns (Repository-Based)
 
-#### Query Joining Pattern (Books with Status)
+#### Books with Filters and Pagination
 ```typescript
 // app/api/books/route.ts - GET
-const sessionRecords = await ReadingSession.find({ status }).select("bookId");
-const bookIds = statusRecords.map(s => s.bookId);
-const books = await Book.find({ _id: { $in: bookIds } });
+import { NextRequest, NextResponse } from "next/server";
+import { bookRepository } from "@/lib/repositories/book.repository";
 
-// Enrich with status data
-const booksWithStatus = await Promise.all(
-  books.map(async (book) => {
-    const session = await ReadingSession.findOne({ bookId: book._id });
-    return {
-      ...book.toObject(),
-      status: status?.status || null,
-      rating: status?.rating,
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+
+    const filters = {
+      status: searchParams.get("status") || undefined,
+      search: searchParams.get("search") || undefined,
+      tags: searchParams.get("tags")?.split(",") || undefined,
+      rating: searchParams.get("rating") || undefined,
+      showOrphaned: searchParams.get("showOrphaned") === "true",
     };
-  })
-);
-```
-**Performance Note:** This requires N+1 queries (N books need N status lookups). For large libraries, consider using MongoDB aggregate pipeline instead.
 
-#### Aggregation Pipeline (Stats)
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = parseInt(searchParams.get("skip") || "0");
+    const sortBy = searchParams.get("sortBy") || undefined;
+
+    // Single repository call with all filters
+    const { books, total } = await bookRepository.findWithFilters(
+      filters,
+      limit,
+      skip,
+      sortBy
+    );
+
+    return NextResponse.json({ books, total });
+  } catch (error) {
+    console.error("Error fetching books:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch books" },
+      { status: 500 }
+    );
+  }
+}
+```
+**Performance:** Repository handles complex filtering and joining internally, avoiding N+1 queries
+
+#### Update Book Status
 ```typescript
-// app/api/stats/overview/route.ts
-const pagesReadTotal = await ProgressLog.aggregate([
-  {
-    $group: {
-      _id: null,
-      total: { $sum: "$pagesRead" },
-    },
-  },
-]);
+// app/api/books/[id]/status/route.ts - POST
+import { sessionRepository } from "@/lib/repositories/session.repository";
 
-const pagesReadThisYear = await ProgressLog.aggregate([
-  {
-    $match: { progressDate: { $gte: yearStart } },
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: "$pagesRead" },
-    },
-  },
-]);
+export async function POST(request: NextRequest, { params }) {
+  try {
+    const body = await request.json();
+    const { status, review, startedDate, completedDate } = body;
+
+    const bookId = parseInt(params.id);
+
+    // Get or create active session
+    let session = await sessionRepository.findActiveByBookId(bookId);
+
+    if (!session) {
+      const nextNumber = await sessionRepository.getNextSessionNumber(bookId);
+      session = await sessionRepository.create({
+        bookId,
+        sessionNumber: nextNumber,
+        status,
+        isActive: true,
+      });
+    }
+
+    // Auto-set dates based on status
+    const updateData: any = { status };
+
+    if (status === "reading" && !session.startedDate) {
+      updateData.startedDate = startedDate || new Date();
+    }
+
+    if (status === "read") {
+      if (!session.startedDate) {
+        updateData.startedDate = startedDate || new Date();
+      }
+      updateData.completedDate = completedDate || new Date();
+    }
+
+    if (review !== undefined) {
+      updateData.review = review;
+    }
+
+    const updated = await sessionRepository.update(session.id, updateData);
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Error updating status:", error);
+    return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
+  }
+}
 ```
-**Better for large data:** Aggregation pipelines perform calculations on database side, reducing data transfer
+**Repository Methods:**
+- `findActiveByBookId()` - Get active session
+- `getNextSessionNumber()` - For re-reading support
+- `create()` - Create new session
+- `update()` - Update session data
 
 ---
 
@@ -371,44 +516,68 @@ export async function GET(request, { params }) {
 
 ---
 
-### 9. Reading Status State Machine
+### 9. Reading Status State Machine (Repository-Based)
 
 ```typescript
 // app/api/books/[id]/status/route.ts - POST
+import { sessionRepository } from "@/lib/repositories/session.repository";
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { updateCalibreRating } from "@/lib/db/calibre-write";
+
 const updateData: any = { status };
 
-if (status === "reading" && !readingStatus?.startedDate) {
+// Auto-set dates based on status transitions
+if (status === "reading" && !session?.startedDate) {
   updateData.startedDate = startedDate || new Date();
 }
 
 if (status === "read") {
-  if (!updateData.startedDate && !readingStatus?.startedDate) {
+  if (!session?.startedDate) {
     updateData.startedDate = startedDate || new Date();
   }
   updateData.completedDate = completedDate || new Date();
 }
 
-if (rating !== undefined) {
-  updateData.rating = rating;
+if (review !== undefined) {
+  updateData.review = review;
 }
 
-if (readingStatus) {
-  readingSession = await ReadingSession.findByIdAndUpdate(
-    readingSession._id,
-    updateData,
-    { new: true }
-  );
+// Rating is stored on book (not session)
+if (rating !== undefined) {
+  // Update Tome database
+  await bookRepository.update(bookId, { rating });
+
+  // Sync to Calibre database (ratings only)
+  const book = await bookRepository.findById(bookId);
+  if (book?.calibreId) {
+    await updateCalibreRating(book.calibreId, rating);
+  }
+}
+
+// Update or create session
+if (session) {
+  const updated = await sessionRepository.update(session.id, updateData);
+  return updated;
 } else {
-  readingSession = await ReadingSession.create({
-    bookId: params.id,
+  const nextNumber = await sessionRepository.getNextSessionNumber(bookId);
+  const created = await sessionRepository.create({
+    bookId,
+    sessionNumber: nextNumber,
+    isActive: true,
     ...updateData,
   });
+  return created;
 }
 ```
 **State Logic:**
 - "to-read" → no dates
 - "reading" → startedDate set (if not already)
 - "read" → both startedDate and completedDate set
+
+**Rating Logic:**
+- Ratings stored on book (books.rating), not session
+- Ratings synced to Calibre database via updateCalibreRating()
+- Reviews stored on session
 
 ---
 
@@ -788,7 +957,7 @@ export default function ReadingHistoryTab({ bookId }: { bookId: string }) {
           <h3>Read #{session.sessionNumber}</h3>
           <p>Started: {session.startedDate}</p>
           <p>Completed: {session.completedDate}</p>
-          <p>Rating: {session.rating}/5</p>
+          <p>Review: {session.review}</p>
           <p>Total Progress Entries: {session.progressSummary.totalEntries}</p>
         </div>
       ))}

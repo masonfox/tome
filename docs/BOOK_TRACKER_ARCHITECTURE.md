@@ -1,18 +1,24 @@
 # Book Tracker Architecture Documentation
 
+> **📌 MIGRATION STATUS:** This project has completed migration from MongoDB to SQLite (see `docs/SQLITE_MIGRATION_STATUS.md`). The architecture below reflects the **current SQLite + Drizzle ORM + Repository Pattern implementation**. Some sections may reference MongoDB as historical context but are marked as legacy.
+
 ## Overview
 Book Tracker is a full-stack reading companion application built with Next.js 14 that integrates with Calibre digital libraries. It enables users to track reading progress, maintain reading streaks, and visualize reading statistics while syncing metadata from their Calibre library.
 
 **Tech Stack:**
-- Frontend: Next.js 14 (React 18) with TypeScript
-- Backend: Next.js API Routes (Node.js)
-- Databases: MongoDB (tracking data) + SQLite (Calibre library)
-- UI: Tailwind CSS + Lucide React icons
-- Runtime: Node.js (dev) / Bun (production optional)
-- Package Manager: Bun
-- SQLite Adapters: better-sqlite3 (Node.js) / bun:sqlite (Bun)
-- Charts: Recharts
-- Deployment: Docker + Docker Compose
+- **Frontend:** Next.js 14 (React 18) with TypeScript
+- **Backend:** Next.js API Routes (Node.js runtime)
+- **Databases:**
+  - **Tome Database:** SQLite + Drizzle ORM (tracking data: books, sessions, progress, streaks)
+  - **Calibre Database:** SQLite (read-only, metadata.db from Calibre library)
+- **Data Access:** Repository Pattern (lib/repositories/)
+- **UI:** Tailwind CSS + Lucide React icons
+- **Runtime:** Node.js (dev) / Bun (production)
+- **Package Manager:** Bun
+- **SQLite Adapters:** better-sqlite3 (Node.js) / bun:sqlite (Bun)
+- **Charts:** Recharts
+- **Deployment:** Docker + Docker Compose
+- **Testing:** Bun test runner (295 tests passing)
 
 ---
 
@@ -29,125 +35,194 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 │   ├── /stats               # Statistics and streaks page
 │   ├── /settings            # Settings and Calibre configuration
 │   └── layout.tsx           # Root layout with navigation
-├── /models                   # Mongoose schemas
 ├── /lib                      # Core business logic and services
-│   ├── /db
-│   │   ├── mongodb.ts       # MongoDB connection manager
-│   │   └── calibre.ts       # Calibre SQLite reader
-│   ├── sync-service.ts      # Calibre library sync logic
-│   ├── calibre-watcher.ts   # File system watcher for auto-sync
-│   ├── library-service.ts   # Client-side library data service
-│   └── streaks.ts           # Reading streak calculations
-├── /hooks                   # Custom React hooks
-│   └── useLibraryData.ts    # Library state management hook
-├── /components              # React components
-├── /utils                   # Utility functions
-├── instrumentation.ts       # Next.js instrumentation hook
-├── package.json            # Dependencies and scripts
-├── next.config.js          # Next.js configuration
-├── docker-compose.yml      # Docker services definition
-└── Dockerfile             # Container build instructions
+│   ├── /db                   # Database layer
+│   │   ├── /schema           # Drizzle ORM schemas
+│   │   │   ├── books.ts      # Books table schema
+│   │   │   ├── reading-sessions.ts  # Sessions table schema
+│   │   │   ├── progress-logs.ts     # Progress table schema
+│   │   │   └── streaks.ts           # Streaks table schema
+│   │   ├── sqlite.ts         # Tome database (Drizzle instance)
+│   │   ├── calibre.ts        # Calibre SQLite reader (read-only)
+│   │   ├── calibre-write.ts  # Calibre write operations (ratings only)
+│   │   └── context.ts        # Database context for test isolation
+│   ├── /repositories         # Repository pattern (data access layer)
+│   │   ├── base.repository.ts    # Base CRUD operations
+│   │   ├── book.repository.ts    # Book data access
+│   │   ├── session.repository.ts # Session data access
+│   │   ├── progress.repository.ts  # Progress data access
+│   │   └── streak.repository.ts    # Streak data access
+│   ├── sync-service.ts       # Calibre library sync logic
+│   ├── calibre-watcher.ts    # File system watcher for auto-sync
+│   ├── library-service.ts    # Client-side library data service
+│   ├── dashboard-service.ts  # Dashboard statistics service
+│   └── streaks.ts            # Reading streak calculations
+├── /models                   # LEGACY - Mongoose schemas (being phased out)
+├── /hooks                    # Custom React hooks
+│   └── useLibraryData.ts     # Library state management hook
+├── /components               # React components
+├── /utils                    # Utility functions
+├── /drizzle                  # Drizzle migrations
+│   ├── /meta                 # Migration metadata
+│   └── 000X_migration.sql    # SQL migration files
+├── instrumentation.ts        # Next.js instrumentation hook
+├── drizzle.config.ts         # Drizzle ORM configuration
+├── package.json              # Dependencies and scripts
+├── next.config.js            # Next.js configuration
+├── docker-compose.yml        # Docker services definition
+└── Dockerfile                # Container build instructions
 ```
 
 ---
 
-## 2. DATABASE MODELS AND RELATIONSHIPS
+## 2. DATABASE SCHEMA AND RELATIONSHIPS
 
-### MongoDB Collections (via Mongoose)
+> **Note:** This project uses **SQLite** with **Drizzle ORM** for the Tome database (tracking data). Calibre continues to use its own separate SQLite database.
 
-#### Book Model (`/models/Book.ts`)
+### Tome Database (SQLite + Drizzle ORM)
+
+**Location:** `lib/db/schema/` (Drizzle schemas)
+
+#### Books Table (`lib/db/schema/books.ts`)
 **Purpose:** Stores metadata of books synced from Calibre
-**Fields:**
-- `calibreId` (Number, unique) - ID from Calibre database
-- `title` (String) - Book title
-- `authors` (String[]) - Author names
-- `isbn` (String, optional)
-- `totalPages` (Number, optional) - Total page count
-- `publisher` (String, optional)
-- `pubDate` (Date, optional) - Publication date
-- `series` (String, optional) - Series name
-- `seriesIndex` (Number, optional)
-- `tags` (String[]) - Calibre tags/categories
-- `path` (String) - File path in Calibre library
-- `addedToLibrary` (Date) - When added to Calibre
-- `lastSynced` (Date) - Last sync time
-- `timestamps` - createdAt, updatedAt auto-managed
+
+**Schema:**
+```typescript
+export const books = sqliteTable("books", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  calibreId: integer("calibre_id").notNull().unique(),
+  title: text("title").notNull(),
+  authors: text("authors", { mode: "json" }).$type<string[]>(),  // JSON array
+  isbn: text("isbn"),
+  totalPages: integer("total_pages"),
+  addedToLibrary: integer("added_to_library", { mode: "timestamp" }),
+  lastSynced: integer("last_synced", { mode: "timestamp" }),
+  publisher: text("publisher"),
+  pubDate: integer("pub_date", { mode: "timestamp" }),
+  series: text("series"),
+  seriesIndex: real("series_index"),
+  tags: text("tags", { mode: "json" }).$type<string[]>(),  // JSON array
+  path: text("path").notNull(),
+  description: text("description"),
+  rating: integer("rating"),  // 1-5 stars, synced from Calibre
+  orphaned: integer("orphaned", { mode: "boolean" }),
+  orphanedAt: integer("orphaned_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+});
+```
 
 **Indexes:**
-- Full-text search on `title` and `authors`
 - Unique constraint on `calibreId`
+
+**Repository:** `bookRepository` (lib/repositories/book.repository.ts)
 
 ---
 
-#### ReadingSession Model (`/models/ReadingSession.ts`)
+#### Reading Sessions Table (`lib/db/schema/reading-sessions.ts`)
 **Purpose:** Tracks reading sessions per book (supports re-reading)
-**Fields:**
-- `userId` (ObjectId, optional) - For multi-user support
-- `bookId` (ObjectId, required, ref: Book) - References Book
-- `sessionNumber` (Number, required) - Which read-through (1, 2, 3...)
-- `status` (String, enum: "to-read" | "read-next" | "reading" | "read")
-- `startedDate` (Date, optional) - When user started this session
-- `completedDate` (Date, optional) - When user finished this session
-- `rating` (Number 1-5, optional) - User's rating for this read
-- `review` (String, optional) - User's review for this read
-- `isActive` (Boolean, required) - Only one active session per book
-- `timestamps` - createdAt, updatedAt
+
+**Schema:**
+```typescript
+export const readingSessions = sqliteTable("reading_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id"),  // Nullable for single-user mode
+  bookId: integer("book_id").notNull().references(() => books.id, { onDelete: "cascade" }),
+  sessionNumber: integer("session_number").notNull(),
+  status: text("status", {
+    enum: ["to-read", "read-next", "reading", "read"],
+  }),
+  startedDate: integer("started_date", { mode: "timestamp" }),
+  completedDate: integer("completed_date", { mode: "timestamp" }),
+  review: text("review"),
+  isActive: integer("is_active", { mode: "boolean" }),
+  createdAt: integer("created_at", { mode: "timestamp" }),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+});
+```
 
 **Indexes:**
 - Unique compound index on (bookId, sessionNumber)
-- Composite index on (userId, bookId)
-- Index on `status`
-- Partial unique index on (bookId, isActive=true) - Ensures only one active session per book
+- Partial unique index on (bookId) WHERE isActive=1 (only one active session per book)
+- Index on bookId
+- Index on status
+- Index on (userId, bookId)
+
+**Repository:** `sessionRepository` (lib/repositories/session.repository.ts)
 
 **Re-reading Support:**
 - Users can read the same book multiple times
-- Each reading session is tracked separately with its own progress
-- Only one session can be active (isActive=true) at a time
-- Previous sessions are archived (isActive=false) and displayed in Reading History
+- Each reading session has a sessionNumber (1, 2, 3...)
+- Only one session can be active (isActive=1) at a time
+- Previous sessions are archived (isActive=0)
 
 ---
 
-#### ProgressLog Model (`/models/ProgressLog.ts`)
+#### Progress Logs Table (`lib/db/schema/progress-logs.ts`)
 **Purpose:** Tracks individual reading progress entries per session
-**Fields:**
-- `userId` (ObjectId, optional, ref: User) - For multi-user support
-- `bookId` (ObjectId, required, ref: Book) - References Book
-- `sessionId` (ObjectId, optional, ref: ReadingSession) - Links to specific reading session
-- `currentPage` (Number) - Current page user is on
-- `currentPercentage` (Number, 0-100) - Completion percentage
-- `progressDate` (Date) - When this update was recorded
-- `notes` (String, optional) - Session notes
-- `pagesRead` (Number) - Pages read in this session
-- `timestamps` - createdAt, updatedAt
+
+**Schema:**
+```typescript
+export const progressLogs = sqliteTable("progress_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id"),  // Nullable for single-user mode
+  bookId: integer("book_id").notNull().references(() => books.id, { onDelete: "cascade" }),
+  sessionId: integer("session_id").references(() => readingSessions.id, { onDelete: "cascade" }),
+  currentPage: integer("current_page"),
+  currentPercentage: real("current_percentage"),  // 0-100
+  progressDate: integer("progress_date", { mode: "timestamp" }),
+  notes: text("notes"),
+  pagesRead: integer("pages_read"),
+  createdAt: integer("created_at", { mode: "timestamp" }),
+});
+```
 
 **Indexes:**
-- Composite index on (bookId, progressDate DESC)
-- Composite index on (userId, progressDate DESC)
-- Composite index on (sessionId, progressDate DESC)
+- Index on (bookId, progressDate DESC)
+- Index on (sessionId, progressDate DESC)
+- Index on (userId, progressDate DESC)
 - Index on progressDate DESC
+
+**Constraints:**
+- currentPage >= 0
+- currentPercentage >= 0 AND currentPercentage <= 100
+- pagesRead >= 0
+
+**Repository:** `progressRepository` (lib/repositories/progress.repository.ts)
 
 ---
 
-#### Streak Model (`/models/Streak.ts`)
+#### Streaks Table (`lib/db/schema/streaks.ts`)
 **Purpose:** Tracks reading consistency streaks
-**Fields:**
-- `userId` (ObjectId, optional, unique, ref: User) - For multi-user support
-- `currentStreak` (Number) - Consecutive days of activity
-- `longestStreak` (Number) - All-time longest streak
-- `lastActivityDate` (Date) - Last day with reading activity
-- `streakStartDate` (Date) - When current streak started
-- `totalDaysActive` (Number) - Total number of active reading days
-- `timestamps` - createdAt, updatedAt
+
+**Schema:**
+```typescript
+export const streaks = sqliteTable("streaks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id"),  // Nullable for single-user mode
+  currentStreak: integer("current_streak"),
+  longestStreak: integer("longest_streak"),
+  lastActivityDate: integer("last_activity_date", { mode: "timestamp" }),
+  streakStartDate: integer("streak_start_date", { mode: "timestamp" }),
+  totalDaysActive: integer("total_days_active"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+});
+```
+
+**Indexes:**
+- Unique index on COALESCE(userId, -1) (singleton pattern: one streak per user)
+
+**Repository:** `streakRepository` (lib/repositories/streak.repository.ts)
 
 ---
 
 ### Relationship Diagram
 ```
-Book (from Calibre)
+Book (synced from Calibre)
 ├── ReadingSession (1:many per book - supports re-reading)
 │   ├── sessionNumber (1, 2, 3...)
 │   ├── isActive (only one active session per book)
-│   ├── status, dates, rating, review
+│   ├── status, dates, review
 │   └── ProgressLog (1:many per session)
 │       └── sessionId links progress to specific reading session
 └── Streak (global - aggregated from all ProgressLog entries across all sessions)
@@ -156,9 +231,22 @@ Book (from Calibre)
 
 **Key Relationships:**
 - One Book can have multiple ReadingSessions (for re-reading)
-- Only one ReadingSession per book can be active (isActive=true)
-- Each ProgressLog entry links to a specific ReadingSession via sessionId
+- Foreign key: readingSessions.bookId → books.id (CASCADE DELETE)
+- Only one ReadingSession per book can be active (isActive=1)
+- Foreign key: progressLogs.bookId → books.id (CASCADE DELETE)
+- Foreign key: progressLogs.sessionId → readingSessions.id (CASCADE DELETE)
+- Each ProgressLog entry links to a specific ReadingSession
 - Streaks are calculated from ALL progress logs across ALL sessions and books
+
+### Repository Pattern
+
+**All database access goes through repositories:**
+- `bookRepository` - Book queries and filtering
+- `sessionRepository` - Session management
+- `progressRepository` - Progress tracking
+- `streakRepository` - Streak calculations
+
+**See:** `docs/REPOSITORY_PATTERN_GUIDE.md` for detailed repository documentation
 
 ---
 
@@ -205,32 +293,35 @@ Book (from Calibre)
 **Cover Image Handling:**
 - Calibre stores cover.jpg in book folders
 - Cover API route (`/api/covers/[id]`) constructs paths dynamically using `calibreId`
-- No cover paths stored in MongoDB - generated on-demand in UI components
+- No cover paths stored in database - generated on-demand in UI components
 
 ---
 
 ### Sync Service (`/lib/sync-service.ts`)
 
 **Process:**
-1. Connects to both MongoDB and Calibre database
-2. Fetches all books from Calibre
+1. Connects to both Tome database (SQLite) and Calibre database (SQLite)
+2. Fetches all books from Calibre using `getAllBooks()`
 3. For each book:
-   - Extracts metadata (title, authors, ISBN, tags, etc.)
-   - Checks if book exists in MongoDB (by calibreId)
-   - Creates new Book or updates existing one
-4. Tracks: syncedCount (new), updatedCount (existing), totalBooks
-5. Updates lastSyncTime on success
-6. Prevents concurrent syncs with isSyncing flag
+   - Extracts metadata (title, authors, ISBN, tags, rating, etc.)
+   - Checks if book exists in Tome database (by calibreId) using `bookRepository`
+   - Creates new Book or updates existing one via `bookRepository`
+4. Marks books not in Calibre as "orphaned" (removed from Calibre library)
+5. Tracks: syncedCount (new), updatedCount (existing), totalBooks
+6. Updates lastSyncTime on success
+7. Prevents concurrent syncs with isSyncing flag
 
 **Sync Data Flow:**
 ```
-Calibre SQLite
+Calibre SQLite Database
     ↓
-getAllBooks() + getBookTags()
+getAllBooks() via lib/db/calibre.ts
     ↓
-Book metadata with enriched data
+Book metadata with enriched data (authors, tags, rating)
     ↓
-MongoDB Book collection
+bookRepository.findByCalibreId() / create() / updateByCalibreId()
+    ↓
+Tome SQLite Database (books table)
     ↓
 UI generates cover paths from calibreId dynamically
     ↓
@@ -291,7 +382,7 @@ else:
 **GET /api/books**
 - Fetch paginated book list
 - Query params: `status`, `search`, `tags`, `limit`, `skip`, `showOrphaned`
-- Returns: books array with active session status and rating, total count
+- Returns: books array with active session status and book rating, total count
 - Joins with active ReadingSession (isActive=true) for user data
 
 **POST /api/books**
@@ -347,13 +438,14 @@ else:
 - Auto-sets dates when status changes:
   - "reading" → sets startedDate
   - "read" → sets completedDate
+- Note: `rating` updates the book's rating (books.rating), not stored on session
 - Returns: updated ReadingSession
 
 **GET /api/books/:id/sessions**
 - Fetch all reading sessions for a book (supports re-reading history)
 - Returns: array of ReadingSession objects (sorted by sessionNumber desc)
 - Each session includes:
-  - Session metadata (sessionNumber, status, dates, rating, review)
+  - Session metadata (sessionNumber, status, dates, review)
   - Progress summary (totalEntries, totalPagesRead, latestProgress, date range)
 
 **POST /api/books/:id/reread**
@@ -447,7 +539,7 @@ else:
 ## 6. RE-READING FEATURE
 
 ### Overview
-The re-reading feature allows users to read the same book multiple times while preserving complete history of each reading session. Each re-read maintains separate progress tracking, ratings, and reviews.
+The re-reading feature allows users to read the same book multiple times while preserving complete history of each reading session. Each re-read maintains separate progress tracking and reviews. Book ratings are stored at the book level (not per session).
 
 ### Architecture
 
@@ -471,7 +563,7 @@ The re-reading feature allows users to read the same book multiple times while p
 
 1. **Complete First Read:**
    - User marks book as "Read" (status=read, completedDate set)
-   - Can add rating and review
+   - Can add book rating (stored on books.rating) and review (stored on session)
    - "Start Re-reading" button appears
 
 2. **Start Re-reading:**
@@ -491,7 +583,7 @@ The re-reading feature allows users to read the same book multiple times while p
    - Each session displays:
      - Session number (Read #1, #2, etc.)
      - Start/completion dates
-     - Rating and review
+     - Review (book rating shown at book level, not per session)
      - Progress summary (total logs, pages read, final %)
 
 ### Components
