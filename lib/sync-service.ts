@@ -61,7 +61,7 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
 
       const existingBook = await bookRepository.findByCalibreId(calibreBook.id);
 
-      const bookData = {
+      const bookData: any = {
         calibreId: calibreBook.id,
         title: calibreBook.title,
         authors: calibreBook.authors
@@ -78,13 +78,16 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
         tags,
         path: calibreBook.path,
         description: calibreBook.description || undefined,
-        rating: calibreBook.rating || undefined, // Sync rating from Calibre
         lastSynced: new Date(),
         addedToLibrary: calibreBook.timestamp ? new Date(calibreBook.timestamp) : new Date(),
       };
 
+      // Always sync rating (including null) to ensure rating changes from Calibre are reflected
+      // Use explicit null instead of undefined so Drizzle updates the field
+      bookData.rating = calibreBook.rating !== null ? calibreBook.rating : null;
+
       if (existingBook) {
-        await bookRepository.update(existingBook.id, bookData as any);
+        await bookRepository.update(existingBook.id, bookData);
         updatedCount++;
       } else {
         const newBook = await bookRepository.create(bookData as any);

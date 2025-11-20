@@ -189,6 +189,19 @@ export class SessionRepository extends BaseRepository<
 
      return result?.count ?? 0;
    }
+
+   /**
+    * Count sessions for a specific book
+    */
+   async countByBookId(bookId: number): Promise<number> {
+     const result = this.getDatabase()
+       .select({ count: sql<number>`count(*)` })
+       .from(readingSessions)
+       .where(eq(readingSessions.bookId, bookId))
+       .get();
+
+     return result?.count ?? 0;
+   }
 }
 
 // Singleton instance
