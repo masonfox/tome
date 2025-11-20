@@ -3,12 +3,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck } from "lucide-react";
+import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 import { toast } from "@/utils/toast";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
+import RatingModal from "@/components/RatingModal";
 
 interface Book {
   id: number;
@@ -71,6 +72,8 @@ export default function BookDetailPage() {
   const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
+  // Rating modal state
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   useEffect(() => {
     fetchBook();
@@ -400,6 +403,42 @@ export default function BookDetailPage() {
     }
   }
 
+  async function handleUpdateRating(newRating: number | null) {
+    // Don't update if rating hasn't changed
+    if (newRating === book?.rating) {
+      setShowRatingModal(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/books/${bookId}/rating`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: newRating }),
+      });
+      
+      if (response.ok) {
+        const updatedBook = await response.json();
+        setBook(updatedBook);
+        
+        if (newRating === null) {
+          toast.success("Rating removed");
+        } else {
+          toast.success(`Rated ${newRating} ${newRating === 1 ? 'star' : 'stars'}`);
+        }
+        
+        setShowRatingModal(false);
+        router.refresh();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update rating");
+      }
+    } catch (error) {
+      console.error("Failed to update rating:", error);
+      toast.error("Failed to update rating");
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -525,20 +564,37 @@ export default function BookDetailPage() {
               )}
             </div>
 
-            {/* Rating Display (read-only) - rating set via FinishBookModal */}
-            {selectedStatus === "read" && book.rating && (
-              <div className="flex justify-center gap-1 py-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={cn(
-                      "w-5 h-5",
-                      star <= (book.rating || 0)
-                        ? "fill-[var(--accent)] text-[var(--accent)]"
-                        : "text-[var(--foreground)]/30"
-                    )}
-                  />
-                ))}
+            {/* Rating Display - show if book has a rating OR status is "read" */}
+            {(book.rating || selectedStatus === "read") && (
+              <div 
+                className="py-2 group cursor-pointer"
+                onClick={() => setShowRatingModal(true)}
+              >
+                {/* Star Rating Display */}
+                <div className="flex justify-center">
+                  <div className="relative inline-flex gap-1 items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={cn(
+                          "w-5 h-5 transition-colors",
+                          star <= (book.rating || 0)
+                            ? "fill-[var(--accent)] text-[var(--accent)]"
+                            : "text-[var(--foreground)]/30"
+                        )}
+                      />
+                    ))}
+                    {/* Pencil icon appears on hover - absolutely positioned */}
+                    <Pencil className="w-4 h-4 text-[var(--foreground)]/40 opacity-0 group-hover:opacity-100 transition-opacity absolute left-full ml-1.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+                
+                {/* Rating Text */}
+                <div className="text-center mt-3">
+                  <p className="text-xs text-[var(--subheading-text)] font-medium group-hover:text-[var(--accent)] transition-colors">
+                    {book.rating ? `${book.rating} ${book.rating === 1 ? 'star' : 'stars'}` : "Rate this book"}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -881,6 +937,15 @@ export default function BookDetailPage() {
         onClose={() => setShowReadConfirmation(false)}
         onConfirm={handleConfirmRead}
         bookTitle={book?.title || ""}
+      />
+
+      {/* Rating Modal */}
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        onConfirm={handleUpdateRating}
+        bookTitle={book?.title || ""}
+        currentRating={book?.rating || null}
       />
 
       {/* Status Change Confirmation Dialog */}
