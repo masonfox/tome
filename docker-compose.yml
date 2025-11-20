@@ -1,22 +1,21 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:7
-    container_name: tome-mongodb
-    restart: unless-stopped
+  tome:
+    build: .
     ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+      - "3000:3000"
     environment:
-      - MONGO_INITDB_DATABASE=tome
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - NODE_ENV=production
+      - CALIBRE_DB_PATH=/calibre/metadata.db
+    volumes:
+      # Persist SQLite database
+      - tome-data:/app/data
+      # Mount your Calibre library (read-only)
+      # Replace with your actual Calibre library path
+      - ./calibre-library:/calibre:ro
+    restart: unless-stopped
 
 volumes:
-  mongodb_data:
+  tome-data:
     driver: local

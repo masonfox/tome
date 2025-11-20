@@ -21,12 +21,15 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   try {
-    const CALIBRE_LIBRARY_PATH = process.env.CALIBRE_LIBRARY_PATH;
+    const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
-    if (!CALIBRE_LIBRARY_PATH) {
-      console.error("CALIBRE_LIBRARY_PATH not configured");
+    if (!CALIBRE_DB_PATH) {
+      console.error("CALIBRE_DB_PATH not configured");
       return servePlaceholderImage();
     }
+
+    // Extract library path from database path (metadata.db is in the library root)
+    const libraryPath = path.dirname(CALIBRE_DB_PATH);
 
     // Extract book ID from the first path parameter
     const bookIdStr = params.path[0];
@@ -51,7 +54,6 @@ export async function GET(
     }
 
     // Construct the file path
-    const libraryPath = CALIBRE_LIBRARY_PATH;
     const filePath = path.join(libraryPath, calibreBook.path, "cover.jpg");
 
     console.log("Cover request:", {

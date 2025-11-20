@@ -1,0 +1,2556 @@
+bun test v1.3.0 (b0a6feca)
+
+__tests__/api/progress.test.ts:
+Using bun:sqlite for Tome database
+Running migrations...
+Migrations complete!
+(pass) Progress API - GET /api/books/[id]/progress > fetches all progress logs for a book [25.00ms]
+(pass) Progress API - GET /api/books/[id]/progress > sorts progress logs by date descending (most recent first) [23.00ms]
+(pass) Progress API - GET /api/books/[id]/progress > returns empty array for book with no progress [27.00ms]
+(pass) Progress API - GET /api/books/[id]/progress > handles database errors gracefully [21.00ms]
+Running migrations...
+Migrations complete!
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+194 |     const params = { id: testBook.id.toString() };
+195 | 
+196 |     const response = await POST(request as NextRequest, { params });
+197 |     const data = await response.json();
+198 | 
+199 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:199:29)
+(fail) Progress API - POST /api/books/[id]/progress > creates progress log with page number and calculates percentage [16.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+210 |     const params = { id: testBook.id.toString() };
+211 | 
+212 |     const response = await POST(request as NextRequest, { params });
+213 |     const data = await response.json();
+214 | 
+215 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:215:29)
+(fail) Progress API - POST /api/books/[id]/progress > creates progress log with percentage and calculates page number [15.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+238 |     const params = { id: testBook.id.toString() };
+239 | 
+240 |     const response = await POST(request as NextRequest, { params });
+241 |     const data = await response.json();
+242 | 
+243 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:243:29)
+(fail) Progress API - POST /api/books/[id]/progress > calculates pagesRead based on last progress [22.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+266 |     const params = { id: testBook.id.toString() };
+267 | 
+268 |     const response = await POST(request as NextRequest, { params });
+269 |     const data = await response.json();
+270 | 
+271 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:271:29)
+(fail) Progress API - POST /api/books/[id]/progress > handles negative pagesRead (when going backwards) [15.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+277 |       currentPage: 500, // 100%
+278 |     });
+279 |     const params = { id: testBook.id.toString() };
+280 | 
+281 |     const response = await POST(request as NextRequest, { params });
+282 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:282:29)
+(fail) Progress API - POST /api/books/[id]/progress > marks book as completed when progress reaches 100% [17.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+292 |       currentPercentage: 100,
+293 |     });
+294 |     const params = { id: testBook.id.toString() };
+295 | 
+296 |     const response = await POST(request as NextRequest, { params });
+297 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:297:29)
+(fail) Progress API - POST /api/books/[id]/progress > creates completed status if none exists when book reaches 100% [12.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+(pass) Progress API - POST /api/books/[id]/progress > doesn't mark as complete for progress below 100% [13.00ms]
+(pass) Progress API - POST /api/books/[id]/progress > returns 404 for non-existent book [14.00ms]
+(pass) Progress API - POST /api/books/[id]/progress > returns 400 when neither currentPage nor currentPercentage provided [15.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+370 |     const params = { id: bookNoPages.id.toString() };
+371 | 
+372 |     const response = await POST(request as NextRequest, { params });
+373 |     const data = await response.json();
+374 | 
+375 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:375:29)
+(fail) Progress API - POST /api/books/[id]/progress > handles book without totalPages (page-only mode) [20.00ms]
+(pass) Progress API - POST /api/books/[id]/progress > rejects percentage input for book without totalPages [15.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+421 | 
+422 |     const afterTime = new Date();
+423 | 
+424 |     const logs = await progressRepository.findByBookId(testBook.id);
+425 |     const log = logs[0];
+426 |     expect(log!.progressDate).toBeDefined();
+                 ^
+TypeError: undefined is not an object (evaluating 'log.progressDate')
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:426:12)
+(fail) Progress API - POST /api/books/[id]/progress > stores progress date correctly [13.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+437 |     const params = { id: testBook.id.toString() };
+438 | 
+439 |     const response = await POST(request as NextRequest, { params });
+440 |     const data = await response.json();
+441 | 
+442 |     expect(data.notes).toBe("This is a great book!");
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: "This is a great book!"
+Received: undefined
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:442:24)
+(fail) Progress API - POST /api/books/[id]/progress > preserves notes when provided [10.00ms]
+(pass) Progress API - POST /api/books/[id]/progress > handles database errors gracefully [9.00ms]
+Error logging progress: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+481 |       currentPage: 100,
+482 |     });
+483 |     const params = { id: testBook.id.toString() };
+484 | 
+485 |     const response = await POST(request as NextRequest, { params });
+486 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/progress.test.ts:486:29)
+(fail) Progress API - POST /api/books/[id]/progress > updates session updatedAt timestamp when logging progress [25.00ms]
+
+__tests__/api/sessions.test.ts:
+Running migrations...
+Migrations complete!
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should return all sessions sorted by sessionNumber descending [10.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should include progress summary for each session [5.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should return empty progress summary for session with no progress [9.00ms]
+(pass) GET /api/books/[id]/sessions > should return empty array if book has no sessions [8.00ms]
+(pass) GET /api/books/[id]/sessions > should include all session fields in response [9.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should calculate correct progress summary with multiple logs [10.00ms]
+(pass) GET /api/books/[id]/sessions > should return 404 if book not found [4.00ms]
+(pass) GET /api/books/[id]/sessions > should return 400 with invalid book ID format [2.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should only return sessions for specified book [10.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should handle large number of sessions efficiently [11.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should isolate progress logs by session [6.00ms]
+(pass) GET /api/books/[id]/sessions > should handle sessions with partial data [19.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) GET /api/books/[id]/sessions > should not include progress from unlinked logs [7.00ms]
+
+__tests__/api/stats.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'mongoose' from '/home/masonfox/git/tome/models/ProgressLog.ts'
+-------------------------------
+
+
+__tests__/api/status.test.ts:
+Running migrations...
+Migrations complete!
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should archive session when moving from 'reading' to 'read-next' with progress [6.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should archive session when moving from 'reading' to 'to-read' with progress [6.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive session when moving from 'reading' to 'read-next' WITHOUT progress [6.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should auto-archive session when moving from 'reading' to 'read' [7.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should rebuild streak after archiving session [6.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+
+212 |       status: "reading",
+213 |     });
+214 |     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+215 |     const data = await response.json();
+216 | 
+217 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/status.test.ts:217:29)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive when moving from 'to-read' to 'reading' [11.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+
+233 |       status: "reading",
+234 |     });
+235 |     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+236 |     const data = await response.json();
+237 | 
+238 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/status.test.ts:238:29)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive when moving from 'read-next' to 'reading' [10.00ms]
+(pass) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive when moving from 'to-read' to 'read-next' [14.00ms]
+(pass) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive when moving from 'read-next' to 'to-read' [12.00ms]
+(pass) POST /api/books/[id]/status - Backward Movement with Session Archival > should create new session if none exists [11.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should increment session number from highest existing session [8.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+346 |     });
+347 |     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+348 |     const data = await response.json();
+349 |     const afterTime = new Date();
+350 | 
+351 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/status.test.ts:351:29)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should set startedDate when moving to 'reading' status [6.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+
+373 |     });
+374 |     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+375 |     const data = await response.json();
+376 |     const afterTime = new Date();
+377 | 
+378 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/status.test.ts:378:29)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should set completedDate when moving to 'read' status [9.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+392 |       startedDate: customDate.toISOString(),
+393 |     });
+394 |     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+395 |     const data = await response.json();
+396 | 
+397 |     expect(response.status).toBe(200);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/status.test.ts:397:29)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should accept custom startedDate [11.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should accept custom completedDate [6.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should update review when provided [10.00ms]
+(pass) POST /api/books/[id]/status - Backward Movement with Session Archival > should return 400 with invalid status [7.00ms]
+(pass) POST /api/books/[id]/status - Backward Movement with Session Archival > should return 400 with missing status [7.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should handle multiple backward movements correctly [7.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should preserve userId across session archival [9.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should maintain only one active session per book [9.00ms]
+
+__tests__/api/books-detail.test.ts:
+Running migrations...
+Migrations complete!
+(pass) GET /api/books/[id] > should return book with totalReads count for single session [13.00ms]
+(pass) GET /api/books/[id] > should return book with totalReads count for multiple sessions [17.00ms]
+(pass) GET /api/books/[id] > should return totalReads as 0 for book with no sessions [12.00ms]
+(pass) GET /api/books/[id] > should return active session status with totalReads [10.00ms]
+(pass) GET /api/books/[id] > should return latest progress for active session with totalReads [21.00ms]
+(pass) GET /api/books/[id] > should count only sessions for specific book [27.00ms]
+(pass) GET /api/books/[id] > should return 404 for non-existent book [6.00ms]
+306 | 
+307 |     expect(response.status).toBe(200);
+308 |     expect(data.totalReads).toBe(2);
+309 |     expect(data.hasCompletedReads).toBe(true);
+310 |     expect(data.activeSession).toBeUndefined(); // No active session
+311 |     expect(data.latestProgress).toBeUndefined(); // No progress for inactive session
+                                      ^
+error: expect(received).toBeUndefined()
+
+Received: null
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/api/books-detail.test.ts:311:33)
+(fail) GET /api/books/[id] > should include totalReads even when no active session exists [10.00ms]
+(pass) PATCH /api/books/[id] > should update book totalPages [13.00ms]
+(pass) PATCH /api/books/[id] > should return 404 for non-existent book [5.00ms]
+
+__tests__/api/session-lifecycle.test.ts:
+Running migrations...
+Migrations complete!
+(pass) Session Lifecycle - Auto-Archive on Read > should auto-archive session when status changes to 'read' [12.00ms]
+(pass) Session Lifecycle - Auto-Archive on Read > should not allow creating multiple active sessions per book [17.00ms]
+(pass) Session Lifecycle - Auto-Archive on Read > should allow multiple archived sessions per book [13.00ms]
+(pass) Re-reading Flow > should create new session after previous session is archived [16.00ms]
+(pass) Re-reading Flow > should not allow re-reading if last session is not completed [9.00ms]
+(pass) Re-reading Flow > should not allow re-reading if active session already exists [10.00ms]
+(pass) Progress Logging Validation > should only allow progress logging for active 'reading' sessions [13.00ms]
+(pass) Progress Logging Validation > should not allow progress logging when session is not 'reading' [12.00ms]
+(pass) Progress Logging Validation > should not allow progress logging when session is archived [8.00ms]
+(pass) Progress Isolation Between Sessions > should link progress logs to correct session [16.00ms]
+
+__tests__/api/reread.test.ts:
+Running migrations...
+Migrations complete!
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should archive current session and create new one for re-reading [10.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should increment session number correctly for third read [4.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should set status to 'reading' and startedDate on new session [8.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should preserve userId from previous session [5.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should not copy review to new session [5.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should rebuild streak after creating new session [4.00ms]
+(pass) POST /api/books/[id]/reread > should return 404 if book not found [4.00ms]
+(pass) POST /api/books/[id]/reread > should return 404 if no sessions exist [5.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should return 400 if last session is not 'read' status [5.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should return 400 if active session is 'to-read' status [7.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should return 400 if active session is 'read-next' status [6.00ms]
+(pass) POST /api/books/[id]/reread > should return 400 with invalid book ID format [4.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should handle multiple archived sessions correctly [4.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should handle session with progress logs [7.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should maintain referential integrity after re-read [5.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) POST /api/books/[id]/reread > should handle concurrent re-read attempts gracefully [11.00ms]
+
+__tests__/api/auth.test.ts:
+(pass) Auth API Routes Logic > Login Logic > should reject when password is missing [6.00ms]
+(pass) Auth API Routes Logic > Login Logic > should reject when password is incorrect [1.00ms]
+(pass) Auth API Routes Logic > Login Logic > should accept when password is correct [1.00ms]
+(pass) Auth API Routes Logic > Login Logic > should reject login when auth is not enabled
+(pass) Auth API Routes Logic > Auth Status Logic > should report enabled when password is set [1.00ms]
+(pass) Auth API Routes Logic > Auth Status Logic > should report disabled when password is not set [1.00ms]
+(pass) Auth API Routes Logic > Auth Status Logic > should report disabled when password is empty
+(pass) Auth API Routes Logic > Cookie Name > should return consistent cookie name [1.00ms]
+(pass) Auth API Routes Logic > Middleware Behavior > should allow /login when auth is enabled
+(pass) Auth API Routes Logic > Middleware Behavior > should redirect /login to home when auth is disabled
+(pass) Auth API Routes Logic > Middleware Behavior > should allow all API routes regardless of auth status
+(pass) Auth API Routes Logic > Middleware Behavior > should allow regular routes when auth is disabled
+(pass) Auth API Routes Logic > Middleware Behavior > should block regular routes when auth is enabled and not authenticated
+
+__tests__/api/books.test.ts:
+Running migrations...
+Migrations complete!
+(pass) GET /api/books > Status Filtering > should filter books by 'to-read' status (active sessions) [17.00ms]
+(pass) GET /api/books > Status Filtering > should filter books by 'read-next' status (active sessions) [22.00ms]
+(pass) GET /api/books > Status Filtering > should filter books by 'reading' status (active sessions) [18.00ms]
+(pass) GET /api/books > Status Filtering > should filter books by 'read' status (archived sessions) [16.00ms]
+(pass) GET /api/books > Status Filtering > should include book with multiple archived 'read' sessions in read filter [14.00ms]
+(pass) GET /api/books > Status Filtering > should not include books with active sessions when filtering by 'read' [10.00ms]
+(pass) GET /api/books > Status Filtering > should not include archived 'read' sessions when filtering by other statuses [14.00ms]
+(pass) GET /api/books > Search Functionality > should search books by title (case-insensitive) [15.00ms]
+(pass) GET /api/books > Search Functionality > should search books by author (case-insensitive) [10.00ms]
+(pass) GET /api/books > Search Functionality > should return multiple books matching search term [14.00ms]
+(pass) GET /api/books > Tag Filtering > should filter books by single tag [10.00ms]
+(pass) GET /api/books > Tag Filtering > should filter books by multiple tags (OR logic) [15.00ms]
+(pass) GET /api/books > Pagination > should return limited number of books [31.00ms]
+(pass) GET /api/books > Pagination > should skip books for pagination [19.00ms]
+(pass) GET /api/books > Orphaned Books > should exclude orphaned books by default [10.00ms]
+(pass) GET /api/books > Orphaned Books > should show only orphaned books when showOrphaned=true [12.00ms]
+(pass) GET /api/books > Combined Filters > should filter by status AND search [14.00ms]
+(pass) GET /api/books > Combined Filters > should filter by status AND tags [17.00ms]
+(pass) GET /api/books > Combined Filters > should filter by search AND tags [17.00ms]
+(pass) GET /api/books > Combined Filters > should apply status, search, tags, and pagination together [33.00ms]
+(pass) GET /api/books > Progress Tracking > should include latest progress for active session [17.00ms]
+(pass) GET /api/books > Progress Tracking > should include latest progress for archived 'read' session [16.00ms]
+(pass) POST /api/books > should update book totalPages [15.00ms]
+(pass) POST /api/books > should return 404 for non-existent book [4.00ms]
+(pass) POST /api/books > should return 400 if calibreId is missing [2.00ms]
+
+__tests__/integration/library-service-api.test.ts:
+Running migrations...
+Migrations complete!
+(pass) LibraryService → API Integration > Basic Fetching > should fetch all books with no filters [12.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Basic Fetching > should filter by status correctly [8.00ms]
+(pass) LibraryService → API Integration > Basic Fetching > should filter by search query [10.00ms]
+(pass) LibraryService → API Integration > Basic Fetching > should filter by tags [11.00ms]
+(pass) LibraryService → API Integration > Basic Fetching > should handle combined filters [10.00ms]
+(pass) LibraryService → API Integration > Basic Fetching > should handle pagination correctly [42.00ms]
+(pass) LibraryService → API Integration > Cache Behavior > should cache results for identical queries [8.00ms]
+(pass) LibraryService → API Integration > Cache Behavior > should maintain separate cache entries for different filters [15.00ms]
+(pass) LibraryService → API Integration > Cache Behavior > should clear cache when clearCache() called [16.00ms]
+(pass) LibraryService → API Integration > Cache Behavior > should clear both book and tag caches [15.00ms]
+(pass) LibraryService → API Integration > Tags Fetching > should fetch all unique tags sorted alphabetically [12.00ms]
+(pass) LibraryService → API Integration > Tags Fetching > should return empty array when no books have tags [7.00ms]
+(pass) LibraryService → API Integration > Tags Fetching > should cache tags and return cached on subsequent calls [10.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should return archived 'read' sessions when filtering by 'read' [11.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should return active 'reading' sessions when filtering by 'reading' [20.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should not return archived 'read' sessions when filtering by 'reading' [10.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should not return active 'reading' sessions when filtering by 'read' [6.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should handle re-reading scenario correctly [7.00ms]
+(pass) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should return active 'read-next' sessions when filtering by 'read-next' [11.00ms]
+(pass) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should return active 'to-read' sessions when filtering by 'to-read' [13.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Progress Data > should include latest progress for active sessions [10.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) LibraryService → API Integration > Progress Data > should include latest progress for archived 'read' sessions [11.00ms]
+(pass) LibraryService → API Integration > Progress Data > should return null progress for books with no progress logs [9.00ms]
+
+__tests__/unit/edge-cases.test.ts:
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Empty Arrays > should handle book with empty authors array [9.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Empty Arrays > should handle book with empty tags array [8.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Book Without Sessions > should query book without sessions [7.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Session Without Progress > should handle session without progress logs [10.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Pagination Edge Cases > should handle skip greater than total [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Pagination Edge Cases > should handle limit of 0 [7.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Status Changes > should handle marking as read without started_date [12.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Streak Calculation > should handle streak with single day activity [4.00ms]
+Running migrations...
+Migrations complete!
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) Edge Case Tests > Streak Calculation > should handle streak with no activity [3.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Optional Fields > should handle book with minimal fields [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Optional Fields > should handle session with minimal fields [9.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Date Handling > should handle dates correctly [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Date Handling > should handle progress dates with time components [14.00ms]
+Running migrations...
+Migrations complete!
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) Edge Case Tests > Null Values > should handle userId as null [3.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Large Values > should handle large page numbers [14.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Large Values > should handle large session numbers [11.00ms]
+Running migrations...
+Migrations complete!
+(pass) Edge Case Tests > Special Characters > should handle titles with special characters [6.00ms]
+
+__tests__/unit/constraints.test.ts:
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Book Constraints > should prevent duplicate calibreId [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Reading Session Constraints > should prevent duplicate active sessions for same book [10.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Reading Session Constraints > should allow multiple inactive sessions for same book [10.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Reading Session Constraints > should prevent duplicate (bookId, sessionNumber) [11.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Foreign Key Constraints > should enforce foreign key constraint on sessionId [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Foreign Key Constraints > should cascade delete sessions when book deleted [10.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Foreign Key Constraints > should cascade delete progress logs when session deleted [11.00ms]
+Running migrations...
+Migrations complete!
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) Database Constraints > Streak Constraints > should enforce one streak per user (singleton pattern) [2.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Check Constraints > should enforce rating between 1 and 5 [8.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Check Constraints > should enforce non-negative currentPage [9.00ms]
+Running migrations...
+Migrations complete!
+(pass) Database Constraints > Check Constraints > should enforce percentage between 0 and 100 [11.00ms]
+
+__tests__/unit/aggregations.test.ts:
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Total Pages Read > should correctly sum all pages read [14.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Total Pages Read > should return 0 for empty database [2.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Pages Read After Date > should filter by date correctly [16.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Books Read Count > should count completed sessions [16.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Books Read Count > should count books read after date [11.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Currently Reading Count > should only count active reading sessions [16.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Average Pages Per Day > should calculate average correctly [15.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Average Pages Per Day > should return 0 for no progress [2.00ms]
+Running migrations...
+Migrations complete!
+(pass) Aggregation Query Tests > Activity Calendar > should group progress by day [17.00ms]
+
+__tests__/unit/search.test.ts:
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Case Insensitive Search > should search title case-insensitively [10.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Case Insensitive Search > should search authors case-insensitively [7.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Partial Matching > should find partial title matches [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Partial Matching > should find partial author matches [7.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Special Characters in Search > should handle apostrophes in search [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Special Characters in Search > should handle hyphens in search [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Special Characters in Search > should handle parentheses in search [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Multiple Results > should return all matching books [11.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Multiple Results > should respect pagination with search [24.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > No Results > should return empty array for no matches [6.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Empty Search > should return all books for empty search [9.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Tag Filtering > should filter by single tag [8.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Tag Filtering > should filter by multiple tags (OR logic) [11.00ms]
+Running migrations...
+Migrations complete!
+(pass) Book Search Functionality > Combined Filters > should combine search and tag filters [7.00ms]
+
+__tests__/integration/api/read-filter-lifecycle.test.ts:
+Running migrations...
+Migrations complete!
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+
+65 |     // ========================================================================
+66 |     request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+67 |       status: "reading",
+68 |     }) as any;
+69 |     response = await UPDATE_STATUS(request, { params: { id: book.id.toString() } });
+70 |     expect(response.status).toBe(200);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/integration/api/read-filter-lifecycle.test.ts:70:29)
+(fail) Integration: Read Filter Lifecycle > complete lifecycle: to-read -> reading -> read (appears in read filter) -> re-read [8.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+203 | 
+204 |     // Verify appears in read filter
+205 |     request = createMockRequest("GET", "/api/books?status=read") as any;
+206 |     let response = await GET_BOOKS(request);
+207 |     let data = await response.json();
+208 |     expect(data.books).toHaveLength(1);
+                             ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/integration/api/read-filter-lifecycle.test.ts:208:24)
+(fail) Integration: Read Filter Lifecycle > book with multiple archived 'read' sessions appears in read filter [11.00ms]
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+Error updating status: 67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+
+311 | 
+312 |     // Reading filter
+313 |     request = createMockRequest("GET", "/api/books?status=reading") as any;
+314 |     response = await GET_BOOKS(request);
+315 |     data = await response.json();
+316 |     expect(data.books).toHaveLength(1);
+                             ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/integration/api/read-filter-lifecycle.test.ts:316:24)
+(fail) Integration: Read Filter Lifecycle > books with different statuses appear in correct filters simultaneously [13.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) Integration: Read Filter Lifecycle > archived session without active session appears correctly [7.00ms]
+
+__tests__/unit/lib/streaks.test.ts:
+Running migrations...
+Migrations complete!
+[Streak] updateStreaks called with userId: null
+[Streak] No existing streak found, creating new one
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) updateStreaks > creates new streak when no existing streak found [4.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) updateStreaks > initializes streak to 1 when currentStreak is 0 on same day [2.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) updateStreaks > returns unchanged streak when activity on same day with existing streak [2.00ms]
+[Streak] updateStreaks called with userId: null
+[Streak] Found existing streak: {
+  currentStreak: 0,
+  longestStreak: 0,
+  lastActivityDate: 2025-11-18T00:00:00.000Z,
+  totalDaysActive: 0,
+}
+[Streak] Day difference: 1 {
+  today: "2025-11-19T00:00:00.000Z",
+  lastActivity: "2025-11-18T00:00:00.000Z",
+}
+[Streak] First activity (1 day after creation), initializing to 1
+(pass) updateStreaks > initializes streak when daysDiff is 1 but currentStreak is 0 [5.00ms]
+[Streak] updateStreaks called with userId: null
+[Streak] Found existing streak: {
+  currentStreak: 5,
+  longestStreak: 10,
+  lastActivityDate: 2025-11-18T00:00:00.000Z,
+  totalDaysActive: 15,
+}
+[Streak] Day difference: 1 {
+  today: "2025-11-19T00:00:00.000Z",
+  lastActivity: "2025-11-18T00:00:00.000Z",
+}
+[Streak] Consecutive day detected, incrementing streak
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+(fail) updateStreaks > increments streak on consecutive day activity [4.00ms]
+[Streak] updateStreaks called with userId: null
+[Streak] Found existing streak: {
+  currentStreak: 10,
+  longestStreak: 10,
+  lastActivityDate: 2025-11-18T00:00:00.000Z,
+  totalDaysActive: 20,
+}
+[Streak] Day difference: 1 {
+  today: "2025-11-19T00:00:00.000Z",
+  lastActivity: "2025-11-18T00:00:00.000Z",
+}
+[Streak] Consecutive day detected, incrementing streak
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+(fail) updateStreaks > updates longestStreak when current exceeds it [3.00ms]
+[Streak] updateStreaks called with userId: null
+[Streak] Found existing streak: {
+  currentStreak: 7,
+  longestStreak: 10,
+  lastActivityDate: 2025-11-16T00:00:00.000Z,
+  totalDaysActive: 15,
+}
+[Streak] Day difference: 3 {
+  today: "2025-11-19T00:00:00.000Z",
+  lastActivity: "2025-11-16T00:00:00.000Z",
+}
+[Streak] Streak broken (gap of 3 days), resetting to 1
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+(fail) updateStreaks > resets streak to 1 when gap is more than 1 day [4.00ms]
+[Streak] updateStreaks called with userId: null
+[Streak] Found existing streak: {
+  currentStreak: 0,
+  longestStreak: 0,
+  lastActivityDate: 2025-11-16T00:00:00.000Z,
+  totalDaysActive: 0,
+}
+[Streak] Day difference: 3 {
+  today: "2025-11-19T00:00:00.000Z",
+  lastActivity: "2025-11-16T00:00:00.000Z",
+}
+[Streak] Streak broken (gap of 3 days), resetting to 1
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+(fail) updateStreaks > handles totalDaysActive = 0 on broken streak [4.00ms]
+Running migrations...
+Migrations complete!
+(pass) getStreak > returns streak when found [3.00ms]
+(pass) getStreak > returns null when streak not found [2.00ms]
+Running migrations...
+Migrations complete!
+(pass) getOrCreateStreak > returns existing streak if found [4.00ms]
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) getOrCreateStreak > creates new streak with 0 values if not found [2.00ms]
+Running migrations...
+Migrations complete!
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 0 progress logs to analyze
+[Streak] No progress logs found, resetting streak to zeros
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should create new streak when no progress logs exist [2.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 1 progress logs to analyze
+[Streak] Found 1 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 1,
+  longestStreak: 1,
+  totalDaysActive: 1,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-19T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should calculate streak from single day of progress [8.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 5 progress logs to analyze
+[Streak] Found 5 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 5,
+  longestStreak: 5,
+  totalDaysActive: 5,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-15T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should calculate streak from consecutive days [19.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 5 progress logs to analyze
+[Streak] Found 5 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 2,
+  longestStreak: 3,
+  totalDaysActive: 5,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-18T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should handle broken streak (gap in days) [20.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 4 progress logs to analyze
+[Streak] Found 4 unique activity dates
+[Streak] Streak is broken (5 days since last activity)
+[Streak] Calculated streak stats: {
+  currentStreak: 0,
+  longestStreak: 4,
+  totalDaysActive: 4,
+  lastActivityDate: "2025-11-14T00:00:00.000Z",
+  streakStartDate: "2025-11-19T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should reset current streak if last activity > 1 day ago [20.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 3 progress logs to analyze
+[Streak] Found 3 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 3,
+  longestStreak: 3,
+  totalDaysActive: 3,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-17T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should count progress from multiple sessions for the same book [18.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 3 progress logs to analyze
+[Streak] Found 3 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 3,
+  longestStreak: 3,
+  totalDaysActive: 3,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-17T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should count progress from multiple books [21.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 3 progress logs to analyze
+[Streak] Found 1 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 1,
+  longestStreak: 1,
+  totalDaysActive: 1,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-19T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should handle multiple progress logs on the same day [17.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 1 progress logs to analyze
+[Streak] Found 1 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 1,
+  longestStreak: 1,
+  totalDaysActive: 1,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-19T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/update.cjs:166:20)
+(fail) rebuildStreak > should update existing streak record [15.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 10 progress logs to analyze
+[Streak] Found 10 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 3,
+  longestStreak: 5,
+  totalDaysActive: 10,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-17T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should find longest streak in multiple separate streaks [30.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 2 progress logs to analyze
+[Streak] Found 2 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 2,
+  longestStreak: 2,
+  totalDaysActive: 2,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-18T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should handle progress logs without sessionId (legacy data) [13.00ms]
+[Streak] rebuildStreak called for userId: null
+[Streak] Found 3 progress logs to analyze
+[Streak] Found 3 unique activity dates
+[Streak] Calculated streak stats: {
+  currentStreak: 3,
+  longestStreak: 3,
+  totalDaysActive: 3,
+  lastActivityDate: "2025-11-19T00:00:00.000Z",
+  streakStartDate: "2025-11-17T00:00:00.000Z",
+}
+67 |       return new Date(value * 1e3);
+68 |     }
+69 |     return new Date(value);
+70 |   }
+71 |   mapToDriverValue(value) {
+72 |     const unix = value.getTime();
+                            ^
+TypeError: value.getTime is not a function. (In 'value.getTime()', 'value.getTime' is undefined)
+      at mapToDriverValue (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/columns/integer.js:72:24)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:182:73)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at map (1:11)
+      at buildQueryFromSourceParams (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:124:32)
+      at <anonymous> (/home/masonfox/git/tome/node_modules/drizzle-orm/sql/sql.cjs:103:26)
+      at _prepare (/home/masonfox/git/tome/node_modules/drizzle-orm/sqlite-core/query-builders/insert.cjs:171:20)
+(fail) rebuildStreak > should correctly set lastActivityDate and streakStartDate [16.00ms]
+
+__tests__/unit/lib/calibre.test.ts:
+(pass) Calibre Query Functions with Full Schema > getAllBooks > retrieves all books with complete data [1.00ms]
+(pass) Calibre Query Functions with Full Schema > getAllBooks > includes author names concatenated
+(pass) Calibre Query Functions with Full Schema > getAllBooks > includes publisher name when present [1.00ms]
+(pass) Calibre Query Functions with Full Schema > getAllBooks > includes series name and index when present
+(pass) Calibre Query Functions with Full Schema > getAllBooks > includes ISBN when present [1.00ms]
+(pass) Calibre Query Functions with Full Schema > getAllBooks > includes description when present
+(pass) Calibre Query Functions with Full Schema > getAllBooks > handles books with null optional fields
+(pass) Calibre Query Functions with Full Schema > getAllBooks > handles books with no authors [1.00ms]
+(pass) Calibre Query Functions with Full Schema > getAllBooks > orders books by title
+(pass) Calibre Query Functions with Full Schema > getBookById > retrieves a specific book by ID [1.00ms]
+(pass) Calibre Query Functions with Full Schema > getBookById > returns undefined for non-existent ID
+(pass) Calibre Query Functions with Full Schema > getBookById > retrieves book with multiple authors
+(pass) Calibre Query Functions with Full Schema > getBookById > retrieves all fields correctly
+(pass) Calibre Query Functions with Full Schema > searchBooks > finds books by title [1.00ms]
+(pass) Calibre Query Functions with Full Schema > searchBooks > finds books by author name
+(pass) Calibre Query Functions with Full Schema > searchBooks > search is case-insensitive [1.00ms]
+(pass) Calibre Query Functions with Full Schema > searchBooks > returns multiple matches when applicable
+(pass) Calibre Query Functions with Full Schema > searchBooks > returns empty array for no matches [1.00ms]
+(pass) Calibre Query Functions with Full Schema > searchBooks > partial matches work
+(pass) Calibre Query Functions with Full Schema > searchBooks > orders results by title [1.00ms]
+(pass) Calibre Query Functions with Full Schema > getBookTags > retrieves all tags for a book
+(pass) Calibre Query Functions with Full Schema > getBookTags > orders tags alphabetically
+(pass) Calibre Query Functions with Full Schema > getBookTags > returns empty array for book with no tags
+(pass) Calibre Query Functions with Full Schema > getBookTags > returns empty array for non-existent book
+(pass) Calibre Query Functions with Full Schema > getBookTags > handles book with multiple tags correctly
+(pass) Calibre Query Functions without Optional Columns > getAllBooks handles missing publisher column
+(pass) Calibre Query Functions without Optional Columns > getBookById handles missing series column [1.00ms]
+(pass) Calibre Query Functions without Optional Columns > searchBooks works without publisher/series columns
+
+__tests__/unit/lib/dashboard-service.test.ts:
+Running migrations...
+Migrations complete!
+(pass) Dashboard Service > getDashboardData > should return correct total counts for currently reading books [47.00ms]
+(pass) Dashboard Service > getDashboardData > should return correct total counts for read-next books [49.00ms]
+137 |       // Verify all books are present
+138 |       const titles = result.currentlyReading.map(b => b.title).sort();
+139 |       expect(titles).toEqual(["Book 1", "Book 2", "Book 3"]);
+140 | 
+141 |       // Verify first book is the most recently updated (Book 3)
+142 |       expect(result.currentlyReading[0].title).toBe("Book 3");
+                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: "Book 3"
+Received: "Book 1"
+
+      at <anonymous> (/home/masonfox/git/tome/__tests__/unit/lib/dashboard-service.test.ts:142:48)
+(fail) Dashboard Service > getDashboardData > should return books sorted by most recently updated first [66.00ms]
+(pass) Dashboard Service > getDashboardData > should handle case with fewer than 6 books [21.00ms]
+(pass) Dashboard Service > getDashboardData > should handle case with no books [7.00ms]
+(pass) Dashboard Service > getDashboardData > should exclude orphaned books from results [38.00ms]
+(pass) Dashboard Service > getDashboardData > should include latest progress for currently reading books [14.00ms]
+(pass) Dashboard Service > getDashboardData > should only return active sessions [16.00ms]
+(pass) Dashboard Service > getDashboardData > should maintain sort order with same updatedAt timestamps [22.00ms]
+
+__tests__/unit/lib/auth.test.ts:
+(pass) Authentication Utilities > isAuthEnabled > should return false when AUTH_PASSWORD is not set [1.00ms]
+(pass) Authentication Utilities > isAuthEnabled > should return false when AUTH_PASSWORD is empty string [1.00ms]
+(pass) Authentication Utilities > isAuthEnabled > should return false when AUTH_PASSWORD is whitespace only
+(pass) Authentication Utilities > isAuthEnabled > should return true when AUTH_PASSWORD is set [1.00ms]
+(pass) Authentication Utilities > getAuthPassword > should return empty string when AUTH_PASSWORD is not set [1.00ms]
+(pass) Authentication Utilities > getAuthPassword > should return the password when AUTH_PASSWORD is set
+(pass) Authentication Utilities > getAuthCookieName > should return the auth cookie name
+
+__tests__/unit/lib/sync-service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'mongoose' from '/home/masonfox/git/tome/models/Book.ts'
+-------------------------------
+
+
+__tests__/unit/utils/toast.test.ts:
+(pass) Toast Utility > toast object has required methods [1.00ms]
+(pass) Toast Utility > toast functions return values [1.00ms]
+
+86 tests failed:
+(fail) Progress API - POST /api/books/[id]/progress > creates progress log with page number and calculates percentage [16.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > creates progress log with percentage and calculates page number [15.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > calculates pagesRead based on last progress [22.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > handles negative pagesRead (when going backwards) [15.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > marks book as completed when progress reaches 100% [17.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > creates completed status if none exists when book reaches 100% [12.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > handles book without totalPages (page-only mode) [20.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > stores progress date correctly [13.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > preserves notes when provided [10.00ms]
+(fail) Progress API - POST /api/books/[id]/progress > updates session updatedAt timestamp when logging progress [25.00ms]
+(fail) GET /api/books/[id]/sessions > should return all sessions sorted by sessionNumber descending [10.00ms]
+(fail) GET /api/books/[id]/sessions > should include progress summary for each session [5.00ms]
+(fail) GET /api/books/[id]/sessions > should return empty progress summary for session with no progress [9.00ms]
+(fail) GET /api/books/[id]/sessions > should calculate correct progress summary with multiple logs [10.00ms]
+(fail) GET /api/books/[id]/sessions > should only return sessions for specified book [10.00ms]
+(fail) GET /api/books/[id]/sessions > should handle large number of sessions efficiently [11.00ms]
+(fail) GET /api/books/[id]/sessions > should isolate progress logs by session [6.00ms]
+(fail) GET /api/books/[id]/sessions > should not include progress from unlinked logs [7.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should archive session when moving from 'reading' to 'read-next' with progress [6.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should archive session when moving from 'reading' to 'to-read' with progress [6.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive session when moving from 'reading' to 'read-next' WITHOUT progress [6.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should auto-archive session when moving from 'reading' to 'read' [7.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should rebuild streak after archiving session [6.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive when moving from 'to-read' to 'reading' [11.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should NOT archive when moving from 'read-next' to 'reading' [10.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should increment session number from highest existing session [8.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should set startedDate when moving to 'reading' status [6.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should set completedDate when moving to 'read' status [9.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should accept custom startedDate [11.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should accept custom completedDate [6.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should update review when provided [10.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should handle multiple backward movements correctly [7.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should preserve userId across session archival [9.00ms]
+(fail) POST /api/books/[id]/status - Backward Movement with Session Archival > should maintain only one active session per book [9.00ms]
+(fail) GET /api/books/[id] > should include totalReads even when no active session exists [10.00ms]
+(fail) POST /api/books/[id]/reread > should archive current session and create new one for re-reading [10.00ms]
+(fail) POST /api/books/[id]/reread > should increment session number correctly for third read [4.00ms]
+(fail) POST /api/books/[id]/reread > should set status to 'reading' and startedDate on new session [8.00ms]
+(fail) POST /api/books/[id]/reread > should preserve userId from previous session [5.00ms]
+(fail) POST /api/books/[id]/reread > should not copy review to new session [5.00ms]
+(fail) POST /api/books/[id]/reread > should rebuild streak after creating new session [4.00ms]
+(fail) POST /api/books/[id]/reread > should return 400 if last session is not 'read' status [5.00ms]
+(fail) POST /api/books/[id]/reread > should return 400 if active session is 'to-read' status [7.00ms]
+(fail) POST /api/books/[id]/reread > should return 400 if active session is 'read-next' status [6.00ms]
+(fail) POST /api/books/[id]/reread > should handle multiple archived sessions correctly [4.00ms]
+(fail) POST /api/books/[id]/reread > should handle session with progress logs [7.00ms]
+(fail) POST /api/books/[id]/reread > should maintain referential integrity after re-read [5.00ms]
+(fail) POST /api/books/[id]/reread > should handle concurrent re-read attempts gracefully [11.00ms]
+(fail) LibraryService → API Integration > Basic Fetching > should filter by status correctly [8.00ms]
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should return archived 'read' sessions when filtering by 'read' [11.00ms]
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should return active 'reading' sessions when filtering by 'reading' [20.00ms]
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should not return archived 'read' sessions when filtering by 'reading' [10.00ms]
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should not return active 'reading' sessions when filtering by 'read' [6.00ms]
+(fail) LibraryService → API Integration > Status Filtering Bug Coverage (isActive) > should handle re-reading scenario correctly [7.00ms]
+(fail) LibraryService → API Integration > Progress Data > should include latest progress for active sessions [10.00ms]
+(fail) LibraryService → API Integration > Progress Data > should include latest progress for archived 'read' sessions [11.00ms]
+(fail) Edge Case Tests > Streak Calculation > should handle streak with no activity [3.00ms]
+(fail) Edge Case Tests > Null Values > should handle userId as null [3.00ms]
+(fail) Database Constraints > Streak Constraints > should enforce one streak per user (singleton pattern) [2.00ms]
+(fail) Integration: Read Filter Lifecycle > complete lifecycle: to-read -> reading -> read (appears in read filter) -> re-read [8.00ms]
+(fail) Integration: Read Filter Lifecycle > book with multiple archived 'read' sessions appears in read filter [11.00ms]
+(fail) Integration: Read Filter Lifecycle > books with different statuses appear in correct filters simultaneously [13.00ms]
+(fail) Integration: Read Filter Lifecycle > archived session without active session appears correctly [7.00ms]
+(fail) updateStreaks > creates new streak when no existing streak found [4.00ms]
+(fail) updateStreaks > initializes streak to 1 when currentStreak is 0 on same day [2.00ms]
+(fail) updateStreaks > returns unchanged streak when activity on same day with existing streak [2.00ms]
+(fail) updateStreaks > increments streak on consecutive day activity [4.00ms]
+(fail) updateStreaks > updates longestStreak when current exceeds it [3.00ms]
+(fail) updateStreaks > resets streak to 1 when gap is more than 1 day [4.00ms]
+(fail) updateStreaks > handles totalDaysActive = 0 on broken streak [4.00ms]
+(fail) getOrCreateStreak > creates new streak with 0 values if not found [2.00ms]
+(fail) rebuildStreak > should create new streak when no progress logs exist [2.00ms]
+(fail) rebuildStreak > should calculate streak from single day of progress [8.00ms]
+(fail) rebuildStreak > should calculate streak from consecutive days [19.00ms]
+(fail) rebuildStreak > should handle broken streak (gap in days) [20.00ms]
+(fail) rebuildStreak > should reset current streak if last activity > 1 day ago [20.00ms]
+(fail) rebuildStreak > should count progress from multiple sessions for the same book [18.00ms]
+(fail) rebuildStreak > should count progress from multiple books [21.00ms]
+(fail) rebuildStreak > should handle multiple progress logs on the same day [17.00ms]
+(fail) rebuildStreak > should update existing streak record [15.00ms]
+(fail) rebuildStreak > should find longest streak in multiple separate streaks [30.00ms]
+(fail) rebuildStreak > should handle progress logs without sessionId (legacy data) [13.00ms]
+(fail) rebuildStreak > should correctly set lastActivityDate and streakStartDate [16.00ms]
+(fail) Dashboard Service > getDashboardData > should return books sorted by most recently updated first [66.00ms]
+
+ 191 pass
+ 86 fail
+ 2 errors
+ 519 expect() calls
+Ran 277 tests across 21 files. [3.00s]

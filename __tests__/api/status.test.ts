@@ -1,11 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
-import Streak from "@/models/Streak";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { POST } from "@/app/api/books/[id]/status/route";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import {
   mockBook1,
   mockSessionToRead,
@@ -15,25 +11,23 @@ import {
   mockProgressLog1,
   createMockRequest,
 } from "../fixtures/test-data";
+import type { NextRequest } from "next/server";
 
-let mongoServer: MongoMemoryServer;
+// Mock revalidatePath (Next.js cache revalidation)
+mock.module("next/cache", () => ({
+  revalidatePath: () => {},
+}));
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
-  await Streak.deleteMany({});
+  await clearTestDatabase();
 });
 
 describe("POST /api/books/[id]/status - Backward Movement with Session Archival", () => {
@@ -42,25 +36,25 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should archive session when moving from 'reading' to 'read-next' with progress", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
     // Add progress
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read-next",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -71,29 +65,29 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(data.isActive).toBe(true);
 
     // Verify old session is archived
-    const oldSession = await ReadingSession.findById(session._id);
+    const oldSession = await sessionRepository.findById(session.id);
     expect(oldSession?.isActive).toBe(false);
   });
 
   test("should archive session when moving from 'reading' to 'to-read' with progress", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "to-read",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -105,20 +99,20 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should NOT archive session when moving from 'reading' to 'read-next' WITHOUT progress", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
     // No progress logs created
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read-next",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -128,31 +122,31 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(data.isActive).toBe(true);
 
     // Verify session is still active and updated
-    const updatedSession = await ReadingSession.findById(session._id);
+    const updatedSession = await sessionRepository.findById(session.id);
     expect(updatedSession?.isActive).toBe(true);
     expect(updatedSession?.status).toBe("read-next");
   });
 
   test("should auto-archive session when moving from 'reading' to 'read'", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read",
       review: "Great!",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -164,23 +158,23 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should rebuild streak after archiving session", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
       progressDate: new Date("2025-11-17"),
     });
 
     // Create initial streak
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 1,
       longestStreak: 1,
@@ -189,15 +183,15 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
       totalDaysActive: 1,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read-next",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
 
     expect(response.status).toBe(200);
 
     // Verify streak still exists (rebuildStreak should have been called)
-    const streak = await Streak.findOne({ userId: null });
+    const streak = await streakRepository.findByUserId(null);
     expect(streak).toBeDefined();
   });
 
@@ -206,18 +200,18 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should NOT archive when moving from 'to-read' to 'reading'", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionToRead,
-      bookId: book._id,
+      bookId: book.id,
       status: "to-read",
       isActive: true,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -227,18 +221,18 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should NOT archive when moving from 'read-next' to 'reading'", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReadNext,
-      bookId: book._id,
+      bookId: book.id,
       status: "read-next",
       isActive: true,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -248,18 +242,18 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should NOT archive when moving from 'to-read' to 'read-next'", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionToRead,
-      bookId: book._id,
+      bookId: book.id,
       status: "to-read",
       isActive: true,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read-next",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -269,18 +263,18 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should NOT archive when moving from 'read-next' to 'to-read'", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReadNext,
-      bookId: book._id,
+      bookId: book.id,
       status: "read-next",
       isActive: true,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "to-read",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -294,12 +288,12 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should create new session if none exists", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "to-read",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -308,31 +302,31 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(data.isActive).toBe(true);
 
     // Verify session was created
-    const session = await ReadingSession.findById(data._id);
+    const session = await sessionRepository.findById(data.id);
     expect(session).toBeDefined();
   });
 
   test("should increment session number from highest existing session", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     // Create archived sessions
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: false,
     });
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 2,
       isActive: false,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -344,13 +338,13 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should set startedDate when moving to 'reading' status", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     const beforeTime = new Date();
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
     const afterTime = new Date();
 
@@ -358,26 +352,26 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(data.startedDate).toBeDefined();
 
     const startedDate = new Date(data.startedDate);
-    expect(startedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
-    expect(startedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    expect(startedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
+    expect(startedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
   });
 
   test("should set completedDate when moving to 'read' status", async () => {
-    const book = await Book.create(mockBook1);
-    await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       startedDate: new Date("2025-11-15"),
       isActive: true,
     });
 
     const beforeTime = new Date();
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read",
       rating: 4,
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
     const afterTime = new Date();
 
@@ -385,19 +379,19 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(data.completedDate).toBeDefined();
 
     const completedDate = new Date(data.completedDate);
-    expect(completedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
-    expect(completedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    expect(completedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
+    expect(completedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
   });
 
   test("should accept custom startedDate", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
     const customDate = new Date("2025-11-01T05:00:00.000Z");
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
       startedDate: customDate.toISOString(),
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -405,21 +399,21 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should accept custom completedDate", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
     const customDate = new Date("2025-11-16T05:00:00.000Z");
 
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read",
       completedDate: customDate.toISOString(),
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -431,20 +425,20 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should update review when provided", async () => {
-    const book = await Book.create(mockBook1);
-    await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read",
       rating: 4,
       review: "Excellent read!",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -456,12 +450,12 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should return 400 with invalid status", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "invalid-status",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -469,10 +463,10 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 
   test("should return 400 with missing status", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {});
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {});
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -484,117 +478,112 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   // ============================================================================
 
   test("should handle multiple backward movements correctly", async () => {
-    const book = await Book.create(mockBook1);
-    const session1 = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session1 = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
     });
 
     // Add progress to first session
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session1._id,
+      bookId: book.id,
+      sessionId: session1.id,
     });
 
     // First backward movement
-    const request1 = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request1 = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read-next",
     });
-    const response1 = await POST(request1, { params: { id: book._id.toString() } });
+    const response1 = await POST(request1 as NextRequest, { params: { id: book.id.toString() } });
     const data1 = await response1.json();
 
     expect(response1.status).toBe(200);
     expect(data1.sessionNumber).toBe(2);
 
     // Update to reading again
-    const request2 = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request2 = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
     });
-    await POST(request2, { params: { id: book._id.toString() } });
+    await POST(request2 as NextRequest, { params: { id: book.id.toString() } });
 
     // Add progress to second session
-    const session2 = await ReadingSession.findOne({
-      bookId: book._id,
-      isActive: true,
-    });
-    await ProgressLog.create({
+    const session2 = await sessionRepository.findActiveByBookId(book.id);
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session2!._id,
+      bookId: book.id,
+      sessionId: session2!.id,
     });
 
     // Second backward movement
-    const request3 = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request3 = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "to-read",
     });
-    const response3 = await POST(request3, { params: { id: book._id.toString() } });
+    const response3 = await POST(request3 as NextRequest, { params: { id: book.id.toString() } });
     const data3 = await response3.json();
 
     expect(response3.status).toBe(200);
     expect(data3.sessionNumber).toBe(3);
 
     // Verify we have 3 sessions total
-    const allSessions = await ReadingSession.find({ bookId: book._id });
+    const allSessions = await sessionRepository.findAllByBookId(book.id);
     expect(allSessions.length).toBe(3);
   });
 
   test("should preserve userId across session archival", async () => {
-    const book = await Book.create(mockBook1);
-    const testUserId = new mongoose.Types.ObjectId();
+    const book = await bookRepository.create(mockBook1);
+    const testUserId = null; // SQLite doesn't use ObjectId
 
-    const session = await ReadingSession.create({
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       userId: testUserId,
       status: "reading",
       isActive: true,
     });
 
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read-next",
     });
-    const response = await POST(request, { params: { id: book._id.toString() } });
+    const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.userId).toBe(testUserId.toString());
+    expect(data.userId).toBe(testUserId);
   });
 
   test("should maintain only one active session per book", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       status: "reading",
       isActive: true,
     });
 
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
     });
 
-    const request = createMockRequest("POST", `/api/books/${book._id}/status`, {
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "to-read",
     });
-    await POST(request, { params: { id: book._id.toString() } });
+    await POST(request as NextRequest, { params: { id: book.id.toString() } });
 
     // Verify only one active session
-    const activeSessions = await ReadingSession.find({
-      bookId: book._id,
-      isActive: true,
-    });
+    const allSessions = await sessionRepository.findAllByBookId(book.id);
+    const activeSessions = allSessions.filter(s => s.isActive);
     expect(activeSessions.length).toBe(1);
     expect(activeSessions[0].sessionNumber).toBe(2);
   });

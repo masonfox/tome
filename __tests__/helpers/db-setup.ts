@@ -1,63 +1,69 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
+import { sqlite } from "@/lib/db/sqlite";
+import { runMigrations, runMigrationsOnDatabase } from "@/lib/db/migrate";
+import { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import * as schema from "@/lib/db/schema";
 
 /**
- * Test database setup and teardown utilities
+ * Test database setup and teardown utilities for SQLite
  */
 
-let mongoServer: MongoMemoryServer | null = null;
+let isSetup = false;
+let testDb: any;
+let testSqlite: any;
 
 /**
- * Start an in-memory MongoDB instance and connect Mongoose
+ * Setup: SQLite test database and run migrations
  * Call this in beforeAll()
  */
 export async function setupTestDatabase(): Promise<void> {
-  if (mongoServer) {
-    throw new Error("Test database already running. Did you forget to call teardownTestDatabase()?");
+  if (isSetup) {
+    return; // Already setup
   }
 
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await mongoose.connect(uri);
+  // Create separate test database in memory for complete isolation
+  testSqlite = new Database(":memory:");
+  testSqlite.exec("PRAGMA foreign_keys = ON");
+  testSqlite.exec("PRAGMA journal_mode = WAL");
+  
+  testDb = drizzle(testSqlite, { schema });
+  console.log("Test database created successfully");
+  
+  // Run migrations on test database - pass the Drizzle instance, not the raw SQLite
+  await runMigrationsOnDatabase(testDb);
+  isSetup = true;
 }
 
 /**
- * Disconnect Mongoose and stop the in-memory MongoDB instance
+ * Teardown the test database
  * Call this in afterAll()
  */
 export async function teardownTestDatabase(): Promise<void> {
-  await mongoose.disconnect();
-
-  if (mongoServer) {
-    await mongoServer.stop();
-    mongoServer = null;
-  }
+  // SQLite connection is managed by the test database
+  // For in-memory DB, it will be cleaned up on process exit
+  // For file-based DB in tests, we could delete the file here if needed
+  isSetup = false;
 }
 
 /**
- * Clear all collections in the test database
+ * Clear all data from the test database
  * Call this in beforeEach() or afterEach() to reset state between tests
+ * IMPORTANT: Order matters due to foreign key constraints
  */
 export async function clearTestDatabase(): Promise<void> {
-  if (!mongoose.connection.db) {
-    throw new Error("Database not connected");
-  }
-
-  const collections = await mongoose.connection.db.collections();
-
-  for (const collection of collections) {
-    await collection.deleteMany({});
-  }
+  // Delete in order that respects foreign key constraints
+  // Children first, then parents
+  testDb.delete(schema.progressLogs).run();
+  testDb.delete(schema.readingSessions).run();
+  testDb.delete(schema.books).run();
+  testDb.delete(schema.streaks).run();
 }
 
 /**
- * Get the test database URI
- * Useful for debugging or advanced configuration
+ * Get a direct reference to the test database
+ * Useful for debugging or advanced test setup
  */
-export function getTestDatabaseUri(): string {
-  if (!mongoServer) {
-    throw new Error("Test database not running");
-  }
-
-  return mongoServer.getUri();
+export function getTestDatabase() {
+  console.log("getTestDatabase called, returning:", testDb ? "test database" : "null");
+  return testDb || sqlite;
 }

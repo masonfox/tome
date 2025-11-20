@@ -1,241 +1,168 @@
 import { startOfDay, differenceInDays } from "date-fns";
-import Streak, { IStreak } from "@/models/Streak";
-import ProgressLog from "@/models/ProgressLog";
-import { connectDB } from "@/lib/db/mongodb";
+import { streakRepository, progressRepository } from "@/lib/repositories";
+import type { Streak } from "@/lib/db/schema/streaks";
 
-export async function updateStreaks(userId?: string): Promise<IStreak> {
-  await connectDB();
-
+export async function updateStreaks(userId?: number | null): Promise<Streak> {
   console.log("[Streak] updateStreaks called with userId:", userId || null);
 
   // Get or create streak record
-  let streak = await Streak.findOne({ userId: userId || null });
+  let streak = await streakRepository.findByUserId(userId || null);
 
   if (!streak) {
     console.log("[Streak] No existing streak found, creating new one");
-    streak = new Streak({
+    const now = new Date();
+    streak = await streakRepository.create({
       userId: userId || null,
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date(),
-      streakStartDate: new Date(),
+      lastActivityDate: now,
+      streakStartDate: now,
       totalDaysActive: 1,
     });
-    await streak.save();
     console.log("[Streak] New streak created:", {
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
       lastActivityDate: streak.lastActivityDate,
+      streakStartDate: streak.streakStartDate,
+      totalDaysActive: streak.totalDaysActive,
     });
     return streak;
   }
 
-  console.log("[Streak] Found existing streak:", {
-    currentStreak: streak.currentStreak,
-    longestStreak: streak.longestStreak,
-    lastActivityDate: streak.lastActivityDate,
-    totalDaysActive: streak.totalDaysActive,
-  });
-
+  // Get today's progress to check if there's activity
   const today = startOfDay(new Date());
-  const lastActivity = startOfDay(new Date(streak.lastActivityDate));
+  const todayProgress = await progressRepository.getProgressForDate(today);
 
+  if (!todayProgress || todayProgress.pagesRead === 0) {
+    // No activity today, return existing streak
+    console.log("[Streak] No activity today, returning existing streak");
+    return streak;
+  }
+
+  // Has activity today, check if it's consecutive
+  const lastActivity = startOfDay(streak.lastActivityDate);
   const daysDiff = differenceInDays(today, lastActivity);
-  console.log("[Streak] Day difference:", daysDiff, {
-    today: today.toISOString(),
-    lastActivity: lastActivity.toISOString(),
-  });
 
   if (daysDiff === 0) {
-    // Same day - check if this is the first activity ever
-    if (streak.currentStreak === 0) {
-      console.log("[Streak] First activity ever, initializing streak to 1");
-      streak.currentStreak = 1;
-      streak.longestStreak = 1;
-      streak.totalDaysActive = 1;
-      streak.lastActivityDate = today;
-      await streak.save();
-      console.log("[Streak] Streak initialized:", {
-        currentStreak: streak.currentStreak,
-        longestStreak: streak.longestStreak,
-        lastActivityDate: streak.lastActivityDate,
-        totalDaysActive: streak.totalDaysActive,
-      });
-      return streak;
-    }
-    // Same day, already logged activity today
-    console.log("[Streak] Same day activity, no changes needed");
+    // Same day activity, streak unchanged
+    console.log("[Streak] Same day activity, streak unchanged");
     return streak;
   } else if (daysDiff === 1) {
-    // Consecutive day, increment
-    if (streak.currentStreak === 0) {
-      // Edge case: streak was created with 0s yesterday, treat as first activity
-      console.log("[Streak] First activity (1 day after creation), initializing to 1");
-      streak.currentStreak = 1;
-      streak.longestStreak = 1;
-      streak.totalDaysActive = 1;
-    } else {
-      console.log("[Streak] Consecutive day detected, incrementing streak");
-      const oldStreak = streak.currentStreak;
-      streak.currentStreak += 1;
-      streak.longestStreak = Math.max(
-        streak.longestStreak,
-        streak.currentStreak
-      );
-      streak.totalDaysActive += 1;
-      console.log("[Streak] Streak incremented:", {
-        from: oldStreak,
-        to: streak.currentStreak,
-        longestStreak: streak.longestStreak,
-      });
-    }
+    // Consecutive day, increment streak
+    console.log("[Streak] Consecutive day activity, incrementing streak");
+    const oldStreak = streak.currentStreak;
+    const newCurrentStreak = streak.currentStreak + 1;
+    const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
+    const newTotalDays = streak.totalDaysActive + 1;
+
+    const updated = await streakRepository.update(streak.id, {
+      currentStreak: newCurrentStreak,
+      longestStreak: newLongestStreak,
+      totalDaysActive: newTotalDays,
+      lastActivityDate: today,
+    } as any);
+    console.log("[Streak] Streak incremented:", {
+      from: oldStreak,
+      to: updated?.currentStreak,
+      longestStreak: updated?.longestStreak,
+    });
+    return updated!;
   } else if (daysDiff > 1) {
     // Streak broken (or first activity after a gap)
     console.log("[Streak] Streak broken (gap of", daysDiff, "days), resetting to 1");
-    streak.currentStreak = 1;
-    streak.streakStartDate = today;
-    streak.totalDaysActive = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
+    const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
+    const updated = await streakRepository.update(streak.id, {
+      currentStreak: 1,
+      streakStartDate: today,
+      totalDaysActive: newTotalDays,
+      lastActivityDate: today,
+    } as any);
+    return updated!;
   }
-
-  streak.lastActivityDate = today;
-  console.log("[Streak] Saving updated streak...");
-  await streak.save();
-  console.log("[Streak] Streak saved successfully:", {
-    currentStreak: streak.currentStreak,
-    longestStreak: streak.longestStreak,
-    lastActivityDate: streak.lastActivityDate,
-    totalDaysActive: streak.totalDaysActive,
-  });
 
   return streak;
 }
 
-export async function getStreak(userId?: string): Promise<IStreak | null> {
-  await connectDB();
-  return await Streak.findOne({ userId: userId || null });
+export async function getStreak(userId?: number | null): Promise<Streak | null> {
+  return await streakRepository.findByUserId(userId || null);
 }
 
-export async function getOrCreateStreak(userId?: string): Promise<IStreak> {
-  await connectDB();
-
-  let streak = await Streak.findOne({ userId: userId || null });
+export async function getOrCreateStreak(userId?: number | null): Promise<Streak> {
+  let streak = await streakRepository.findByUserId(userId || null);
 
   if (!streak) {
-    streak = new Streak({
+    const now = new Date();
+    streak = await streakRepository.create({
       userId: userId || null,
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: new Date(),
-      streakStartDate: new Date(),
+      lastActivityDate: now,
+      streakStartDate: now,
       totalDaysActive: 0,
     });
-    await streak.save();
   }
 
   return streak;
 }
 
-export async function rebuildStreak(userId?: string): Promise<IStreak> {
-  await connectDB();
+export async function rebuildStreak(userId?: number | null): Promise<Streak> {
+  console.log("[Streak] Rebuilding streak from all progress data");
 
-  console.log("[Streak] rebuildStreak called for userId:", userId || null);
+  // Get all progress logs ordered by date
+  const allProgress = await progressRepository.getAllProgressOrdered();
 
-  // Get all progress logs across all books and sessions
-  const progressLogs = await ProgressLog.find({
-    userId: userId || null,
-  })
-    .sort({ progressDate: 1 }) // Ascending order for processing
-    .lean();
-
-  console.log(`[Streak] Found ${progressLogs.length} progress logs to analyze`);
-
-  if (progressLogs.length === 0) {
-    // No progress logs - reset streak to zeros
-    console.log("[Streak] No progress logs found, resetting streak to zeros");
-    const streak = await Streak.findOneAndUpdate(
-      { userId: userId || null },
-      {
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
-        totalDaysActive: 0,
-      },
-      { upsert: true, new: true }
-    );
-    return streak;
+  if (allProgress.length === 0) {
+    console.log("[Streak] No progress data found, creating empty streak");
+    return await getOrCreateStreak(userId);
   }
 
-  // Extract unique dates (normalized to start of day)
-  const uniqueDatesSet = new Set<string>();
-  progressLogs.forEach((log) => {
-    const dateStr = startOfDay(new Date(log.progressDate)).toISOString();
-    uniqueDatesSet.add(dateStr);
+  // Group progress by date and calculate daily activity
+  const dailyActivity = new Map<string, number>();
+  const uniqueDates = new Set<string>();
+
+  allProgress.forEach((progress) => {
+    const dateKey = progress.progressDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const pagesRead = progress.pagesRead || 0;
+    
+    if (pagesRead > 0) {
+      uniqueDates.add(dateKey);
+      dailyActivity.set(dateKey, (dailyActivity.get(dateKey) || 0) + pagesRead);
+    }
   });
 
-  // Convert to sorted array (oldest to newest)
-  const uniqueDates = Array.from(uniqueDatesSet)
-    .map((dateStr) => new Date(dateStr))
-    .sort((a, b) => a.getTime() - b.getTime());
+  const sortedDates = Array.from(uniqueDates).sort();
 
-  console.log(`[Streak] Found ${uniqueDates.length} unique activity dates`);
-
-  // Calculate total days active
-  const totalDaysActive = uniqueDates.length;
-
-  // Calculate current streak by walking backwards from most recent date
-  const today = startOfDay(new Date());
-  const lastActivityDate = uniqueDates[uniqueDates.length - 1];
-
+  // Calculate streak from consecutive active days
   let currentStreak = 0;
-  let streakStartDate = lastActivityDate;
+  let longestStreak = 0;
+  let streakStartDate = sortedDates[0] ? new Date(sortedDates[0]) : new Date();
+  let lastActivityDate = sortedDates[0] ? new Date(sortedDates[0]) : new Date();
 
-  // Check if the streak is still active (last activity was today or yesterday)
-  const daysSinceLastActivity = differenceInDays(today, lastActivityDate);
-
-  if (daysSinceLastActivity <= 1) {
-    // Streak is active or can continue if we log today
+  if (sortedDates.length > 0) {
     currentStreak = 1;
+    longestStreak = 1;
 
-    // Walk backwards to find consecutive days
-    for (let i = uniqueDates.length - 2; i >= 0; i--) {
-      const currentDate = uniqueDates[i];
-      const nextDate = uniqueDates[i + 1];
-      const diff = differenceInDays(nextDate, currentDate);
+    for (let i = 1; i < sortedDates.length; i++) {
+      const currentDate = new Date(sortedDates[i]);
+      const prevDate = new Date(sortedDates[i - 1]);
+      const daysDiff = differenceInDays(currentDate, prevDate);
 
-      if (diff === 1) {
+      if (daysDiff === 1) {
         // Consecutive day
         currentStreak++;
-        streakStartDate = currentDate;
       } else {
-        // Streak broken
-        break;
+        // Gap in streak
+        longestStreak = Math.max(longestStreak, currentStreak);
+        currentStreak = 1;
+        streakStartDate = currentDate;
       }
+      lastActivityDate = currentDate;
     }
-  } else {
-    // Streak is broken (no activity today or yesterday)
-    console.log(`[Streak] Streak is broken (${daysSinceLastActivity} days since last activity)`);
-    currentStreak = 0;
-    streakStartDate = today;
+
+    longestStreak = Math.max(longestStreak, currentStreak);
   }
 
-  // Calculate longest streak by examining all date pairs
-  let longestStreak = 0;
-  let tempStreak = 1;
-
-  for (let i = 1; i < uniqueDates.length; i++) {
-    const prevDate = uniqueDates[i - 1];
-    const currentDate = uniqueDates[i];
-    const diff = differenceInDays(currentDate, prevDate);
-
-    if (diff === 1) {
-      tempStreak++;
-      longestStreak = Math.max(longestStreak, tempStreak);
-    } else {
-      tempStreak = 1;
-    }
-  }
-  longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+  const totalDaysActive = uniqueDates.size;
 
   console.log("[Streak] Calculated streak stats:", {
     currentStreak,
@@ -246,29 +173,23 @@ export async function rebuildStreak(userId?: string): Promise<IStreak> {
   });
 
   // Update or create streak record
-  const streak = await Streak.findOneAndUpdate(
-    { userId: userId || null },
-    {
-      currentStreak,
-      longestStreak,
-      lastActivityDate,
-      streakStartDate,
-      totalDaysActive,
-    },
-    { upsert: true, new: true }
-  );
+  const streak = await streakRepository.upsert(userId || null, {
+    currentStreak,
+    longestStreak,
+    lastActivityDate: lastActivityDate,
+    streakStartDate: streakStartDate,
+    totalDaysActive,
+  });
 
   console.log("[Streak] Streak rebuilt and saved successfully");
   return streak;
 }
 
 export async function getActivityCalendar(
-  userId?: string,
+  userId?: number | null,
   year?: number,
   month?: number
 ): Promise<{ date: string; pagesRead: number }[]> {
-  await connectDB();
-
   const startDate = new Date(year || new Date().getFullYear(), month || 0, 1);
   const endDate = new Date(
     year || new Date().getFullYear(),
@@ -276,31 +197,5 @@ export async function getActivityCalendar(
     0
   );
 
-  const progressLogs = await ProgressLog.aggregate([
-    {
-      $match: {
-        userId: userId || null,
-        progressDate: {
-          $gte: startDate,
-          $lte: endDate,
-        },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$progressDate" },
-        },
-        pagesRead: { $sum: "$pagesRead" },
-      },
-    },
-    {
-      $sort: { _id: 1 },
-    },
-  ]);
-
-  return progressLogs.map((log) => ({
-    date: log._id,
-    pagesRead: log.pagesRead,
-  }));
+  return await progressRepository.getActivityCalendar(startDate, endDate);
 }

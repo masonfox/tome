@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongodb";
 import { getActivityCalendar } from "@/lib/streaks";
-import ProgressLog from "@/models/ProgressLog";
+import { progressRepository } from "@/lib/repositories";
 import { startOfYear } from "date-fns";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
     const month = searchParams.get("month")
@@ -20,36 +17,27 @@ export async function GET(request: NextRequest) {
     const yearStart = startOfYear(new Date(year, 0, 1));
     const yearEnd = new Date(year, 11, 31);
 
-    const monthlyData = await ProgressLog.aggregate([
-      {
-        $match: {
-          progressDate: {
-            $gte: yearStart,
-            $lte: yearEnd,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            month: { $month: "$progressDate" },
-            year: { $year: "$progressDate" },
-          },
-          pagesRead: { $sum: "$pagesRead" },
-        },
-      },
-      {
-        $sort: { "_id.month": 1 },
-      },
-    ]);
+    // Get activity calendar data for the whole year to calculate monthly totals
+    const yearlyActivity = await progressRepository.getActivityCalendar(yearStart, yearEnd);
+    
+    // Group by month
+    const monthlyMap = new Map<number, { pagesRead: number }>();
+    yearlyActivity.forEach(item => {
+      const date = new Date(item.date);
+      const month = date.getMonth() + 1; // JavaScript months are 0-indexed
+      const existing = monthlyMap.get(month) || { pagesRead: 0 };
+      monthlyMap.set(month, { pagesRead: existing.pagesRead + item.pagesRead });
+    });
+
+    const monthlyData = Array.from(monthlyMap.entries()).map(([month, data]) => ({
+      month,
+      year,
+      pagesRead: data.pagesRead,
+    })).sort((a, b) => a.month - b.month);
 
     return NextResponse.json({
       calendar: activityData,
-      monthly: monthlyData.map((m) => ({
-        month: m._id.month,
-        year: m._id.year,
-        pagesRead: m.pagesRead,
-      })),
+      monthly: monthlyData,
     });
   } catch (error) {
     console.error("Error fetching activity:", error);

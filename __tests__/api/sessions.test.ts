@@ -1,37 +1,27 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
 import { GET } from "@/app/api/books/[id]/sessions/route";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import {
   mockBook1,
   mockSessionRead,
   mockSessionReading,
-  mockSessionArchived,
   mockProgressLog1,
   mockProgressLog2,
   createMockRequest,
 } from "../fixtures/test-data";
-
-let mongoServer: MongoMemoryServer;
+import type { NextRequest } from "next/server";
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
+  await clearTestDatabase();
 });
 
 describe("GET /api/books/[id]/sessions", () => {
@@ -40,30 +30,30 @@ describe("GET /api/books/[id]/sessions", () => {
   // ============================================================================
 
   test("should return all sessions sorted by sessionNumber descending", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     // Create 3 sessions
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: false,
     });
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 2,
       isActive: false,
     });
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 3,
       isActive: true,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -74,32 +64,32 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should include progress summary for each session", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: true,
     });
 
     // Add progress logs
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
       pagesRead: 100,
       progressDate: new Date("2025-11-15"),
     });
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog2,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
       pagesRead: 150,
       progressDate: new Date("2025-11-16"),
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -116,16 +106,16 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should return empty progress summary for session with no progress", async () => {
-    const book = await Book.create(mockBook1);
-    await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: true,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -140,10 +130,10 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should return empty array if book has no sessions", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -152,10 +142,10 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should include all session fields in response", async () => {
-    const book = await Book.create(mockBook1);
-    await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       startedDate: new Date("2025-11-01"),
@@ -164,16 +154,16 @@ describe("GET /api/books/[id]/sessions", () => {
       isActive: true,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
     expect(data.length).toBe(1);
 
     const session = data[0];
-    expect(session._id).toBeDefined();
-    expect(session.bookId).toBe(book._id.toString());
+    expect(session.id).toBeDefined();
+    expect(session.bookId).toBe(book.id);
     expect(session.sessionNumber).toBe(1);
     expect(session.status).toBe("read");
     expect(session.startedDate).toBeDefined();
@@ -185,10 +175,10 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should calculate correct progress summary with multiple logs", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: true,
     });
@@ -203,9 +193,9 @@ describe("GET /api/books/[id]/sessions", () => {
     ];
 
     for (let i = 0; i < 5; i++) {
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: (i + 1) * 100,
         currentPercentage: ((i + 1) * 100) / 1040,
         pagesRead: 100,
@@ -213,8 +203,8 @@ describe("GET /api/books/[id]/sessions", () => {
       });
     }
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -232,9 +222,9 @@ describe("GET /api/books/[id]/sessions", () => {
   // ============================================================================
 
   test("should return 404 if book not found", async () => {
-    const fakeId = new mongoose.Types.ObjectId();
+    const fakeId = 999999;
     const request = createMockRequest("GET", `/api/books/${fakeId}/sessions`);
-    const response = await GET(request, { params: { id: fakeId.toString() } });
+    const response = await GET(request as NextRequest, { params: { id: fakeId.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(404);
@@ -243,7 +233,7 @@ describe("GET /api/books/[id]/sessions", () => {
 
   test("should return 400 with invalid book ID format", async () => {
     const request = createMockRequest("GET", "/api/books/invalid-id/sessions");
-    const response = await GET(request, { params: { id: "invalid-id" } });
+    const response = await GET(request as NextRequest, { params: { id: "invalid-id" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -255,45 +245,45 @@ describe("GET /api/books/[id]/sessions", () => {
   // ============================================================================
 
   test("should only return sessions for specified book", async () => {
-    const book1 = await Book.create(mockBook1);
-    const book2 = await Book.create({ ...mockBook1, calibreId: 999, title: "Other Book" });
+    const book1 = await bookRepository.create(mockBook1);
+    const book2 = await bookRepository.create({ ...mockBook1, calibreId: 999, title: "Other Book" });
 
     // Create sessions for both books
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book1._id,
+      bookId: book1.id,
       sessionNumber: 1,
     });
-    await ReadingSession.create({
+    await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book2._id,
+      bookId: book2.id,
       sessionNumber: 1,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book1._id}/sessions`);
-    const response = await GET(request, { params: { id: book1._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book1.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book1.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
     expect(data.length).toBe(1);
-    expect(data[0].bookId).toBe(book1._id.toString());
+    expect(data[0].bookId).toBe(book1.id);
   });
 
   test("should handle large number of sessions efficiently", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     // Create 100 sessions
     for (let i = 1; i <= 100; i++) {
-      await ReadingSession.create({
+      await sessionRepository.create({
         ...mockSessionRead,
-        bookId: book._id,
+        bookId: book.id,
         sessionNumber: i,
         isActive: i === 100,
       });
     }
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -303,46 +293,46 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should isolate progress logs by session", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
-    const session1 = await ReadingSession.create({
+    const session1 = await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: false,
     });
 
-    const session2 = await ReadingSession.create({
+    const session2 = await sessionRepository.create({
       ...mockSessionReading,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 2,
       isActive: true,
     });
 
     // Add progress to session 1
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session1._id,
+      bookId: book.id,
+      sessionId: session1.id,
       pagesRead: 100,
     });
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog2,
-      bookId: book._id,
-      sessionId: session1._id,
+      bookId: book.id,
+      sessionId: session1.id,
       pagesRead: 150,
     });
 
     // Add progress to session 2
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session2._id,
+      bookId: book.id,
+      sessionId: session2.id,
       pagesRead: 50,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -360,26 +350,26 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should handle sessions with partial data", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     // Create sessions with different levels of completeness
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "to-read",
       isActive: false,
     });
 
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "reading",
       startedDate: new Date("2025-11-15"),
       isActive: false,
     });
 
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 3,
       status: "read",
       startedDate: new Date("2025-11-01"),
@@ -389,8 +379,8 @@ describe("GET /api/books/[id]/sessions", () => {
       isActive: true,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -403,31 +393,32 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should not include progress from unlinked logs", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
       ...mockSessionRead,
-      bookId: book._id,
+      bookId: book.id,
       sessionNumber: 1,
       isActive: true,
     });
 
     // Create a progress log with sessionId
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog1,
-      bookId: book._id,
-      sessionId: session._id,
+      bookId: book.id,
+      sessionId: session.id,
       pagesRead: 100,
     });
 
     // Create a progress log without sessionId (legacy/orphaned)
-    await ProgressLog.create({
+    await progressRepository.create({
       ...mockProgressLog2,
-      bookId: book._id,
+      bookId: book.id,
+      sessionId: null,
       pagesRead: 200,
     });
 
-    const request = createMockRequest("GET", `/api/books/${book._id}/sessions`);
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
+    const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);

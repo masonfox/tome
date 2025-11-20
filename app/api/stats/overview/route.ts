@@ -1,109 +1,35 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongodb";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { sessionRepository, progressRepository } from "@/lib/repositories";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 
 export async function GET() {
   try {
-    await connectDB();
-
     const now = new Date();
     const yearStart = startOfYear(now);
     const monthStart = startOfMonth(now);
     const today = startOfDay(now);
 
     // Books read (all time, this year, this month)
-    const booksReadTotal = await ReadingSession.countDocuments({
-      status: "read",
-    });
+    const booksReadTotal = await sessionRepository.countByStatus("read", false);
 
-    const booksReadThisYear = await ReadingSession.countDocuments({
-      status: "read",
-      completedDate: { $gte: yearStart },
-    });
+    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(yearStart);
 
-    const booksReadThisMonth = await ReadingSession.countDocuments({
-      status: "read",
-      completedDate: { $gte: monthStart },
-    });
+    const booksReadThisMonth = await sessionRepository.countCompletedAfterDate(monthStart);
 
     // Currently reading (only count active sessions)
-    const currentlyReading = await ReadingSession.countDocuments({
-      status: "reading",
-      isActive: true,
-    });
+    const currentlyReading = await sessionRepository.countByStatus("reading", true);
 
     // Pages read (total, this year, this month, today)
-    const pagesReadTotal = await ProgressLog.aggregate([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" },
-        },
-      },
-    ]);
+    const pagesReadTotal = await progressRepository.getTotalPagesRead();
 
-    const pagesReadThisYear = await ProgressLog.aggregate([
-      {
-        $match: { progressDate: { $gte: yearStart } },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" },
-        },
-      },
-    ]);
+    const pagesReadThisYear = await progressRepository.getPagesReadAfterDate(yearStart);
 
-    const pagesReadThisMonth = await ProgressLog.aggregate([
-      {
-        $match: { progressDate: { $gte: monthStart } },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" },
-        },
-      },
-    ]);
+    const pagesReadThisMonth = await progressRepository.getPagesReadAfterDate(monthStart);
 
-    const pagesReadToday = await ProgressLog.aggregate([
-      {
-        $match: { progressDate: { $gte: today } },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" },
-        },
-      },
-    ]);
+    const pagesReadToday = await progressRepository.getPagesReadAfterDate(today);
 
     // Calculate average reading speed (pages per day) for the last 30 days
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const recentProgress = await ProgressLog.aggregate([
-      {
-        $match: { progressDate: { $gte: thirtyDaysAgo } },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" },
-          days: {
-            $addToSet: {
-              $dateToString: { format: "%Y-%m-%d", date: "$progressDate" },
-            },
-          },
-        },
-      },
-    ]);
-
-    const avgPagesPerDay =
-      recentProgress.length > 0 && recentProgress[0].days.length > 0
-        ? Math.round(recentProgress[0].total / recentProgress[0].days.length)
-        : 0;
+    const avgPagesPerDay = await progressRepository.getAveragePagesPerDay(30);
 
     return NextResponse.json({
       booksRead: {
@@ -113,18 +39,15 @@ export async function GET() {
       },
       currentlyReading,
       pagesRead: {
-        total: pagesReadTotal[0]?.total || 0,
-        thisYear: pagesReadThisYear[0]?.total || 0,
-        thisMonth: pagesReadThisMonth[0]?.total || 0,
-        today: pagesReadToday[0]?.total || 0,
+        total: pagesReadTotal,
+        thisYear: pagesReadThisYear,
+        thisMonth: pagesReadThisMonth,
+        today: pagesReadToday,
       },
       avgPagesPerDay,
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch statistics" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch statistics" }, { status: 500 });
   }
 }

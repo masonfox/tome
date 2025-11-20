@@ -1,43 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongodb";
-import mongoose from "mongoose";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
-import Book from "@/models/Book";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const bookId = parseInt(params.id);
 
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: "Invalid book ID format" },
-        { status: 400 }
-      );
+    if (isNaN(bookId)) {
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
     // Check if book exists
-    const book = await Book.findById(params.id);
+    const book = await bookRepository.findById(bookId);
     if (!book) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
     // Get all reading sessions for this book, sorted by session number (newest first)
-    const sessions = await ReadingSession.find({ bookId: params.id })
-      .sort({ sessionNumber: -1 })
-      .lean();
+    const sessions = await sessionRepository.findAllByBookId(bookId);
 
     // For each session, get progress summary
     const sessionsWithProgress = await Promise.all(
       sessions.map(async (session) => {
         // Get progress logs for this session
-        const progressLogs = await ProgressLog.find({ sessionId: session._id })
-          .sort({ progressDate: -1 })
-          .lean();
+        const progressLogs = await progressRepository.findBySessionId(session.id);
 
         // Get latest progress
         const latestProgress = progressLogs[0] || null;

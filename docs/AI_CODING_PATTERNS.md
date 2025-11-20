@@ -140,7 +140,7 @@ async function getBook(id: string): Promise<Book | null> {
 }
 
 // ✅ DO: Use const for immutable values
-const CALIBRE_DB_PATH = process.env.CALIBRE_LIBRARY_PATH;
+const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
 // ✅ DO: Use async/await over .then()
 const result = await asyncFunction();

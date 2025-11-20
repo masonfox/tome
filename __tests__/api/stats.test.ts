@@ -1,9 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
@@ -41,7 +39,7 @@ describe("Stats API - GET /api/stats/overview", () => {
     await clearTestDatabase();
 
     // Create test books
-    testBook1 = await Book.create({
+    testBook1 = await bookRepository.create({
       calibreId: 1,
       title: "Book 1",
       authors: ["Author 1"],
@@ -50,7 +48,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       orphaned: false,
     });
 
-    testBook2 = await Book.create({
+    testBook2 = await bookRepository.create({
       calibreId: 2,
       title: "Book 2",
       authors: ["Author 2"],
@@ -59,7 +57,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       orphaned: false,
     });
 
-    testBook3 = await Book.create({
+    testBook3 = await bookRepository.create({
       calibreId: 3,
       title: "Book 3",
       authors: ["Author 3"],
@@ -89,24 +87,24 @@ describe("Stats API - GET /api/stats/overview", () => {
 
   test("counts books read correctly", async () => {
     // Create reading sessions
-    await ReadingSession.create({
-      bookId: testBook1._id,
+    await sessionRepository.create({
+      bookId: testBook1.id,
       status: "read",
       completedDate: new Date("2025-11-15"),
       sessionNumber: 1,
       isActive: false, // Completed books are archived
     });
 
-    await ReadingSession.create({
-      bookId: testBook2._id,
+    await sessionRepository.create({
+      bookId: testBook2.id,
       status: "read",
       completedDate: new Date("2024-05-10"),
       sessionNumber: 1,
       isActive: false, // Completed books are archived
     });
 
-    await ReadingSession.create({
-      bookId: testBook3._id,
+    await sessionRepository.create({
+      bookId: testBook3.id,
       status: "reading",
       sessionNumber: 1,
       isActive: true, // Currently reading
@@ -125,16 +123,16 @@ describe("Stats API - GET /api/stats/overview", () => {
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 15);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 15);
 
-    await ReadingSession.create({
-      bookId: testBook1._id,
+    await sessionRepository.create({
+      bookId: testBook1.id,
       status: "read",
       completedDate: thisMonth,
       sessionNumber: 1,
       isActive: false,
     });
 
-    await ReadingSession.create({
-      bookId: testBook2._id,
+    await sessionRepository.create({
+      bookId: testBook2.id,
       status: "read",
       completedDate: lastMonth,
       sessionNumber: 1,
@@ -148,24 +146,24 @@ describe("Stats API - GET /api/stats/overview", () => {
   });
 
   test("calculates total pages read across all time", async () => {
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date("2024-01-15"),
     });
 
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 250,
       currentPercentage: 50,
       pagesRead: 150,
       progressDate: new Date("2025-06-10"),
     });
 
-    await ProgressLog.create({
-      bookId: testBook2._id,
+    await progressRepository.create({
+      bookId: testBook2.id,
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
@@ -183,16 +181,16 @@ describe("Stats API - GET /api/stats/overview", () => {
     const thisYear = new Date(now.getFullYear(), 5, 15);
     const lastYear = new Date(now.getFullYear() - 1, 5, 15);
 
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: thisYear,
     });
 
-    await ProgressLog.create({
-      bookId: testBook2._id,
+    await progressRepository.create({
+      bookId: testBook2.id,
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
@@ -210,16 +208,16 @@ describe("Stats API - GET /api/stats/overview", () => {
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 15);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 15);
 
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: thisMonth,
     });
 
-    await ProgressLog.create({
-      bookId: testBook2._id,
+    await progressRepository.create({
+      bookId: testBook2.id,
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
@@ -237,16 +235,16 @@ describe("Stats API - GET /api/stats/overview", () => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
     const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 10, 0, 0);
 
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: today,
     });
 
-    await ProgressLog.create({
-      bookId: testBook2._id,
+    await progressRepository.create({
+      bookId: testBook2.id,
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
@@ -263,24 +261,24 @@ describe("Stats API - GET /api/stats/overview", () => {
     const now = new Date();
 
     // Create progress logs for 3 different days in the last 30 days
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
     });
 
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 250,
       currentPercentage: 50,
       pagesRead: 150,
       progressDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
     });
 
-    await ProgressLog.create({
-      bookId: testBook2._id,
+    await progressRepository.create({
+      bookId: testBook2.id,
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
@@ -299,16 +297,16 @@ describe("Stats API - GET /api/stats/overview", () => {
     const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
 
     // Two logs on the same day
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date(fiveDaysAgo.getTime() + 1000), // Same day, slightly different time
     });
 
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
@@ -326,8 +324,8 @@ describe("Stats API - GET /api/stats/overview", () => {
     const now = new Date();
 
     // Recent progress
-    await ProgressLog.create({
-      bookId: testBook1._id,
+    await progressRepository.create({
+      bookId: testBook1.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
@@ -335,8 +333,8 @@ describe("Stats API - GET /api/stats/overview", () => {
     });
 
     // Old progress (should be excluded)
-    await ProgressLog.create({
-      bookId: testBook2._id,
+    await progressRepository.create({
+      bookId: testBook2.id,
       currentPage: 500,
       currentPercentage: 100,
       pagesRead: 500,
@@ -374,7 +372,7 @@ describe("Stats API - GET /api/stats/activity", () => {
   beforeEach(async () => {
     await clearTestDatabase();
 
-    testBook = await Book.create({
+    testBook = await bookRepository.create({
       calibreId: 1,
       title: "Test Book",
       authors: ["Author"],
@@ -393,16 +391,16 @@ describe("Stats API - GET /api/stats/activity", () => {
 
   test("returns activity calendar and monthly data", async () => {
     // Create progress logs for 2025
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date("2025-11-15"),
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
@@ -423,24 +421,24 @@ describe("Stats API - GET /api/stats/activity", () => {
 
   test("aggregates monthly totals correctly", async () => {
     // Create progress in different months of 2025
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date("2025-01-15"),
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
       progressDate: new Date("2025-01-20"),
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 300,
       currentPercentage: 60,
       pagesRead: 100,
@@ -463,24 +461,24 @@ describe("Stats API - GET /api/stats/activity", () => {
 
   test("sorts monthly data by month", async () => {
     // Create progress in reverse order
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 300,
       currentPercentage: 60,
       pagesRead: 100,
       progressDate: new Date("2025-12-15"), // December
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date("2025-01-15"), // January
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
@@ -500,16 +498,16 @@ describe("Stats API - GET /api/stats/activity", () => {
 
   test("filters by year correctly", async () => {
     // Create progress in different years
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
       progressDate: new Date("2025-06-15"),
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
@@ -530,8 +528,8 @@ describe("Stats API - GET /api/stats/activity", () => {
     const now = new Date();
     const currentYear = now.getFullYear();
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,

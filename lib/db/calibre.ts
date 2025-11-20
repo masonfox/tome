@@ -4,11 +4,10 @@ import path from "path";
 // Both bun:sqlite and better-sqlite3 have compatible APIs
 type SQLiteDatabase = any;
 
-const CALIBRE_LIBRARY_PATH = process.env.CALIBRE_LIBRARY_PATH || "";
-const CALIBRE_DB_PATH = CALIBRE_LIBRARY_PATH ? path.join(CALIBRE_LIBRARY_PATH, "metadata.db") : "";
+const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
 
-if (!CALIBRE_LIBRARY_PATH) {
-  console.warn("CALIBRE_LIBRARY_PATH not set. Calibre integration will not work.");
+if (!CALIBRE_DB_PATH) {
+  console.warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
 }
 
 let db: SQLiteDatabase | null = null;

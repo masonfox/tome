@@ -13,9 +13,6 @@ A self-hosted book tracking web application that integrates directly with Calibr
 git clone <repository-url>
 cd tome
 
-# Start MongoDB
-docker-compose up -d
-
 # Install dependencies
 bun install
 
@@ -28,6 +25,8 @@ bun run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre library from the Settings page!
+
+**Note**: As of November 2025, Tome has migrated from MongoDB to SQLite for tracking data. No Docker or external database is required.
 
 ## Features
 
@@ -60,14 +59,13 @@ Tool-specific instructions:
 
 - **Frontend**: Next.js 14 (App Router)
 - **Runtime**: Bun
-- **Database**: MongoDB (for tracking data)
+- **Database**: SQLite (via Drizzle ORM + bun:sqlite)
 - **Styling**: Tailwind CSS
 - **Calibre Integration**: Direct SQLite database access (read-only)
 
 ## Prerequisites
 
 - [Bun](https://bun.sh/) installed
-- [Docker](https://www.docker.com/) and Docker Compose (for MongoDB)
 - Calibre library with metadata.db file
 
 ## Installation
@@ -78,17 +76,17 @@ Tool-specific instructions:
    cd tome
    ```
 
-2. **Start MongoDB with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
-
-   This starts a MongoDB container in the background. Data is persisted in a Docker volume.
-
-3. **Install dependencies**
+2. **Install dependencies**
    ```bash
    bun install
    ```
+
+3. **Run database migrations**
+   ```bash
+   bun run lib/db/migrate.ts
+   ```
+
+   This creates the SQLite database at `data/tome.db` with all necessary tables.
 
 4. **Configure environment variables**
    ```bash
@@ -98,7 +96,6 @@ Tool-specific instructions:
    Edit `.env` and set your Calibre database path:
    ```env
    CALIBRE_DB_PATH=/path/to/calibre/library/metadata.db
-   MONGODB_URI=mongodb://localhost:27017/book-tracker
    ```
 
    **Locate your Calibre library:**
@@ -118,16 +115,17 @@ Tool-specific instructions:
    - Go to Settings page
    - Click "Sync Now" to import your books
 
+### Database Location
+
+The SQLite database is stored at `data/tome.db`. This file contains all your reading progress, sessions, and streak data.
+
+To backup your data, simply copy this file. To reset, delete it and run migrations again.
+
 ### Stopping the application
 
 ```bash
 # Stop the dev server with Ctrl+C
-
-# Stop MongoDB
-docker-compose down
-
-# Stop MongoDB and delete data
-docker-compose down -v
+# That's it! No external services to manage.
 ```
 
 ## Usage
@@ -165,7 +163,7 @@ docker-compose down -v
 
 1. **Calibre Integration**: The app reads from Calibre's SQLite database (read-only) to get book metadata
 2. **Automatic Sync**: A file watcher monitors your Calibre database for changes and automatically syncs when detected
-3. **Progress Tracking**: User progress, status, and notes are stored in MongoDB
+3. **Progress Tracking**: User progress, status, and notes are stored in a local SQLite database (`data/tome.db`)
 4. **Streak Calculation**: Automatically calculated based on daily reading activity
 5. **Real-time Updates**: Changes are reflected immediately in the UI
 
@@ -182,17 +180,19 @@ Features:
 
 ## Data Models
 
-### Books Collection
-Cached from Calibre with tracking metadata
+All tracking data is stored in a local SQLite database (`data/tome.db`) using Drizzle ORM:
 
-### Reading Status Collection
-Tracks current status (to-read, reading, read) for each book
+### Books Table
+Cached book metadata from Calibre with additional tracking fields (orphan detection, last synced, etc.)
 
-### Progress Log Collection
-Historical log of reading progress with dates and notes
+### Reading Sessions Table
+Tracks reading sessions for each book with status (to-read, read-next, reading, read), ratings, reviews, and completion dates
 
-### Streaks Collection
-Tracks current streak, longest streak, and total active days
+### Progress Logs Table
+Historical log of reading progress entries with page numbers, percentages, dates, and notes
+
+### Streaks Table
+Tracks current streak, longest streak, last activity date, and total days active
 
 ## API Routes
 
@@ -208,14 +208,20 @@ Tracks current streak, longest streak, and total active days
 ## Development
 
 ```bash
-# Make sure MongoDB is running
-docker-compose up -d
-
 # Install dependencies
 bun install
 
+# Run database migrations
+bun run lib/db/migrate.ts
+
+# Generate new migration after schema changes
+bun run drizzle-kit generate
+
 # Run development server
 bun run dev
+
+# Run tests
+bun test
 
 # Build for production
 bun run build
@@ -224,20 +230,23 @@ bun run build
 bun run start
 ```
 
-### MongoDB Management
+### Database Management
 
 ```bash
-# Start MongoDB
-docker-compose up -d
+# Run migrations to create/update schema
+bun run lib/db/migrate.ts
 
-# Stop MongoDB
-docker-compose down
+# Generate a new migration after schema changes
+bun run drizzle-kit generate
 
-# View MongoDB logs
-docker-compose logs -f mongodb
+# Push schema directly to database (dev only)
+bun run drizzle-kit push
 
-# Reset MongoDB data
-docker-compose down -v
+# Reset database (delete and recreate)
+rm data/tome.db && bun run lib/db/migrate.ts
+
+# Backup database
+cp data/tome.db data/tome-backup-$(date +%Y%m%d).db
 ```
 
 ## Troubleshooting
@@ -252,11 +261,11 @@ docker-compose down -v
 - Verify the database path is correct in `.env`
 - Check the browser console and terminal logs for errors
 
-### MongoDB Connection Issues
-- Ensure MongoDB is running: `docker-compose ps`
-- Check MongoDB logs: `docker-compose logs mongodb`
-- Verify MONGODB_URI in `.env` is `mongodb://localhost:27017/book-tracker`
-- Try restarting MongoDB: `docker-compose restart mongodb`
+### Database Issues
+- Ensure migrations have been run: `bun run lib/db/migrate.ts`
+- Check database exists: `ls -la data/tome.db`
+- Check database permissions: Ensure `data/` directory is writable
+- Reset database if corrupted: `rm data/tome.db && bun run lib/db/migrate.ts`
 
 ### Port Already in Use
 If port 3000 is already in use:
@@ -268,16 +277,105 @@ PORT=3001
 lsof -ti:3000 | xargs kill
 ```
 
-### MongoDB Port Conflict
-If MongoDB port 27017 is already in use:
-```bash
-# Edit docker-compose.yml and change the port mapping
-ports:
-  - "27018:27017"  # Use 27018 on host instead
+## Docker Deployment
 
-# Then update .env
-MONGODB_URI=mongodb://localhost:27018/book-tracker
+Tome can be easily deployed using Docker, with all data persisted in volumes.
+
+### Using Docker Compose (Recommended)
+
+1. **Create a docker-compose.yml** (already included in repo)
+   ```yaml
+   version: '3.8'
+
+   services:
+     tome:
+       build: .
+       ports:
+         - "3000:3000"
+       environment:
+         - NODE_ENV=production
+         - CALIBRE_DB_PATH=/calibre/metadata.db
+       volumes:
+         - tome-data:/app/data                    # SQLite database
+         - /path/to/calibre/library:/calibre:ro   # Your Calibre library
+       restart: unless-stopped
+
+   volumes:
+     tome-data:
+   ```
+
+2. **Set your Calibre library path**
+   ```bash
+   # Edit docker-compose.yml and replace ./calibre-library with your actual path
+   # Example: /home/user/Calibre Library
+   ```
+
+3. **Start the container**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application**
+   - Open http://localhost:3000
+   - Go to Settings and click "Sync Now"
+
+### Using Docker CLI
+
+```bash
+# Build the image
+docker build -t tome .
+
+# Run the container
+docker run -d \
+  --name tome \
+  -p 3000:3000 \
+  -v tome-data:/app/data \
+  -v /path/to/calibre/library:/calibre:ro \
+  -e CALIBRE_DB_PATH=/calibre/metadata.db \
+  tome
 ```
+
+### Docker Volume Management
+
+```bash
+# View volumes
+docker volume ls
+
+# Backup the database
+docker run --rm -v tome-data:/data -v $(pwd):/backup alpine \
+  tar czf /backup/tome-backup-$(date +%Y%m%d).tar.gz -C /data .
+
+# Restore from backup
+docker run --rm -v tome-data:/data -v $(pwd):/backup alpine \
+  tar xzf /backup/tome-backup-YYYYMMDD.tar.gz -C /data
+
+# View logs
+docker-compose logs -f tome
+
+# Restart container
+docker-compose restart tome
+
+# Stop and remove (keeps data)
+docker-compose down
+
+# Stop and remove all data
+docker-compose down -v
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NODE_ENV` | `production` | Runtime environment |
+| `CALIBRE_DB_PATH` | `/calibre/metadata.db` | Path to Calibre metadata.db inside container |
+| `PORT` | `3000` | Application port |
+
+### Notes
+
+- **Data Persistence**: The SQLite database is stored in the `tome-data` volume and persists across container restarts
+- **Calibre Library**: Mount your Calibre library as read-only (`:ro`) to prevent accidental modifications
+- **Automatic Migrations**: Database migrations run automatically during the Docker build
+- **No MongoDB Required**: The container is completely self-contained with no external dependencies
 
 ## Future Enhancements
 

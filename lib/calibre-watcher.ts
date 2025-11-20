@@ -12,7 +12,7 @@ class CalibreWatcher {
   private syncCallback: SyncCallback | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
 
-  async start(calibreLibraryPath: string, onSync: SyncCallback) {
+  async start(calibreDbPath: string, onSync: SyncCallback) {
     if (this.watcher) {
       console.log("Calibre watcher already running");
       return;
@@ -21,9 +21,6 @@ class CalibreWatcher {
     this.syncCallback = onSync;
 
     try {
-      // Construct the path to the metadata.db file
-      const calibreDbPath = path.join(calibreLibraryPath, "metadata.db");
-
       // Get initial modified time
       const stats = await stat(calibreDbPath);
       this.lastModified = stats.mtimeMs;

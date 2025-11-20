@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongodb";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 
 export async function POST(request: NextRequest) {
   try {

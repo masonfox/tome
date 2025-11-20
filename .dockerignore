@@ -54,3 +54,7 @@ docker-compose.yml
 
 # documentation
 README.md
+
+# local database (will be created in container)
+data/
+!data/.gitkeep

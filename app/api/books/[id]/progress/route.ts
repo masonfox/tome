@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { connectDB } from "@/lib/db/mongodb";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ProgressLog from "@/models/ProgressLog";
-import ReadingSession from "@/models/ReadingSession";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { updateStreaks } from "@/lib/streaks";
 
 export async function GET(
@@ -12,47 +8,38 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const bookId = parseInt(params.id);
 
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: "Invalid book ID format" },
-        { status: 400 }
-      );
+    if (isNaN(bookId)) {
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
     // Check for sessionId query parameter
-    const sessionId = request.nextUrl.searchParams.get("sessionId");
+    const sessionIdParam = request.nextUrl.searchParams.get("sessionId");
 
-    let query: any = { bookId: params.id };
-
-    if (sessionId) {
+    if (sessionIdParam) {
       // Get progress for specific session
-      query.sessionId = sessionId;
+      const sessionId = parseInt(sessionIdParam);
+      if (isNaN(sessionId)) {
+        return NextResponse.json({ error: "Invalid session ID format" }, { status: 400 });
+      }
+
+      const progressLogs = await progressRepository.findBySessionId(sessionId);
+      return NextResponse.json(progressLogs);
     } else {
       // Get progress for active session only
-      const activeSession = await ReadingSession.findOne({
-        bookId: params.id,
-        isActive: true,
-      });
+      const activeSession = await sessionRepository.findActiveByBookId(bookId);
 
-      if (activeSession) {
-        query.sessionId = activeSession._id;
+      if (!activeSession) {
+        return NextResponse.json([]);
       }
+
+      const progressLogs = await progressRepository.findBySessionId(activeSession.id);
+      return NextResponse.json(progressLogs);
     }
-
-    const progressLogs = await ProgressLog.find(query).sort({
-      progressDate: -1,
-    });
-
-    return NextResponse.json(JSON.parse(JSON.stringify(progressLogs)));
   } catch (error) {
     console.error("Error fetching progress:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch progress" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch progress" }, { status: 500 });
   }
 }
 
@@ -61,30 +48,23 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const bookId = parseInt(params.id);
 
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: "Invalid book ID format" },
-        { status: 400 }
-      );
+    if (isNaN(bookId)) {
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
     const body = await request.json();
     const { currentPage, currentPercentage, notes } = body;
 
-    const book = await Book.findById(params.id);
+    const book = await bookRepository.findById(bookId);
 
     if (!book) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
     // Get the active reading session
-    const activeSession = await ReadingSession.findOne({
-      bookId: params.id,
-      isActive: true,
-    });
+    const activeSession = await sessionRepository.findActiveByBookId(bookId);
 
     if (!activeSession) {
       return NextResponse.json(
@@ -102,12 +82,7 @@ export async function POST(
     }
 
     // Get the last progress entry for this session to calculate pages read
-    const lastProgress = await ProgressLog.findOne({
-      bookId: params.id,
-      sessionId: activeSession._id,
-    })
-      .sort({ progressDate: -1 })
-      .limit(1);
+    const lastProgress = await progressRepository.findLatestBySessionId(activeSession.id);
 
     let finalCurrentPage = currentPage;
     let finalCurrentPercentage = currentPercentage;
@@ -130,9 +105,9 @@ export async function POST(
       ? Math.max(0, finalCurrentPage - (lastProgress.currentPage || 0))
       : finalCurrentPage;
 
-    const progressLog = await ProgressLog.create({
-      bookId: params.id,
-      sessionId: activeSession._id,
+    const progressLog = await progressRepository.create({
+      bookId,
+      sessionId: activeSession.id,
       currentPage: finalCurrentPage,
       currentPercentage: finalCurrentPercentage,
       progressDate: new Date(),
@@ -141,11 +116,9 @@ export async function POST(
     });
 
     // Touch the session to update its updatedAt timestamp (for sorting on dashboard)
-    // Using findByIdAndUpdate triggers the timestamps automatically
-    await ReadingSession.findByIdAndUpdate(
-      activeSession._id,
-      { $set: { updatedAt: new Date() } }
-    );
+    await sessionRepository.update(activeSession.id, {
+      updatedAt: new Date(),
+    } as any);
 
     // Update streak
     try {
@@ -164,9 +137,10 @@ export async function POST(
 
     // If book is completed, update session status to "read"
     if (finalCurrentPercentage >= 100 && activeSession.status === "reading") {
-      activeSession.status = "read";
-      activeSession.completedDate = new Date();
-      await activeSession.save();
+      await sessionRepository.update(activeSession.id, {
+        status: "read",
+        completedDate: new Date(),
+      } as any);
       console.log(`[Progress] Book completed, session status updated to 'read'`);
     }
 
@@ -174,12 +148,9 @@ export async function POST(
     revalidatePath("/"); // Dashboard
     revalidatePath("/stats"); // Stats page
 
-    return NextResponse.json(JSON.parse(JSON.stringify(progressLog)));
+    return NextResponse.json(progressLog);
   } catch (error) {
     console.error("Error logging progress:", error);
-    return NextResponse.json(
-      { error: "Failed to log progress" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to log progress" }, { status: 500 });
   }
 }

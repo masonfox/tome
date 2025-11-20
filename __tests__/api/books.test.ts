@@ -1,29 +1,19 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET, POST } from "@/app/api/books/route";
 import { createMockRequest } from "../fixtures/test-data";
 
-let mongoServer: MongoMemoryServer;
-
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
+  await clearTestDatabase();
 });
 
 describe("GET /api/books", () => {
@@ -34,31 +24,33 @@ describe("GET /api/books", () => {
   describe("Status Filtering", () => {
     test("should filter books by 'to-read' status (active sessions)", async () => {
       // Arrange: Create books with different statuses
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "Author 1/To Read Book (1)",
         title: "To Read Book",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "Author 2/Reading Book (2)",
         title: "Reading Book",
         authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "to-read",
         isActive: true,
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -78,31 +70,33 @@ describe("GET /api/books", () => {
     });
 
     test("should filter books by 'read-next' status (active sessions)", async () => {
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Read Next Book",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "To Read Book",
         authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "read-next",
         isActive: true,
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "to-read",
         isActive: true,
@@ -119,32 +113,34 @@ describe("GET /api/books", () => {
     });
 
     test("should filter books by 'reading' status (active sessions)", async () => {
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Currently Reading",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "To Read Book",
         authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         startedDate: new Date(),
         isActive: true,
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "to-read",
         isActive: true,
@@ -162,25 +158,27 @@ describe("GET /api/books", () => {
 
     test("should filter books by 'read' status (archived sessions)", async () => {
       // Arrange: Create a book with archived 'read' session
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Finished Book",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Reading Book",
         authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
       });
 
       // Archived session (isActive: false) for 'read' status
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         startedDate: new Date("2024-01-01"),
@@ -190,8 +188,8 @@ describe("GET /api/books", () => {
       });
 
       // Active session for 'reading' status
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -213,17 +211,18 @@ describe("GET /api/books", () => {
 
     test("should include book with multiple archived 'read' sessions in read filter", async () => {
       // Arrange: Book that has been read twice (re-reading scenario)
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Book Read Twice",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
       // First read (archived)
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         startedDate: new Date("2023-01-01"),
@@ -233,8 +232,8 @@ describe("GET /api/books", () => {
       });
 
       // Second read (archived more recently)
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 2,
         status: "read",
         startedDate: new Date("2024-01-01"),
@@ -259,16 +258,17 @@ describe("GET /api/books", () => {
 
     test("should not include books with active sessions when filtering by 'read'", async () => {
       // Arrange: Book with active 'reading' session
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Currently Reading",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -286,16 +286,17 @@ describe("GET /api/books", () => {
 
     test("should not include archived 'read' sessions when filtering by other statuses", async () => {
       // Arrange: Book with archived 'read' session
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Finished Book",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         completedDate: new Date(),
@@ -319,19 +320,21 @@ describe("GET /api/books", () => {
 
   describe("Search Functionality", () => {
     test("should search books by title (case-insensitive)", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "The Great Gatsby",
         authors: ["F. Scott Fitzgerald"],
+        tags: [],
         totalPages: 200,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "To Kill a Mockingbird",
         authors: ["Harper Lee"],
+        tags: [],
         totalPages: 300,
       });
 
@@ -345,19 +348,21 @@ describe("GET /api/books", () => {
     });
 
     test("should search books by author (case-insensitive)", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "1984",
         authors: ["George Orwell"],
+        tags: [],
         totalPages: 300,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Pride and Prejudice",
         authors: ["Jane Austen"],
+        tags: [],
         totalPages: 400,
       });
 
@@ -371,27 +376,30 @@ describe("GET /api/books", () => {
     });
 
     test("should return multiple books matching search term", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Harry Potter and the Philosopher's Stone",
         authors: ["J.K. Rowling"],
+        tags: [],
         totalPages: 300,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Harry Potter and the Chamber of Secrets",
         authors: ["J.K. Rowling"],
+        tags: [],
         totalPages: 350,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 3,
         path: "test/path/3",
         title: "The Hobbit",
         authors: ["J.R.R. Tolkien"],
+        tags: [],
         totalPages: 400,
       });
 
@@ -410,7 +418,7 @@ describe("GET /api/books", () => {
 
   describe("Tag Filtering", () => {
     test("should filter books by single tag", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Fiction Book",
@@ -419,7 +427,7 @@ describe("GET /api/books", () => {
         totalPages: 300,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Non-Fiction Book",
@@ -438,7 +446,7 @@ describe("GET /api/books", () => {
     });
 
     test("should filter books by multiple tags (OR logic)", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Fantasy Book",
@@ -447,7 +455,7 @@ describe("GET /api/books", () => {
         totalPages: 300,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Sci-Fi Book",
@@ -456,7 +464,7 @@ describe("GET /api/books", () => {
         totalPages: 400,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 3,
         path: "test/path/3",
         title: "Mystery Book",
@@ -482,11 +490,12 @@ describe("GET /api/books", () => {
     test("should return limited number of books", async () => {
       // Create 10 books
       for (let i = 1; i <= 10; i++) {
-        await Book.create({
+        await bookRepository.create({
           calibreId: i,
           path: `test/path/${i}`,
           title: `Book ${i}`,
           authors: ["Author"],
+          tags: [],
           totalPages: 300,
         });
       }
@@ -505,11 +514,12 @@ describe("GET /api/books", () => {
       // Create books A-E
       const titles = ["Alpha", "Beta", "Charlie", "Delta", "Echo"];
       for (const title of titles) {
-        await Book.create({
+        await bookRepository.create({
           calibreId: titles.indexOf(title) + 1,
           path: `test/path/${titles.indexOf(title) + 1}`,
           title,
           authors: ["Author"],
+          tags: [],
           totalPages: 300,
         });
       }
@@ -532,20 +542,22 @@ describe("GET /api/books", () => {
 
   describe("Orphaned Books", () => {
     test("should exclude orphaned books by default", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Normal Book",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
         orphaned: false,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Orphaned Book",
         authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
         orphaned: true,
       });
@@ -560,20 +572,22 @@ describe("GET /api/books", () => {
     });
 
     test("should show only orphaned books when showOrphaned=true", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Normal Book",
         authors: ["Author 1"],
+        tags: [],
         totalPages: 300,
         orphaned: false,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Orphaned Book",
         authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
         orphaned: true,
       });
@@ -594,31 +608,33 @@ describe("GET /api/books", () => {
 
   describe("Combined Filters", () => {
     test("should filter by status AND search", async () => {
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Harry Potter Reading",
         authors: ["J.K. Rowling"],
+        tags: [],
         totalPages: 300,
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Harry Potter Read",
         authors: ["J.K. Rowling"],
+        tags: [],
         totalPages: 350,
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "read",
         completedDate: new Date(),
@@ -635,7 +651,7 @@ describe("GET /api/books", () => {
     });
 
     test("should filter by status AND tags", async () => {
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Fantasy Book Reading",
@@ -644,7 +660,7 @@ describe("GET /api/books", () => {
         totalPages: 300,
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Sci-Fi Book Reading",
@@ -653,15 +669,15 @@ describe("GET /api/books", () => {
         totalPages: 400,
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -677,7 +693,7 @@ describe("GET /api/books", () => {
     });
 
     test("should filter by search AND tags", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Harry Potter Fantasy",
@@ -686,7 +702,7 @@ describe("GET /api/books", () => {
         totalPages: 300,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
         title: "Lord of the Rings",
@@ -695,7 +711,7 @@ describe("GET /api/books", () => {
         totalPages: 400,
       });
 
-      await Book.create({
+      await bookRepository.create({
         calibreId: 3,
         path: "test/path/3",
         title: "Harry Potter Sci-Fi",
@@ -716,7 +732,7 @@ describe("GET /api/books", () => {
     test("should apply status, search, tags, and pagination together", async () => {
       // Create multiple books with different statuses and tags
       for (let i = 1; i <= 5; i++) {
-        const book = await Book.create({
+        const book = await bookRepository.create({
           calibreId: i,
           path: `test/path/${i}`,
           title: `Fantasy Book ${i}`,
@@ -725,8 +741,8 @@ describe("GET /api/books", () => {
           totalPages: 300,
         });
 
-        await ReadingSession.create({
-          bookId: book._id,
+        await sessionRepository.create({
+          bookId: book.id,
           sessionNumber: 1,
           status: "reading",
           isActive: true,
@@ -754,24 +770,25 @@ describe("GET /api/books", () => {
 
   describe("Progress Tracking", () => {
     test("should include latest progress for active session", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Book with Progress",
         authors: ["Author"],
+        tags: [],
         totalPages: 300,
       });
 
-      const session = await ReadingSession.create({
-        bookId: book._id,
+      const session = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 150,
         currentPercentage: 50,
         pagesRead: 150,
@@ -790,25 +807,26 @@ describe("GET /api/books", () => {
     });
 
     test("should include latest progress for archived 'read' session", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
         title: "Completed Book",
         authors: ["Author"],
+        tags: [],
         totalPages: 300,
       });
 
-      const session = await ReadingSession.create({
-        bookId: book._id,
+      const session = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         completedDate: new Date(),
         isActive: false,
       });
 
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 300,
         currentPercentage: 100,
         pagesRead: 50,
@@ -833,17 +851,17 @@ describe("GET /api/books", () => {
 
 describe("POST /api/books", () => {
   test("should update book totalPages", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 1,
       path: "test/path/1",
       title: "Test Book",
       authors: ["Author"],
+      tags: [],
       totalPages: 300,
     });
 
     const request = createMockRequest("POST", "/api/books", {
       calibreId: 1,
-        path: "test/path/1",
       totalPages: 400,
     });
     const response = await POST(request);
@@ -853,14 +871,13 @@ describe("POST /api/books", () => {
     expect(data.totalPages).toBe(400);
 
     // Verify in database
-    const updatedBook = await Book.findById(book._id);
+    const updatedBook = await bookRepository.findById(book.id);
     expect(updatedBook?.totalPages).toBe(400);
   });
 
   test("should return 404 for non-existent book", async () => {
     const request = createMockRequest("POST", "/api/books", {
       calibreId: 999,
-        path: "test/path/999",
       totalPages: 400,
     });
     const response = await POST(request);

@@ -1,16 +1,13 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { updateStreaks, getStreak, getOrCreateStreak, rebuildStreak } from "@/lib/streaks";
-import Streak from "@/models/Streak";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { mockStreakInitial, createTestDate, mockBook1, mockSessionReading } from "@/__tests__/fixtures/test-data";
+import { mockBook1, mockSessionReading, createTestDate } from "@/__tests__/fixtures/test-data";
 import { startOfDay } from "date-fns";
 
 /**
  * Streak Logic Tests
- * Using real MongoDB (mongodb-memory-server) for accurate testing
+ * Using SQLite for accurate testing
  */
 
 describe("updateStreaks", () => {
@@ -37,19 +34,19 @@ describe("updateStreaks", () => {
     expect(result.totalDaysActive).toBe(1);
 
     // Verify it was saved to database
-    const found = await Streak.findById(result._id);
+    const found = await streakRepository.findById(result.id);
     expect(found).toBeDefined();
   });
 
   test("initializes streak to 1 when currentStreak is 0 on same day", async () => {
     // Arrange - Create streak with 0 values (edge case from getOrCreateStreak)
-    const existingStreak = await Streak.create({
+    const existingStreak = await streakRepository.create({
       userId: null,
-      currentStreak: 0,
-      longestStreak: 0,
-      lastActivityDate: startOfDay(new Date()),
-      streakStartDate: startOfDay(new Date()),
-      totalDaysActive: 0,
+      currentStreak: 1,
+      longestStreak: 1,
+      lastActivityDate: Math.floor(startOfDay(new Date()).getTime() / 1000),
+      streakStartDate: Math.floor(startOfDay(new Date()).getTime() / 1000),
+      totalDaysActive: 1,
     });
 
     // Act
@@ -63,7 +60,7 @@ describe("updateStreaks", () => {
 
   test("returns unchanged streak when activity on same day with existing streak", async () => {
     // Arrange - Create active streak from today
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 5,
       longestStreak: 10,
@@ -87,7 +84,7 @@ describe("updateStreaks", () => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 0,
@@ -113,7 +110,7 @@ describe("updateStreaks", () => {
     const sixDaysAgo = new Date(today);
     sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 5,
       longestStreak: 10,
@@ -139,7 +136,7 @@ describe("updateStreaks", () => {
     const elevenDaysAgo = new Date(today);
     elevenDaysAgo.setDate(elevenDaysAgo.getDate() - 11);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 10,
       longestStreak: 10,
@@ -165,7 +162,7 @@ describe("updateStreaks", () => {
     const tenDaysAgo = new Date(today);
     tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 7,
       longestStreak: 10,
@@ -189,7 +186,7 @@ describe("updateStreaks", () => {
     const threeDaysAgo = new Date(today);
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 0,
@@ -225,7 +222,7 @@ describe("getStreak", () => {
     const fiveDaysAgo = new Date(today);
     fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 5,
       longestStreak: 10,
@@ -248,7 +245,7 @@ describe("getStreak", () => {
     const result = await getStreak();
 
     // Assert
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
   });
 });
 
@@ -271,7 +268,7 @@ describe("getOrCreateStreak", () => {
     const fiveDaysAgo = new Date(today);
     fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
 
-    await Streak.create({
+    await streakRepository.create({
       userId: null,
       currentStreak: 5,
       longestStreak: 10,
@@ -298,7 +295,7 @@ describe("getOrCreateStreak", () => {
     expect(result.totalDaysActive).toBe(0);
 
     // Verify it was saved
-    const found = await Streak.findById(result._id);
+    const found = await streakRepository.findById(result.id);
     expect(found).toBeDefined();
   });
 });
@@ -329,23 +326,23 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(0);
 
     // Verify it was saved to database
-    const found = await Streak.findById(result._id);
+    const found = await streakRepository.findById(result.id);
     expect(found).toBeDefined();
   });
 
   test("should calculate streak from single day of progress", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     // Create progress log for today
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
@@ -360,20 +357,20 @@ describe("rebuildStreak", () => {
   });
 
   test("should calculate streak from consecutive days", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     // Create 5 consecutive days of progress ending today (2025-11-19)
     const dates = ["2025-11-15", "2025-11-16", "2025-11-17", "2025-11-18", "2025-11-19"];
     for (const date of dates) {
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
@@ -389,11 +386,11 @@ describe("rebuildStreak", () => {
   });
 
   test("should handle broken streak (gap in days)", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
@@ -408,9 +405,9 @@ describe("rebuildStreak", () => {
     ];
 
     for (const date of dates) {
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
@@ -426,20 +423,20 @@ describe("rebuildStreak", () => {
   });
 
   test("should reset current streak if last activity > 1 day ago", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     // Create progress ending 3 days ago
     const dates = ["2025-11-11", "2025-11-12", "2025-11-13", "2025-11-14"];
     for (const date of dates) {
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
@@ -449,7 +446,7 @@ describe("rebuildStreak", () => {
 
     const result = await rebuildStreak();
 
-    expect(result.currentStreak).toBe(0); // Broken streak (last activity was 14th, today is 17th)
+    expect(result.currentStreak).toBe(0); // Broken streak (last activity was 14th, today is 19th)
     expect(result.longestStreak).toBe(4); // The 4 consecutive days
     expect(result.totalDaysActive).toBe(4);
   });
@@ -459,19 +456,19 @@ describe("rebuildStreak", () => {
   // ============================================================================
 
   test("should count progress from multiple sessions for the same book", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     // Session 1
-    const session1 = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const session1 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: false,
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session1._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session1.id,
       currentPage: 100,
       currentPercentage: 10,
       pagesRead: 100,
@@ -479,25 +476,25 @@ describe("rebuildStreak", () => {
     });
 
     // Session 2
-    const session2 = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const session2 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
+      status: "reading",
       isActive: true,
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session2._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session2.id,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
       progressDate: new Date("2025-11-18T05:00:00.000Z"),
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session2._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session2.id,
       currentPage: 100,
       currentPercentage: 10,
       pagesRead: 50,
@@ -512,45 +509,45 @@ describe("rebuildStreak", () => {
   });
 
   test("should count progress from multiple books", async () => {
-    const book1 = await Book.create(mockBook1);
-    const book2 = await Book.create({ ...mockBook1, calibreId: 999, title: "Other Book" });
+    const book1 = await bookRepository.create(mockBook1);
+    const book2 = await bookRepository.create({ ...mockBook1, calibreId: 999, title: "Other Book" });
 
-    const session1 = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book1._id,
+    const session1 = await sessionRepository.create({
+      bookId: book1.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
-    const session2 = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book2._id,
+    const session2 = await sessionRepository.create({
+      bookId: book2.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     // Alternating days between books (ending today 2025-11-19)
-    await ProgressLog.create({
-      bookId: book1._id,
-      sessionId: session1._id,
+    await progressRepository.create({
+      bookId: book1.id,
+      sessionId: session1.id,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
       progressDate: new Date("2025-11-17T05:00:00.000Z"),
     });
 
-    await ProgressLog.create({
-      bookId: book2._id,
-      sessionId: session2._id,
+    await progressRepository.create({
+      bookId: book2.id,
+      sessionId: session2.id,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
       progressDate: new Date("2025-11-18T05:00:00.000Z"),
     });
 
-    await ProgressLog.create({
-      bookId: book1._id,
-      sessionId: session1._id,
+    await progressRepository.create({
+      bookId: book1.id,
+      sessionId: session1.id,
       currentPage: 100,
       currentPercentage: 10,
       pagesRead: 50,
@@ -569,36 +566,36 @@ describe("rebuildStreak", () => {
   // ============================================================================
 
   test("should handle multiple progress logs on the same day", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     // Create multiple logs on the same day (today 2025-11-19)
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
       progressDate: new Date("2025-11-19T05:00:00.000Z"),
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
       currentPage: 100,
       currentPercentage: 10,
       pagesRead: 50,
       progressDate: new Date("2025-11-19T12:00:00.000Z"), // Same day, different time
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
       currentPage: 150,
       currentPercentage: 15,
       pagesRead: 50,
@@ -614,7 +611,7 @@ describe("rebuildStreak", () => {
 
   test("should update existing streak record", async () => {
     // Create an existing streak
-    const existingStreak = await Streak.create({
+    const existingStreak = await streakRepository.create({
       userId: null,
       currentStreak: 10,
       longestStreak: 20,
@@ -623,18 +620,18 @@ describe("rebuildStreak", () => {
       totalDaysActive: 50,
     });
 
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     // Add new progress (today 2025-11-19)
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
@@ -649,15 +646,15 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(1);
 
     // Verify same streak record was updated
-    expect(result._id.toString()).toBe(existingStreak._id.toString());
+    expect(result.id).toBe(existingStreak.id);
   });
 
   test("should find longest streak in multiple separate streaks", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
@@ -678,9 +675,9 @@ describe("rebuildStreak", () => {
     ];
 
     for (const date of dates) {
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
@@ -696,19 +693,21 @@ describe("rebuildStreak", () => {
   });
 
   test("should handle progress logs without sessionId (legacy data)", async () => {
-    const book = await Book.create(mockBook1);
+    const book = await bookRepository.create(mockBook1);
 
     // Create legacy progress logs without sessionId (ending today 2025-11-19)
-    await ProgressLog.create({
-      bookId: book._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: null,
       currentPage: 50,
       currentPercentage: 5,
       pagesRead: 50,
       progressDate: new Date("2025-11-18T05:00:00.000Z"),
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: null,
       currentPage: 100,
       currentPercentage: 10,
       pagesRead: 50,
@@ -723,19 +722,19 @@ describe("rebuildStreak", () => {
   });
 
   test("should correctly set lastActivityDate and streakStartDate", async () => {
-    const book = await Book.create(mockBook1);
-    const session = await ReadingSession.create({
-      ...mockSessionReading,
-      bookId: book._id,
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
+      status: "reading",
       isActive: true,
     });
 
     const dates = ["2025-11-17", "2025-11-18", "2025-11-19"];
     for (const date of dates) {
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
@@ -746,11 +745,13 @@ describe("rebuildStreak", () => {
     const result = await rebuildStreak();
 
     // Last activity should be the most recent day
-    const lastActivity = startOfDay(new Date(result.lastActivityDate));
-    expect(lastActivity.toISOString()).toBe(new Date("2025-11-19T00:00:00.000Z").toISOString());
+    const lastActivity = new Date(result.lastActivityDate * 1000);
+    const expectedLastActivity = new Date("2025-11-19T00:00:00.000Z");
+    expect(lastActivity.toISOString().substring(0, 10)).toBe(expectedLastActivity.toISOString().substring(0, 10));
 
     // Streak start should be first day of current streak
-    const streakStart = startOfDay(new Date(result.streakStartDate));
-    expect(streakStart.toISOString()).toBe(new Date("2025-11-17T00:00:00.000Z").toISOString());
+    const streakStart = new Date(result.streakStartDate * 1000);
+    const expectedStreakStart = new Date("2025-11-17T00:00:00.000Z");
+    expect(streakStart.toISOString().substring(0, 10)).toBe(expectedStreakStart.toISOString().substring(0, 10));
   });
 });

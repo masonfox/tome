@@ -1,7 +1,5 @@
-import { connectDB } from "@/lib/db/mongodb";
 import { getAllBooks, getBookTags } from "@/lib/db/calibre";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
+import { bookRepository, sessionRepository } from "@/lib/repositories";
 
 export interface SyncResult {
   success: boolean;
@@ -32,8 +30,6 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
   isSyncing = true;
 
   try {
-    await connectDB();
-
     const calibreBooks = getAllBooks();
     let syncedCount = 0;
     let updatedCount = 0;
@@ -41,45 +37,42 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
     const orphanedBooks: string[] = [];
 
     // Track calibre IDs currently in library
-    const calibreIds = new Set(calibreBooks.map(b => b.id));
+    const calibreIds = calibreBooks.map((b) => b.id);
 
     for (const calibreBook of calibreBooks) {
       const tags = getBookTags(calibreBook.id);
 
-      const existingBook = await Book.findOne({
-        calibreId: calibreBook.id,
-      });
+      const existingBook = await bookRepository.findByCalibreId(calibreBook.id);
 
       const bookData = {
         calibreId: calibreBook.id,
         title: calibreBook.title,
         authors: calibreBook.authors
-          ? calibreBook.authors.split(/\s*[,|]\s*/).map((a) => a.trim()).filter(a => a)
+          ? calibreBook.authors
+              .split(/\s*[,|]\s*/)
+              .map((a) => a.trim())
+              .filter((a) => a)
           : [],
         isbn: calibreBook.isbn || undefined,
         publisher: calibreBook.publisher || undefined,
-        pubDate: calibreBook.pubdate
-          ? new Date(calibreBook.pubdate)
-          : undefined,
+        pubDate: calibreBook.pubdate ? new Date(calibreBook.pubdate) : undefined,
         series: calibreBook.series || undefined,
         seriesIndex: calibreBook.series_index || undefined,
         tags,
         path: calibreBook.path,
         description: calibreBook.description || undefined,
         lastSynced: new Date(),
-        addedToLibrary: calibreBook.timestamp
-          ? new Date(calibreBook.timestamp)
-          : new Date(),
+        addedToLibrary: calibreBook.timestamp ? new Date(calibreBook.timestamp) : new Date(),
       };
 
       if (existingBook) {
-        await Book.findByIdAndUpdate(existingBook._id, bookData);
+        await bookRepository.update(existingBook.id, bookData as any);
         updatedCount++;
       } else {
-        const newBook = await Book.create(bookData);
+        const newBook = await bookRepository.create(bookData as any);
         // Auto-create "to-read" session for new books
-        await ReadingSession.create({
-          bookId: newBook._id,
+        await sessionRepository.create({
+          bookId: newBook.id,
           status: "to-read",
           sessionNumber: 1,
           isActive: true,
@@ -89,18 +82,12 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
     }
 
     // Detect removed books - find books whose calibreId is no longer in Calibre
-    const removedBooks = await Book.find({
-      calibreId: { $nin: Array.from(calibreIds) },
-      orphaned: { $ne: true },
-    });
+    const removedBooks = await bookRepository.findNotInCalibreIds(calibreIds);
 
     for (const book of removedBooks) {
-      orphanedBooks.push((book._id as any).toString());
+      orphanedBooks.push(book.id.toString());
       // Mark as orphaned but don't delete
-      await Book.findByIdAndUpdate(book._id, {
-        orphaned: true,
-        orphanedAt: new Date(),
-      });
+      await bookRepository.markAsOrphaned(book.id);
       removedCount++;
     }
 

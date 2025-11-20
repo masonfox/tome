@@ -23,19 +23,36 @@ If you're an AI coding assistant (Claude Code, GitHub Copilot, Cursor, etc.), **
 
 ## 📚 Documentation Files
 
+### Architecture Decision Records (ADRs)
+
+#### [ADR-001-MONGODB-TO-SQLITE-MIGRATION.md](./ADR-001-MONGODB-TO-SQLITE-MIGRATION.md) ⭐ **NEW**
+**MongoDB to SQLite migration details**
+
+Covers:
+- Why we migrated from MongoDB to SQLite
+- Why Drizzle ORM over Prisma
+- Schema design and constraints
+- Repository pattern implementation
+- Migration process (6 phases)
+- User migration guide
+
+**When to read:**
+- Understanding the current database architecture
+- Before working with the database
+- When curious about the migration decision
+
 ### Core Architecture
 
 #### [BOOK_TRACKER_ARCHITECTURE.md](./BOOK_TRACKER_ARCHITECTURE.md)
-**Complete system architecture and technical design**
+**Complete system architecture and technical design** (May contain outdated MongoDB references)
 
 Covers:
 - Overall architecture and directory structure
-- Database models and relationships (MongoDB + SQLite)
+- Database models and relationships (OUTDATED: references MongoDB, now SQLite)
 - Calibre integration and sync mechanism
 - API routes structure and endpoints
 - Frontend architecture (Next.js App Router)
 - Data flow examples
-- Deployment with Docker
 - Development workflow
 
 **When to read:**
@@ -43,6 +60,7 @@ Covers:
 - When adding new features
 - When troubleshooting system-level issues
 - To understand data relationships
+- **Note**: For database info, see ADR-001 instead
 
 ---
 
@@ -191,13 +209,12 @@ Understanding these is essential for working on Tome:
 | Technology | Purpose | Documentation |
 |------------|---------|---------------|
 | **Next.js 14** | Framework (App Router) | `BOOK_TRACKER_ARCHITECTURE.md` Section 6 |
-| **MongoDB** | User data storage | `BOOK_TRACKER_ARCHITECTURE.md` Section 2 |
+| **SQLite** | Tracking data storage | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
 | **SQLite** | Calibre library (read-only) | `BOOK_TRACKER_ARCHITECTURE.md` Section 3 |
-| **Mongoose** | MongoDB ODM | `BOOK_TRACKER_QUICK_REFERENCE.md` |
-| **better-sqlite3** | SQLite for Node.js | `BOOK_TRACKER_ARCHITECTURE.md` Section 3 |
-| **bun:sqlite** | SQLite for Bun runtime | `BOOK_TRACKER_ARCHITECTURE.md` Section 3 |
+| **Drizzle ORM** | Type-safe SQLite ORM | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
+| **bun:sqlite** | SQLite driver for Bun | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
 | **Bun** | Package manager & runtime | `BOOK_TRACKER_ARCHITECTURE.md` Section 1 |
-| **Docker** | Deployment | `BOOK_TRACKER_ARCHITECTURE.md` Section 9 |
+| **Repository Pattern** | Data access layer | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
 
 ---
 
@@ -325,6 +342,11 @@ __tests__/README.md                         # Test documentation
 
 ---
 
-**Last Updated:** 2025-11-18
-**Documentation Version:** 1.0
+**Last Updated:** 2025-11-19
+**Documentation Version:** 1.1 (SQLite Migration)
 **Project:** Tome (Book Tracker)
+
+**Major Changes in v1.1:**
+- Added ADR-001 for MongoDB to SQLite migration
+- Updated technology stack references
+- Marked BOOK_TRACKER_ARCHITECTURE.md MongoDB sections as outdated

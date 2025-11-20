@@ -1,8 +1,5 @@
-import { connectDB } from "@/lib/db/mongodb";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
-import Streak from "@/models/Streak";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 
 export interface DashboardStats {
   booksRead: {
@@ -23,7 +20,7 @@ export interface DashboardStreak {
 }
 
 export interface BookWithStatus {
-  _id: any;
+  id: number;
   title: string;
   authors: string[];
   calibreId: number;
@@ -42,17 +39,18 @@ export interface DashboardData {
 
 export async function getDashboardData(): Promise<DashboardData> {
   try {
-    await connectDB();
-
     // Get stats
     const stats = await getStats();
-    
+
     // Get streak
     const streak = await getStreak();
-    
+
     // Get currently reading books with total count
-    const { books: currentlyReading, total: currentlyReadingTotal } = await getBooksByStatus("reading", 6);
-    
+    const { books: currentlyReading, total: currentlyReadingTotal } = await getBooksByStatus(
+      "reading",
+      6
+    );
+
     // Get read next books with total count
     const { books: readNext, total: readNextTotal } = await getBooksByStatus("read-next", 6);
 
@@ -80,80 +78,28 @@ export async function getDashboardData(): Promise<DashboardData> {
 async function getStats(): Promise<DashboardStats | null> {
   try {
     const currentYear = new Date().getFullYear();
-    const startOfYear = new Date(currentYear, 0, 1);
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startOfYearDate = startOfYear(new Date(currentYear, 0, 1));
+    const today = startOfDay(new Date());
+    const startOfMonthDate = startOfMonth(new Date());
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Books read this year
-    const booksReadThisYear = await ReadingSession.countDocuments({
-      status: "completed",
-      endDate: { $gte: startOfYear }
-    });
+    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(startOfYearDate);
 
     // Total books read
-    const totalBooksRead = await ReadingSession.countDocuments({
-      status: "completed"
-    });
+    const totalBooksRead = await sessionRepository.countByStatus("read", false);
 
     // Currently reading count
-    const currentlyReadingCount = await ReadingSession.countDocuments({
-      status: "reading",
-      isActive: true
-    });
+    const currentlyReadingCount = await sessionRepository.countByStatus("reading", true);
 
     // Pages read today
-    const pagesToday = await ProgressLog.aggregate([
-      {
-        $match: {
-          progressDate: {
-            $gte: new Date(today.setHours(0, 0, 0, 0))
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" }
-        }
-      }
-    ]);
+    const pagesToday = await progressRepository.getPagesReadAfterDate(today);
 
     // Pages read this month
-    const pagesThisMonth = await ProgressLog.aggregate([
-      {
-        $match: {
-          progressDate: { $gte: startOfMonth }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$pagesRead" }
-        }
-      }
-    ]);
+    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(startOfMonthDate);
 
     // Average pages per day (last 30 days)
-    const avgPagesData = await ProgressLog.aggregate([
-      {
-        $match: {
-          progressDate: { $gte: thirtyDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$progressDate" } },
-          dailyPages: { $sum: "$pagesRead" }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          avgPages: { $avg: "$dailyPages" }
-        }
-      }
-    ]);
+    const avgPages = await progressRepository.getAveragePagesPerDay(30);
 
     return {
       booksRead: {
@@ -162,10 +108,10 @@ async function getStats(): Promise<DashboardStats | null> {
       },
       currentlyReading: currentlyReadingCount,
       pagesRead: {
-        today: pagesToday[0]?.total || 0,
-        thisMonth: pagesThisMonth[0]?.total || 0,
+        today: pagesToday,
+        thisMonth: pagesThisMonth,
       },
-      avgPagesPerDay: Math.round(avgPagesData[0]?.avgPages || 0),
+      avgPagesPerDay: avgPages,
     };
   } catch (error) {
     console.error("Failed to fetch stats:", error);
@@ -175,8 +121,8 @@ async function getStats(): Promise<DashboardStats | null> {
 
 async function getStreak(): Promise<DashboardStreak | null> {
   try {
-    const streak = await Streak.findOne();
-    
+    const streak = await streakRepository.findByUserId(null);
+
     if (!streak) {
       return {
         currentStreak: 0,
@@ -194,19 +140,16 @@ async function getStreak(): Promise<DashboardStreak | null> {
   }
 }
 
-async function getBooksByStatus(status: string, limit: number): Promise<{ books: BookWithStatus[], total: number }> {
+async function getBooksByStatus(
+  status: string,
+  limit: number
+): Promise<{ books: BookWithStatus[]; total: number }> {
   try {
     // Get total count for this status
-    const total = await ReadingSession.countDocuments({
-      status,
-      isActive: true,
-    });
+    const total = await sessionRepository.countByStatus(status as any, true);
 
     // Get limited session records sorted by most recently updated
-    const sessionRecords = await ReadingSession.find({
-      status,
-      isActive: true,
-    }).select("bookId _id updatedAt").sort({ updatedAt: -1 }).limit(limit);
+    const sessionRecords = await sessionRepository.findByStatus(status as any, true, limit);
 
     const bookIds = sessionRecords.map((s) => s.bookId);
 
@@ -214,34 +157,42 @@ async function getBooksByStatus(status: string, limit: number): Promise<{ books:
       return { books: [], total };
     }
 
-    const books = await Book.find({
-      _id: { $in: bookIds },
-      orphaned: { $ne: true },
-    }).limit(limit);
+    // Get books for these sessions
+    const books = await Promise.all(
+      bookIds.map(async (bookId) => {
+        const book = await bookRepository.findById(bookId);
+        return book;
+      })
+    );
 
-    // Create a map of books by ID for easy lookup
-    const bookMap = new Map<string, any>();
-    books.forEach(book => {
-      bookMap.set((book._id as any).toString(), book);
+    // Filter out orphaned books and create a map
+    const bookMap = new Map<number, any>();
+    books.forEach((book) => {
+      if (book && !book.orphaned) {
+        bookMap.set(book.id, book);
+      }
     });
 
     // Build results in the order of sessionRecords (sorted by updatedAt)
-    const booksWithStatus = [];
+    const booksWithStatus: BookWithStatus[] = [];
     for (const session of sessionRecords) {
-      const book = bookMap.get(session.bookId.toString());
+      const book = bookMap.get(session.bookId);
       if (!book) continue; // Skip if book was filtered out (orphaned)
 
-      // Use the session we already have from sessionRecords (maintains sort order)
+      // Get latest progress
       let latestProgress = null;
-      latestProgress = await ProgressLog.findOne({
-        bookId: book._id,
-        sessionId: session._id,
-      }).sort({ progressDate: -1 });
+      latestProgress = await progressRepository.findLatestByBookIdAndSessionId(
+        book.id,
+        session.id
+      );
 
       booksWithStatus.push({
-        ...JSON.parse(JSON.stringify(book)),
+        id: book.id,
+        title: book.title,
+        authors: book.authors,
+        calibreId: book.calibreId,
         status: status,
-        latestProgress: latestProgress ? JSON.parse(JSON.stringify(latestProgress)) : null,
+        latestProgress,
       });
     }
 

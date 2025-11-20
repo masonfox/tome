@@ -1,11 +1,10 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { GET, POST } from "@/app/api/books/[id]/progress/route";
-import Book from "@/models/Book";
-import ProgressLog from "@/models/ProgressLog";
-import ReadingSession from "@/models/ReadingSession";
+import { bookRepository, progressRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { sqlite } from "@/lib/db/sqlite";
 
 /**
  * Progress API Tests
@@ -41,26 +40,37 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
     await clearTestDatabase();
 
     // Create test book
-    testBook = await Book.create({
+    testBook = await bookRepository.create({
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
+      tags: [],
       totalPages: 500,
       path: "Test/Book",
       orphaned: false,
     });
 
+    // Create a session for the progress logs
+    const session = await sessionRepository.create({
+      bookId: testBook.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
     // Create some progress logs
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
+      sessionId: session.id,
       currentPage: 100,
       currentPercentage: 20,
       progressDate: new Date("2025-11-01"),
       pagesRead: 100,
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
+      sessionId: session.id,
       currentPage: 250,
       currentPercentage: 50,
       progressDate: new Date("2025-11-05"),
@@ -68,8 +78,9 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
       notes: "Great chapter!",
     });
 
-    await ProgressLog.create({
-      bookId: testBook._id,
+    await progressRepository.create({
+      bookId: testBook.id,
+      sessionId: session.id,
       currentPage: 400,
       currentPercentage: 80,
       progressDate: new Date("2025-11-10"),
@@ -79,7 +90,7 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
 
   test("fetches all progress logs for a book", async () => {
     const request = createMockRequest("GET", "/api/books/123/progress");
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
@@ -90,7 +101,7 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
 
   test("sorts progress logs by date descending (most recent first)", async () => {
     const request = createMockRequest("GET", "/api/books/123/progress");
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
@@ -109,16 +120,17 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
   });
 
   test("returns empty array for book with no progress", async () => {
-    const newBook = await Book.create({
+    const newBook = await bookRepository.create({
       calibreId: 2,
       title: "New Book",
       authors: ["Author"],
+      tags: [],
       path: "New/Book",
       orphaned: false,
     });
 
     const request = createMockRequest("GET", "/api/books/123/progress");
-    const params = { id: newBook._id.toString() };
+    const params = { id: newBook.id.toString() };
 
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
@@ -154,18 +166,19 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     await clearTestDatabase();
 
     // Create test book with total pages
-    testBook = await Book.create({
+    testBook = await bookRepository.create({
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
+      tags: [],
       totalPages: 500,
       path: "Test/Book",
       orphaned: false,
     });
 
     // Create active reading session (required for logging progress)
-    await ReadingSession.create({
-      bookId: testBook._id,
+    await sessionRepository.create({
+      bookId: testBook.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -178,7 +191,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       currentPage: 250,
       notes: "Halfway there!",
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -194,7 +207,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPercentage: 75,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -207,12 +220,12 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
 
   test("calculates pagesRead based on last progress", async () => {
     // Get the active session
-    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    const session = await sessionRepository.findActiveByBookId(testBook.id);
 
     // Create initial progress
-    await ProgressLog.create({
-      bookId: testBook._id,
-      sessionId: session!._id,
+    await progressRepository.create({
+      bookId: testBook.id,
+      sessionId: session!.id,
       currentPage: 100,
       currentPercentage: 20,
       progressDate: new Date("2025-11-01"),
@@ -222,7 +235,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 250,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -234,12 +247,12 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
 
   test("handles negative pagesRead (when going backwards)", async () => {
     // Get the active session
-    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    const session = await sessionRepository.findActiveByBookId(testBook.id);
 
     // Create progress at page 300
-    await ProgressLog.create({
-      bookId: testBook._id,
-      sessionId: session!._id,
+    await progressRepository.create({
+      bookId: testBook.id,
+      sessionId: session!.id,
       currentPage: 300,
       currentPercentage: 60,
       progressDate: new Date("2025-11-01"),
@@ -250,7 +263,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 250,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -263,13 +276,13 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 500, // 100%
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     expect(response.status).toBe(200);
 
     // Check session status was updated
-    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    const session = await sessionRepository.findActiveByBookId(testBook.id);
     expect(session!.status).toBe("read");
     expect(session!.completedDate).toBeDefined();
   });
@@ -278,13 +291,13 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPercentage: 100,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     expect(response.status).toBe(200);
 
     // Check session status was updated
-    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    const session = await sessionRepository.findActiveByBookId(testBook.id);
     expect(session).toBeDefined();
     expect(session!.status).toBe("read");
     expect(session!.completedDate).toBeDefined();
@@ -295,21 +308,21 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPercentage: 99,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     await POST(request as NextRequest, { params });
 
     // Session status should still be "reading"
-    const session = await ReadingSession.findOne({ bookId: testBook._id, isActive: true });
+    const session = await sessionRepository.findActiveByBookId(testBook.id);
     expect(session!.status).toBe("reading");
-    expect(session!.completedDate).toBeUndefined();
+    expect(session!.completedDate).toBeNull();
   });
 
   test("returns 404 for non-existent book", async () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 100,
     });
-    const params = { id: "507f1f77bcf86cd799439011" }; // Valid ObjectId but doesn't exist
+    const params = { id: "999999" }; // Non-existent ID
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -322,7 +335,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       notes: "Just a note",
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -332,18 +345,19 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   });
 
   test("handles book without totalPages (page-only mode)", async () => {
-    const bookNoPages = await Book.create({
+    const bookNoPages = await bookRepository.create({
       calibreId: 2,
       title: "No Pages Book",
       authors: ["Author"],
+      tags: [],
       path: "No/Pages",
       orphaned: false,
       // No totalPages
     });
 
     // Create active session for this book
-    await ReadingSession.create({
-      bookId: bookNoPages._id,
+    await sessionRepository.create({
+      bookId: bookNoPages.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -353,7 +367,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 100,
     });
-    const params = { id: bookNoPages._id.toString() };
+    const params = { id: bookNoPages.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -364,17 +378,18 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   });
 
   test("rejects percentage input for book without totalPages", async () => {
-    const bookNoPages = await Book.create({
+    const bookNoPages = await bookRepository.create({
       calibreId: 2,
       title: "No Pages Book",
       authors: ["Author"],
+      tags: [],
       path: "No/Pages",
       orphaned: false,
     });
 
     // Create active session for this book
-    await ReadingSession.create({
-      bookId: bookNoPages._id,
+    await sessionRepository.create({
+      bookId: bookNoPages.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -384,7 +399,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPercentage: 50,
     });
-    const params = { id: bookNoPages._id.toString() };
+    const params = { id: bookNoPages.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
@@ -400,16 +415,18 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 100,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     await POST(request as NextRequest, { params });
 
     const afterTime = new Date();
 
-    const log = await ProgressLog.findOne({ bookId: testBook._id });
+    const logs = await progressRepository.findByBookId(testBook.id);
+    const log = logs[0];
     expect(log!.progressDate).toBeDefined();
-    expect(log!.progressDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
-    expect(log!.progressDate.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    // SQLite stores timestamps as seconds, so allow 1 second variance
+    expect(log!.progressDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
+    expect(log!.progressDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
   });
 
   test("preserves notes when provided", async () => {
@@ -417,14 +434,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       currentPage: 200,
       notes: "This is a great book!",
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
 
     expect(data.notes).toBe("This is a great book!");
 
-    const log = await ProgressLog.findOne({ bookId: testBook._id });
+    const logs = await progressRepository.findByBookId(testBook.id);
+    const log = logs.find(l => l.notes === "This is a great book!");
     expect(log!.notes).toBe("This is a great book!");
   });
 
@@ -444,37 +462,31 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   test("updates session updatedAt timestamp when logging progress", async () => {
     // Arrange: Find the session created in beforeEach and set old timestamp
     const oldTime = new Date(Date.now() - 60000); // 1 minute ago
-    const session = await ReadingSession.findOne({
-      bookId: testBook._id,
-      isActive: true,
-    });
+    const session = await sessionRepository.findActiveByBookId(testBook.id);
     expect(session).toBeTruthy();
 
-    // Update the session with an old timestamp (use collection to bypass Mongoose timestamps)
-    await ReadingSession.collection.updateOne(
-      { _id: session!._id },
-      { $set: { updatedAt: oldTime } }
-    );
+    // Update the session with an old timestamp using direct SQL
+    sqlite.exec(`UPDATE reading_sessions SET updated_at = ${Math.floor(oldTime.getTime() / 1000)} WHERE id = ${session!.id}`);
 
     // Verify the old timestamp is set
-    const sessionBefore = await ReadingSession.findById(session!._id);
+    const sessionBefore = await sessionRepository.findById(session!.id);
     const sessionBeforeTime = sessionBefore?.updatedAt.getTime() || 0;
-    expect(sessionBeforeTime).toBeLessThanOrEqual(oldTime.getTime() + 100); // Allow small variance
+    expect(sessionBeforeTime).toBeLessThanOrEqual(oldTime.getTime() + 1000); // Allow small variance
 
     // Wait a bit to ensure different timestamp
     await new Promise(resolve => setTimeout(resolve, 10));
 
     // Act: Log progress
-    const request = createMockRequest("POST", `/api/books/${testBook._id}/progress`, {
+    const request = createMockRequest("POST", `/api/books/${testBook.id}/progress`, {
       currentPage: 100,
     });
-    const params = { id: testBook._id.toString() };
+    const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
     expect(response.status).toBe(200);
 
     // Assert: Session updatedAt should be newer
-    const sessionAfter = await ReadingSession.findById(session!._id);
+    const sessionAfter = await sessionRepository.findById(session!.id);
     expect(sessionAfter).toBeTruthy();
     expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(oldTime.getTime());
     expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds

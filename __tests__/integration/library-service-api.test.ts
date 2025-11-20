@@ -1,49 +1,46 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET as GET_BOOKS } from "@/app/api/books/route";
 import { GET as GET_TAGS } from "@/app/api/tags/route";
 import { LibraryService } from "@/lib/library-service";
 import { createMockRequest } from "../fixtures/test-data";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-let mongoServer: MongoMemoryServer;
+// Mock Next.js cache revalidation
+mock.module("next/cache", () => ({
+  revalidatePath: () => {},
+}));
+
 let service: LibraryService;
 
 // Mock fetch to call actual API handlers (real integration)
 global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input.toString();
   const method = init?.method || "GET";
-  
+
   if (url.includes("/api/books")) {
     const request = createMockRequest(method, url, init?.body);
     return await GET_BOOKS(request);
   }
-  
+
   if (url.includes("/api/tags")) {
     const request = createMockRequest(method, url);
     return await GET_TAGS(request);
   }
-  
+
   throw new Error(`Unmocked URL: ${url}`);
 };
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
+  await clearTestDatabase();
   service = new LibraryService(); // Fresh instance for each test
 });
 
@@ -52,21 +49,21 @@ describe("LibraryService → API Integration", () => {
     test("should fetch all books with no filters", async () => {
       // Create 3 books (no sessions)
       await Promise.all([
-        Book.create({
+        bookRepository.create({
           calibreId: 1,
           title: "Book 1",
           authors: ["Author 1"],
           tags: ["fiction"],
           path: "Author 1/Book 1 (1)",
         }),
-        Book.create({
+        bookRepository.create({
           calibreId: 2,
           title: "Book 2",
           authors: ["Author 2"],
           tags: ["non-fiction"],
           path: "Author 2/Book 2 (2)",
         }),
-        Book.create({
+        bookRepository.create({
           calibreId: 3,
           title: "Book 3",
           authors: ["Author 3"],
@@ -88,7 +85,7 @@ describe("LibraryService → API Integration", () => {
 
     test("should filter by status correctly", async () => {
       // Create 2 books: 1 with "reading" session (active), 1 with "read" session (archived)
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         title: "Currently Reading",
         authors: ["Author 1"],
@@ -96,7 +93,7 @@ describe("LibraryService → API Integration", () => {
         path: "Author 1/Currently Reading (1)",
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Finished Book",
         authors: ["Author 2"],
@@ -104,16 +101,16 @@ describe("LibraryService → API Integration", () => {
         path: "Author 2/Finished Book (2)",
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
         startedDate: new Date(),
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
@@ -143,14 +140,14 @@ describe("LibraryService → API Integration", () => {
 
     test("should filter by search query", async () => {
       await Promise.all([
-        Book.create({
+        bookRepository.create({
           calibreId: 1,
           title: "Harry Potter",
           authors: ["J.K. Rowling"],
           tags: [],
           path: "J.K. Rowling/Harry Potter (1)",
         }),
-        Book.create({
+        bookRepository.create({
           calibreId: 2,
           title: "Lord of the Rings",
           authors: ["J.R.R. Tolkien"],
@@ -170,14 +167,14 @@ describe("LibraryService → API Integration", () => {
 
     test("should filter by tags", async () => {
       await Promise.all([
-        Book.create({
+        bookRepository.create({
           calibreId: 1,
           title: "Fantasy Book",
           authors: ["Author 1"],
           tags: ["fantasy", "magic"],
           path: "Author 1/Fantasy Book (1)",
         }),
-        Book.create({
+        bookRepository.create({
           calibreId: 2,
           title: "Sci-Fi Book",
           authors: ["Author 2"],
@@ -196,7 +193,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should handle combined filters", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Fantasy Novel",
         authors: ["Fantasy Author"],
@@ -204,8 +201,8 @@ describe("LibraryService → API Integration", () => {
         path: "Fantasy Author/Fantasy Novel (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -227,7 +224,7 @@ describe("LibraryService → API Integration", () => {
       // Create 10 books
       const books = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -262,7 +259,7 @@ describe("LibraryService → API Integration", () => {
 
   describe("Cache Behavior", () => {
     test("should cache results for identical queries", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
@@ -274,17 +271,17 @@ describe("LibraryService → API Integration", () => {
 
       // First call
       const result1 = await service.getBooks(filters);
-      
+
       // Second call (should use cache)
       const result2 = await service.getBooks(filters);
 
       expect(result1.books).toHaveLength(1);
       expect(result2.books).toHaveLength(1);
-      expect(result1.books[0]._id).toEqual(result2.books[0]._id);
+      expect(result1.books[0].id).toEqual(result2.books[0].id);
     });
 
     test("should maintain separate cache entries for different filters", async () => {
-      const book1 = await Book.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         title: "Book 1",
         authors: ["Author"],
@@ -292,7 +289,7 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Book 1 (1)",
       });
 
-      const book2 = await Book.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
         authors: ["Author"],
@@ -300,15 +297,15 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Book 2 (2)",
       });
 
-      await ReadingSession.create({
-        bookId: book1._id,
+      await sessionRepository.create({
+        bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await ReadingSession.create({
-        bookId: book2._id,
+      await sessionRepository.create({
+        bookId: book2.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
@@ -333,7 +330,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should clear cache when clearCache() called", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         title: "Book 1",
         authors: ["Author"],
@@ -348,7 +345,7 @@ describe("LibraryService → API Integration", () => {
       expect(result1.total).toBe(1);
 
       // Add new book to database
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
         authors: ["Author"],
@@ -369,7 +366,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should clear both book and tag caches", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         title: "Book",
         authors: ["Author"],
@@ -388,7 +385,7 @@ describe("LibraryService → API Integration", () => {
       expect(books1.total).toBe(1);
 
       // Add new book with new tag
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
         authors: ["Author"],
@@ -420,21 +417,21 @@ describe("LibraryService → API Integration", () => {
   describe("Tags Fetching", () => {
     test("should fetch all unique tags sorted alphabetically", async () => {
       await Promise.all([
-        Book.create({
+        bookRepository.create({
           calibreId: 1,
           title: "Book 1",
           authors: ["Author"],
           tags: ["fantasy", "magic"],
           path: "Author/Book 1 (1)",
         }),
-        Book.create({
+        bookRepository.create({
           calibreId: 2,
           title: "Book 2",
           authors: ["Author"],
           tags: ["sci-fi", "space"],
           path: "Author/Book 2 (2)",
         }),
-        Book.create({
+        bookRepository.create({
           calibreId: 3,
           title: "Book 3",
           authors: ["Author"],
@@ -450,7 +447,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should return empty array when no books have tags", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         title: "Book",
         authors: ["Author"],
@@ -463,7 +460,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should cache tags and return cached on subsequent calls", async () => {
-      await Book.create({
+      await bookRepository.create({
         calibreId: 1,
         title: "Book",
         authors: ["Author"],
@@ -476,7 +473,7 @@ describe("LibraryService → API Integration", () => {
       expect(tags1).toContain("tag1");
 
       // Add book with new tag
-      await Book.create({
+      await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
         authors: ["Author"],
@@ -499,7 +496,7 @@ describe("LibraryService → API Integration", () => {
 
   describe("Status Filtering Bug Coverage (isActive)", () => {
     test("should return archived 'read' sessions when filtering by 'read'", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Finished Book",
         authors: ["Author"],
@@ -507,8 +504,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Finished Book (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         isActive: false, // Archived
@@ -526,7 +523,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should return active 'reading' sessions when filtering by 'reading'", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Currently Reading",
         authors: ["Author"],
@@ -534,8 +531,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Currently Reading (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true, // Active
@@ -553,7 +550,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should not return archived 'read' sessions when filtering by 'reading'", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Finished Book",
         authors: ["Author"],
@@ -561,8 +558,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Finished Book (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
@@ -578,7 +575,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should not return active 'reading' sessions when filtering by 'read'", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Currently Reading",
         authors: ["Author"],
@@ -586,8 +583,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Currently Reading (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -603,7 +600,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should handle re-reading scenario correctly", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Re-read Book",
         authors: ["Author"],
@@ -613,8 +610,8 @@ describe("LibraryService → API Integration", () => {
       });
 
       // Archived "read" session (first read)
-      const session1 = await ReadingSession.create({
-        bookId: book._id,
+      const session1 = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
@@ -623,17 +620,17 @@ describe("LibraryService → API Integration", () => {
       });
 
       // Active "reading" session (second read)
-      const session2 = await ReadingSession.create({
-        bookId: book._id,
+      const session2 = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 2,
         status: "reading",
         isActive: true,
         startedDate: new Date("2024-02-01"),
       });
 
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session2._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session2.id,
         currentPage: 150,
         currentPercentage: 50,
         progressDate: new Date(),
@@ -662,7 +659,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should return active 'read-next' sessions when filtering by 'read-next'", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Read Next Book",
         authors: ["Author"],
@@ -670,8 +667,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Read Next Book (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read-next",
         isActive: true,
@@ -687,7 +684,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should return active 'to-read' sessions when filtering by 'to-read'", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "To Read Book",
         authors: ["Author"],
@@ -695,8 +692,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/To Read Book (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "to-read",
         isActive: true,
@@ -714,7 +711,7 @@ describe("LibraryService → API Integration", () => {
 
   describe("Progress Data", () => {
     test("should include latest progress for active sessions", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Book with Progress",
         authors: ["Author"],
@@ -723,16 +720,16 @@ describe("LibraryService → API Integration", () => {
         totalPages: 300,
       });
 
-      const session = await ReadingSession.create({
-        bookId: book._id,
+      const session = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 150,
         currentPercentage: 50,
         progressDate: new Date(),
@@ -751,7 +748,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should include latest progress for archived 'read' sessions", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Finished Book",
         authors: ["Author"],
@@ -760,17 +757,17 @@ describe("LibraryService → API Integration", () => {
         totalPages: 300,
       });
 
-      const session = await ReadingSession.create({
-        bookId: book._id,
+      const session = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
         completedDate: new Date(),
       });
 
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 300,
         currentPercentage: 100,
         progressDate: new Date(),
@@ -788,7 +785,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should return null progress for books with no progress logs", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Book without Progress",
         authors: ["Author"],
@@ -796,8 +793,8 @@ describe("LibraryService → API Integration", () => {
         path: "Author/Book without Progress (1)",
       });
 
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -809,7 +806,7 @@ describe("LibraryService → API Integration", () => {
       });
 
       expect(result.books).toHaveLength(1);
-      expect(result.books[0].latestProgress).toBeNull();
+      expect(result.books[0].latestProgress).toBeUndefined();
     });
   });
 });

@@ -1,34 +1,26 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { GET, PATCH } from "@/app/api/books/[id]/route";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-let mongoServer: MongoMemoryServer;
+mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  // Clear all collections before each test
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
+  await clearTestDatabase();
 });
 
 describe("GET /api/books/[id]", () => {
   test("should return book with totalReads count for single session", async () => {
     // Create a book
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 1,
       title: "Test Book",
       authors: ["Author One"],
@@ -38,8 +30,8 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Create one completed reading session
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
@@ -47,7 +39,7 @@ describe("GET /api/books/[id]", () => {
     });
 
     const request = new Request("http://localhost:3000/api/books/1");
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -58,7 +50,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should return book with totalReads count for multiple sessions", async () => {
     // Create a book
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 2,
       title: "Re-read Book",
       authors: ["Author Two"],
@@ -68,24 +60,24 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Create multiple reading sessions (simulating re-reads)
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
       completedDate: new Date("2024-01-15"),
     });
 
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "read",
       isActive: false,
       completedDate: new Date("2024-06-20"),
     });
 
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 3,
       status: "reading",
       isActive: true,
@@ -93,7 +85,7 @@ describe("GET /api/books/[id]", () => {
     });
 
     const request = new Request("http://localhost:3000/api/books/2");
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -105,7 +97,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should return totalReads as 0 for book with no sessions", async () => {
     // Create a book without any sessions
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 3,
       title: "New Book",
       authors: ["Author Three"],
@@ -115,7 +107,7 @@ describe("GET /api/books/[id]", () => {
     });
 
     const request = new Request("http://localhost:3000/api/books/3");
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -125,7 +117,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should return active session status with totalReads", async () => {
     // Create a book
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 4,
       title: "Active Reading Book",
       authors: ["Author Four"],
@@ -135,8 +127,8 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Create an active session
-    const activeSession = await ReadingSession.create({
-      bookId: book._id,
+    const activeSession = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -144,7 +136,7 @@ describe("GET /api/books/[id]", () => {
     });
 
     const request = new Request("http://localhost:3000/api/books/4");
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -158,7 +150,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should return latest progress for active session with totalReads", async () => {
     // Create a book
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 5,
       title: "Progress Book",
       authors: ["Author Five"],
@@ -168,26 +160,26 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Create an active session
-    const activeSession = await ReadingSession.create({
-      bookId: book._id,
+    const activeSession = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
     });
 
     // Create progress logs
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: activeSession._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: activeSession.id,
       currentPage: 50,
       currentPercentage: 14.29,
       progressDate: new Date("2024-11-01"),
       pagesRead: 50,
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: activeSession._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: activeSession.id,
       currentPage: 150,
       currentPercentage: 42.86,
       progressDate: new Date("2024-11-10"),
@@ -195,7 +187,7 @@ describe("GET /api/books/[id]", () => {
     });
 
     const request = new Request("http://localhost:3000/api/books/5");
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -208,7 +200,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should count only sessions for specific book", async () => {
     // Create two books
-    const book1 = await Book.create({
+    const book1 = await bookRepository.create({
       calibreId: 6,
       title: "Book One",
       authors: ["Author Six"],
@@ -217,7 +209,7 @@ describe("GET /api/books/[id]", () => {
       path: "Author Six/Book One (6)",
     });
 
-    const book2 = await Book.create({
+    const book2 = await bookRepository.create({
       calibreId: 7,
       title: "Book Two",
       authors: ["Author Seven"],
@@ -227,23 +219,23 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Create sessions for book1
-    await ReadingSession.create({
-      bookId: book1._id,
+    await sessionRepository.create({
+      bookId: book1.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
     });
 
-    await ReadingSession.create({
-      bookId: book1._id,
+    await sessionRepository.create({
+      bookId: book1.id,
       sessionNumber: 2,
       status: "reading",
       isActive: true,
     });
 
     // Create session for book2
-    await ReadingSession.create({
-      bookId: book2._id,
+    await sessionRepository.create({
+      bookId: book2.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -251,7 +243,7 @@ describe("GET /api/books/[id]", () => {
 
     // Check book1
     const request1 = new Request("http://localhost:3000/api/books/6");
-    const response1 = await GET(request1, { params: { id: book1._id.toString() } });
+    const response1 = await GET(request1, { params: { id: book1.id.toString() } });
     const data1 = await response1.json();
 
     expect(response1.status).toBe(200);
@@ -261,7 +253,7 @@ describe("GET /api/books/[id]", () => {
 
     // Check book2
     const request2 = new Request("http://localhost:3000/api/books/7");
-    const response2 = await GET(request2, { params: { id: book2._id.toString() } });
+    const response2 = await GET(request2, { params: { id: book2.id.toString() } });
     const data2 = await response2.json();
 
     expect(response2.status).toBe(200);
@@ -271,7 +263,7 @@ describe("GET /api/books/[id]", () => {
   });
 
   test("should return 404 for non-existent book", async () => {
-    const fakeId = new mongoose.Types.ObjectId();
+    const fakeId = 999999;
     const request = new Request("http://localhost:3000/api/books/999");
     const response = await GET(request, { params: { id: fakeId.toString() } });
     const data = await response.json();
@@ -282,7 +274,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should include totalReads even when no active session exists", async () => {
     // Create a book
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 8,
       title: "Completed Book",
       authors: ["Author Eight"],
@@ -292,16 +284,16 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Create only completed (inactive) sessions
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
       completedDate: new Date("2024-05-15"),
     });
 
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "read",
       isActive: false,
@@ -309,20 +301,20 @@ describe("GET /api/books/[id]", () => {
     });
 
     const request = new Request("http://localhost:3000/api/books/8");
-    const response = await GET(request, { params: { id: book._id.toString() } });
+    const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
     expect(data.totalReads).toBe(2);
     expect(data.hasCompletedReads).toBe(true);
-    expect(data.activeSession).toBeNull(); // No active session
+    expect(data.activeSession).toBeUndefined(); // No active session
     expect(data.latestProgress).toBeNull(); // No progress for inactive session
   });
 });
 
 describe("PATCH /api/books/[id]", () => {
   test("should update book totalPages", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 9,
       title: "Update Test Book",
       authors: ["Author Nine"],
@@ -337,19 +329,19 @@ describe("PATCH /api/books/[id]", () => {
       body: JSON.stringify({ totalPages: 350 }),
     });
 
-    const response = await PATCH(request, { params: { id: book._id.toString() } });
+    const response = await PATCH(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
     expect(data.totalPages).toBe(350);
 
     // Verify in database
-    const updatedBook = await Book.findById(book._id);
+    const updatedBook = await bookRepository.findById(book.id);
     expect(updatedBook?.totalPages).toBe(350);
   });
 
   test("should return 404 for non-existent book", async () => {
-    const fakeId = new mongoose.Types.ObjectId();
+    const fakeId = 999999;
     const request = new Request("http://localhost:3000/api/books/999", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

@@ -1,7 +1,7 @@
-import type { IStreak } from "@/models/Streak";
-import type { IBook } from "@/models/Book";
-import type { IProgressLog } from "@/models/ProgressLog";
-import type { IReadingSession } from "@/models/ReadingSession";
+import type { Book, NewBook } from "@/lib/db/schema/books";
+import type { ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
+import type { ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
+import type { Streak, NewStreak } from "@/lib/db/schema/streaks";
 
 /**
  * Test fixtures and utilities for tests
@@ -11,38 +11,35 @@ import type { IReadingSession } from "@/models/ReadingSession";
 // STREAK FIXTURES
 // ============================================================================
 
-export const mockStreakInitial: Partial<IStreak> = {
+export const mockStreakInitial: Partial<NewStreak> = {
   currentStreak: 0,
   longestStreak: 0,
   lastActivityDate: new Date("2025-11-17T05:00:00.000Z"),
   streakStartDate: new Date("2025-11-17T05:00:00.000Z"),
   totalDaysActive: 0,
-  updatedAt: new Date("2025-11-17T05:00:00.000Z"),
 };
 
-export const mockStreakActive: Partial<IStreak> = {
+export const mockStreakActive: Partial<NewStreak> = {
   currentStreak: 5,
   longestStreak: 10,
   lastActivityDate: new Date("2025-11-16T05:00:00.000Z"),
   streakStartDate: new Date("2025-11-11T05:00:00.000Z"),
   totalDaysActive: 15,
-  updatedAt: new Date("2025-11-16T05:00:00.000Z"),
 };
 
-export const mockStreakBroken: Partial<IStreak> = {
+export const mockStreakBroken: Partial<NewStreak> = {
   currentStreak: 3,
   longestStreak: 5,
   lastActivityDate: new Date("2025-11-14T05:00:00.000Z"),
   streakStartDate: new Date("2025-11-12T05:00:00.000Z"),
   totalDaysActive: 8,
-  updatedAt: new Date("2025-11-14T05:00:00.000Z"),
 };
 
 // ============================================================================
 // BOOK FIXTURES
 // ============================================================================
 
-export const mockBook1: Partial<IBook> = {
+export const mockBook1: Partial<NewBook> = {
   calibreId: 1,
   title: "A Dance with Dragons",
   authors: ["George R. R. Martin"],
@@ -57,7 +54,7 @@ export const mockBook1: Partial<IBook> = {
   orphaned: false,
 };
 
-export const mockBook2: Partial<IBook> = {
+export const mockBook2: Partial<NewBook> = {
   calibreId: 2,
   title: "The Name of the Wind",
   authors: ["Patrick Rothfuss"],
@@ -72,12 +69,13 @@ export const mockBook2: Partial<IBook> = {
   orphaned: false,
 };
 
-export const mockOrphanedBook: Partial<IBook> = {
+export const mockOrphanedBook: Partial<NewBook> = {
   calibreId: 999,
   title: "Orphaned Book",
   authors: ["Unknown Author"],
   totalPages: 300,
   path: "Unknown Author/Orphaned Book (999)",
+  tags: [],
   orphaned: true,
   orphanedAt: new Date("2025-11-01"),
 };
@@ -86,7 +84,7 @@ export const mockOrphanedBook: Partial<IBook> = {
 // PROGRESS LOG FIXTURES
 // ============================================================================
 
-export const mockProgressLog1: Partial<IProgressLog> = {
+export const mockProgressLog1: Partial<NewProgressLog> = {
   currentPage: 100,
   currentPercentage: 9.62, // 100/1040
   pagesRead: 100,
@@ -94,7 +92,7 @@ export const mockProgressLog1: Partial<IProgressLog> = {
   notes: "Great chapter!",
 };
 
-export const mockProgressLog2: Partial<IProgressLog> = {
+export const mockProgressLog2: Partial<NewProgressLog> = {
   currentPage: 250,
   currentPercentage: 24.04, // 250/1040
   pagesRead: 150,
@@ -103,51 +101,63 @@ export const mockProgressLog2: Partial<IProgressLog> = {
 };
 
 // ============================================================================
-// READING STATUS FIXTURES (Removed - use ReadingSession instead)
-// ============================================================================
-
-// ============================================================================
 // READING SESSION FIXTURES
 // ============================================================================
 
-export const mockSessionToRead: Partial<IReadingSession> = {
+export const mockSessionToRead: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "to-read",
   isActive: true,
 };
 
-export const mockSessionReadNext: Partial<IReadingSession> = {
+export const mockSessionReadNext: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "read-next",
   isActive: true,
+  userId: null,
+  bookId: 0, // Will be set in test
+  createdAt: new Date("2025-11-01T05:00:00.000Z"),
+  updatedAt: new Date("2025-11-01T05:00:00.000Z"),
 };
 
-export const mockSessionReading: Partial<IReadingSession> = {
+export const mockSessionReading: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "reading",
   startedDate: new Date("2025-11-15T05:00:00.000Z"),
   isActive: true,
+  userId: null,
+  bookId: 0, // Will be set in test
+  createdAt: new Date("2025-11-15T05:00:00.000Z"),
+  updatedAt: new Date("2025-11-15T05:00:00.000Z"),
 };
 
-export const mockSessionRead: Partial<IReadingSession> = {
+export const mockSessionRead: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "read",
   startedDate: new Date("2025-11-01T05:00:00.000Z"),
   completedDate: new Date("2025-11-16T05:00:00.000Z"),
   review: "Amazing book!",
   isActive: true,
+  userId: null,
+  bookId: 0, // Will be set in test
+  createdAt: new Date("2025-11-01T05:00:00.000Z"),
+  updatedAt: new Date("2025-11-16T05:00:00.000Z"),
 };
 
-export const mockSessionArchived: Partial<IReadingSession> = {
+export const mockSessionArchived: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "read",
   startedDate: new Date("2025-10-01T05:00:00.000Z"),
   completedDate: new Date("2025-10-20T05:00:00.000Z"),
   review: "Great first read!",
   isActive: false,
+  userId: null,
+  bookId: 0, // Will be set in test
+  createdAt: new Date("2025-10-01T05:00:00.000Z"),
+  updatedAt: new Date("2025-10-20T05:00:00.000Z"),
 };
 
-export const mockSessionReread: Partial<IReadingSession> = {
+export const mockSessionReread: Partial<NewReadingSession> = {
   sessionNumber: 2,
   status: "reading",
   startedDate: new Date("2025-11-15T05:00:00.000Z"),
@@ -178,28 +188,28 @@ export const mockCalibreBook = {
 // ============================================================================
 
 /**
- * Helper to create dates for testing
+ * Helper to create dates for testing (returns Unix timestamp in seconds)
  */
-export function createTestDate(daysAgo: number, baseDate = "2025-11-17T05:00:00.000Z"): Date {
+export function createTestDate(daysAgo: number, baseDate = "2025-11-17T05:00:00.000Z"): number {
   const date = new Date(baseDate);
   date.setDate(date.getDate() - daysAgo);
-  return date;
+  return Math.floor(date.getTime() / 1000);
 }
 
 /**
- * Helper to create a date at start of day (00:00:00)
+ * Helper to create a date at start of day (00:00:00) (returns Unix timestamp)
  */
-export function createTestDateStartOfDay(daysAgo: number): Date {
+export function createTestDateStartOfDay(daysAgo: number): number {
   const date = new Date("2025-11-17T00:00:00.000Z");
   date.setDate(date.getDate() - daysAgo);
-  return date;
+  return Math.floor(date.getTime() / 1000);
 }
 
 /**
- * Helper to create today's date at start of day
+ * Helper to create today's date at start of day (returns Unix timestamp)
  */
-export function getTodayStartOfDay(): Date {
-  return new Date("2025-11-17T00:00:00.000Z");
+export function getTodayStartOfDay(): number {
+  return Math.floor(new Date("2025-11-17T00:00:00.000Z").getTime() / 1000);
 }
 
 /**

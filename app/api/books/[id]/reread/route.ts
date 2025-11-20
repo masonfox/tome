@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { connectDB } from "@/lib/db/mongodb";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
+import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
 
 export async function POST(
@@ -11,26 +8,20 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const bookId = parseInt(params.id);
 
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: "Invalid book ID format" },
-        { status: 400 }
-      );
+    if (isNaN(bookId)) {
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
     // Check if book exists
-    const book = await Book.findById(params.id);
+    const book = await bookRepository.findById(bookId);
     if (!book) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
     // Find the most recent session (should be archived with status='read')
-    const lastSession = await ReadingSession.findOne({
-      bookId: params.id,
-    }).sort({ sessionNumber: -1 });
+    const lastSession = await sessionRepository.findLatestByBookId(bookId);
 
     if (!lastSession) {
       return NextResponse.json(
@@ -49,10 +40,7 @@ export async function POST(
     }
 
     // Check if there's already an active session
-    const existingActiveSession = await ReadingSession.findOne({
-      bookId: params.id,
-      isActive: true,
-    });
+    const existingActiveSession = await sessionRepository.findActiveByBookId(bookId);
 
     if (existingActiveSession) {
       return NextResponse.json(
@@ -62,24 +50,27 @@ export async function POST(
     }
 
     console.log(
-      `[Reread] Starting re-read after completed session #${lastSession.sessionNumber} for book ${params.id}`
+      `[Reread] Starting re-read after completed session #${lastSession.sessionNumber} for book ${bookId}`
     );
+
+    // Archive the last session first (if it's still active)
+    if (lastSession.isActive) {
+      await sessionRepository.archive(lastSession.id);
+    }
 
     // Create a new reading session
     const newSessionNumber = lastSession.sessionNumber + 1;
-    const newSession = new ReadingSession({
+    const newSession = await sessionRepository.create({
       userId: lastSession.userId,
-      bookId: params.id,
+      bookId,
       sessionNumber: newSessionNumber,
       status: "reading", // Start as 'reading' when re-reading
       startedDate: new Date(),
       isActive: true,
     });
 
-    await newSession.save();
-
     console.log(
-      `[Reread] Created new session #${newSessionNumber} for book ${params.id}`
+      `[Reread] Created new session #${newSessionNumber} for book ${bookId}`
     );
 
     // Rebuild streak from all progress logs to ensure consistency
@@ -98,21 +89,21 @@ export async function POST(
     // Revalidate pages
     revalidatePath("/"); // Dashboard
     revalidatePath("/library"); // Library page
-    revalidatePath(`/books/${params.id}`); // Book detail page
+    revalidatePath(`/books/${bookId}`); // Book detail page
 
     return NextResponse.json({
       message: "Re-reading session started successfully",
       session: newSession,
       previousSession: {
-        id: lastSession._id,
+        id: lastSession.id,
         sessionNumber: lastSession.sessionNumber,
       },
     });
   } catch (error: any) {
     console.error("Error starting re-read:", error);
 
-    // Handle MongoDB duplicate key error (race condition)
-    if (error.code === 11000) {
+    // Handle SQLite unique constraint error (race condition)
+    if (error.message?.includes("UNIQUE constraint failed")) {
       return NextResponse.json(
         { error: "An active reading session already exists for this book" },
         { status: 400 }

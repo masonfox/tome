@@ -8,16 +8,16 @@ export async function register() {
     const { calibreWatcher } = await import("./lib/calibre-watcher");
     const { syncCalibreLibrary } = await import("./lib/sync-service");
 
-    const CALIBRE_LIBRARY_PATH = process.env.CALIBRE_LIBRARY_PATH;
+    const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
-    if (CALIBRE_LIBRARY_PATH) {
+    if (CALIBRE_DB_PATH) {
       console.log(`Initializing Calibre automatic sync (${runtime} runtime)...`);
 
       // Start watching the Calibre database for changes
-      await calibreWatcher.start(CALIBRE_LIBRARY_PATH, syncCalibreLibrary);
+      await calibreWatcher.start(CALIBRE_DB_PATH, syncCalibreLibrary);
     } else {
       console.log(
-        "CALIBRE_LIBRARY_PATH not configured. Automatic sync is disabled."
+        "CALIBRE_DB_PATH not configured. Automatic sync is disabled."
       );
     }
 

@@ -1,33 +1,25 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-let mongoServer: MongoMemoryServer;
+mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  // Clear all collections before each test
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
+  await clearTestDatabase();
 });
 
 describe("Session Lifecycle - Auto-Archive on Read", () => {
   test("should auto-archive session when status changes to 'read'", async () => {
     // Create a book
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
@@ -37,8 +29,8 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
     });
 
     // Create an active reading session
-    const session = await ReadingSession.create({
-      bookId: book._id,
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -49,15 +41,11 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
     expect(session.status).toBe("reading");
 
     // Update session to 'read' status (simulating what the API does)
-    const updatedSession = await ReadingSession.findByIdAndUpdate(
-      session._id,
-      {
-        status: "read",
-        completedDate: new Date(),
-        isActive: false, // Auto-archive
-      },
-      { new: true }
-    );
+    const updatedSession = await sessionRepository.update(session.id, {
+      status: "read",
+      completedDate: new Date(),
+      isActive: false, // Auto-archive
+    });
 
     expect(updatedSession?.status).toBe("read");
     expect(updatedSession?.isActive).toBe(false);
@@ -65,7 +53,7 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
   });
 
   test("should not allow creating multiple active sessions per book", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 2,
       title: "Test Book 2",
       authors: ["Test Author"],
@@ -75,21 +63,22 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
     });
 
     // Create first active session
-    const session1 = await ReadingSession.create({
-      bookId: book._id,
+    const session1 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
     });
 
     // Try to mark it as read (should archive it)
-    session1.status = "read";
-    session1.isActive = false;
-    await session1.save();
+    await sessionRepository.update(session1.id, {
+      status: "read",
+      isActive: false,
+    });
 
     // Create a second active session (simulate re-reading)
-    const session2 = await ReadingSession.create({
-      bookId: book._id,
+    const session2 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "reading",
       isActive: true,
@@ -97,35 +86,31 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
 
     // Now try to create a third active session - this should fail or be prevented
     try {
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 3,
         status: "reading",
         isActive: true,
       });
-      
+
       // If we got here without error, verify we still have only one active session
       // (the database constraint should have prevented the duplicate)
-      const activeSessions = await ReadingSession.find({
-        bookId: book._id,
-        isActive: true,
-      });
-      expect(activeSessions.length).toBe(1);
+      const activeSessions = await sessionRepository.findAllByBookId(book.id);
+      const activeCount = activeSessions.filter(s => s.isActive).length;
+      expect(activeCount).toBe(1);
     } catch (error: any) {
-      // Expected: MongoDB duplicate key error
-      expect(error.code).toBe(11000);
-      
+      // Expected: SQLite unique constraint error
+      expect(error.message).toContain("UNIQUE constraint failed");
+
       // Verify we still have exactly one active session
-      const activeSessions = await ReadingSession.find({
-        bookId: book._id,
-        isActive: true,
-      });
-      expect(activeSessions.length).toBe(1);
+      const activeSessions = await sessionRepository.findAllByBookId(book.id);
+      const activeCount = activeSessions.filter(s => s.isActive).length;
+      expect(activeCount).toBe(1);
     }
   });
 
   test("should allow multiple archived sessions per book", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 3,
       title: "Test Book 3",
       authors: ["Test Author"],
@@ -135,16 +120,16 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
     });
 
     // Create multiple archived sessions - should succeed
-    const session1 = await ReadingSession.create({
-      bookId: book._id,
+    const session1 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
       completedDate: new Date(),
     });
 
-    const session2 = await ReadingSession.create({
-      bookId: book._id,
+    const session2 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "read",
       isActive: false,
@@ -154,14 +139,14 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
     expect(session1.isActive).toBe(false);
     expect(session2.isActive).toBe(false);
 
-    const sessions = await ReadingSession.find({ bookId: book._id });
+    const sessions = await sessionRepository.findAllByBookId(book.id);
     expect(sessions.length).toBe(2);
   });
 });
 
 describe("Re-reading Flow", () => {
   test("should create new session after previous session is archived", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 4,
       title: "Test Book 4",
       authors: ["Test Author"],
@@ -171,8 +156,8 @@ describe("Re-reading Flow", () => {
     });
 
     // Create and archive first session
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
@@ -181,8 +166,8 @@ describe("Re-reading Flow", () => {
     });
 
     // Create new active session for re-read
-    const session2 = await ReadingSession.create({
-      bookId: book._id,
+    const session2 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "reading",
       isActive: true,
@@ -194,16 +179,15 @@ describe("Re-reading Flow", () => {
     expect(session2.status).toBe("reading");
 
     // Verify both sessions exist
-    const allSessions = await ReadingSession.find({ bookId: book._id }).sort({
-      sessionNumber: 1,
-    });
+    const allSessions = await sessionRepository.findAllByBookId(book.id);
+    allSessions.sort((a, b) => a.sessionNumber - b.sessionNumber);
     expect(allSessions.length).toBe(2);
     expect(allSessions[0].isActive).toBe(false);
     expect(allSessions[1].isActive).toBe(true);
   });
 
   test("should not allow re-reading if last session is not completed", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 5,
       title: "Test Book 5",
       authors: ["Test Author"],
@@ -213,8 +197,8 @@ describe("Re-reading Flow", () => {
     });
 
     // Create active reading session (not completed)
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -222,22 +206,22 @@ describe("Re-reading Flow", () => {
     });
 
     // Find session and check status
-    const lastSession = await ReadingSession.findOne({ bookId: book._id }).sort({
-      sessionNumber: -1,
-    });
+    const sessions = await sessionRepository.findAllByBookId(book.id);
+    sessions.sort((a, b) => b.sessionNumber - a.sessionNumber);
+    const lastSession = sessions[0];
 
     expect(lastSession?.status).not.toBe("read");
 
     // This simulates the API check - re-reading should not be allowed
     if (lastSession?.status !== "read") {
       // Expected behavior - don't create new session
-      const sessionCount = await ReadingSession.countDocuments({ bookId: book._id });
-      expect(sessionCount).toBe(1);
+      const allSessions = await sessionRepository.findAllByBookId(book.id);
+      expect(allSessions.length).toBe(1);
     }
   });
 
   test("should not allow re-reading if active session already exists", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 6,
       title: "Test Book 6",
       authors: ["Test Author"],
@@ -247,8 +231,8 @@ describe("Re-reading Flow", () => {
     });
 
     // Create archived session
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
@@ -256,8 +240,8 @@ describe("Re-reading Flow", () => {
     });
 
     // Create active session (already re-reading)
-    await ReadingSession.create({
-      bookId: book._id,
+    await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "reading",
       isActive: true,
@@ -265,25 +249,20 @@ describe("Re-reading Flow", () => {
     });
 
     // Check if active session exists
-    const existingActiveSession = await ReadingSession.findOne({
-      bookId: book._id,
-      isActive: true,
-    });
+    const existingActiveSession = await sessionRepository.findActiveByBookId(book.id);
 
     expect(existingActiveSession).toBeDefined();
 
     // Should not create another active session
-    const sessionCount = await ReadingSession.countDocuments({
-      bookId: book._id,
-      isActive: true,
-    });
-    expect(sessionCount).toBe(1);
+    const sessions = await sessionRepository.findAllByBookId(book.id);
+    const activeCount = sessions.filter(s => s.isActive).length;
+    expect(activeCount).toBe(1);
   });
 });
 
 describe("Progress Logging Validation", () => {
   test("should only allow progress logging for active 'reading' sessions", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 7,
       title: "Test Book 7",
       authors: ["Test Author"],
@@ -293,8 +272,8 @@ describe("Progress Logging Validation", () => {
     });
 
     // Create active reading session
-    const session = await ReadingSession.create({
-      bookId: book._id,
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
@@ -302,21 +281,21 @@ describe("Progress Logging Validation", () => {
     });
 
     // Should allow progress logging
-    const progressLog = await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session._id,
+    const progressLog = await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
       currentPage: 50,
       currentPercentage: 31.25,
       progressDate: new Date(),
       pagesRead: 50,
     });
 
-    expect(progressLog.sessionId?.toString()).toBe((session._id as mongoose.Types.ObjectId).toString());
+    expect(progressLog.sessionId).toBe(session.id);
     expect(progressLog.currentPage).toBe(50);
   });
 
   test("should not allow progress logging when session is not 'reading'", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 8,
       title: "Test Book 8",
       authors: ["Test Author"],
@@ -326,8 +305,8 @@ describe("Progress Logging Validation", () => {
     });
 
     // Create active session with 'to-read' status
-    const session = await ReadingSession.create({
-      bookId: book._id,
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "to-read",
       isActive: true,
@@ -339,13 +318,13 @@ describe("Progress Logging Validation", () => {
     // This simulates the API validation - progress should not be logged
     if (session.status !== "reading") {
       // Don't create progress log
-      const progressCount = await ProgressLog.countDocuments({ sessionId: session._id });
-      expect(progressCount).toBe(0);
+      const progressLogs = await progressRepository.findBySessionId(session.id);
+      expect(progressLogs.length).toBe(0);
     }
   });
 
   test("should not allow progress logging when session is archived", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 9,
       title: "Test Book 9",
       authors: ["Test Author"],
@@ -355,8 +334,8 @@ describe("Progress Logging Validation", () => {
     });
 
     // Create archived completed session
-    const session = await ReadingSession.create({
-      bookId: book._id,
+    const session = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "read",
       isActive: false,
@@ -364,22 +343,19 @@ describe("Progress Logging Validation", () => {
     });
 
     // Try to find active session
-    const activeSession = await ReadingSession.findOne({
-      bookId: book._id,
-      isActive: true,
-    });
+    const activeSession = await sessionRepository.findActiveByBookId(book.id);
 
-    expect(activeSession).toBeNull();
+    expect(activeSession).toBeUndefined();
 
     // No active session = cannot log progress
-    const progressCount = await ProgressLog.countDocuments({ bookId: book._id });
-    expect(progressCount).toBe(0);
+    const progressLogs = await progressRepository.findByBookId(book.id);
+    expect(progressLogs.length).toBe(0);
   });
 });
 
 describe("Progress Isolation Between Sessions", () => {
   test("should link progress logs to correct session", async () => {
-    const book = await Book.create({
+    const book = await bookRepository.create({
       calibreId: 10,
       title: "Test Book 10",
       authors: ["Test Author"],
@@ -389,17 +365,17 @@ describe("Progress Isolation Between Sessions", () => {
     });
 
     // Create first session with progress
-    const session1 = await ReadingSession.create({
-      bookId: book._id,
+    const session1 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
       startedDate: new Date("2025-01-01"),
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session1._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session1.id,
       currentPage: 100,
       currentPercentage: 50,
       progressDate: new Date("2025-01-10"),
@@ -407,23 +383,24 @@ describe("Progress Isolation Between Sessions", () => {
     });
 
     // Archive first session
-    session1.status = "read";
-    session1.isActive = false;
-    session1.completedDate = new Date("2025-01-15");
-    await session1.save();
+    await sessionRepository.update(session1.id, {
+      status: "read",
+      isActive: false,
+      completedDate: new Date("2025-01-15"),
+    });
 
     // Create second session with progress
-    const session2 = await ReadingSession.create({
-      bookId: book._id,
+    const session2 = await sessionRepository.create({
+      bookId: book.id,
       sessionNumber: 2,
       status: "reading",
       isActive: true,
       startedDate: new Date("2025-02-01"),
     });
 
-    await ProgressLog.create({
-      bookId: book._id,
-      sessionId: session2._id,
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session2.id,
       currentPage: 75,
       currentPercentage: 37.5,
       progressDate: new Date("2025-02-05"),
@@ -431,8 +408,8 @@ describe("Progress Isolation Between Sessions", () => {
     });
 
     // Verify isolation
-    const session1Progress = await ProgressLog.find({ sessionId: session1._id });
-    const session2Progress = await ProgressLog.find({ sessionId: session2._id });
+    const session1Progress = await progressRepository.findBySessionId(session1.id);
+    const session2Progress = await progressRepository.findBySessionId(session2.id);
 
     expect(session1Progress.length).toBe(1);
     expect(session2Progress.length).toBe(1);

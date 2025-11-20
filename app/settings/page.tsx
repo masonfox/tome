@@ -98,15 +98,15 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)]/70 mb-2">
-                  Calibre Library Path
+                  Calibre Database Path
                 </label>
                 <p className="text-sm text-[var(--foreground)]/60 bg-[var(--background)] p-3 font-mono font-medium">
-                  {process.env.NEXT_PUBLIC_CALIBRE_LIBRARY_PATH ||
-                    process.env.CALIBRE_LIBRARY_PATH ||
-                    "Not configured - set CALIBRE_LIBRARY_PATH in .env"}
+                  {process.env.NEXT_PUBLIC_CALIBRE_DB_PATH ||
+                    process.env.CALIBRE_DB_PATH ||
+                    "Not configured - set CALIBRE_DB_PATH in .env"}
                 </p>
                 <p className="text-xs text-[var(--foreground)]/60 mt-2 font-medium">
-                  Point to your Calibre library folder (metadata.db should be at the root)
+                  Path to your Calibre metadata.db file
                 </p>
               </div>
 
@@ -122,7 +122,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-[var(--foreground)]/70 font-medium">
                         {syncStatus.autoSyncEnabled
                           ? "The app automatically syncs when Calibre's database is modified"
-                          : "Set CALIBRE_LIBRARY_PATH in .env to enable automatic sync"}
+                          : "Set CALIBRE_DB_PATH in .env to enable automatic sync"}
                       </p>
                       {syncStatus.lastSync && (
                         <p className="text-sm text-[var(--foreground)]/70 mt-2 font-medium">
@@ -179,11 +179,11 @@ export default function SettingsPage() {
           Setup Instructions
         </h3>
         <div className="text-sm text-[var(--foreground)]/70 space-y-2 font-medium">
-          <p>1. Locate your Calibre library folder on your computer</p>
+          <p>1. Locate your Calibre library's metadata.db file on your computer</p>
           <p>2. Copy the .env.example file to .env</p>
           <p>
-            3. Set CALIBRE_LIBRARY_PATH to your Calibre library folder path
-            (e.g., /home/user/Calibre Library)
+            3. Set CALIBRE_DB_PATH to your metadata.db file path
+            (e.g., /home/user/Calibre Library/metadata.db)
           </p>
           <p>4. Restart the application</p>
           <p>5. Click "Sync Now" to import your books</p>

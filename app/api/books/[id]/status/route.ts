@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { connectDB } from "@/lib/db/mongodb";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
+import { sessionRepository, progressRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
 
 export async function GET(
@@ -10,25 +8,23 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const bookId = parseInt(params.id);
+
+    if (isNaN(bookId)) {
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
+    }
 
     // Get active reading session for this book
-    const session = await ReadingSession.findOne({
-      bookId: params.id,
-      isActive: true,
-    });
+    const session = await sessionRepository.findActiveByBookId(bookId);
 
     if (!session) {
       return NextResponse.json({ status: null });
     }
 
-    return NextResponse.json(JSON.parse(JSON.stringify(session)));
+    return NextResponse.json(session);
   } catch (error) {
     console.error("Error fetching status:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch status" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch status" }, { status: 500 });
   }
 }
 
@@ -37,7 +33,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const bookId = parseInt(params.id);
+
+    if (isNaN(bookId)) {
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
+    }
 
     const body = await request.json();
     const { status, rating, review, startedDate, completedDate } = body;
@@ -50,10 +50,7 @@ export async function POST(
     }
 
     // Find active reading session or create new one
-    let readingSession = await ReadingSession.findOne({
-      bookId: params.id,
-      isActive: true,
-    });
+    let readingSession = await sessionRepository.findActiveByBookId(bookId);
 
     // Detect "backward movement" from "reading" to planning statuses
     const isBackwardMovement =
@@ -64,8 +61,7 @@ export async function POST(
     // Check if current session has progress
     let hasProgress = false;
     if (isBackwardMovement && readingSession) {
-      const progressExists = await ProgressLog.exists({ sessionId: readingSession._id });
-      hasProgress = !!progressExists; // Convert to boolean
+      hasProgress = await progressRepository.hasProgressForSession(readingSession.id);
     }
 
     // If moving backward with progress, archive current session and create new one
@@ -75,16 +71,15 @@ export async function POST(
       );
 
       // Archive current session
-      readingSession.isActive = false;
-      await readingSession.save();
+      await sessionRepository.archive(readingSession.id);
 
       // Create new session with new status
       const newSessionNumber = readingSession.sessionNumber + 1;
-      const newSession = await ReadingSession.create({
+      const newSession = await sessionRepository.create({
         userId: readingSession.userId,
-        bookId: params.id,
+        bookId,
         sessionNumber: newSessionNumber,
-        status,
+        status: status as any,
         isActive: true,
       });
 
@@ -101,10 +96,10 @@ export async function POST(
       revalidatePath("/");
       revalidatePath("/library");
       revalidatePath("/stats");
-      revalidatePath(`/books/${params.id}`);
+      revalidatePath(`/books/${bookId}`);
 
       return NextResponse.json({
-        ...JSON.parse(JSON.stringify(newSession)),
+        ...newSession,
         sessionArchived: true,
         archivedSessionNumber: readingSession.sessionNumber,
       });
@@ -115,16 +110,22 @@ export async function POST(
       status,
     };
 
-    // Set dates based on status
+    // Set dates based on status (use Date objects for Drizzle)
     if (status === "reading" && !readingSession?.startedDate) {
-      updateData.startedDate = startedDate || new Date();
+      updateData.startedDate = startedDate 
+        ? new Date(startedDate)
+        : new Date();
     }
 
     if (status === "read") {
       if (!updateData.startedDate && !readingSession?.startedDate) {
-        updateData.startedDate = startedDate || new Date();
+        updateData.startedDate = startedDate 
+          ? new Date(startedDate)
+          : new Date();
       }
-      updateData.completedDate = completedDate || new Date();
+      updateData.completedDate = completedDate 
+        ? new Date(completedDate)
+        : new Date();
       // Auto-archive session when marked as read
       updateData.isActive = false;
     }
@@ -139,22 +140,14 @@ export async function POST(
 
     if (readingSession) {
       // Update existing session
-      readingSession = await ReadingSession.findByIdAndUpdate(
-        readingSession._id,
-        updateData,
-        { new: true }
-      );
+      readingSession = await sessionRepository.update(readingSession.id, updateData);
     } else {
       // Create new session (first time reading this book)
-      // Find the highest session number for this book
-      const lastSession = await ReadingSession.findOne({ bookId: params.id })
-        .sort({ sessionNumber: -1 })
-        .limit(1);
+      // Get next session number
+      const sessionNumber = await sessionRepository.getNextSessionNumber(bookId);
 
-      const sessionNumber = lastSession ? lastSession.sessionNumber + 1 : 1;
-
-      readingSession = await ReadingSession.create({
-        bookId: params.id,
+      readingSession = await sessionRepository.create({
+        bookId,
         sessionNumber,
         isActive: true,
         ...updateData,
@@ -165,14 +158,11 @@ export async function POST(
     revalidatePath("/"); // Dashboard
     revalidatePath("/library"); // Library page
     revalidatePath("/stats"); // Stats page
-    revalidatePath(`/books/${params.id}`); // Book detail page
+    revalidatePath(`/books/${bookId}`); // Book detail page
 
-    return NextResponse.json(JSON.parse(JSON.stringify(readingSession)));
+    return NextResponse.json(readingSession);
   } catch (error) {
     console.error("Error updating status:", error);
-    return NextResponse.json(
-      { error: "Failed to update status" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
   }
 }

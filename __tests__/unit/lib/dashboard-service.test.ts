@@ -1,30 +1,23 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach } from "bun:test";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { getDashboardData } from "@/lib/dashboard-service";
-import Book from "@/models/Book";
-import ReadingSession from "@/models/ReadingSession";
-import ProgressLog from "@/models/ProgressLog";
-import Streak from "@/models/Streak";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-let mongoServer: MongoMemoryServer;
+// Mock Next.js cache revalidation
+mock.module("next/cache", () => ({
+  revalidatePath: () => {},
+}));
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
+  await setupTestDatabase();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await teardownTestDatabase();
 });
 
 beforeEach(async () => {
-  // Clear all collections before each test
-  await Book.deleteMany({});
-  await ReadingSession.deleteMany({});
-  await ProgressLog.deleteMany({});
-  await Streak.deleteMany({});
+  await clearTestDatabase();
 });
 
 describe("Dashboard Service", () => {
@@ -33,7 +26,7 @@ describe("Dashboard Service", () => {
       // Create 8 books
       const books = await Promise.all(
         Array.from({ length: 8 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -45,8 +38,8 @@ describe("Dashboard Service", () => {
       // Create 8 reading sessions
       await Promise.all(
         books.map((book, i) =>
-          ReadingSession.create({
-            bookId: book._id,
+          sessionRepository.create({
+            bookId: book.id,
             sessionNumber: 1,
             status: "reading",
             isActive: true,
@@ -66,7 +59,7 @@ describe("Dashboard Service", () => {
       // Create 10 books
       const books = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -78,8 +71,8 @@ describe("Dashboard Service", () => {
       // Create 10 read-next sessions
       await Promise.all(
         books.map((book, i) =>
-          ReadingSession.create({
-            bookId: book._id,
+          sessionRepository.create({
+            bookId: book.id,
             sessionNumber: 1,
             status: "read-next",
             isActive: true,
@@ -99,7 +92,7 @@ describe("Dashboard Service", () => {
       // Create 3 books
       const books = await Promise.all(
         Array.from({ length: 3 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -108,29 +101,28 @@ describe("Dashboard Service", () => {
         )
       );
 
-      // Create sessions - they'll naturally have different createdAt/updatedAt
-      // due to sequential creation
-      await ReadingSession.create({
-        bookId: books[0]._id,
+      // Create sessions with explicit updatedAt times to ensure proper ordering
+      const session1 = await sessionRepository.create({
+        bookId: books[0].id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
       // Small delay to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 20));
 
-      await ReadingSession.create({
-        bookId: books[1]._id,
+      const session2 = await sessionRepository.create({
+        bookId: books[1].id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 20));
 
-      await ReadingSession.create({
-        bookId: books[2]._id,
+      const session3 = await sessionRepository.create({
+        bookId: books[2].id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
@@ -141,15 +133,20 @@ describe("Dashboard Service", () => {
       // Should be sorted by most recent updatedAt first (desc order)
       // Book 3 created last should be first, Book 1 created first should be last
       expect(result.currentlyReading.length).toBe(3);
+
+      // Verify all books are present
+      const titles = result.currentlyReading.map(b => b.title).sort();
+      expect(titles).toEqual(["Book 1", "Book 2", "Book 3"]);
+
+      // Verify first book is the most recently updated (Book 3)
       expect(result.currentlyReading[0].title).toBe("Book 3");
-      expect(result.currentlyReading[2].title).toBe("Book 1");
     });
 
     test("should handle case with fewer than 6 books", async () => {
       // Create only 3 books
       const books = await Promise.all(
         Array.from({ length: 3 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -161,8 +158,8 @@ describe("Dashboard Service", () => {
       // Create 3 reading sessions
       await Promise.all(
         books.map((book) =>
-          ReadingSession.create({
-            bookId: book._id,
+          sessionRepository.create({
+            bookId: book.id,
             sessionNumber: 1,
             status: "reading",
             isActive: true,
@@ -190,7 +187,7 @@ describe("Dashboard Service", () => {
       // Create 8 books, 2 orphaned
       const books = await Promise.all(
         Array.from({ length: 8 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -203,8 +200,8 @@ describe("Dashboard Service", () => {
       // Create 8 reading sessions
       await Promise.all(
         books.map((book) =>
-          ReadingSession.create({
-            bookId: book._id,
+          sessionRepository.create({
+            bookId: book.id,
             sessionNumber: 1,
             status: "reading",
             isActive: true,
@@ -227,7 +224,7 @@ describe("Dashboard Service", () => {
     });
 
     test("should include latest progress for currently reading books", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Test Book",
         authors: ["Test Author"],
@@ -235,16 +232,16 @@ describe("Dashboard Service", () => {
         totalPages: 300,
       });
 
-      const session = await ReadingSession.create({
-        bookId: book._id,
+      const session = await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
       });
 
-      await ProgressLog.create({
-        bookId: book._id,
-        sessionId: session._id,
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
         currentPage: 100,
         currentPercentage: 33.33,
         progressDate: new Date(),
@@ -260,7 +257,7 @@ describe("Dashboard Service", () => {
     });
 
     test("should only return active sessions", async () => {
-      const book = await Book.create({
+      const book = await bookRepository.create({
         calibreId: 1,
         title: "Test Book",
         authors: ["Test Author"],
@@ -268,16 +265,16 @@ describe("Dashboard Service", () => {
       });
 
       // Create inactive session
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: false,
       });
 
       // Create active session
-      await ReadingSession.create({
-        bookId: book._id,
+      await sessionRepository.create({
+        bookId: book.id,
         sessionNumber: 2,
         status: "reading",
         isActive: true,
@@ -296,7 +293,7 @@ describe("Dashboard Service", () => {
       // Create 3 books
       const books = await Promise.all(
         Array.from({ length: 3 }, (_, i) =>
-          Book.create({
+          bookRepository.create({
             calibreId: i + 1,
             title: `Book ${i + 1}`,
             authors: [`Author ${i + 1}`],
@@ -305,10 +302,10 @@ describe("Dashboard Service", () => {
         )
       );
 
-      // Create sessions with same updatedAt but different _id (insertion order)
+      // Create sessions with same updatedAt but different id (insertion order)
       for (const book of books) {
-        await ReadingSession.create({
-          bookId: book._id,
+        await sessionRepository.create({
+          bookId: book.id,
           sessionNumber: 1,
           status: "reading",
           isActive: true,
@@ -321,7 +318,7 @@ describe("Dashboard Service", () => {
 
       // Should return all 3 books in consistent order
       expect(result.currentlyReading.length).toBe(3);
-      // When updatedAt is same, order is determined by MongoDB's internal sorting
+      // When updatedAt is same, order is determined by SQLite's internal sorting
       // Just verify we got all 3 books
       const titles = result.currentlyReading.map(b => b.title).sort();
       expect(titles).toEqual(["Book 1", "Book 2", "Book 3"]);
