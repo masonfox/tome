@@ -588,3 +588,302 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(activeSessions[0].sessionNumber).toBe(2);
   });
 });
+
+describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
+  // Track calls to updateCalibreRating for verification
+  let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
+  
+  beforeAll(() => {
+    // Mock the calibre-write module to capture calls
+    mock.module("@/lib/db/calibre-write", () => ({
+      updateCalibreRating: (calibreId: number, rating: number | null) => {
+        calibreRatingCalls.push({ calibreId, rating });
+      },
+      readCalibreRating: (calibreId: number) => null,
+      getCalibreWriteDB: () => ({}),
+      closeCalibreWriteDB: () => {},
+    }));
+  });
+  
+  beforeEach(() => {
+    // Clear tracking array before each test
+    calibreRatingCalls = [];
+  });
+
+  // ============================================================================
+  // RATING SYNC: POSITIVE CASES
+  // ============================================================================
+
+  test("should sync rating to Calibre when marking book as 'read' with rating", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1 as any);
+    await sessionRepository.create({
+      ...mockSessionReading,
+      bookId: book.id,
+      status: "reading",
+      isActive: true,
+      sessionNumber: 1,
+    } as any);
+
+    // Act
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+      rating: 5,
+    });
+    const response = await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+    const data = await response.json();
+
+    // Assert - Response successful
+    expect(response.status).toBe(200);
+    expect(data.status).toBe("read");
+
+    // Assert - Calibre was updated
+    expect(calibreRatingCalls).toHaveLength(1);
+    expect(calibreRatingCalls[0].calibreId).toBe(book.calibreId);
+    expect(calibreRatingCalls[0].rating).toBe(5);
+
+    // Assert - Tome DB also updated
+    const updatedBook = await bookRepository.findById(book.id);
+    expect(updatedBook?.rating).toBe(5);
+  });
+
+  test("should sync rating to Calibre with different star values", async () => {
+    const testCases = [
+      { rating: 1, description: "1 star" },
+      { rating: 2, description: "2 stars" },
+      { rating: 3, description: "3 stars" },
+      { rating: 4, description: "4 stars" },
+      { rating: 5, description: "5 stars" },
+    ];
+
+    for (const testCase of testCases) {
+      // Clear previous calls
+      calibreRatingCalls = [];
+      
+      // Arrange
+      const book = await bookRepository.create({
+        ...mockBook1,
+        calibreId: testCase.rating, // Use unique calibreId for each
+      });
+      await sessionRepository.create({
+        ...mockSessionReading,
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+      });
+
+      // Act
+      const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+        status: "read",
+        rating: testCase.rating,
+      });
+      await POST(request as NextRequest, {
+        params: { id: book.id.toString() },
+      });
+
+      // Assert
+      expect(calibreRatingCalls).toHaveLength(1);
+      expect(calibreRatingCalls[0].rating).toBe(testCase.rating);
+    }
+  });
+
+  test("should remove rating from Calibre when marking as 'read' with rating=null", async () => {
+    // Arrange - Book with existing rating
+    const book = await bookRepository.create({
+      ...mockBook1,
+      rating: 4,
+    });
+    await sessionRepository.create({
+      ...mockSessionReading,
+      bookId: book.id,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Act
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+      rating: null,
+    });
+    const response = await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+
+    // Assert - Response successful
+    expect(response.status).toBe(200);
+
+    // Assert - Calibre rating removed
+    expect(calibreRatingCalls).toHaveLength(1);
+    expect(calibreRatingCalls[0].calibreId).toBe(book.calibreId);
+    expect(calibreRatingCalls[0].rating).toBeNull();
+
+    // Assert - Tome DB rating also removed
+    const updatedBook = await bookRepository.findById(book.id);
+    expect(updatedBook?.rating).toBeNull();
+  });
+
+  // ============================================================================
+  // RATING SYNC: NEGATIVE CASES (should NOT call Calibre)
+  // ============================================================================
+
+  test("should NOT call Calibre when rating is not provided", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
+      ...mockSessionReading,
+      bookId: book.id,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Act - Mark as read WITHOUT rating
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+    });
+    const response = await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+
+    // Assert - Response successful
+    expect(response.status).toBe(200);
+
+    // Assert - Calibre was NOT called
+    expect(calibreRatingCalls).toHaveLength(0);
+  });
+
+  test("should NOT call Calibre when changing status without rating", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
+      ...mockSessionToRead,
+      bookId: book.id,
+      status: "to-read",
+      isActive: true,
+    });
+
+    // Act - Change to reading without rating
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "reading",
+    });
+    await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+
+    // Assert - Calibre was NOT called
+    expect(calibreRatingCalls).toHaveLength(0);
+  });
+
+  // ============================================================================
+  // ERROR HANDLING
+  // ============================================================================
+
+  test("should continue status update even if Calibre sync fails", async () => {
+    // Arrange - Mock Calibre to throw error
+    mock.module("@/lib/db/calibre-write", () => ({
+      updateCalibreRating: () => {
+        throw new Error("Calibre database unavailable");
+      },
+      readCalibreRating: (calibreId: number) => null,
+      getCalibreWriteDB: () => ({}),
+      closeCalibreWriteDB: () => {},
+    }));
+
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
+      ...mockSessionReading,
+      bookId: book.id,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Act
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+      rating: 5,
+    });
+    const response = await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+    const data = await response.json();
+
+    // Assert - Status update still succeeded
+    expect(response.status).toBe(200);
+    expect(data.status).toBe("read");
+    expect(data.isActive).toBe(false);
+
+    // Assert - Tome DB was still updated
+    const updatedBook = await bookRepository.findById(book.id);
+    expect(updatedBook?.rating).toBe(5);
+
+    // Restore normal mock
+    mock.module("@/lib/db/calibre-write", () => ({
+      updateCalibreRating: (calibreId: number, rating: number | null) => {
+        calibreRatingCalls.push({ calibreId, rating });
+      },
+      readCalibreRating: (calibreId: number) => null,
+      getCalibreWriteDB: () => ({}),
+      closeCalibreWriteDB: () => {},
+    }));
+  });
+
+  // ============================================================================
+  // WORKFLOW INTEGRATION
+  // ============================================================================
+
+  test("should sync rating when marking as 'read' from 'to-read' with rating", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    await sessionRepository.create({
+      ...mockSessionToRead,
+      bookId: book.id,
+      status: "to-read",
+      isActive: true,
+    });
+
+    // Act - Jump directly to read with rating
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+      rating: 4,
+    });
+    await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+
+    // Assert - Calibre was updated
+    expect(calibreRatingCalls).toHaveLength(1);
+    expect(calibreRatingCalls[0].rating).toBe(4);
+  });
+
+  test("should sync rating when updating existing 'read' status with new rating", async () => {
+    // Arrange - Book already marked as read
+    const book = await bookRepository.create({
+      ...mockBook1,
+      rating: 3,
+    });
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      status: "read",
+      isActive: false,
+    });
+
+    // Act - Update rating on already-read book
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+      rating: 5,
+    });
+    await POST(request as NextRequest, {
+      params: { id: book.id.toString() },
+    });
+
+    // Assert - Calibre was updated with new rating
+    expect(calibreRatingCalls).toHaveLength(1);
+    expect(calibreRatingCalls[0].rating).toBe(5);
+
+    // Assert - Tome DB also updated
+    const updatedBook = await bookRepository.findById(book.id);
+    expect(updatedBook?.rating).toBe(5);
+  });
+});

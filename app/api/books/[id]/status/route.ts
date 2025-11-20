@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { sessionRepository, progressRepository, bookRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
+import { updateCalibreRating } from "@/lib/db/calibre-write";
 
 export async function GET(
   request: NextRequest,
@@ -152,7 +153,28 @@ export async function POST(
 
     // Update book rating if provided (single source of truth: books table)
     if (rating !== undefined) {
-      await bookRepository.update(bookId, { rating });
+      // Get book to access calibreId for Calibre sync
+      const book = await bookRepository.findById(bookId);
+      
+      if (book) {
+        try {
+          // Sync to Calibre first (before updating Tome)
+          updateCalibreRating(book.calibreId, rating ?? null);
+          console.log(`[Status API] Synced rating to Calibre for book ${bookId} (calibreId: ${book.calibreId}): ${rating ?? 'removed'}`);
+        } catch (calibreError) {
+          // Log error but continue with status update
+          // Rationale: Status updates are workflow operations, not explicit rating changes
+          // The next Calibre→Tome sync will correct any inconsistency
+          console.error(`[Status API] Failed to sync rating to Calibre for book ${bookId}:`, calibreError);
+          console.error(`[Status API] Rating will be out of sync until next Calibre sync runs`);
+          // Don't fail the entire status update - user can still mark book as read
+        }
+        
+        // Update Tome database
+        await bookRepository.update(bookId, { rating: rating ?? null });
+      } else {
+        console.error(`[Status API] Could not find book ${bookId} to sync rating`);
+      }
     }
     // Note: Rating is never stored on sessions - only on books (synced with Calibre)
 
