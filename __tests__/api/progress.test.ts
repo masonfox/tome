@@ -1,10 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { GET, POST } from "@/app/api/books/[id]/progress/route";
 import { bookRepository, progressRepository, sessionRepository } from "@/lib/repositories";
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, getTestSqlite } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
-import { sqlite } from "@/lib/db/sqlite";
 
 /**
  * Progress API Tests
@@ -459,36 +458,39 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(data.error).toBe("Invalid book ID format");
   });
 
-  test("updates session updatedAt timestamp when logging progress", async () => {
-    // Arrange: Find the session created in beforeEach and set old timestamp
-    const oldTime = new Date(Date.now() - 60000); // 1 minute ago
-    const session = await sessionRepository.findActiveByBookId(testBook.id);
-    expect(session).toBeTruthy();
+   test("updates session updatedAt timestamp when logging progress", async () => {
+     // Arrange: Find the session created in beforeEach and set old timestamp
+     const oldTime = new Date(Date.now() - 60000); // 1 minute ago
+     const session = await sessionRepository.findActiveByBookId(testBook.id);
+     expect(session).toBeTruthy();
 
-    // Update the session with an old timestamp using direct SQL
-    sqlite.exec(`UPDATE reading_sessions SET updated_at = ${Math.floor(oldTime.getTime() / 1000)} WHERE id = ${session!.id}`);
+     // Update the session with an old timestamp using direct SQL (in seconds)
+     const sqlite = getTestSqlite();
+     sqlite.exec(`UPDATE reading_sessions SET updated_at = ${Math.floor(oldTime.getTime() / 1000)} WHERE id = ${session!.id}`);
 
-    // Verify the old timestamp is set
-    const sessionBefore = await sessionRepository.findById(session!.id);
-    const sessionBeforeTime = sessionBefore?.updatedAt.getTime() || 0;
-    expect(sessionBeforeTime).toBeLessThanOrEqual(oldTime.getTime() + 1000); // Allow small variance
+     // Verify the old timestamp is set
+     // Note: SQLite stores timestamps as seconds, so when Drizzle reads back it's in milliseconds
+     // but only accurate to the second (000ms), allowing up to 1 second of precision loss
+     const sessionBefore = await sessionRepository.findById(session!.id);
+     const sessionBeforeTime = sessionBefore?.updatedAt.getTime() || 0;
+     expect(sessionBeforeTime).toBeLessThanOrEqual(oldTime.getTime() + 2000); // Allow 2 second variance for second precision
 
-    // Wait a bit to ensure different timestamp
-    await new Promise(resolve => setTimeout(resolve, 10));
+     // Wait a bit to ensure different timestamp
+     await new Promise(resolve => setTimeout(resolve, 10));
 
-    // Act: Log progress
-    const request = createMockRequest("POST", `/api/books/${testBook.id}/progress`, {
-      currentPage: 100,
-    });
-    const params = { id: testBook.id.toString() };
+     // Act: Log progress
+     const request = createMockRequest("POST", `/api/books/${testBook.id}/progress`, {
+       currentPage: 100,
+     });
+     const params = { id: testBook.id.toString() };
 
-    const response = await POST(request as NextRequest, { params });
-    expect(response.status).toBe(200);
+     const response = await POST(request as NextRequest, { params });
+     expect(response.status).toBe(200);
 
-    // Assert: Session updatedAt should be newer
-    const sessionAfter = await sessionRepository.findById(session!.id);
-    expect(sessionAfter).toBeTruthy();
-    expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(oldTime.getTime());
-    expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds
-  });
+     // Assert: Session updatedAt should be newer
+     const sessionAfter = await sessionRepository.findById(session!.id);
+     expect(sessionAfter).toBeTruthy();
+     expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(oldTime.getTime());
+     expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds
+   });
 });

@@ -92,40 +92,40 @@ export class SessionRepository extends BaseRepository<
     return query.all();
   }
 
-  /**
-   * Count sessions by status
-   */
-  async countByStatus(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
-    const conditions = activeOnly
-      ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
-      : eq(readingSessions.status, status);
+   /**
+    * Count sessions by status
+    */
+   async countByStatus(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
+     const conditions = activeOnly
+       ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
+       : eq(readingSessions.status, status);
 
-    const result = db
-      .select({ count: sql<number>`count(*)` })
-      .from(readingSessions)
-      .where(conditions)
-      .get();
+     const result = this.getDatabase()
+       .select({ count: sql<number>`count(*)` })
+       .from(readingSessions)
+       .where(conditions)
+       .get();
 
-    return result?.count ?? 0;
-  }
+     return result?.count ?? 0;
+   }
 
-  /**
-   * Count completed sessions (status='read') after a date
-   */
-  async countCompletedAfterDate(date: Date): Promise<number> {
-    const result = db
-      .select({ count: sql<number>`count(*)` })
-      .from(readingSessions)
-      .where(
-        and(
-          eq(readingSessions.status, "read"),
-          gte(readingSessions.completedDate, date)
-        )
-      )
-      .get();
+   /**
+    * Count completed sessions (status='read') after a date
+    */
+   async countCompletedAfterDate(date: Date): Promise<number> {
+     const result = this.getDatabase()
+       .select({ count: sql<number>`count(*)` })
+       .from(readingSessions)
+       .where(
+         and(
+           eq(readingSessions.status, "read"),
+           gte(readingSessions.completedDate, date)
+         )
+       )
+       .get();
 
-    return result?.count ?? 0;
-  }
+     return result?.count ?? 0;
+   }
 
   /**
    * Find most recent completed session for a book

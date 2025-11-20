@@ -67,3 +67,11 @@ export function getTestDatabase() {
   console.log("getTestDatabase called, returning:", testDb ? "test database" : "null");
   return testDb || sqlite;
 }
+
+/**
+ * Get the raw SQLite instance for the test database
+ * Useful for executing raw SQL
+ */
+export function getTestSqlite() {
+  return testSqlite;
+}

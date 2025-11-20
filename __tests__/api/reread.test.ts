@@ -96,30 +96,31 @@ describe("POST /api/books/[id]/reread", () => {
     expect(data.session.sessionNumber).toBe(3);
   });
 
-  test("should set status to 'reading' and startedDate on new session", async () => {
-    const book = await bookRepository.create(mockBook1);
-    await sessionRepository.create({
-      ...mockSessionRead,
-      bookId: book.id,
-      isActive: false, // Archived
-    });
+   test("should set status to 'reading' and startedDate on new session", async () => {
+     const book = await bookRepository.create(mockBook1);
+     await sessionRepository.create({
+       ...mockSessionRead,
+       bookId: book.id,
+       isActive: false, // Archived
+     });
 
-    const beforeTime = new Date();
-    const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
-    const response = await POST(request, { params: { id: book.id.toString() } });
-    const data = await response.json();
-    const afterTime = new Date();
+     const beforeTime = new Date();
+     const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+     const response = await POST(request, { params: { id: book.id.toString() } });
+     const data = await response.json();
+     const afterTime = new Date();
 
-    expect(response.status).toBe(200);
-    expect(data.session.status).toBe("reading");
-    expect(data.session.startedDate).toBeDefined();
+     expect(response.status).toBe(200);
+     expect(data.session.status).toBe("reading");
+     expect(data.session.startedDate).toBeDefined();
 
-    // startedDate is returned as an ISO string (Drizzle serializes Date objects)
-    expect(typeof data.session.startedDate).toBe("string");
-    const startedDate = new Date(data.session.startedDate);
-    expect(startedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
-    expect(startedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime());
-  });
+     // startedDate is returned as an ISO string (Drizzle serializes Date objects)
+     expect(typeof data.session.startedDate).toBe("string");
+     const startedDate = new Date(data.session.startedDate);
+     // Allow 1 second tolerance for SQLite second precision
+     expect(startedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
+     expect(startedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
+   });
 
   test("should preserve userId from previous session", async () => {
     const book = await bookRepository.create(mockBook1);
