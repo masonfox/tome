@@ -40,3 +40,4 @@ bun.lockb
 
 # database
 /data/*
+*.db
