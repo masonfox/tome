@@ -68,6 +68,7 @@ export default function BookDetailPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +101,42 @@ export default function BookDetailPage() {
       }
     }
   }, []);
+
+  // Track if form has unsaved changes
+  useEffect(() => {
+    if (!book?.latestProgress) {
+      // If there's notes or any progress value entered, mark as dirty
+      const hasChanges = notes.trim() !== "" || currentPage !== "" || currentPercentage !== "";
+      setHasUnsavedProgress(hasChanges);
+      return;
+    }
+
+    // Check if values differ from latest progress
+    const pageChanged = progressInputMode === "page" &&
+      currentPage !== "" &&
+      currentPage !== book.latestProgress.currentPage.toString();
+
+    const percentageChanged = progressInputMode === "percentage" &&
+      currentPercentage !== "" &&
+      currentPercentage !== book.latestProgress.currentPercentage.toString();
+
+    const hasNotes = notes.trim() !== "";
+
+    setHasUnsavedProgress(pageChanged || percentageChanged || hasNotes);
+  }, [currentPage, currentPercentage, notes, progressInputMode, book?.latestProgress]);
+
+  // Warn before leaving page with unsaved progress
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedProgress) {
+        e.preventDefault();
+        e.returnValue = ""; // Modern browsers require this
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedProgress]);
 
   async function fetchBook() {
     try {
@@ -170,6 +207,7 @@ export default function BookDetailPage() {
       if (response.ok) {
         const newProgressEntry = await response.json();
         setNotes("");
+        setHasUnsavedProgress(false); // Clear unsaved flag after successful submission
 
         // Update the book with the new progress without overwriting form inputs
         setBook((prevBook) => {
