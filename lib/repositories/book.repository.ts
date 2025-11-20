@@ -8,7 +8,7 @@ export interface BookFilter {
   status?: string;
   search?: string;
   tags?: string[];
-  rating?: string; // "all" | "5" | "4+" | "3+" | "2+" | "1+" | "unrated"
+  rating?: string; // "all" | "5" | "4" | "3" | "2" | "1" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
 }
@@ -81,17 +81,17 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         case "5":
           conditions.push(eq(books.rating, 5));
           break;
-        case "4+":
-          conditions.push(sql`${books.rating} >= 4`);
+        case "4":
+          conditions.push(eq(books.rating, 4));
           break;
-        case "3+":
-          conditions.push(sql`${books.rating} >= 3`);
+        case "3":
+          conditions.push(eq(books.rating, 3));
           break;
-        case "2+":
-          conditions.push(sql`${books.rating} >= 2`);
+        case "2":
+          conditions.push(eq(books.rating, 2));
           break;
-        case "1+":
-          conditions.push(sql`${books.rating} >= 1`);
+        case "1":
+          conditions.push(eq(books.rating, 1));
           break;
         case "unrated":
           conditions.push(sql`${books.rating} IS NULL`);
