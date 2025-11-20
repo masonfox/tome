@@ -1,5 +1,3 @@
-import path from "path";
-
 // Type definition for SQLite database interface
 // Both bun:sqlite and better-sqlite3 have compatible APIs
 type SQLiteDatabase = any;
@@ -52,6 +50,7 @@ export interface CalibreBook {
   path: string;
   has_cover: number;
   description: string | null;
+  rating: number | null; // 1-5 stars (converted from Calibre's 0-10 scale)
 }
 
 export function getAllBooks(): CalibreBook[] {
@@ -77,7 +76,8 @@ export function getAllBooks(): CalibreBook[] {
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
       GROUP_CONCAT(DISTINCT i.val) as isbn,
-      c.text as description
+      c.text as description,
+      r.rating as rating
     FROM books b
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
@@ -85,11 +85,19 @@ export function getAllBooks(): CalibreBook[] {
     ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
+    LEFT JOIN books_ratings_link brl ON b.id = brl.book
+    LEFT JOIN ratings r ON brl.rating = r.id
     GROUP BY b.id
     ORDER BY b.title
   `;
 
-  return db.prepare(query).all() as CalibreBook[];
+  const books = db.prepare(query).all() as CalibreBook[];
+  
+  // Convert ratings from 0-10 scale to 1-5 stars
+  return books.map(book => ({
+    ...book,
+    rating: book.rating ? book.rating / 2 : null
+  }));
 }
 
 export function getBookById(id: number): CalibreBook | undefined {
@@ -115,7 +123,8 @@ export function getBookById(id: number): CalibreBook | undefined {
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
       GROUP_CONCAT(DISTINCT i.val) as isbn,
-      c.text as description
+      c.text as description,
+      r.rating as rating
     FROM books b
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
@@ -123,11 +132,23 @@ export function getBookById(id: number): CalibreBook | undefined {
     ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
+    LEFT JOIN books_ratings_link brl ON b.id = brl.book
+    LEFT JOIN ratings r ON brl.rating = r.id
     WHERE b.id = ?
     GROUP BY b.id
   `;
 
-  return db.prepare(query).get(id) as CalibreBook | undefined;
+  const book = db.prepare(query).get(id) as CalibreBook | undefined;
+  
+  if (!book) {
+    return undefined;
+  }
+  
+  // Convert rating from 0-10 scale to 1-5 stars
+  return {
+    ...book,
+    rating: book.rating ? book.rating / 2 : null
+  };
 }
 
 export function searchBooks(query: string): CalibreBook[] {
@@ -153,7 +174,8 @@ export function searchBooks(query: string): CalibreBook[] {
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
       GROUP_CONCAT(DISTINCT i.val) as isbn,
-      c.text as description
+      c.text as description,
+      r.rating as rating
     FROM books b
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
@@ -161,13 +183,21 @@ export function searchBooks(query: string): CalibreBook[] {
     ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
+    LEFT JOIN books_ratings_link brl ON b.id = brl.book
+    LEFT JOIN ratings r ON brl.rating = r.id
     WHERE b.title LIKE ? OR a.name LIKE ?
     GROUP BY b.id
     ORDER BY b.title
   `;
 
   const searchTerm = `%${query}%`;
-  return db.prepare(searchQuery).all(searchTerm, searchTerm) as CalibreBook[];
+  const books = db.prepare(searchQuery).all(searchTerm, searchTerm) as CalibreBook[];
+  
+  // Convert ratings from 0-10 scale to 1-5 stars
+  return books.map(book => ({
+    ...book,
+    rating: book.rating ? book.rating / 2 : null
+  }));
 }
 
 export function getBookTags(bookId: number): string[] {

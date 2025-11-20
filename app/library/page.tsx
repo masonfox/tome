@@ -23,6 +23,7 @@ function LibraryPageContent() {
     const searchParam = searchParams.get("search");
     const statusParam = searchParams.get("status");
     const tagsParam = searchParams.get("tags");
+    const ratingParam = searchParams.get("rating");
 
     if (searchParam) setSearchInput(searchParam);
     
@@ -41,6 +42,9 @@ function LibraryPageContent() {
     }
     if (currentFilters.tags && currentFilters.tags.length > 0) {
       params.set('tags', currentFilters.tags.join(','));
+    }
+    if (currentFilters.rating && currentFilters.rating !== 'all') {
+      params.set('rating', currentFilters.rating);
     }
     
     const queryString = params.toString();
@@ -61,12 +65,14 @@ function LibraryPageContent() {
     setSearch,
     setStatus,
     setTags,
+    setRating,
     filters,
     refresh,
   } = useLibraryData({
     search: searchParams.get("search") || undefined,
     status: searchParams.get("status") || undefined,
     tags: searchParams.get("tags")?.split(",").filter(Boolean) || undefined,
+    rating: searchParams.get("rating") || undefined,
   });
 
   // Create wrapped setters that also update URL
@@ -75,18 +81,30 @@ function LibraryPageContent() {
     updateURL({
       search: filters.search,
       status: status || 'all',
-      tags: filters.tags || []
+      tags: filters.tags || [],
+      rating: filters.rating || 'all'
     });
-  }, [setStatus, updateURL, filters.search, filters.tags]);
+  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating]);
 
   const handleTagsChange = useCallback((tags: string[] | undefined) => {
     setTags(tags);
     updateURL({
       search: filters.search,
       status: filters.status || 'all',
-      tags: tags || []
+      tags: tags || [],
+      rating: filters.rating || 'all'
     });
-  }, [setTags, updateURL, filters.search, filters.status]);
+  }, [setTags, updateURL, filters.search, filters.status, filters.rating]);
+
+  const handleRatingChange = useCallback((rating: string | undefined) => {
+    setRating(rating);
+    updateURL({
+      search: filters.search,
+      status: filters.status || 'all',
+      tags: filters.tags || [],
+      rating: rating || 'all'
+    });
+  }, [setRating, updateURL, filters.search, filters.status, filters.tags]);
 
   // Debounce search input and URL update
   useEffect(() => {
@@ -98,12 +116,13 @@ function LibraryPageContent() {
       updateURL({
         search: searchInput,
         status: filters.status || 'all',
-        tags: filters.tags || []
+        tags: filters.tags || [],
+        rating: filters.rating || 'all'
       });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchInput, setSearch, isReady, filters.status, filters.tags, updateURL]);
+  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -160,6 +179,7 @@ function LibraryPageContent() {
     setSearch("");
     setStatus(undefined);
     setTags(undefined);
+    setRating(undefined);
     
     // Update URL to remove all filter parameters
     router.replace('/library');
@@ -180,6 +200,8 @@ function LibraryPageContent() {
         onStatusFilterChange={(status) => handleStatusChange(status === "all" ? undefined : status)}
         selectedTags={filters.tags || []}
         onTagsChange={(tags) => handleTagsChange(tags.length > 0 ? tags : undefined)}
+        ratingFilter={filters.rating || "all"}
+        onRatingFilterChange={(rating) => handleRatingChange(rating === "all" ? undefined : rating)}
         availableTags={availableTags}
         loading={loading}
         onClearAll={handleClearAll}

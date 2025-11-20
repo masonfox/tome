@@ -61,6 +61,7 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
         tags,
         path: calibreBook.path,
         description: calibreBook.description || undefined,
+        rating: calibreBook.rating || undefined, // Sync rating from Calibre
         lastSynced: new Date(),
         addedToLibrary: calibreBook.timestamp ? new Date(calibreBook.timestamp) : new Date(),
       };

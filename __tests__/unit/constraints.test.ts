@@ -261,34 +261,27 @@ describe("Database Constraints", () => {
   });
 
   describe("Check Constraints", () => {
-    test("should enforce rating between 1 and 5", async () => {
+    test("should enforce rating between 1 and 5 on books table", async () => {
       const book = await bookRepository.create({
         calibreId: 1,
-        title: "Test Book",
+        title: "Rating Test Book",
         authors: ["Author"],
         tags: [],
         path: "/path",
+        rating: 5, // Valid rating
       });
+      expect(book.rating).toBe(5);
 
-      // Valid rating
-      const validSession = await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "read",
-        rating: 5,
-        isActive: false,
-      });
-      expect(validSession.rating).toBe(5);
-
-      // Invalid rating - should fail
+      // Invalid rating - should fail (rating is on books table, not sessions)
       let error: any;
       try {
-        await sessionRepository.create({
-          bookId: book.id,
-          sessionNumber: 2,
-          status: "read",
+        await bookRepository.create({
+          calibreId: 2,
+          title: "Invalid Rating Book",
+          authors: ["Author"],
+          tags: [],
+          path: "/path",
           rating: 6, // Out of range
-          isActive: false,
         });
       } catch (e) {
         error = e;

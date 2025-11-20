@@ -25,6 +25,7 @@ export interface BookWithStatus {
   authors: string[];
   calibreId: number;
   status?: string | null;
+  rating?: number | null;
   latestProgress?: any;
 }
 

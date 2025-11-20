@@ -107,8 +107,11 @@ describe("Integration: Read Filter Lifecycle", () => {
     const archivedSession = sessions.find(s => s.status === "read");
     expect(archivedSession).not.toBeNull();
     expect(archivedSession?.isActive).toBe(false);
-    expect(archivedSession?.rating).toBe(5);
     expect(archivedSession?.completedDate).not.toBeNull();
+    
+    // Verify rating is on the book (not the session)
+    const updatedBook = await bookRepository.findById(book.id);
+    expect(updatedBook?.rating).toBe(5);
 
     // ========================================================================
     // STEP 6: CRITICAL TEST - Verify appears in "read" filter
@@ -354,6 +357,9 @@ describe("Integration: Read Filter Lifecycle", () => {
       isActive: false,
       rating: 4,
     });
+
+    // Update book rating (ratings now live on books table)
+    await bookRepository.update(book.id, { rating: 4 });
 
     // ========================================================================
     // CRITICAL TEST - Book should appear in "read" filter

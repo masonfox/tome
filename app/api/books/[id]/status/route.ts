@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { sessionRepository, progressRepository } from "@/lib/repositories";
+import { sessionRepository, progressRepository, bookRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
 
 export async function GET(
@@ -130,10 +130,6 @@ export async function POST(
       updateData.isActive = false;
     }
 
-    if (rating !== undefined) {
-      updateData.rating = rating;
-    }
-
     if (review !== undefined) {
       updateData.review = review;
     }
@@ -153,6 +149,12 @@ export async function POST(
         ...updateData,
       });
     }
+
+    // Update book rating if provided (single source of truth: books table)
+    if (rating !== undefined) {
+      await bookRepository.update(bookId, { rating });
+    }
+    // Note: Rating is never stored on sessions - only on books (synced with Calibre)
 
     // Revalidate pages that display book status/reading lists
     revalidatePath("/"); // Dashboard

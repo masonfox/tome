@@ -8,13 +8,13 @@ export interface BookFilter {
   status?: string;
   search?: string;
   tags?: string[];
+  rating?: string; // "all" | "5" | "4+" | "3+" | "2+" | "1+" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
 }
 
 export interface BookWithStatus extends Book {
   status?: string | null;
-  rating?: number | null;
 }
 
 export class BookRepository extends BaseRepository<Book, NewBook, typeof books> {
@@ -75,6 +75,30 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(or(...tagConditions)!);
     }
 
+    // Rating filter
+    if (filters.rating && filters.rating !== "all") {
+      switch (filters.rating) {
+        case "5":
+          conditions.push(eq(books.rating, 5));
+          break;
+        case "4+":
+          conditions.push(sql`${books.rating} >= 4`);
+          break;
+        case "3+":
+          conditions.push(sql`${books.rating} >= 3`);
+          break;
+        case "2+":
+          conditions.push(sql`${books.rating} >= 2`);
+          break;
+        case "1+":
+          conditions.push(sql`${books.rating} >= 1`);
+          break;
+        case "unrated":
+          conditions.push(sql`${books.rating} IS NULL`);
+          break;
+      }
+    }
+
     // Status filter (requires join with sessions)
     let bookIds: number[] | undefined;
     if (filters.status) {
@@ -131,6 +155,14 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         break;
       case "created_desc":
         orderBy = asc(books.createdAt);
+        break;
+      case "rating":
+        // Rating high to low (nulls last)
+        orderBy = sql`${books.rating} DESC NULLS LAST`;
+        break;
+      case "rating_asc":
+        // Rating low to high (nulls last)
+        orderBy = sql`${books.rating} ASC NULLS LAST`;
         break;
       default:
         orderBy = asc(books.createdAt);

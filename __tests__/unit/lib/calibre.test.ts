@@ -122,6 +122,28 @@ function createCalibreSchema(db: Database) {
       FOREIGN KEY(book) REFERENCES books(id)
     );
   `);
+
+  // Ratings (lookup table)
+  db.run(`
+    CREATE TABLE ratings (
+      id INTEGER PRIMARY KEY,
+      rating INTEGER CHECK(rating > -1 AND rating < 11),
+      link TEXT NOT NULL DEFAULT '',
+      UNIQUE (rating)
+    );
+  `);
+
+  // Books-Ratings link table
+  db.run(`
+    CREATE TABLE books_ratings_link (
+      id INTEGER PRIMARY KEY,
+      book INTEGER NOT NULL,
+      rating INTEGER NOT NULL,
+      UNIQUE(book, rating),
+      FOREIGN KEY(book) REFERENCES books(id),
+      FOREIGN KEY(rating) REFERENCES ratings(id)
+    );
+  `);
 }
 
 /**
@@ -235,6 +257,17 @@ function insertSampleData(db: Database) {
     null,
     null
   );
+
+  // Insert ratings (lookup table)
+  db.prepare("INSERT INTO ratings (id, rating, link) VALUES (?, ?, ?)").run(1, 10, ""); // 5 stars
+  db.prepare("INSERT INTO ratings (id, rating, link) VALUES (?, ?, ?)").run(2, 8, "");  // 4 stars
+  db.prepare("INSERT INTO ratings (id, rating, link) VALUES (?, ?, ?)").run(3, 6, "");  // 3 stars
+
+  // Link ratings to books
+  db.prepare("INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)").run(1, 1); // Book 1: 5 stars
+  db.prepare("INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)").run(2, 2); // Book 2: 4 stars
+  // Book 3: no rating (testing null case)
+  // Book 4: no rating
 }
 
 describe("Calibre Query Functions with Full Schema", () => {
@@ -531,6 +564,26 @@ describe("Calibre Query Functions without Optional Columns", () => {
         id INTEGER PRIMARY KEY,
         book INTEGER NOT NULL,
         text TEXT
+      );
+    `);
+
+    // Ratings (lookup table)
+    minimalDb.run(`
+      CREATE TABLE ratings (
+        id INTEGER PRIMARY KEY,
+        rating INTEGER CHECK(rating > -1 AND rating < 11),
+        link TEXT NOT NULL DEFAULT '',
+        UNIQUE (rating)
+      );
+    `);
+
+    // Books-Ratings link table
+    minimalDb.run(`
+      CREATE TABLE books_ratings_link (
+        id INTEGER PRIMARY KEY,
+        book INTEGER NOT NULL,
+        rating INTEGER NOT NULL,
+        UNIQUE(book, rating)
       );
     `);
 

@@ -51,7 +51,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     return () => {
       isCancelled = true;
     };
-  }, [filters.status, filters.search, filters.tags, filters.sortBy, filters.showOrphaned, filters.pagination.limit, service]);
+  }, [filters.status, filters.search, filters.tags, filters.rating, filters.sortBy, filters.showOrphaned, filters.pagination.limit, service]);
 
   // Update filters function
   const updateFilters = useCallback((newFilters: Partial<LibraryFilters>) => {
@@ -70,6 +70,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
         newFilters.status !== undefined ||
         newFilters.search !== undefined ||
         newFilters.tags !== undefined ||
+        newFilters.rating !== undefined ||
         newFilters.sortBy !== undefined
       ) {
         updated.pagination.skip = 0;
@@ -152,6 +153,11 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     updateFilters({ tags });
   }, [updateFilters]);
 
+  // Rating filter function
+  const setRating = useCallback((rating: string | undefined) => {
+    updateFilters({ rating });
+  }, [updateFilters]);
+
   // Sort function
   const setSortBy = useCallback((sortBy: string | undefined) => {
     updateFilters({ sortBy });
@@ -185,6 +191,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     setSearch,
     setStatus,
     setTags,
+    setRating,
     setSortBy,
     setLimit,
     setSkip,

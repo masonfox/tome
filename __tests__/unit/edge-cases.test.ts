@@ -227,7 +227,6 @@ describe("Edge Case Tests", () => {
 
       expect(session.startedDate).toBeNull();
       expect(session.completedDate).toBeNull();
-      expect(session.rating).toBeNull();
       expect(session.review).toBeNull();
     });
   });

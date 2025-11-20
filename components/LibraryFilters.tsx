@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface LibraryFiltersProps {
@@ -9,6 +9,8 @@ interface LibraryFiltersProps {
   onSearchChange: (search: string) => void;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
+  ratingFilter: string;
+  onRatingFilterChange: (rating: string) => void;
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   availableTags: string[];
@@ -21,6 +23,8 @@ export function LibraryFilters({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  ratingFilter,
+  onRatingFilterChange,
   selectedTags,
   onTagsChange,
   availableTags,
@@ -30,15 +34,20 @@ export function LibraryFilters({
   const [tagSearchInput, setTagSearchInput] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   
   const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const ratingDropdownRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
-  // Close status dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
         setShowStatusDropdown(false);
+      }
+      if (ratingDropdownRef.current && !ratingDropdownRef.current.contains(event.target as Node)) {
+        setShowRatingDropdown(false);
       }
     }
 
@@ -73,6 +82,16 @@ export function LibraryFilters({
     { value: "read", label: "Read", icon: BookCheck },
   ];
 
+  const ratingOptions = [
+    { value: "all", label: "All Ratings" },
+    { value: "5", label: "5 Stars" },
+    { value: "4+", label: "4+ Stars" },
+    { value: "3+", label: "3+ Stars" },
+    { value: "2+", label: "2+ Stars" },
+    { value: "1+", label: "1+ Stars" },
+    { value: "unrated", label: "Unrated" },
+  ];
+
   const filteredTagSuggestions = availableTags
     .filter((tag) =>
       tag.toLowerCase().includes(tagSearchInput.toLowerCase()) &&
@@ -81,7 +100,7 @@ export function LibraryFilters({
     .slice(0, 15);
 
   // Check if any filters are active to show/hide Clear All button
-  const hasActiveFilters = search || statusFilter !== "all" || selectedTags.length > 0;
+  const hasActiveFilters = search || statusFilter !== "all" || ratingFilter !== "all" || selectedTags.length > 0;
 
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
@@ -133,6 +152,7 @@ export function LibraryFilters({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Status Dropdown */}
             <div className="relative" ref={statusDropdownRef}>
               <button
                 type="button"
@@ -151,7 +171,6 @@ export function LibraryFilters({
                 />
               </button>
 
-              {/* Dropdown Menu */}
               {showStatusDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
                   {statusOptions.map((option) => {
@@ -180,6 +199,54 @@ export function LibraryFilters({
                       </button>
                     );
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* Rating Dropdown */}
+            <div className="relative" ref={ratingDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowRatingDropdown(!showRatingDropdown)}
+                disabled={loading}
+                className={`px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px] disabled:opacity-50`}
+              >
+                <Star className="w-4 h-4" />
+                <span>
+                  {ratingOptions.find(option => option.value === ratingFilter)?.label || "All Ratings"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 transition-transform ml-auto",
+                    showRatingDropdown && "rotate-180"
+                  )}
+                />
+              </button>
+
+              {showRatingDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
+                  {ratingOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        onRatingFilterChange(option.value);
+                        setShowRatingDropdown(false);
+                      }}
+                      disabled={loading}
+                      className={cn(
+                        "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                        "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                        ratingFilter === option.value && "bg-[var(--accent)]/10",
+                        loading && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="font-medium flex-1">{option.label}</span>
+                      {ratingFilter === option.value && (
+                        <Check className="w-5 h-5 text-[var(--accent)]" />
+                      )}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

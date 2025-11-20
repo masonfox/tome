@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || undefined;
     const search = searchParams.get("search") || undefined;
     const tagsParam = searchParams.get("tags");
+    const rating = searchParams.get("rating") || undefined;
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = parseInt(searchParams.get("skip") || "0");
     const showOrphaned = searchParams.get("showOrphaned") === "true";
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
         status,
         search,
         tags,
+        rating,
         showOrphaned,
         orphanedOnly,
       },
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
         return {
           ...book,
           status: session ? session.status : null,
-          rating: session?.rating,
+          rating: book.rating, // Rating now comes from books table (synced from Calibre)
           latestProgress,
         };
       })

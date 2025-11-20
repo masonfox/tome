@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 import { toast } from "@/utils/toast";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
+import FinishBookModal from "@/components/FinishBookModal";
 
 interface Book {
   _id: string;
@@ -26,9 +27,9 @@ interface Book {
     status: string;
     startedDate?: string;
     completedDate?: string;
-    rating?: number;
     review?: string;
   };
+  rating?: number | null; // Rating is on the book, not the session
   latestProgress?: {
     currentPage: number;
     currentPercentage: number;
@@ -59,7 +60,7 @@ export default function BookDetailPage() {
   const [progressInputMode, setProgressInputMode] = useState<"page" | "percentage">("page");
   const [notes, setNotes] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("to-read");
-  const [rating, setRating] = useState(0);
+  // Rating is stored on book, not in component state (removed legacy state)
   const [totalPages, setTotalPages] = useState("");
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
@@ -107,7 +108,6 @@ export default function BookDetailPage() {
       setBook(data);
       if (data.activeSession) {
         setSelectedStatus(data.activeSession.status);
-        setRating(data.activeSession.rating || 0);
       } else if (data.hasCompletedReads) {
         // Show "read" status for completed books with no active session
         setSelectedStatus("read");
@@ -219,10 +219,7 @@ export default function BookDetailPage() {
   async function performStatusChange(newStatus: string) {
     try {
       const body: any = { status: newStatus };
-      // Only include rating if it's been set (greater than 0)
-      if (rating > 0) {
-        body.rating = rating;
-      }
+      // Note: Rating is now set via FinishBookModal, not here
 
       const response = await fetch(`/api/books/${bookId}/status`, {
         method: "POST",
@@ -266,7 +263,7 @@ export default function BookDetailPage() {
     setPendingStatusChange(null);
   }
 
-  async function handleConfirmRead() {
+  async function handleConfirmRead(modalRating: number, review?: string) {
     setShowReadConfirmation(false);
 
     try {
@@ -291,8 +288,11 @@ export default function BookDetailPage() {
 
       // Then, update the status to "read"
       const statusBody: any = { status: "read" };
-      if (rating > 0) {
-        statusBody.rating = rating;
+      if (modalRating > 0) {
+        statusBody.rating = modalRating;
+      }
+      if (review) {
+        statusBody.review = review;
       }
 
       const statusResponse = await fetch(`/api/books/${bookId}/status`, {
@@ -487,27 +487,19 @@ export default function BookDetailPage() {
               )}
             </div>
 
-            {/* Rating */}
-            {selectedStatus === "read" && (
+            {/* Rating Display (read-only) - rating set via FinishBookModal */}
+            {selectedStatus === "read" && book.rating && (
               <div className="flex justify-center gap-1 py-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button
+                  <Star
                     key={star}
-                    onClick={() => {
-                      setRating(star);
-                      handleUpdateStatus("read");
-                    }}
-                    className="transition-colors"
-                  >
-                    <Star
-                      className={cn(
-                        "w-6 h-6",
-                        star <= rating
-                          ? "fill-[var(--accent)] text-[var(--accent)]"
-                          : "text-[var(--foreground)]/30"
-                      )}
-                    />
-                  </button>
+                    className={cn(
+                      "w-5 h-5",
+                      star <= (book.rating || 0)
+                        ? "fill-[var(--accent)] text-[var(--accent)]"
+                        : "text-[var(--foreground)]/30"
+                    )}
+                  />
                 ))}
               </div>
             )}
@@ -845,36 +837,13 @@ export default function BookDetailPage() {
         </div>
       </div>
 
-      {/* Read Confirmation Dialog */}
-      {showReadConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">
-              Mark as Read?
-            </h2>
-            <p className="text-[var(--foreground)]/70 mb-4 font-medium">
-              Marking this book as read will set your progress to 100%.
-            </p>
-            <p className="text-[var(--foreground)] mb-6 font-semibold">
-              Are you sure you've finished reading?
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowReadConfirmation(false)}
-                className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmRead}
-                className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Finish Book Modal with Rating */}
+      <FinishBookModal
+        isOpen={showReadConfirmation}
+        onClose={() => setShowReadConfirmation(false)}
+        onConfirm={handleConfirmRead}
+        bookTitle={book?.title || ""}
+      />
 
       {/* Status Change Confirmation Dialog */}
       {showStatusChangeConfirmation && (

@@ -16,7 +16,6 @@ export const readingSessions = sqliteTable(
     }).notNull().default("to-read"),
     startedDate: integer("started_date", { mode: "timestamp" }),
     completedDate: integer("completed_date", { mode: "timestamp" }),
-    rating: integer("rating"), // 1-5
     review: text("review"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
@@ -31,8 +30,6 @@ export const readingSessions = sqliteTable(
     bookIdIdx: index("idx_sessions_book_id").on(table.bookId),
     statusIdx: index("idx_sessions_status").on(table.status),
     userBookIdx: index("idx_sessions_user_book").on(table.userId, table.bookId),
-    // Check constraints
-    ratingCheck: check("rating_check", sql`${table.rating} IS NULL OR (${table.rating} >= 1 AND ${table.rating} <= 5)`),
   })
 );
 

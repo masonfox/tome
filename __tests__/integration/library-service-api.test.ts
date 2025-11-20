@@ -607,6 +607,7 @@ describe("LibraryService → API Integration", () => {
         tags: [],
         path: "Author/Re-read Book (1)",
         totalPages: 300,
+        rating: 4,
       });
 
       // Archived "read" session (first read)

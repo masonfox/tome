@@ -19,6 +19,7 @@ export const books = sqliteTable("books", {
   tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
   path: text("path").notNull(),
   description: text("description"),
+  rating: integer("rating"), // 1-5 stars, synced from Calibre
   orphaned: integer("orphaned", { mode: "boolean" }).notNull().default(false),
   orphanedAt: integer("orphaned_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

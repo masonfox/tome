@@ -80,42 +80,42 @@ export abstract class BaseRepository<
     return result?.count ?? 0;
   }
 
-  /**
-   * Create a new record
-   */
-  async create(data: InsertT): Promise<T> {
-    const result = this.getDatabase().insert(this.tableSchema).values(data).returning().all();
-    return result[0] as T;
-  }
+   /**
+    * Create a new record
+    */
+   async create(data: InsertT): Promise<T> {
+     const result = this.getDatabase().insert(this.tableSchema).values(data).returning().all() as unknown as T[];
+     return result[0];
+   }
 
-  /**
-   * Update a record by ID
-   */
-  async update(id: number, data: Partial<InsertT>): Promise<T | undefined> {
-    const result = this.getDatabase()
-      .update(this.tableSchema)
-      .set(data)
-      .where(eq(this.tableSchema.id, id))
-      .returning()
-      .all();
-    return result[0] as T | undefined;
-  }
+   /**
+    * Update a record by ID
+    */
+   async update(id: number, data: Partial<InsertT>): Promise<T | undefined> {
+     const result = this.getDatabase()
+       .update(this.tableSchema)
+       .set(data)
+       .where(eq(this.tableSchema.id, id))
+       .returning()
+       .all() as unknown as T[];
+     return result[0];
+   }
 
-  /**
-   * Delete a record by ID
-   */
-  async delete(id: number): Promise<boolean> {
-    const result = this.getDatabase().delete(this.tableSchema).where(eq(this.tableSchema.id, id)).run();
-    return result.changes > 0;
-  }
+   /**
+    * Delete a record by ID
+    */
+   async delete(id: number): Promise<boolean> {
+     const result = this.getDatabase().delete(this.tableSchema).where(eq(this.tableSchema.id, id)).run() as unknown as { changes: number };
+     return result.changes > 0;
+   }
 
-  /**
-   * Delete all records matching a where clause
-   */
-  async deleteWhere(where: SQL): Promise<number> {
-    const result = this.getDatabase().delete(this.table).where(where).run();
-    return result.changes;
-  }
+   /**
+    * Delete all records matching a where clause
+    */
+   async deleteWhere(where: SQL): Promise<number> {
+     const result = this.getDatabase().delete(this.table).where(where).run() as unknown as { changes: number };
+     return result.changes;
+   }
 
   /**
    * Check if a record exists by ID
