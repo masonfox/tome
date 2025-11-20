@@ -175,20 +175,20 @@ export class SessionRepository extends BaseRepository<
     return (result?.count ?? 0) > 0;
   }
 
-  /**
-   * Count total completed reads for a book
-   */
-  async countCompletedReadsByBookId(bookId: number): Promise<number> {
-    const result = db
-      .select({ count: sql<number>`count(*)` })
-      .from(readingSessions)
-      .where(
-        and(eq(readingSessions.bookId, bookId), eq(readingSessions.status, "read"))
-      )
-      .get();
+   /**
+    * Count total completed reads for a book
+    */
+   async countCompletedReadsByBookId(bookId: number): Promise<number> {
+     const result = this.getDatabase()
+       .select({ count: sql<number>`count(*)` })
+       .from(readingSessions)
+       .where(
+         and(eq(readingSessions.bookId, bookId), eq(readingSessions.status, "read"))
+       )
+       .get();
 
-    return result?.count ?? 0;
-  }
+     return result?.count ?? 0;
+   }
 }
 
 // Singleton instance
