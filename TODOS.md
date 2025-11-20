@@ -1,17 +1,25 @@
 # Now
-* Finish book and update rating
-    * Remove rating from ReadingSession model - this should live on the book model, as it is stored in Calibre
-        However, maintaining, "Review", makes a lot of sense. Albeit, we'll need to add a UI element to log a review.
-    * Sets the rating value in Calibre DB (update) - add test coverage
-        * The docs will need to be updated to reflect this
-        * It otherwise states that the calibre db is read only
-        * Adjust it and limit to only KNOWN cases, this rating case being one of the only "approved" cases
-    * Modal-like experience, allowing you to set the review and rating.
-    * Filter by rating in library page
-        * This will require filtering the UI/UX
-    * Enable sort by rating in the library page
-* Critical architectural review
+* Ability to edit an existing review on the /books/:id page
+    * I also think there's a bug with the calibre write.
+* Breakdown the monolith that is /books/:id, both frontend and backend
+    * Right now, /books/:id does a lot and it's self-contained not all that well tested:
+        * Displays books
+        * Logs and renders progress
+        * Transitions reading session statuses
+        * Set pages, which is essential for our progress tracking
+    * Just like we did with /library, we should break the frontend down into more modular React components and add a service layer to the backend interacts with the API
+    * That will allow us to heavily test the service layer
+    * Write unit and integration tests for the service layer
+    * Write individual ADRs about these architectural pattern: frontend components separation and backend service layer
+* Add code coverage
+* Evaluate DB migrations
+    * Auto DB backup before migration
 * Annual goals
+    * A user can establish annual reading goals, just like in Goodreads and The Story Graph.
+    * The user can set a goal for the number of books that they want to read in a year
+    * The user can see their current progress against there goal and if they're on track, either ahead or behind by a specific number of books
+    * They should be able to see their goal progress on the dashboard or / page
+    * In the library view, they can filter "read" books by the year that they've read them - reading_sessions
 * Reading Streak
     * Shift primarily to stats page
     * Dashboard: consolidate the reading streak UI component, similar to TSG
@@ -19,14 +27,12 @@
     * "Journal" page
         * Similar to Thoreau's design
         * Reusable component for the /book/:id page
-* Re-architect agent documentation to support claude, copilot, and openagent
-    * Explicitly request that it always evaluate, edit, or expand the test suite where it's related.
 * View "Orphaned" books and add instructions for "how to repair"
-* If filtering on "Read", allow year filtering
-* Series support
+* Book series support from Calibre
 
 
 # Next
+* Edit previous reviews
 * Library search supports book description
     * Right now, it only supports title
 * Add a UI unit test suite
@@ -37,7 +43,9 @@
 * Allow log progress on dashboard
     * Reuse component on book/:id page
 * Restyle toasts
-
+* Library view allows "multi-select" style management
+    * This allows you to select several books at once and change particular aspects about them, such as their status
+    * Will need to identify which values are editable in this view
 
 # Later
 * Import from Goodreads or TheStoryGraph
