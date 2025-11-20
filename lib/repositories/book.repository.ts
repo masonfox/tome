@@ -201,8 +201,10 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
    * Find books not in a list of calibreIds (for orphaning)
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
+    // SAFETY: If calibreIds is empty, return empty array to prevent mass orphaning
+    // This prevents a catastrophic bug where an empty Calibre result would orphan ALL books
     if (calibreIds.length === 0) {
-      return this.getDatabase().select().from(books).all();
+      return [];
     }
 
     return this.getDatabase()

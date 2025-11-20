@@ -30,7 +30,24 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
   isSyncing = true;
 
   try {
+    console.log("[Sync] Starting Calibre sync...");
     const calibreBooks = getAllBooks();
+    console.log(`[Sync] Found ${calibreBooks.length} books in Calibre database`);
+    
+    // SAFETY CHECK: Abort if Calibre returns no books
+    // This prevents catastrophic data loss from orphaning all books
+    if (calibreBooks.length === 0) {
+      console.error("[Sync] CRITICAL: No books found in Calibre database. Aborting sync.");
+      return {
+        success: false,
+        syncedCount: 0,
+        updatedCount: 0,
+        removedCount: 0,
+        totalBooks: 0,
+        error: "No books found in Calibre database. This may indicate a connection issue or corrupted database. Sync aborted to prevent data loss.",
+      };
+    }
+
     let syncedCount = 0;
     let updatedCount = 0;
     let removedCount = 0;
@@ -84,6 +101,28 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
 
     // Detect removed books - find books whose calibreId is no longer in Calibre
     const removedBooks = await bookRepository.findNotInCalibreIds(calibreIds);
+    console.log(`[Sync] Found ${removedBooks.length} books to potentially orphan`);
+
+    // SAFETY CHECK: Prevent mass orphaning (>10% of library)
+    // This catches edge cases where sync logic might incorrectly orphan many books
+    if (removedBooks.length > 0) {
+      const totalBooksInDb = await bookRepository.count();
+      const orphanPercentage = (removedBooks.length / totalBooksInDb) * 100;
+      
+      console.log(`[Sync] Orphaning would affect ${removedBooks.length}/${totalBooksInDb} books (${orphanPercentage.toFixed(1)}%)`);
+      
+      if (orphanPercentage > 10) {
+        console.error(`[Sync] CRITICAL: Sync would orphan ${removedBooks.length} books (${orphanPercentage.toFixed(1)}% of library). Aborting.`);
+        return {
+          success: false,
+          syncedCount,
+          updatedCount,
+          removedCount: 0,
+          totalBooks: calibreBooks.length,
+          error: `Sync would orphan ${removedBooks.length} books (${orphanPercentage.toFixed(1)}% of your library). This may indicate a sync error or Calibre database issue. Please verify your Calibre library is accessible and contains all expected books.`,
+        };
+      }
+    }
 
     for (const book of removedBooks) {
       orphanedBooks.push(book.id.toString());
@@ -91,8 +130,14 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
       await bookRepository.markAsOrphaned(book.id);
       removedCount++;
     }
+    
+    if (removedCount > 0) {
+      console.log(`[Sync] Marked ${removedCount} books as orphaned`);
+    }
 
     lastSyncTime = new Date();
+
+    console.log(`[Sync] Sync completed successfully: ${syncedCount} new, ${updatedCount} updated, ${removedCount} orphaned`);
 
     return {
       success: true,
