@@ -181,6 +181,7 @@ export const mockCalibreBook = {
   series_index: 5.0,
   timestamp: "2025-11-01 12:00:00",
   description: "In the aftermath of a colossal battle...",
+  rating: null,
 };
 
 // ============================================================================

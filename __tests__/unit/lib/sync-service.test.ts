@@ -1,0 +1,851 @@
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress, CalibreDataSource } from "@/lib/sync-service";
+import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { mockCalibreBook } from "@/__tests__/fixtures/test-data";
+import { CalibreBook } from "@/lib/db/calibre";
+
+/**
+ * Sync Service Tests
+ * Tests the complex orchestration logic for syncing Calibre library with SQLite
+ * 
+ * Uses dependency injection instead of module mocks for better test isolation
+ */
+
+describe("syncCalibreLibrary", () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase();
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase();
+  });
+
+  test("prevents concurrent syncs", async () => {
+    // Arrange - Set up a slow sync
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [mockCalibreBook],
+      getBookTags: () => ["fantasy"],
+    };
+
+    // Act - Start first sync (don't await)
+    const firstSyncPromise = syncCalibreLibrary(testCalibreSource);
+
+    // Start second sync immediately
+    const secondSync = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Second sync should be rejected
+    expect(secondSync.success).toBe(false);
+    expect(secondSync.error).toBe("Sync already in progress");
+    expect(secondSync.syncedCount).toBe(0);
+
+    // Wait for first sync to complete
+    const firstSync = await firstSyncPromise;
+    expect(firstSync.success).toBe(true);
+  });
+
+  test("creates new books and auto-creates to-read status", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [mockCalibreBook],
+      getBookTags: () => ["fantasy", "epic"],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Sync result
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(1);
+    expect(result.updatedCount).toBe(0);
+    expect(result.removedCount).toBe(0);
+    expect(result.totalBooks).toBe(1);
+
+    // Assert - Book was created
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book).toBeDefined();
+    expect(book?.title).toBe("A Dance with Dragons");
+    expect(book?.authors).toEqual(["George R. R. Martin"]);
+    expect(book?.tags).toEqual(["fantasy", "epic"]);
+    expect(book?.isbn).toBe("9780553801477");
+    expect(book?.publisher).toBe("Bantam Books");
+    expect(book?.series).toBe("A Song of Ice and Fire");
+    expect(book?.orphaned).toBe(false);
+
+    // Assert - Reading session was auto-created
+    const session = await sessionRepository.findActiveByBookId(book!.id);
+    expect(session).toBeDefined();
+    expect(session?.status).toBe("to-read");
+    expect(session?.sessionNumber).toBe(1);
+    expect(session?.isActive).toBe(true);
+  });
+
+  test("updates existing books without creating duplicate status", async () => {
+    // Arrange - Create existing book and status
+    const existingBook = await bookRepository.create({
+      calibreId: 1,
+      title: "Old Title",
+      authors: ["Old Author"],
+      tags: [],
+      path: "Old/Path",
+      orphaned: false,
+    });
+
+    await sessionRepository.create({
+      bookId: existingBook.id,
+      status: "reading",
+      sessionNumber: 1,
+      isActive: true,
+    });
+
+    // Mock Calibre with updated data
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          title: "Updated Title",
+          publisher: "New Publisher",
+        },
+      ],
+      getBookTags: () => ["fantasy", "updated"],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Sync result
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(0); // Not a new book
+    expect(result.updatedCount).toBe(1); // Existing book updated
+    expect(result.removedCount).toBe(0);
+
+    // Assert - Book was updated
+    const updatedBook = await bookRepository.findByCalibreId(1);
+    expect(updatedBook?.title).toBe("Updated Title");
+    expect(updatedBook?.publisher).toBe("New Publisher");
+    expect(updatedBook?.tags).toEqual(["fantasy", "updated"]);
+
+    // Assert - No duplicate session created
+    const sessionCount = await sessionRepository.countByBookId(existingBook.id);
+    expect(sessionCount).toBe(1);
+
+    // Assert - Session still "reading" (not overwritten)
+    const session = await sessionRepository.findActiveByBookId(existingBook.id);
+    expect(session?.status).toBe("reading");
+  });
+
+  test("detects and marks orphaned books", async () => {
+    // Arrange - Create multiple books in DB (need 11+ for 10% threshold)
+    const book1 = await bookRepository.create({
+      calibreId: 1,
+      title: "Book Still in Calibre",
+      authors: ["Author 1"],
+      tags: [],
+      path: "Author1/Book1",
+      orphaned: false,
+    });
+
+    const book2 = await bookRepository.create({
+      calibreId: 2,
+      title: "Book Removed from Calibre",
+      authors: ["Author 2"],
+      tags: [],
+      path: "Author2/Book2",
+      orphaned: false,
+    });
+
+    // Create 10 more books to stay under 10% threshold (1/12 = 8.3%)
+    for (let i = 3; i <= 12; i++) {
+      await bookRepository.create({
+        calibreId: i,
+        title: `Book ${i}`,
+        authors: [`Author ${i}`],
+        tags: [],
+        path: `Author${i}/Book${i}`,
+        orphaned: false,
+      });
+    }
+
+    // Mock Calibre with all books except book 2
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          id: 1,
+        },
+        ...Array.from({ length: 10 }, (_, i) => ({
+          ...mockCalibreBook,
+          id: i + 3,
+          title: `Book ${i + 3}`,
+          authors: `Author ${i + 3}`,
+        })),
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Sync result
+    expect(result.success).toBe(true);
+    expect(result.removedCount).toBe(1);
+    expect(result.orphanedBooks).toBeDefined();
+    expect(result.orphanedBooks).toHaveLength(1);
+
+    // Assert - Book 1 still active
+    const stillInCalibre = await bookRepository.findByCalibreId(1);
+    expect(stillInCalibre?.orphaned).toBe(false);
+
+    // Assert - Book 2 marked orphaned (not deleted)
+    const orphanedBook = await bookRepository.findById(book2.id);
+    expect(orphanedBook).toBeDefined();
+    expect(orphanedBook?.orphaned).toBe(true);
+    expect(orphanedBook?.orphanedAt).toBeDefined();
+  });
+
+  test("parses authors string correctly", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          authors: "George R. R. Martin, Patrick Rothfuss, Brandon Sanderson",
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book?.authors).toEqual([
+      "George R. R. Martin",
+      "Patrick Rothfuss",
+      "Brandon Sanderson",
+    ]);
+  });
+
+  test("parses pipe-delimited authors correctly", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          authors: "Brian Herbert| Kevin J. Anderson",
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book?.authors).toEqual([
+      "Brian Herbert",
+      "Kevin J. Anderson",
+    ]);
+  });
+
+  test("handles mixed comma and pipe delimiters", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          authors: "Author One, Author Two | Author Three",
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book?.authors).toEqual([
+      "Author One",
+      "Author Two",
+      "Author Three",
+    ]);
+  });
+
+  test("handles books without optional fields", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          id: 1,
+          title: "Minimal Book",
+          authors: null as any,
+          path: "Minimal/Book",
+          has_cover: 0,
+          isbn: null,
+          pubdate: null,
+          publisher: null,
+          series: null,
+          series_index: null,
+          timestamp: null as any,
+          description: null,
+          rating: null,
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(1);
+
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book).toBeDefined();
+    expect(book?.authors).toEqual([]);
+    // In SQLite, null values are stored as null, not undefined
+    expect(book?.isbn).toBeNull();
+    expect(book?.publisher).toBeNull();
+    expect(book?.pubDate).toBeNull();
+    expect(book?.series).toBeNull();
+    expect(book?.seriesIndex).toBeNull();
+    expect(book?.description).toBeNull();
+  });
+
+  test("converts dates correctly", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          pubdate: "2011-07-12",
+          timestamp: "2025-11-01 12:00:00",
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book?.pubDate).toBeInstanceOf(Date);
+    expect(book?.pubDate?.getFullYear()).toBe(2011);
+    expect(book?.pubDate?.getMonth()).toBe(6); // July (0-indexed)
+    expect(book?.pubDate?.getDate()).toBe(12);
+
+    expect(book?.addedToLibrary).toBeInstanceOf(Date);
+    expect(book?.lastSynced).toBeInstanceOf(Date);
+  });
+
+  test("updates lastSyncTime on successful sync", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [mockCalibreBook],
+      getBookTags: () => [],
+    };
+
+    const beforeSync = new Date();
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    const lastSync = getLastSyncTime();
+    expect(lastSync).toBeDefined();
+    expect(lastSync!.getTime()).toBeGreaterThanOrEqual(beforeSync.getTime());
+  });
+
+  test("handles sync errors gracefully", async () => {
+    // Arrange - Mock getAllBooks to throw error
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => {
+        throw new Error("Calibre database unavailable");
+      },
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Calibre database unavailable");
+    expect(result.syncedCount).toBe(0);
+    expect(result.updatedCount).toBe(0);
+    expect(result.removedCount).toBe(0);
+    expect(result.totalBooks).toBe(0);
+
+    // Assert - isSyncing flag is reset
+    expect(isSyncInProgress()).toBe(false);
+  });
+
+  test("syncs multiple books in one operation", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          id: 1,
+          title: "Book 1",
+        },
+        {
+          ...mockCalibreBook,
+          id: 2,
+          title: "Book 2",
+          authors: "Author 2",
+        },
+        {
+          ...mockCalibreBook,
+          id: 3,
+          title: "Book 3",
+          authors: "Author 3",
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(3);
+    expect(result.totalBooks).toBe(3);
+
+    const bookCount = await bookRepository.count();
+    expect(bookCount).toBe(3);
+
+    const sessionCount = await sessionRepository.count();
+    expect(sessionCount).toBe(3); // All should have auto-created session
+  });
+
+  test("doesn't re-orphan already orphaned books", async () => {
+    // Arrange - Create already orphaned book
+    const orphanedDate = new Date("2025-11-01");
+    await bookRepository.create({
+      calibreId: 999,
+      title: "Already Orphaned",
+      authors: ["Author"],
+      tags: [],
+      path: "Author/Book",
+      orphaned: true,
+      orphanedAt: orphanedDate,
+    });
+
+    // Mock Calibre with different book
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          id: 1,
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Should not count already-orphaned book as "removed"
+    expect(result.removedCount).toBe(0);
+    expect(result.orphanedBooks).toBeUndefined();
+
+    // Assert - Orphaned date unchanged
+    const book = await bookRepository.findByCalibreId(999);
+    expect(book?.orphanedAt).toEqual(orphanedDate);
+  });
+
+  test("syncs ratings from Calibre to Tome", async () => {
+    // Arrange - Mock Calibre book with rating
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          rating: 4, // 4 stars (already converted from Calibre's 8)
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(1);
+
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book).toBeDefined();
+    expect(book?.rating).toBe(4);
+  });
+
+  test("syncs null ratings from Calibre to Tome", async () => {
+    // Arrange - Create book with rating
+    await bookRepository.create({
+      calibreId: 1,
+      title: "Book with Rating",
+      authors: ["Author"],
+      tags: [],
+      path: "Author/Book",
+      orphaned: false,
+      rating: 5,
+    });
+
+    // Mock Calibre with no rating
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          rating: null,
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.updatedCount).toBe(1);
+
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book).toBeDefined();
+    expect(book?.rating).toBeNull();
+  });
+});
+
+describe("getLastSyncTime", () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase();
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase();
+  });
+
+  test("returns timestamp after successful sync", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [mockCalibreBook],
+      getBookTags: () => [],
+    };
+
+    const beforeSync = getLastSyncTime();
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    const afterSync = getLastSyncTime();
+    expect(afterSync).toBeInstanceOf(Date);
+    // Should be different from before (either null or earlier)
+    if (beforeSync) {
+      expect(afterSync!.getTime()).toBeGreaterThanOrEqual(beforeSync.getTime());
+    }
+  });
+});
+
+describe("isSyncInProgress", () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase();
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase();
+  });
+
+  test("returns false when no sync is running", () => {
+    expect(isSyncInProgress()).toBe(false);
+  });
+
+  test("returns false after sync completes", async () => {
+    // Arrange
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [mockCalibreBook],
+      getBookTags: () => [],
+    };
+
+    // Act
+    await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Should be false after sync
+    expect(isSyncInProgress()).toBe(false);
+  });
+});
+
+describe("Sync Service - Orphaning Safety Checks", () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase();
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase();
+  });
+
+  test("CRITICAL: Empty Calibre results abort sync and prevent orphaning", async () => {
+    // Arrange - Create books in DB
+    await bookRepository.create({
+      calibreId: 1,
+      title: "Book 1",
+      authors: ["Author 1"],
+      tags: [],
+      path: "Author1/Book1",
+    } as any);
+
+    await bookRepository.create({
+      calibreId: 2,
+      title: "Book 2",
+      authors: ["Author 2"],
+      tags: [],
+      path: "Author2/Book2",
+    } as any);
+
+    // Mock Calibre returning empty array (simulating DB connection failure)
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Sync should fail
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("No books found in Calibre database");
+    expect(result.syncedCount).toBe(0);
+    expect(result.updatedCount).toBe(0);
+    expect(result.removedCount).toBe(0);
+
+    // Assert - NO BOOKS should be orphaned
+    const book1 = await bookRepository.findByCalibreId(1);
+    const book2 = await bookRepository.findByCalibreId(2);
+    
+    expect(book1?.orphaned).toBeFalsy();
+    expect(book2?.orphaned).toBeFalsy();
+  });
+
+  test("CRITICAL: Mass orphaning (>10%) aborts sync with error", async () => {
+    // Arrange - Create 100 books in DB
+    for (let i = 1; i <= 100; i++) {
+      await bookRepository.create({
+        calibreId: i,
+        title: `Book ${i}`,
+        authors: [`Author ${i}`],
+        tags: [],
+        path: `Author${i}/Book${i}`,
+      } as any);
+    }
+
+    // Mock Calibre with only 85 books (15 books would be orphaned = 15%)
+    const calibreBooks: any[] = [];
+    for (let i = 1; i <= 85; i++) {
+      calibreBooks.push({
+        id: i,
+        title: `Book ${i}`,
+        authors: `Author ${i}`,
+        path: `Author${i}/Book${i}`,
+        has_cover: 0,
+        isbn: null,
+        pubdate: null,
+        publisher: null,
+        series: null,
+        series_index: null,
+        timestamp: new Date().toISOString(),
+        description: null,
+        rating: null,
+      });
+    }
+    
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => calibreBooks,
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Sync should fail with mass orphaning error
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("would orphan 15 books");
+    expect(result.error).toContain("15.0%");
+    expect(result.removedCount).toBe(0); // Should not orphan anything
+
+    // Assert - NO BOOKS should be orphaned
+    const totalBooks = await bookRepository.count();
+    expect(totalBooks).toBe(100);
+    
+    // Check a few random books are not orphaned
+    const book50 = await bookRepository.findByCalibreId(50);
+    const book90 = await bookRepository.findByCalibreId(90);
+    const book100 = await bookRepository.findByCalibreId(100);
+    
+    expect(book50?.orphaned).toBeFalsy();
+    expect(book90?.orphaned).toBeFalsy();
+    expect(book100?.orphaned).toBeFalsy();
+  });
+
+  test("Allows orphaning under 10% threshold", async () => {
+    // Arrange - Create 100 books in DB
+    for (let i = 1; i <= 100; i++) {
+      await bookRepository.create({
+        calibreId: i,
+        title: `Book ${i}`,
+        authors: [`Author ${i}`],
+        tags: [],
+        path: `Author${i}/Book${i}`,
+      } as any);
+    }
+
+    // Mock Calibre with 95 books (5 books would be orphaned = 5%)
+    const calibreBooks: any[] = [];
+    for (let i = 1; i <= 95; i++) {
+      calibreBooks.push({
+        id: i,
+        title: `Book ${i}`,
+        authors: `Author ${i}`,
+        path: `Author${i}/Book${i}`,
+        has_cover: 0,
+        isbn: null,
+        pubdate: null,
+        publisher: null,
+        series: null,
+        series_index: null,
+        timestamp: new Date().toISOString(),
+        description: null,
+        rating: null,
+      });
+    }
+    
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => calibreBooks,
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - Sync should succeed
+    expect(result.success).toBe(true);
+    expect(result.removedCount).toBe(5);
+    expect(result.orphanedBooks).toHaveLength(5);
+
+    // Assert - Only 5 books should be orphaned
+    const book96 = await bookRepository.findByCalibreId(96);
+    const book97 = await bookRepository.findByCalibreId(97);
+    const book98 = await bookRepository.findByCalibreId(98);
+    const book99 = await bookRepository.findByCalibreId(99);
+    const book100 = await bookRepository.findByCalibreId(100);
+    
+    expect(book96?.orphaned).toBe(true);
+    expect(book97?.orphaned).toBe(true);
+    expect(book98?.orphaned).toBe(true);
+    expect(book99?.orphaned).toBe(true);
+    expect(book100?.orphaned).toBe(true);
+
+    // Assert - Books 1-95 should NOT be orphaned
+    const book1 = await bookRepository.findByCalibreId(1);
+    const book50 = await bookRepository.findByCalibreId(50);
+    const book95 = await bookRepository.findByCalibreId(95);
+    
+    expect(book1?.orphaned).toBeFalsy();
+    expect(book50?.orphaned).toBeFalsy();
+    expect(book95?.orphaned).toBeFalsy();
+  });
+
+  test("findNotInCalibreIds returns empty array for empty input", async () => {
+    // Arrange - Create books in DB
+    await bookRepository.create({
+      calibreId: 1,
+      title: "Book 1",
+      authors: ["Author 1"],
+      tags: [],
+      path: "Author1/Book1",
+    } as any);
+
+    await bookRepository.create({
+      calibreId: 2,
+      title: "Book 2",
+      authors: ["Author 2"],
+      tags: [],
+      path: "Author2/Book2",
+    } as any);
+
+    // Act - Call with empty array
+    const result = await bookRepository.findNotInCalibreIds([]);
+
+    // Assert - Should return empty array (not ALL books)
+    expect(result).toEqual([]);
+    expect(result.length).toBe(0);
+  });
+
+  test("findNotInCalibreIds correctly identifies missing books", async () => {
+    // Arrange - Create 5 books
+    for (let i = 1; i <= 5; i++) {
+      await bookRepository.create({
+        calibreId: i,
+        title: `Book ${i}`,
+        authors: [`Author ${i}`],
+        tags: [],
+        path: `Author${i}/Book${i}`,
+      } as any);
+    }
+
+    // Act - Call with calibreIds [1, 2, 3] (books 4 and 5 are missing)
+    const result = await bookRepository.findNotInCalibreIds([1, 2, 3]);
+
+    // Assert - Should return books 4 and 5
+    expect(result.length).toBe(2);
+    expect(result.map(b => b.calibreId).sort()).toEqual([4, 5]);
+  });
+
+  test("findNotInCalibreIds ignores already orphaned books", async () => {
+    // Arrange - Create books, one already orphaned
+    await bookRepository.create({
+      calibreId: 1,
+      title: "Active Book",
+      authors: ["Author 1"],
+      tags: [],
+      path: "Author1/Book1",
+      orphaned: false,
+    } as any);
+
+    await bookRepository.create({
+      calibreId: 2,
+      title: "Already Orphaned Book",
+      authors: ["Author 2"],
+      tags: [],
+      path: "Author2/Book2",
+      orphaned: true,
+      orphanedAt: new Date("2025-11-01"),
+    } as any);
+
+    // Act - Call with empty calibreIds (only book 1 is active)
+    const result = await bookRepository.findNotInCalibreIds([]);
+
+    // Assert - Should return empty (book 2 is already orphaned)
+    expect(result).toEqual([]);
+  });
+});

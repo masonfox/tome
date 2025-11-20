@@ -1,4 +1,4 @@
-import { getAllBooks, getBookTags } from "@/lib/db/calibre";
+import { getAllBooks, getBookTags, CalibreBook } from "@/lib/db/calibre";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 
 export interface SyncResult {
@@ -11,10 +11,35 @@ export interface SyncResult {
   error?: string;
 }
 
+/**
+ * Interface for Calibre data source
+ * Allows dependency injection for testing
+ */
+export interface CalibreDataSource {
+  getAllBooks(): CalibreBook[];
+  getBookTags(bookId: number): string[];
+}
+
+/**
+ * Default Calibre data source using real database
+ */
+const defaultCalibreSource: CalibreDataSource = {
+  getAllBooks,
+  getBookTags,
+};
+
 let lastSyncTime: Date | null = null;
 let isSyncing = false;
 
-export async function syncCalibreLibrary(): Promise<SyncResult> {
+/**
+ * Sync Calibre library with Tome database
+ * 
+ * @param calibreSource - Data source for Calibre books (defaults to real Calibre DB)
+ * @returns SyncResult with counts and any errors
+ */
+export async function syncCalibreLibrary(
+  calibreSource: CalibreDataSource = defaultCalibreSource
+): Promise<SyncResult> {
   // Prevent concurrent syncs
   if (isSyncing) {
     return {
@@ -31,7 +56,7 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
 
   try {
     console.log("[Sync] Starting Calibre sync...");
-    const calibreBooks = getAllBooks();
+    const calibreBooks = calibreSource.getAllBooks();
     console.log(`[Sync] Found ${calibreBooks.length} books in Calibre database`);
     
     // SAFETY CHECK: Abort if Calibre returns no books
@@ -57,7 +82,7 @@ export async function syncCalibreLibrary(): Promise<SyncResult> {
     const calibreIds = calibreBooks.map((b) => b.id);
 
     for (const calibreBook of calibreBooks) {
-      const tags = getBookTags(calibreBook.id);
+      const tags = calibreSource.getBookTags(calibreBook.id);
 
       const existingBook = await bookRepository.findByCalibreId(calibreBook.id);
 
