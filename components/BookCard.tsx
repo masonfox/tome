@@ -89,7 +89,7 @@ export function BookCard({
             </div>
           )}
 
-          {currentProgress !== undefined && (
+          {currentProgress !== undefined && status !== "read" && (
             <div className="pt-3 mt-1 border-t border-[var(--border-color)]">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs uppercase tracking-wider font-semibold text-[var(--foreground)]/60">Progress</span>
