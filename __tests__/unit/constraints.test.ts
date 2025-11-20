@@ -237,8 +237,8 @@ describe("Database Constraints", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: Math.floor(Date.now() / 1000),
-        streakStartDate: Math.floor(Date.now() / 1000),
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
         totalDaysActive: 0,
       });
 
@@ -249,8 +249,8 @@ describe("Database Constraints", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: Math.floor(Date.now() / 1000),
-          streakStartDate: Math.floor(Date.now() / 1000),
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
           totalDaysActive: 0,
         });
       } catch (e) {

@@ -102,30 +102,29 @@ describe("Dashboard Service", () => {
       );
 
       // Create sessions with explicit updatedAt times to ensure proper ordering
+      const baseTime = new Date();
       const session1 = await sessionRepository.create({
         bookId: books[0].id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
+        updatedAt: new Date(baseTime.getTime() - 2000), // 2 seconds ago
       });
-
-      // Small delay to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 20));
 
       const session2 = await sessionRepository.create({
         bookId: books[1].id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
+        updatedAt: new Date(baseTime.getTime() - 1000), // 1 second ago
       });
-
-      await new Promise(resolve => setTimeout(resolve, 20));
 
       const session3 = await sessionRepository.create({
         bookId: books[2].id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
+        updatedAt: baseTime, // just now
       });
 
       const result = await getDashboardData();

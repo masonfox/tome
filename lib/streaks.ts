@@ -84,7 +84,8 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
 }
 
 export async function getStreak(userId?: number | null): Promise<Streak | null> {
-  return await streakRepository.findByUserId(userId || null);
+  const streak = await streakRepository.findByUserId(userId || null);
+  return streak ?? null;
 }
 
 export async function getOrCreateStreak(userId?: number | null): Promise<Streak> {
@@ -160,6 +161,16 @@ export async function rebuildStreak(userId?: number | null): Promise<Streak> {
     }
 
     longestStreak = Math.max(longestStreak, currentStreak);
+
+    // Check if last activity was more than 1 day ago (streak is broken)
+    const today = startOfDay(new Date());
+    const lastActivityDayStart = startOfDay(lastActivityDate);
+    const daysSinceLastActivity = differenceInDays(today, lastActivityDayStart);
+    
+    if (daysSinceLastActivity > 1) {
+      // Streak is broken - last activity was more than 1 day ago
+      currentStreak = 0;
+    }
   }
 
   const totalDaysActive = uniqueDates.size;

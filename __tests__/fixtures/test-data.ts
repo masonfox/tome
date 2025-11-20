@@ -188,28 +188,28 @@ export const mockCalibreBook = {
 // ============================================================================
 
 /**
- * Helper to create dates for testing (returns Unix timestamp in seconds)
+ * Helper to create dates for testing (returns Date object)
  */
-export function createTestDate(daysAgo: number, baseDate = "2025-11-17T05:00:00.000Z"): number {
+export function createTestDate(daysAgo: number, baseDate = "2025-11-17T05:00:00.000Z"): Date {
   const date = new Date(baseDate);
   date.setDate(date.getDate() - daysAgo);
-  return Math.floor(date.getTime() / 1000);
+  return date;
 }
 
 /**
- * Helper to create a date at start of day (00:00:00) (returns Unix timestamp)
+ * Helper to create a date at start of day (00:00:00) (returns Date object)
  */
-export function createTestDateStartOfDay(daysAgo: number): number {
+export function createTestDateStartOfDay(daysAgo: number): Date {
   const date = new Date("2025-11-17T00:00:00.000Z");
   date.setDate(date.getDate() - daysAgo);
-  return Math.floor(date.getTime() / 1000);
+  return date;
 }
 
 /**
- * Helper to create today's date at start of day (returns Unix timestamp)
+ * Helper to create today's date at start of day (returns Date object)
  */
-export function getTodayStartOfDay(): number {
-  return Math.floor(new Date("2025-11-17T00:00:00.000Z").getTime() / 1000);
+export function getTodayStartOfDay(): Date {
+  return new Date("2025-11-17T00:00:00.000Z");
 }
 
 /**

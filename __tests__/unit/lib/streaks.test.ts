@@ -250,7 +250,7 @@ describe("getStreak", () => {
     const result = await getStreak();
 
     // Assert
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 });
 
@@ -750,12 +750,12 @@ describe("rebuildStreak", () => {
     const result = await rebuildStreak();
 
     // Last activity should be the most recent day
-    const lastActivity = new Date(result.lastActivityDate * 1000);
+    const lastActivity = result.lastActivityDate instanceof Date ? result.lastActivityDate : new Date(result.lastActivityDate);
     const expectedLastActivity = new Date("2025-11-19T00:00:00.000Z");
     expect(lastActivity.toISOString().substring(0, 10)).toBe(expectedLastActivity.toISOString().substring(0, 10));
 
     // Streak start should be first day of current streak
-    const streakStart = new Date(result.streakStartDate * 1000);
+    const streakStart = result.streakStartDate instanceof Date ? result.streakStartDate : new Date(result.streakStartDate);
     const expectedStreakStart = new Date("2025-11-17T00:00:00.000Z");
     expect(streakStart.toISOString().substring(0, 10)).toBe(expectedStreakStart.toISOString().substring(0, 10));
   });

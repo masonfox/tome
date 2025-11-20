@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, gte, lte, SQL } from "drizzle-orm";
+import { eq, and, desc, asc, sql, gte, lte, lt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
 import { db } from "@/lib/db/sqlite";
@@ -214,7 +214,7 @@ export class ProgressRepository extends BaseRepository<
       .where(
         and(
           gte(progressLogs.progressDate, startOfDay),
-          sql`${progressLogs.progressDate} < ${endOfDay}`
+          lt(progressLogs.progressDate, endOfDay)
         )
       )
       .get();

@@ -349,8 +349,8 @@ describe("Integration: Read Filter Lifecycle", () => {
       bookId: book.id,
       sessionNumber: 1,
       status: "read",
-      startedDate: Math.floor(new Date("2024-01-01").getTime() / 1000),
-      completedDate: Math.floor(new Date("2024-01-15").getTime() / 1000),
+      startedDate: new Date("2024-01-01"),
+      completedDate: new Date("2024-01-15"),
       isActive: false,
       rating: 4,
     });
