@@ -55,7 +55,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { currentPage, currentPercentage, notes } = body;
+    const { currentPage, currentPercentage, notes, progressDate } = body;
 
     const book = await bookRepository.findById(bookId);
 
@@ -110,7 +110,7 @@ export async function POST(
       sessionId: activeSession.id,
       currentPage: finalCurrentPage,
       currentPercentage: finalCurrentPercentage,
-      progressDate: new Date(),
+      progressDate: progressDate ? new Date(progressDate) : new Date(),
       notes,
       pagesRead,
     });

@@ -60,6 +60,7 @@ export default function BookDetailPage() {
   const [currentPercentage, setCurrentPercentage] = useState("");
   const [progressInputMode, setProgressInputMode] = useState<"page" | "percentage">("page");
   const [notes, setNotes] = useState("");
+  const [progressDate, setProgressDate] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("to-read");
   // Rating is stored on book, not in component state (removed legacy state)
   const [totalPages, setTotalPages] = useState("");
@@ -74,6 +75,9 @@ export default function BookDetailPage() {
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
   // Rating modal state
   const [showRatingModal, setShowRatingModal] = useState(false);
+  // Start date editing
+  const [isEditingStartDate, setIsEditingStartDate] = useState(false);
+  const [editStartDate, setEditStartDate] = useState("");
 
   useEffect(() => {
     fetchBook();
@@ -104,6 +108,13 @@ export default function BookDetailPage() {
       }
     }
   }, []);
+
+  // Set default progress date to today when viewing a reading book
+  useEffect(() => {
+    if (selectedStatus === "reading") {
+      setProgressDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [selectedStatus]);
 
   // Track if form has unsaved changes
   useEffect(() => {
@@ -200,6 +211,11 @@ export default function BookDetailPage() {
 
     payload.notes = notes;
 
+    // Add progressDate to payload if provided
+    if (progressDate) {
+      payload.progressDate = new Date(progressDate + "T00:00:00.000Z").toISOString();
+    }
+
     try {
       const response = await fetch(`/api/books/${bookId}/progress`, {
         method: "POST",
@@ -210,6 +226,7 @@ export default function BookDetailPage() {
       if (response.ok) {
         const newProgressEntry = await response.json();
         setNotes("");
+        setProgressDate(new Date().toISOString().split("T")[0]); // Reset to today
         setHasUnsavedProgress(false); // Clear unsaved flag after successful submission
 
         // Update the book with the new progress without overwriting form inputs
@@ -437,6 +454,54 @@ export default function BookDetailPage() {
       console.error("Failed to update rating:", error);
       toast.error("Failed to update rating");
     }
+  }
+
+  async function handleUpdateStartDate() {
+    if (!book?.activeSession || !editStartDate) return;
+
+    try {
+      // Get active session ID from the book's activeSession
+      const response = await fetch(`/api/books/${bookId}/sessions`);
+      const sessions = await response.json();
+      const activeSession = sessions.find((s: any) => s.isActive);
+
+      if (!activeSession) {
+        toast.error("No active reading session found");
+        return;
+      }
+
+      // Update the session with new start date
+      const updateResponse = await fetch(`/api/books/${bookId}/sessions/${activeSession.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startedDate: new Date(editStartDate + "T00:00:00.000Z").toISOString(),
+        }),
+      });
+
+      if (updateResponse.ok) {
+        // Refresh book data
+        await fetchBook();
+        setIsEditingStartDate(false);
+        toast.success("Start date updated");
+      } else {
+        const error = await updateResponse.json();
+        toast.error(error.error || "Failed to update start date");
+      }
+    } catch (error) {
+      console.error("Failed to update start date:", error);
+      toast.error("Failed to update start date");
+    }
+  }
+
+  function handleStartEditingDate() {
+    if (book?.activeSession?.startedDate) {
+      setEditStartDate(book.activeSession.startedDate.split("T")[0]);
+    } else {
+      // Default to today
+      setEditStartDate(new Date().toISOString().split("T")[0]);
+    }
+    setIsEditingStartDate(true);
   }
 
   if (loading) {
@@ -678,6 +743,54 @@ export default function BookDetailPage() {
 
           <hr className="border-[var(--border-color)]" />
 
+          {/* Started Date - Editable for active reading session */}
+          {selectedStatus === "reading" && book.activeSession && (
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="w-4 h-4 text-[var(--accent)]" />
+              <span className="font-bold text-[var(--accent)]">Started:</span>
+              {isEditingStartDate ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                  <button
+                    onClick={() => setIsEditingStartDate(false)}
+                    className="px-2 py-1 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded text-xs font-semibold hover:bg-[var(--background)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdateStartDate}
+                    className="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-semibold hover:bg-[var(--light-accent)] transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleStartEditingDate}
+                  className="flex items-center gap-1 group"
+                  title="Click to edit start date"
+                >
+                  {book.activeSession.startedDate ? (
+                    <span className="font-medium text-[var(--foreground)] group-hover:underline">
+                      {format(new Date(book.activeSession.startedDate), "MMM d, yyyy")}
+                    </span>
+                  ) : (
+                    <span className="italic text-[var(--foreground)]/40 font-medium group-hover:underline">
+                      Not set
+                    </span>
+                  )}
+                  <Pencil className="w-3.5 h-3.5 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Progress Bar */}
           {book.totalPages && selectedStatus === "reading" && (
             <div>
@@ -732,101 +845,118 @@ export default function BookDetailPage() {
               </h2>
 
               <form onSubmit={handleLogProgress} className="space-y-4">
-                {/* Progress Input */}
-                <div>
-                  <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
-                    Progress
-                  </label>
-                  <div className="flex gap-2">
-                    {progressInputMode === "page" ? (
-                      <input
-                        type="number"
-                        value={currentPage}
-                        onChange={(e) => setCurrentPage(e.target.value)}
-                        min="0"
-                        max={book.totalPages}
-                        step="1"
-                        className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                        placeholder="Enter current page"
-                      />
-                    ) : (
-                      <input
-                        type="number"
-                        value={currentPercentage}
-                        onChange={(e) => setCurrentPercentage(e.target.value)}
-                        min="0"
-                        max="100"
-                        step="1"
-                        className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                        placeholder="Enter percentage"
-                      />
-                    )}
-                    
-                    {/* Progress Mode Dropdown */}
-                    <div className="relative" ref={progressModeDropdownRef}>
-                      <button
-                        type="button"
-                        onClick={() => setShowProgressModeDropdown(!showProgressModeDropdown)}
-                        className="w-32 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--card-bg)] transition-colors font-semibold flex items-center justify-between"
-                      >
-                        <span>{progressInputMode === "page" ? "Page" : "%"}</span>
-                        <ChevronDown
-                          className={cn(
-                            "w-4 h-4 transition-transform",
-                            showProgressModeDropdown && "rotate-180"
-                          )}
-                        />
-                      </button>
+                {/* Progress Input Row - flexbox that wraps on mobile */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Date */}
+                  <div className="sm:w-48">
+                    <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={progressDate}
+                      onChange={(e) => setProgressDate(e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
+                      className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                    />
+                  </div>
 
-                      {/* Dropdown Menu */}
-                      {showProgressModeDropdown && (
-                        <div className="absolute z-10 right-0 mt-1 w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProgressInputMode("page");
-                              localStorage.setItem("progressInputMode", "page");
-                              if (book.latestProgress) {
-                                setCurrentPage(book.latestProgress.currentPage.toString());
-                              }
-                              setShowProgressModeDropdown(false);
-                            }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors",
-                              progressInputMode === "page"
-                                ? "bg-[var(--accent)]/10"
-                                : "hover:bg-[var(--background)]"
-                            )}
-                          >
-                            <span className="font-semibold text-[var(--foreground)]">Page</span>
-                            {progressInputMode === "page" && (
-                              <Check className="w-4 h-4 text-[var(--accent)]" />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProgressInputMode("percentage");
-                              localStorage.setItem("progressInputMode", "percentage");
-                              if (book.latestProgress) {
-                                setCurrentPercentage(book.latestProgress.currentPercentage.toString());
-                              }
-                              setShowProgressModeDropdown(false);
-                            }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors",
-                              progressInputMode === "percentage"
-                                ? "bg-[var(--accent)]/10"
-                                : "hover:bg-[var(--background)]"
-                            )}
-                          >
-                            <span className="font-semibold text-[var(--foreground)]">Percentage</span>
-                            {progressInputMode === "percentage" && (
-                              <Check className="w-4 h-4 text-[var(--accent)]" />
-                            )}
-                          </button>
-                        </div>
+                  {/* Progress Input */}
+                  <div className="flex-1">
+                    <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
+                      Progress
+                    </label>
+                    <div className="flex gap-2">
+                      {progressInputMode === "page" ? (
+                        <input
+                          type="number"
+                          value={currentPage}
+                          onChange={(e) => setCurrentPage(e.target.value)}
+                          min="0"
+                          max={book.totalPages}
+                          step="1"
+                          className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                          placeholder="Enter current page"
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          value={currentPercentage}
+                          onChange={(e) => setCurrentPercentage(e.target.value)}
+                          min="0"
+                          max="100"
+                          step="1"
+                          className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                          placeholder="Enter percentage"
+                        />
                       )}
+                      
+                      {/* Progress Mode Dropdown */}
+                      <div className="relative" ref={progressModeDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowProgressModeDropdown(!showProgressModeDropdown)}
+                          className="w-32 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--card-bg)] transition-colors font-semibold flex items-center justify-between"
+                        >
+                          <span>{progressInputMode === "page" ? "Page" : "%"}</span>
+                          <ChevronDown
+                            className={cn(
+                              "w-4 h-4 transition-transform",
+                              showProgressModeDropdown && "rotate-180"
+                            )}
+                          />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {showProgressModeDropdown && (
+                          <div className="absolute z-10 right-0 mt-1 w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProgressInputMode("page");
+                                localStorage.setItem("progressInputMode", "page");
+                                if (book.latestProgress) {
+                                  setCurrentPage(book.latestProgress.currentPage.toString());
+                                }
+                                setShowProgressModeDropdown(false);
+                              }}
+                              className={cn(
+                                "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors",
+                                progressInputMode === "page"
+                                  ? "bg-[var(--accent)]/10"
+                                  : "hover:bg-[var(--background)]"
+                              )}
+                            >
+                              <span className="font-semibold text-[var(--foreground)]">Page</span>
+                              {progressInputMode === "page" && (
+                                <Check className="w-4 h-4 text-[var(--accent)]" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProgressInputMode("percentage");
+                                localStorage.setItem("progressInputMode", "percentage");
+                                if (book.latestProgress) {
+                                  setCurrentPercentage(book.latestProgress.currentPercentage.toString());
+                                }
+                                setShowProgressModeDropdown(false);
+                              }}
+                              className={cn(
+                                "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors",
+                                progressInputMode === "percentage"
+                                  ? "bg-[var(--accent)]/10"
+                                  : "hover:bg-[var(--background)]"
+                              )}
+                            >
+                              <span className="font-semibold text-[var(--foreground)]">Percentage</span>
+                              {progressInputMode === "percentage" && (
+                                <Check className="w-4 h-4 text-[var(--accent)]" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -927,7 +1057,7 @@ export default function BookDetailPage() {
           )}
 
           {/* Reading History */}
-          <ReadingHistoryTab key={historyRefreshKey} bookId={bookId} />
+          <ReadingHistoryTab key={historyRefreshKey} bookId={bookId} bookTitle={book.title} />
         </div>
       </div>
 
