@@ -6,7 +6,7 @@ import { Calendar, Star, BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface ReadingSession {
-  _id: string;
+  id: number;
   sessionNumber: number;
   status: string;
   startedDate?: string;
@@ -79,7 +79,7 @@ export default function ReadingHistoryTab({ bookId }: ReadingHistoryTabProps) {
       <div className="space-y-6">
         {sessions.map((session) => (
           <div
-            key={session._id}
+            key={session.id}
             className="p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
           >
             <div className="flex items-start mb-4">

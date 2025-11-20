@@ -11,7 +11,7 @@ import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 
 interface Book {
-  _id: string;
+  id: number;
   calibreId: number;
   title: string;
   authors: string[];
@@ -38,7 +38,7 @@ interface Book {
 }
 
 interface ProgressEntry {
-  _id: string;
+  id: number;
   currentPage: number;
   currentPercentage: number;
   progressDate: string;
@@ -798,7 +798,7 @@ export default function BookDetailPage() {
               <div className="space-y-4">
                 {progress.map((entry) => (
                   <div
-                    key={entry._id}
+                    key={entry.id}
                     className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
                   >
                     <Calendar className="w-5 h-5 text-[var(--accent)]/60 mt-0.5" />

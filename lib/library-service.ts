@@ -20,7 +20,7 @@ export interface PaginatedBooks {
 }
 
 export interface BookWithStatus {
-  _id: any;
+  id: number;
   calibreId: number;
   title: string;
   authors: string[];

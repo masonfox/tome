@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 
 interface BookGridProps {
   books: Array<{
-    _id: string;
+    id: number;
     calibreId: number;
     title: string;
     authors: string[];
@@ -38,8 +38,8 @@ export function BookGrid({ books, loading = false, loadingMore = false }: BookGr
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {books.map((book) => (
               <BookCard
-                key={book._id}
-                id={book._id}
+                key={book.id}
+                id={book.id.toString()}
                 title={book.title}
                 authors={book.authors}
                 calibreId={book.calibreId}
