@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookRepository } from "@/lib/repositories";
-import { updateCalibreRating } from "@/lib/db/calibre-write";
+import { BookService } from "@/lib/services/book.service";
+
+const bookService = new BookService();
 
 /**
  * POST /api/books/:id/rating
@@ -34,57 +35,49 @@ export async function POST(
     const body = await request.json();
     const { rating } = body;
     
-    // Validate rating (1-5 stars or null)
+    // Validate rating type and value
     if (rating !== null && rating !== undefined) {
-      if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+      // Check if rating is a number
+      if (typeof rating !== 'number') {
         return NextResponse.json(
-          { error: "Rating must be a number between 1 and 5, or null" },
+          { error: "Rating must be a number between 1 and 5" },
+          { status: 400 }
+        );
+      }
+      
+      // Check if rating is an integer
+      if (!Number.isInteger(rating)) {
+        return NextResponse.json(
+          { error: "Rating must be a whole number between 1 and 5" },
+          { status: 400 }
+        );
+      }
+      
+      // Check range (will be checked again in service, but fail fast here)
+      if (rating < 1 || rating > 5) {
+        return NextResponse.json(
+          { error: "Rating must be between 1 and 5" },
           { status: 400 }
         );
       }
     }
     
-    // Get book
-    const book = await bookRepository.findById(bookId);
-    if (!book) {
-      return NextResponse.json(
-        { error: "Book not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Update Calibre database first (fail fast if Calibre update fails)
-    try {
-      updateCalibreRating(book.calibreId, rating ?? null);
-    } catch (calibreError) {
-      console.error("[Rating API] Failed to update Calibre:", calibreError);
-      return NextResponse.json(
-        { 
-          error: "Failed to update rating in Calibre database",
-          details: calibreError instanceof Error ? calibreError.message : String(calibreError)
-        },
-        { status: 500 }
-      );
-    }
-    
-    // Update local database
-    const updatedBook = await bookRepository.update(bookId, { 
-      rating: rating ?? null 
-    });
-    
-    if (!updatedBook) {
-      // This shouldn't happen, but handle it anyway
-      return NextResponse.json(
-        { error: "Failed to update rating in local database" },
-        { status: 500 }
-      );
-    }
-    
-    console.log(`[Rating API] Updated rating for book ${bookId} (${book.title}): ${rating ?? 'removed'}`);
+    const updatedBook = await bookService.updateRating(bookId, rating ?? null);
     
     return NextResponse.json(updatedBook);
   } catch (error) {
-    console.error("[Rating API] Unexpected error:", error);
+    console.error("[Rating API] Error:", error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message.includes("must be")) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+    
     return NextResponse.json(
       { 
         error: "Failed to update rating",

@@ -106,7 +106,7 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
   return streak;
 }
 
-export async function rebuildStreak(userId?: number | null): Promise<Streak> {
+export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
   console.log("[Streak] Rebuilding streak from all progress data");
 
   // Get all progress logs ordered by date
@@ -144,9 +144,9 @@ export async function rebuildStreak(userId?: number | null): Promise<Streak> {
     longestStreak = 1;
 
     for (let i = 1; i < sortedDates.length; i++) {
-      const currentDate = new Date(sortedDates[i]);
+      const dateInLoop = new Date(sortedDates[i]);
       const prevDate = new Date(sortedDates[i - 1]);
-      const daysDiff = differenceInDays(currentDate, prevDate);
+      const daysDiff = differenceInDays(dateInLoop, prevDate);
 
       if (daysDiff === 1) {
         // Consecutive day
@@ -155,15 +155,15 @@ export async function rebuildStreak(userId?: number | null): Promise<Streak> {
         // Gap in streak
         longestStreak = Math.max(longestStreak, currentStreak);
         currentStreak = 1;
-        streakStartDate = currentDate;
+        streakStartDate = dateInLoop;
       }
-      lastActivityDate = currentDate;
+      lastActivityDate = dateInLoop;
     }
 
     longestStreak = Math.max(longestStreak, currentStreak);
 
     // Check if last activity was more than 1 day ago (streak is broken)
-    const today = startOfDay(new Date());
+    const today = startOfDay(currentDate || new Date());
     const lastActivityDayStart = startOfDay(lastActivityDate);
     const daysSinceLastActivity = differenceInDays(today, lastActivityDayStart);
     

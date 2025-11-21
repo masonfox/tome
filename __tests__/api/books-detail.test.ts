@@ -307,7 +307,7 @@ describe("GET /api/books/[id]", () => {
     expect(response.status).toBe(200);
     expect(data.totalReads).toBe(2);
     expect(data.hasCompletedReads).toBe(true);
-    expect(data.activeSession).toBeUndefined(); // No active session
+    expect(data.activeSession).toBeNull(); // No active session (explicitly null, not undefined)
     expect(data.latestProgress).toBeNull(); // No progress for inactive session
   });
 });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { BookService } from "@/lib/services/book.service";
+
+const bookService = new BookService();
 
 export async function GET(
   request: NextRequest,
@@ -12,31 +14,13 @@ export async function GET(
       return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
-    const book = await bookRepository.findById(bookId);
+    const book = await bookService.getBookById(bookId);
 
     if (!book) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    // Get active reading session
-    const activeSession = await sessionRepository.findActiveByBookId(book.id);
-
-    // Get latest progress for active session only
-    let latestProgress = null;
-    if (activeSession) {
-      latestProgress = await progressRepository.findLatestBySessionId(activeSession.id);
-    }
-
-    // Check if there are any completed reads (for re-reading feature)
-    const completedReadsCount = await sessionRepository.countCompletedReadsByBookId(book.id);
-
-    return NextResponse.json({
-      ...book,
-      activeSession,
-      latestProgress,
-      hasCompletedReads: completedReadsCount > 0,
-      totalReads: completedReadsCount,
-    });
+    return NextResponse.json(book);
   } catch (error) {
     console.error("Error fetching book:", error);
     return NextResponse.json({ error: "Failed to fetch book" }, { status: 500 });
@@ -57,15 +41,22 @@ export async function PATCH(
     const body = await request.json();
     const { totalPages } = body;
 
-    const book = await bookRepository.update(bookId, { totalPages });
-
-    if (!book) {
-      return NextResponse.json({ error: "Book not found" }, { status: 404 });
-    }
+    const book = await bookService.updateTotalPages(bookId, totalPages);
 
     return NextResponse.json(book);
   } catch (error) {
     console.error("Error updating book:", error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message.includes("must be")) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+    
     return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
   }
 }

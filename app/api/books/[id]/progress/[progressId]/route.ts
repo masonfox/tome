@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { validateProgressEdit } from "@/lib/services/progress-validation";
+import { ProgressService } from "@/lib/services/progress.service";
+import { progressRepository } from "@/lib/repositories";
+
+const progressService = new ProgressService();
 
 export async function PATCH(
   request: NextRequest,
@@ -21,113 +22,45 @@ export async function PATCH(
     const body = await request.json();
     const { currentPage, currentPercentage, notes, progressDate } = body;
 
-    // Get the existing progress entry
-    const existingEntry = await progressRepository.findById(progressId);
-
-    if (!existingEntry) {
-      return NextResponse.json({ error: "Progress entry not found" }, { status: 404 });
-    }
-
     // Verify the progress entry belongs to this book
-    if (existingEntry.bookId !== bookId) {
+    const existingEntry = await progressRepository.findById(progressId);
+    if (existingEntry && existingEntry.bookId !== bookId) {
       return NextResponse.json(
         { error: "Progress entry does not belong to this book" },
         { status: 403 }
       );
     }
 
-    // Ensure the progress entry has a session
-    if (!existingEntry.sessionId) {
-      return NextResponse.json(
-        { error: "Progress entry has no associated session" },
-        { status: 400 }
-      );
-    }
+    const updateData = {
+      currentPage,
+      currentPercentage,
+      notes,
+      progressDate: progressDate ? new Date(progressDate) : undefined,
+    };
 
-    const book = await bookRepository.findById(bookId);
-
-    if (!book) {
-      return NextResponse.json({ error: "Book not found" }, { status: 404 });
-    }
-
-    // Calculate final values
-    let finalCurrentPage = currentPage !== undefined ? currentPage : (existingEntry.currentPage ?? 0);
-    let finalCurrentPercentage =
-      currentPercentage !== undefined ? currentPercentage : (existingEntry.currentPercentage ?? 0);
-
-    // Recalculate based on what was provided
-    if (currentPage !== undefined && book.totalPages) {
-      finalCurrentPercentage = (currentPage / book.totalPages) * 100;
-    } else if (currentPercentage !== undefined && book.totalPages) {
-      finalCurrentPage = Math.floor((currentPercentage / 100) * book.totalPages);
-    }
-
-    // Determine validation parameters
-    const requestedDate = progressDate
-      ? new Date(progressDate)
-      : new Date(existingEntry.progressDate);
-    const usePercentage = currentPercentage !== undefined;
-    const progressValue = usePercentage ? finalCurrentPercentage : finalCurrentPage;
-
-    // Temporal validation for edit
-    const validationResult = await validateProgressEdit(
-      progressId,
-      existingEntry.sessionId,
-      requestedDate,
-      progressValue,
-      usePercentage
-    );
-
-    if (!validationResult.valid) {
-      return NextResponse.json(
-        {
-          error: validationResult.error,
-          conflictingEntry: validationResult.conflictingEntry,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Recalculate pagesRead based on the previous entry
-    const allSessionProgress = await progressRepository.findBySessionId(
-      existingEntry.sessionId
-    );
-    const sortedProgress = allSessionProgress
-      .filter((p) => p.id !== progressId) // Exclude current entry
-      .sort(
-        (a, b) =>
-          new Date(a.progressDate).getTime() - new Date(b.progressDate).getTime()
-      );
-
-    // Find the previous entry before the updated date
-    const previousEntry = sortedProgress
-      .filter((p) => new Date(p.progressDate) < requestedDate)
-      .sort(
-        (a, b) =>
-          new Date(b.progressDate).getTime() - new Date(a.progressDate).getTime()
-      )[0];
-
-    const pagesRead = previousEntry
-      ? Math.max(0, finalCurrentPage - (previousEntry.currentPage ?? 0))
-      : finalCurrentPage;
-
-    // Update the progress entry
-    const updatedEntry = await progressRepository.update(progressId, {
-      currentPage: finalCurrentPage,
-      currentPercentage: finalCurrentPercentage,
-      progressDate: progressDate ? new Date(progressDate) : existingEntry.progressDate,
-      notes: notes !== undefined ? notes : existingEntry.notes,
-      pagesRead,
-    } as any);
-
-    // Revalidate pages
-    revalidatePath(`/books/${bookId}`);
-    revalidatePath("/");
-    revalidatePath("/stats");
+    const updatedEntry = await progressService.updateProgress(progressId, updateData);
 
     return NextResponse.json(updatedEntry);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating progress:", error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message.includes("must be") || 
+          error.message.includes("cannot exceed") ||
+          error.message.includes("no associated session")) {
+        // Include conflictingEntry if available (for temporal validation errors)
+        const response: any = { error: error.message };
+        if (error.conflictingEntry) {
+          response.conflictingEntry = error.conflictingEntry;
+        }
+        return NextResponse.json(response, { status: 400 });
+      }
+    }
+    
     return NextResponse.json({ error: "Failed to update progress" }, { status: 500 });
   }
 }
@@ -147,14 +80,13 @@ export async function DELETE(
       );
     }
 
-    // Get the existing progress entry
+    // Verify the progress entry belongs to this book
     const existingEntry = await progressRepository.findById(progressId);
-
+    
     if (!existingEntry) {
       return NextResponse.json({ error: "Progress entry not found" }, { status: 404 });
     }
 
-    // Verify the progress entry belongs to this book
     if (existingEntry.bookId !== bookId) {
       return NextResponse.json(
         { error: "Progress entry does not belong to this book" },
@@ -162,17 +94,11 @@ export async function DELETE(
       );
     }
 
-    // Delete the progress entry
-    const success = await progressRepository.delete(progressId);
+    const success = await progressService.deleteProgress(progressId);
 
     if (!success) {
       return NextResponse.json({ error: "Failed to delete progress entry" }, { status: 500 });
     }
-
-    // Revalidate pages
-    revalidatePath(`/books/${bookId}`);
-    revalidatePath("/");
-    revalidatePath("/stats");
 
     return NextResponse.json({ success: true, message: "Progress entry deleted" });
   } catch (error) {

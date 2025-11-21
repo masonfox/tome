@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import { sessionRepository, progressRepository, bookRepository } from "@/lib/repositories";
-import { rebuildStreak } from "@/lib/streaks";
-import { updateCalibreRating } from "@/lib/db/calibre-write";
+import { SessionService } from "@/lib/services/session.service";
+
+const sessionService = new SessionService();
 
 export async function GET(
   request: NextRequest,
@@ -15,8 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
-    // Get active reading session for this book
-    const session = await sessionRepository.findActiveByBookId(bookId);
+    const session = await sessionService.getActiveSession(bookId);
 
     if (!session) {
       return NextResponse.json({ status: null });
@@ -43,150 +41,40 @@ export async function POST(
     const body = await request.json();
     const { status, rating, review, startedDate, completedDate } = body;
 
-    if (!status || !["to-read", "read-next", "reading", "read"].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status. Must be 'to-read', 'read-next', 'reading', or 'read'" },
-        { status: 400 }
-      );
-    }
-
-    // Find active reading session or create new one
-    let readingSession = await sessionRepository.findActiveByBookId(bookId);
-
-    // Detect "backward movement" from "reading" to planning statuses
-    const isBackwardMovement =
-      readingSession &&
-      readingSession.status === "reading" &&
-      (status === "read-next" || status === "to-read");
-
-    // Check if current session has progress
-    let hasProgress = false;
-    if (isBackwardMovement && readingSession) {
-      hasProgress = await progressRepository.hasProgressForSession(readingSession.id);
-    }
-
-    // If moving backward with progress, archive current session and create new one
-    if (isBackwardMovement && hasProgress && readingSession) {
-      console.log(
-        `[Status] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`
-      );
-
-      // Archive current session
-      await sessionRepository.archive(readingSession.id);
-
-      // Create new session with new status
-      const newSessionNumber = readingSession.sessionNumber + 1;
-      const newSession = await sessionRepository.create({
-        userId: readingSession.userId,
-        bookId,
-        sessionNumber: newSessionNumber,
-        status: status as any,
-        isActive: true,
-      });
-
-      // Rebuild streak to ensure consistency
-      try {
-        console.log("[Status] Rebuilding streak after session archival");
-        await rebuildStreak();
-      } catch (streakError) {
-        console.error("[Status] Failed to rebuild streak:", streakError);
-        // Don't fail the request if streak rebuild fails
-      }
-
-      // Revalidate pages
-      revalidatePath("/");
-      revalidatePath("/library");
-      revalidatePath("/stats");
-      revalidatePath(`/books/${bookId}`);
-
-      return NextResponse.json({
-        ...newSession,
-        sessionArchived: true,
-        archivedSessionNumber: readingSession.sessionNumber,
-      });
-    }
-
-    // Otherwise, proceed with normal update/create logic
-    const updateData: any = {
+    // Convert date strings to Date objects if provided
+    const statusData = {
       status,
+      rating,
+      review,
+      startedDate: startedDate ? new Date(startedDate) : undefined,
+      completedDate: completedDate ? new Date(completedDate) : undefined,
     };
 
-    // Set dates based on status (use Date objects for Drizzle)
-    if (status === "reading" && !readingSession?.startedDate) {
-      updateData.startedDate = startedDate 
-        ? new Date(startedDate)
-        : new Date();
-    }
+    const result = await sessionService.updateStatus(bookId, statusData);
 
-    if (status === "read") {
-      if (!updateData.startedDate && !readingSession?.startedDate) {
-        updateData.startedDate = startedDate 
-          ? new Date(startedDate)
-          : new Date();
-      }
-      updateData.completedDate = completedDate 
-        ? new Date(completedDate)
-        : new Date();
-      // Auto-archive session when marked as read
-      updateData.isActive = false;
-    }
-
-    if (review !== undefined) {
-      updateData.review = review;
-    }
-
-    if (readingSession) {
-      // Update existing session
-      readingSession = await sessionRepository.update(readingSession.id, updateData);
-    } else {
-      // Create new session (first time reading this book)
-      // Get next session number
-      const sessionNumber = await sessionRepository.getNextSessionNumber(bookId);
-
-      readingSession = await sessionRepository.create({
-        bookId,
-        sessionNumber,
-        isActive: true,
-        ...updateData,
+    // Return full result if session was archived, otherwise just the session
+    if (result.sessionArchived) {
+      return NextResponse.json({
+        ...result.session,
+        sessionArchived: result.sessionArchived,
+        archivedSessionNumber: result.archivedSessionNumber,
       });
     }
 
-    // Update book rating if provided (single source of truth: books table)
-    if (rating !== undefined) {
-      // Get book to access calibreId for Calibre sync
-      const book = await bookRepository.findById(bookId);
-      
-      if (book) {
-        try {
-          // Sync to Calibre first (before updating Tome)
-          updateCalibreRating(book.calibreId, rating ?? null);
-          console.log(`[Status API] Synced rating to Calibre for book ${bookId} (calibreId: ${book.calibreId}): ${rating ?? 'removed'}`);
-        } catch (calibreError) {
-          // Log error but continue with status update
-          // Rationale: Status updates are workflow operations, not explicit rating changes
-          // The next Calibre→Tome sync will correct any inconsistency
-          console.error(`[Status API] Failed to sync rating to Calibre for book ${bookId}:`, calibreError);
-          console.error(`[Status API] Rating will be out of sync until next Calibre sync runs`);
-          // Don't fail the entire status update - user can still mark book as read
-        }
-        
-        // Update Tome database
-        await bookRepository.update(bookId, { rating: rating ?? null });
-      } else {
-        console.error(`[Status API] Could not find book ${bookId} to sync rating`);
-      }
-    }
-    // Note: Rating is never stored on sessions - only on books (synced with Calibre)
-
-    // Revalidate pages that display book status/reading lists
-    revalidatePath("/"); // Dashboard
-    revalidatePath("/library"); // Library page
-    revalidatePath("/stats"); // Stats page
-    revalidatePath(`/books/${bookId}`); // Book detail page
-
-    return NextResponse.json(readingSession);
+    return NextResponse.json(result.session);
   } catch (error) {
     console.error("Error updating status:", error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message.includes("Invalid status")) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+    
     return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
   }
 }

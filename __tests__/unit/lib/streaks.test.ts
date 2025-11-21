@@ -323,7 +323,7 @@ describe("rebuildStreak", () => {
   // ============================================================================
 
   test("should create new streak when no progress logs exist", async () => {
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result).toBeDefined();
     expect(result.currentStreak).toBe(0);
@@ -354,7 +354,7 @@ describe("rebuildStreak", () => {
       progressDate: new Date("2025-11-19T05:00:00.000Z"), // Today
     });
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(1);
     expect(result.longestStreak).toBe(1);
@@ -383,7 +383,7 @@ describe("rebuildStreak", () => {
       });
     }
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(5);
     expect(result.longestStreak).toBe(5);
@@ -420,7 +420,7 @@ describe("rebuildStreak", () => {
       });
     }
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(2); // Last 2 consecutive days
     expect(result.longestStreak).toBe(3); // The initial 3 consecutive days
@@ -449,7 +449,7 @@ describe("rebuildStreak", () => {
       });
     }
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(0); // Broken streak (last activity was 14th, today is 19th)
     expect(result.longestStreak).toBe(4); // The 4 consecutive days
@@ -506,7 +506,7 @@ describe("rebuildStreak", () => {
       progressDate: new Date("2025-11-19T05:00:00.000Z"),
     });
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(3);
     expect(result.longestStreak).toBe(3);
@@ -559,7 +559,7 @@ describe("rebuildStreak", () => {
       progressDate: new Date("2025-11-19T05:00:00.000Z"),
     });
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(3);
     expect(result.longestStreak).toBe(3);
@@ -607,7 +607,7 @@ describe("rebuildStreak", () => {
       progressDate: new Date("2025-11-19T18:00:00.000Z"), // Same day, different time
     });
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(1); // Should only count as 1 day
     expect(result.longestStreak).toBe(1);
@@ -643,7 +643,7 @@ describe("rebuildStreak", () => {
       progressDate: new Date("2025-11-19T05:00:00.000Z"),
     });
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     // Should rebuild from scratch, not use old values
     expect(result.currentStreak).toBe(1);
@@ -690,7 +690,7 @@ describe("rebuildStreak", () => {
       });
     }
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(3); // Current streak
     expect(result.longestStreak).toBe(5); // Longest streak
@@ -719,7 +719,7 @@ describe("rebuildStreak", () => {
       progressDate: new Date("2025-11-19T05:00:00.000Z"),
     });
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result.currentStreak).toBe(2);
     expect(result.longestStreak).toBe(2);
@@ -747,7 +747,7 @@ describe("rebuildStreak", () => {
       });
     }
 
-    const result = await rebuildStreak();
+    const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     // Last activity should be the most recent day
     const lastActivity = result.lastActivityDate instanceof Date ? result.lastActivityDate : new Date(result.lastActivityDate);

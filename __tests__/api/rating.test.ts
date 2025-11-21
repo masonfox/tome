@@ -357,7 +357,7 @@ describe("POST /api/books/[id]/rating", () => {
       expect(updatedBook?.rating).toBe(5);
     });
 
-    test("should return 500 if Calibre update fails", async () => {
+    test("should succeed even if Calibre update fails (best effort)", async () => {
       const book = await bookRepository.create(mockBook1);
       mockCalibreShouldFail = true;
 
@@ -367,12 +367,13 @@ describe("POST /api/books/[id]/rating", () => {
       const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
       const data = await response.json();
 
-      expect(response.status).toBe(500);
-      expect(data.error).toContain("Calibre database");
+      // Best-effort Calibre sync: continues even if Calibre fails
+      expect(response.status).toBe(200);
+      expect(data.rating).toBe(5);
 
-      // Verify local DB was NOT updated (fail fast)
+      // Verify local DB WAS updated (Calibre failure doesn't block)
       const bookAfter = await bookRepository.findById(book.id);
-      expect(bookAfter?.rating).toBeNull();
+      expect(bookAfter?.rating).toBe(5);
     });
 
     test("should handle Calibre rating removal", async () => {

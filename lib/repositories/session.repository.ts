@@ -164,7 +164,7 @@ export class SessionRepository extends BaseRepository<
    * Check if book has any completed reads
    */
   async hasCompletedReads(bookId: number): Promise<boolean> {
-    const result = db
+    const result = this.getDatabase()
       .select({ count: sql<number>`count(*)` })
       .from(readingSessions)
       .where(

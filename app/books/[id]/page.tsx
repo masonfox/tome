@@ -2,474 +2,90 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Pencil, Edit2, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/utils/cn";
-import { toast } from "@/utils/toast";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
-
-interface Book {
-  id: number;
-  calibreId: number;
-  title: string;
-  authors: string[];
-  totalPages?: number;
-  publisher?: string;
-  pubDate?: string;
-  series?: string;
-  description?: string;
-  tags: string[];
-  totalReads?: number;
-  hasCompletedReads?: boolean;
-  activeSession?: {
-    status: string;
-    startedDate?: string;
-    completedDate?: string;
-    review?: string;
-  };
-  rating?: number | null; // Rating is on the book, not the session
-  latestProgress?: {
-    currentPage: number;
-    currentPercentage: number;
-    progressDate: string;
-  };
-}
-
-interface ProgressEntry {
-  id: number;
-  currentPage: number;
-  currentPercentage: number;
-  progressDate: string;
-  notes?: string;
-  pagesRead: number;
-}
+import BookHeader from "@/components/BookDetail/BookHeader";
+import BookMetadata from "@/components/BookDetail/BookMetadata";
+import BookProgress from "@/components/BookDetail/BookProgress";
+import ProgressHistory from "@/components/BookDetail/ProgressHistory";
+import SessionDetails from "@/components/BookDetail/SessionDetails";
+import { useBookDetail } from "@/hooks/useBookDetail";
+import { useBookStatus } from "@/hooks/useBookStatus";
+import { useBookProgress } from "@/hooks/useBookProgress";
+import { useBookRating } from "@/hooks/useBookRating";
+import { toast } from "@/utils/toast";
 
 export default function BookDetailPage() {
   const params = useParams();
   const router = useRouter();
   const bookId = params?.id as string;
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [progress, setProgress] = useState<ProgressEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-  const [currentPage, setCurrentPage] = useState("");
-  const [currentPercentage, setCurrentPercentage] = useState("");
-  const [progressInputMode, setProgressInputMode] = useState<"page" | "percentage">("page");
-  const [notes, setNotes] = useState("");
-  const [progressDate, setProgressDate] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("to-read");
-  // Rating is stored on book, not in component state (removed legacy state)
-  const [totalPages, setTotalPages] = useState("");
-  const [showReadConfirmation, setShowReadConfirmation] = useState(false);
-  const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
-  const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
+  // Custom hooks encapsulate all business logic
+  const {
+    book,
+    loading,
+    imageError,
+    setImageError,
+    refetchBook,
+    updateTotalPages,
+  } = useBookDetail(bookId);
+
+  const bookProgressHook = useBookProgress(bookId, book, handleRefresh);
+
+  const {
+    selectedStatus,
+    showReadConfirmation,
+    showStatusChangeConfirmation,
+    pendingStatusChange,
+    handleUpdateStatus,
+    handleConfirmStatusChange,
+    handleCancelStatusChange,
+    handleConfirmRead,
+    handleStartReread,
+  } = useBookStatus(book, bookProgressHook.progress, bookId, handleRefresh, handleRefresh);
+
+  const {
+    showRatingModal,
+    openRatingModal,
+    closeRatingModal,
+    handleUpdateRating,
+  } = useBookRating(book, bookId, handleRefresh);
+
+  // Local UI state
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-  const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const progressModeDropdownRef = useRef<HTMLDivElement>(null);
-  // Rating modal state
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  // Start date editing
+  const [totalPagesInput, setTotalPagesInput] = useState("");
+
+  // Session date editing state
   const [isEditingStartDate, setIsEditingStartDate] = useState(false);
   const [editStartDate, setEditStartDate] = useState("");
-  // Progress editing
-  const [showEditProgressModal, setShowEditProgressModal] = useState(false);
-  const [selectedProgressEntry, setSelectedProgressEntry] = useState<ProgressEntry | null>(null);
 
-  useEffect(() => {
-    fetchBook();
-    fetchProgress();
-  }, [bookId]);
+  // Refs for dropdowns
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const progressModeDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowStatusDropdown(false);
-      }
-      if (progressModeDropdownRef.current && !progressModeDropdownRef.current.contains(event.target as Node)) {
-        setShowProgressModeDropdown(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Load saved progress input mode preference
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedMode = localStorage.getItem("progressInputMode");
-      if (savedMode === "page" || savedMode === "percentage") {
-        setProgressInputMode(savedMode);
-      }
-    }
-  }, []);
-
-  // Set default progress date to today when viewing a reading book
-  useEffect(() => {
-    if (selectedStatus === "reading") {
-      setProgressDate(new Date().toISOString().split("T")[0]);
-    }
-  }, [selectedStatus]);
-
-  // Track if form has unsaved changes
-  useEffect(() => {
-    if (!book?.latestProgress) {
-      // If there's notes or any progress value entered, mark as dirty
-      const hasChanges = notes.trim() !== "" || currentPage !== "" || currentPercentage !== "";
-      setHasUnsavedProgress(hasChanges);
-      return;
-    }
-
-    // Check if values differ from latest progress
-    const pageChanged = progressInputMode === "page" &&
-      currentPage !== "" &&
-      currentPage !== book.latestProgress.currentPage.toString();
-
-    const percentageChanged = progressInputMode === "percentage" &&
-      currentPercentage !== "" &&
-      currentPercentage !== book.latestProgress.currentPercentage.toString();
-
-    const hasNotes = notes.trim() !== "";
-
-    setHasUnsavedProgress(pageChanged || percentageChanged || hasNotes);
-  }, [currentPage, currentPercentage, notes, progressInputMode, book?.latestProgress]);
-
-  // Warn before leaving page with unsaved progress
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedProgress) {
-        e.preventDefault();
-        e.returnValue = ""; // Modern browsers require this
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedProgress]);
-
-  async function fetchBook() {
-    try {
-      const response = await fetch(`/api/books/${bookId}`);
-      const data = await response.json();
-      setBook(data);
-      if (data.activeSession) {
-        setSelectedStatus(data.activeSession.status);
-      } else if (data.hasCompletedReads) {
-        // Show "read" status for completed books with no active session
-        setSelectedStatus("read");
-      }
-      if (data.latestProgress) {
-        setCurrentPage(data.latestProgress.currentPage.toString());
-        setCurrentPercentage(data.latestProgress.currentPercentage.toString());
-      }
-    } catch (error) {
-      console.error("Failed to fetch book:", error);
-    } finally {
-      setLoading(false);
-    }
+  // Centralized refresh handler
+  function handleRefresh() {
+    refetchBook();
+    bookProgressHook.refetchProgress();
+    router.refresh();
   }
 
-  async function fetchProgress() {
-    try {
-      const response = await fetch(`/api/books/${bookId}/progress`);
-      const data = await response.json();
-      setProgress(data);
-    } catch (error) {
-      console.error("Failed to fetch progress:", error);
-    }
+  // Handle re-read with history refresh
+  async function handleRereadClick() {
+    await handleStartReread();
+    setHistoryRefreshKey(prev => prev + 1);
   }
 
-  async function handleLogProgress(e: React.FormEvent) {
-    e.preventDefault();
-
-    const payload: any = {};
-
-    if (progressInputMode === "page") {
-      if (!currentPage) return;
-      const pageValue = parseInt(currentPage);
-      // Validate that the new page is greater than the latest progress
-      if (book?.latestProgress && pageValue <= book.latestProgress.currentPage) {
-        toast.error("Please enter a page number greater than the current page.");
-        return;
-      }
-      payload.currentPage = pageValue;
-    } else {
-      if (!currentPercentage) return;
-      const percentValue = parseFloat(currentPercentage);
-      // Validate that the new percentage is greater than the latest progress
-      if (book?.latestProgress && percentValue <= book.latestProgress.currentPercentage) {
-        toast.error("Please enter a percentage greater than the current progress.");
-        return;
-      }
-      payload.currentPercentage = percentValue;
-    }
-
-    payload.notes = notes;
-
-    // Add progressDate to payload if provided
-    if (progressDate) {
-      payload.progressDate = new Date(progressDate + "T00:00:00.000Z").toISOString();
-    }
-
-    try {
-      const response = await fetch(`/api/books/${bookId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const newProgressEntry = await response.json();
-        setNotes("");
-        setProgressDate(new Date().toISOString().split("T")[0]); // Reset to today
-        setHasUnsavedProgress(false); // Clear unsaved flag after successful submission
-
-        // Update the book with the new progress without overwriting form inputs
-        setBook((prevBook) => {
-          if (!prevBook) return null;
-          return {
-            ...prevBook,
-            latestProgress: {
-              currentPage: newProgressEntry.currentPage,
-              currentPercentage: newProgressEntry.currentPercentage,
-              progressDate: newProgressEntry.progressDate,
-            },
-          };
-        });
-
-        fetchProgress();
-        toast.success("Progress logged!");
-        router.refresh(); // Refresh server-cached data
-      } else {
-        const errorData = await response.json();
-        // Display validation error from the API (temporal validation)
-        toast.error(errorData.error || "Failed to log progress");
-      }
-    } catch (error) {
-      console.error("Failed to log progress:", error);
-      toast.error("Failed to log progress");
-    }
-  }
-
-  async function handleUpdateStatus(newStatus: string) {
-    // If marking as "read", show confirmation dialog
-    if (newStatus === "read" && selectedStatus !== "read") {
-      setShowReadConfirmation(true);
-      return;
-    }
-
-    // Check if this is backward movement from "reading" to planning statuses
-    const isBackwardMovement =
-      selectedStatus === "reading" &&
-      (newStatus === "read-next" || newStatus === "to-read");
-
-    // If backward movement and we have progress, show confirmation
-    if (isBackwardMovement && progress.length > 0) {
-      setPendingStatusChange(newStatus);
-      setShowStatusChangeConfirmation(true);
-      return;
-    }
-
-    // Proceed with status change
-    await performStatusChange(newStatus);
-  }
-
-  async function performStatusChange(newStatus: string) {
-    try {
-      const body: any = { status: newStatus };
-      // Note: Rating is now set via FinishBookModal, not here
-
-      const response = await fetch(`/api/books/${bookId}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedStatus(newStatus);
-        fetchBook();
-        fetchProgress(); // Refresh progress to show new session
-
-        // Check if session was archived
-        if (data.sessionArchived) {
-          toast.success(
-            `Session archived as Read #${data.archivedSessionNumber}. Starting fresh with ${newStatus === "read-next" ? "Read Next" : "Want to Read"} status.`
-          );
-        } else {
-          toast.success("Status updated");
-        }
-
-        router.refresh(); // Refresh server-cached data
-      }
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      toast.error("Failed to update status");
-    }
-  }
-
-  async function handleConfirmStatusChange() {
-    setShowStatusChangeConfirmation(false);
-    if (pendingStatusChange) {
-      await performStatusChange(pendingStatusChange);
-      setPendingStatusChange(null);
-    }
-  }
-
-  function handleCancelStatusChange() {
-    setShowStatusChangeConfirmation(false);
-    setPendingStatusChange(null);
-  }
-
-  async function handleConfirmRead(modalRating: number, review?: string) {
-    setShowReadConfirmation(false);
-
-    try {
-      // First, set the progress to 100%
-      if (book?.totalPages) {
-        const progressPayload = {
-          currentPage: book.totalPages,
-          currentPercentage: 100,
-          notes: "Marked as read",
-        };
-
-        const progressResponse = await fetch(`/api/books/${bookId}/progress`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(progressPayload),
-        });
-
-        if (!progressResponse.ok) {
-          console.error("Failed to update progress to 100%");
-        }
-      }
-
-      // Then, update the status to "read"
-      const statusBody: any = { status: "read" };
-      if (modalRating > 0) {
-        statusBody.rating = modalRating;
-      }
-      if (review) {
-        statusBody.review = review;
-      }
-
-      const statusResponse = await fetch(`/api/books/${bookId}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(statusBody),
-      });
-
-      if (statusResponse.ok) {
-        setSelectedStatus("read");
-        fetchBook();
-        fetchProgress();
-        toast.success("Marked as read!");
-        router.refresh(); // Refresh server-cached data
-      }
-    } catch (error) {
-      console.error("Failed to mark book as read:", error);
-    }
-  }
-
-  async function handleStartReread() {
-    try {
-      const response = await fetch(`/api/books/${bookId}/reread`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        toast.success("Started re-reading! Your previous read has been archived.");
-        // Increment key to force ReadingHistoryTab remount and refetch
-        setHistoryRefreshKey(prev => prev + 1);
-        await fetchBook();
-        await fetchProgress();
-        router.refresh();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to start re-reading");
-      }
-    } catch (error) {
-      console.error("Failed to start re-reading:", error);
-      toast.error("Failed to start re-reading");
-    }
-  }
-
-  async function handleUpdateTotalPages(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!totalPages || parseInt(totalPages) <= 0) return;
-
-    try {
-      const response = await fetch(`/api/books/${bookId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          totalPages: parseInt(totalPages),
-        }),
-      });
-
-      if (response.ok) {
-        setTotalPages("");
-        fetchBook();
-        toast.success("Pages updated");
-        router.refresh(); // Refresh server-cached data
-      }
-    } catch (error) {
-      console.error("Failed to update total pages:", error);
-    }
-  }
-
-  async function handleUpdateRating(newRating: number | null) {
-    // Don't update if rating hasn't changed
-    if (newRating === book?.rating) {
-      setShowRatingModal(false);
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/api/books/${bookId}/rating`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: newRating }),
-      });
-      
-      if (response.ok) {
-        const updatedBook = await response.json();
-        setBook(updatedBook);
-        
-        if (newRating === null) {
-          toast.success("Rating removed");
-        } else {
-          toast.success(`Rated ${newRating} ${newRating === 1 ? 'star' : 'stars'}`);
-        }
-        
-        setShowRatingModal(false);
-        router.refresh();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to update rating");
-      }
-    } catch (error) {
-      console.error("Failed to update rating:", error);
-      toast.error("Failed to update rating");
-    }
-  }
-
+  // Session date editing handlers
   async function handleUpdateStartDate() {
     if (!book?.activeSession || !editStartDate) return;
 
     try {
-      // Get active session ID from the book's activeSession
+      // Get active session ID
       const response = await fetch(`/api/books/${bookId}/sessions`);
       const sessions = await response.json();
       const activeSession = sessions.find((s: any) => s.isActive);
@@ -479,7 +95,7 @@ export default function BookDetailPage() {
         return;
       }
 
-      // Update the session with new start date
+      // Update the session
       const updateResponse = await fetch(`/api/books/${bookId}/sessions/${activeSession.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -489,8 +105,7 @@ export default function BookDetailPage() {
       });
 
       if (updateResponse.ok) {
-        // Refresh book data
-        await fetchBook();
+        await refetchBook();
         setIsEditingStartDate(false);
         toast.success("Start date updated");
       } else {
@@ -507,74 +122,51 @@ export default function BookDetailPage() {
     if (book?.activeSession?.startedDate) {
       setEditStartDate(book.activeSession.startedDate.split("T")[0]);
     } else {
-      // Default to today
       setEditStartDate(new Date().toISOString().split("T")[0]);
     }
     setIsEditingStartDate(true);
   }
 
-  function handleEditProgress(entry: ProgressEntry) {
-    setSelectedProgressEntry(entry);
-    setShowEditProgressModal(true);
+  // Total pages submit handler
+  async function handleTotalPagesSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!totalPagesInput || parseInt(totalPagesInput) <= 0) return;
+
+    await updateTotalPages(parseInt(totalPagesInput));
+    setTotalPagesInput("");
+    toast.success("Pages updated");
+    router.refresh();
   }
 
-  async function handleConfirmEditProgress(updatedData: {
-    currentPage?: number;
-    currentPercentage?: number;
-    progressDate?: string;
-    notes?: string;
-  }) {
-    if (!selectedProgressEntry) return;
-
-    try {
-      const response = await fetch(`/api/books/${bookId}/progress/${selectedProgressEntry.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedData),
-      });
-
-      if (response.ok) {
-        toast.success("Progress updated!");
-        setShowEditProgressModal(false);
-        setSelectedProgressEntry(null);
-        await fetchBook();
-        await fetchProgress();
-        router.refresh();
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to update progress");
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowStatusDropdown(false);
       }
-    } catch (error) {
-      console.error("Failed to update progress:", error);
-      toast.error("Failed to update progress");
-    }
-  }
-
-  async function handleDeleteProgress() {
-    if (!selectedProgressEntry) return;
-
-    try {
-      const response = await fetch(`/api/books/${bookId}/progress/${selectedProgressEntry.id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("Progress entry deleted");
-        setShowEditProgressModal(false);
-        setSelectedProgressEntry(null);
-        await fetchBook();
-        await fetchProgress();
-        router.refresh();
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to delete progress");
+      if (progressModeDropdownRef.current && !progressModeDropdownRef.current.contains(event.target as Node)) {
+        setShowProgressModeDropdown(false);
       }
-    } catch (error) {
-      console.error("Failed to delete progress:", error);
-      toast.error("Failed to delete progress");
     }
-  }
 
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Warn before leaving with unsaved progress
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (bookProgressHook.hasUnsavedProgress) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [bookProgressHook.hasUnsavedProgress]);
+
+  // Loading state
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -583,6 +175,7 @@ export default function BookDetailPage() {
     );
   }
 
+  // Not found state
   if (!book) {
     return (
       <div className="text-center py-12">
@@ -591,580 +184,109 @@ export default function BookDetailPage() {
     );
   }
 
-  const progressPercentage = book.latestProgress?.currentPercentage || 0;
-
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Book Header */}
+      {/* Book Header with Cover, Status, Rating */}
+      <BookHeader
+        book={book}
+        selectedStatus={selectedStatus}
+        imageError={imageError}
+        onImageError={() => setImageError(true)}
+        onStatusChange={handleUpdateStatus}
+        onRatingClick={openRatingModal}
+        onRereadClick={handleRereadClick}
+        showStatusDropdown={showStatusDropdown}
+        setShowStatusDropdown={setShowStatusDropdown}
+        dropdownRef={dropdownRef}
+        rating={book.rating}
+        hasCompletedReads={book.hasCompletedReads || false}
+        hasActiveSession={!!book.activeSession}
+      />
+
       <div className="grid md:grid-cols-[250px_1fr] gap-8">
-        {/* Left Column - Cover and Status */}
-        <div className="space-y-4">
-          {/* Cover */}
-          <div className="aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center">
-            {!imageError ? (
-              <img
-                src={`/api/covers/${book.calibreId}/cover.jpg`}
-                alt={book.title}
-                className="w-full h-full object-cover"
-                loading="eager"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <BookOpen className="w-24 h-24 text-[var(--foreground)]/40" />
-            )}
-          </div>
+        {/* Empty left column for layout alignment */}
+        <div />
 
-          {/* Status Dropdown */}
-          <div className="space-y-2">
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="w-full px-4 py-2.5 bg-[var(--accent)] text-white font-semibold rounded cursor-pointer hover:bg-[var(--light-accent)] transition-colors flex items-center justify-between"
-              >
-                <span>
-                  {selectedStatus === "to-read"
-                    ? "Want to Read"
-                    : selectedStatus === "read-next"
-                      ? "Read Next"
-                      : selectedStatus === "reading"
-                        ? "Reading"
-                        : "Read"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "w-5 h-5 transition-transform",
-                    showStatusDropdown && "rotate-180"
-                  )}
-                />
-              </button>
-
-              {/* Dropdown Menu */}
-              {showStatusDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                  {[
-                    { value: "to-read", label: "Want to Read", disabled: false, icon: Bookmark },
-                    { value: "read-next", label: "Read Next", disabled: false, icon: Clock },
-                    { value: "reading", label: "Reading", disabled: !book.totalPages, icon: BookOpen },
-                    { value: "read", label: "Read", disabled: !book.totalPages, icon: BookCheck },
-                  ].map((option) => {
-                    const Icon = option.icon;
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => {
-                          if (!option.disabled) {
-                            handleUpdateStatus(option.value);
-                            setShowStatusDropdown(false);
-                          }
-                        }}
-                        disabled={option.disabled}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group",
-                          option.disabled
-                            ? "cursor-not-allowed bg-[var(--card-bg)]"
-                            : "cursor-pointer hover:bg-[var(--background)]",
-                          selectedStatus === option.value && !option.disabled && "bg-[var(--accent)]/10"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          {option.disabled ? (
-                            <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
-                          ) : (
-                            <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
-                          )}
-                          <div className="flex flex-col">
-                            <span
-                              className={cn(
-                                "font-semibold",
-                                option.disabled
-                                  ? "text-[var(--foreground)]/40"
-                                  : "text-[var(--foreground)]"
-                              )}
-                            >
-                              {option.label}
-                            </span>
-                            {option.disabled && (
-                              <span className="text-xs text-[var(--foreground)]/30 mt-0.5 font-medium">
-                                Set pages
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {selectedStatus === option.value && !option.disabled && (
-                          <Check className="w-5 h-5 text-[var(--accent)]" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Rating Display - show if book has a rating OR status is "read" */}
-            {(book.rating || selectedStatus === "read") && (
-              <div 
-                className="py-2 group cursor-pointer"
-                onClick={() => setShowRatingModal(true)}
-              >
-                {/* Star Rating Display */}
-                <div className="flex justify-center">
-                  <div className="relative inline-flex gap-1 items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={cn(
-                          "w-5 h-5 transition-colors",
-                          star <= (book.rating || 0)
-                            ? "fill-[var(--accent)] text-[var(--accent)]"
-                            : "text-[var(--foreground)]/30"
-                        )}
-                      />
-                    ))}
-                    {/* Pencil icon appears on hover - absolutely positioned */}
-                    <Pencil className="w-4 h-4 text-[var(--foreground)]/40 opacity-0 group-hover:opacity-100 transition-opacity absolute left-full ml-1.5 top-1/2 -translate-y-1/2" />
-                  </div>
-                </div>
-                
-                {/* Rating Text */}
-                <div className="text-center mt-3">
-                  <p className="text-xs text-[var(--subheading-text)] font-medium group-hover:text-[var(--accent)] transition-colors">
-                    {book.rating ? `${book.rating} ${book.rating === 1 ? 'star' : 'stars'}` : "Rate this book"}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Start Re-reading Button - only show if there are completed reads and no active session */}
-            {!book.activeSession && book.hasCompletedReads && (
-              <button
-                onClick={handleStartReread}
-                className="w-full px-4 py-2.5 bg-[var(--background)] text-[var(--foreground)] font-semibold rounded border border-[var(--border-color)] hover:bg-[var(--card-bg)] transition-colors flex items-center justify-center gap-2"
-              >
-                <BookOpen className="w-4 h-4" />
-                <span>Start Re-reading</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column - Info */}
+        {/* Right column with main content */}
         <div className="space-y-6">
-          <div>
-            <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)] mb-2">
-              {book.title}
-            </h1>
-            <div className="text-xl text-[var(--subheading-text)] mb-3 font-medium">
-              {book.authors.map((author, index) => (
-                <span key={author}>
-                  <Link
-                    href={`/library?search=${encodeURIComponent(author)}`}
-                    className="hover:text-[var(--accent)] transition-colors hover:underline"
-                  >
-                    {author}
-                  </Link>
-                  {index < book.authors.length - 1 && ", "}
-                </span>
-              ))}
-            </div>
-
-            {book.series && (
-              <p className="text-sm text-[var(--foreground)]/60 mb-3 italic font-medium">
-                {book.series}
-              </p>
-            )}
-
-            {/* Metadata - integrated into header */}
-            <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
-              {(book.totalReads ?? 0) > 0 && (
-                <>
-                  <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                    <BookCheck className="w-4 h-4" />
-                    <span className="font-semibold">{book.totalReads} {book.totalReads === 1 ? 'read' : 'reads'}</span>
-                  </div>
-                  <span className="text-[var(--border-color)]">•</span>
-                </>
-              )}
-              {book.totalPages ? (
-                <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-[var(--accent)] italic">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="font-medium">Pages not set</span>
-                </div>
-              )}
-              {(book.publisher || book.pubDate) && (
-                <>
-                  <span className="text-[var(--border-color)]">•</span>
-                  {book.publisher && (
-                    <span className="font-medium text-[var(--accent)]">{book.publisher}</span>
-                  )}
-                  {book.publisher && book.pubDate && (
-                    <span className="text-[var(--foreground)]/30">•</span>
-                  )}
-                  {book.pubDate && (
-                    <span className="font-medium text-[var(--accent)]">Published {new Date(book.pubDate).getFullYear()}</span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
           <hr className="border-[var(--border-color)]" />
 
-          {/* Started Date - Editable for active reading session */}
+          {/* Session Details (Started Date) */}
           {selectedStatus === "reading" && book.activeSession && (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-[var(--accent)]" />
-              <span className="font-bold text-[var(--accent)]">Started:</span>
-              {isEditingStartDate ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={editStartDate}
-                    onChange={(e) => setEditStartDate(e.target.value)}
-                    max={new Date().toISOString().split('T')[0]}
-                    className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                  />
-                  <button
-                    onClick={() => setIsEditingStartDate(false)}
-                    className="px-2 py-1 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded text-xs font-semibold hover:bg-[var(--background)] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleUpdateStartDate}
-                    className="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-semibold hover:bg-[var(--light-accent)] transition-colors"
-                  >
-                    Save
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleStartEditingDate}
-                  className="flex items-center gap-1 group"
-                  title="Click to edit start date"
-                >
-                  {book.activeSession.startedDate ? (
-                    <span className="font-medium text-[var(--foreground)] group-hover:underline">
-                      {format(new Date(book.activeSession.startedDate), "MMM d, yyyy")}
-                    </span>
-                  ) : (
-                    <span className="italic text-[var(--foreground)]/40 font-medium group-hover:underline">
-                      Not set
-                    </span>
-                  )}
-                  <Pencil className="w-3.5 h-3.5 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              )}
-            </div>
+            <SessionDetails
+              startedDate={book.activeSession.startedDate}
+              isEditingStartDate={isEditingStartDate}
+              editStartDate={editStartDate}
+              onStartEditingDate={handleStartEditingDate}
+              onEditStartDateChange={setEditStartDate}
+              onCancelEdit={() => setIsEditingStartDate(false)}
+              onSaveStartDate={handleUpdateStartDate}
+            />
           )}
 
-          {/* Progress Bar */}
-          {book.totalPages && selectedStatus === "reading" && (
-            <div>
-              <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-2">
-                <span className="font-bold">Progress</span>
-              </div>
-              <div className="relative w-full bg-[var(--border-color)] rounded-md h-8 overflow-hidden">
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)] transition-all duration-300 ease-out"
-                  style={{ width: `${Math.min(100, progressPercentage)}%` }}
-                />
-                <div className="absolute inset-0 flex items-center px-3 top-1">
-                  <span className="text-sm font-mono font-bold text-white drop-shadow-sm">{Math.round(progressPercentage)}%</span>
-                </div>
-              </div>
-              <p className="text-sm text-[var(--foreground)]/30 mt-3 font-mono font-medium">
-                Page {book.latestProgress?.currentPage || 0} of {book.totalPages}
-              </p>
-            </div>
+          {/* Progress Bar & Logging Form */}
+          {selectedStatus === "reading" && (
+            <BookProgress
+              book={book}
+              currentPage={bookProgressHook.currentPage}
+              currentPercentage={bookProgressHook.currentPercentage}
+              progressInputMode={bookProgressHook.progressInputMode}
+              notes={bookProgressHook.notes}
+              progressDate={bookProgressHook.progressDate}
+              onCurrentPageChange={bookProgressHook.setCurrentPage}
+              onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
+              onNotesChange={bookProgressHook.setNotes}
+              onProgressDateChange={bookProgressHook.setProgressDate}
+              onProgressInputModeChange={bookProgressHook.setProgressInputMode}
+              onSubmit={bookProgressHook.handleLogProgress}
+              showProgressModeDropdown={showProgressModeDropdown}
+              setShowProgressModeDropdown={setShowProgressModeDropdown}
+              progressModeDropdownRef={progressModeDropdownRef}
+            />
           )}
 
-          {/* Pages Setting */}
-          {!book.totalPages && (
-            <div className="border-l-4 border-[var(--accent)] bg-[var(--card-bg)] pl-4 py-3">
-              <p className="text-sm text-[var(--foreground)]/70 mb-3 font-medium">
-                Add page count to enable progress tracking
-              </p>
-              <form onSubmit={handleUpdateTotalPages} className="flex gap-2 max-w-xs">
-                <input
-                  type="number"
-                  value={totalPages}
-                  onChange={(e) => setTotalPages(e.target.value)}
-                  min="1"
-                  className="flex-1 px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
-                  placeholder="e.g. 320"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-sm text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
-                >
-                  Save
-                </button>
-              </form>
-            </div>
-          )}
+          {/* Book Metadata (Description, Tags, Total Pages Form) */}
+          <BookMetadata
+            book={book}
+            hasTotalPages={!!book.totalPages}
+            totalPagesInput={totalPagesInput}
+            onTotalPagesChange={setTotalPagesInput}
+            onTotalPagesSubmit={handleTotalPagesSubmit}
+          />
 
-          {/* Progress Tracker */}
-          {book.totalPages && selectedStatus === "reading" && (
+          {/* Progress History */}
+          {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-                Log Progress
-              </h2>
-
-              <form onSubmit={handleLogProgress} className="space-y-4">
-                {/* Progress Input Row - flexbox that wraps on mobile */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {/* Date */}
-                  <div className="sm:w-48">
-                    <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={progressDate}
-                      onChange={(e) => setProgressDate(e.target.value)}
-                      max={new Date().toISOString().split("T")[0]}
-                      className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Progress Input */}
-                  <div className="flex-1">
-                    <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
-                      Progress
-                    </label>
-                    <div className="flex gap-2">
-                      {progressInputMode === "page" ? (
-                        <input
-                          type="number"
-                          value={currentPage}
-                          onChange={(e) => setCurrentPage(e.target.value)}
-                          min="0"
-                          max={book.totalPages}
-                          step="1"
-                          className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                          placeholder="Enter current page"
-                        />
-                      ) : (
-                        <input
-                          type="number"
-                          value={currentPercentage}
-                          onChange={(e) => setCurrentPercentage(e.target.value)}
-                          min="0"
-                          max="100"
-                          step="1"
-                          className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                          placeholder="Enter percentage"
-                        />
-                      )}
-                      
-                      {/* Progress Mode Dropdown */}
-                      <div className="relative" ref={progressModeDropdownRef}>
-                        <button
-                          type="button"
-                          onClick={() => setShowProgressModeDropdown(!showProgressModeDropdown)}
-                          className="w-32 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--card-bg)] transition-colors font-semibold flex items-center justify-between"
-                        >
-                          <span>{progressInputMode === "page" ? "Page" : "%"}</span>
-                          <ChevronDown
-                            className={cn(
-                              "w-4 h-4 transition-transform",
-                              showProgressModeDropdown && "rotate-180"
-                            )}
-                          />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {showProgressModeDropdown && (
-                          <div className="absolute z-10 right-0 mt-1 w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setProgressInputMode("page");
-                                localStorage.setItem("progressInputMode", "page");
-                                if (book.latestProgress) {
-                                  setCurrentPage(book.latestProgress.currentPage.toString());
-                                }
-                                setShowProgressModeDropdown(false);
-                              }}
-                              className={cn(
-                                "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors",
-                                progressInputMode === "page"
-                                  ? "bg-[var(--accent)]/10"
-                                  : "hover:bg-[var(--background)]"
-                              )}
-                            >
-                              <span className="font-semibold text-[var(--foreground)]">Page</span>
-                              {progressInputMode === "page" && (
-                                <Check className="w-4 h-4 text-[var(--accent)]" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setProgressInputMode("percentage");
-                                localStorage.setItem("progressInputMode", "percentage");
-                                if (book.latestProgress) {
-                                  setCurrentPercentage(book.latestProgress.currentPercentage.toString());
-                                }
-                                setShowProgressModeDropdown(false);
-                              }}
-                              className={cn(
-                                "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors",
-                                progressInputMode === "percentage"
-                                  ? "bg-[var(--accent)]/10"
-                                  : "hover:bg-[var(--background)]"
-                              )}
-                            >
-                              <span className="font-semibold text-[var(--foreground)]">Percentage</span>
-                              {progressInputMode === "percentage" && (
-                                <Check className="w-4 h-4 text-[var(--accent)]" />
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                    placeholder="Add notes about this reading session..."
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold uppercase tracking-wide"
-                >
-                  Log Progress
-                </button>
-              </form>
+              <ProgressHistory
+                progress={bookProgressHook.progress}
+                onEdit={bookProgressHook.handleEditProgress}
+              />
             </div>
           )}
 
-          {/* Description */}
-          {book.description && (
-            <div>
-              <p className="text-sm text-[var(--foreground)]/80 leading-relaxed font-medium">
-                {book.description.replace(/<[^>]*>/g, "")}
-              </p>
-            </div>
-          )}
-
-          {/* Tags */}
-          {book.tags.length > 0 && (
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-3 font-semibold">
-                Tags
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {book.tags.map((tag) => (
-                  <Link
-                    key={tag}
-                    href={`/library?tags=${encodeURIComponent(tag)}`}
-                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium">
-                    {tag}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Progress History - Only show for active reading session */}
-          {progress.length > 0 && selectedStatus === "reading" && (
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-                Current Reading Progress
-              </h2>
-
-              <div className="space-y-4">
-                {progress.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg group"
-                  >
-                    <Calendar className="w-5 h-5 text-[var(--accent)]/60 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-[var(--foreground)]">
-                          Page <span className="font-mono">{entry.currentPage}</span>
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm text-[var(--foreground)]/60 font-mono font-semibold">
-                            {format(new Date(entry.progressDate), "MMM d, yyyy")}
-                          </p>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleEditProgress(entry)}
-                              className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
-                              title="Edit progress entry"
-                            >
-                              <Edit2 className="w-4 h-4 text-[var(--accent)]" />
-                            </button>
-                            <button
-                              onClick={() => handleEditProgress(entry)}
-                              className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
-                              title="Delete progress entry"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-sm text-[var(--foreground)]/70 font-medium">
-                        <span className="font-mono font-semibold">{Math.round(entry.currentPercentage)}%</span> complete
-                        {entry.pagesRead > 0 && (
-                          <>
-                            {" • "}
-                            <span className="font-mono font-semibold">{entry.pagesRead}</span> pages read
-                          </>
-                        )}
-                      </p>
-                      {entry.notes && (
-                        <p className="text-sm text-[var(--foreground)]/60 mt-2 italic font-medium">
-                          {entry.notes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Reading History */}
-          <ReadingHistoryTab key={historyRefreshKey} bookId={bookId} bookTitle={book.title} />
+          {/* Reading History Tab */}
+          <ReadingHistoryTab
+            key={historyRefreshKey}
+            bookId={bookId}
+            bookTitle={book.title}
+          />
         </div>
       </div>
 
-      {/* Finish Book Modal with Rating */}
+      {/* Modals */}
       <FinishBookModal
         isOpen={showReadConfirmation}
-        onClose={() => setShowReadConfirmation(false)}
+        onClose={() => handleCancelStatusChange()}
         onConfirm={handleConfirmRead}
-        bookTitle={book?.title || ""}
+        bookTitle={book.title}
       />
 
-      {/* Rating Modal */}
       <RatingModal
         isOpen={showRatingModal}
-        onClose={() => setShowRatingModal(false)}
+        onClose={closeRatingModal}
         onConfirm={handleUpdateRating}
-        bookTitle={book?.title || ""}
-        currentRating={book?.rating || null}
+        bookTitle={book.title}
+        currentRating={book.rating || null}
       />
 
       {/* Status Change Confirmation Dialog */}
@@ -1204,18 +326,15 @@ export default function BookDetailPage() {
       )}
 
       {/* Progress Edit Modal */}
-      {selectedProgressEntry && (
+      {bookProgressHook.selectedProgressEntry && (
         <ProgressEditModal
-          isOpen={showEditProgressModal}
-          onClose={() => {
-            setShowEditProgressModal(false);
-            setSelectedProgressEntry(null);
-          }}
-          onConfirm={handleConfirmEditProgress}
-          onDelete={handleDeleteProgress}
-          currentProgress={selectedProgressEntry}
-          bookTitle={book?.title || ""}
-          totalPages={book?.totalPages}
+          isOpen={bookProgressHook.showEditProgressModal}
+          onClose={bookProgressHook.closeEditModal}
+          onConfirm={bookProgressHook.handleConfirmEditProgress}
+          onDelete={bookProgressHook.handleDeleteProgress}
+          currentProgress={bookProgressHook.selectedProgressEntry}
+          bookTitle={book.title}
+          totalPages={book.totalPages}
         />
       )}
     </div>

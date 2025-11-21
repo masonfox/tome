@@ -1,0 +1,212 @@
+import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { renderHook, waitFor, act } from "@testing-library/react";
+import { useBookRating } from "@/hooks/useBookRating";
+import type { Book } from "@/hooks/useBookDetail";
+
+const originalFetch = global.fetch;
+
+describe("useBookRating", () => {
+  const mockBook: Book = {
+    id: 123,
+    calibreId: 1,
+    title: "Test Book",
+    authors: ["Test Author"],
+    tags: [],
+    rating: 4,
+  };
+
+  const mockOnRefresh = mock(() => {});
+
+  beforeEach(() => {
+    global.fetch = mock(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve(mockBook),
+    } as Response));
+    mockOnRefresh.mockClear();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  describe("initialization", () => {
+    test("should initialize with modal closed", () => {
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      expect(result.current.showRatingModal).toBe(false);
+    });
+  });
+
+  describe("modal management", () => {
+    test("should open rating modal", () => {
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      act(() => {
+        result.current.openRatingModal();
+      });
+
+      expect(result.current.showRatingModal).toBe(true);
+    });
+
+    test("should close rating modal", () => {
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      act(() => {
+        result.current.openRatingModal();
+      });
+
+      expect(result.current.showRatingModal).toBe(true);
+
+      act(() => {
+        result.current.closeRatingModal();
+      });
+
+      expect(result.current.showRatingModal).toBe(false);
+    });
+  });
+
+  describe("handleUpdateRating", () => {
+    test("should update rating and close modal", async () => {
+      const updatedBook = { ...mockBook, rating: 5 };
+
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(updatedBook),
+      } as Response));
+
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      act(() => {
+        result.current.openRatingModal();
+      });
+
+      await act(async () => {
+        await result.current.handleUpdateRating(5);
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/rating",
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({ rating: 5 }),
+          })
+        );
+      });
+
+      expect(result.current.showRatingModal).toBe(false);
+      expect(mockOnRefresh).toHaveBeenCalled();
+    });
+
+    test("should remove rating", async () => {
+      const updatedBook = { ...mockBook, rating: null };
+
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(updatedBook),
+      } as Response));
+
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      await act(async () => {
+        await result.current.handleUpdateRating(null);
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/rating",
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({ rating: null }),
+          })
+        );
+      });
+    });
+
+    test("should not update if rating hasn't changed", async () => {
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      act(() => {
+        result.current.openRatingModal();
+      });
+
+      await act(async () => {
+        await result.current.handleUpdateRating(4); // Same as current rating
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(result.current.showRatingModal).toBe(false);
+    });
+
+    test("should handle API errors", async () => {
+      const consoleErrorSpy = mock(console.error);
+      console.error = consoleErrorSpy;
+
+      global.fetch = mock(() => Promise.resolve({
+        ok: false,
+        json: () => Promise.resolve({ error: "Failed to update rating" }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      await act(async () => {
+        await result.current.handleUpdateRating(5);
+      });
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).not.toHaveBeenCalled(); // Error shown via toast
+      });
+
+      // Modal should remain open on error
+      expect(result.current.showRatingModal).toBe(false);
+
+      console.error = console.error;
+    });
+
+    test("should handle network errors", async () => {
+      const consoleErrorSpy = mock(console.error);
+      console.error = consoleErrorSpy;
+
+      global.fetch = mock(() => Promise.reject(new Error("Network error")));
+
+      const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
+
+      await act(async () => {
+        await result.current.handleUpdateRating(5);
+      });
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      });
+
+      console.error = console.error;
+    });
+  });
+
+  describe("book without rating", () => {
+    test("should handle book with no initial rating", async () => {
+      const bookWithoutRating = { ...mockBook, rating: undefined };
+
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ...bookWithoutRating, rating: 3 }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookRating(bookWithoutRating, "123", mockOnRefresh));
+
+      await act(async () => {
+        await result.current.handleUpdateRating(3);
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/rating",
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({ rating: 3 }),
+          })
+        );
+      });
+    });
+  });
+});

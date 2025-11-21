@@ -244,11 +244,11 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(data.pagesRead).toBe(150); // 250 - 100 = 150 pages read
   });
 
-  test("handles negative pagesRead (when going backwards)", async () => {
+  test("rejects backward progress without backdating", async () => {
     // Get the active session
     const session = await sessionRepository.findActiveByBookId(testBook.id);
 
-    // Create progress at page 300
+    // Create progress at page 300 on Nov 1
     await progressRepository.create({
       bookId: testBook.id,
       sessionId: session!.id,
@@ -258,7 +258,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       pagesRead: 300,
     });
 
-    // Log progress at page 250 (going back)
+    // Try to log progress at page 250 (going back) with current date - should be rejected
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 250,
     });
@@ -267,8 +267,9 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.pagesRead).toBe(0); // Math.max(0, 250 - 300) = 0
+    // New behavior: temporal validation rejects backward progress with current date
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("Progress must be at least page 300");
   });
 
   test("marks book as completed when progress reaches 100%", async () => {
@@ -376,7 +377,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(data.currentPercentage).toBe(0); // Can't calculate without total pages
   });
 
-  test("rejects percentage input for book without totalPages", async () => {
+  test("accepts percentage input for book without totalPages", async () => {
     const bookNoPages = await bookRepository.create({
       calibreId: 2,
       title: "No Pages Book",
@@ -403,9 +404,10 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
 
-    // Without totalPages, percentage-only progress is not supported
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Either currentPage or currentPercentage is required");
+    // Service layer accepts percentage-only progress (calculates currentPage as 0)
+    expect(response.status).toBe(200);
+    expect(data.currentPercentage).toBe(50);
+    expect(data.currentPage).toBe(0); // Without totalPages, page is 0
   });
 
   test("stores progress date correctly", async () => {

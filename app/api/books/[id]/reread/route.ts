@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import { bookRepository, sessionRepository } from "@/lib/repositories";
-import { rebuildStreak } from "@/lib/streaks";
+import { SessionService } from "@/lib/services/session.service";
+import { sessionRepository } from "@/lib/repositories";
+
+const sessionService = new SessionService();
 
 export async function POST(
   request: NextRequest,
@@ -14,34 +15,29 @@ export async function POST(
       return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
 
-    // Check if book exists
-    const book = await bookRepository.findById(bookId);
-    if (!book) {
-      return NextResponse.json({ error: "Book not found" }, { status: 404 });
-    }
+    // Check if there's already an active session
+    const existingActiveSession = await sessionRepository.findActiveByBookId(bookId);
 
-    // Find the most recent session (should be archived with status='read')
-    const lastSession = await sessionRepository.findLatestByBookId(bookId);
-
-    if (!lastSession) {
+    // Check if there are completed reads (must have at least one completed read to re-read)
+    const hasCompletedReads = await sessionRepository.hasCompletedReads(bookId);
+    
+    if (!hasCompletedReads) {
+      // If active session is to-read or read-next, provide specific error message
+      if (existingActiveSession && (existingActiveSession.status === "to-read" || existingActiveSession.status === "read-next")) {
+        return NextResponse.json(
+          { error: "Can only re-read books with completed reads" },
+          { status: 400 }
+        );
+      }
+      
+      // Default error message for no completed reads
       return NextResponse.json(
-        { error: "No reading sessions found for this book" },
-        { status: 404 }
-      );
-    }
-
-    // Check if the last session is completed
-    // Only allow re-reading if the book has been completed
-    if (lastSession.status !== "read") {
-      return NextResponse.json(
-        { error: "Can only re-read books that have been marked as 'read'" },
+        { error: "Cannot start re-read: no completed reads found" },
         { status: 400 }
       );
     }
 
-    // Check if there's already an active session
-    const existingActiveSession = await sessionRepository.findActiveByBookId(bookId);
-
+    // If there are completed reads AND active session exists, reject
     if (existingActiveSession) {
       return NextResponse.json(
         { error: "An active reading session already exists for this book" },
@@ -49,58 +45,31 @@ export async function POST(
       );
     }
 
-    console.log(
-      `[Reread] Starting re-read after completed session #${lastSession.sessionNumber} for book ${bookId}`
-    );
+    // Get last session before creating new one (for response)
+    const lastSession = await sessionRepository.findLatestByBookId(bookId);
 
-    // Archive the last session first (if it's still active)
-    if (lastSession.isActive) {
-      await sessionRepository.archive(lastSession.id);
-    }
-
-    // Create a new reading session
-    const newSessionNumber = lastSession.sessionNumber + 1;
-    const newSession = await sessionRepository.create({
-      userId: lastSession.userId,
-      bookId,
-      sessionNumber: newSessionNumber,
-      status: "reading", // Start as 'reading' when re-reading
-      startedDate: new Date(),
-      isActive: true,
-    });
-
-    console.log(
-      `[Reread] Created new session #${newSessionNumber} for book ${bookId}`
-    );
-
-    // Rebuild streak from all progress logs to ensure consistency
-    try {
-      console.log("[Reread] Rebuilding streak...");
-      const updatedStreak = await rebuildStreak();
-      console.log("[Reread] Streak rebuilt:", {
-        currentStreak: updatedStreak.currentStreak,
-        longestStreak: updatedStreak.longestStreak,
-      });
-    } catch (streakError) {
-      console.error("[Reread] Failed to rebuild streak:", streakError);
-      // Don't fail the entire request if streak rebuild fails
-    }
-
-    // Revalidate pages
-    revalidatePath("/"); // Dashboard
-    revalidatePath("/library"); // Library page
-    revalidatePath(`/books/${bookId}`); // Book detail page
+    const newSession = await sessionService.startReread(bookId);
 
     return NextResponse.json({
       message: "Re-reading session started successfully",
       session: newSession,
-      previousSession: {
+      previousSession: lastSession ? {
         id: lastSession.id,
         sessionNumber: lastSession.sessionNumber,
-      },
+      } : undefined,
     });
   } catch (error: any) {
     console.error("Error starting re-read:", error);
+
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message.includes("Cannot") || error.message.includes("already exists") || error.message.includes("no completed reads")) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
 
     // Handle SQLite unique constraint error (race condition)
     if (error.message?.includes("UNIQUE constraint failed")) {

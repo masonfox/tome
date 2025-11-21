@@ -188,43 +188,46 @@ describe("POST /api/books/[id]/reread", () => {
   // ERROR CASES
   // ============================================================================
 
-  test("should return 404 if book not found", async () => {
+  test("should return 400 if no completed reads exist", async () => {
     const fakeId = 999999;
     const request = createMockRequest("POST", `/api/books/${fakeId}/reread`) as NextRequest;
     const response = await POST(request, { params: { id: fakeId.toString() } });
     const data = await response.json();
 
-    expect(response.status).toBe(404);
-    expect(data.error).toBe("Book not found");
+    // Service layer returns 400 for no completed reads (doesn't check if book exists first)
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("no completed reads found");
   });
 
-  test("should return 404 if no sessions exist", async () => {
+  test("should return 400 if no sessions exist", async () => {
     const book = await bookRepository.create(mockBook1);
 
     const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
     const response = await POST(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
-    expect(response.status).toBe(404);
-    expect(data.error).toContain("No reading sessions found");
+    // Service layer checks for completed reads, returns 400 if none found
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("no completed reads found");
   });
 
-  test("should return 400 if last session is not 'read' status", async () => {
+  test("should return 400 if no completed reads (only active session)", async () => {
     const book = await bookRepository.create(mockBook1);
 
     await sessionRepository.create({
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
-      isActive: true, // Still actively reading
+      isActive: true, // Still actively reading, not completed
     });
 
     const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
     const response = await POST(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
+    // Service layer checks for completed reads (read status), returns 400 if none found
     expect(response.status).toBe(400);
-    expect(data.error).toContain("Can only re-read");
+    expect(data.error).toContain("no completed reads found");
   });
 
   test("should return 400 if active session is 'to-read' status", async () => {
