@@ -807,7 +807,7 @@ describe("LibraryService → API Integration", () => {
       });
 
       expect(result.books).toHaveLength(1);
-      expect(result.books[0].latestProgress).toBeUndefined();
+      expect(result.books[0].latestProgress).toBeNull();
     });
   });
 });

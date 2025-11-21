@@ -67,10 +67,13 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     }
 
     // Tags filter (JSON contains)
+    // Use json_each for accurate JSON array searching instead of LIKE
     if (filters.tags && filters.tags.length > 0) {
-      // For JSON arrays, we need to check if any of the tags exist
       const tagConditions = filters.tags.map((tag) =>
-        sql`json_array_length(json_extract(${books.tags}, '$')) > 0 AND ${books.tags} LIKE ${'%"' + tag + '"%'}`
+        sql`EXISTS (
+          SELECT 1 FROM json_each(${books.tags})
+          WHERE json_each.value = ${tag}
+        )`
       );
       conditions.push(or(...tagConditions)!);
     }
@@ -231,18 +234,327 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   /**
    * Get all unique tags from all books
+   * Optimized to use SQLite's json_each function instead of loading all books
    */
   async getAllTags(): Promise<string[]> {
-    const allBooks = await this.findAll();
-    const tagSet = new Set<string>();
+    try {
+      // Use json_each to extract tags directly in SQL
+      // This is much faster than loading all books into memory
+      const results = this.getDatabase()
+        .select({
+          tag: sql<string>`json_each.value`,
+        })
+        .from(sql`${books}, json_each(${books.tags})`)
+        .where(sql`json_array_length(${books.tags}) > 0`)
+        .groupBy(sql`json_each.value`)
+        .orderBy(sql`json_each.value`)
+        .all();
 
-    for (const book of allBooks) {
-      if (book.tags && Array.isArray(book.tags)) {
-        book.tags.forEach((tag) => tagSet.add(tag));
+      return results.map((r) => r.tag);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Find books with filters AND eagerly load their sessions and progress in a single query.
+   * This replaces the N+1 query pattern with a performant JOIN.
+   */
+  async findWithFiltersAndRelations(
+    filters: BookFilter,
+    limit: number = 50,
+    skip: number = 0,
+    sortBy?: string
+  ): Promise<{ books: any[]; total: number }> {
+    const conditions: SQL[] = [];
+
+    // Orphaned filter
+    if (filters.orphanedOnly) {
+      conditions.push(eq(books.orphaned, true));
+    } else if (!filters.showOrphaned) {
+      conditions.push(or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!);
+    }
+
+    // Search filter
+    if (filters.search) {
+      const searchPattern = `%${filters.search}%`;
+      conditions.push(
+        or(
+          like(books.title, searchPattern),
+          like(books.authors, searchPattern)
+        )!
+      );
+    }
+
+    // Tags filter (JSON contains)
+    // Use json_each for accurate JSON array searching instead of LIKE
+    if (filters.tags && filters.tags.length > 0) {
+      const tagConditions = filters.tags.map((tag) =>
+        sql`EXISTS (
+          SELECT 1 FROM json_each(${books.tags})
+          WHERE json_each.value = ${tag}
+        )`
+      );
+      conditions.push(or(...tagConditions)!);
+    }
+
+    // Rating filter
+    if (filters.rating && filters.rating !== "all") {
+      switch (filters.rating) {
+        case "5":
+          conditions.push(eq(books.rating, 5));
+          break;
+        case "4":
+          conditions.push(eq(books.rating, 4));
+          break;
+        case "3":
+          conditions.push(eq(books.rating, 3));
+          break;
+        case "2":
+          conditions.push(eq(books.rating, 2));
+          break;
+        case "1":
+          conditions.push(eq(books.rating, 1));
+          break;
+        case "unrated":
+          conditions.push(sql`${books.rating} IS NULL`);
+          break;
       }
     }
 
-    return Array.from(tagSet).sort();
+    // Status filter (requires join with sessions)
+    let bookIds: number[] | undefined;
+    if (filters.status) {
+      const statusCondition = eq(readingSessions.status, filters.status as any);
+      const activeCondition =
+        filters.status === "read"
+          ? undefined // For "read", include all sessions
+          : eq(readingSessions.isActive, true);
+
+      const sessionQuery = this.getDatabase()
+        .select({ bookId: readingSessions.bookId })
+        .from(readingSessions)
+        .where(activeCondition ? and(statusCondition, activeCondition) : statusCondition);
+
+      const sessions = sessionQuery.all() as Array<{ bookId: number }>;
+      bookIds = sessions.map((s: any) => s.bookId);
+
+      if (bookIds.length === 0) {
+        return { books: [], total: 0 };
+      }
+
+      if (bookIds.length > 0) {
+        conditions.push(inArray(books.id, bookIds));
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const countResult = this.getDatabase()
+      .select({ count: sql<number>`count(*)` })
+      .from(books)
+      .where(whereClause)
+      .get();
+    const total = countResult?.count ?? 0;
+
+    // Determine sort order
+    let orderBy: SQL;
+    switch (sortBy) {
+      case "title":
+        orderBy = asc(books.title);
+        break;
+      case "title_desc":
+        orderBy = desc(books.title);
+        break;
+      case "author":
+        orderBy = asc(books.authors);
+        break;
+      case "author_desc":
+        orderBy = desc(books.authors);
+        break;
+      case "created":
+        orderBy = desc(books.createdAt);
+        break;
+      case "created_desc":
+        orderBy = asc(books.createdAt);
+        break;
+      case "rating":
+        orderBy = sql`${books.rating} DESC NULLS LAST`;
+        break;
+      case "rating_asc":
+        orderBy = sql`${books.rating} ASC NULLS LAST`;
+        break;
+      default:
+        orderBy = asc(books.createdAt);
+    }
+
+    // Build the main query with JOINs
+    // We use a correlated subquery to select the appropriate session for each book
+    const sessionIdSubquery = filters.status === "read"
+      ? // For "read" filter: get most recent completed session
+        sql`(
+          SELECT rs.id FROM ${readingSessions} rs
+          WHERE rs.book_id = ${books.id}
+            AND rs.status = 'read'
+          ORDER BY rs.completed_date DESC, rs.session_number DESC
+          LIMIT 1
+        )`
+      : // For other filters: get active session, or fallback to most recent completed
+        sql`(
+          SELECT rs.id FROM ${readingSessions} rs
+          WHERE rs.book_id = ${books.id}
+          ORDER BY
+            CASE WHEN rs.is_active = 1 THEN 0 ELSE 1 END,
+            CASE WHEN rs.status = 'read' THEN rs.completed_date ELSE rs.started_date END DESC,
+            rs.session_number DESC
+          LIMIT 1
+        )`;
+
+    // Main query with LEFT JOINs
+    const results = this.getDatabase()
+      .select({
+        // Book fields
+        bookId: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        path: books.path,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+
+        // Session fields
+        sessionId: readingSessions.id,
+        sessionUserId: readingSessions.userId,
+        sessionBookId: readingSessions.bookId,
+        sessionNumber: readingSessions.sessionNumber,
+        sessionStatus: readingSessions.status,
+        sessionStartedDate: readingSessions.startedDate,
+        sessionCompletedDate: readingSessions.completedDate,
+        sessionReview: readingSessions.review,
+        sessionIsActive: readingSessions.isActive,
+        sessionCreatedAt: readingSessions.createdAt,
+        sessionUpdatedAt: readingSessions.updatedAt,
+
+        // Progress fields (latest progress for the session)
+        progressId: sql`(
+          SELECT pl.id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressId'),
+        progressBookId: sql`(
+          SELECT pl.book_id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressBookId'),
+        progressSessionId: sql`(
+          SELECT pl.session_id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressSessionId'),
+        progressCurrentPage: sql`(
+          SELECT pl.current_page FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressCurrentPage'),
+        progressCurrentPercentage: sql`(
+          SELECT pl.current_percentage FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressCurrentPercentage'),
+        progressDate: sql`(
+          SELECT pl.progress_date FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressDate'),
+        progressNotes: sql`(
+          SELECT pl.notes FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressNotes'),
+        progressPagesRead: sql`(
+          SELECT pl.pages_read FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressPagesRead'),
+        progressCreatedAt: sql`(
+          SELECT pl.created_at FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC
+          LIMIT 1
+        )`.as('progressCreatedAt'),
+      })
+      .from(books)
+      .leftJoin(
+        readingSessions,
+        sql`${readingSessions.id} = ${sessionIdSubquery}`
+      )
+      .where(whereClause)
+      .orderBy(orderBy)
+      .limit(limit)
+      .offset(skip)
+      .all();
+
+    // Map results to proper structure
+    const booksWithRelations = results.map((row: any) => ({
+      id: row.bookId,
+      calibreId: row.calibreId,
+      title: row.title,
+      authors: row.authors,
+      isbn: row.isbn,
+      totalPages: row.totalPages,
+      addedToLibrary: row.addedToLibrary,
+      lastSynced: row.lastSynced,
+      publisher: row.publisher,
+      pubDate: row.pubDate,
+      series: row.series,
+      seriesIndex: row.seriesIndex,
+      tags: row.tags,
+      path: row.path,
+      description: row.description,
+      rating: row.rating,
+      orphaned: row.orphaned,
+      orphanedAt: row.orphanedAt,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      status: row.sessionStatus,
+      latestProgress: row.progressId ? {
+        id: row.progressId,
+        userId: row.progressUserId,
+        bookId: row.progressBookId,
+        sessionId: row.progressSessionId,
+        currentPage: row.progressCurrentPage,
+        currentPercentage: row.progressCurrentPercentage,
+        progressDate: row.progressDate,
+        notes: row.progressNotes,
+        pagesRead: row.progressPagesRead,
+        createdAt: row.progressCreatedAt,
+      } : null,
+    }));
+
+    return { books: booksWithRelations, total };
   }
 }
 

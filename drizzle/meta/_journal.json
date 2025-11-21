@@ -43,6 +43,13 @@
       "when": 1763643900000,
       "tag": "0005_add_books_rating_check",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1732180620000,
+      "tag": "0006_add_books_performance_indexes",
+      "breakpoints": true
     }
   ]
 }

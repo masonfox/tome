@@ -29,11 +29,11 @@ export interface BookWithStatus {
   rating?: number | null;
   tags: string[];
   totalPages?: number;
-  latestProgress?: {
+  latestProgress: {
     currentPage: number;
     currentPercentage: number;
     progressDate: string;
-  };
+  } | null;
 }
 
 export class LibraryService {

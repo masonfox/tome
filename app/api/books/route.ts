@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { bookRepository } from "@/lib/repositories";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +19,10 @@ export async function GET(request: NextRequest) {
     // Determine orphaned filter
     const orphanedOnly = showOrphaned;
 
-    // Get books with filters
-    const { books, total } = await bookRepository.findWithFilters(
+    // Get books with filters, sessions, and progress in a single optimized query
+    // This replaces the N+1 query pattern (1 + N session queries + N progress queries)
+    // with a single JOIN query for massive performance improvement
+    const { books: booksWithStatus, total } = await bookRepository.findWithFiltersAndRelations(
       {
         status,
         search,
@@ -32,41 +34,6 @@ export async function GET(request: NextRequest) {
       limit,
       skip,
       sortBy
-    );
-
-    // Get session and latest progress for each book
-    const booksWithStatus = await Promise.all(
-      books.map(async (book) => {
-        let session;
-
-        // When filtering by 'read', use archived session
-        if (status === "read") {
-          session = await sessionRepository.findMostRecentCompletedByBookId(book.id);
-        } else {
-          // For all other cases, prefer active session
-          session = await sessionRepository.findActiveByBookId(book.id);
-
-          // If no active session and no status filter, also check for archived "read" session
-          if (!session && !status) {
-            session = await sessionRepository.findMostRecentCompletedByBookId(book.id);
-          }
-        }
-
-        let latestProgress = null;
-        if (session) {
-          latestProgress = await progressRepository.findLatestByBookIdAndSessionId(
-            book.id,
-            session.id
-          );
-        }
-
-        return {
-          ...book,
-          status: session ? session.status : null,
-          rating: book.rating, // Rating now comes from books table (synced from Calibre)
-          latestProgress,
-        };
-      })
     );
 
     return NextResponse.json({
