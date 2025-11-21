@@ -32,15 +32,15 @@ global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 };
 
 beforeAll(async () => {
-  await setupTestDatabase();
+  await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  await teardownTestDatabase();
+  await teardownTestDatabase(__filename);
 });
 
 beforeEach(async () => {
-  await clearTestDatabase();
+  await clearTestDatabase(__filename);
   service = new LibraryService(); // Fresh instance for each test
 });
 

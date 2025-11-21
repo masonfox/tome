@@ -28,15 +28,15 @@ describe("Stats API - GET /api/stats/overview", () => {
   let testBook3: any;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
 
     // Create test books
     testBook1 = await bookRepository.create({
@@ -362,15 +362,15 @@ describe("Stats API - GET /api/stats/activity", () => {
   let testBook: any;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
 
     testBook = await bookRepository.create({
       calibreId: 1,

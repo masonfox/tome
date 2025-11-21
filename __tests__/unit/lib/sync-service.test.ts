@@ -14,15 +14,15 @@ import { CalibreBook } from "@/lib/db/calibre";
 
 describe("syncCalibreLibrary", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("prevents concurrent syncs", async () => {
@@ -527,15 +527,15 @@ describe("syncCalibreLibrary", () => {
 
 describe("getLastSyncTime", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("returns timestamp after successful sync", async () => {
@@ -562,15 +562,15 @@ describe("getLastSyncTime", () => {
 
 describe("isSyncInProgress", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("returns false when no sync is running", () => {
@@ -594,15 +594,15 @@ describe("isSyncInProgress", () => {
 
 describe("Sync Service - Orphaning Safety Checks", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("CRITICAL: Empty Calibre results abort sync and prevent orphaning", async () => {

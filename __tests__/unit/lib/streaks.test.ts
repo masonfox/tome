@@ -17,15 +17,15 @@ function unixSecondsToDate(unixSeconds: number): Date {
 
 describe("updateStreaks", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("creates new streak when no existing streak found", async () => {
@@ -210,15 +210,15 @@ describe("updateStreaks", () => {
 
 describe("getStreak", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("returns streak when found", async () => {
@@ -256,15 +256,15 @@ describe("getStreak", () => {
 
 describe("getOrCreateStreak", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   test("returns existing streak if found", async () => {
@@ -307,15 +307,15 @@ describe("getOrCreateStreak", () => {
 
 describe("rebuildStreak", () => {
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   // ============================================================================

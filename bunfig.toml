@@ -1,5 +1,4 @@
 [test]
 preload = ["./test-setup.ts"]
-# Run tests serially to avoid database context race conditions
-# Multiple test files were interfering with each other's in-memory databases
-concurrency = 1
+# Parallel test execution enabled
+# Database context isolation via AsyncLocalStorage prevents race conditions

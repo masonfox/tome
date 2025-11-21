@@ -5,15 +5,15 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {
-  await setupTestDatabase();
+  await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  await teardownTestDatabase();
+  await teardownTestDatabase(__filename);
 });
 
 beforeEach(async () => {
-  await clearTestDatabase();
+  await clearTestDatabase(__filename);
 });
 
 describe("Session Lifecycle - Auto-Archive on Read", () => {

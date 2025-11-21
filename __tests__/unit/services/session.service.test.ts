@@ -21,16 +21,16 @@ describe("SessionService", () => {
   let book1: Book;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
     sessionService = new SessionService();
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
     book1 = await bookRepository.create(mockBook1 as any);
   });
 

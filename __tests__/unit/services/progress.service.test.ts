@@ -22,16 +22,16 @@ describe("ProgressService", () => {
   let session: ReadingSession;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
     progressService = new ProgressService();
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
     book1 = await bookRepository.create(mockBook1 as any);
     session = await sessionRepository.create({
       ...mockSessionReading,
@@ -100,7 +100,7 @@ describe("ProgressService", () => {
     });
 
     test("should return empty array when no active session exists", async () => {
-      await clearTestDatabase();
+      await clearTestDatabase(__filename);
       book1 = await bookRepository.create(mockBook1 as any);
 
       const result = await progressService.getProgressForActiveSession(book1.id);

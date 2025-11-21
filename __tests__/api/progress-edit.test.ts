@@ -25,15 +25,15 @@ describe("Progress Edit API", () => {
   };
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
   });
 
   describe("PATCH /api/books/[id]/progress/[progressId]", () => {

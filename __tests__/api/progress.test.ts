@@ -28,15 +28,15 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
   let testBook: any;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
 
     // Create test book
     testBook = await bookRepository.create({
@@ -154,15 +154,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   let testBook: any;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
 
     // Create test book with total pages
     testBook = await bookRepository.create({
@@ -467,7 +467,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
      expect(session).toBeTruthy();
 
      // Update the session with an old timestamp using direct SQL (in seconds)
-     const sqlite = getTestSqlite();
+     const sqlite = getTestSqlite(__filename);
      sqlite.exec(`UPDATE reading_sessions SET updated_at = ${Math.floor(oldTime.getTime() / 1000)} WHERE id = ${session!.id}`);
 
      // Verify the old timestamp is set

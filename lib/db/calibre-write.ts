@@ -42,6 +42,11 @@ let writeDb: SQLiteDatabase | null = null;
  * ⚠️ Use with caution - only for approved operations!
  */
 export function getCalibreWriteDB(): SQLiteDatabase {
+  // Skip Calibre writes during tests
+  if (process.env.NODE_ENV === 'test') {
+    throw new Error("Calibre write operations are disabled during tests");
+  }
+
   if (!CALIBRE_DB_PATH) {
     throw new Error("CALIBRE_DB_PATH environment variable is not set");
   }
@@ -70,19 +75,23 @@ export function getCalibreWriteDB(): SQLiteDatabase {
 
 /**
  * Update book rating in Calibre database
- * 
+ *
  * This function:
  * 1. Validates the rating (1-5 stars or null)
  * 2. Converts to Calibre scale (2, 4, 6, 8, 10)
  * 3. Gets or creates rating value in ratings table
  * 4. Updates or creates link in books_ratings_link table
- * 
+ *
  * @param calibreId - The Calibre book ID
  * @param rating - Rating value (1-5 stars) or null to remove rating
+ * @param db - (Optional) Database instance to use. Defaults to production Calibre DB. Tests can inject mock database.
  * @throws Error if rating is invalid or database operation fails
  */
-export function updateCalibreRating(calibreId: number, rating: number | null): void {
-  const db = getCalibreWriteDB();
+export function updateCalibreRating(
+  calibreId: number,
+  rating: number | null,
+  db: SQLiteDatabase = getCalibreWriteDB()
+): void {
   
   // Validate rating (1-5 stars or null)
   if (rating !== null && (rating < 1 || rating > 5)) {
@@ -146,12 +155,15 @@ export function updateCalibreRating(calibreId: number, rating: number | null): v
 /**
  * Read current rating from Calibre database
  * (For verification purposes)
- * 
+ *
  * @param calibreId - The Calibre book ID
+ * @param db - (Optional) Database instance to use. Defaults to production Calibre DB. Tests can inject mock database.
  * @returns Rating value (1-5 stars) or null if no rating
  */
-export function readCalibreRating(calibreId: number): number | null {
-  const db = getCalibreWriteDB();
+export function readCalibreRating(
+  calibreId: number,
+  db: SQLiteDatabase = getCalibreWriteDB()
+): number | null {
   
   try {
     const result = db.prepare(`

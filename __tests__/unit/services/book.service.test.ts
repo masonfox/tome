@@ -11,16 +11,16 @@ describe("BookService", () => {
   let book2: Book;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    await setupTestDatabase(__filename);
     bookService = new BookService();
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await teardownTestDatabase(__filename);
   });
 
   beforeEach(async () => {
-    await clearTestDatabase();
+    await clearTestDatabase(__filename);
     // Create fresh test books for each test
     book1 = await bookRepository.create(mockBook1 as any);
     book2 = await bookRepository.create(mockBook2 as any);
@@ -189,7 +189,7 @@ describe("BookService", () => {
 
     test("should return empty array when no books have tags", async () => {
       // Clear all books
-      await clearTestDatabase();
+      await clearTestDatabase(__filename);
 
       // Create book without tags
       await bookRepository.create({

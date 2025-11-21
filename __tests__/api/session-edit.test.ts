@@ -12,15 +12,15 @@ import {
 import type { NextRequest } from "next/server";
 
 beforeAll(async () => {
-  await setupTestDatabase();
+  await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  await teardownTestDatabase();
+  await teardownTestDatabase(__filename);
 });
 
 beforeEach(async () => {
-  await clearTestDatabase();
+  await clearTestDatabase(__filename);
 });
 
 // ============================================================================

@@ -5,15 +5,15 @@ import { GET, POST } from "@/app/api/books/route";
 import { createMockRequest } from "../fixtures/test-data";
 
 beforeAll(async () => {
-  await setupTestDatabase();
+  await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  await teardownTestDatabase();
+  await teardownTestDatabase(__filename);
 });
 
 beforeEach(async () => {
-  await clearTestDatabase();
+  await clearTestDatabase(__filename);
 });
 
 describe("GET /api/books", () => {

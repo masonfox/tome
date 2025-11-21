@@ -1,5 +1,8 @@
 import { Window } from "happy-dom";
 
+// Set test environment
+process.env.NODE_ENV = "test";
+
 // Set up happy-dom for all tests
 const window = new Window();
 const document = window.document;
