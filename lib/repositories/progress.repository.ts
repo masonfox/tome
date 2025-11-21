@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, gte, lte, lt, SQL } from "drizzle-orm";
+import { eq, and, desc, asc, sql, gte, lte, lt, gt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
 import { db } from "@/lib/db/sqlite";
@@ -104,6 +104,90 @@ export class ProgressRepository extends BaseRepository<
       .where(gte(progressLogs.progressDate, date))
       .orderBy(asc(progressLogs.progressDate))
       .all();
+  }
+
+  /**
+   * Find progress entries BEFORE a specific date for a session
+   * Used to validate that new entry has progress ≥ all previous entries
+   */
+  async findBeforeDateForSession(
+    sessionId: number,
+    date: Date
+  ): Promise<ProgressLog[]> {
+    return this.getDatabase()
+      .select()
+      .from(progressLogs)
+      .where(
+        and(
+          eq(progressLogs.sessionId, sessionId),
+          lt(progressLogs.progressDate, date)
+        )
+      )
+      .orderBy(desc(progressLogs.progressDate))
+      .all();
+  }
+
+  /**
+   * Find progress entries AFTER a specific date for a session
+   * Used to validate that new entry has progress ≤ all future entries
+   */
+  async findAfterDateForSession(
+    sessionId: number,
+    date: Date
+  ): Promise<ProgressLog[]> {
+    return this.getDatabase()
+      .select()
+      .from(progressLogs)
+      .where(
+        and(
+          eq(progressLogs.sessionId, sessionId),
+          gt(progressLogs.progressDate, date)
+        )
+      )
+      .orderBy(asc(progressLogs.progressDate))
+      .all();
+  }
+
+  /**
+   * Find the closest progress entry before a date
+   */
+  async findClosestBeforeDate(
+    sessionId: number,
+    date: Date
+  ): Promise<ProgressLog | undefined> {
+    return this.getDatabase()
+      .select()
+      .from(progressLogs)
+      .where(
+        and(
+          eq(progressLogs.sessionId, sessionId),
+          lt(progressLogs.progressDate, date)
+        )
+      )
+      .orderBy(desc(progressLogs.progressDate))
+      .limit(1)
+      .get();
+  }
+
+  /**
+   * Find the closest progress entry after a date
+   */
+  async findClosestAfterDate(
+    sessionId: number,
+    date: Date
+  ): Promise<ProgressLog | undefined> {
+    return this.getDatabase()
+      .select()
+      .from(progressLogs)
+      .where(
+        and(
+          eq(progressLogs.sessionId, sessionId),
+          gt(progressLogs.progressDate, date)
+        )
+      )
+      .orderBy(asc(progressLogs.progressDate))
+      .limit(1)
+      .get();
   }
 
   /**

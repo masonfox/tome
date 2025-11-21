@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { updateStreaks } from "@/lib/streaks";
+import { validateProgressTimeline } from "@/lib/services/progress-validation";
 
 export async function GET(
   request: NextRequest,
@@ -97,6 +98,28 @@ export async function POST(
     } else {
       return NextResponse.json(
         { error: "Either currentPage or currentPercentage is required" },
+        { status: 400 }
+      );
+    }
+
+    // Temporal validation: Check if progress is consistent with existing timeline
+    const requestedDate = progressDate ? new Date(progressDate) : new Date();
+    const usePercentage = currentPercentage !== undefined;
+    const progressValue = usePercentage ? finalCurrentPercentage : finalCurrentPage;
+    
+    const validationResult = await validateProgressTimeline(
+      activeSession.id,
+      requestedDate,
+      progressValue,
+      usePercentage
+    );
+
+    if (!validationResult.valid) {
+      return NextResponse.json(
+        { 
+          error: validationResult.error,
+          conflictingEntry: validationResult.conflictingEntry 
+        },
         { status: 400 }
       );
     }

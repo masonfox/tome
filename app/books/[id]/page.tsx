@@ -3,13 +3,14 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Pencil } from "lucide-react";
+import { BookOpen, Calendar, TrendingUp, Star, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Pencil, Edit2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 import { toast } from "@/utils/toast";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
+import ProgressEditModal from "@/components/ProgressEditModal";
 
 interface Book {
   id: number;
@@ -78,6 +79,9 @@ export default function BookDetailPage() {
   // Start date editing
   const [isEditingStartDate, setIsEditingStartDate] = useState(false);
   const [editStartDate, setEditStartDate] = useState("");
+  // Progress editing
+  const [showEditProgressModal, setShowEditProgressModal] = useState(false);
+  const [selectedProgressEntry, setSelectedProgressEntry] = useState<ProgressEntry | null>(null);
 
   useEffect(() => {
     fetchBook();
@@ -245,9 +249,14 @@ export default function BookDetailPage() {
         fetchProgress();
         toast.success("Progress logged!");
         router.refresh(); // Refresh server-cached data
+      } else {
+        const errorData = await response.json();
+        // Display validation error from the API (temporal validation)
+        toast.error(errorData.error || "Failed to log progress");
       }
     } catch (error) {
       console.error("Failed to log progress:", error);
+      toast.error("Failed to log progress");
     }
   }
 
@@ -502,6 +511,68 @@ export default function BookDetailPage() {
       setEditStartDate(new Date().toISOString().split("T")[0]);
     }
     setIsEditingStartDate(true);
+  }
+
+  function handleEditProgress(entry: ProgressEntry) {
+    setSelectedProgressEntry(entry);
+    setShowEditProgressModal(true);
+  }
+
+  async function handleConfirmEditProgress(updatedData: {
+    currentPage?: number;
+    currentPercentage?: number;
+    progressDate?: string;
+    notes?: string;
+  }) {
+    if (!selectedProgressEntry) return;
+
+    try {
+      const response = await fetch(`/api/books/${bookId}/progress/${selectedProgressEntry.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (response.ok) {
+        toast.success("Progress updated!");
+        setShowEditProgressModal(false);
+        setSelectedProgressEntry(null);
+        await fetchBook();
+        await fetchProgress();
+        router.refresh();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to update progress");
+      }
+    } catch (error) {
+      console.error("Failed to update progress:", error);
+      toast.error("Failed to update progress");
+    }
+  }
+
+  async function handleDeleteProgress() {
+    if (!selectedProgressEntry) return;
+
+    try {
+      const response = await fetch(`/api/books/${bookId}/progress/${selectedProgressEntry.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Progress entry deleted");
+        setShowEditProgressModal(false);
+        setSelectedProgressEntry(null);
+        await fetchBook();
+        await fetchProgress();
+        router.refresh();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to delete progress");
+      }
+    } catch (error) {
+      console.error("Failed to delete progress:", error);
+      toast.error("Failed to delete progress");
+    }
   }
 
   if (loading) {
@@ -1023,7 +1094,7 @@ export default function BookDetailPage() {
                 {progress.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
+                    className="flex items-start gap-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg group"
                   >
                     <Calendar className="w-5 h-5 text-[var(--accent)]/60 mt-0.5" />
                     <div className="flex-1">
@@ -1031,9 +1102,27 @@ export default function BookDetailPage() {
                         <p className="font-semibold text-[var(--foreground)]">
                           Page <span className="font-mono">{entry.currentPage}</span>
                         </p>
-                        <p className="text-sm text-[var(--foreground)]/60 font-mono font-semibold">
-                          {format(new Date(entry.progressDate), "MMM d, yyyy")}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <p className="text-sm text-[var(--foreground)]/60 font-mono font-semibold">
+                            {format(new Date(entry.progressDate), "MMM d, yyyy")}
+                          </p>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleEditProgress(entry)}
+                              className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
+                              title="Edit progress entry"
+                            >
+                              <Edit2 className="w-4 h-4 text-[var(--accent)]" />
+                            </button>
+                            <button
+                              onClick={() => handleEditProgress(entry)}
+                              className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
+                              title="Delete progress entry"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                       <p className="text-sm text-[var(--foreground)]/70 font-medium">
                         <span className="font-mono font-semibold">{Math.round(entry.currentPercentage)}%</span> complete
@@ -1112,6 +1201,22 @@ export default function BookDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Progress Edit Modal */}
+      {selectedProgressEntry && (
+        <ProgressEditModal
+          isOpen={showEditProgressModal}
+          onClose={() => {
+            setShowEditProgressModal(false);
+            setSelectedProgressEntry(null);
+          }}
+          onConfirm={handleConfirmEditProgress}
+          onDelete={handleDeleteProgress}
+          currentProgress={selectedProgressEntry}
+          bookTitle={book?.title || ""}
+          totalPages={book?.totalPages}
+        />
       )}
     </div>
   );
