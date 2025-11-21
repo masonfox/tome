@@ -1,6 +1,4 @@
 # Now
-* Ability to edit an existing review on the /books/:id page
-    * I also think there's a bug with the calibre write.
 * Breakdown the monolith that is /books/:id, both frontend and backend
     * Right now, /books/:id does a lot and it's self-contained not all that well tested:
         * Displays books
