@@ -1,14 +1,4 @@
 # Now
-* Breakdown the monolith that is /books/:id, both frontend and backend
-    * Right now, /books/:id does a lot and it's self-contained not all that well tested:
-        * Displays books
-        * Logs and renders progress
-        * Transitions reading session statuses
-        * Set pages, which is essential for our progress tracking
-    * Just like we did with /library, we should break the frontend down into more modular React components and add a service layer to the backend interacts with the API
-    * That will allow us to heavily test the service layer
-    * Write unit and integration tests for the service layer
-    * Write individual ADRs about these architectural pattern: frontend components separation and backend service layer
 * Add code coverage
 * Evaluate DB migrations
     * Auto DB backup before migration
