@@ -111,6 +111,12 @@ export async function clearTestDatabase(testFilePath?: string): Promise<void> {
   db.delete(schema.readingSessions).run();
   db.delete(schema.books).run();
   db.delete(schema.streaks).run();
+  
+  // Verify tables are empty after clearing (for debugging CI issues)
+  const streakCount = db.select().from(schema.streaks).all().length;
+  if (streakCount > 0) {
+    console.error(`[clearTestDatabase] WARNING: ${streakCount} streaks remain after clearing!`);
+  }
 }
 
 /**
