@@ -29,9 +29,9 @@ export interface UseBookProgressReturn {
   handleLogProgress: (e: React.FormEvent) => Promise<void>;
   handleEditProgress: (entry: ProgressEntry) => void;
   handleConfirmEditProgress: (updatedData: {
-    currentPage: number;
-    currentPercentage: number;
-    progressDate: string;
+    currentPage?: number;
+    currentPercentage?: number;
+    progressDate?: string;
     notes?: string;
   }) => Promise<void>;
   handleDeleteProgress: () => Promise<void>;
@@ -206,9 +206,9 @@ export function useBookProgress(
   }, []);
 
   const handleConfirmEditProgress = useCallback(async (updatedData: {
-    currentPage: number;
-    currentPercentage: number;
-    progressDate: string;
+    currentPage?: number;
+    currentPercentage?: number;
+    progressDate?: string;
     notes?: string;
   }) => {
     if (!selectedProgressEntry) return;

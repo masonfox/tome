@@ -8,6 +8,8 @@ import {
   BarChart3,
 } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 async function getStats() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 

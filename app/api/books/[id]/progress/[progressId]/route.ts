@@ -54,8 +54,8 @@ export async function PATCH(
           error.message.includes("no associated session")) {
         // Include conflictingEntry if available (for temporal validation errors)
         const response: any = { error: error.message };
-        if (error.conflictingEntry) {
-          response.conflictingEntry = error.conflictingEntry;
+        if ((error as any).conflictingEntry) {
+          response.conflictingEntry = (error as any).conflictingEntry;
         }
         return NextResponse.json(response, { status: 400 });
       }

@@ -17,7 +17,7 @@ interface BookGridProps {
       currentPage: number;
       currentPercentage: number;
       progressDate: string;
-    };
+    } | null;
   }>;
   loading?: boolean;
   loadingMore?: boolean;

@@ -5,7 +5,7 @@ WORKDIR /app
 # Install dependencies
 FROM base AS deps
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --no-optional
 
 # Build the application
 FROM base AS builder
@@ -17,9 +17,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create data directory for SQLite database
 RUN mkdir -p data
-
-# Run database migrations
-RUN bun run lib/db/migrate.ts
 
 RUN bun run build
 
@@ -47,6 +44,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/data ./data
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/lib/db ./lib/db
 
+# Copy and set up entrypoint script
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -57,4 +58,4 @@ ENV HOSTNAME="0.0.0.0"
 # Volume for persistent SQLite database
 VOLUME ["/app/data"]
 
-CMD ["bun", "server.js"]
+CMD ["./docker-entrypoint.sh"]

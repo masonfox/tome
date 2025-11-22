@@ -7,14 +7,15 @@ const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 // Runtime detection: Use bun:sqlite in Bun, better-sqlite3 in Node.js
 const isBun = typeof Bun !== 'undefined';
 
-// Check if we're in test mode - skip production database initialization
+// Check if we're in test mode or build mode - skip production database initialization
 const isTest = isBun ? Bun.env.BUN_ENV === 'test' : process.env.NODE_ENV === 'test';
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
 let sqlite: any;
 let db: any;
 
-if (!isTest) {
-  // Only initialize production database when not in test mode
+if (!isTest && !isBuild) {
+  // Only initialize production database when not in test mode or build phase
   // Create data directory if it doesn't exist
   try {
     mkdirSync(dirname(DATABASE_PATH), { recursive: true });
@@ -46,7 +47,7 @@ if (!isTest) {
     console.log("Using better-sqlite3 for Tome database (Node.js dev mode)");
   }
 } else {
-  // In test mode, return null/undefined - tests will use their own in-memory databases
+  // In test/build mode, return null/undefined - tests will use their own in-memory databases
   sqlite = null;
   db = null;
 }
@@ -56,7 +57,7 @@ export { db, sqlite };
 // Connection test function
 export function testConnection(): boolean {
   if (!sqlite) {
-    // In test mode, no production database to test
+    // In test/build mode, no production database to test
     return true;
   }
   try {
@@ -71,7 +72,7 @@ export function testConnection(): boolean {
 // Graceful shutdown
 export function closeConnection(): void {
   if (!sqlite) {
-    // In test mode, no production database to close
+    // In test/build mode, no production database to close
     return;
   }
   try {

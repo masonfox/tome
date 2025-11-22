@@ -3,6 +3,8 @@ import { getActivityCalendar } from "@/lib/streaks";
 import { progressRepository } from "@/lib/repositories";
 import { startOfYear } from "date-fns";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
