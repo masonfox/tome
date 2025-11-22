@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
 import { updateStreaks, getStreak, getOrCreateStreak, rebuildStreak } from "@/lib/streaks";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
@@ -21,13 +21,16 @@ let testDb: TestDatabaseInstance;
 // Shared setup for all describe blocks in this file
 beforeAll(async () => {
   testDb = await setupTestDatabase(__filename);
+  // Clear any initial data
+  await clearTestDatabase(testDb);
 });
 
 afterAll(async () => {
   await teardownTestDatabase(testDb);
 });
 
-beforeEach(async () => {
+// Clear AFTER each test instead of BEFORE to ensure cleanup happens
+afterEach(async () => {
   await clearTestDatabase(testDb);
 });
 
