@@ -15,20 +15,18 @@ function unixSecondsToDate(unixSeconds: number): Date {
   return new Date(unixSeconds * 1000);
 }
 
-// Shared database setup for all tests in this file
-beforeAll(async () => {
-  await setupTestDatabase(__filename);
-});
-
-afterAll(async () => {
-  await teardownTestDatabase(__filename);
-});
-
-beforeEach(async () => {
-  await clearTestDatabase(__filename);
-});
-
 describe("updateStreaks", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
 
   test("creates new streak when no existing streak found", async () => {
     // Act
@@ -211,6 +209,18 @@ describe("updateStreaks", () => {
 });
 
 describe("getStreak", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
   test("returns streak when found", async () => {
     // Arrange
     const today = new Date();
@@ -245,6 +255,18 @@ describe("getStreak", () => {
 });
 
 describe("getOrCreateStreak", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
   test("returns existing streak if found", async () => {
     // Arrange
     const today = new Date();
@@ -284,6 +306,18 @@ describe("getOrCreateStreak", () => {
 });
 
 describe("rebuildStreak", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
   // ============================================================================
   // BASIC FUNCTIONALITY
   // ============================================================================
