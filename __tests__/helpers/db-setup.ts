@@ -120,26 +120,42 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
 
   console.log(`[clearTestDatabase] Clearing database for: ${testFilePath}`);
 
-  // Delete in order that respects foreign key constraints
-  // Children first, then parents
-  const progressResult = db.delete(schema.progressLogs).run();
-  const sessionsResult = db.delete(schema.readingSessions).run();
-  const booksResult = db.delete(schema.books).run();
-  const streaksResult = db.delete(schema.streaks).run();
+  // Get the raw SQLite instance from the databases map
+  const dbInstance = typeof dbInstanceOrPath === 'string' 
+    ? databases.get(dbInstanceOrPath) 
+    : { sqlite: dbInstanceOrPath.db.$client, db: dbInstanceOrPath.db, testFilePath };
+  
+  if (!dbInstance || !dbInstance.sqlite) {
+    throw new Error(`Cannot find SQLite instance for ${testFilePath}`);
+  }
 
-  console.log(
-    `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
-    `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
-    `${streaksResult.changes} streaks`
-  );
+  const rawDb = dbInstance.sqlite;
 
-  // Verify tables are empty after clearing (warn but don't throw to avoid breaking tests)
-  const streakCount = db.select().from(schema.streaks).all().length;
-  if (streakCount > 0) {
-    console.error(`[clearTestDatabase] WARNING: ${streakCount} streaks remain after clearing for ${testFilePath}!`);
-    // Log more details about what wasn't cleared
-    const allStreaks = db.select().from(schema.streaks).all();
-    console.error(`[clearTestDatabase] Remaining streaks:`, JSON.stringify(allStreaks, null, 2));
+  // Use raw SQL DELETE statements to ensure they execute synchronously
+  // Delete in order that respects foreign key constraints (children first, then parents)
+  try {
+    const progressResult = rawDb.prepare("DELETE FROM progress_logs").run();
+    const sessionsResult = rawDb.prepare("DELETE FROM reading_sessions").run();
+    const booksResult = rawDb.prepare("DELETE FROM books").run();
+    const streaksResult = rawDb.prepare("DELETE FROM streaks").run();
+
+    console.log(
+      `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
+      `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
+      `${streaksResult.changes} streaks`
+    );
+
+    // Verify tables are empty after clearing
+    const streakCount = rawDb.prepare("SELECT COUNT(*) as count FROM streaks").get() as { count: number };
+    if (streakCount.count > 0) {
+      console.error(`[clearTestDatabase] WARNING: ${streakCount.count} streaks remain after clearing for ${testFilePath}!`);
+      // Log more details about what wasn't cleared
+      const allStreaks = rawDb.prepare("SELECT * FROM streaks").all();
+      console.error(`[clearTestDatabase] Remaining streaks:`, JSON.stringify(allStreaks, null, 2));
+    }
+  } catch (error) {
+    console.error(`[clearTestDatabase] Error clearing database:`, error);
+    throw error;
   }
 }
 
