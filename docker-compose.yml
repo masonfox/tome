@@ -1,6 +1,23 @@
 version: '3.8'
 
 services:
+  # ⚠️ WARNING: DO NOT SCALE THIS SERVICE ⚠️
+  #
+  # This service runs database migrations on startup. Running multiple
+  # instances simultaneously will cause race conditions and potential
+  # data corruption.
+  #
+  # DO NOT RUN: docker-compose up --scale tome=3
+  #
+  # While the migration system has locking to prevent concurrent execution,
+  # SQLite's file-based locking may not be reliable across all volume
+  # mount types (especially network mounts like NFS).
+  #
+  # For high availability:
+  # - Use blue-green deployment strategy
+  # - Run migrations as a separate step before deployment
+  # - Use a single instance with proper health checks
+  #
   tome:
     build: .
     ports:

@@ -1,11 +1,29 @@
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { db, sqlite } from "./sqlite";
+import {
+  acquireMigrationLock,
+  releaseMigrationLock,
+  setupLockCleanup,
+} from "./migration-lock";
+import { validatePreflightChecks } from "./preflight-checks";
 
 export function runMigrations() {
-  console.log("Running migrations...");
-  // Pass the Drizzle database instance (which contains dialect and session)
-  migrate(db, { migrationsFolder: "./drizzle" });
-  console.log("Migrations complete!");
+  // Run pre-flight checks
+  validatePreflightChecks();
+
+  // Acquire lock to prevent concurrent migrations
+  acquireMigrationLock();
+  setupLockCleanup();
+
+  try {
+    console.log("Running migrations...");
+    // Pass the Drizzle database instance (which contains dialect and session)
+    migrate(db, { migrationsFolder: "./drizzle" });
+    console.log("Migrations complete!");
+  } finally {
+    // Always release lock, even if migration fails
+    releaseMigrationLock();
+  }
 }
 
 /**

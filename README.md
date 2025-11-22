@@ -374,8 +374,114 @@ docker-compose down -v
 
 - **Data Persistence**: The SQLite database is stored in the `tome-data` volume and persists across container restarts
 - **Calibre Library**: Mount your Calibre library as read-only (`:ro`) to prevent accidental modifications
-- **Automatic Migrations**: Database migrations run automatically during the Docker build
+- **Automatic Migrations**: Database migrations run automatically on container startup (not during build)
 - **No MongoDB Required**: The container is completely self-contained with no external dependencies
+- **⚠️ DO NOT SCALE**: Never run multiple instances simultaneously (see Database Migrations section below)
+
+## Database Migrations
+
+Tome uses Drizzle ORM for database schema management. Migrations are handled automatically but with important safety considerations.
+
+### How Migrations Work
+
+**Development:**
+- Migrations must be run manually: `bun run db:migrate`
+- This is intentional to give you control over when schema changes occur
+
+**Testing:**
+- Migrations run automatically in test setup
+- Each test file gets its own isolated in-memory database
+
+**Docker/Production:**
+- Migrations run automatically on container startup (before the app starts)
+- Includes retry logic (3 attempts with exponential backoff)
+- Creates automatic database backups before migrations
+- Validates system state with pre-flight checks
+
+### Migration Safety Features
+
+The migration system includes several safety mechanisms:
+
+1. **File-Based Locking**: Prevents concurrent migrations from multiple processes
+   - Lock file: `data/.migration.lock`
+   - Automatic timeout after 5 minutes if stale
+   - PID and timestamp tracking
+
+2. **Pre-Flight Checks**: Validates system state before running migrations
+   - Data directory exists and is writable
+   - Migration files are present
+   - Database file has correct permissions
+   - Sufficient disk space available
+
+3. **Automatic Backups**: Creates timestamped backups before each migration
+   - Format: `tome.db.backup-YYYYMMDD_HHMMSS`
+   - Keeps last 3 backups automatically
+   - Skipped on first run (when database doesn't exist)
+
+4. **Retry Logic**: Handles transient failures gracefully
+   - 3 retry attempts with exponential backoff (5s, 10s, 20s)
+   - Detailed logging of each attempt
+   - Container exits if all retries fail
+
+### Important Limitations
+
+⚠️ **DO NOT run multiple instances simultaneously**
+
+The migration system is designed for single-instance deployments. Running multiple containers at once can cause:
+- Race conditions during migration
+- Potential data corruption
+- Lock file conflicts
+
+**Never run:**
+```bash
+docker-compose up --scale tome=3  # ❌ DO NOT DO THIS
+```
+
+**For high availability:**
+- Use blue-green deployment strategy
+- Run migrations as a separate CI/CD step before deployment
+- Deploy one instance at a time with proper health checks
+
+### Manual Migration Commands
+
+```bash
+# Run migrations manually
+bun run db:migrate
+
+# Generate a new migration after schema changes
+bun run drizzle-kit generate
+
+# View migration status (check __drizzle_migrations table)
+sqlite3 data/tome.db "SELECT * FROM __drizzle_migrations"
+
+# Restore from backup if migration fails
+cp data/tome.db.backup-YYYYMMDD_HHMMSS data/tome.db
+```
+
+### Troubleshooting Migrations
+
+**Migration fails with "lock file exists":**
+- Another migration is already running
+- Wait for it to complete or timeout (5 minutes)
+- If stale, the lock will auto-expire
+
+**Migration fails repeatedly in Docker:**
+- Check container logs: `docker-compose logs tome`
+- Verify volume permissions
+- Check disk space availability
+- Try manual migration: `docker exec -it tome bun run lib/db/migrate.ts`
+
+**Need to roll back a migration:**
+- No automatic rollback is provided
+- Restore from automatic backup:
+  ```bash
+  # Find latest backup
+  docker exec tome ls -lah /app/data/*.backup-*
+
+  # Restore it
+  docker exec tome cp /app/data/tome.db.backup-YYYYMMDD_HHMMSS /app/data/tome.db
+  docker-compose restart tome
+  ```
 
 ## Future Enhancements
 
