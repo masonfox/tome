@@ -1,4 +1,5 @@
 [test]
 preload = ["./test-setup.ts"]
-# Parallel test execution enabled
-# Database context isolation via AsyncLocalStorage prevents race conditions
+# Run tests serially to prevent database context race conditions
+# AsyncLocalStorage support exists but isn't fully integrated - stack trace parsing fails in CI
+concurrency = 1
