@@ -24,6 +24,9 @@ RUN bun run build
 FROM base AS runner
 WORKDIR /app
 
+# Install sqlite3 CLI for debugging
+RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_PATH=/app/data/tome.db
