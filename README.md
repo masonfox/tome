@@ -212,10 +212,10 @@ Tracks current streak, longest streak, last activity date, and total days active
 bun install
 
 # Run database migrations
-bun run lib/db/migrate.ts
+bun run db:migrate
 
 # Generate new migration after schema changes
-bun run drizzle-kit generate
+bun run db:generate
 
 # Run development server
 bun run dev
@@ -237,10 +237,13 @@ bun run start
 bun run db:migrate
 
 # Generate a new migration after schema changes
-bun run drizzle-kit generate
+bun run db:generate
 
 # Push schema directly to database (dev only)
-bun run drizzle-kit push
+bun run db:push
+
+# Open Drizzle Studio (database browser)
+bun run db:studio
 
 # Backup database (recommended before migrations or major operations)
 bun run db:backup
@@ -476,7 +479,13 @@ docker-compose up --scale tome=3  # ❌ DO NOT DO THIS
 bun run db:migrate
 
 # Generate a new migration after schema changes
-bun run drizzle-kit generate
+bun run db:generate
+
+# Push schema changes directly (dev only - bypasses migrations)
+bun run db:push
+
+# Open Drizzle Studio to browse database
+bun run db:studio
 
 # View migration status (check __drizzle_migrations table)
 sqlite3 data/tome.db "SELECT * FROM __drizzle_migrations"
