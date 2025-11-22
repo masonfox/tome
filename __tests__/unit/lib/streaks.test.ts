@@ -20,18 +20,26 @@ let testDb: TestDatabaseInstance;
 
 // Shared setup for all describe blocks in this file
 beforeAll(async () => {
+  console.log("[TEST LIFECYCLE] beforeAll starting...");
   testDb = await setupTestDatabase(__filename);
+  console.log("[TEST LIFECYCLE] testDb instance created:", typeof testDb, "path:", testDb.testFilePath);
   // Clear any initial data
   await clearTestDatabase(testDb);
+  console.log("[TEST LIFECYCLE] beforeAll completed");
 });
 
 afterAll(async () => {
+  console.log("[TEST LIFECYCLE] afterAll starting...");
   await teardownTestDatabase(testDb);
+  console.log("[TEST LIFECYCLE] afterAll completed");
 });
 
 // Clear AFTER each test instead of BEFORE to ensure cleanup happens
 afterEach(async () => {
+  console.log("[TEST LIFECYCLE] afterEach starting for test...");
+  console.log("[TEST LIFECYCLE] testDb instance:", typeof testDb, "path:", testDb?.testFilePath);
   await clearTestDatabase(testDb);
+  console.log("[TEST LIFECYCLE] afterEach completed");
 });
 
 describe("updateStreaks", () => {
