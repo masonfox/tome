@@ -37,7 +37,9 @@ export async function setupTestDatabase(testFilePath: string): Promise<TestDatab
   // Create separate test database in memory for complete isolation
   const testSqlite = new Database(":memory:");
   testSqlite.exec("PRAGMA foreign_keys = ON");
-  testSqlite.exec("PRAGMA journal_mode = WAL");
+  // Use DELETE journal mode instead of WAL for better test isolation
+  testSqlite.exec("PRAGMA journal_mode = DELETE");
+  testSqlite.exec("PRAGMA synchronous = FULL");
 
   const testDb = drizzle(testSqlite, { schema });
   console.log(`Test database created for: ${testFilePath}`);
@@ -144,6 +146,10 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
       `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
       `${streaksResult.changes} streaks`
     );
+
+    // Run VACUUM to completely reclaim space and reset internal structures
+    rawDb.exec("VACUUM");
+    console.log(`[clearTestDatabase] VACUUM completed`);
 
     // Verify tables are empty after clearing
     const streakCount = rawDb.prepare("SELECT COUNT(*) as count FROM streaks").get() as { count: number };
