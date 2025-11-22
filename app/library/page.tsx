@@ -20,13 +20,18 @@ function LibraryPageContent() {
 
   // Parse initial filters from URL params
   useEffect(() => {
+    if (!searchParams) {
+      setIsReady(true);
+      return;
+    }
+
     const searchParam = searchParams.get("search");
     const statusParam = searchParams.get("status");
     const tagsParam = searchParams.get("tags");
     const ratingParam = searchParams.get("rating");
 
     if (searchParam) setSearchInput(searchParam);
-    
+
     setIsReady(true);
   }, [searchParams]);
 
@@ -69,10 +74,10 @@ function LibraryPageContent() {
     filters,
     refresh,
   } = useLibraryData({
-    search: searchParams.get("search") || undefined,
-    status: searchParams.get("status") || undefined,
-    tags: searchParams.get("tags")?.split(",").filter(Boolean) || undefined,
-    rating: searchParams.get("rating") || undefined,
+    search: searchParams?.get("search") || undefined,
+    status: searchParams?.get("status") || undefined,
+    tags: searchParams?.get("tags")?.split(",").filter(Boolean) || undefined,
+    rating: searchParams?.get("rating") || undefined,
   });
 
   // Create wrapped setters that also update URL

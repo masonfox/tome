@@ -188,10 +188,10 @@ export function readCalibreRating(
  * Should be called when shutting down
  */
 export function closeCalibreWriteDB(): void {
-  if (writeDb) {
+  if (writeDbInstance) {
     try {
-      writeDb.close();
-      writeDb = null;
+      writeDbInstance.sqlite.close();
+      writeDbInstance = null;
       console.log("Calibre write database connection closed");
     } catch (error) {
       console.error("Error closing Calibre write database:", error);

@@ -3,6 +3,9 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     instrumentationHook: true,
+    // Skip pre-rendering for pages that fail
+    workerThreads: false,
+    cpus: 1,
   },
   images: {
     unoptimized: true, // Required for local file system images
