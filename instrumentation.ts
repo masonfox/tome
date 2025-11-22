@@ -1,8 +1,9 @@
+import { detectRuntime } from "./lib/db/factory";
+
 export async function register() {
   // Calibre automatic sync works in both dev and production
   // Uses better-sqlite3 in Node.js (dev) and bun:sqlite in Bun (production)
-  const isBun = typeof Bun !== 'undefined';
-  const runtime = isBun ? 'Bun' : 'Node.js';
+  const runtime = detectRuntime() === 'bun' ? 'Bun' : 'Node.js';
 
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { calibreWatcher } = await import("./lib/calibre-watcher");

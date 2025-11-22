@@ -46,21 +46,23 @@ await bookRepository.delete(123);
 #### Calibre DB Connection (Read-Only)
 ```typescript
 // lib/db/calibre.ts
+import { createDatabase } from "./factory";
+
 export function getCalibreDB() {
-  if (!db) {
-    // Runtime detection: Bun or Node.js
-    if (typeof Bun !== 'undefined') {
-      const { Database } = require('bun:sqlite');
-      db = new Database(CALIBRE_DB_PATH, { readonly: true });
-    } else {
-      const Database = require('better-sqlite3');
-      db = new Database(CALIBRE_DB_PATH, { readonly: true });
-    }
+  if (!dbInstance) {
+    // Create read-only Calibre database connection using factory
+    dbInstance = createDatabase({
+      path: CALIBRE_DB_PATH,
+      readonly: true,
+      foreignKeys: false,  // Calibre manages its own schema
+      wal: false,  // Don't modify journal mode on read-only DB
+    });
+    console.log(`Calibre DB: Using ${dbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
   }
-  return db;
+  return dbInstance.sqlite;
 }
 ```
-**Key Point:** Read-only SQLite with runtime detection for Bun vs Node.js
+**Key Point:** Read-only SQLite using database factory pattern for automatic driver selection
 
 ---
 

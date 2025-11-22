@@ -1,3 +1,5 @@
+import { createDatabase } from "./factory";
+
 // Type definition for SQLite database interface
 // Both bun:sqlite and better-sqlite3 have compatible APIs
 type SQLiteDatabase = any;
@@ -8,33 +10,29 @@ if (!CALIBRE_DB_PATH) {
   console.warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
 }
 
-let db: SQLiteDatabase | null = null;
+let dbInstance: ReturnType<typeof createDatabase> | null = null;
 
 export function getCalibreDB() {
   if (!CALIBRE_DB_PATH) {
     throw new Error("CALIBRE_DB_PATH environment variable is not set");
   }
 
-  if (!db) {
+  if (!dbInstance) {
     try {
-      // Runtime detection: Use bun:sqlite in Bun, better-sqlite3 in Node.js
-      if (typeof Bun !== 'undefined') {
-        // Bun runtime
-        const { Database } = require('bun:sqlite');
-        db = new Database(CALIBRE_DB_PATH, { readonly: true });
-        console.log("Calibre DB: Using bun:sqlite (Bun runtime)");
-      } else {
-        // Node.js runtime
-        const Database = require('better-sqlite3');
-        db = new Database(CALIBRE_DB_PATH, { readonly: true });
-        console.log("Calibre DB: Using better-sqlite3 (Node.js runtime)");
-      }
+      // Create read-only Calibre database connection using factory
+      dbInstance = createDatabase({
+        path: CALIBRE_DB_PATH,
+        readonly: true,
+        foreignKeys: false, // Calibre DB manages its own schema
+        wal: false, // Don't modify journal mode on read-only DB
+      });
+      console.log(`Calibre DB: Using ${dbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database: ${error}`);
     }
   }
 
-  return db;
+  return dbInstance.sqlite;
 }
 
 export interface CalibreBook {

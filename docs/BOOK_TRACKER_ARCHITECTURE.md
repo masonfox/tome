@@ -15,7 +15,7 @@ Book Tracker is a full-stack reading companion application built with Next.js 14
 - **UI:** Tailwind CSS + Lucide React icons
 - **Runtime:** Node.js (dev) / Bun (production)
 - **Package Manager:** Bun
-- **SQLite Adapters:** better-sqlite3 (Node.js) / bun:sqlite (Bun)
+- **SQLite Adapters:** Database factory pattern (better-sqlite3 for Node.js / bun:sqlite for Bun)
 - **Charts:** Recharts
 - **Deployment:** Docker + Docker Compose
 - **Testing:** Bun test runner (295 tests passing)
@@ -270,11 +270,12 @@ Book (synced from Calibre)
 #### Calibre Reader (`/lib/db/calibre.ts`)
 **Purpose:** Read-only SQLite interface to Calibre database
 
-**Runtime Adapter Pattern:**
-- Detects runtime environment (Node.js vs Bun)
+**Database Factory Pattern:**
+- Uses `lib/db/factory.ts` for SQLite driver abstraction
+- Automatically detects runtime environment (Node.js vs Bun)
 - Uses `better-sqlite3` in Node.js (dev mode)
 - Uses `bun:sqlite` in Bun runtime (production)
-- Both libraries have compatible APIs
+- Centralizes driver selection and PRAGMA configuration
 - Enables automatic sync in both dev and production
 
 **Key Functions:**

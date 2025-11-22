@@ -14,7 +14,7 @@ If you're an AI coding assistant (Claude Code, GitHub Copilot, Cursor, etc.), **
 4. **Testing Guide** → [`../__tests__/README.md`](../__tests__/README.md)
 
 **[`AI_CODING_PATTERNS.md`](./AI_CODING_PATTERNS.md) is your primary reference** - it contains all critical patterns, code styles, and rules including:
-- SQLite runtime detection pattern (THE most important pattern)
+- Database factory pattern (THE most important pattern)
 - Test isolation patterns
 - Code style guidelines
 - What to DO and what NOT to do
@@ -86,7 +86,7 @@ Covers:
 **Single source of truth for coding patterns and styles** ⭐
 
 Covers:
-- **Critical SQLite runtime detection pattern**
+- **Critical database factory pattern** (SQLite driver abstraction)
 - Test isolation patterns and anti-patterns
 - Code style guidelines (TypeScript, React, naming)
 - Common imports and database patterns
@@ -154,6 +154,24 @@ Covers:
 
 ---
 
+### Technical Implementation Guides
+
+#### [sqlite-driver-consolidation.md](./sqlite-driver-consolidation.md)
+**Database factory pattern implementation**
+
+Covers:
+- Why we need both bun:sqlite and better-sqlite3
+- Database factory pattern design
+- Implementation details and code reduction metrics
+- Testing results
+
+**When to read:**
+- Understanding SQLite driver architecture
+- Before modifying database connection logic
+- When curious about dual-driver approach
+
+---
+
 ## 🧪 Testing Documentation
 
 Located at: [`../__tests__/README.md`](../__tests__/README.md)
@@ -212,7 +230,7 @@ Understanding these is essential for working on Tome:
 | **SQLite** | Tracking data storage | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
 | **SQLite** | Calibre library (read-only) | `BOOK_TRACKER_ARCHITECTURE.md` Section 3 |
 | **Drizzle ORM** | Type-safe SQLite ORM | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
-| **bun:sqlite** | SQLite driver for Bun | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
+| **Database Factory** | SQLite driver abstraction | `docs/sqlite-driver-consolidation.md` |
 | **Bun** | Package manager & runtime | `BOOK_TRACKER_ARCHITECTURE.md` Section 1 |
 | **Repository Pattern** | Data access layer | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
 

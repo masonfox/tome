@@ -6,46 +6,51 @@ This document contains the **single source of truth** for coding patterns, style
 
 ---
 
-## 🔑 Critical Pattern: SQLite Runtime Detection
+## 🔑 Critical Pattern: Database Factory Pattern
 
 **This is THE most important pattern in the codebase.**
 
-**Location:** `lib/db/calibre.ts:23-34`
+**Location:** `lib/db/factory.ts`
 
 ### The Pattern
 
+The database factory abstracts SQLite driver selection based on runtime (Bun vs Node.js):
+
 ```typescript
-// ALWAYS use this pattern for SQLite database access
-if (typeof Bun !== 'undefined') {
-  // Bun runtime - use bun:sqlite
-  const { Database } = require('bun:sqlite');
-  db = new Database(path, { readonly: true });
-} else {
-  // Node.js runtime - use better-sqlite3
-  const Database = require('better-sqlite3');
-  db = new Database(path, { readonly: true });
-}
+// ALWAYS use the factory for database connections
+import { createDatabase } from "@/lib/db/factory";
+
+const { db, sqlite, runtime } = createDatabase({
+  path: DATABASE_PATH,
+  schema,
+  wal: true,
+  foreignKeys: true,
+  readonly: false,
+});
+
+console.log(`Using ${runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
 ```
 
 ### Why This Matters
 
-- **Enables automatic Calibre sync in dev mode** (Node.js runtime)
-- **Maintains compatibility with production** (Bun runtime)
-- **Aligns with documented architecture** (backend runs on Node.js)
-- **Single abstraction** in `lib/db/calibre.ts` - never import SQLite directly elsewhere
+- **Enables automatic Calibre sync in dev mode** (Node.js runtime with better-sqlite3)
+- **Maintains optimal production performance** (Bun runtime with native bun:sqlite)
+- **Eliminates code duplication** (single source of truth for driver selection)
+- **Type-safe configuration** (DatabaseConfig interface with full TypeScript support)
 
 ### Rules
 
 ✅ **DO:**
-- Use `lib/db/calibre.ts` functions for all Calibre database access
-- Maintain runtime detection when modifying `getCalibreDB()`
-- Keep both SQLite libraries in sync (same API calls)
+- Use `createDatabase()` factory for new database connections
+- Use existing abstractions: `lib/db/calibre.ts`, `lib/db/calibre-write.ts`, `lib/db/sqlite.ts`
+- Import `detectRuntime()` if you need runtime detection elsewhere
+- Trust the factory to handle driver selection and PRAGMA configuration
 
 ❌ **DON'T:**
-- Import `bun:sqlite` directly in other files
-- Import `better-sqlite3` directly in other files
-- Write to Calibre database (it's read-only)
-- Remove or modify the runtime detection logic
+- Import `bun:sqlite` or `better-sqlite3` directly in application code
+- Bypass the factory pattern with manual runtime detection
+- Duplicate the `typeof Bun !== 'undefined'` pattern
+- Modify the factory without understanding both drivers' APIs
 
 ---
 
@@ -968,11 +973,22 @@ test("create book", async () => {
 
 ### ❌ Mistake 5: Importing SQLite Directly
 ```typescript
-// ❌ WRONG - Breaks runtime detection
+// ❌ WRONG - Bypasses factory pattern
 import { Database } from "bun:sqlite";
 import Database from "better-sqlite3";
+const db = new Database(path);
 
-// ✅ CORRECT - Use abstractions
+// ❌ WRONG - Manual runtime detection
+if (typeof Bun !== 'undefined') {
+  const { Database } = require('bun:sqlite');
+  // ...
+}
+
+// ✅ CORRECT - Use factory for new connections
+import { createDatabase } from "@/lib/db/factory";
+const { db, sqlite } = createDatabase({ path, schema });
+
+// ✅ CORRECT - Use existing abstractions
 import { getCalibreDB, getAllBooks } from "@/lib/db/calibre";  // For Calibre
 import { bookRepository } from "@/lib/repositories/book.repository";  // For Tome DB
 ```
@@ -1008,7 +1024,8 @@ Before suggesting code, verify:
 - [ ] Using SQLite/Drizzle (not MongoDB/Mongoose)
 - [ ] Only writing to Calibre ratings (if applicable)
 - [ ] Using test database in tests (`setDatabase()`)
-- [ ] Following runtime detection pattern for Calibre
+- [ ] Using database factory pattern (not manual runtime detection)
+- [ ] Not importing `bun:sqlite` or `better-sqlite3` directly
 - [ ] Not using global mocks in tests
 - [ ] Error handling with try/catch
 - [ ] Type safety (no `any` types)
@@ -1026,7 +1043,7 @@ Before suggesting code, verify:
 
 ---
 
-**Last Updated:** 2025-11-20
-**Tech Stack:** SQLite + Drizzle ORM + Repository Pattern (post-MongoDB migration)
+**Last Updated:** 2025-11-22
+**Tech Stack:** SQLite + Drizzle ORM + Repository Pattern + Database Factory (post-MongoDB migration)
 **For:** All AI coding assistants working on Tome
 **Status:** Single source of truth for coding patterns

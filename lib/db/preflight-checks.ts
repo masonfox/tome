@@ -1,5 +1,6 @@
 import { existsSync, statSync, accessSync, constants } from "fs";
 import { dirname } from "path";
+import { detectRuntime } from "./factory";
 
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 const DATA_DIR = dirname(DATABASE_PATH);
@@ -88,8 +89,8 @@ export function runPreflightChecks(): PreflightCheckResult {
   // Check 4: Disk space
   try {
     // Use statfs to check available space (Bun-specific)
-    const isBun = typeof Bun !== "undefined";
-    if (isBun) {
+    const runtime = detectRuntime();
+    if (runtime === 'bun') {
       // Bun doesn't have statfs, so we'll skip this check in Bun
       checks.push({
         name: "Disk space",

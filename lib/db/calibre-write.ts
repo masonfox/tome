@@ -1,30 +1,32 @@
 /**
  * WRITE-ENABLED Calibre DB Connection
- * 
+ *
  * ⚠️ APPROVED WRITE OPERATIONS ONLY:
  * - Update book ratings (ratings table + books_ratings_link table)
- * 
+ *
  * All other operations MUST use read-only connection from calibre.ts.
- * 
+ *
  * VALIDATED CALIBRE SCHEMA:
  * -------------------------
  * ratings table (lookup table):
  *   - id: INTEGER PRIMARY KEY
  *   - rating: INTEGER CHECK(rating > -1 AND rating < 11), UNIQUE
  *   - link: TEXT NOT NULL DEFAULT ''
- * 
+ *
  * books_ratings_link table (junction table):
  *   - id: INTEGER PRIMARY KEY
  *   - book: INTEGER NOT NULL (FK to books.id)
  *   - rating: INTEGER NOT NULL (FK to ratings.id - NOT the rating value!)
  *   - UNIQUE(book, rating)
- * 
+ *
  * RATING SCALE:
  * ------------
  * UI Display: 1-5 stars
  * Calibre Storage: 2, 4, 6, 8, 10 (even numbers only)
  * Conversion: calibre_value = stars * 2
  */
+
+import { createDatabase } from "./factory";
 
 // Type definition for SQLite database interface
 type SQLiteDatabase = any;
@@ -35,7 +37,7 @@ if (!CALIBRE_DB_PATH) {
   console.warn("CALIBRE_DB_PATH not set. Calibre write operations will not work.");
 }
 
-let writeDb: SQLiteDatabase | null = null;
+let writeDbInstance: ReturnType<typeof createDatabase> | null = null;
 
 /**
  * Get write-enabled connection to Calibre database
@@ -51,26 +53,22 @@ export function getCalibreWriteDB(): SQLiteDatabase {
     throw new Error("CALIBRE_DB_PATH environment variable is not set");
   }
 
-  if (!writeDb) {
+  if (!writeDbInstance) {
     try {
-      // Runtime detection: Use bun:sqlite in Bun, better-sqlite3 in Node.js
-      if (typeof Bun !== 'undefined') {
-        // Bun runtime
-        const { Database } = require('bun:sqlite');
-        writeDb = new Database(CALIBRE_DB_PATH, { readonly: false });
-        console.log("Calibre Write DB: Using bun:sqlite (Bun runtime) - WRITE ENABLED");
-      } else {
-        // Node.js runtime
-        const Database = require('better-sqlite3');
-        writeDb = new Database(CALIBRE_DB_PATH, { readonly: false });
-        console.log("Calibre Write DB: Using better-sqlite3 (Node.js runtime) - WRITE ENABLED");
-      }
+      // Create write-enabled Calibre database connection using factory
+      writeDbInstance = createDatabase({
+        path: CALIBRE_DB_PATH,
+        readonly: false,
+        foreignKeys: false, // Calibre DB manages its own schema
+        wal: false, // Don't modify journal mode on Calibre DB
+      });
+      console.log(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }
   }
 
-  return writeDb;
+  return writeDbInstance.sqlite;
 }
 
 /**
