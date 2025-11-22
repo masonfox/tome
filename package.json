@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "bun run ./lib/db/migrate.ts",
+    "db:backup": "bash scripts/backup-database.sh",
+    "db:restore": "bash scripts/restore-database.sh",
+    "db:list-backups": "bash scripts/list-backups.sh",
     "sync-calibre": "bun run scripts/sync-calibre.ts",
     "test": "bun test",
     "test:watch": "bun test --watch"

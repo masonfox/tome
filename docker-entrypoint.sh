@@ -40,15 +40,27 @@ ensure_data_directory() {
 # Function to create backup of database
 backup_database() {
   if [ -f "$DATABASE_PATH" ]; then
+    # Use dedicated backups directory
+    DATA_DIR=$(dirname "$DATABASE_PATH")
+    BACKUP_DIR="${DATA_DIR}/backups"
+
+    # Create backups directory if it doesn't exist
+    if [ ! -d "$BACKUP_DIR" ]; then
+      echo "Creating backup directory: ${BACKUP_DIR}"
+      mkdir -p "$BACKUP_DIR" || {
+        echo "ERROR: Failed to create backup directory"
+        return 1
+      }
+    fi
+
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    BACKUP_PATH="${DATABASE_PATH}.backup-${TIMESTAMP}"
+    BACKUP_BASE=$(basename "$DATABASE_PATH")
+    BACKUP_PATH="${BACKUP_DIR}/${BACKUP_BASE}.backup-${TIMESTAMP}"
 
     echo "Creating database backup: ${BACKUP_PATH}"
     cp "$DATABASE_PATH" "$BACKUP_PATH"
 
-    # Keep only last 3 backups
-    BACKUP_DIR=$(dirname "$DATABASE_PATH")
-    BACKUP_BASE=$(basename "$DATABASE_PATH")
+    # Keep only last 3 backups in the backups directory
     ls -t "${BACKUP_DIR}/${BACKUP_BASE}.backup-"* 2>/dev/null | tail -n +4 | xargs -r rm -f
 
     echo "Backup created successfully"

@@ -41,3 +41,9 @@ bun.lockb
 # database
 /data/*
 *.db
+*.db-shm
+*.db-wal
+
+# database backups
+/data/backups/
+*.backup-*

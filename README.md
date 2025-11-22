@@ -234,7 +234,7 @@ bun run start
 
 ```bash
 # Run migrations to create/update schema
-bun run lib/db/migrate.ts
+bun run db:migrate
 
 # Generate a new migration after schema changes
 bun run drizzle-kit generate
@@ -242,12 +242,28 @@ bun run drizzle-kit generate
 # Push schema directly to database (dev only)
 bun run drizzle-kit push
 
-# Reset database (delete and recreate)
-rm data/tome.db && bun run lib/db/migrate.ts
+# Backup database (recommended before migrations or major operations)
+bun run db:backup
 
-# Backup database
-cp data/tome.db data/tome-backup-$(date +%Y%m%d).db
+# List all available backups
+bun run db:list-backups
+
+# Restore database from backup (interactive)
+bun run db:restore
+
+# Reset database (delete and recreate)
+rm data/tome.db && bun run db:migrate
 ```
+
+**Backup & Restore Scripts:**
+
+All database backups are stored in `data/backups/` directory:
+
+- **`db:backup`** - Creates timestamped backup (e.g., `tome.db.backup-20251122_143055`)
+- **`db:restore`** - Interactive restore from backup with safety backup
+- **`db:list-backups`** - Lists all backups with size and timestamp
+
+See [scripts/README.md](scripts/README.md) for detailed documentation on backup/restore operations.
 
 ## Troubleshooting
 
@@ -341,11 +357,20 @@ docker run -d \
 # View volumes
 docker volume ls
 
-# Backup the database
+# Backup the database (using built-in script)
+docker exec tome bun run db:backup
+
+# List available backups
+docker exec tome bun run db:list-backups
+
+# Restore from backup (interactive)
+docker exec -it tome bun run db:restore
+
+# Backup entire Docker volume (alternative method)
 docker run --rm -v tome-data:/data -v $(pwd):/backup alpine \
   tar czf /backup/tome-backup-$(date +%Y%m%d).tar.gz -C /data .
 
-# Restore from backup
+# Restore entire Docker volume from backup
 docker run --rm -v tome-data:/data -v $(pwd):/backup alpine \
   tar xzf /backup/tome-backup-YYYYMMDD.tar.gz -C /data
 
@@ -414,9 +439,11 @@ The migration system includes several safety mechanisms:
    - Sufficient disk space available
 
 3. **Automatic Backups**: Creates timestamped backups before each migration
+   - Location: `data/backups/` directory
    - Format: `tome.db.backup-YYYYMMDD_HHMMSS`
-   - Keeps last 3 backups automatically
+   - Keeps last 3 backups automatically (Docker migrations only)
    - Skipped on first run (when database doesn't exist)
+   - Manual backups via `bun run db:backup` are not automatically cleaned up
 
 4. **Retry Logic**: Handles transient failures gracefully
    - 3 retry attempts with exponential backoff (5s, 10s, 20s)
