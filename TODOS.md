@@ -1,7 +1,5 @@
 # Now
 * Add code coverage
-* Evaluate DB migrations
-    * Auto DB backup before migration
 * Annual goals
     * A user can establish annual reading goals, just like in Goodreads and The Story Graph.
     * The user can set a goal for the number of books that they want to read in a year
