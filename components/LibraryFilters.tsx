@@ -123,53 +123,53 @@ export function LibraryFilters({
       </div>
 
       <form onSubmit={handleSearchSubmit} className="space-y-3">
-        {/* Search and Status Filter Row */}
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-              <input
-                type="text"
-                placeholder="Search books..."
-                value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
-                disabled={loading}
-                className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 ${
-                  search ? "pr-10" : "pr-4"
-                }`}
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange("")}
-                  disabled={loading}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Status Dropdown */}
-            <div className="relative" ref={statusDropdownRef}>
+        {/* Search Bar - Full Width */}
+        <div className="w-full">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+            <input
+              type="text"
+              placeholder="Search books..."
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              disabled={loading}
+              className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 ${
+                search ? "pr-10" : "pr-4"
+              }`}
+            />
+            {search && (
               <button
                 type="button"
-                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                onClick={() => onSearchChange("")}
                 disabled={loading}
-                className={`px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px] disabled:opacity-50`}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
               >
-                <span>
-                  {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "w-4 h-4 transition-transform ml-auto",
-                    showStatusDropdown && "rotate-180"
-                  )}
-                />
+                <X className="w-5 h-5" />
               </button>
+            )}
+          </div>
+        </div>
+
+        {/* Status and Rating Filters Row - 50% Each */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Status Dropdown */}
+          <div className="relative" ref={statusDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              disabled={loading}
+              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50`}
+            >
+              <span className="truncate flex-1 text-left">
+                {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 transition-transform shrink-0",
+                  showStatusDropdown && "rotate-180"
+                )}
+              />
+            </button>
 
               {showStatusDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
@@ -203,53 +203,52 @@ export function LibraryFilters({
               )}
             </div>
 
-            {/* Rating Dropdown */}
-            <div className="relative" ref={ratingDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowRatingDropdown(!showRatingDropdown)}
-                disabled={loading}
-                className={`px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 min-w-[140px] disabled:opacity-50`}
-              >
-                <Star className="w-4 h-4" />
-                <span>
-                  {ratingOptions.find(option => option.value === ratingFilter)?.label || "All Ratings"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "w-4 h-4 transition-transform ml-auto",
-                    showRatingDropdown && "rotate-180"
-                  )}
-                />
-              </button>
+          {/* Rating Dropdown */}
+          <div className="relative" ref={ratingDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowRatingDropdown(!showRatingDropdown)}
+              disabled={loading}
+              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50`}
+            >
+              <Star className="w-4 h-4 shrink-0" />
+              <span className="truncate flex-1 text-left">
+                {ratingOptions.find(option => option.value === ratingFilter)?.label || "All Ratings"}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 transition-transform shrink-0",
+                  showRatingDropdown && "rotate-180"
+                )}
+              />
+            </button>
 
-              {showRatingDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                  {ratingOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        onRatingFilterChange(option.value);
-                        setShowRatingDropdown(false);
-                      }}
-                      disabled={loading}
-                      className={cn(
-                        "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                        "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                        ratingFilter === option.value && "bg-[var(--accent)]/10",
-                        loading && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <span className="font-medium flex-1">{option.label}</span>
-                      {ratingFilter === option.value && (
-                        <Check className="w-5 h-5 text-[var(--accent)]" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {showRatingDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
+                {ratingOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      onRatingFilterChange(option.value);
+                      setShowRatingDropdown(false);
+                    }}
+                    disabled={loading}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                      "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                      ratingFilter === option.value && "bg-[var(--accent)]/10",
+                      loading && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <span className="font-medium flex-1">{option.label}</span>
+                    {ratingFilter === option.value && (
+                      <Check className="w-5 h-5 text-[var(--accent)]" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
