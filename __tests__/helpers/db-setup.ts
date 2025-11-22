@@ -7,47 +7,31 @@ import * as schema from "@/lib/db/schema";
 
 /**
  * Test database setup and teardown utilities for SQLite
- * Each test file gets its own unique in-memory database for parallel execution
+ * Uses Dependency Injection pattern - returns database instance to avoid path resolution issues
  */
+
+export type TestDatabaseInstance = {
+  db: any;
+  sqlite: any;
+  testFilePath: string;
+};
 
 // Map to track databases per test file (keyed by file path)
-const databases = new Map<string, { db: any; sqlite: any }>();
-
-/**
- * Get the test file path from the call stack
- * DEPRECATED: Use explicit testFilePath parameter instead
- * Kept for backwards compatibility during migration
- */
-function getTestFilePathLegacy(): string {
-  const stack = new Error().stack || "";
-  const lines = stack.split("\n");
-
-  // Find the first line that contains __tests__/ and extract the file path
-  for (const line of lines) {
-    const match = line.match(/\((.+__tests__.+\.test\.ts):\d+:\d+\)/);
-    if (match) {
-      return match[1];
-    }
-  }
-
-  // Fallback: generate a random ID if we can't determine the file path
-  return `unknown-${Math.random()}`;
-}
+const databases = new Map<string, TestDatabaseInstance>();
 
 /**
  * Setup: SQLite test database and run migrations
  * Call this in beforeAll()
- * Creates a unique database for each test file to enable parallel execution
+ * Returns the database instance to be stored and passed to cleanup functions
  *
- * @param testFilePath - Explicit path to test file (use __filename or import.meta.url)
+ * @param testFilePath - Explicit path to test file (use __filename)
+ * @returns Database instance to be passed to clear/teardown functions
  */
-export async function setupTestDatabase(testFilePath?: string): Promise<void> {
-  // Use explicit path if provided, otherwise fall back to legacy stack parsing
-  const resolvedPath = testFilePath || getTestFilePathLegacy();
-
+export async function setupTestDatabase(testFilePath: string): Promise<TestDatabaseInstance> {
   // Check if already setup for this test file
-  if (databases.has(resolvedPath)) {
-    return;
+  if (databases.has(testFilePath)) {
+    console.log(`Test database already exists for: ${testFilePath}`);
+    return databases.get(testFilePath)!;
   }
 
   // Create separate test database in memory for complete isolation
@@ -56,66 +40,73 @@ export async function setupTestDatabase(testFilePath?: string): Promise<void> {
   testSqlite.exec("PRAGMA journal_mode = WAL");
 
   const testDb = drizzle(testSqlite, { schema });
-  console.log(`Test database created for: ${resolvedPath}`);
+  console.log(`Test database created for: ${testFilePath}`);
+
+  const instance: TestDatabaseInstance = {
+    db: testDb,
+    sqlite: testSqlite,
+    testFilePath,
+  };
 
   // Store the database for this test file
-  databases.set(resolvedPath, { db: testDb, sqlite: testSqlite });
+  databases.set(testFilePath, instance);
 
   // Register the test database so getDatabase() can find it via call stack
-  __registerTestDatabase(resolvedPath, testDb);
+  __registerTestDatabase(testFilePath, testDb);
 
-  // Run migrations on test database - pass the Drizzle instance, not the raw SQLite
+  // Run migrations on test database
   await runMigrationsOnDatabase(testDb);
+
+  return instance;
 }
 
 /**
  * Teardown the test database
  * Call this in afterAll()
  *
- * @param testFilePath - Explicit path to test file (use __filename or import.meta.url)
+ * @param dbInstance - The database instance returned from setupTestDatabase()
  */
-export async function teardownTestDatabase(testFilePath?: string): Promise<void> {
-  const resolvedPath = testFilePath || getTestFilePathLegacy();
+export async function teardownTestDatabase(dbInstance: TestDatabaseInstance): Promise<void> {
+  const { testFilePath, sqlite } = dbInstance;
 
-  // Clean up the database for this test file
-  if (databases.has(resolvedPath)) {
-    const { sqlite } = databases.get(resolvedPath)!;
-    sqlite.close();
-    databases.delete(resolvedPath);
-  }
+  // Clean up the database
+  sqlite.close();
+  databases.delete(testFilePath);
 
   // Unregister the test database
-  __unregisterTestDatabase(resolvedPath);
+  __unregisterTestDatabase(testFilePath);
 }
 
 /**
  * Clear all data from the test database
- * Call this in beforeEach() or afterEach() to reset state between tests
+ * Call this in beforeEach() to reset state between tests
  * IMPORTANT: Order matters due to foreign key constraints
  *
- * @param testFilePath - Explicit path to test file (use __filename or import.meta.url)
+ * @param dbInstance - The database instance returned from setupTestDatabase()
  */
-export async function clearTestDatabase(testFilePath?: string): Promise<void> {
-  const resolvedPath = testFilePath || getTestFilePathLegacy();
-  const dbEntry = databases.get(resolvedPath);
+export async function clearTestDatabase(dbInstance: TestDatabaseInstance): Promise<void> {
+  const { db, testFilePath } = dbInstance;
 
-  if (!dbEntry) {
-    throw new Error(`No test database found for ${resolvedPath}. Did you call setupTestDatabase()?`);
-  }
-
-  const { db } = dbEntry;
+  console.log(`[clearTestDatabase] Clearing database for: ${testFilePath}`);
 
   // Delete in order that respects foreign key constraints
   // Children first, then parents
-  db.delete(schema.progressLogs).run();
-  db.delete(schema.readingSessions).run();
-  db.delete(schema.books).run();
-  db.delete(schema.streaks).run();
-  
-  // Verify tables are empty after clearing (for debugging CI issues)
+  const progressResult = db.delete(schema.progressLogs).run();
+  const sessionsResult = db.delete(schema.readingSessions).run();
+  const booksResult = db.delete(schema.books).run();
+  const streaksResult = db.delete(schema.streaks).run();
+
+  console.log(
+    `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
+    `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
+    `${streaksResult.changes} streaks`
+  );
+
+  // Verify tables are empty after clearing
   const streakCount = db.select().from(schema.streaks).all().length;
   if (streakCount > 0) {
-    console.error(`[clearTestDatabase] WARNING: ${streakCount} streaks remain after clearing!`);
+    console.error(`[clearTestDatabase] ERROR: ${streakCount} streaks remain after clearing!`);
+    throw new Error(`Failed to clear test database: ${streakCount} streaks remain`);
   }
 }
 
@@ -123,11 +114,10 @@ export async function clearTestDatabase(testFilePath?: string): Promise<void> {
  * Get a direct reference to the test database
  * Useful for debugging or advanced test setup
  *
- * @param testFilePath - Explicit path to test file (use __filename or import.meta.url)
+ * @param testFilePath - Explicit path to test file (use __filename)
  */
-export function getTestDatabase(testFilePath?: string) {
-  const resolvedPath = testFilePath || getTestFilePathLegacy();
-  const dbEntry = databases.get(resolvedPath);
+export function getTestDatabase(testFilePath: string) {
+  const dbEntry = databases.get(testFilePath);
 
   if (!dbEntry) {
     return sqlite;
@@ -140,14 +130,13 @@ export function getTestDatabase(testFilePath?: string) {
  * Get the raw SQLite instance for the test database
  * Useful for executing raw SQL
  *
- * @param testFilePath - Explicit path to test file (use __filename or import.meta.url)
+ * @param testFilePath - Explicit path to test file (use __filename)
  */
-export function getTestSqlite(testFilePath?: string) {
-  const resolvedPath = testFilePath || getTestFilePathLegacy();
-  const dbEntry = databases.get(resolvedPath);
+export function getTestSqlite(testFilePath: string) {
+  const dbEntry = databases.get(testFilePath);
 
   if (!dbEntry) {
-    throw new Error(`No test database found for ${resolvedPath}. Did you call setupTestDatabase()?`);
+    throw new Error(`No test database found for ${testFilePath}. Did you call setupTestDatabase()?`);
   }
 
   return dbEntry.sqlite;

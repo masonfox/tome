@@ -1,13 +1,13 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { updateStreaks, getStreak, getOrCreateStreak, rebuildStreak } from "@/lib/streaks";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
 import { mockBook1, mockSessionReading, createTestDate } from "@/__tests__/fixtures/test-data";
 import { startOfDay } from "date-fns";
 
 /**
  * Streak Logic Tests
- * Using SQLite for accurate testing
+ * Using SQLite for accurate testing with DI pattern to avoid path resolution issues
  */
 
 // Helper to convert Unix timestamp (seconds) from createTestDate to Date object
@@ -15,17 +15,20 @@ function unixSecondsToDate(unixSeconds: number): Date {
   return new Date(unixSeconds * 1000);
 }
 
+// Store the database instance for this test file
+let testDb: TestDatabaseInstance;
+
 // Shared setup for all describe blocks in this file
 beforeAll(async () => {
-  await setupTestDatabase(__filename);
+  testDb = await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  await teardownTestDatabase(__filename);
+  await teardownTestDatabase(testDb);
 });
 
 beforeEach(async () => {
-  await clearTestDatabase(__filename);
+  await clearTestDatabase(testDb);
 });
 
 describe("updateStreaks", () => {
