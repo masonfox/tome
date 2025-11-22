@@ -56,7 +56,6 @@ export async function setupTestDatabase(testFilePath?: string): Promise<void> {
   testSqlite.exec("PRAGMA journal_mode = WAL");
 
   const testDb = drizzle(testSqlite, { schema });
-  console.log(`Test database created for: ${resolvedPath}`);
 
   // Store the database for this test file
   databases.set(resolvedPath, { db: testDb, sqlite: testSqlite });
