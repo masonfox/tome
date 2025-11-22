@@ -140,10 +140,19 @@ export function runPreflightChecks(): PreflightCheckResult {
       message: "Successfully wrote and deleted test file",
     });
   } catch (err: any) {
+    // Get directory permissions for debugging
+    let permInfo = "unknown";
+    try {
+      const stats = statSync(DATA_DIR);
+      permInfo = `mode: ${stats.mode.toString(8)}, uid: ${stats.uid}, gid: ${stats.gid}`;
+    } catch {
+      // Ignore errors getting stats
+    }
+
     checks.push({
       name: "Data directory write test",
       passed: false,
-      message: `Failed to write test file: ${err.message}`,
+      message: `Failed to write test file: ${err.message}. Directory: ${DATA_DIR}, Permissions: ${permInfo}`,
     });
   }
 

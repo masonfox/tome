@@ -2,8 +2,40 @@
 set -e
 
 DATABASE_PATH="${DATABASE_PATH:-./data/tome.db}"
+DATA_DIR=$(dirname "$DATABASE_PATH")
 MAX_RETRIES=3
 RETRY_DELAY=5
+
+# Function to ensure data directory exists and is writable
+ensure_data_directory() {
+  echo "Ensuring data directory exists: ${DATA_DIR}"
+
+  # Create directory if it doesn't exist
+  if [ ! -d "$DATA_DIR" ]; then
+    echo "Creating data directory..."
+    mkdir -p "$DATA_DIR" 2>&1 || {
+      echo "ERROR: Failed to create data directory: ${DATA_DIR}"
+      echo "This usually indicates a permission problem."
+      exit 1
+    }
+  fi
+
+  # Verify we can write to the directory
+  if [ ! -w "$DATA_DIR" ]; then
+    echo "ERROR: Data directory is not writable: ${DATA_DIR}"
+    echo "Current user: $(id)"
+    echo "Directory permissions: $(ls -ld "$DATA_DIR" 2>/dev/null || echo 'cannot read')"
+    echo ""
+    echo "This is usually caused by Docker volume mount permission issues."
+    echo "Solutions:"
+    echo "  1. Ensure Docker volume has correct permissions"
+    echo "  2. Run container with correct user: --user 1001:1001"
+    echo "  3. Or run with: docker run --user \$(id -u):\$(id -g) ..."
+    exit 1
+  fi
+
+  echo "Data directory ready: ${DATA_DIR}"
+}
 
 # Function to create backup of database
 backup_database() {
@@ -55,6 +87,9 @@ run_migrations() {
 
 # Main execution
 echo "=== Database Migration Process ==="
+
+# Ensure data directory exists and is writable FIRST
+ensure_data_directory
 
 # Create backup before running migrations
 backup_database

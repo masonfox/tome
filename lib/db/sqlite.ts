@@ -17,10 +17,15 @@ let db: any;
 if (!isTest && !isBuild) {
   // Only initialize production database when not in test mode or build phase
   // Create data directory if it doesn't exist
+  const dataDir = dirname(DATABASE_PATH);
   try {
-    mkdirSync(dirname(DATABASE_PATH), { recursive: true });
-  } catch (err) {
-    // Directory already exists or couldn't be created
+    mkdirSync(dataDir, { recursive: true });
+    console.log(`Data directory verified: ${dataDir}`);
+  } catch (err: any) {
+    console.error(`CRITICAL: Failed to create data directory: ${dataDir}`);
+    console.error(`Error: ${err.message}`);
+    console.error(`This usually indicates a permission problem.`);
+    throw new Error(`Cannot initialize database - data directory creation failed: ${err.message}`);
   }
 
   if (isBun) {
