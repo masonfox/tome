@@ -3,7 +3,7 @@ module.exports = {
   extends: ["next", "next/core-web-vitals"],
   rules: {
     // Disallow console usage entirely; prefer getLogger()
-    "no-console": ["error", { allow: [] }],
+    "no-console": "error",
     // Custom guidance: flag any direct console.* and suggest logger
     "no-restricted-syntax": [
       "error",
