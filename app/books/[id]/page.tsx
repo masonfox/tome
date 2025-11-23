@@ -184,9 +184,11 @@ export default function BookDetailPage() {
     );
   }
 
+
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Book Header with Cover, Status, Rating */}
+      {/* Header section with cover, status, title, and metadata */}
       <BookHeader
         book={book}
         selectedStatus={selectedStatus}
@@ -203,68 +205,70 @@ export default function BookDetailPage() {
         hasActiveSession={!!book.activeSession}
       />
 
-      <div className="space-y-6">
-        <hr className="border-[var(--border-color)]" />
-
-        {/* Session Details (Started Date) */}
-        {selectedStatus === "reading" && book.activeSession && (
-          <SessionDetails
-            startedDate={book.activeSession.startedDate}
-            isEditingStartDate={isEditingStartDate}
-            editStartDate={editStartDate}
-            onStartEditingDate={handleStartEditingDate}
-            onEditStartDateChange={setEditStartDate}
-            onCancelEdit={() => setIsEditingStartDate(false)}
-            onSaveStartDate={handleUpdateStartDate}
-          />
-        )}
-
-        {/* Progress Bar & Logging Form */}
-        {selectedStatus === "reading" && (
-          <BookProgress
-            book={book}
-            currentPage={bookProgressHook.currentPage}
-            currentPercentage={bookProgressHook.currentPercentage}
-            progressInputMode={bookProgressHook.progressInputMode}
-            notes={bookProgressHook.notes}
-            progressDate={bookProgressHook.progressDate}
-            onCurrentPageChange={bookProgressHook.setCurrentPage}
-            onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
-            onNotesChange={bookProgressHook.setNotes}
-            onProgressDateChange={bookProgressHook.setProgressDate}
-            onProgressInputModeChange={bookProgressHook.setProgressInputMode}
-            onSubmit={bookProgressHook.handleLogProgress}
-            showProgressModeDropdown={showProgressModeDropdown}
-            setShowProgressModeDropdown={setShowProgressModeDropdown}
-            progressModeDropdownRef={progressModeDropdownRef}
-          />
-        )}
-
-        {/* Book Metadata (Description, Tags, Total Pages Form) */}
-        <BookMetadata
-          book={book}
-          hasTotalPages={!!book.totalPages}
-          totalPagesInput={totalPagesInput}
-          onTotalPagesChange={setTotalPagesInput}
-          onTotalPagesSubmit={handleTotalPagesSubmit}
-        />
-
-        {/* Progress History */}
-        {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-            <ProgressHistory
-              progress={bookProgressHook.progress}
-              onEdit={bookProgressHook.handleEditProgress}
+      {/* Metadata and reading sections below header */}
+      <div className="grid md:grid-cols-[300px_1fr] gap-10">
+        {/* Left Column: Session details and progress form */}
+        <div className="space-y-6">
+          {/* Session Details */}
+          {selectedStatus === "reading" && book.activeSession && (
+            <SessionDetails
+              startedDate={book.activeSession.startedDate}
+              isEditingStartDate={isEditingStartDate}
+              editStartDate={editStartDate}
+              onStartEditingDate={handleStartEditingDate}
+              onEditStartDateChange={setEditStartDate}
+              onCancelEdit={() => setIsEditingStartDate(false)}
+              onSaveStartDate={handleUpdateStartDate}
             />
-          </div>
-        )}
+          )}
 
-        {/* Reading History Tab */}
-        <ReadingHistoryTab
-          key={historyRefreshKey}
-          bookId={bookId}
-          bookTitle={book.title}
-        />
+          {/* Progress Form */}
+          {selectedStatus === "reading" && (
+            <BookProgress
+              book={book}
+              currentPage={bookProgressHook.currentPage}
+              currentPercentage={bookProgressHook.currentPercentage}
+              progressInputMode={bookProgressHook.progressInputMode}
+              notes={bookProgressHook.notes}
+              progressDate={bookProgressHook.progressDate}
+              onCurrentPageChange={bookProgressHook.setCurrentPage}
+              onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
+              onNotesChange={bookProgressHook.setNotes}
+              onProgressDateChange={bookProgressHook.setProgressDate}
+              onProgressInputModeChange={bookProgressHook.setProgressInputMode}
+              onSubmit={bookProgressHook.handleLogProgress}
+              showProgressModeDropdown={showProgressModeDropdown}
+              setShowProgressModeDropdown={setShowProgressModeDropdown}
+              progressModeDropdownRef={progressModeDropdownRef}
+            />
+          )}
+        </div>
+
+        {/* Right Column: Metadata and reading history */}
+        <div className="space-y-6">
+          <BookMetadata
+            book={book}
+            hasTotalPages={!!book.totalPages}
+            totalPagesInput={totalPagesInput}
+            onTotalPagesChange={setTotalPagesInput}
+            onTotalPagesSubmit={handleTotalPagesSubmit}
+          />
+
+          {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+              <ProgressHistory
+                progress={bookProgressHook.progress}
+                onEdit={bookProgressHook.handleEditProgress}
+              />
+            </div>
+          )}
+
+          <ReadingHistoryTab
+            key={historyRefreshKey}
+            bookId={bookId}
+            bookTitle={book.title}
+          />
+        </div>
       </div>
 
       {/* Modals */}
@@ -283,24 +287,17 @@ export default function BookDetailPage() {
         currentRating={book.rating || null}
       />
 
-      {/* Status Change Confirmation Dialog */}
       {showStatusChangeConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">
-              Archive Reading Session?
-            </h2>
-            <p className="text-[var(--foreground)]/70 mb-4 font-medium">
-              You have logged progress for this book. Changing the status will:
-            </p>
+            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">Archive Reading Session?</h2>
+            <p className="text-[var(--foreground)]/70 mb-4 font-medium">You have logged progress for this book. Changing the status will:</p>
             <ul className="list-disc list-inside text-[var(--foreground)]/70 mb-4 space-y-1 font-medium">
               <li>Archive your current reading session with its progress</li>
               <li>Start a fresh session with {pendingStatusChange === "read-next" ? "Read Next" : "Want to Read"} status</li>
               <li>Preserve your reading history (viewable in Reading History)</li>
             </ul>
-            <p className="text-[var(--foreground)] mb-6 font-semibold">
-              Continue with status change?
-            </p>
+            <p className="text-[var(--foreground)] mb-6 font-semibold">Continue with status change?</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={handleCancelStatusChange}
@@ -319,7 +316,6 @@ export default function BookDetailPage() {
         </div>
       )}
 
-      {/* Progress Edit Modal */}
       {bookProgressHook.selectedProgressEntry && (
         <ProgressEditModal
           isOpen={bookProgressHook.showEditProgressModal}
