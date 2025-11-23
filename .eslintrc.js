@@ -2,9 +2,16 @@ module.exports = {
   root: true,
   extends: ["next", "next/core-web-vitals"],
   rules: {
-    // Disallow console usage to enforce structured logging
-    // Allow console in tests only (handled via overrides below)
+    // Disallow console usage entirely; prefer getLogger()
     "no-console": ["error", { allow: [] }],
+    // Custom guidance: flag any direct console.* and suggest logger
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector: "MemberExpression[object.name='console']",
+        message: "Use getLogger() from '@/lib/logger' instead of console.* for structured logging",
+      },
+    ],
   },
   overrides: [
     {
