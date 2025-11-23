@@ -255,13 +255,10 @@ export function LibraryFilters({
         {/* Tag Filter Row */}
         {availableTags.length > 0 && (
           <div className="flex gap-3 items-start">
-            <div className="flex items-center gap-2 pt-2 shrink-0">
-              <Tag className="w-5 h-5 text-[var(--foreground)]/40" />
-            </div>
-
             <div className="flex-1 min-w-0">
               {/* Tag search input */}
               <div className="relative" ref={tagInputRef}>
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
                 <input
                   type="text"
                   placeholder="Search tags..."
@@ -275,8 +272,8 @@ export function LibraryFilters({
                     // Delay to allow clicking on suggestions
                     setTimeout(() => setShowTagSuggestions(false), 200);
                   }}
-                disabled={loading}
-                className={`w-full px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50`}
+                  disabled={loading}
+                  className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50`}
                 />
 
                 {/* Tag suggestions dropdown */}
@@ -319,7 +316,7 @@ export function LibraryFilters({
 
         {/* Selected tags */}
         {selectedTags.length > 0 && (
-          <div className="flex flex-wrap gap-2 pl-9">
+          <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => (
               <button
                 key={tag}
