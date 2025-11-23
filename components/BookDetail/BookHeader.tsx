@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { BookOpen, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Star, Pencil } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -66,11 +67,11 @@ export default function BookHeader({
         {/* Cover */}
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center">
           {!imageError ? (
-            <img
+            <Image
               src={`/api/covers/${book.calibreId}/cover.jpg`}
               alt={book.title}
-              className="w-full h-full object-cover"
-              loading="eager"
+              fill
+              className="object-cover"
               onError={onImageError}
             />
           ) : (

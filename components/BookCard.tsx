@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { BookOpen, Bookmark, Clock, BookCheck } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState } from "react";
@@ -55,11 +56,11 @@ export function BookCard({
       >
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
           {!imageError ? (
-            <img
+            <Image
               src={`/api/covers/${calibreId}/cover.jpg`}
               alt={title}
-              className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
-              loading="lazy"
+              fill
+              className="object-cover group-hover:opacity-95 transition-opacity"
               onError={() => setImageError(true)}
             />
           ) : (
