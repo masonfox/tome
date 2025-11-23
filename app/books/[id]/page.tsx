@@ -203,74 +203,68 @@ export default function BookDetailPage() {
         hasActiveSession={!!book.activeSession}
       />
 
-      <div className="grid md:grid-cols-[250px_1fr] gap-8">
-        {/* Empty left column for layout alignment */}
-        <div />
+      <div className="space-y-6">
+        <hr className="border-[var(--border-color)]" />
 
-        {/* Right column with main content */}
-        <div className="space-y-6">
-          <hr className="border-[var(--border-color)]" />
+        {/* Session Details (Started Date) */}
+        {selectedStatus === "reading" && book.activeSession && (
+          <SessionDetails
+            startedDate={book.activeSession.startedDate}
+            isEditingStartDate={isEditingStartDate}
+            editStartDate={editStartDate}
+            onStartEditingDate={handleStartEditingDate}
+            onEditStartDateChange={setEditStartDate}
+            onCancelEdit={() => setIsEditingStartDate(false)}
+            onSaveStartDate={handleUpdateStartDate}
+          />
+        )}
 
-          {/* Session Details (Started Date) */}
-          {selectedStatus === "reading" && book.activeSession && (
-            <SessionDetails
-              startedDate={book.activeSession.startedDate}
-              isEditingStartDate={isEditingStartDate}
-              editStartDate={editStartDate}
-              onStartEditingDate={handleStartEditingDate}
-              onEditStartDateChange={setEditStartDate}
-              onCancelEdit={() => setIsEditingStartDate(false)}
-              onSaveStartDate={handleUpdateStartDate}
-            />
-          )}
-
-          {/* Progress Bar & Logging Form */}
-          {selectedStatus === "reading" && (
-            <BookProgress
-              book={book}
-              currentPage={bookProgressHook.currentPage}
-              currentPercentage={bookProgressHook.currentPercentage}
-              progressInputMode={bookProgressHook.progressInputMode}
-              notes={bookProgressHook.notes}
-              progressDate={bookProgressHook.progressDate}
-              onCurrentPageChange={bookProgressHook.setCurrentPage}
-              onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
-              onNotesChange={bookProgressHook.setNotes}
-              onProgressDateChange={bookProgressHook.setProgressDate}
-              onProgressInputModeChange={bookProgressHook.setProgressInputMode}
-              onSubmit={bookProgressHook.handleLogProgress}
-              showProgressModeDropdown={showProgressModeDropdown}
-              setShowProgressModeDropdown={setShowProgressModeDropdown}
-              progressModeDropdownRef={progressModeDropdownRef}
-            />
-          )}
-
-          {/* Book Metadata (Description, Tags, Total Pages Form) */}
-          <BookMetadata
+        {/* Progress Bar & Logging Form */}
+        {selectedStatus === "reading" && (
+          <BookProgress
             book={book}
-            hasTotalPages={!!book.totalPages}
-            totalPagesInput={totalPagesInput}
-            onTotalPagesChange={setTotalPagesInput}
-            onTotalPagesSubmit={handleTotalPagesSubmit}
+            currentPage={bookProgressHook.currentPage}
+            currentPercentage={bookProgressHook.currentPercentage}
+            progressInputMode={bookProgressHook.progressInputMode}
+            notes={bookProgressHook.notes}
+            progressDate={bookProgressHook.progressDate}
+            onCurrentPageChange={bookProgressHook.setCurrentPage}
+            onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
+            onNotesChange={bookProgressHook.setNotes}
+            onProgressDateChange={bookProgressHook.setProgressDate}
+            onProgressInputModeChange={bookProgressHook.setProgressInputMode}
+            onSubmit={bookProgressHook.handleLogProgress}
+            showProgressModeDropdown={showProgressModeDropdown}
+            setShowProgressModeDropdown={setShowProgressModeDropdown}
+            progressModeDropdownRef={progressModeDropdownRef}
           />
+        )}
 
-          {/* Progress History */}
-          {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-              <ProgressHistory
-                progress={bookProgressHook.progress}
-                onEdit={bookProgressHook.handleEditProgress}
-              />
-            </div>
-          )}
+        {/* Book Metadata (Description, Tags, Total Pages Form) */}
+        <BookMetadata
+          book={book}
+          hasTotalPages={!!book.totalPages}
+          totalPagesInput={totalPagesInput}
+          onTotalPagesChange={setTotalPagesInput}
+          onTotalPagesSubmit={handleTotalPagesSubmit}
+        />
 
-          {/* Reading History Tab */}
-          <ReadingHistoryTab
-            key={historyRefreshKey}
-            bookId={bookId}
-            bookTitle={book.title}
-          />
-        </div>
+        {/* Progress History */}
+        {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+            <ProgressHistory
+              progress={bookProgressHook.progress}
+              onEdit={bookProgressHook.handleEditProgress}
+            />
+          </div>
+        )}
+
+        {/* Reading History Tab */}
+        <ReadingHistoryTab
+          key={historyRefreshKey}
+          bookId={bookId}
+          bookTitle={book.title}
+        />
       </div>
 
       {/* Modals */}
