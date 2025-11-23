@@ -64,7 +64,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       readNextTotal,
     };
   } catch (error) {
-    console.error("Failed to fetch dashboard data:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Failed to fetch dashboard data");
     return {
       stats: null,
       streak: null,
@@ -115,7 +116,8 @@ async function getStats(): Promise<DashboardStats | null> {
       avgPagesPerDay: avgPages,
     };
   } catch (error) {
-    console.error("Failed to fetch stats:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Failed to fetch stats");
     return null;
   }
 }
@@ -136,7 +138,8 @@ async function getStreak(): Promise<DashboardStreak | null> {
       longestStreak: streak.longestStreak,
     };
   } catch (error) {
-    console.error("Failed to fetch streak:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Failed to fetch streak");
     return null;
   }
 }
@@ -199,7 +202,8 @@ async function getBooksByStatus(
 
     return { books: booksWithStatus, total };
   } catch (error) {
-    console.error(`Failed to fetch books with status ${status}:`, error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error, status }, "Failed to fetch books by status");
     return { books: [], total: 0 };
   }
 }

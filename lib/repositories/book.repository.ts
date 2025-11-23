@@ -252,7 +252,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return results.map((r) => r.tag);
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "Error fetching tags");
       return [];
     }
   }

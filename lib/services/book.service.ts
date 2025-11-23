@@ -151,7 +151,8 @@ export class BookService {
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
-      console.error(`[BookService] Failed to sync rating to Calibre (calibreId: ${calibreId}):`, error);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, calibreId }, `[BookService] Failed to sync rating to Calibre`);
       throw error;
     }
   }

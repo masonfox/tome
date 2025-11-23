@@ -55,14 +55,17 @@ export async function syncCalibreLibrary(
   isSyncing = true;
 
   try {
-    console.log("[Sync] Starting Calibre sync...");
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+    logger.info("[Sync] Starting Calibre sync...");
     const calibreBooks = calibreSource.getAllBooks();
-    console.log(`[Sync] Found ${calibreBooks.length} books in Calibre database`);
+    logger.info({ calibreBooksCount: calibreBooks.length }, `[Sync] Found ${calibreBooks.length} books in Calibre database`);
     
     // SAFETY CHECK: Abort if Calibre returns no books
     // This prevents catastrophic data loss from orphaning all books
     if (calibreBooks.length === 0) {
-      console.error("[Sync] CRITICAL: No books found in Calibre database. Aborting sync.");
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error("[Sync] CRITICAL: No books found in Calibre database. Aborting sync.");
       return {
         success: false,
         syncedCount: 0,
@@ -129,7 +132,7 @@ export async function syncCalibreLibrary(
 
     // Detect removed books - find books whose calibreId is no longer in Calibre
     const removedBooks = await bookRepository.findNotInCalibreIds(calibreIds);
-    console.log(`[Sync] Found ${removedBooks.length} books to potentially orphan`);
+    logger.info({ removedBooksCount: removedBooks.length }, `[Sync] Found ${removedBooks.length} books to potentially orphan`);
 
     // SAFETY CHECK: Prevent mass orphaning (>10% of library)
     // This catches edge cases where sync logic might incorrectly orphan many books
@@ -137,10 +140,10 @@ export async function syncCalibreLibrary(
       const totalBooksInDb = await bookRepository.count();
       const orphanPercentage = (removedBooks.length / totalBooksInDb) * 100;
       
-      console.log(`[Sync] Orphaning would affect ${removedBooks.length}/${totalBooksInDb} books (${orphanPercentage.toFixed(1)}%)`);
+      logger.info({ orphanPercentage, removedBooks: removedBooks.length, totalBooksInDb }, `[Sync] Orphaning would affect ${removedBooks.length}/${totalBooksInDb} books (${orphanPercentage.toFixed(1)}%)`);
       
       if (orphanPercentage > 10) {
-        console.error(`[Sync] CRITICAL: Sync would orphan ${removedBooks.length} books (${orphanPercentage.toFixed(1)}% of library). Aborting.`);
+        logger.error({ orphanPercentage, removedBooks: removedBooks.length }, `[Sync] CRITICAL: Sync would orphan ${removedBooks.length} books (${orphanPercentage.toFixed(1)}% of library). Aborting.`);
         return {
           success: false,
           syncedCount,
@@ -160,12 +163,12 @@ export async function syncCalibreLibrary(
     }
     
     if (removedCount > 0) {
-      console.log(`[Sync] Marked ${removedCount} books as orphaned`);
+      logger.info({ removedCount }, `[Sync] Marked ${removedCount} books as orphaned`);
     }
 
     lastSyncTime = new Date();
 
-    console.log(`[Sync] Sync completed successfully: ${syncedCount} new, ${updatedCount} updated, ${removedCount} orphaned`);
+    logger.info({ syncedCount, updatedCount, removedCount }, `[Sync] Sync completed successfully: ${syncedCount} new, ${updatedCount} updated, ${removedCount} orphaned`);
 
     return {
       success: true,
@@ -176,7 +179,8 @@ export async function syncCalibreLibrary(
       orphanedBooks: orphanedBooks.length > 0 ? orphanedBooks : undefined,
     };
   } catch (error) {
-    console.error("Calibre sync error:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Calibre sync error");
     return {
       success: false,
       syncedCount: 0,

@@ -44,7 +44,8 @@ export async function PATCH(
 
     return NextResponse.json(updatedEntry);
   } catch (error: any) {
-    console.error("Error updating progress:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error updating progress");
     
     // Handle specific errors
     if (error instanceof Error) {

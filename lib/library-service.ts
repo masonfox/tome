@@ -98,7 +98,8 @@ export class LibraryService {
 
       return result;
     } catch (error) {
-      console.error("LibraryService: Failed to fetch books:", error);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "LibraryService: Failed to fetch books");
       throw new Error("Failed to fetch books");
     }
   }
@@ -124,7 +125,8 @@ export class LibraryService {
 
       return sortedTags;
     } catch (error) {
-      console.error("LibraryService: Failed to fetch tags:", error);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "LibraryService: Failed to fetch tags");
       throw new Error("Failed to fetch tags");
     }
   }
@@ -149,7 +151,8 @@ export class LibraryService {
 
       return result;
     } catch (error) {
-      console.error("LibraryService: Failed to sync Calibre:", error);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "LibraryService: Failed to sync Calibre");
       throw new Error("Failed to sync with Calibre");
     }
   }

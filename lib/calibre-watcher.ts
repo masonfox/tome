@@ -1,6 +1,5 @@
 import { watch } from "fs";
 import { stat } from "fs/promises";
-import path from "path";
 import type { SyncResult } from "./sync-service";
 
 type SyncCallback = () => Promise<SyncResult>;
@@ -13,24 +12,24 @@ class CalibreWatcher {
   private debounceTimer: NodeJS.Timeout | null = null;
 
   async start(calibreDbPath: string, onSync: SyncCallback) {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
     if (this.watcher) {
-      console.log("Calibre watcher already running");
+      logger.debug("Calibre watcher already running");
       return;
     }
 
     this.syncCallback = onSync;
 
     try {
-      // Get initial modified time
       const stats = await stat(calibreDbPath);
       this.lastModified = stats.mtimeMs;
 
-      console.log(`Starting Calibre database watcher on: ${calibreDbPath}`);
+      logger.info({ calibreDbPath }, `Starting Calibre database watcher on: ${calibreDbPath}`);
 
-      // Watch the database file
-      this.watcher = watch(calibreDbPath, async (eventType, filename) => {
+      this.watcher = watch(calibreDbPath, async (eventType) => {
         if (eventType === "change") {
-          // Debounce rapid changes (Calibre might write multiple times)
           if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
           }
@@ -38,56 +37,58 @@ class CalibreWatcher {
           this.debounceTimer = setTimeout(async () => {
             try {
               const newStats = await stat(calibreDbPath);
-
-              // Only sync if the file was actually modified
               if (newStats.mtimeMs > this.lastModified) {
-                console.log("Calibre database changed, triggering sync...");
+                logger.info("Calibre database changed, triggering sync...");
                 this.lastModified = newStats.mtimeMs;
                 await this.triggerSync();
               }
             } catch (error) {
-              console.error("Error checking Calibre database:", error);
+              logger.error({ err: error }, "Error checking Calibre database");
             }
-          }, 2000); // Wait 2 seconds after last change
+          }, 2000);
         }
       });
 
-      console.log("Calibre watcher started successfully");
-
-      // Perform initial sync
+      logger.info("Calibre watcher started successfully");
       await this.triggerSync();
     } catch (error) {
-      console.error("Failed to start Calibre watcher:", error);
+      logger.error({ err: error }, "Failed to start Calibre watcher");
     }
   }
 
   private async triggerSync() {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
     if (this.syncing) {
-      console.log("Sync already in progress, skipping...");
+      logger.debug("Sync already in progress, skipping");
       return;
     }
 
     if (!this.syncCallback) {
-      console.error("No sync callback registered");
+      logger.error("No sync callback registered");
       return;
     }
 
     this.syncing = true;
     try {
       await this.syncCallback();
-      console.log("Automatic sync completed");
+      logger.info("Automatic sync completed");
     } catch (error) {
-      console.error("Automatic sync failed:", error);
+      logger.error({ err: error }, "Automatic sync failed");
     } finally {
       this.syncing = false;
     }
   }
 
   stop() {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
-      console.log("Calibre watcher stopped");
+      logger.info("Calibre watcher stopped");
     }
 
     if (this.debounceTimer) {
@@ -97,5 +98,4 @@ class CalibreWatcher {
   }
 }
 
-// Singleton instance
 export const calibreWatcher = new CalibreWatcher();

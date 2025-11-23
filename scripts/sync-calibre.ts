@@ -26,9 +26,9 @@ async function main() {
   const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
   if (!CALIBRE_DB_PATH) {
-    console.error("❌ Error: CALIBRE_DB_PATH environment variable is not set");
     const { getLogger } = await import("@/lib/logger");
     const logger = getLogger();
+    logger.error("CALIBRE_DB_PATH environment variable is not set");
     logger.error("Please set the path to your Calibre library:");
     logger.error("  export CALIBRE_DB_PATH='/path/to/calibre/metadata.db'");
     logger.error("Or add to .env file:");

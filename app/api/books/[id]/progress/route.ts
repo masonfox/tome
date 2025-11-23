@@ -34,7 +34,8 @@ export async function GET(
       return NextResponse.json(progressLogs);
     }
   } catch (error) {
-    console.error("Error fetching progress:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching progress");
     return NextResponse.json({ error: "Failed to fetch progress" }, { status: 500 });
   }
 }
