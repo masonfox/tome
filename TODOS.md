@@ -1,4 +1,7 @@
 # Now
+* Fix streak tets in CI. They continue to fail. Relative documentation is in /docs: 
+    * CI-STREAK-TEST-FAILURE-INVESTIGATION.md
+    * PLAN-SKIP-STREAK-TESTS-IN-CI.md
 * Add code coverage
 * Annual goals
     * A user can establish annual reading goals, just like in Goodreads and The Story Graph.
