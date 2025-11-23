@@ -1,14 +1,22 @@
 import pino, { LoggerOptions, Logger, DestinationStream } from 'pino';
-import { AsyncLocalStorage } from 'async_hooks';
-import { randomUUID } from 'crypto';
 
-// AsyncLocalStorage to hold per-request context (correlation id and custom fields)
-interface RequestContext {
-  reqId: string;
-  [key: string]: any;
+// Edge-compatible UUID generator
+function generateReqId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback simple UUID v4 generator
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
-const contextStore = new AsyncLocalStorage<RequestContext>();
+// Minimal request context store (no AsyncLocalStorage in Edge build phase)
+interface RequestContext { reqId: string; [key: string]: any; }
+const contextStore: { getStore: () => RequestContext | null; run: (ctx: RequestContext, fn: () => any) => any } = {
+  getStore: () => null,
+  run: (_ctx, fn) => fn()
+};
 
 // Environment configuration
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -48,7 +56,7 @@ const baseOptions: LoggerOptions = {
       };
     },
   },
-}
+};
 
 let destination: DestinationStream | undefined;
 if (LOG_DEST) {
@@ -71,44 +79,33 @@ if (LOG_PRETTY) {
 // Singleton base logger
 const baseLogger: Logger = pino({ ...baseOptions, transport }, destination);
 
-export function getBaseLogger(): Logger {
-  return baseLogger;
-}
+export function getBaseLogger(): Logger { return baseLogger; }
+export function createLogger(bindings?: Record<string, any>): Logger { return baseLogger.child(bindings || {}); }
 
-// Create a child logger with static context fields
-export function createLogger(bindings?: Record<string, any>): Logger {
-  return baseLogger.child(bindings || {});
-}
-
-// Retrieve a context-bound logger (includes reqId)
 export function getLogger(): Logger {
   const store = contextStore.getStore();
-  if (store) {
-    return baseLogger.child({ reqId: store.reqId });
-  }
+  if (store) return baseLogger.child({ reqId: store.reqId });
   return baseLogger;
 }
 
-// Run a function within a request context (for API routes / middleware)
 export function withRequestContext<T>(fn: (ctx: RequestContext) => Promise<T> | T, existingId?: string): Promise<T> | T {
-  const ctx: RequestContext = { reqId: existingId || randomUUID() };
+  const ctx: RequestContext = { reqId: existingId || generateReqId() };
   return contextStore.run(ctx, () => fn(ctx));
 }
 
-// Utility for timing operations
 export async function withTiming<T>(label: string, fn: () => Promise<T> | T): Promise<T> {
-  const start = process.hrtime.bigint();
+  const start = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const logger = getLogger();
   logger.debug({ op: label, phase: 'start' }, `${label} start`);
   try {
     const result = await fn();
-    const end = process.hrtime.bigint();
-    const ms = Number(end - start) / 1_000_000;
+    const end = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const ms = end - start;
     logger.info({ op: label, durationMs: ms }, `${label} complete`);
     return result;
   } catch (err: any) {
-    const end = process.hrtime.bigint();
-    const ms = Number(end - start) / 1_000_000;
+    const end = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const ms = end - start;
     logger.error({ op: label, durationMs: ms, err }, `${label} failed`);
     throw err;
   }

@@ -70,7 +70,7 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
 
               {entry.notes && (
                 <p className="text-sm text-[var(--foreground)]/70 mt-2 italic font-medium border-l-2 border-[var(--accent)]/30 pl-3">
-                  "{entry.notes}"
+                  &quot;{entry.notes}&quot;
                 </p>
               )}
             </div>

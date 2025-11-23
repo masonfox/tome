@@ -24,7 +24,7 @@ async function getStats() {
 
     return response.json();
   } catch (error) {
-    console.error("Failed to fetch stats:", error);
+    // Suppress console; return null to indicate failure
     return null;
   }
 }
@@ -43,7 +43,7 @@ async function getStreak() {
 
     return response.json();
   } catch (error) {
-    console.error("Failed to fetch streak:", error);
+    // Suppress console; return null to indicate failure
     return null;
   }
 }

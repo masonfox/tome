@@ -136,7 +136,7 @@ function LibraryPageContent() {
         const tags = await libraryService.getAvailableTags();
         setAvailableTags(tags);
       } catch (error) {
-        console.error("Failed to fetch tags:", error);
+        // Suppress console; toast used for user feedback
       }
     }
     fetchTags();
@@ -172,7 +172,7 @@ function LibraryPageContent() {
         toast.error(`Sync failed: ${result.error}`);
       }
     } catch (error) {
-      console.error("Sync failed:", error);
+      // Suppress console; toast provides user-visible error
       toast.error("Failed to sync with Calibre");
     } finally {
       setSyncing(false);

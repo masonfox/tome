@@ -50,7 +50,7 @@ export function Navigation() {
       router.push("/login");
       router.refresh();
     } catch (error) {
-      console.error("Logout failed:", error);
+      // Suppress console; optional user feedback could be added
     }
   };
 

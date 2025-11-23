@@ -113,7 +113,7 @@ export default function BookDetailPage() {
         toast.error(error.error || "Failed to update start date");
       }
     } catch (error) {
-      console.error("Failed to update start date:", error);
+      // Logging suppressed in client; error surfaced via toast
       toast.error("Failed to update start date");
     }
   }

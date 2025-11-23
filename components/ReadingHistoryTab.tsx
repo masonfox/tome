@@ -53,7 +53,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
       const archivedSessions = data.filter((session: ReadingSession) => !session.isActive);
       setSessions(archivedSessions);
     } catch (error) {
-      console.error("Failed to fetch reading sessions:", error);
+      // Suppress console; reading sessions fetch failure ignored
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
       handleCloseEditModal();
       toast.success("Session updated successfully");
     } catch (error) {
-      console.error("Failed to save session:", error);
+      // Suppress console; toast shows failure
       toast.error("Failed to save session. Please try again.");
     }
   }
