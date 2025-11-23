@@ -35,7 +35,8 @@ export async function GET() {
       );
     }
   } catch (error) {
-    console.error("Calibre sync error:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Calibre sync error");
     return NextResponse.json(
       {
         success: false,

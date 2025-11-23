@@ -32,7 +32,8 @@ export function acquireMigrationLock(): void {
       lockData = JSON.parse(lockContent);
     } catch (e) {
       // Corrupted lock file, remove it
-      console.warn("Corrupted lock file detected, removing...");
+      const { getLogger } = require("@/lib/logger");
+      getLogger().warn("Corrupted lock file detected, removing...");
       unlinkSync(LOCK_FILE);
       return acquireMigrationLock(); // Retry
     }
@@ -41,9 +42,8 @@ export function acquireMigrationLock(): void {
 
     // Check if lock is stale (older than timeout)
     if (lockAge > LOCK_TIMEOUT_MS) {
-      console.warn(
-        `Stale lock detected (${Math.round(lockAge / 1000)}s old, PID: ${lockData.pid}), removing...`
-      );
+      const { getLogger } = require("@/lib/logger");
+      getLogger().warn(`Stale lock detected (${Math.round(lockAge / 1000)}s old, PID: ${lockData.pid}), removing...`);
       unlinkSync(LOCK_FILE);
     } else {
       throw new Error(
@@ -64,7 +64,8 @@ export function acquireMigrationLock(): void {
     writeFileSync(LOCK_FILE, JSON.stringify(lockData, null, 2), {
       flag: "wx", // Exclusive write (fail if exists)
     });
-    console.log(`Migration lock acquired (PID: ${process.pid})`);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().info(`Migration lock acquired (PID: ${process.pid})`);
   } catch (err: any) {
     if (err.code === "EEXIST") {
       // Race condition: another process created the lock between our check and write
@@ -86,14 +87,15 @@ export function releaseMigrationLock(): void {
       // Only remove if this process owns the lock
       if (lockData.pid === process.pid) {
         unlinkSync(LOCK_FILE);
-        console.log(`Migration lock released (PID: ${process.pid})`);
+        const { getLogger } = require("@/lib/logger");
+        getLogger().info(`Migration lock released (PID: ${process.pid})`);
       } else {
-        console.warn(
-          `Lock file exists but owned by PID ${lockData.pid}, not removing`
-        );
+        const { getLogger } = require("@/lib/logger");
+        getLogger().warn(`Lock file exists but owned by PID ${lockData.pid}, not removing`);
       }
     } catch (err) {
-      console.error("Error releasing migration lock:", err);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err }, "Error releasing migration lock");
     }
   }
 }

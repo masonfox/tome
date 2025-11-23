@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
       skip,
     });
   } catch (error) {
-    console.error("Error fetching books:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching books");
     return NextResponse.json({ error: "Failed to fetch books" }, { status: 500 });
   }
 }
@@ -72,7 +73,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(book);
   } catch (error) {
-    console.error("Error updating book:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error updating book");
     return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
   }
 }

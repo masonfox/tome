@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
       monthly: monthlyData,
     });
   } catch (error) {
-    console.error("Error fetching activity:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching activity");
     return NextResponse.json(
       { error: "Failed to fetch activity" },
       { status: 500 }

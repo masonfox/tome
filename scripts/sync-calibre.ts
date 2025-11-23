@@ -18,23 +18,27 @@
 import { syncCalibreLibrary } from "../lib/sync-service";
 
 async function main() {
-  console.log("=== Manual Calibre Library Sync ===\n");
+  const { getLogger } = await import("@/lib/logger");
+  const logger = getLogger();
+  logger.info("=== Manual Calibre Library Sync ===");
 
   // Check for required environment variable
   const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
   if (!CALIBRE_DB_PATH) {
     console.error("❌ Error: CALIBRE_DB_PATH environment variable is not set");
-    console.error("\nPlease set the path to your Calibre library:");
-    console.error("  export CALIBRE_DB_PATH='/path/to/calibre/metadata.db'");
-    console.error("\nOr add to .env file:");
-    console.error("  CALIBRE_DB_PATH=/path/to/calibre/metadata.db");
+    const { getLogger } = await import("@/lib/logger");
+    const logger = getLogger();
+    logger.error("Please set the path to your Calibre library:");
+    logger.error("  export CALIBRE_DB_PATH='/path/to/calibre/metadata.db'");
+    logger.error("Or add to .env file:");
+    logger.error("  CALIBRE_DB_PATH=/path/to/calibre/metadata.db");
     process.exit(1);
   }
 
-  console.log(`Calibre Database: ${CALIBRE_DB_PATH}`);
-  console.log(`Tome Database: ${process.env.DATABASE_PATH || "./data/tome.db"}`);
-  console.log("\nStarting sync...\n");
+  logger.info({ calibreDbPath: CALIBRE_DB_PATH }, `Calibre Database: ${CALIBRE_DB_PATH}`);
+  logger.info({ tomeDbPath: process.env.DATABASE_PATH || "./data/tome.db" }, `Tome Database: ${process.env.DATABASE_PATH || "./data/tome.db"}`);
+  logger.info("Starting sync...");
 
   try {
     const startTime = Date.now();
@@ -44,19 +48,19 @@ async function main() {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    console.log("\n=== Sync Complete ===");
-    console.log(`Duration: ${duration}s`);
-    console.log("\nSync Result:");
-    console.log(JSON.stringify(result, null, 2));
+    logger.info("Sync Complete");
+    logger.info({ durationSeconds: duration }, `Duration: ${duration}s`);
+    logger.info("Sync Result:");
+    logger.info({ result }, "Sync outcome");
 
     process.exit(0);
   } catch (error) {
-    console.error("\n❌ Sync Failed");
-    console.error("Error:", error);
+    logger.error("Sync Failed");
+    logger.error({ err: error }, "Sync error");
 
     if (error instanceof Error) {
-      console.error("\nStack trace:");
-      console.error(error.stack);
+      logger.error("Stack trace follows");
+      logger.error({ stack: (error as Error).stack }, "Error stack");
     }
 
     process.exit(1);

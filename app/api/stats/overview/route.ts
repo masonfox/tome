@@ -49,7 +49,8 @@ export async function GET() {
       avgPagesPerDay,
     });
   } catch (error) {
-    console.error("Error fetching stats:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching stats");
     return NextResponse.json({ error: "Failed to fetch statistics" }, { status: 500 });
   }
 }

@@ -24,7 +24,8 @@ export async function GET(
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error("Error fetching status:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching status");
     return NextResponse.json({ error: "Failed to fetch status" }, { status: 500 });
   }
 }
@@ -65,7 +66,8 @@ export async function POST(
 
     return NextResponse.json(result.session);
   } catch (error) {
-    console.error("Error updating status:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error updating status");
     
     // Handle specific errors
     if (error instanceof Error) {

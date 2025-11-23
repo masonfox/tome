@@ -61,7 +61,8 @@ export async function POST(
       } : undefined,
     });
   } catch (error: any) {
-    console.error("Error starting re-read:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error starting re-read");
 
     // Handle specific errors
     if (error instanceof Error) {

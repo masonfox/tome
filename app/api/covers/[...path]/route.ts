@@ -26,7 +26,8 @@ export async function GET(
     const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
     if (!CALIBRE_DB_PATH) {
-      console.error("CALIBRE_DB_PATH not configured");
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ envVar: "CALIBRE_DB_PATH" }, "CALIBRE_DB_PATH not configured");
       return servePlaceholderImage();
     }
 
@@ -38,7 +39,8 @@ export async function GET(
     const bookId = parseInt(bookIdStr, 10);
 
     if (isNaN(bookId)) {
-      console.error("Invalid book ID:", bookIdStr);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ bookIdStr }, "Invalid book ID");
       return servePlaceholderImage();
     }
 
@@ -46,34 +48,37 @@ export async function GET(
     const calibreBook = getBookById(bookId);
 
     if (!calibreBook) {
-      console.error("Book not found in Calibre:", bookId);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ bookId }, "Book not found in Calibre");
       return servePlaceholderImage();
     }
 
     if (!calibreBook.has_cover) {
-      console.error("Book has no cover:", bookId);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().warn({ bookId }, "Book has no cover");
       return servePlaceholderImage();
     }
 
     // Construct the file path
     const filePath = path.join(libraryPath, calibreBook.path, "cover.jpg");
 
-    console.log("Cover request:", {
+    const { getLogger } = require("@/lib/logger");
+    getLogger().info({
       bookId,
       libraryPath,
       bookPath: calibreBook.path,
       filePath,
-    });
+    }, "Cover request");
 
     // Security check: ensure the resolved path is still within the library
     const resolvedPath = path.resolve(filePath);
     const resolvedLibrary = path.resolve(libraryPath);
 
     if (!resolvedPath.startsWith(resolvedLibrary)) {
-      console.error("Invalid path - security check failed:", {
+      getLogger().error({
         resolvedPath,
         resolvedLibrary,
-      });
+      }, "Invalid path - security check failed");
       return NextResponse.json(
         { error: "Invalid path" },
         { status: 403 }
@@ -82,7 +87,8 @@ export async function GET(
 
     // Check if file exists
     if (!existsSync(resolvedPath)) {
-      console.error("Image not found:", resolvedPath);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ resolvedPath }, "Image not found");
       return servePlaceholderImage();
     }
 
@@ -109,7 +115,8 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error serving cover image:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error serving cover image");
     return servePlaceholderImage();
   }
 }

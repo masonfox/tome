@@ -1,15 +1,17 @@
 import { startOfDay, differenceInDays } from "date-fns";
 import { streakRepository, progressRepository } from "@/lib/repositories";
 import type { Streak } from "@/lib/db/schema/streaks";
+import { getLogger } from "@/lib/logger";
+const logger = getLogger();
 
 export async function updateStreaks(userId?: number | null): Promise<Streak> {
-  console.log("[Streak] updateStreaks called with userId:", userId || null);
+  logger.debug({ userId: userId || null }, "[Streak] updateStreaks called");
 
   // Get or create streak record
   let streak = await streakRepository.findByUserId(userId || null);
 
   if (!streak) {
-    console.log("[Streak] No existing streak found, creating new one");
+    logger.debug("[Streak] No existing streak found, creating new one");
     const now = new Date();
     streak = await streakRepository.create({
       userId: userId || null,
@@ -19,13 +21,13 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
       streakStartDate: now,
       totalDaysActive: 1,
     });
-    console.log("[Streak] New streak created:", {
+    logger.info({
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
       lastActivityDate: streak.lastActivityDate,
       streakStartDate: streak.streakStartDate,
       totalDaysActive: streak.totalDaysActive,
-    });
+    }, "[Streak] New streak created");
     return streak;
   }
 
@@ -35,7 +37,7 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
 
   if (!todayProgress || todayProgress.pagesRead === 0) {
     // No activity today, return existing streak
-    console.log("[Streak] No activity today, returning existing streak");
+    logger.debug("[Streak] No activity today, returning existing streak");
     return streak;
   }
 
@@ -45,11 +47,11 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
 
   if (daysDiff === 0) {
     // Same day activity, streak unchanged
-    console.log("[Streak] Same day activity, streak unchanged");
+    logger.debug("[Streak] Same day activity, streak unchanged");
     return streak;
   } else if (daysDiff === 1) {
     // Consecutive day, increment streak
-    console.log("[Streak] Consecutive day activity, incrementing streak");
+    logger.debug("[Streak] Consecutive day activity, incrementing streak");
     const oldStreak = streak.currentStreak;
     const newCurrentStreak = streak.currentStreak + 1;
     const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
@@ -61,15 +63,15 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
       totalDaysActive: newTotalDays,
       lastActivityDate: today,
     } as any);
-    console.log("[Streak] Streak incremented:", {
+    logger.info({
       from: oldStreak,
       to: updated?.currentStreak,
       longestStreak: updated?.longestStreak,
-    });
+    }, "[Streak] Streak incremented");
     return updated!;
   } else if (daysDiff > 1) {
     // Streak broken (or first activity after a gap)
-    console.log("[Streak] Streak broken (gap of", daysDiff, "days), resetting to 1");
+    logger.warn({ gapDays: daysDiff }, "[Streak] Streak broken");
     const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
     const updated = await streakRepository.update(streak.id, {
       currentStreak: 1,
@@ -107,13 +109,13 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 }
 
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
-  console.log("[Streak] Rebuilding streak from all progress data");
+  logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get all progress logs ordered by date
   const allProgress = await progressRepository.getAllProgressOrdered();
 
   if (allProgress.length === 0) {
-    console.log("[Streak] No progress data found, creating empty streak");
+    logger.info("[Streak] No progress data found, creating empty streak");
     return await getOrCreateStreak(userId);
   }
 
@@ -124,7 +126,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   allProgress.forEach((progress) => {
     const dateKey = progress.progressDate.toISOString().split('T')[0]; // YYYY-MM-DD
     const pagesRead = progress.pagesRead || 0;
-    
+
     if (pagesRead > 0) {
       uniqueDates.add(dateKey);
       dailyActivity.set(dateKey, (dailyActivity.get(dateKey) || 0) + pagesRead);
@@ -166,7 +168,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     const today = startOfDay(currentDate || new Date());
     const lastActivityDayStart = startOfDay(lastActivityDate);
     const daysSinceLastActivity = differenceInDays(today, lastActivityDayStart);
-    
+
     if (daysSinceLastActivity > 1) {
       // Streak is broken - last activity was more than 1 day ago
       currentStreak = 0;
@@ -175,13 +177,13 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
 
   const totalDaysActive = uniqueDates.size;
 
-  console.log("[Streak] Calculated streak stats:", {
+  logger.info({
     currentStreak,
     longestStreak,
     totalDaysActive,
     lastActivityDate: lastActivityDate.toISOString(),
     streakStartDate: streakStartDate.toISOString(),
-  });
+  }, "[Streak] Calculated streak stats");
 
   // Update or create streak record
   const streak = await streakRepository.upsert(userId || null, {
@@ -192,7 +194,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     totalDaysActive,
   });
 
-  console.log("[Streak] Streak rebuilt and saved successfully");
+  logger.info("[Streak] Streak rebuilt and saved successfully");
   return streak;
 }
 

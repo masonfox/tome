@@ -104,7 +104,8 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: "Progress entry deleted" });
   } catch (error) {
-    console.error("Error deleting progress:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error deleting progress");
     return NextResponse.json({ error: "Failed to delete progress" }, { status: 500 });
   }
 }

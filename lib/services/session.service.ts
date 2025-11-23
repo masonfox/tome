@@ -87,9 +87,8 @@ export class SessionService {
 
     // If moving backward with progress, archive current session and create new one
     if (isBackwardMovement && hasProgress && readingSession) {
-      console.log(
-        `[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`
-      );
+      const { getLogger } = require("@/lib/logger");
+      getLogger().info(`[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`);
 
       // Archive current session
       await sessionRepository.archive(readingSession.id);
@@ -164,10 +163,12 @@ export class SessionService {
       try {
         // Sync to Calibre first (best effort)
         updateCalibreRating(book.calibreId, rating);
-        console.log(`[SessionService] Synced rating to Calibre for book ${bookId} (calibreId: ${book.calibreId}): ${rating ?? 'removed'}`);
+        const { getLogger } = require("@/lib/logger");
+        getLogger().info(`[SessionService] Synced rating to Calibre for book ${bookId} (calibreId: ${book.calibreId}): ${rating ?? 'removed'}`);
       } catch (calibreError) {
         // Log error but continue with status update
-        console.error(`[SessionService] Failed to sync rating to Calibre for book ${bookId}:`, calibreError);
+        const { getLogger } = require("@/lib/logger");
+        getLogger().error({ err: calibreError }, `[SessionService] Failed to sync rating to Calibre for book ${bookId}`);
       }
       
       // Update Tome database
@@ -244,10 +245,12 @@ export class SessionService {
    */
   private async updateStreakSystem(): Promise<void> {
     try {
-      console.log("[SessionService] Rebuilding streak after session change");
+      const { getLogger } = require("@/lib/logger");
+      getLogger().info("[SessionService] Rebuilding streak after session change");
       await rebuildStreak();
     } catch (streakError) {
-      console.error("[SessionService] Failed to rebuild streak:", streakError);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: streakError }, "[SessionService] Failed to rebuild streak");
       // Don't fail the request if streak rebuild fails
     }
   }
@@ -262,7 +265,8 @@ export class SessionService {
       revalidatePath("/stats"); // Stats page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
-      console.error("[SessionService] Failed to invalidate cache:", error);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "[SessionService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
     }
   }

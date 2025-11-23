@@ -10,7 +10,8 @@ export async function GET() {
 
     return NextResponse.json({ tags });
   } catch (error) {
-    console.error("Error fetching tags:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching tags");
     return NextResponse.json({ error: "Failed to fetch tags" }, { status: 500 });
   }
 }

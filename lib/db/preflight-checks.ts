@@ -170,13 +170,15 @@ export function runPreflightChecks(): PreflightCheckResult {
  * @throws Error if critical checks fail
  */
 export function validatePreflightChecks(): void {
-  console.log("Running pre-flight checks...");
+  const { getLogger } = require("@/lib/logger");
+  const logger = getLogger();
+  logger.info("Running pre-flight checks...");
   const result = runPreflightChecks();
 
   result.checks.forEach((check) => {
     const icon = check.passed ? "✓" : "✗";
     const level = check.passed ? "info" : "error";
-    console[level](`  ${icon} ${check.name}: ${check.message}`);
+    (logger as any)[level]({ check: check.name, passed: check.passed }, `${icon} ${check.name}: ${check.message}`);
   });
 
   if (!result.passed) {
@@ -186,5 +188,5 @@ export function validatePreflightChecks(): void {
     );
   }
 
-  console.log("All pre-flight checks passed.");
+  logger.info("All pre-flight checks passed.");
 }

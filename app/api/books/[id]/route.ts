@@ -24,7 +24,8 @@ export async function GET(
 
     return NextResponse.json(book);
   } catch (error) {
-    console.error("Error fetching book:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching book");
     return NextResponse.json({ error: "Failed to fetch book" }, { status: 500 });
   }
 }
@@ -47,7 +48,8 @@ export async function PATCH(
 
     return NextResponse.json(book);
   } catch (error) {
-    console.error("Error updating book:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error updating book");
     
     // Handle specific errors
     if (error instanceof Error) {

@@ -9,7 +9,8 @@ export async function GET() {
 
     return NextResponse.json(streak);
   } catch (error) {
-    console.error("Error fetching streak:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching streak");
     return NextResponse.json({ error: "Failed to fetch streak" }, { status: 500 });
   }
 }

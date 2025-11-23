@@ -65,7 +65,8 @@ export async function GET(
 
     return NextResponse.json(sessionsWithProgress);
   } catch (error) {
-    console.error("Error fetching reading sessions:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error fetching reading sessions");
     return NextResponse.json(
       { error: "Failed to fetch reading sessions" },
       { status: 500 }

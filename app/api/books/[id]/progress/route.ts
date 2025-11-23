@@ -64,7 +64,8 @@ export async function POST(
 
     return NextResponse.json(progressLog);
   } catch (error) {
-    console.error("Error logging progress:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "Error logging progress");
     
     // Handle specific errors
     if (error instanceof Error) {

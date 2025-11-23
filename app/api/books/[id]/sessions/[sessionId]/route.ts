@@ -89,13 +89,15 @@ export async function PATCH(
       );
     }
     
-    console.log(
-      `[Session API] Updated session ${sessionId} (book ${bookId}, session #${session.sessionNumber})`
-    );
+    {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().info({ sessionId, bookId, sessionNumber: session.sessionNumber }, "[Session API] Updated session");
+    }
     
     return NextResponse.json(updatedSession);
   } catch (error) {
-    console.error("[Session API] Unexpected error:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "[Session API] Unexpected error");
     return NextResponse.json(
       { 
         error: "Failed to update session",

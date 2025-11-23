@@ -68,7 +68,8 @@ export async function POST(
     
     return NextResponse.json(updatedBook);
   } catch (error) {
-    console.error("[Rating API] Error:", error);
+    const { getLogger } = require("@/lib/logger");
+    getLogger().error({ err: error }, "[Rating API] Error");
     
     // Handle specific errors
     if (error instanceof Error) {

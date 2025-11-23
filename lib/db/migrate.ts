@@ -6,6 +6,8 @@ import {
   setupLockCleanup,
 } from "./migration-lock";
 import { validatePreflightChecks } from "./preflight-checks";
+import { getLogger } from "@/lib/logger";
+const logger = getLogger();
 
 export function runMigrations() {
   // Run pre-flight checks
@@ -16,10 +18,10 @@ export function runMigrations() {
   setupLockCleanup();
 
   try {
-    console.log("Running migrations...");
+    logger.info("Running migrations...");
     // Pass the Drizzle database instance (which contains dialect and session)
     migrate(db, { migrationsFolder: "./drizzle" });
-    console.log("Migrations complete!");
+    logger.info("Migrations complete!");
   } finally {
     // Always release lock, even if migration fails
     releaseMigrationLock();
@@ -30,11 +32,11 @@ export function runMigrations() {
  * Run migrations on a specific database instance (for test isolation)
  */
 export function runMigrationsOnDatabase(database: any) {
-  console.log("Running migrations on test database...");
+  logger.info("Running migrations on test database...");
   // Pass the raw SQLite database, not a Drizzle wrapper
   const { migrate } = require("drizzle-orm/bun-sqlite/migrator");
   migrate(database, { migrationsFolder: "./drizzle" });
-  console.log("Test migrations complete!");
+  logger.info("Test migrations complete!");
 }
 
 // Run migrations if this file is executed directly
@@ -42,9 +44,9 @@ if (import.meta.main) {
   try {
     runMigrations();
     sqlite.close();
-    console.log("Database setup complete.");
+    logger.info("Database setup complete.");
   } catch (error) {
-    console.error("Migration failed:", error);
+    logger.error({ err: error }, "Migration failed");
     process.exit(1);
   }
 }

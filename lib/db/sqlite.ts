@@ -2,6 +2,8 @@ import * as schema from "./schema";
 import { mkdirSync, readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { createDatabase, detectRuntime, testDatabaseConnection, closeDatabaseConnection } from "./factory";
+import { getLogger } from "@/lib/logger";
+const logger = getLogger();
 
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 
@@ -19,7 +21,7 @@ if (isTest) {
   db = null;
 } else if (isBuild) {
   // In build mode, use an in-memory database to allow API routes to execute
-  console.log('Build phase: Using in-memory database');
+  logger.info('Build phase: Using in-memory database');
   const instance = createDatabase({
     path: ':memory:',
     schema,
@@ -55,9 +57,9 @@ if (isTest) {
         }
       }
     }
-    console.log(`Build phase: Applied ${migrationFiles.length} migrations to in-memory database`);
+    logger.info({ migrationsApplied: migrationFiles.length }, `Build phase: Applied ${migrationFiles.length} migrations to in-memory database`);
   } catch (err: any) {
-    console.error('Build phase: Failed to apply migrations:', err.message);
+    logger.error({ err }, 'Build phase: Failed to apply migrations');
     // Don't throw - allow build to continue even if migrations fail
   }
 } else {
@@ -66,11 +68,11 @@ if (isTest) {
   const dataDir = dirname(DATABASE_PATH);
   try {
     mkdirSync(dataDir, { recursive: true });
-    console.log(`Data directory verified: ${dataDir}`);
+    logger.info({ dataDir }, `Data directory verified: ${dataDir}`);
   } catch (err: any) {
-    console.error(`CRITICAL: Failed to create data directory: ${dataDir}`);
-    console.error(`Error: ${err.message}`);
-    console.error(`This usually indicates a permission problem.`);
+    logger.fatal({ dataDir, err }, `CRITICAL: Failed to create data directory: ${dataDir}`);
+    logger.fatal({ err }, `Error creating data directory: ${err.message}`);
+    logger.warn({ dataDir }, 'This usually indicates a permission problem.');
     throw new Error(`Cannot initialize database - data directory creation failed: ${err.message}`);
   }
 
@@ -86,7 +88,7 @@ if (isTest) {
   sqlite = instance.sqlite;
   db = instance.db;
 
-  console.log(`Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
+  logger.info({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
 }
 
 export { db, sqlite };

@@ -293,7 +293,8 @@ export class ProgressService {
           completedDate: new Date(),
         } as any);
         
-        console.log(`[ProgressService] Book completed, session status updated to 'read'`);
+        const { getLogger } = require("@/lib/logger");
+        getLogger().info(`[ProgressService] Book completed, session status updated to 'read'`);
       }
     }
   }
@@ -303,14 +304,17 @@ export class ProgressService {
    */
   private async updateStreakSystem(): Promise<void> {
     try {
-      console.log("[ProgressService] Updating streak after progress log");
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+      logger.info("[ProgressService] Updating streak after progress log");
       const updatedStreak = await updateStreaks();
-      console.log("[ProgressService] Updated:", {
+      logger.info("[ProgressService] Updated:", {
         currentStreak: updatedStreak.currentStreak,
         longestStreak: updatedStreak.longestStreak,
       });
     } catch (streakError) {
-      console.error("[ProgressService] Failed to update streak:", streakError);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: streakError }, "[ProgressService] Failed to update streak");
       // Don't fail the entire request if streak update fails
     }
   }
@@ -323,7 +327,8 @@ export class ProgressService {
       revalidatePath("/"); // Dashboard
       revalidatePath("/stats"); // Stats page
     } catch (error) {
-      console.error("[ProgressService] Failed to invalidate cache:", error);
+            const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "[ProgressService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
     }
   }
