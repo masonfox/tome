@@ -24,7 +24,7 @@ cp .env.example .env
 bun run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre library from the Settings page!
+Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre library from the Library page!
 
 **Note**: As of November 2025, Tome has migrated from MongoDB to SQLite for tracking data. No Docker or external database is required.
 
@@ -112,8 +112,8 @@ Tool-specific instructions:
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 7. **Sync your Calibre library**
-   - Go to Settings page
-   - Click "Sync Now" to import your books
+   - Go to Library page
+   - Click the sync button to import your books
 
 ### Database Location
 
@@ -155,9 +155,7 @@ To backup your data, simply copy this file. To reset, delete it and run migratio
 - Analyze reading velocity
 
 ### Settings
-- Configure Calibre integration
-- Trigger manual sync with Calibre
-- View database configuration
+- Future home for user preferences and configuration options
 
 ## How It Works
 
