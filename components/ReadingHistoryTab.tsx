@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
@@ -39,11 +39,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSession, setEditingSession] = useState<ReadingSession | null>(null);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [bookId]);
-
-  async function fetchSessions() {
+  const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/books/${bookId}/sessions`);
@@ -57,7 +53,11 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     } finally {
       setLoading(false);
     }
-  }
+  }, [bookId]);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   function handleOpenEditModal(session: ReadingSession) {
     setEditingSession(session);
