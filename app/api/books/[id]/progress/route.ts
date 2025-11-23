@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProgressService } from "@/lib/services/progress.service";
 
+export const dynamic = 'force-dynamic';
+
 const progressService = new ProgressService();
 
 export async function GET(

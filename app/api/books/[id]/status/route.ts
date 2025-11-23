@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
 
+export const dynamic = 'force-dynamic';
+
 const sessionService = new SessionService();
 
 export async function GET(

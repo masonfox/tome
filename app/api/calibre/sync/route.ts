@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress } from "@/lib/sync-service";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Check if sync is already in progress

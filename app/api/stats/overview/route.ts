@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { sessionRepository, progressRepository } from "@/lib/repositories";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const now = new Date();

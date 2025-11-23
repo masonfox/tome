@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthPassword, isAuthEnabled, createAuthResponse } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   if (!isAuthEnabled()) {
     return NextResponse.json({ error: "Authentication not enabled" }, { status: 400 });

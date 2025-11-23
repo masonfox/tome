@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
 import { sessionRepository } from "@/lib/repositories";
 
+export const dynamic = 'force-dynamic';
+
 const sessionService = new SessionService();
 
 export async function POST(

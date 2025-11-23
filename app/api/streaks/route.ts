@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getOrCreateStreak } from "@/lib/streaks";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const streak = await getOrCreateStreak();

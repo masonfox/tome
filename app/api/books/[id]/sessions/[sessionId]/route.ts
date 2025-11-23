@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * PATCH /api/books/:id/sessions/:sessionId
  * Update reading session (dates and/or review)

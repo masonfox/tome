@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BookService } from "@/lib/services/book.service";
 
+export const dynamic = 'force-dynamic';
+
 const bookService = new BookService();
 
 /**

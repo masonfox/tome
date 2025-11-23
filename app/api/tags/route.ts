@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { bookRepository } from "@/lib/repositories";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Get all unique tags from all books

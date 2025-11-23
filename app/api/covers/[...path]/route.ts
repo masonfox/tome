@@ -3,6 +3,8 @@ import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById } from "@/lib/db/calibre";
 
+export const dynamic = 'force-dynamic';
+
 // Helper function to serve the placeholder "no cover" image
 function servePlaceholderImage() {
   const placeholderPath = path.join(process.cwd(), "public", "cover-fallback.png");

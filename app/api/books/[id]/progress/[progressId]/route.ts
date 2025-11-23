@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ProgressService } from "@/lib/services/progress.service";
 import { progressRepository } from "@/lib/repositories";
 
+export const dynamic = 'force-dynamic';
+
 const progressService = new ProgressService();
 
 export async function PATCH(
