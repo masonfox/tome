@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate Favicons from Logo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+    }
+    .preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .preview-item {
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    canvas {
+      border: 1px solid #ddd;
+      margin: 10px 0;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    button {
+      background: #8b6f47;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #6d5636;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      line-height: 1.6;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+    .error {
+      background: #ffebee;
+      color: #c62828;
+    }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tome Favicon Generator (from logo.png)</h1>
+  <div id="status" class="status">Loading logo.png...</div>
+  
+  <div class="preview">
+    <div class="preview-item">
+      <h3>16x16 (favicon.ico)</h3>
+      <canvas id="canvas16" width="16" height="16"></canvas>
+      <br>
+      <button id="btn16" onclick="downloadFavicon(16)" disabled>Download 16x16</button>
+    </div>
+    
+    <div class="preview-item">
+      <h3>32x32 (favicon.ico)</h3>
+      <canvas id="canvas32" width="32" height="32"></canvas>
+      <br>
+      <button id="btn32" onclick="downloadFavicon(32)" disabled>Download 32x32</button>
+    </div>
+    
+    <div class="preview-item">
+      <h3>180x180 (Apple Touch)</h3>
+      <canvas id="canvas180" width="180" height="180"></canvas>
+      <br>
+      <button id="btn180" onclick="downloadFavicon(180)" disabled>Download 180x180</button>
+    </div>
+    
+    <div class="preview-item">
+      <h3>192x192 (Android)</h3>
+      <canvas id="canvas192" width="192" height="192"></canvas>
+      <br>
+      <button id="btn192" onclick="downloadFavicon(192)" disabled>Download 192x192</button>
+    </div>
+
+    <div class="preview-item">
+      <h3>512x512 (Android)</h3>
+      <canvas id="canvas512" width="512" height="512"></canvas>
+      <br>
+      <button id="btn512" onclick="downloadFavicon(512)" disabled>Download 512x512</button>
+    </div>
+  </div>
+  
+  <div class="instructions">
+    <h2>Instructions:</h2>
+    <ol>
+      <li><strong>Download all favicon sizes</strong> using the buttons above</li>
+      <li><strong>Create favicon.ico:</strong>
+        <ul>
+          <li>Go to <a href="https://www.icoconverter.com/" target="_blank">icoconverter.com</a></li>
+          <li>Upload both the 16x16 and 32x32 PNG files</li>
+          <li>Download as <code>favicon.ico</code></li>
+        </ul>
+      </li>
+      <li><strong>Rename files:</strong>
+        <ul>
+          <li><code>favicon-180x180.png</code> → <code>apple-touch-icon.png</code></li>
+          <li><code>favicon-192x192.png</code> → <code>android-chrome-192x192.png</code></li>
+          <li><code>favicon-512x512.png</code> → <code>android-chrome-512x512.png</code></li>
+        </ul>
+      </li>
+      <li><strong>Place in /public directory:</strong>
+        <ul>
+          <li><code>favicon.ico</code></li>
+          <li><code>apple-touch-icon.png</code></li>
+          <li><code>android-chrome-192x192.png</code></li>
+          <li><code>android-chrome-512x512.png</code></li>
+        </ul>
+      </li>
+      <li><strong>Optional:</strong> Update favicon.svg to match the logo design</li>
+    </ol>
+    
+    <h3>What this does:</h3>
+    <p>This tool takes your <code>logo.png</code> file and generates it with a brown background (#8b6f47) and rounded corners at multiple sizes for different devices and browsers.</p>
+  </div>
+
+  <script>
+    const BACKGROUND_COLOR = '#8b6f47';
+    const CORNER_RADIUS_PERCENT = 15; // 15% of size for rounded corners
+    let logoImage = null;
+
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawFavicon(size) {
+      const canvas = document.getElementById(`canvas${size}`);
+      const ctx = canvas.getContext('2d');
+      
+      // Enable smooth rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Draw rounded background
+      ctx.fillStyle = BACKGROUND_COLOR;
+      const cornerRadius = size * (CORNER_RADIUS_PERCENT / 100);
+      drawRoundedRect(ctx, 0, 0, size, size, cornerRadius);
+      
+      // Calculate logo size and position (80% of canvas with padding)
+      const logoSize = size * 0.7;
+      const offset = (size - logoSize) / 2;
+      
+      // Draw logo centered
+      ctx.drawImage(logoImage, offset, offset, logoSize, logoSize);
+    }
+
+    function downloadFavicon(size) {
+      const canvas = document.getElementById(`canvas${size}`);
+      const link = document.createElement('a');
+      
+      let filename = `favicon-${size}x${size}.png`;
+      if (size === 180) filename = 'apple-touch-icon.png';
+      if (size === 192) filename = 'android-chrome-192x192.png';
+      if (size === 512) filename = 'android-chrome-512x512.png';
+      
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function enableButtons() {
+      [16, 32, 180, 192, 512].forEach(size => {
+        document.getElementById(`btn${size}`).disabled = false;
+      });
+    }
+
+    function showStatus(message, isError = false) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = isError ? 'status error' : 'status';
+    }
+
+    // Load the logo and generate favicons
+    window.onload = function() {
+      logoImage = new Image();
+      
+      logoImage.onload = function() {
+        showStatus('✓ Logo loaded! Generating favicons...');
+        
+        try {
+          [16, 32, 180, 192, 512].forEach(size => drawFavicon(size));
+          showStatus('✓ Favicons generated! Click buttons to download.');
+          enableButtons();
+        } catch (error) {
+          showStatus('✗ Error generating favicons: ' + error.message, true);
+        }
+      };
+      
+      logoImage.onerror = function() {
+        showStatus('✗ Error loading logo.png. Make sure the file exists in /public/', true);
+      };
+      
+      // Try to load from the same directory
+      logoImage.src = './logo.png';
+    };
+  </script>
+</body>
+</html>

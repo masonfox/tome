@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, Library, BarChart3, Settings, Sun, Moon, LogOut } from "lucide-react";
+import Image from "next/image";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 
@@ -66,11 +67,17 @@ export function Navigation() {
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--accent)] rounded-md flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-[var(--border-color)] rounded-md flex items-center justify-center p-1.5">
+              <Image 
+                src="/logo.png" 
+                alt="Tome Logo" 
+                width={28} 
+                height={28}
+                className="rounded-sm"
+              />
             </div>
-            <span className="text-2xl font-serif font-bold text-[var(--heading-text)]">
+            <span className="text-2xl font-serif font-bold text-[var(--heading-text)] group-hover:text-[var(--accent)] transition-colors">
               Tome
             </span>
           </Link>
