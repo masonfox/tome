@@ -21,13 +21,7 @@
 
 
 # Next
-* Edit previous reviews
-* Library search supports book description
-    * Right now, it only supports title
 * Add a UI unit test suite
-* Integrate Pino logger
-    * File logging
-    * Trace log calibre syncs
 * Add logo to navigation and favicon
 * Allow log progress on dashboard
     * Reuse component on book/:id page
@@ -39,5 +33,3 @@
 # Later
 * Import from Goodreads or TheStoryGraph
 * Data export
-* (Big question) Audiobook support?
-    * May require custom records - protect from calibre cleanup
