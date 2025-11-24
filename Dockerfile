@@ -7,6 +7,11 @@ FROM base AS deps
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
+# Install production dependencies only
+FROM base AS prod-deps
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
 # Build the application
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -49,8 +54,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
-# Copy drizzle dependencies needed for migrations
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+# Copy production node_modules for migration script dependencies
+# The standalone build's node_modules don't include all deps needed by lib/db/migrate.ts
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy and set up entrypoint script
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
