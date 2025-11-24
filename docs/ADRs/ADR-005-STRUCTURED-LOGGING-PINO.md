@@ -1,4 +1,4 @@
-# ADR-004: Structured Logging with Pino
+# ADR-005: Structured Logging with Pino
 
 ## Status
 Accepted
