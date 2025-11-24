@@ -6,7 +6,7 @@ import {
   setupLockCleanup,
 } from "./migration-lock";
 import { validatePreflightChecks } from "./preflight-checks";
-import { getLogger } from "@/lib/logger";
+import { getLogger } from "../logger";
 const logger = getLogger();
 
 export function runMigrations() {

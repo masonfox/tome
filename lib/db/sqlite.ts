@@ -2,7 +2,7 @@ import * as schema from "./schema";
 import { mkdirSync, readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { createDatabase, detectRuntime, testDatabaseConnection, closeDatabaseConnection } from "./factory";
-import { getLogger } from "@/lib/logger";
+import { getLogger } from "../logger";
 const logger = getLogger();
 
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
