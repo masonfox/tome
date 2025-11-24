@@ -1,85 +1,133 @@
 # GitHub Copilot Instructions for Tome
 
-## 📚 Required Reading
+**Read the universal AI instructions first:** [`AI_INSTRUCTIONS.md`](../AI_INSTRUCTIONS.md)
 
-**Before suggesting code, reference these docs:**
+---
 
-1. **[`docs/AI_CODING_PATTERNS.md`](../docs/AI_CODING_PATTERNS.md)** ⭐ **PRIMARY REFERENCE**
-   - All code patterns, styles, and guidelines
-   - Critical SQLite runtime detection pattern
-   - Test patterns, what to do/not do
+## 📚 Quick Start
 
-2. **[`docs/BOOK_TRACKER_ARCHITECTURE.md`](../docs/BOOK_TRACKER_ARCHITECTURE.md)**
-   - System architecture, API structure, database models
+All documentation is in `AI_INSTRUCTIONS.md`. This file contains only Copilot-specific inline completion hints.
 
-3. **[`docs/BOOK_TRACKER_QUICK_REFERENCE.md`](../docs/BOOK_TRACKER_QUICK_REFERENCE.md)**
-   - Code examples and common patterns
+**Essential reading order:**
+1. `.specify/memory/constitution.md` - Project principles
+2. `.specify/memory/patterns.md` - Code patterns with examples
+3. `docs/ARCHITECTURE.md` - System design
+4. `docs/AI_CODING_PATTERNS.md` - Coding standards
 
-## 💡 Copilot Tips
+---
 
-### For Inline Completions
+## 💡 Copilot-Specific Inline Completion Hints
+
+### Context-Aware Suggestions
 
 **When suggesting code in:**
-- `lib/db/calibre.ts` → Use runtime detection pattern (see docs/AI_CODING_PATTERNS.md)
-- `__tests__/**` → Use mongodb-memory-server, no global mocks
-- `app/api/**` → Follow Next.js 14 App Router patterns
+- `lib/db/factory.ts` → Use Database Factory Pattern (see `.specify/memory/patterns.md` Pattern 1)
+- `lib/repositories/**` → Follow Repository Pattern (Pattern 3)
+- `lib/services/**` → Follow Service Layer Pattern (thin routes, fat services)
+- `__tests__/**` → Use `setDatabase(testDb)` and `resetDatabase()` (Pattern 2)
+- `app/api/**` → Follow Next.js 14 App Router patterns, use repositories
 - Components → Server Components by default, add `"use client"` only when needed
+- `hooks/**` → Custom hooks for complex state management
 
-### Common Completions
+### Common Import Completions
 
 ```typescript
-// Import Calibre functions (ALWAYS use abstraction)
+// Database access - ALWAYS use repositories
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { sessionRepository } from "@/lib/repositories/session.repository";
+import { progressRepository } from "@/lib/repositories/progress.repository";
+
+// Calibre access (read-only)
 import { getAllBooks, getBookById } from "@/lib/db/calibre";
 
-// MongoDB models
-import Book from "@/models/Book";
-import ReadingStatus from "@/models/ReadingStatus";
+// Calibre write (ratings only!)
+import { updateCalibreRating } from "@/lib/db/calibre-write";
+
+// Service layer
+import { bookService } from "@/lib/services/book.service";
+import { sessionService } from "@/lib/services/session.service";
 
 // Next.js API
 import { NextRequest, NextResponse } from "next/server";
 
 // Tests
-import { test, expect, beforeAll, afterAll } from "bun:test";
+import { test, expect, beforeEach } from "bun:test";
+import { setDatabase, resetDatabase } from "@/lib/db/context";
+import { db as testDb } from "@/lib/db/sqlite";
 ```
 
-### Critical Patterns
+### Critical Patterns to Suggest
 
-**SQLite Access:**
-- ✅ Use `lib/db/calibre.ts` functions
-- ❌ Don't import `bun:sqlite` or `better-sqlite3` directly
+**Repository Pattern (PRIMARY):**
+```typescript
+// ✅ Correct - Use repository
+const books = await bookRepository.findWithFilters({ status: "reading" }, 50, 0);
 
-**Testing:**
-- ✅ Use mongodb-memory-server
-- ❌ Don't use global module mocks
+// ❌ Wrong - Direct db access
+import { db } from "@/lib/db/sqlite";
+const books = db.select().from(books).all();
+```
 
-**Components:**
-- ✅ Server Component (default)
-- ✅ Client Component with `"use client"` (when interactive)
+**Test Isolation:**
+```typescript
+// ✅ Correct - Test isolation
+beforeEach(async () => {
+  setDatabase(testDb);
+  resetDatabase();
+});
 
-## 🚫 What NOT to Suggest
+// ❌ Wrong - No isolation
+test("should create book", async () => {
+  // Previous test data still here!
+});
+```
 
-❌ Direct SQLite imports (use `lib/db/calibre.ts` instead)
-❌ Global test mocks (causes leakage)
-❌ Writing to Calibre database (read-only!)
-❌ `any` types (use proper TypeScript types)
-❌ New markdown files in `/docs` (unless requested)
+**Database Factory:**
+```typescript
+// ✅ Correct - Use factory
+import { createDatabase } from "@/lib/db/factory";
+const { db, sqlite, runtime } = createDatabase({ path, schema, wal: true });
 
-## ✅ What TO Suggest
-
-✅ Using runtime detection pattern for SQLite
-✅ Proper error handling with try/catch
-✅ TypeScript interfaces for data structures
-✅ Tailwind CSS classes (not CSS files)
-✅ Following established patterns from docs
-
-## 📖 Full Documentation
-
-For complete coding patterns and guidelines:
-**See [`docs/AI_CODING_PATTERNS.md`](../docs/AI_CODING_PATTERNS.md)**
-
-For system architecture and design:
-**See [`docs/BOOK_TRACKER_ARCHITECTURE.md`](../docs/BOOK_TRACKER_ARCHITECTURE.md)**
+// ❌ Wrong - Direct import
+import { Database } from "bun:sqlite";
+```
 
 ---
 
-**When uncertain:** Check `docs/AI_CODING_PATTERNS.md` or `docs/README.md` for guidance
+## 🚫 What NOT to Suggest
+
+❌ Direct `db` imports (violates Repository Pattern - see constitution)
+❌ Direct SQLite driver imports (violates Database Factory Pattern)
+❌ Writing to Calibre except via `updateCalibreRating()`
+❌ Global test mocks (causes test leakage)
+❌ `any` types (use proper TypeScript)
+❌ Bypassing repositories (violates architecture)
+
+---
+
+## ✅ What TO Suggest
+
+✅ Repository methods (`bookRepository.findById()`, etc.)
+✅ Database Factory Pattern for connections
+✅ Test isolation with `setDatabase()`/`resetDatabase()`
+✅ Proper error handling with try/catch
+✅ TypeScript interfaces for data structures
+✅ Tailwind CSS classes (not CSS files)
+✅ Server Components by default
+✅ Following patterns from `.specify/memory/patterns.md`
+
+---
+
+## 📖 Full Documentation
+
+**Constitution & Principles:** `.specify/memory/constitution.md`
+**Code Patterns:** `.specify/memory/patterns.md` (10 patterns with working code)
+**Architecture:** `docs/ARCHITECTURE.md`
+**Coding Standards:** `docs/AI_CODING_PATTERNS.md`
+**Universal Guide:** `AI_INSTRUCTIONS.md`
+
+---
+
+**When uncertain:** Check `.specify/memory/patterns.md` for code examples or `AI_INSTRUCTIONS.md` for guidance
+
+**Last Updated:** 2025-11-24

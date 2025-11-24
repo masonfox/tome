@@ -4,21 +4,14 @@
 
 ---
 
-## 📌 QUICK CONTEXT CARD
+## 📌 QUICK START
 
-> **Migration Completed:** MongoDB → SQLite (January 2025)
-> **Current Tech Stack:** SQLite + Drizzle ORM + Repository Pattern
-> **Tests:** 295/295 passing (100%)
-> **Database:** 2 SQLite databases (Tome tracking + Calibre library)
-> **Data Access:** Repository Pattern (NEVER import db directly)
+**Read these documents in order before writing any code:**
 
-**Key Changes:**
-- ❌ NO MongoDB/Mongoose (legacy, being removed)
-- ✅ YES SQLite + Drizzle + Repositories
-- ✅ YES `bookRepository`, `sessionRepository`, etc.
-- ✅ YES Test isolation via `setDatabase()` / `resetDatabase()`
-
-**See:** [`docs/SQLITE_MIGRATION_STATUS.md`](./docs/SQLITE_MIGRATION_STATUS.md) for complete migration details
+1. **Constitution** (`.specify/memory/constitution.md`) - Project principles and governance
+2. **Patterns** (`.specify/memory/patterns.md`) - Reusable implementation patterns with code examples
+3. **Architecture** (`docs/ARCHITECTURE.md`) - System design and tech stack
+4. **Coding Standards** (`docs/AI_CODING_PATTERNS.md`) - Critical patterns and common mistakes
 
 ---
 
@@ -26,28 +19,76 @@
 
 **Consult project documentation before making architectural changes or suggesting code patterns.**
 
-All documentation is centralized in the [`/docs`](./docs) directory for easy maintenance and consistency.
+Documentation hierarchy:
+1. **SpecKit** (`.specify/memory/`) - Constitution and patterns (single source of truth for principles)
+2. **Universal Docs** (`docs/`) - Architecture, guides, and ADRs (accessible to all agents)
+3. **Agent Pointers** (`.claude/`, `.github/`) - Thin references (not documentation)
 
 ---
 
 ## 📚 Essential Documentation (Read in Order)
 
-### 1. **[`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md)** ⭐ **START HERE**
+### 1. **Constitution** ⭐ `.specify/memory/constitution.md`
 
-**Single source of truth for all coding patterns.**
+**Project principles and governance.**
 
 Contains:
-- Repository Pattern (PRIMARY data access pattern)
-- Critical SQLite runtime detection pattern
-- Test database isolation patterns (`setDatabase`, `resetDatabase`)
-- Calibre write operations (ratings only)
+- Data Integrity First (Calibre read-only with ratings exception)
+- Layered Architecture Pattern (Routes → Services → Repositories)
+- Self-Contained Deployment (SQLite only, zero external deps)
+- User Experience Standards (smart defaults, temporal validation)
+- Observability & Testing (Pino logging, real database tests)
+
+**Read this first to understand the rules.**
+
+### 2. **Patterns** 🔑 `.specify/memory/patterns.md`
+
+**Reusable implementation patterns with working code examples.**
+
+Contains:
+- Database Factory Pattern (critical for runtime detection)
+- Test Isolation Pattern (setDatabase/resetDatabase)
+- Repository Pattern (primary data access)
+- Client Service Layer (LibraryService with caching)
+- Progress Tracking (auto-calculations)
+- Streak Calculation (date normalization)
+- Sync Service (Calibre integration)
+- File Watcher (debouncing)
+- Status State Machine (auto-dates)
+- Standard CRUD Routes
+
+**All patterns extracted from production code. Read this before implementing features.**
+
+### 3. **Architecture** 📐 `docs/ARCHITECTURE.md`
+
+**System design and technical architecture.**
+
+Contains:
+- System overview (Tome + Calibre integration)
+- Technology stack (Next.js 14, SQLite, Drizzle, Bun)
+- Data architecture (Tome + Calibre databases)
+- Application layers (Routes → Services → Repositories)
+- Key features (sessions, progress, streaks, ratings, auto-sync)
+- Development patterns (references patterns.md)
+- File organization and quick decision guide
+
+**Read this to understand how everything fits together.**
+
+### 4. **Coding Standards** ⚠️ `docs/AI_CODING_PATTERNS.md`
+
+**Critical patterns and common AI mistakes.**
+
+Contains:
+- Repository Pattern enforcement (NEVER import db directly)
+- Test isolation patterns (setDatabase, resetDatabase)
+- Calibre write operations (ratings only via updateCalibreRating)
 - Code style guidelines (TypeScript, React, naming)
 - Common AI mistakes to avoid
 - What to DO and what NOT to do
 
 **Read this before writing any code.**
 
-### 2. **[`docs/REPOSITORY_PATTERN_GUIDE.md`](./docs/REPOSITORY_PATTERN_GUIDE.md)** 🔑 **CRITICAL**
+### 5. **Repository Guide** 📖 `docs/REPOSITORY_PATTERN_GUIDE.md`
 
 **Complete guide to the Repository Pattern.**
 
@@ -60,47 +101,9 @@ Contains:
 
 **Read this before accessing the database.**
 
-### 3. **[`docs/SQLITE_MIGRATION_STATUS.md`](./docs/SQLITE_MIGRATION_STATUS.md)**
+### 6. **Testing Guide** 🧪 `__tests__/README.md`
 
-**Migration status and quick reference.**
-
-Contains:
-- Current tech stack (SQLite + Drizzle + Repositories)
-- Quick decision tree (what to use when)
-- Migration timeline and status
-- Before/after code examples
-
-**Read this to understand the current state.**
-
-### 4. **[`docs/BOOK_TRACKER_ARCHITECTURE.md`](./docs/BOOK_TRACKER_ARCHITECTURE.md)**
-
-**Complete system architecture and technical design.**
-
-Contains:
-- Directory structure and overall architecture
-- Database schemas (SQLite + Drizzle)
-- Calibre integration and sync mechanism
-- API routes structure
-- Frontend architecture (Next.js 14)
-- Deployment with Docker
-
-**Read this to understand how everything fits together.**
-
-### 5. **[`docs/BOOK_TRACKER_QUICK_REFERENCE.md`](./docs/BOOK_TRACKER_QUICK_REFERENCE.md)**
-
-**Code snippets and common patterns.**
-
-Contains:
-- Repository-based query examples
-- API route examples
-- Sync flow patterns
-- Component patterns
-
-**Read this for quick code examples.**
-
-### 6. **[`__tests__/README.md`](./__tests__/README.md)**
-
-**Testing patterns and guidelines (295 tests).**
+**Testing patterns and guidelines (99+ tests).**
 
 Contains:
 - Test structure and best practices
@@ -109,28 +112,30 @@ Contains:
 
 **Read this before writing tests.**
 
-### 7. **[`docs/README.md`](./docs/README.md)**
+### 7. **ADRs** 📋 `docs/ADRs/`
 
-**Complete documentation index.**
+**Architecture Decision Records (why we made key decisions).**
 
 Contains:
-- Documentation overview
-- AI assistant guidance
-- Documentation reading order
+- ADR-001: MongoDB → SQLite migration
+- ADR-002: Rating architecture (book-level vs session-level)
+- ADR-003: Book detail frontend architecture
+- ADR-004: Backend service layer architecture
 
-**Use this to navigate all documentation.**
+**Read relevant ADRs when working on related features.**
 
 ---
 
-## 🔑 Most Critical Pattern
+## 🔄 SpecKit Workflow (For New Features)
 
-**SQLite Runtime Detection** (lib/db/calibre.ts:23-34)
+Use SpecKit slash commands for structured feature development:
 
-This pattern enables automatic Calibre sync in both dev (Node.js) and production (Bun).
+1. `/speckit.specify` - Create feature specification
+2. `/speckit.plan` - Generate implementation plan (includes constitution checks)
+3. `/speckit.tasks` - Break down into actionable tasks
+4. `/speckit.implement` - Execute implementation
 
-**See [`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md) for the complete pattern and explanation.**
-
-Never deviate from this pattern when accessing SQLite.
+**See `docs/SPECKIT_WORKFLOW.md` for detailed workflow guide.**
 
 ---
 
@@ -138,24 +143,26 @@ Never deviate from this pattern when accessing SQLite.
 
 | Task | Primary Documentation |
 |------|----------------------|
-| **Writing code** | [`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md) |
-| **Understanding architecture** | [`docs/BOOK_TRACKER_ARCHITECTURE.md`](./docs/BOOK_TRACKER_ARCHITECTURE.md) |
-| **Finding code examples** | [`docs/BOOK_TRACKER_QUICK_REFERENCE.md`](./docs/BOOK_TRACKER_QUICK_REFERENCE.md) |
-| **Writing tests** | [`__tests__/README.md`](./__tests__/README.md) |
-| **Navigating all docs** | [`docs/README.md`](./docs/README.md) |
+| **Understanding principles** | `.specify/memory/constitution.md` |
+| **Finding code patterns** | `.specify/memory/patterns.md` |
+| **Understanding architecture** | `docs/ARCHITECTURE.md` |
+| **Writing code** | `docs/AI_CODING_PATTERNS.md` |
+| **Using repositories** | `docs/REPOSITORY_PATTERN_GUIDE.md` |
+| **Writing tests** | `__tests__/README.md` |
+| **Understanding decisions** | `docs/ADRs/` |
 
 ---
 
 ## 🎨 Tool-Specific Instructions
 
 ### Claude Code
-See [`.claude/instructions.md`](./.claude/instructions.md) for Claude Code-specific workflow
+See `.claude/instructions.md` for Claude Code-specific workflow (SpecKit commands)
 
 ### GitHub Copilot
-See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for Copilot-specific inline completion tips
+See `.github/copilot-instructions.md` for Copilot-specific inline completion tips
 
 ### Other AI Tools
-Follow this document + [`docs/README.md`](./docs/README.md) for comprehensive guidance
+Follow this document + docs listed above for comprehensive guidance
 
 ---
 
@@ -163,23 +170,24 @@ Follow this document + [`docs/README.md`](./docs/README.md) for comprehensive gu
 
 ### ✅ DO
 
-1. **Read [`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md) before writing code**
-2. **Use repositories** for all Tome database access (`bookRepository`, etc.)
-3. **Use `setDatabase()` and `resetDatabase()`** in tests for isolation
-4. **Run `bun test`** before completing tasks (all 295 tests must pass)
-5. **Follow the SQLite runtime detection pattern** (from lib/db/calibre.ts)
-6. **Update docs** when making architectural or pattern changes
-7. **Ask for clarification** when documentation is unclear
+1. **Read `.specify/memory/constitution.md`** to understand project principles
+2. **Use `.specify/memory/patterns.md`** for implementation patterns
+3. **Use repositories** for all Tome database access (`bookRepository`, etc.)
+4. **Use `setDatabase()` and `resetDatabase()`** in tests for isolation
+5. **Run `bun test`** before completing tasks (all 99+ tests must pass)
+6. **Follow the Database Factory Pattern** (never import SQLite drivers directly)
+7. **Update docs** when making architectural or pattern changes
+8. **Ask for clarification** when documentation is unclear
 
 ### ❌ DON'T
 
-1. **Import `db` directly** (use repositories instead)
-2. **Use Mongoose models** (legacy - use repositories)
-3. **Write to Calibre database** (except ratings via `updateCalibreRating()`)
-4. **Use global mocks in tests** (causes test isolation issues)
-5. **Import SQLite directly** (always use `lib/db/calibre.ts` or repositories)
-6. **Create new markdown files** without explicit user request
-7. **Skip documentation** before making architectural changes
+1. **Import `db` directly** (use repositories instead - see constitution)
+2. **Write to Calibre database** (except ratings via `updateCalibreRating()`)
+3. **Use global mocks in tests** (causes test isolation issues)
+4. **Import SQLite directly** (always use Database Factory Pattern from patterns.md)
+5. **Create new markdown files** without explicit user request
+6. **Skip documentation** before making architectural changes
+7. **Bypass the Repository Pattern** (violates constitution)
 
 ---
 
@@ -188,6 +196,12 @@ Follow this document + [`docs/README.md`](./docs/README.md) for comprehensive gu
 When making a decision:
 
 ```
+Need to understand project principles?
+└─ Read .specify/memory/constitution.md
+
+Need a code pattern?
+└─ Read .specify/memory/patterns.md (10 patterns with examples)
+
 Need to access Tome database?
 ├─ YES → Use repositories (lib/repositories/)
 │        ├─ bookRepository, sessionRepository, etc.
@@ -196,7 +210,7 @@ Need to access Tome database?
 
 Need to access Calibre database?
 ├─ Read-only → Use lib/db/calibre.ts
-└─ Write (ratings only) → Use lib/db/calibre-write.ts
+└─ Write (ratings only) → Use updateCalibreRating()
 
 Is it documented?
 ├─ YES → Follow the documentation
@@ -205,16 +219,16 @@ Is it documented?
          └─ NO  → Ask user for guidance
 
 Does it affect architecture?
-├─ YES → Read docs/BOOK_TRACKER_ARCHITECTURE.md first
+├─ YES → Read docs/ARCHITECTURE.md first
 └─ NO  → Proceed with established patterns
 
 Writing tests?
 ├─ YES → Use setDatabase(testDb) and resetDatabase()
-│        └─ See docs/AI_CODING_PATTERNS.md
+│        └─ See .specify/memory/patterns.md (Pattern 2)
 └─ NO  → Continue
 
 Is it a new feature?
-├─ YES → Read docs, implement with repositories, test, update docs
+├─ YES → Use SpecKit workflow (/speckit.specify → /speckit.plan → /speckit.tasks)
 └─ NO  → Proceed following patterns
 ```
 
@@ -226,7 +240,7 @@ Is it a new feature?
 # Development
 bun install                    # Install dependencies
 bun run dev                    # Start dev server (auto-sync enabled)
-bun test                       # Run all 295 tests (must pass - 100%)
+bun test                       # Run all tests (must pass 99+)
 bun run build                  # Build for production
 
 # Database
@@ -234,12 +248,11 @@ bunx drizzle-kit generate      # Generate migration from schema changes
 bunx drizzle-kit push          # Apply migrations to database
 
 # View documentation
-cat docs/AI_CODING_PATTERNS.md            # Coding patterns (START HERE)
-cat docs/REPOSITORY_PATTERN_GUIDE.md      # Repository pattern guide
-cat docs/SQLITE_MIGRATION_STATUS.md       # Migration status
-cat docs/BOOK_TRACKER_ARCHITECTURE.md     # Architecture
-cat docs/README.md                        # Documentation index
-cat __tests__/README.md                   # Testing guide
+cat .specify/memory/constitution.md   # Project principles
+cat .specify/memory/patterns.md       # Code patterns
+cat docs/ARCHITECTURE.md               # System architecture
+cat docs/AI_CODING_PATTERNS.md         # Coding standards
+cat docs/REPOSITORY_PATTERN_GUIDE.md   # Repository guide
 ```
 
 ---
@@ -248,23 +261,27 @@ cat __tests__/README.md                   # Testing guide
 
 **For new AI assistants to this project:**
 
-1. Read [`AI_INSTRUCTIONS.md`](./AI_INSTRUCTIONS.md) (this file)
-2. Read [`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md) - All coding patterns
-3. Skim [`docs/BOOK_TRACKER_ARCHITECTURE.md`](./docs/BOOK_TRACKER_ARCHITECTURE.md) - Sections 1-4
-4. Skim [`docs/BOOK_TRACKER_QUICK_REFERENCE.md`](./docs/BOOK_TRACKER_QUICK_REFERENCE.md)
-5. Review [`__tests__/README.md`](./__tests__/README.md)
-6. You're ready!
+1. Read `AI_INSTRUCTIONS.md` (this file)
+2. Read `.specify/memory/constitution.md` - Project principles
+3. Read `.specify/memory/patterns.md` - Code patterns
+4. Read `docs/ARCHITECTURE.md` - System design (Sections 1-4)
+5. Read `docs/AI_CODING_PATTERNS.md` - Coding standards
+6. Skim `docs/REPOSITORY_PATTERN_GUIDE.md`
+7. Review `__tests__/README.md`
+8. You're ready!
 
 ---
 
 ## 🆘 When Uncertain
 
 If unsure about:
-- **Code patterns** → [`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md)
-- **Architecture** → [`docs/BOOK_TRACKER_ARCHITECTURE.md`](./docs/BOOK_TRACKER_ARCHITECTURE.md)
-- **Code examples** → [`docs/BOOK_TRACKER_QUICK_REFERENCE.md`](./docs/BOOK_TRACKER_QUICK_REFERENCE.md)
-- **Testing** → [`__tests__/README.md`](./__tests__/README.md)
-- **Navigation** → [`docs/README.md`](./docs/README.md)
+- **Project principles** → `.specify/memory/constitution.md`
+- **Code patterns** → `.specify/memory/patterns.md`
+- **Architecture** → `docs/ARCHITECTURE.md`
+- **Coding standards** → `docs/AI_CODING_PATTERNS.md`
+- **Repositories** → `docs/REPOSITORY_PATTERN_GUIDE.md`
+- **Testing** → `__tests__/README.md`
+- **Decisions** → `docs/ADRs/`
 - **Anything else** → Ask the user
 
 **Better to ask than to guess and deviate from established patterns.**
@@ -280,12 +297,11 @@ If unsure about:
   - **Tome DB:** SQLite + Drizzle ORM (tracking data: books, sessions, progress, streaks)
   - **Calibre DB:** SQLite (read-only metadata.db from Calibre library)
 - **Data Access:** Repository Pattern (lib/repositories/)
-- **SQLite Libraries:** better-sqlite3 (Node.js) / bun:sqlite (Bun)
-- **Testing:** Bun test runner (295 tests, 100% passing)
+- **SQLite Libraries:** better-sqlite3 (Node.js) / bun:sqlite (Bun) - via Database Factory Pattern
+- **Testing:** Bun test runner (99+ tests)
 - **Test Isolation:** setDatabase() / resetDatabase() pattern
 
-**See [`docs/BOOK_TRACKER_ARCHITECTURE.md`](./docs/BOOK_TRACKER_ARCHITECTURE.md) for complete details.**
-**See [`docs/SQLITE_MIGRATION_STATUS.md`](./docs/SQLITE_MIGRATION_STATUS.md) for migration info.**
+**See `docs/ARCHITECTURE.md` for complete details.**
 
 ---
 
@@ -295,15 +311,12 @@ If unsure about:
 - **Patterns exist for a reason** - Don't reinvent unless there's a clear problem
 - **Tests must pass** - No exceptions (run `bun test`)
 - **Ask when uncertain** - Better to clarify than to guess
+- **Constitution defines principles** - Read `.specify/memory/constitution.md` first
+- **Patterns provide implementations** - Use `.specify/memory/patterns.md` for code
 
 ---
 
-**For complete coding patterns:** See [`docs/AI_CODING_PATTERNS.md`](./docs/AI_CODING_PATTERNS.md)
-
-**For repository pattern details:** See [`docs/REPOSITORY_PATTERN_GUIDE.md`](./docs/REPOSITORY_PATTERN_GUIDE.md)
-
-**For comprehensive documentation:** Start at [`docs/README.md`](./docs/README.md)
-
-**Last Updated:** 2025-11-20
+**Last Updated:** 2025-11-24
 **Project:** Tome (Book Tracker with Calibre Integration)
 **Tech Stack:** SQLite + Drizzle ORM + Repository Pattern
+**Architecture:** Routes → Services → Repositories (3-layer pattern)
