@@ -6,6 +6,8 @@ on:
       - main
     tags:
       - 'v*.*.*'
+    paths-ignore:
+      - '.specify/**'
   workflow_dispatch:
 
 env:
