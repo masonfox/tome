@@ -1,6 +1,7 @@
-import { eq, and, desc, sql, SQL, asc, gte } from "drizzle-orm";
+import { eq, and, desc, sql, SQL, asc, gte, or } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
+import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
 
 export class SessionRepository extends BaseRepository<
@@ -68,9 +69,52 @@ export class SessionRepository extends BaseRepository<
   }
 
   /**
-   * Find sessions by status
+   * Find sessions by status (excludes orphaned books by default)
    */
   async findByStatus(
+    status: ReadingSession["status"],
+    activeOnly: boolean = true,
+    limit?: number
+  ): Promise<ReadingSession[]> {
+    const sessionConditions = activeOnly
+      ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
+      : eq(readingSessions.status, status);
+
+    let query = this.getDatabase()
+      .select({
+        id: readingSessions.id,
+        userId: readingSessions.userId,
+        bookId: readingSessions.bookId,
+        sessionNumber: readingSessions.sessionNumber,
+        status: readingSessions.status,
+        startedDate: readingSessions.startedDate,
+        completedDate: readingSessions.completedDate,
+        review: readingSessions.review,
+        isActive: readingSessions.isActive,
+        createdAt: readingSessions.createdAt,
+        updatedAt: readingSessions.updatedAt,
+      })
+      .from(readingSessions)
+      .innerJoin(books, eq(readingSessions.bookId, books.id))
+      .where(
+        and(
+          sessionConditions,
+          or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+        )
+      )
+      .orderBy(desc(readingSessions.updatedAt));
+
+    if (limit) {
+      query = query.limit(limit) as any;
+    }
+
+    return query.all() as ReadingSession[];
+  }
+
+  /**
+   * Find sessions by status including orphaned books
+   */
+  async findByStatusIncludingOrphaned(
     status: ReadingSession["status"],
     activeOnly: boolean = true,
     limit?: number
@@ -93,9 +137,32 @@ export class SessionRepository extends BaseRepository<
   }
 
    /**
-    * Count sessions by status
+    * Count sessions by status (excludes orphaned books by default)
     */
    async countByStatus(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
+     const sessionConditions = activeOnly
+       ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
+       : eq(readingSessions.status, status);
+
+     const result = this.getDatabase()
+       .select({ count: sql<number>`count(*)` })
+       .from(readingSessions)
+       .innerJoin(books, eq(readingSessions.bookId, books.id))
+       .where(
+         and(
+           sessionConditions,
+           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+         )
+       )
+       .get();
+
+     return result?.count ?? 0;
+   }
+
+   /**
+    * Count sessions by status including orphaned books
+    */
+   async countByStatusIncludingOrphaned(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
      const conditions = activeOnly
        ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
        : eq(readingSessions.status, status);

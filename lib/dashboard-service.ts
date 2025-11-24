@@ -149,10 +149,10 @@ async function getBooksByStatus(
   limit: number
 ): Promise<{ books: BookWithStatus[]; total: number }> {
   try {
-    // Get total count for this status
+    // Get total count for this status (excludes orphaned books by default)
     const total = await sessionRepository.countByStatus(status as any, true);
 
-    // Get limited session records sorted by most recently updated
+    // Get limited session records sorted by most recently updated (excludes orphaned books by default)
     const sessionRecords = await sessionRepository.findByStatus(status as any, true, limit);
 
     const bookIds = sessionRecords.map((s) => s.bookId);

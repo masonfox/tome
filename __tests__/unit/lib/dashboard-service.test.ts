@@ -182,7 +182,7 @@ describe("Dashboard Service", () => {
       expect(result.readNext.length).toBe(0);
     });
 
-    test("should exclude orphaned books from results", async () => {
+    test("should exclude orphaned books from results and count", async () => {
       // Create 8 books, 2 orphaned
       const books = await Promise.all(
         Array.from({ length: 8 }, (_, i) =>
@@ -210,12 +210,10 @@ describe("Dashboard Service", () => {
 
       const result = await getDashboardData();
 
-      // Total count includes all active sessions (8 sessions)
-      expect(result.currentlyReadingTotal).toBe(8);
-      // Returned books exclude orphaned - limit was 6, but 2 orphaned were filtered = 4 books
-      // (Sessions are sorted by updatedAt desc, limit to 6, then orphaned books filtered out)
-      expect(result.currentlyReading.length).toBeLessThanOrEqual(6);
-      expect(result.currentlyReading.length).toBeGreaterThan(0);
+      // Total count should EXCLUDE orphaned books (6 non-orphaned books)
+      expect(result.currentlyReadingTotal).toBe(6);
+      // All 6 non-orphaned books returned (under the limit of 6)
+      expect(result.currentlyReading.length).toBe(6);
       // Verify all returned books are non-orphaned
       result.currentlyReading.forEach((book: any) => {
         expect(book.title).toMatch(/Book [3-8]/);
@@ -321,6 +319,86 @@ describe("Dashboard Service", () => {
       // Just verify we got all 3 books
       const titles = result.currentlyReading.map(b => b.title).sort();
       expect(titles).toEqual(["Book 1", "Book 2", "Book 3"]);
+    });
+
+    test("should correctly count and display books when most are orphaned", async () => {
+      // This test simulates the exact bug scenario from production:
+      // 14 total sessions (10 orphaned + 4 non-orphaned)
+      // Dashboard should show count of 4 and display 4 books
+      
+      // Create 14 books - 10 orphaned, 4 non-orphaned
+      const books = await Promise.all(
+        Array.from({ length: 14 }, (_, i) =>
+          bookRepository.create({
+            calibreId: i + 1,
+            title: `Book ${i + 1}`,
+            authors: [`Author ${i + 1}`],
+            path: `Author ${i + 1}/Book ${i + 1}`,
+            orphaned: i < 10, // First 10 are orphaned
+          })
+        )
+      );
+
+      // Create 14 reading sessions
+      await Promise.all(
+        books.map((book) =>
+          sessionRepository.create({
+            bookId: book.id,
+            sessionNumber: 1,
+            status: "reading",
+            isActive: true,
+          })
+        )
+      );
+
+      const result = await getDashboardData();
+
+      // Count should only include non-orphaned books (4)
+      expect(result.currentlyReadingTotal).toBe(4);
+      // All 4 non-orphaned books should be displayed (under the limit of 6)
+      expect(result.currentlyReading.length).toBe(4);
+      // Verify all returned books are non-orphaned (Book 11-14)
+      result.currentlyReading.forEach((book: any) => {
+        expect(book.title).toMatch(/Book (11|12|13|14)/);
+      });
+    });
+
+    test("should correctly handle read-next with orphaned books", async () => {
+      // Create 7 books - 3 orphaned, 4 non-orphaned
+      const books = await Promise.all(
+        Array.from({ length: 7 }, (_, i) =>
+          bookRepository.create({
+            calibreId: i + 1,
+            title: `Book ${i + 1}`,
+            authors: [`Author ${i + 1}`],
+            path: `Author ${i + 1}/Book ${i + 1}`,
+            orphaned: i < 3, // First 3 are orphaned
+          })
+        )
+      );
+
+      // Create 7 read-next sessions
+      await Promise.all(
+        books.map((book) =>
+          sessionRepository.create({
+            bookId: book.id,
+            sessionNumber: 1,
+            status: "read-next",
+            isActive: true,
+          })
+        )
+      );
+
+      const result = await getDashboardData();
+
+      // Count should only include non-orphaned books (4)
+      expect(result.readNextTotal).toBe(4);
+      // All 4 non-orphaned books should be displayed
+      expect(result.readNext.length).toBe(4);
+      // Verify all returned books are non-orphaned (Book 4-7)
+      result.readNext.forEach((book: any) => {
+        expect(book.title).toMatch(/Book [4-7]/);
+      });
     });
   });
 });
