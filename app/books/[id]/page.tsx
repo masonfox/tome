@@ -13,6 +13,7 @@ import BookHeader from "@/components/BookDetail/BookHeader";
 import BookMetadata from "@/components/BookDetail/BookMetadata";
 import BookProgress from "@/components/BookDetail/BookProgress";
 import ProgressHistory from "@/components/BookDetail/ProgressHistory";
+import SessionDetails from "@/components/BookDetail/SessionDetails";
 import { useBookDetail } from "@/hooks/useBookDetail";
 import { useBookStatus } from "@/hooks/useBookStatus";
 import { useBookProgress } from "@/hooks/useBookProgress";
@@ -67,6 +68,8 @@ export default function BookDetailPage() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [totalPagesInput, setTotalPagesInput] = useState("");
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
+  const [isEditingStartDate, setIsEditingStartDate] = useState(false);
+  const [editStartDate, setEditStartDate] = useState("");
 
   // Refs for dropdowns
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -103,6 +106,45 @@ export default function BookDetailPage() {
     setTotalPagesInput("");
     toast.success("Pages updated");
     router.refresh();
+  }
+
+  // Session start date handlers
+  function handleStartEditingDate() {
+    if (book?.activeSession?.startedDate) {
+      setEditStartDate(book.activeSession.startedDate.split("T")[0]);
+    } else {
+      setEditStartDate(new Date().toISOString().split("T")[0]);
+    }
+    setIsEditingStartDate(true);
+  }
+
+  function handleCancelEditStartDate() {
+    setIsEditingStartDate(false);
+    setEditStartDate("");
+  }
+
+  async function handleSaveStartDate() {
+    if (!book?.activeSession?.id) return;
+
+    try {
+      const startedISO = editStartDate
+        ? new Date(editStartDate + "T00:00:00.000Z").toISOString()
+        : null;
+
+      const response = await fetch(`/api/books/${bookId}/sessions/${book.activeSession.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startedDate: startedISO }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update start date");
+
+      setIsEditingStartDate(false);
+      toast.success("Start date updated");
+      handleRefresh();
+    } catch (error) {
+      toast.error("Failed to update start date");
+    }
   }
 
   // Close dropdowns when clicking outside
@@ -233,6 +275,17 @@ export default function BookDetailPage() {
           {/* Progress Section - only show when reading */}
           {selectedStatus === "reading" && book.activeSession && (
             <>
+              {/* Session Start Date */}
+              <SessionDetails
+                startedDate={book.activeSession.startedDate}
+                isEditingStartDate={isEditingStartDate}
+                editStartDate={editStartDate}
+                onStartEditingDate={handleStartEditingDate}
+                onEditStartDateChange={setEditStartDate}
+                onCancelEdit={handleCancelEditStartDate}
+                onSaveStartDate={handleSaveStartDate}
+              />
+
               {/* Progress Bar */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm font-semibold">
