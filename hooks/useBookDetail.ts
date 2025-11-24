@@ -14,6 +14,7 @@ export interface Book {
   totalReads?: number;
   hasCompletedReads?: boolean;
   activeSession?: {
+    id: number;
     status: string;
     startedDate?: string;
     completedDate?: string;
