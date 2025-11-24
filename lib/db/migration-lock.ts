@@ -32,7 +32,7 @@ export function acquireMigrationLock(): void {
       lockData = JSON.parse(lockContent);
     } catch (e) {
       // Corrupted lock file, remove it
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().warn("Corrupted lock file detected, removing...");
       unlinkSync(LOCK_FILE);
       return acquireMigrationLock(); // Retry
@@ -42,7 +42,7 @@ export function acquireMigrationLock(): void {
 
     // Check if lock is stale (older than timeout)
     if (lockAge > LOCK_TIMEOUT_MS) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().warn(`Stale lock detected (${Math.round(lockAge / 1000)}s old, PID: ${lockData.pid}), removing...`);
       unlinkSync(LOCK_FILE);
     } else {
@@ -64,7 +64,7 @@ export function acquireMigrationLock(): void {
     writeFileSync(LOCK_FILE, JSON.stringify(lockData, null, 2), {
       flag: "wx", // Exclusive write (fail if exists)
     });
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     getLogger().info(`Migration lock acquired (PID: ${process.pid})`);
   } catch (err: any) {
     if (err.code === "EEXIST") {
@@ -87,14 +87,14 @@ export function releaseMigrationLock(): void {
       // Only remove if this process owns the lock
       if (lockData.pid === process.pid) {
         unlinkSync(LOCK_FILE);
-        const { getLogger } = require("@/lib/logger");
+        const { getLogger } = require("../logger");
         getLogger().info(`Migration lock released (PID: ${process.pid})`);
       } else {
-        const { getLogger } = require("@/lib/logger");
+        const { getLogger } = require("../logger");
         getLogger().warn(`Lock file exists but owned by PID ${lockData.pid}, not removing`);
       }
     } catch (err) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().error({ err }, "Error releasing migration lock");
     }
   }

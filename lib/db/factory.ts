@@ -152,7 +152,7 @@ export function testDatabaseConnection(sqlite: any): boolean {
       sqlite.prepare('SELECT 1 as test').get(); // better-sqlite3
     return (result as any).test === 1;
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     getLogger().error({ err: error }, 'Database connection test failed');
     return false;
   }
@@ -164,10 +164,10 @@ export function testDatabaseConnection(sqlite: any): boolean {
 export function closeDatabaseConnection(sqlite: any): void {
   try {
     sqlite.close();
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     getLogger().info('Database connection closed');
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     getLogger().error({ err: error }, 'Error closing database connection');
   }
 }
