@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Navigation } from "@/components/Navigation";
+import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/components/ToastProvider";
 
 export const metadata: Metadata = {
@@ -51,10 +51,7 @@ export default function RootLayout({
       </head>
       <body className="bg-[var(--background)] text-[var(--foreground)]">
         <ToastProvider />
-        <Navigation />
-        <main className="container mx-auto px-4 py-12 max-w-7xl">
-          {children}
-        </main>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );

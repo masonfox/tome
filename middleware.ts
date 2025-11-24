@@ -4,6 +4,18 @@ import { middlewareAuthCheck } from "@/lib/auth";
 import { withRequestContext, getLogger } from "@/lib/logger";
  
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Skip static assets - anything with a file extension except .json
+  if (pathname.match(/\.\w+$/) && !pathname.endsWith('.json')) {
+    return NextResponse.next();
+  }
+  
+  // Skip Next.js internals
+  if (pathname.startsWith('/_next')) {
+    return NextResponse.next();
+  }
+
   return withRequestContext(() => {
     const authResult = middlewareAuthCheck(request);
     const logger = getLogger();
@@ -17,14 +29,6 @@ export function middleware(request: NextRequest) {
 }
  
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: '/:path*', // Match everything, exclusions handled above
 };
 

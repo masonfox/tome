@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -37,11 +37,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
       <div className="max-w-md w-full p-8 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-sm">
                   <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-[var(--accent)] rounded-lg flex items-center justify-center mb-4">
-              <BookOpen className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-[var(--accent)] rounded-lg flex items-center justify-center mb-4 p-2.5">
+              <Image 
+                src="/logo.png" 
+                alt="Tome Logo" 
+                width={44} 
+                height={44}
+                className="rounded-sm"
+                priority
+              />
             </div>
             <h2 className="text-center text-3xl font-serif font-bold text-[var(--heading-text)]">
               Tome
