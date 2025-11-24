@@ -1,4 +1,4 @@
-import { BookOpen, BookCheck, TrendingUp, Flame } from "lucide-react";
+import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { BookCard } from "@/components/BookCard";
@@ -44,8 +44,10 @@ export default async function Dashboard() {
             <Link
               href="/library?status=reading"
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+              title="View all currently reading books"
             >
-              View all →
+              <span className="hidden md:inline">View all</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           )}
         </div>
@@ -93,8 +95,10 @@ export default async function Dashboard() {
             <Link
               href="/library?status=read-next"
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+              title="View all read next books"
             >
-              View all →
+              <span className="hidden md:inline">View all</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           )}
         </div>
