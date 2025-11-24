@@ -14,6 +14,10 @@ describe("useBookProgress", () => {
     authors: ["Test Author"],
     tags: [],
     totalPages: 300,
+    activeSession: {
+      status: "reading",
+      startedDate: "2024-01-01",
+    },
     latestProgress: {
       currentPage: 50,
       currentPercentage: 16.67,

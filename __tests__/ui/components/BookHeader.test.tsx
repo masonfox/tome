@@ -1,7 +1,12 @@
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach, mock } from "bun:test";
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BookHeader from "@/components/BookDetail/BookHeader";
+
+// Mock Next.js Image component
+mock.module("next/image", () => ({
+  default: ({ alt, ...props }: any) => <img alt={alt} {...props} />,
+}));
 
 afterEach(() => {
   cleanup();
@@ -9,19 +14,11 @@ afterEach(() => {
 
 describe("BookHeader", () => {
   const mockBook = {
-    id: 123,
     calibreId: 1,
-    title: "Test Book",
-    authors: ["Test Author"],
-    series: "Test Series #1",
-    publisher: "Test Publisher",
-    pubDate: "2024-01-01",
     totalPages: 300,
-    totalReads: 2,
-    tags: [],
   };
 
-  test("should render book title and author", () => {
+  test("should render status dropdown with current status", () => {
     render(
       <BookHeader
         book={mockBook}
@@ -35,19 +32,18 @@ describe("BookHeader", () => {
         setShowStatusDropdown={() => {}}
         rating={null}
         hasCompletedReads={false}
-        hasActiveSession={true}
+        hasActiveSession={false}
       />
     );
 
-    expect(screen.getByText("Test Book")).toBeInTheDocument();
-    expect(screen.getByText("Test Author")).toBeInTheDocument();
+    expect(screen.getByText("Want to Read")).toBeInTheDocument();
   });
 
-  test("should display series information", () => {
+  test("should show rating display when book has rating", () => {
     render(
       <BookHeader
         book={mockBook}
-        selectedStatus="to-read"
+        selectedStatus="read"
         imageError={false}
         onImageError={() => {}}
         onStatusChange={() => {}}
@@ -55,20 +51,20 @@ describe("BookHeader", () => {
         onRereadClick={() => {}}
         showStatusDropdown={false}
         setShowStatusDropdown={() => {}}
-        rating={null}
-        hasCompletedReads={false}
-        hasActiveSession={true}
+        rating={4}
+        hasCompletedReads={true}
+        hasActiveSession={false}
       />
     );
 
-    expect(screen.getByText("Test Series #1")).toBeInTheDocument();
+    expect(screen.getByText("4 stars")).toBeInTheDocument();
   });
 
-  test("should show total pages when available", () => {
+  test("should show re-read button when book has completed reads and no active session", () => {
     render(
       <BookHeader
         book={mockBook}
-        selectedStatus="to-read"
+        selectedStatus="read"
         imageError={false}
         onImageError={() => {}}
         onStatusChange={() => {}}
@@ -77,19 +73,19 @@ describe("BookHeader", () => {
         showStatusDropdown={false}
         setShowStatusDropdown={() => {}}
         rating={null}
-        hasCompletedReads={false}
-        hasActiveSession={true}
+        hasCompletedReads={true}
+        hasActiveSession={false}
       />
     );
 
-    expect(screen.getByText(/300 pages/)).toBeInTheDocument();
+    expect(screen.getByText("Start Re-reading")).toBeInTheDocument();
   });
 
-  test("should show publisher and publication year", () => {
+  test("should not show re-read button when book has active session", () => {
     render(
       <BookHeader
         book={mockBook}
-        selectedStatus="to-read"
+        selectedStatus="reading"
         imageError={false}
         onImageError={() => {}}
         onStatusChange={() => {}}
@@ -98,12 +94,11 @@ describe("BookHeader", () => {
         showStatusDropdown={false}
         setShowStatusDropdown={() => {}}
         rating={null}
-        hasCompletedReads={false}
+        hasCompletedReads={true}
         hasActiveSession={true}
       />
     );
 
-    expect(screen.getByText("Test Publisher")).toBeInTheDocument();
-    expect(screen.getByText(/Published 2024/)).toBeInTheDocument();
+    expect(screen.queryByText("Start Re-reading")).not.toBeInTheDocument();
   });
 });
