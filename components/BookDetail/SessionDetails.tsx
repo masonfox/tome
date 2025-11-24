@@ -61,7 +61,7 @@ export default function SessionDetails({
               Not set
             </span>
           )}
-          <Pencil className="w-3.5 h-3.5 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Pencil className="w-3.5 h-3.5 text-[var(--subheading-text)]" />
         </button>
       )}
     </div>
