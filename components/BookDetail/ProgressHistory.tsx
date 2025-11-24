@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { Edit2, Trash2 } from "lucide-react";
+import { formatDateOnly } from "@/utils/dateFormatting";
 
 interface ProgressEntry {
   id: number;
@@ -47,7 +47,7 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
                     </span>
                   </div>
                   <p className="text-sm text-[var(--subheading-text)] font-mono font-semibold">
-                    {format(new Date(entry.progressDate), "MMM d, yyyy")}
+                    {formatDateOnly(entry.progressDate)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

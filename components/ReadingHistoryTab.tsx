@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { format } from "date-fns";
 import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import { toast } from "@/utils/toast";
+import { formatDateOnly } from "@/utils/dateFormatting";
 
 interface ReadingSession {
   id: number;
@@ -148,7 +148,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <div className="flex items-center gap-2 text-sm text-[var(--foreground)]/70 font-medium">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    Started: {format(new Date(session.startedDate), "MMM d, yyyy")}
+                    Started: {formatDateOnly(session.startedDate)}
                   </span>
                 </div>
               )}
@@ -156,7 +156,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <div className="flex items-center gap-2 text-sm text-[var(--foreground)]/70 font-medium">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    Completed: {format(new Date(session.completedDate), "MMM d, yyyy")}
+                    Completed: {formatDateOnly(session.completedDate)}
                   </span>
                 </div>
               )}

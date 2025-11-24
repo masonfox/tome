@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { Calendar, Pencil } from "lucide-react";
+import { formatDateOnly } from "@/utils/dateFormatting";
 
 interface SessionDetailsProps {
   startedDate: string | null | undefined;
@@ -54,7 +54,7 @@ export default function SessionDetails({
         >
           {startedDate ? (
             <span className="font-medium text-[var(--foreground)] group-hover:underline">
-              {format(new Date(startedDate), "MMM d, yyyy")}
+              {formatDateOnly(startedDate)}
             </span>
           ) : (
             <span className="italic text-[var(--foreground)]/40 font-medium group-hover:underline">
