@@ -41,11 +41,8 @@ export default function FinishBookModal({
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
-              Finished Reading!
+              Finished Reading?
             </h2>
-            <p className="text-sm text-[var(--foreground)]/70 font-medium">
-              {bookTitle}
-            </p>
           </div>
           <button
             onClick={handleClose}
@@ -58,8 +55,8 @@ export default function FinishBookModal({
 
         {/* Rating */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
-            Rate this book
+          <label className="block text-sm text-[var(--foreground)] mb-3">
+            Rate <i>{bookTitle}</i>:
           </label>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -95,7 +92,8 @@ export default function FinishBookModal({
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)] mb-2"
           >
-            Review (optional)
+            <span>Review</span>
+            <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
           </label>
           <textarea
             id="review"
@@ -105,7 +103,7 @@ export default function FinishBookModal({
             rows={4}
             className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm rounded focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
           />
-          <p className="text-xs text-[var(--foreground)]/50 mt-1">
+          <p className="text-xs italic text-[var(--subheading-text)] mt-1">
             Personal notes just for you
           </p>
         </div>

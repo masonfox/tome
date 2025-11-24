@@ -37,6 +37,7 @@ export interface UseBookProgressReturn {
   handleDeleteProgress: () => Promise<void>;
   refetchProgress: () => Promise<void>;
   closeEditModal: () => void;
+  clearFormState: () => void;
 }
 
 /**
@@ -105,6 +106,12 @@ export function useBookProgress(
 
   // Track if form has unsaved changes
   useEffect(() => {
+    // Only track unsaved changes if book is actively being read
+    if (book?.activeSession?.status !== "reading") {
+      setHasUnsavedProgress(false);
+      return;
+    }
+
     if (!book?.latestProgress) {
       // If there's notes or any progress value entered, mark as dirty
       const hasChanges = notes.trim() !== "" || currentPage !== "" || currentPercentage !== "";
@@ -124,7 +131,7 @@ export function useBookProgress(
     const hasNotes = notes.trim() !== "";
 
     setHasUnsavedProgress(pageChanged || percentageChanged || hasNotes);
-  }, [currentPage, currentPercentage, notes, progressInputMode, book?.latestProgress]);
+  }, [currentPage, currentPercentage, notes, progressInputMode, book?.latestProgress, book?.activeSession?.status]);
 
   const setProgressInputMode = useCallback((mode: "page" | "percentage") => {
     setProgressInputModeState(mode);
@@ -268,6 +275,14 @@ export function useBookProgress(
     await fetchProgress();
   }, [fetchProgress]);
 
+  const clearFormState = useCallback(() => {
+    setCurrentPage("");
+    setCurrentPercentage("");
+    setNotes("");
+    setProgressDate(new Date().toISOString().split("T")[0]);
+    setHasUnsavedProgress(false);
+  }, []);
+
   return {
     progress,
     currentPage,
@@ -289,5 +304,6 @@ export function useBookProgress(
     handleDeleteProgress,
     refetchProgress,
     closeEditModal,
+    clearFormState,
   };
 }

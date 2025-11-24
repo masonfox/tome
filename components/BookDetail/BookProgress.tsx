@@ -45,38 +45,12 @@ export default function BookProgress({
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
 
   return (
-    <div className="space-y-6">
-      {/* Progress Bar */}
-      {book.totalPages && (
-        <div>
-          <div className="flex items-center justify-between text-sm text-[var(--foreground)]/70 mb-2">
-            <span className="font-bold">Progress</span>
-          </div>
-          <div className="relative w-full bg-[var(--border-color)] rounded-md h-8 overflow-hidden">
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)] transition-all duration-300 ease-out"
-              style={{ width: `${Math.min(100, progressPercentage)}%` }}
-            />
-            <div className="absolute inset-0 flex items-center px-3 top-1">
-              <span className="text-sm font-mono font-bold text-white drop-shadow-sm">
-                {Math.round(progressPercentage)}%
-              </span>
-            </div>
-          </div>
-          <p className="text-sm text-[var(--foreground)]/30 mt-3 font-mono font-medium">
-            Page {book.latestProgress?.currentPage || 0} of {book.totalPages}
-          </p>
-        </div>
-      )}
-
-      {/* Progress Logging Form */}
-      {book.totalPages && (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-            Log Progress
-          </h2>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="flex gap-4">
+    <div>
+      <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
+        Log Progress
+      </h2>
+      <form onSubmit={onSubmit} className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                   Progress
@@ -91,7 +65,7 @@ export default function BookProgress({
                       max={book.totalPages}
                       step="1"
                       className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                      placeholder="Enter current page"
+                      placeholder="Current page"
                     />
                   ) : (
                     <input
@@ -100,9 +74,9 @@ export default function BookProgress({
                       onChange={(e) => onCurrentPercentageChange(e.target.value)}
                       min="0"
                       max="100"
-                      step="0.01"
+                      step="1"
                       className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                      placeholder="Enter percentage"
+                      placeholder="Percentage"
                     />
                   )}
 
@@ -111,7 +85,7 @@ export default function BookProgress({
                     <button
                       type="button"
                       onClick={() => setShowProgressModeDropdown(!showProgressModeDropdown)}
-                      className="w-32 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--card-bg)] transition-colors font-semibold flex items-center justify-between"
+                      className="w-24 md:w-32 px-3 md:px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--card-bg)] transition-colors font-semibold flex items-center justify-between"
                     >
                       <span>{progressInputMode === "page" ? "Page" : "%"}</span>
                       <ChevronDown
@@ -187,8 +161,8 @@ export default function BookProgress({
               <textarea
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-none"
+                rows={4}
+                className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-y"
                 placeholder="Add notes about your reading session (optional)"
               />
             </div>
@@ -201,8 +175,6 @@ export default function BookProgress({
               Log Progress
             </button>
           </form>
-        </div>
-      )}
     </div>
   );
 }

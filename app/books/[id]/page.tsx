@@ -2,15 +2,17 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { BookOpen, BookCheck } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
+import RereadConfirmModal from "@/components/RereadConfirmModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import BookMetadata from "@/components/BookDetail/BookMetadata";
 import BookProgress from "@/components/BookDetail/BookProgress";
 import ProgressHistory from "@/components/BookDetail/ProgressHistory";
-import SessionDetails from "@/components/BookDetail/SessionDetails";
 import { useBookDetail } from "@/hooks/useBookDetail";
 import { useBookStatus } from "@/hooks/useBookStatus";
 import { useBookProgress } from "@/hooks/useBookProgress";
@@ -42,9 +44,15 @@ export default function BookDetailPage() {
     handleUpdateStatus,
     handleConfirmStatusChange,
     handleCancelStatusChange,
-    handleConfirmRead,
+    handleConfirmRead: handleConfirmReadFromHook,
     handleStartReread,
   } = useBookStatus(book, bookProgressHook.progress, bookId, handleRefresh, handleRefresh);
+
+  // Wrap handleConfirmRead to clear form state after marking as read
+  async function handleConfirmRead(rating: number, review?: string) {
+    await handleConfirmReadFromHook(rating, review);
+    bookProgressHook.clearFormState();
+  }
 
   const {
     showRatingModal,
@@ -58,10 +66,7 @@ export default function BookDetailPage() {
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [totalPagesInput, setTotalPagesInput] = useState("");
-
-  // Session date editing state
-  const [isEditingStartDate, setIsEditingStartDate] = useState(false);
-  const [editStartDate, setEditStartDate] = useState("");
+  const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
 
   // Refs for dropdowns
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,56 +80,18 @@ export default function BookDetailPage() {
   }
 
   // Handle re-read with history refresh
-  async function handleRereadClick() {
+  function handleRereadClick() {
+    setShowRereadConfirmation(true);
+  }
+
+  async function handleConfirmReread() {
+    setShowRereadConfirmation(false);
     await handleStartReread();
     setHistoryRefreshKey(prev => prev + 1);
   }
 
-  // Session date editing handlers
-  async function handleUpdateStartDate() {
-    if (!book?.activeSession || !editStartDate) return;
-
-    try {
-      // Get active session ID
-      const response = await fetch(`/api/books/${bookId}/sessions`);
-      const sessions = await response.json();
-      const activeSession = sessions.find((s: any) => s.isActive);
-
-      if (!activeSession) {
-        toast.error("No active reading session found");
-        return;
-      }
-
-      // Update the session
-      const updateResponse = await fetch(`/api/books/${bookId}/sessions/${activeSession.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          startedDate: new Date(editStartDate + "T00:00:00.000Z").toISOString(),
-        }),
-      });
-
-      if (updateResponse.ok) {
-        await refetchBook();
-        setIsEditingStartDate(false);
-        toast.success("Start date updated");
-      } else {
-        const error = await updateResponse.json();
-        toast.error(error.error || "Failed to update start date");
-      }
-    } catch (error) {
-      // Logging suppressed in client; error surfaced via toast
-      toast.error("Failed to update start date");
-    }
-  }
-
-  function handleStartEditingDate() {
-    if (book?.activeSession?.startedDate) {
-      setEditStartDate(book.activeSession.startedDate.split("T")[0]);
-    } else {
-      setEditStartDate(new Date().toISOString().split("T")[0]);
-    }
-    setIsEditingStartDate(true);
+  function handleCancelReread() {
+    setShowRereadConfirmation(false);
   }
 
   // Total pages submit handler
@@ -187,73 +154,179 @@ export default function BookDetailPage() {
 
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* Header section with cover, status, title, and metadata */}
-      <BookHeader
-        book={book}
-        selectedStatus={selectedStatus}
-        imageError={imageError}
-        onImageError={() => setImageError(true)}
-        onStatusChange={handleUpdateStatus}
-        onRatingClick={openRatingModal}
-        onRereadClick={handleRereadClick}
-        showStatusDropdown={showStatusDropdown}
-        setShowStatusDropdown={setShowStatusDropdown}
-        dropdownRef={dropdownRef}
-        rating={book.rating}
-        hasCompletedReads={book.hasCompletedReads || false}
-        hasActiveSession={!!book.activeSession}
-      />
+    <div className="max-w-6xl mx-auto">
+      {/* Single responsive grid - no duplicates! */}
+      <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6 md:gap-8">
+        {/* Sidebar: Cover, Status, Rating, Re-read - responsive width */}
+        <BookHeader
+          book={book}
+          selectedStatus={selectedStatus}
+          imageError={imageError}
+          onImageError={() => setImageError(true)}
+          onStatusChange={handleUpdateStatus}
+          onRatingClick={openRatingModal}
+          onRereadClick={handleRereadClick}
+          showStatusDropdown={showStatusDropdown}
+          setShowStatusDropdown={setShowStatusDropdown}
+          dropdownRef={dropdownRef}
+          rating={book.rating}
+          hasCompletedReads={book.hasCompletedReads || false}
+          hasActiveSession={!!book.activeSession}
+        />
 
-      {/* Metadata and reading sections below header */}
-      <div className="grid md:grid-cols-[300px_1fr] gap-10">
-        {/* Left Column: Session details and progress form */}
-        <div className="space-y-6">
-          {/* Session Details */}
+        {/* Main Content Area */}
+        <div className="space-y-6 min-w-0">
+          {/* Title and Author */}
+          <div className="mt-3 md:mt-0 text-center md:text-left">
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight">
+              {book.title}
+            </h1>
+            <div className="font-serif text-lg md:text-xl text-[var(--subheading-text)] mb-4 font-medium">
+              {book.authors.map((author, index) => (
+                <span key={author}>
+                  <Link
+                    href={`/library?search=${encodeURIComponent(author)}`}
+                    className="hover:text-[var(--accent)] transition-colors hover:underline"
+                  >
+                    {author}
+                  </Link>
+                  {index < book.authors.length - 1 && ", "}
+                </span>
+              ))}
+            </div>
+
+            {/* Metadata */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 text-xs md:text-sm font-medium">
+              {book.totalReads !== undefined && book.totalReads > 0 && (
+                <div className="flex items-center gap-1.5 text-[var(--accent)]">
+                  <BookCheck className="w-3 md:w-4 h-3 md:h-4" />
+                  <span className="font-semibold">
+                    Read {book.totalReads} {book.totalReads === 1 ? 'time' : 'times'}
+                  </span>
+                </div>
+              )}
+              {book.totalReads !== undefined && book.totalReads > 0 && book.totalPages && (
+                <span className="text-[var(--border-color)]">•</span>
+              )}
+              {book.totalPages ? (
+                <div className="flex items-center gap-1.5 text-[var(--accent)]">
+                  <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
+                  <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[var(--accent)] italic">
+                  <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
+                  <span className="font-medium">Pages not set</span>
+                </div>
+              )}
+              {book.pubDate && (
+                <>
+                  <span className="text-[var(--border-color)]">•</span>
+                  <span className="font-medium text-[var(--accent)]">
+                    Published {new Date(book.pubDate).getFullYear()}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Section - only show when reading */}
           {selectedStatus === "reading" && book.activeSession && (
-            <SessionDetails
-              startedDate={book.activeSession.startedDate}
-              isEditingStartDate={isEditingStartDate}
-              editStartDate={editStartDate}
-              onStartEditingDate={handleStartEditingDate}
-              onEditStartDateChange={setEditStartDate}
-              onCancelEdit={() => setIsEditingStartDate(false)}
-              onSaveStartDate={handleUpdateStartDate}
+            <>
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span className="text-[var(--foreground)]/60">Progress</span>
+                  <span className="text-[var(--foreground)]">
+                    {bookProgressHook.progress.length > 0 ? (
+                      <>
+                        {Math.round((bookProgressHook.progress[0].currentPage / (book.totalPages || 1)) * 100)}%
+                      </>
+                    ) : (
+                      "0%"
+                    )}
+                  </span>
+                </div>
+                <div className="relative w-full h-8 bg-[var(--card-bg)] border border-[var(--border-color)] rounded overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-[var(--accent)] transition-all duration-300"
+                    style={{
+                      width: bookProgressHook.progress.length > 0
+                        ? `${Math.min((bookProgressHook.progress[0].currentPage / (book.totalPages || 1)) * 100, 100)}%`
+                        : "0%",
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs font-semibold font-mono text-[var(--foreground)] mix-blend-difference">
+                      Page {bookProgressHook.progress.length > 0 ? bookProgressHook.progress[0].currentPage : 0} of {book.totalPages}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Log Progress Form */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
+                <BookProgress
+                  book={book}
+                  currentPage={bookProgressHook.currentPage}
+                  currentPercentage={bookProgressHook.currentPercentage}
+                  progressInputMode={bookProgressHook.progressInputMode}
+                  notes={bookProgressHook.notes}
+                  progressDate={bookProgressHook.progressDate}
+                  onCurrentPageChange={bookProgressHook.setCurrentPage}
+                  onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
+                  onNotesChange={bookProgressHook.setNotes}
+                  onProgressDateChange={bookProgressHook.setProgressDate}
+                  onProgressInputModeChange={bookProgressHook.setProgressInputMode}
+                  onSubmit={bookProgressHook.handleLogProgress}
+                  showProgressModeDropdown={showProgressModeDropdown}
+                  setShowProgressModeDropdown={setShowProgressModeDropdown}
+                  progressModeDropdownRef={progressModeDropdownRef}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Add Total Pages Form - only show when pages not set */}
+          {!book.totalPages && (
+            <BookMetadata
+              hasTotalPages={!!book.totalPages}
+              totalPagesInput={totalPagesInput}
+              onTotalPagesChange={setTotalPagesInput}
+              onTotalPagesSubmit={handleTotalPagesSubmit}
             />
           )}
 
-          {/* Progress Form */}
-          {selectedStatus === "reading" && (
-            <BookProgress
-              book={book}
-              currentPage={bookProgressHook.currentPage}
-              currentPercentage={bookProgressHook.currentPercentage}
-              progressInputMode={bookProgressHook.progressInputMode}
-              notes={bookProgressHook.notes}
-              progressDate={bookProgressHook.progressDate}
-              onCurrentPageChange={bookProgressHook.setCurrentPage}
-              onCurrentPercentageChange={bookProgressHook.setCurrentPercentage}
-              onNotesChange={bookProgressHook.setNotes}
-              onProgressDateChange={bookProgressHook.setProgressDate}
-              onProgressInputModeChange={bookProgressHook.setProgressInputMode}
-              onSubmit={bookProgressHook.handleLogProgress}
-              showProgressModeDropdown={showProgressModeDropdown}
-              setShowProgressModeDropdown={setShowProgressModeDropdown}
-              progressModeDropdownRef={progressModeDropdownRef}
-            />
+          {/* Description */}
+          {book.description && (
+            <div>
+              <p className="text-sm text-[var(--foreground)]/80 leading-relaxed font-medium">
+                {book.description.replace(/<[^>]*>/g, "")}
+              </p>
+            </div>
           )}
-        </div>
 
-        {/* Right Column: Metadata and reading history */}
-        <div className="space-y-6">
-          <BookMetadata
-            book={book}
-            hasTotalPages={!!book.totalPages}
-            totalPagesInput={totalPagesInput}
-            onTotalPagesChange={setTotalPagesInput}
-            onTotalPagesSubmit={handleTotalPagesSubmit}
-          />
+          {/* Tags */}
+          {book.tags.length > 0 && (
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-3 font-semibold">
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {book.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/library?tags=${encodeURIComponent(tag)}`}
+                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
+          {/* Current Reading Progress History */}
           {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
               <ProgressHistory
@@ -263,6 +336,7 @@ export default function BookDetailPage() {
             </div>
           )}
 
+          {/* Reading History */}
           <ReadingHistoryTab
             key={historyRefreshKey}
             bookId={bookId}
@@ -285,6 +359,13 @@ export default function BookDetailPage() {
         onConfirm={handleUpdateRating}
         bookTitle={book.title}
         currentRating={book.rating || null}
+      />
+
+      <RereadConfirmModal
+        isOpen={showRereadConfirmation}
+        onClose={handleCancelReread}
+        onConfirm={handleConfirmReread}
+        bookTitle={book.title}
       />
 
       {showStatusChangeConfirmation && (

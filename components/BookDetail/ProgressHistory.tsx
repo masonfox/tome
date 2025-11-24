@@ -18,7 +18,7 @@ interface ProgressHistoryProps {
 export default function ProgressHistory({ progress, onEdit }: ProgressHistoryProps) {
   return (
     <div>
-      <h3 className="text-lg font-serif font-bold text-[var(--heading-text)] mb-4">
+      <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
         Current Progress History
       </h3>
 
@@ -31,22 +31,22 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
           {progress.map((entry) => (
             <div
               key={entry.id}
-              className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent)]/50 transition-colors group"
+              className="bg-[var(--background)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent)]/50 transition-colors group"
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <div className="flex items-baseline gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1">
                     <span className="text-base font-bold text-[var(--foreground)]">
                       Page {entry.currentPage}
                     </span>
-                    <span className="text-sm text-[var(--foreground)]/50 font-medium">
-                      ({entry.currentPercentage.toFixed(1)}%)
+                    <span className="text-sm text-[var(--subheading-text)] font-medium">
+                      ({entry.currentPercentage}%)
                     </span>
                     <span className="text-xs text-[var(--accent)] font-semibold">
                       +{entry.pagesRead} pages
                     </span>
                   </div>
-                  <p className="text-sm text-[var(--foreground)]/60 font-mono font-semibold">
+                  <p className="text-sm text-[var(--subheading-text)] font-mono font-semibold">
                     {format(new Date(entry.progressDate), "MMM d, yyyy")}
                   </p>
                 </div>
