@@ -136,8 +136,8 @@ Setup (Phase 1) → Foundational (Phase 2)
 - [X] T029 [US2] Add toast notifications for success/error states using sonner in components/StreakSettings.tsx
 - [X] T030 [US2] Add loading state during threshold update in components/StreakSettings.tsx
 - [X] T031 [US2] Integrate StreakSettings component into settings page in app/settings/page.tsx
-- [ ] T032 [US2] Verify invalid thresholds (0, 10000, negative) show appropriate error messages (manual test)
-- [ ] T033 [US2] Verify threshold updates persist across page refreshes (manual test)
+- [X] T032 [US2] Verify invalid thresholds (0, 10000, negative) show appropriate error messages (manual test)
+- [X] T033 [US2] Verify threshold updates persist across page refreshes (manual test)
 - [ ] T034 [US2] Verify streak calculation respects new threshold after mid-day change (manual test)
 
 **Parallel Opportunities**:
