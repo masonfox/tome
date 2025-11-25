@@ -886,3 +886,259 @@ describe("rebuildStreak", () => {
     expect(streakStart.toISOString().substring(0, 10)).toBe(expectedStreakStart.toISOString().substring(0, 10));
   });
 });
+
+describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
+  test.skipIf(isCI)("should set streak to 1 when first activity meets threshold", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Use explicit date that represents "today" in EST (midnight EST = 05:00 UTC)
+    const today = new Date("2025-11-25T05:00:00.000Z");
+
+    const streak = await streakRepository.create({
+      userId: null,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: today,
+      streakStartDate: today,
+      totalDaysActive: 0,
+      dailyThreshold: 1,
+    });
+
+    // Act - log progress that meets threshold
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 10,
+      currentPercentage: 10,
+      pagesRead: 10,
+      progressDate: today,
+    });
+
+    const result = await updateStreaks();
+
+    // Assert - streak should be 1
+    expect(result.currentStreak).toBe(1);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalDaysActive).toBe(1);
+  });
+
+  test.skipIf(isCI)("should keep streak at 0 if threshold not met", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    const today = new Date("2025-11-25T05:00:00.000Z");
+
+    const streak = await streakRepository.create({
+      userId: null,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: today,
+      streakStartDate: today,
+      totalDaysActive: 0,
+      dailyThreshold: 10,
+    });
+
+    // Act - log progress that doesn't meet threshold (only 5 pages)
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 5,
+      currentPercentage: 5,
+      pagesRead: 5,
+      progressDate: today,
+    });
+
+    const result = await updateStreaks();
+
+    // Assert - streak should stay 0
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.totalDaysActive).toBe(0);
+  });
+
+  test.skipIf(isCI)("should not double-increment on multiple logs same day", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    const today = new Date("2025-11-25T05:00:00.000Z");
+
+    const streak = await streakRepository.create({
+      userId: null,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: today,
+      streakStartDate: today,
+      totalDaysActive: 0,
+      dailyThreshold: 10,
+    });
+
+    // Act - first log (meets threshold)
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 10,
+      currentPercentage: 10,
+      pagesRead: 10,
+      progressDate: today,
+    });
+
+    const result1 = await updateStreaks();
+    expect(result1.currentStreak).toBe(1);
+
+    // Act - second log same day (adds more pages)
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 20,
+      currentPercentage: 20,
+      pagesRead: 10,
+      progressDate: today,
+    });
+
+    const result2 = await updateStreaks();
+
+    // Assert - streak should still be 1, not 2
+    expect(result2.currentStreak).toBe(1);
+    expect(result2.totalDaysActive).toBe(1);
+  });
+
+  test.skipIf(isCI)("should preserve longestStreak when setting first day", async () => {
+    // Arrange - simulate user who had a streak before, broke it, now starting fresh
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    const today = new Date("2025-11-25T05:00:00.000Z");
+    
+    const streak = await streakRepository.create({
+      userId: null,
+      currentStreak: 0,
+      longestStreak: 15, // Had a 15-day streak before
+      lastActivityDate: today,
+      streakStartDate: today,
+      totalDaysActive: 20,
+      dailyThreshold: 1,
+    });
+
+    // Act
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 5,
+      currentPercentage: 5,
+      pagesRead: 5,
+      progressDate: today,
+    });
+
+    const result = await updateStreaks();
+
+    // Assert - current = 1, but longest should stay 15
+    expect(result.currentStreak).toBe(1);
+    expect(result.longestStreak).toBe(15);
+    expect(result.totalDaysActive).toBe(20); // Should not increment totalDaysActive
+  });
+
+  test.skipIf(isCI)("should set totalDaysActive to 1 on very first activity", async () => {
+    // Arrange - completely fresh, first time ever
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    const today = new Date("2025-11-25T05:00:00.000Z");
+
+    const streak = await streakRepository.create({
+      userId: null,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: today,
+      streakStartDate: today,
+      totalDaysActive: 0, // Never read before
+      dailyThreshold: 1,
+    });
+
+    // Act
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 5,
+      currentPercentage: 5,
+      pagesRead: 5,
+      progressDate: today,
+    });
+
+    const result = await updateStreaks();
+
+    // Assert
+    expect(result.currentStreak).toBe(1);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalDaysActive).toBe(1); // Should increment from 0 to 1
+  });
+
+  test.skipIf(isCI)("should work with consecutive days using rebuildStreak", async () => {
+    // Arrange
+    const book = await bookRepository.create(mockBook1);
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Create progress for two consecutive days
+    const day1 = new Date("2025-11-25T05:00:00.000Z");
+    const day2 = new Date("2025-11-26T05:00:00.000Z");
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 5,
+      currentPercentage: 5,
+      pagesRead: 5,
+      progressDate: day1,
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 10,
+      currentPercentage: 10,
+      pagesRead: 5,
+      progressDate: day2,
+    });
+
+    // Act - rebuild streak from scratch (simulates fresh DB scenario)
+    const result = await rebuildStreak(null, day2);
+
+    // Assert - should have 2-day streak
+    expect(result.currentStreak).toBe(2);
+    expect(result.longestStreak).toBe(2);
+    expect(result.totalDaysActive).toBe(2);
+  });
+});
