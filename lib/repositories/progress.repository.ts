@@ -296,21 +296,20 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Get progress for a specific date
+   * Get progress for a specific date (timezone-aware)
+   * Uses SQLite's localtime conversion to match the calendar day in the user's timezone
    */
   async getProgressForDate(date: Date): Promise<{ pagesRead: number } | undefined> {
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    // Convert the input date to YYYY-MM-DD format in LOCAL timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${day}`;
 
     const result = this.getDatabase()
-      .select({ pagesRead: sql<number>`SUM(${progressLogs.pagesRead})` })
+      .select({ pagesRead: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(
-        and(
-          gte(progressLogs.progressDate, startOfDay),
-          lt(progressLogs.progressDate, endOfDay)
-        )
-      )
+      .where(sql`DATE(${progressLogs.progressDate}, 'unixepoch', 'localtime') = ${localDateStr}`)
       .get();
 
     return result || { pagesRead: 0 };
