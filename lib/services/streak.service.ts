@@ -12,14 +12,10 @@ export interface StreakWithHoursRemaining extends Streak {
 export class StreakService {
   /**
    * Get streak with computed hours remaining today
+   * Auto-creates streak record if it doesn't exist
    */
-  async getStreak(userId: number | null = null): Promise<StreakWithHoursRemaining | null> {
-    const streak = await streakRepository.findByUserId(userId);
-
-    if (!streak) {
-      logger.warn({ userId }, "No streak found for user");
-      return null;
-    }
+  async getStreak(userId: number | null = null): Promise<StreakWithHoursRemaining> {
+    const streak = await streakRepository.getOrCreate(userId);
 
     // Calculate hours remaining today
     const now = new Date();
@@ -34,6 +30,7 @@ export class StreakService {
 
   /**
    * Update daily threshold with validation
+   * Auto-creates streak record if it doesn't exist
    */
   async updateThreshold(userId: number | null, newThreshold: number): Promise<Streak> {
     // Validate threshold
@@ -44,11 +41,8 @@ export class StreakService {
       throw new Error("Daily threshold must be between 1 and 9999");
     }
 
-    // Get existing streak to log change
-    const streak = await streakRepository.findByUserId(userId);
-    if (!streak) {
-      throw new Error("No streak record found for user");
-    }
+    // Get or create streak to log change
+    const streak = await streakRepository.getOrCreate(userId);
 
     logger.info(
       {

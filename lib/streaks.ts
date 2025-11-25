@@ -101,9 +101,8 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   return streak;
 }
 
-export async function getStreak(userId?: number | null): Promise<Streak | null> {
-  const streak = await streakRepository.findByUserId(userId || null);
-  return streak ?? null;
+export async function getStreak(userId?: number | null): Promise<Streak> {
+  return await streakRepository.getOrCreate(userId || null);
 }
 
 export async function getOrCreateStreak(userId?: number | null): Promise<Streak> {

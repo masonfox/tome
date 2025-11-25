@@ -136,16 +136,6 @@ async function getStreak(): Promise<DashboardStreak | null> {
     const today = startOfDay(new Date());
     const todayPages = await progressRepository.getPagesReadAfterDate(today);
 
-    if (!streak) {
-      return {
-        currentStreak: 0,
-        longestStreak: 0,
-        dailyThreshold: 1,
-        hoursRemainingToday: 0,
-        todayPagesRead: todayPages,
-      };
-    }
-
     return {
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,

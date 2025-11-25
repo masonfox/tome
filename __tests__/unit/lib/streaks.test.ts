@@ -391,12 +391,16 @@ describe("getStreak", () => {
     expect(result?.longestStreak).toBe(10);
   });
 
-  test.skipIf(isCI)("returns null when streak not found", async () => {
+  test.skipIf(isCI)("auto-creates streak when not found", async () => {
     // Act
     const result = await getStreak();
 
-    // Assert
-    expect(result).toBeNull();
+    // Assert - should create with defaults, not return null
+    expect(result).toBeDefined();
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.totalDaysActive).toBe(0);
+    expect(result.dailyThreshold).toBe(1);
   });
 });
 

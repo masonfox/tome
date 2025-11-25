@@ -7,24 +7,11 @@ const logger = getLogger();
 /**
  * GET /api/streak
  * Get current streak with enhanced data
+ * Auto-creates streak record if it doesn't exist
  */
 export async function GET(request: NextRequest) {
   try {
     const streak = await streakService.getStreak(null);
-
-    if (!streak) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "STREAK_NOT_FOUND",
-            message: "No streak record found for user",
-          },
-        },
-        { status: 404 }
-      );
-    }
-
     return NextResponse.json({ success: true, data: streak });
   } catch (error) {
     logger.error({ error }, "Failed to get streak");
@@ -82,7 +69,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Update threshold (validation happens in service layer)
+    // Update threshold (validation and auto-creation happens in service layer)
     try {
       const updated = await streakService.updateThreshold(null, dailyThreshold);
       return NextResponse.json({ success: true, data: updated });
@@ -106,20 +93,6 @@ export async function PATCH(request: NextRequest) {
             },
           },
           { status: 400 }
-        );
-      }
-
-      // Check for missing streak record
-      if (error.message.includes("No streak record found")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "STREAK_NOT_FOUND",
-              message: error.message,
-            },
-          },
-          { status: 404 }
         );
       }
 
