@@ -19,6 +19,7 @@ export interface DashboardStreak {
   longestStreak: number;
   dailyThreshold: number;
   hoursRemainingToday: number;
+  todayPagesRead: number;
 }
 
 export interface BookWithStatus {
@@ -82,6 +83,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 async function getStats(): Promise<DashboardStats | null> {
   try {
     const currentYear = new Date().getFullYear();
+    
+    // Use local timezone (as per spec requirement)
     const startOfYearDate = startOfYear(new Date(currentYear, 0, 1));
     const today = startOfDay(new Date());
     const startOfMonthDate = startOfMonth(new Date());
@@ -129,12 +132,17 @@ async function getStreak(): Promise<DashboardStreak | null> {
     const { streakService } = await import("@/lib/services/streak.service");
     const streak = await streakService.getStreak(null);
 
+    // Get today's pages read (use local timezone as per spec requirement)
+    const today = startOfDay(new Date());
+    const todayPages = await progressRepository.getPagesReadAfterDate(today);
+
     if (!streak) {
       return {
         currentStreak: 0,
         longestStreak: 0,
         dailyThreshold: 1,
         hoursRemainingToday: 0,
+        todayPagesRead: todayPages,
       };
     }
 
@@ -143,6 +151,7 @@ async function getStreak(): Promise<DashboardStreak | null> {
       longestStreak: streak.longestStreak,
       dailyThreshold: streak.dailyThreshold,
       hoursRemainingToday: streak.hoursRemainingToday,
+      todayPagesRead: todayPages,
     };
   } catch (error) {
     const { getLogger } = require("@/lib/logger");

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
+import { parseISO, startOfDay } from "date-fns";
 
 export interface ProgressEntry {
   id: number;
@@ -177,7 +178,12 @@ export function useBookProgress(
 
     // Add progressDate to payload if provided
     if (progressDate) {
-      payload.progressDate = new Date(progressDate + "T00:00:00.000Z").toISOString();
+      // Parse the selected date and get midnight in LOCAL timezone
+      // This ensures the timestamp represents the intended calendar day in the user's timezone
+      const localMidnight = startOfDay(parseISO(progressDate));
+      
+      // Send as ISO string (will be stored as UTC but represents local midnight)
+      payload.progressDate = localMidnight.toISOString();
     }
 
     try {

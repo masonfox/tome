@@ -168,3 +168,11 @@ A reader receives gentle reminders when they haven't yet read their daily thresh
 - **SC-008**: Streak calculations remain accurate across midnight boundaries with less than 1% error rate
 - **SC-009**: Users report increased reading motivation in 70% of post-feature surveys
 - **SC-010**: Daily active users increase by 25% within 30 days of feature launch for users who engage with streak tracking
+
+# Adjustments
+
+## Dashboard UI (2025-11-25 @ 8:24 AM EST)
+- Shrink the footprint of the dashboard UI.
+    - It takes up 1/3 of the screen right now and it should be much smaller in footprint
+    - For example, we should only display the current streak count, a visual queue of whether you've met your streak today, such as a colored flame, and a short note about how much time the user has left.
+- Remove/hide “Time Left Today” if the user has already completed their daily goal.

@@ -204,12 +204,22 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Calculate pages read after a date
+   * Uses timezone-aware comparison: converts both stored UTC timestamps and query date
+   * to local time before comparing, as per spec requirement for timezone support
    */
   async getPagesReadAfterDate(date: Date): Promise<number> {
+    // Convert the input date to YYYY-MM-DD format in LOCAL timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${day}`;
+    
+    // Query using SQLite's datetime with 'localtime' to convert stored UTC to local time
+    // Then compare just the date portion
     const result = this.getDatabase()
       .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, date))
+      .where(sql`DATE(${progressLogs.progressDate}, 'unixepoch', 'localtime') >= ${localDateStr}`)
       .get();
 
     return result?.total ?? 0;
