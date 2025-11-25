@@ -155,25 +155,25 @@ Setup (Phase 1) → Foundational (Phase 2)
 
 ### Tasks
 
-- [ ] T035 [P] [US3] Create GET /api/streak/analytics endpoint in app/api/streak/analytics/route.ts
-- [ ] T036 [P] [US3] Add days query parameter validation (1-365 range) in app/api/streak/analytics/route.ts
-- [ ] T037 [US3] Fetch daily reading history using progressRepository.getActivityCalendar in app/api/streak/analytics/route.ts
-- [ ] T038 [US3] Enrich history data with thresholdMet boolean flag in app/api/streak/analytics/route.ts
-- [ ] T039 [US3] Add books ahead/behind calculation (optional, only if reading goal exists) in app/api/streak/analytics/route.ts
-- [ ] T040 [US3] Create streak analytics page in app/streak/page.tsx
-- [ ] T041 [US3] Fetch analytics data from API in app/streak/page.tsx
-- [ ] T042 [P] [US3] Create StreakChart component using Recharts in components/StreakChart.tsx
-- [ ] T043 [P] [US3] Configure BarChart or LineChart for daily pages visualization in components/StreakChart.tsx
-- [ ] T044 [US3] Add threshold reference line to chart in components/StreakChart.tsx
-- [ ] T045 [US3] Add responsive chart sizing and tooltips in components/StreakChart.tsx
-- [ ] T046 [US3] Create StreakAnalytics component for stats display in components/StreakAnalytics.tsx
-- [ ] T047 [US3] Add current streak, longest streak, and total days active display in components/StreakAnalytics.tsx
-- [ ] T048 [US3] Add conditional books ahead/behind display in components/StreakAnalytics.tsx
-- [ ] T049 [US3] Integrate StreakChart and StreakAnalytics in analytics page in app/streak/page.tsx
-- [ ] T050 [US3] Add clickable link from homepage StreakDisplay to analytics page in components/StreakDisplay.tsx
-- [ ] T051 [US3] Add encouraging message for new users with < 7 days of data in components/StreakAnalytics.tsx
-- [ ] T052 [US3] Verify chart displays correctly with varying amounts of data (3 days, 30 days, 365 days) (manual test)
-- [ ] T053 [US3] Verify books ahead/behind calculation accuracy (manual test with known goal)
+- [X] T035 [P] [US3] Create GET /api/streak/analytics endpoint in app/api/streak/analytics/route.ts
+- [X] T036 [P] [US3] Add days query parameter validation (1-365 range) in app/api/streak/analytics/route.ts
+- [X] T037 [US3] Fetch daily reading history using progressRepository.getActivityCalendar in app/api/streak/analytics/route.ts
+- [X] T038 [US3] Enrich history data with thresholdMet boolean flag in app/api/streak/analytics/route.ts
+- [X] T039 [US3] Add books ahead/behind calculation (optional, only if reading goal exists) in app/api/streak/analytics/route.ts
+- [X] T040 [US3] Create streak analytics page in app/streak/page.tsx
+- [X] T041 [US3] Fetch analytics data from API in app/streak/page.tsx
+- [X] T042 [P] [US3] Create StreakChart component using Recharts in components/StreakChart.tsx
+- [X] T043 [P] [US3] Configure BarChart or LineChart for daily pages visualization in components/StreakChart.tsx
+- [X] T044 [US3] Add threshold reference line to chart in components/StreakChart.tsx
+- [X] T045 [US3] Add responsive chart sizing and tooltips in components/StreakChart.tsx
+- [X] T046 [US3] Create StreakAnalytics component for stats display in components/StreakAnalytics.tsx
+- [X] T047 [US3] Add current streak, longest streak, and total days active display in components/StreakAnalytics.tsx
+- [X] T048 [US3] Add conditional books ahead/behind display in components/StreakAnalytics.tsx
+- [X] T049 [US3] Integrate StreakChart and StreakAnalytics in analytics page in app/streak/page.tsx
+- [X] T050 [US3] Add clickable link from homepage StreakDisplay to analytics page in components/StreakDisplay.tsx
+- [X] T051 [US3] Add encouraging message for new users with < 7 days of data in components/StreakAnalytics.tsx
+- [X] T052 [US3] Verify chart displays correctly with varying amounts of data (3 days, 30 days, 365 days) (manual test)
+- [X] T053 [US3] Verify books ahead/behind calculation accuracy (manual test with known goal)
 
 **Parallel Opportunities**:
 - T035-T036 (API endpoint setup) can be done in parallel

@@ -2,6 +2,7 @@
 
 import { Flame } from "lucide-react";
 import { cn } from "@/utils/cn";
+import Link from "next/link";
 
 interface StreakDisplayProps {
   currentStreak: number;
@@ -33,23 +34,28 @@ export function StreakDisplay({
 
   return (
     <div className="flex flex-col items-center">
-      <div className={cn("flex items-center gap-1", className)}>
-        {/* Colored flame indicator */}
-        <Flame className={cn("w-5 h-5", flameColor)} />
+      <Link href="/streak" className="group transition-opacity">
+        <div className={cn("flex items-center gap-1", className)}>
+          {/* Colored flame indicator */}
+          <Flame className={cn("w-5 h-5", flameColor)} />
 
-        {/* Streak count */}
-        <div className="flex flex-col">
-          <span className="text-2xl font-bold text-[var(--heading-text)] leading-none">
-            {currentStreak} {currentStreak === 1 ? "day" : "days"}
-          </span>
+          {/* Streak count */}
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold text-[var(--heading-text)] leading-none">
+              {currentStreak} {currentStreak === 1 ? "day" : "days"}
+            </span>
+          </div>
         </div>
-      </div>
-      {/* Time remaining (only if goal not met) */}
-      {showTimeRemaining && (
-        <div className="text-xs mt-1.5 text-[var(--subheading-text)] leading-tight mt-0.5">
-          {hoursRemainingToday} {hoursRemainingToday === 1 ? "hour" : "hours"} left today
+        {/* Time remaining (only if goal not met) */}
+        {showTimeRemaining && (
+          <div className="text-xs mt-1.5 text-[var(--subheading-text)] leading-tight mt-0.5">
+            {hoursRemainingToday} {hoursRemainingToday === 1 ? "hour" : "hours"} left today
+          </div>
+        )}
+        <div className="text-xs mt-2 text-[var(--subheading-text)] opacity-0 group-hover:opacity-100 transition-opacity">
+          View analytics →
         </div>
-      )}
+      </Link>
     </div>
   );
 }
