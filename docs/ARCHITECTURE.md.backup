@@ -72,97 +72,57 @@
 
 ### Tome Database (SQLite + Drizzle)
 
-**Location:** `lib/db/schema/` (Drizzle schemas)
+**Tables & Relationships:**
 
-#### Books Table
-**Purpose:** Stores metadata of books synced from Calibre
-
-**Key Fields:**
-- `calibreId` (unique) - Calibre database ID
-- `title`, `authors` (JSON), `tags` (JSON)
-- `totalPages`, `rating` (1-5 stars)
-- `orphaned` - Marks books removed from Calibre
-- Timestamps: `lastSynced`, `createdAt`, `updatedAt`
-
-**Repository:** `bookRepository` | **Schema:** `lib/db/schema/books.ts`
-
----
-
-#### Reading Sessions Table
-**Purpose:** Tracks reading sessions per book (supports re-reading)
-
-**Key Fields:**
-- `bookId` (FK → books.id, CASCADE DELETE)
-- `sessionNumber` - Enables re-reading (1, 2, 3...)
-- `isActive` - Only one active session per book
-- `status` - Enum: to-read, read-next, reading, read
-- `startedDate`, `completedDate`, `review`
-
-**Indexes:** Unique on (bookId, sessionNumber); Partial unique on (bookId) WHERE isActive=1
-**Repository:** `sessionRepository` | **Schema:** `lib/db/schema/reading-sessions.ts`
-
----
-
-#### Progress Logs Table
-**Purpose:** Tracks individual reading progress entries per session
-
-**Key Fields:**
-- `bookId`, `sessionId` (FK with CASCADE DELETE)
-- `currentPage`, `currentPercentage` (0-100)
-- `pagesRead` - Delta from previous entry
-- `progressDate`, `notes`
-
-**Indexes:** (bookId, progressDate DESC), (sessionId, progressDate DESC)
-**Repository:** `progressRepository` | **Schema:** `lib/db/schema/progress-logs.ts`
-
----
-
-#### Streaks Table
-**Purpose:** Tracks reading consistency streaks
-
-**Key Fields:**
-- `currentStreak`, `longestStreak`
-- `lastActivityDate`, `streakStartDate`
-- `totalDaysActive`
-
-**Pattern:** Singleton (one record per user)
-**Repository:** `streakRepository` | **Schema:** `lib/db/schema/streaks.ts`
-
----
-
-### Relationship Diagram
 ```
-Book (synced from Calibre)
-├── ReadingSession (1:many per book - supports re-reading)
-│   ├── sessionNumber (1, 2, 3...)
-│   ├── isActive (only one active session per book)
-│   ├── status, dates, review
-│   └── ProgressLog (1:many per session)
-│       └── sessionId links progress to specific reading session
-└── Streak (global - aggregated from all ProgressLog entries across all sessions)
-    └── Calculated streak metrics (all sessions count toward streaks)
+books (synced from Calibre)
+├── calibreId: unique identifier from Calibre
+├── title, authors (JSON array), tags (JSON array)
+├── publisher, series, seriesIndex, pubDate
+├── totalPages, rating (1-5 stars, synced from Calibre)
+├── orphaned flag (if removed from Calibre library)
+├── path: location in Calibre library
+└── lastSynced: timestamp of last sync from Calibre
+
+reading_sessions (1:many per book - re-reading support)
+├── bookId: FK → books.id (CASCADE DELETE)
+├── sessionNumber: 1, 2, 3... (supports re-reading)
+├── isActive: only one per book can be true
+├── status: enum [to-read, read-next, reading, read]
+├── startedDate, completedDate
+├── review: personal notes specific to this reading
+└── Indexes:
+    ├── Unique (bookId, sessionNumber)
+    ├── Partial unique (bookId) WHERE isActive=1
+    ├── Index on status
+
+progress_logs (1:many per session)
+├── bookId: FK → books.id (CASCADE DELETE)
+├── sessionId: FK → reading_sessions.id (CASCADE DELETE)
+├── currentPage, currentPercentage (0-100)
+├── pagesRead: delta from previous entry
+├── progressDate: when progress was logged
+├── notes: reader's notes/thoughts
+└── Indexes:
+    ├── (bookId, progressDate DESC)
+    ├── (sessionId, progressDate DESC)
+    ├── progressDate DESC (for activity calendar)
+
+streaks (singleton per user)
+├── currentStreak: days read consecutively
+├── longestStreak: max streak ever reached
+├── lastActivityDate: last progress entry
+├── streakStartDate: when current streak started
+├── totalDaysActive: cumulative days with activity
+└── Unique index: COALESCE(userId, -1) (single-user mode)
 ```
 
-**Key Relationships:**
-- One Book can have multiple ReadingSessions (for re-reading)
-- Foreign key: readingSessions.bookId → books.id (CASCADE DELETE)
-- Only one ReadingSession per book can be active (isActive=1)
-- Foreign key: progressLogs.bookId → books.id (CASCADE DELETE)
-- Foreign key: progressLogs.sessionId → readingSessions.id (CASCADE DELETE)
-- Each ProgressLog entry links to a specific ReadingSession
-- Streaks are calculated from ALL progress logs across ALL sessions and books
-
----
-
-### Repository Pattern
-
-**Rule:** All Tome database access goes through repositories.
-
-**Repositories:** `bookRepository`, `sessionRepository`, `progressRepository`, `streakRepository`
-
-**Details:** See `docs/REPOSITORY_PATTERN_GUIDE.md`
-
----
+**Key Constraints:**
+- Foreign keys with CASCADE DELETE
+- Unique constraint on books.calibreId
+- CHECK constraints on ratings (1-5)
+- CHECK constraints on progress percentages (0-100)
+- Temporal validation: progress entries must maintain timeline consistency
 
 ### Calibre Database (Read-Only + Rating Writes)
 
@@ -245,184 +205,28 @@ Database (SQLite + Drizzle ORM)
 5. **Settings** (Client Component)
    - Calibre path display, sync status, manual sync button
 
-### API Routes (13 total)
+### API Routes (10 total)
 
-#### Books Management
+**Books:**
+- `GET /api/books` - List with filters, pagination
+- `GET/PATCH /api/books/:id` - Book details & updates
+- `POST /api/books/:id/rating` - Update rating (Calibre sync)
 
-**GET /api/books**
-- Fetch paginated book list
-- Query params: `status`, `search`, `tags`, `rating`, `limit`, `skip`, `showOrphaned`, `sortBy`
-- Returns: books array with active session status and book rating, total count
-- Joins with active ReadingSession (isActive=true) for user data
+**Sessions & Status:**
+- `GET/POST /api/books/:id/status` - Active session, status updates
+- `GET /api/books/:id/sessions` - All sessions (re-reading history)
+- `POST /api/books/:id/reread` - Start new reading session
 
-**PATCH /api/books/:id**
-- Update book (totalPages)
-- Body: `{ totalPages }`
-- Returns: updated book
+**Progress:**
+- `GET/POST /api/books/:id/progress` - Logging, history
+- `PATCH/DELETE /api/books/:id/progress/:progressId` - Edit/delete entries
 
-**GET /api/books/:id**
-- Fetch single book with full details
-- Returns: Book + active ReadingSession + latest ProgressLog for active session
-- Includes: book metadata, current session status, current progress
+**Calibre:**
+- `GET /api/calibre/sync` - Manual trigger
+- `GET /api/calibre/status` - Sync status check
 
----
-
-#### Session Management (Re-reading Support)
-
-**GET /api/books/:id/status**
-- Fetch active reading session for a book
-- Returns: active ReadingSession (isActive=true) or null
-
-**POST /api/books/:id/status**
-- Update active reading session status
-- Body: `{ status, rating?, review?, startedDate?, completedDate? }`
-- Creates new session if none exists (auto-increments sessionNumber)
-- Auto-sets dates when status changes:
-  - "reading" → sets startedDate
-  - "read" → sets completedDate
-- Note: `rating` updates the book's rating (books.rating), not stored on session
-- Returns: updated ReadingSession
-
-**GET /api/books/:id/sessions**
-- Fetch all reading sessions for a book (supports re-reading history)
-- Returns: array of ReadingSession objects (sorted by sessionNumber desc)
-- Each session includes:
-  - Session metadata (sessionNumber, status, dates, review)
-  - Progress summary (totalEntries, totalPagesRead, latestProgress, date range)
-
-**POST /api/books/:id/reread**
-- Start a new reading session for a book (re-reading)
-- Requirements: active session must have status="read"
-- Process:
-  1. Archives current active session (sets isActive=false)
-  2. Creates new session (sessionNumber++, status="reading", isActive=true)
-  3. Rebuilds streak from all progress logs
-- Returns: new session + archived session info
-
----
-
-#### Progress Tracking
-
-**GET /api/books/:id/progress**
-- Fetch progress logs for a book's active session (or specific session with `?sessionId=...`)
-- Query params: `sessionId` (optional - defaults to active session)
-- Sorted by progressDate descending
-- Returns: array of ProgressLog entries for the session
-
-**POST /api/books/:id/progress**
-- Log reading progress for active session
-- Body: `{ currentPage?, currentPercentage?, notes? }`
-- Requires active ReadingSession to exist
-- Calculates:
-  - Final percentage from pages (if not provided)
-  - Final pages from percentage (if not provided)
-  - pagesRead as delta from last entry in this session
-- Auto-updates active session status to "read" if 100% reached
-- Links progress entry to active session via sessionId
-- Triggers streak update (counts across all sessions)
-- Returns: created ProgressLog
-
-**PATCH /api/books/:id/progress/:progressId**
-- Edit existing progress entry
-- Body: `{ currentPage?, currentPercentage?, notes? }`
-- Returns: updated ProgressLog
-
-**DELETE /api/books/:id/progress/:progressId**
-- Delete progress entry
-- Returns: success message
-
----
-
-#### Statistics
-
-**GET /api/stats/overview**
-- Global reading statistics
-- Returns:
-  ```
-  {
-    booksRead: { total, thisYear, thisMonth },
-    currentlyReading: number,
-    pagesRead: { total, thisYear, thisMonth, today },
-    avgPagesPerDay: number (last 30 days)
-  }
-  ```
-
-**GET /api/stats/activity**
-- Activity calendar and monthly breakdown
-- Query params: `year`, `month` (optional)
-- Returns:
-  ```
-  {
-    calendar: [{ date: "YYYY-MM-DD", pagesRead }],
-    monthly: [{ month, year, pagesRead }]
-  }
-  ```
-
----
-
-#### Streaks
-
-**GET /api/streaks**
-- Get or create user streak record
-- Returns: full Streak object
-- Auto-creates if doesn't exist
-
----
-
-#### Calibre Integration
-
-**GET /api/calibre/sync**
-- Manually trigger sync with Calibre
-- Prevents concurrent syncs
-- Returns:
-  ```
-  {
-    success: boolean,
-    message: string,
-    syncedCount: number,
-    updatedCount: number,
-    totalBooks: number,
-    lastSync: Date
-  }
-  ```
-
-**GET /api/calibre/status**
-- Get sync status without triggering sync
-- Returns:
-  ```
-  {
-    lastSync: Date | null,
-    syncInProgress: boolean,
-    autoSyncEnabled: boolean
-  }
-  ```
-
----
-
-#### Cover Images
-
-**GET /api/covers/:path***
-- Stream book cover images from Calibre library
-- Dynamic path based on book location in Calibre
-- Security: validates path stays within library directory
-- Caching: 1-year immutable cache headers
-- Returns: image binary with appropriate Content-Type
-
----
-
-### Key Data Flows
-
-**Progress Tracking:**
-1. User logs progress → API validates and calculates delta
-2. Creates ProgressLog linked to active session
-3. Updates streak if consecutive day
-4. Auto-marks session as "read" at 100%
-
-**Calibre Sync:**
-- **Automatic**: File watcher detects change → 2s debounce → sync via repository
-- **Manual**: User triggers → sync via repository → update UI
-
-See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
+**Covers:**
+- `GET /api/covers/:path*` - Stream cover images from Calibre library
 
 ---
 
@@ -457,10 +261,8 @@ See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
 - Calculated from all progress entries (all sessions count together)
 - **Metrics**: Current streak, longest streak, total days active, last activity date
 - **Calculation**: Consecutive days with at least one progress entry
-- **Updates**: Recalculated on progress logging
+- **Updates**: Recalculated on progress logging, session creation
 - **Persistence**: Rebuilds on re-reading (streak continues)
-
-**Implementation details:** See `lib/streaks.ts` for date normalization and streak calculation logic
 
 ### Rating System
 
@@ -491,47 +293,144 @@ See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
 
 ## Section 6: Development Patterns
 
-**Critical Patterns** (see `.specify/memory/patterns.md` for code examples):
+Reference `.specify/memory/patterns.md` for comprehensive patterns. Key patterns:
 
-1. **Database Factory** - Automatic runtime detection (Bun/Node), never import drivers directly
-2. **Repository Pattern** (PRIMARY) - All database access through repositories, never bypass
-3. **Service Layer** - Thin routes (30-50 lines), business logic in services
-4. **Test Isolation** - Use `setDatabase(testDb)` and `resetDatabase()`, no global mocks
-5. **Client Service Layer** - Page → Hook → Service → API pattern for complex pages
+### Database Factory Pattern (CRITICAL)
+
+Always use `lib/db/factory.ts` for database connections:
+- Automatically detects runtime (Bun vs Node.js)
+- Selects optimal SQLite driver
+- Handles PRAGMA configuration
+- **Never** import `bun:sqlite` or `better-sqlite3` directly in application code
+
+### Repository Pattern (PRIMARY PATTERN)
+
+**Rule**: All Tome database access MUST go through repositories.
+
+```typescript
+// ✅ Correct
+import { bookRepository } from "@/lib/repositories/book.repository";
+const books = await bookRepository.findWithFilters({ status: "reading" }, 50, 0);
+
+// ❌ Wrong - Bypass
+import { db } from "@/lib/db/sqlite";
+const books = db.select().from(books).all();
+```
+
+### Test Database Isolation
+
+All tests use test-specific SQLite database:
+
+```typescript
+beforeEach(() => {
+  setDatabase(testDb);  // Switch to test database
+  resetDatabase();      // Clear test data
+});
+```
+
+### Service Layer Pattern
+
+Keep route handlers thin (30-50 lines):
+1. Parse request
+2. Validate input
+3. Call service method
+4. Format response
+
+Business logic lives in services, not routes.
+
+### Client Service Layer (LibraryService Pattern)
+
+For complex client-side filtering:
+- Page → Hook → Service → API → Database
+- Service provides caching and API abstraction
+- Hook manages state and pagination
+- Page orchestrates interactions
 
 ---
 
 ## Section 7: File Organization
 
-**Key Directories:**
-- **`lib/`** - Business logic: db (schemas, factory), repositories, services
-- **`app/`** - Next.js App Router: pages and API routes
-- **`hooks/`** - Custom React hooks for state management
-- **`components/`** - Reusable React components
-- **`__tests__/`** - Test suites (99+ tests)
-- **`drizzle/`** - Database migrations
-- **`docs/`** - Architecture docs and ADRs
-
-**Architecture Layers:**
-- Routes (`app/api/`) - HTTP handlers
-- Services (`lib/services/`) - Business logic
-- Repositories (`lib/repositories/`) - Data access
-- Database (`lib/db/`) - Drizzle schemas + factory pattern
+```
+tome/
+├── lib/                         # Business logic
+│   ├── db/
+│   │   ├── factory.ts          # Runtime detection, driver selection
+│   │   ├── sqlite.ts           # Tome database (Drizzle)
+│   │   ├── calibre.ts          # Calibre read-only access
+│   │   ├── calibre-write.ts    # Calibre write (ratings only)
+│   │   ├── context.ts          # Test database switching
+│   │   └── schema/             # Drizzle schemas
+│   ├── repositories/           # Repository pattern
+│   │   ├── base.repository.ts
+│   │   ├── book.repository.ts
+│   │   ├── session.repository.ts
+│   │   ├── progress.repository.ts
+│   │   ├── streak.repository.ts
+│   │   └── index.ts
+│   ├── services/               # Business logic layer
+│   │   ├── book.service.ts
+│   │   ├── session.service.ts
+│   │   ├── progress.service.ts
+│   │   └── index.ts
+│   ├── sync-service.ts         # Calibre sync logic
+│   ├── calibre-watcher.ts      # File system watcher
+│   └── library-service.ts      # Client-side caching service
+├── hooks/                      # Custom React hooks
+│   ├── useLibraryData.ts
+│   ├── useBookDetail.ts
+│   ├── useBookStatus.ts
+│   ├── useBookProgress.ts
+│   └── useBookRating.ts
+├── components/                 # React components
+│   ├── BookDetail/            # Refactored book detail components
+│   │   ├── BookHeader.tsx
+│   │   ├── BookMetadata.tsx
+│   │   ├── BookProgress.tsx
+│   │   ├── ProgressHistory.tsx
+│   │   └── SessionDetails.tsx
+│   ├── BookCard.tsx
+│   ├── Navigation.tsx
+│   └── ... other components
+├── app/                        # Next.js App Router
+│   ├── api/                   # API routes
+│   │   └── books/
+│   │       ├── route.ts
+│   │       └── [id]/
+│   │           ├── route.ts
+│   │           ├── rating/
+│   │           ├── status/
+│   │           ├── progress/
+│   │           ├── sessions/
+│   │           └── reread/
+│   ├── library/page.tsx        # Library page
+│   ├── books/[id]/page.tsx     # Book detail page
+│   ├── dashboard/page.tsx      # Stats page
+│   ├── settings/page.tsx       # Settings page
+│   ├── layout.tsx              # Root layout
+│   └── page.tsx                # Home/dashboard
+├── __tests__/                  # Tests (99+ passing)
+│   ├── unit/
+│   │   ├── hooks/             # Hook tests
+│   │   ├── services/          # Service tests (77 tests)
+│   │   └── ...
+│   ├── api/                   # API integration tests
+│   ├── ui/components/         # Component tests
+│   └── integration/           # End-to-end tests
+├── drizzle/                    # Database migrations
+├── docs/                       # Documentation
+│   ├── AI_CODING_PATTERNS.md
+│   ├── REPOSITORY_PATTERN_GUIDE.md
+│   └── ADRs/
+│       ├── ADR-001-MONGODB-TO-SQLITE-MIGRATION.md
+│       ├── ADR-002-RATING-ARCHITECTURE.md
+│       ├── ADR-003-BOOK-DETAIL-FRONTEND-ARCHITECTURE.md
+│       └── ADR-004-BACKEND-SERVICE-LAYER-ARCHITECTURE.md
+└── docker-compose.yml          # Docker services
+```
 
 ---
 
 ## Section 8: Important References
-
-### Code Examples and Implementation Patterns
-
-For detailed code examples and implementation patterns, see:
-- **`.specify/memory/patterns.md`** - 10 production-tested patterns with complete code
-- **`docs/AI_CODING_PATTERNS.md`** - Critical patterns and code styles
-- **`docs/REPOSITORY_PATTERN_GUIDE.md`** - Complete repository documentation with examples
-
----
-
-## Section 9: Architecture Decisions
 
 ### Architecture Decision Records (ADRs)
 
@@ -584,7 +483,7 @@ Unsure about a pattern?
 **For comprehensive details, see:**
 - Constitution: `.specify/memory/constitution.md`
 - Patterns: `.specify/memory/patterns.md`
-- Coding Standards: `docs/AI_CODING_PATTERNS.md`
+- Architecture: `docs/BOOK_TRACKER_ARCHITECTURE.md`
+- Coding Patterns: `docs/AI_CODING_PATTERNS.md`
 - Repositories: `docs/REPOSITORY_PATTERN_GUIDE.md`
 - ADRs: `docs/ADRs/`
-- Logging Guide: `docs/LOGGING_GUIDE.md`

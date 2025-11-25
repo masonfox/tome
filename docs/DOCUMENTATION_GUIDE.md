@@ -4,7 +4,7 @@ This folder contains comprehensive documentation for the Book Tracker codebase. 
 
 ## Documentation Files
 
-### 1. BOOK_TRACKER_ARCHITECTURE.md (21KB)
+### 1. ARCHITECTURE.md (21KB)
 **Comprehensive architecture and design documentation**
 
 Contains:
@@ -24,7 +24,7 @@ Contains:
 
 **Best for:** Understanding the big picture, architecture decisions, how systems interact
 
-### 2. BOOK_TRACKER_QUICK_REFERENCE.md (16KB)
+### 2. patterns.md (16KB)
 **Code snippets, patterns, and quick lookup guide**
 
 Contains:
@@ -50,28 +50,28 @@ Contains:
 ## Reading Recommendations
 
 ### For New Developers
-1. Start with BOOK_TRACKER_ARCHITECTURE.md sections 1-3
+1. Start with ARCHITECTURE.md sections 1-3
 2. Review the directory structure and models
 3. Read the Calibre integration section
-4. Look at BOOK_TRACKER_QUICK_REFERENCE.md sections 1-2
+4. Look at patterns.md sections 1-2
 
 ### For Understanding a Specific Feature
-1. Find the feature in BOOK_TRACKER_ARCHITECTURE.md
-2. Look for relevant code snippets in BOOK_TRACKER_QUICK_REFERENCE.md
+1. Find the feature in ARCHITECTURE.md
+2. Look for relevant code snippets in patterns.md
 3. Review the actual source files if needed
 
 ### For API Development
-- BOOK_TRACKER_ARCHITECTURE.md section 5 (API Routes)
-- BOOK_TRACKER_QUICK_REFERENCE.md sections 6-7 (API patterns)
+- ARCHITECTURE.md section 5 (API Routes)
+- patterns.md sections 6-7 (API patterns)
 
 ### For Frontend Work
-- BOOK_TRACKER_ARCHITECTURE.md section 6 (Frontend Architecture)
-- BOOK_TRACKER_QUICK_REFERENCE.md section 10 (Client-side patterns)
+- ARCHITECTURE.md section 6 (Frontend Architecture)
+- patterns.md section 10 (Client-side patterns)
 
 ### For Integration Work
-- BOOK_TRACKER_ARCHITECTURE.md sections 3-4 (Calibre integration)
-- BOOK_TRACKER_QUICK_REFERENCE.md sections 2-3 (Sync details)
-- BOOK_TRACKER_QUICK_REFERENCE.md section 7 (Metadata extraction)
+- ARCHITECTURE.md sections 3-4 (Calibre integration)
+- patterns.md sections 2-3 (Sync details)
+- patterns.md section 7 (Metadata extraction)
 
 ## Source Files Reference
 

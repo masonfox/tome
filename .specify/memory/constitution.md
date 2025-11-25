@@ -2,25 +2,19 @@
 SYNC IMPACT REPORT - Constitution Update
 Generated: 2025-11-24
 
-Version Change: NEW → 1.0.0 (Initial constitution - based on /docs review)
+Version Change: 1.0.0 → 1.0.1 (Documentation consolidation - PATCH)
+
+Changes in v1.0.1:
+  - Updated documentation references
+  - Consolidated BOOK_TRACKER_ARCHITECTURE.md and BOOK_TRACKER_QUICK_REFERENCE.md into ARCHITECTURE.md
+  - No principle changes (PATCH version bump per governance rules)
 
 Principles Defined (grounded in actual documented practices):
   1. Data Integrity First - Calibre read-only with ratings exception (ADR-002), Drizzle migrations, factory pattern
   2. Layered Architecture Pattern - Routes → Services → Repositories (REPOSITORY_PATTERN_GUIDE.md, ADR-004)
   3. Self-Contained Deployment - SQLite only, zero external deps (ADR-001 MongoDB migration)
-  4. User Experience Standards - Smart defaults, temporal validation, preserved history (BOOK_TRACKER_ARCHITECTURE.md)
+  4. User Experience Standards - Smart defaults, temporal validation, preserved history (ARCHITECTURE.md)
   5. Observability & Testing - Pino structured logging, real database tests with setDatabase() (LOGGING_GUIDE.md, AI_CODING_PATTERNS.md)
-
-Sections Added:
-  - Core Principles (5 principles grounded in actual codebase patterns)
-  - Development Workflow (Migration Safety, Testing Gates, Commit Practices)
-  - Governance (Amendment Procedure, Compliance Verification)
-
-Templates Updated:
-  ✅ plan-template.md - Constitution Check section updated with specific validation questions
-  ✅ spec-template.md - Validated (no changes needed)
-  ✅ tasks-template.md - Validated (no changes needed)
-  ✅ Command files - Validated (no agent-specific references)
 
 Documentation Sources Referenced:
   - ADR-001-MONGODB-TO-SQLITE-MIGRATION.md
@@ -29,10 +23,8 @@ Documentation Sources Referenced:
   - REPOSITORY_PATTERN_GUIDE.md
   - AI_CODING_PATTERNS.md
   - LOGGING_GUIDE.md
-  - BOOK_TRACKER_ARCHITECTURE.md
-
-Follow-up TODOs:
-  - None - all principles reflect actual documented practices
+  - ARCHITECTURE.md (consolidated from BOOK_TRACKER_ARCHITECTURE.md and BOOK_TRACKER_QUICK_REFERENCE.md)
+  - .specify/memory/patterns.md
 
 -->
 
@@ -167,4 +159,4 @@ For agent-based development, runtime guidance is provided in:
 - `.github/copilot-instructions.md` - GitHub Copilot specific patterns
 - `AI_INSTRUCTIONS.md` - Universal AI assistant patterns
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-17 | **Last Amended**: 2025-11-24
+**Version**: 1.0.1 | **Ratified**: 2025-11-17 | **Last Amended**: 2025-11-24

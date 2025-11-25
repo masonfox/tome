@@ -43,9 +43,8 @@ Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre libra
 Comprehensive documentation is available in the [`/docs`](./docs) directory:
 
 - **[Documentation Index](./docs/README.md)** - Start here! Complete guide to all documentation
-- **[System Architecture](./docs/BOOK_TRACKER_ARCHITECTURE.md)** - Complete technical architecture and design
-- **[Quick Reference](./docs/BOOK_TRACKER_QUICK_REFERENCE.md)** - Code patterns and examples
-- **[Testing Guide](./\_\_tests\_\_/README.md)** - Testing patterns and best practices (99 tests)
+- **[Architecture Documentation](./docs/ARCHITECTURE.md)** - Complete architecture, patterns, and code examples
+- **[Testing Guide](./\_\_tests\_\_/README.md)** - Testing patterns and best practices (99+ tests)
 
 ### For AI Coding Assistants
 
@@ -538,10 +537,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### For Contributors
 
 Before contributing, please:
-1. Read the [Architecture Documentation](./docs/BOOK_TRACKER_ARCHITECTURE.md) to understand the system design
-2. Review the [Quick Reference](./docs/BOOK_TRACKER_QUICK_REFERENCE.md) for code patterns
+1. Read the [Architecture Documentation](./docs/ARCHITECTURE.md) to understand the system design and patterns
+2. Review [Implementation Patterns](/.specify/memory/patterns.md) for detailed code examples
 3. Check the [Testing Guide](./__tests__/README.md) for testing best practices
-4. Ensure all tests pass: `bun test` (99 tests must pass)
+4. Ensure all tests pass: `bun test` (99+ tests must pass)
 5. Follow the established SQLite runtime detection pattern in `lib/db/calibre.ts`
 
 ### For AI Assistants Contributing
