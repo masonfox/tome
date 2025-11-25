@@ -138,7 +138,7 @@ Setup (Phase 1) → Foundational (Phase 2)
 - [X] T031 [US2] Integrate StreakSettings component into settings page in app/settings/page.tsx
 - [X] T032 [US2] Verify invalid thresholds (0, 10000, negative) show appropriate error messages (manual test)
 - [X] T033 [US2] Verify threshold updates persist across page refreshes (manual test)
-- [ ] T034 [US2] Verify streak calculation respects new threshold after mid-day change (manual test)
+- [X] T034 [US2] Verify streak calculation respects new threshold after mid-day change (manual test)
 
 **Parallel Opportunities**:
 - T021-T022 (API endpoints) can be done in parallel
