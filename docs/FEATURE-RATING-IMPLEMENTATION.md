@@ -384,8 +384,8 @@ rating: calibreBook.rating || undefined,
 ### Tasks
 - [ ] 8.1: Create `docs/ADRs/ADR-002-RATING-ARCHITECTURE.md`
 - [x] 8.2: Update `docs/FEATURE-RATING-IMPLEMENTATION.md` (this document)
-- [ ] 8.3: Update `docs/BOOK_TRACKER_ARCHITECTURE.md`
-- [ ] 8.4: Update `docs/BOOK_TRACKER_QUICK_REFERENCE.md`
+- [ ] 8.3: Update `docs/ARCHITECTURE.md`
+- [x] 8.4: Update documentation (consolidated into `docs/ARCHITECTURE.md` and `.specify/memory/patterns.md`)
 - [ ] 8.5: Update main `README.md`
 - [ ] 8.6: Update `docs/AI_CODING_PATTERNS.md`
 

@@ -9,8 +9,8 @@ If you're an AI coding assistant (Claude Code, GitHub Copilot, Cursor, etc.), **
 ### Required Reading Before Making Changes
 
 1. **Coding Patterns** → [`AI_CODING_PATTERNS.md`](./AI_CODING_PATTERNS.md) ⭐ **START HERE**
-2. **System Architecture** → [`BOOK_TRACKER_ARCHITECTURE.md`](./BOOK_TRACKER_ARCHITECTURE.md)
-3. **Code Examples** → [`BOOK_TRACKER_QUICK_REFERENCE.md`](./BOOK_TRACKER_QUICK_REFERENCE.md)
+2. **Architecture** → [`ARCHITECTURE.md`](./ARCHITECTURE.md) - System design, patterns, and code examples
+3. **Detailed Patterns** → [`../.specify/memory/patterns.md`](../.specify/memory/patterns.md) - Implementation patterns
 4. **Testing Guide** → [`../__tests__/README.md`](../__tests__/README.md)
 
 **[`AI_CODING_PATTERNS.md`](./AI_CODING_PATTERNS.md) is your primary reference** - it contains all critical patterns, code styles, and rules including:
@@ -43,40 +43,44 @@ Covers:
 
 ### Core Architecture
 
-#### [BOOK_TRACKER_ARCHITECTURE.md](./BOOK_TRACKER_ARCHITECTURE.md)
-**Complete system architecture and technical design** (May contain outdated MongoDB references)
+#### [ARCHITECTURE.md](./ARCHITECTURE.md)
+**Complete architecture, patterns, and code examples**
 
 Covers:
-- Overall architecture and directory structure
-- Database models and relationships (OUTDATED: references MongoDB, now SQLite)
+- System overview and technology stack
+- Database schemas with detailed field definitions
 - Calibre integration and sync mechanism
-- API routes structure and endpoints
+- Complete API endpoint reference
 - Frontend architecture (Next.js App Router)
+- Key features (re-reading, progress, streaks, rating sync)
+- Development patterns with code examples
 - Data flow examples
-- Development workflow
+- File organization
 
 **When to read:**
 - Before making architectural changes
 - When adding new features
 - When troubleshooting system-level issues
 - To understand data relationships
-- **Note**: For database info, see ADR-001 instead
+- Looking for code examples
 
 ---
 
-#### [BOOK_TRACKER_QUICK_REFERENCE.md](./BOOK_TRACKER_QUICK_REFERENCE.md)
-**Quick code snippets and common patterns**
+#### [patterns.md](../.specify/memory/patterns.md)
+**Reusable implementation patterns with working code**
 
 Covers:
-- Database query patterns (MongoDB & SQLite)
-- API route examples
-- Component patterns
-- Common operations with code examples
+- 10 production-tested implementation patterns
+- Database factory pattern
+- Repository pattern examples
+- Service layer patterns
+- Test isolation patterns
+- Complete code examples from the codebase
 
 **When to read:**
-- Looking for code examples
 - Implementing similar features
-- Quick lookup during development
+- Need copy-paste ready code examples
+- Understanding established patterns
 
 ---
 
@@ -195,14 +199,14 @@ Covers:
 
 ### First Time Setup
 
-1. **Read the architecture:** Start with `BOOK_TRACKER_ARCHITECTURE.md` sections 1-3
+1. **Read the architecture:** Start with `ARCHITECTURE.md` sections 1-3
 2. **Check environment:** Review section 8 "Key Configuration Files"
 3. **Run the app:** Follow section 12 "Development Workflow"
 
 ### Making Changes
 
 1. **Find relevant docs:** Use this index to locate documentation
-2. **Read existing patterns:** Check `BOOK_TRACKER_QUICK_REFERENCE.md`
+2. **Read existing patterns:** Check `ARCHITECTURE.md` Section 8 or `.specify/memory/patterns.md`
 3. **Make changes:** Follow established patterns
 4. **Update docs:** If you changed architecture or patterns
 5. **Test:** Run `bun test` to ensure 99 tests pass
@@ -211,10 +215,10 @@ Covers:
 
 | Task | Documentation |
 |------|---------------|
-| Add a new API endpoint | `BOOK_TRACKER_ARCHITECTURE.md` Section 5 |
-| Add a new database model | `BOOK_TRACKER_ARCHITECTURE.md` Section 2 |
-| Work with Calibre data | `BOOK_TRACKER_ARCHITECTURE.md` Section 3 |
-| Add a new page | `BOOK_TRACKER_ARCHITECTURE.md` Section 6 |
+| Add a new API endpoint | `ARCHITECTURE.md` Section 4 |
+| Add a new database model | `ARCHITECTURE.md` Section 3 |
+| Work with Calibre data | `ARCHITECTURE.md` Section 3 |
+| Add a new page | `ARCHITECTURE.md` Section 4 |
 | Write tests | `../__tests__/README.md` |
 | Update documentation | `DOCUMENTATION_GUIDE.md` |
 
@@ -226,12 +230,12 @@ Understanding these is essential for working on Tome:
 
 | Technology | Purpose | Documentation |
 |------------|---------|---------------|
-| **Next.js 14** | Framework (App Router) | `BOOK_TRACKER_ARCHITECTURE.md` Section 6 |
+| **Next.js 14** | Framework (App Router) | `ARCHITECTURE.md` Section 4 |
 | **SQLite** | Tracking data storage | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
-| **SQLite** | Calibre library (read-only) | `BOOK_TRACKER_ARCHITECTURE.md` Section 3 |
+| **SQLite** | Calibre library (read-only) | `ARCHITECTURE.md` Section 3 |
 | **Drizzle ORM** | Type-safe SQLite ORM | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
-| **Database Factory** | SQLite driver abstraction | `docs/sqlite-driver-consolidation.md` |
-| **Bun** | Package manager & runtime | `BOOK_TRACKER_ARCHITECTURE.md` Section 1 |
+| **Database Factory** | SQLite driver abstraction | `ARCHITECTURE.md` Section 6 |
+| **Bun** | Package manager & runtime | `ARCHITECTURE.md` Section 2 |
 | **Repository Pattern** | Data access layer | `ADR-001-MONGODB-TO-SQLITE-MIGRATION.md` |
 
 ---
@@ -240,23 +244,23 @@ Understanding these is essential for working on Tome:
 
 ### For New Developers
 
-1. Start: `BOOK_TRACKER_ARCHITECTURE.md` - Overview and Section 1
-2. Understand data: `BOOK_TRACKER_ARCHITECTURE.md` - Section 2 (Database Models)
-3. Learn Calibre: `BOOK_TRACKER_ARCHITECTURE.md` - Sections 3-4
-4. API structure: `BOOK_TRACKER_ARCHITECTURE.md` - Section 5
-5. Quick reference: `BOOK_TRACKER_QUICK_REFERENCE.md`
+1. Start: `ARCHITECTURE.md` - Overview and Sections 1-2
+2. Understand data: `ARCHITECTURE.md` - Section 3 (Database Models)
+3. Learn Calibre: `ARCHITECTURE.md` - Section 3 (Calibre Database)
+4. API structure: `ARCHITECTURE.md` - Section 4
+5. Code examples: `ARCHITECTURE.md` - Section 8 or `.specify/memory/patterns.md`
 6. Testing: `../__tests__/README.md`
 
 ### For Specific Tasks
 
 **Adding a Feature:**
-- `BOOK_TRACKER_ARCHITECTURE.md` (relevant sections)
-- `BOOK_TRACKER_QUICK_REFERENCE.md` (similar examples)
+- `ARCHITECTURE.md` (relevant sections)
+- `.specify/memory/patterns.md` (similar examples)
 - `../__tests__/README.md` (testing patterns)
 
 **Fixing a Bug:**
-- `BOOK_TRACKER_ARCHITECTURE.md` (understand affected component)
-- `BOOK_TRACKER_QUICK_REFERENCE.md` (check patterns)
+- `ARCHITECTURE.md` (understand affected component)
+- `.specify/memory/patterns.md` (check patterns)
 
 **Documentation Updates:**
 - `DOCUMENTATION_GUIDE.md` (standards and structure)
@@ -276,11 +280,11 @@ Understanding these is essential for working on Tome:
 
 | Looking for... | Check... |
 |----------------|----------|
-| "How do I query books?" | `BOOK_TRACKER_QUICK_REFERENCE.md` |
-| "API endpoint structure" | `BOOK_TRACKER_ARCHITECTURE.md` Section 5 |
-| "Database schema" | `BOOK_TRACKER_ARCHITECTURE.md` Section 2 |
-| "Calibre sync flow" | `BOOK_TRACKER_ARCHITECTURE.md` Sections 3-4 |
-| "Component patterns" | `BOOK_TRACKER_QUICK_REFERENCE.md` |
+| "How do I query books?" | `.specify/memory/patterns.md` |
+| "API endpoint structure" | `ARCHITECTURE.md` Section 4 |
+| "Database schema" | `ARCHITECTURE.md` Section 3 |
+| "Calibre sync flow" | `ARCHITECTURE.md` Section 3 |
+| "Component patterns" | `.specify/memory/patterns.md` |
 | "Test examples" | `../__tests__/README.md` |
 
 ---
@@ -291,8 +295,8 @@ Documentation should evolve with the codebase:
 
 ### When to Update
 
-- **Architecture changes** → Update `BOOK_TRACKER_ARCHITECTURE.md`
-- **New patterns** → Add to `BOOK_TRACKER_QUICK_REFERENCE.md`
+- **Architecture changes** → Update `ARCHITECTURE.md`
+- **New patterns** → Add to `.specify/memory/patterns.md`
 - **Test changes** → Update `../__tests__/README.md`
 - **New features** → Update relevant sections
 
@@ -342,8 +346,8 @@ Use this when making significant changes:
 ```bash
 # View documentation
 cat docs/README.md                          # This file
-cat docs/BOOK_TRACKER_ARCHITECTURE.md      # Full architecture
-cat docs/BOOK_TRACKER_QUICK_REFERENCE.md   # Code examples
+cat docs/ARCHITECTURE.md                    # Architecture
+cat .specify/memory/patterns.md            # Code patterns
 
 # Development
 bun install                                 # Install dependencies
@@ -367,4 +371,4 @@ __tests__/README.md                         # Test documentation
 **Major Changes in v1.1:**
 - Added ADR-001 for MongoDB to SQLite migration
 - Updated technology stack references
-- Marked BOOK_TRACKER_ARCHITECTURE.md MongoDB sections as outdated
+- Consolidated documentation into ARCHITECTURE.md

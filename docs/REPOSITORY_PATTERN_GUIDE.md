@@ -744,7 +744,7 @@ async findBooksWithSessions(): Promise<BookWithSession[]> {
 ## Related Documentation
 
 - **AI Coding Patterns**: `docs/AI_CODING_PATTERNS.md` - Repository pattern usage in context
-- **Architecture**: `docs/BOOK_TRACKER_ARCHITECTURE.md` - Overall system design
+- **Architecture**: `docs/ARCHITECTURE.md` - Overall system design
 - **Base Repository**: `lib/repositories/base.repository.ts` - Source code
 - **Example Repositories**:
   - `lib/repositories/book.repository.ts`

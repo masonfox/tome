@@ -222,7 +222,7 @@ echo "CALIBRE_DB_PATH=/path/to/calibre/metadata.db" >> .env
 
 ## Related Documentation
 
-- **Database Architecture**: [docs/BOOK_TRACKER_ARCHITECTURE.md](../docs/BOOK_TRACKER_ARCHITECTURE.md)
+- **Database Architecture**: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)
 - **Migration System**: [docs/SQLITE_MIGRATION_STATUS.md](../docs/SQLITE_MIGRATION_STATUS.md)
 - **SQLite Driver Pattern**: [docs/sqlite-driver-consolidation.md](../docs/sqlite-driver-consolidation.md)
 - **Main README**: [README.md](../README.md)

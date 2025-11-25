@@ -31,7 +31,15 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify compliance with principles from `.specify/memory/constitution.md`:
+
+- [ ] **Data Integrity First**: If touching Calibre DB, is it ratings-only via `updateCalibreRating()`? Does it use Drizzle migrations for schema changes? Does it use the database factory pattern (`createDatabase()`)?
+- [ ] **Layered Architecture Pattern**: Does it follow Routes → Services → Repositories? Does it avoid bypassing repositories? For complex pages, does it use the Client Service Layer pattern?
+- [ ] **Self-Contained Deployment**: Does this feature require external services (Redis, queues, cloud)? Can it work with just SQLite?
+- [ ] **User Experience Standards**: Does it provide smart defaults (auto-dates)? Does it validate temporal relationships? Does it preserve history (no deletions)?
+- [ ] **Observability & Testing**: Are critical operations logged with Pino? Are tests using real databases with `setDatabase()`? Do tests maintain isolation?
+
+**Violations** (if any): Document any principle violations and justification below.
 
 ## Project Structure
 

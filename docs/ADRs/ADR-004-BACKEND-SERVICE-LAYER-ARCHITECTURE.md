@@ -870,7 +870,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
 **Documentation**:
 - `PROGRESS.md` - Phase 2 implementation details
-- `docs/BOOK_TRACKER_ARCHITECTURE.md` - Overall architecture
+- `docs/ARCHITECTURE.md` - Overall architecture
 - `docs/REPOSITORY_PATTERN_GUIDE.md` - Repository pattern guide
 
 ---

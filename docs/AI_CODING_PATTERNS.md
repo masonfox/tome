@@ -837,7 +837,7 @@ export async function PATCH(
 
 ### Adding a New Feature
 
-1. **Read architecture** → `docs/BOOK_TRACKER_ARCHITECTURE.md`
+1. **Read architecture** → `docs/ARCHITECTURE.md`
 2. **Check patterns** → This document
 3. **Implement following patterns** → Use repositories for database access
 4. **Add tests** → Follow test patterns above (use `setDatabase()`)
@@ -903,7 +903,7 @@ Adding Calibre functionality?
 
 Unsure about a pattern?
   └─> Check this document (AI_CODING_PATTERNS.md)
-  └─> Check docs/BOOK_TRACKER_QUICK_REFERENCE.md
+  └─> Check .specify/memory/patterns.md
   └─> Check docs/REPOSITORY_PATTERN_GUIDE.md
   └─> Ask the user
 ```
@@ -1034,9 +1034,9 @@ Before suggesting code, verify:
 
 ## 📚 Related Documentation
 
-- **Architecture**: `docs/BOOK_TRACKER_ARCHITECTURE.md` - Complete system design
+- **Architecture**: `docs/ARCHITECTURE.md` - Complete system design
 - **Repository Pattern**: `docs/REPOSITORY_PATTERN_GUIDE.md` - Repository pattern deep dive
-- **Quick Reference**: `docs/BOOK_TRACKER_QUICK_REFERENCE.md` - Code examples
+- **Code Patterns**: `.specify/memory/patterns.md` - Production-tested implementation patterns
 - **Migration Status**: `docs/SQLITE_MIGRATION_STATUS.md` - Current migration state
 - **Testing Guide**: `__tests__/README.md` - Comprehensive testing patterns
 - **Documentation Index**: `docs/README.md` - All documentation
