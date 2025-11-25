@@ -117,6 +117,32 @@ describe("updateStreaks", () => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
+    // Create book and session for today's progress
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "Author/Book",
+      totalPages: 300,
+    });
+    
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+    
+    // Create progress for today (this will trigger the streak update)
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 50,
+      currentPercentage: 16.67,
+      pagesRead: 50,
+      progressDate: new Date(),
+    });
+
     await streakRepository.create({
       userId: null,
       currentStreak: 0,
@@ -142,6 +168,32 @@ describe("updateStreaks", () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const sixDaysAgo = new Date(today);
     sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
+
+    // Create book and session for today's progress
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "Author/Book",
+      totalPages: 300,
+    });
+    
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+    
+    // Create progress for today
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 50,
+      currentPercentage: 16.67,
+      pagesRead: 50,
+      progressDate: new Date(),
+    });
 
     await streakRepository.create({
       userId: null,
@@ -169,6 +221,32 @@ describe("updateStreaks", () => {
     const elevenDaysAgo = new Date(today);
     elevenDaysAgo.setDate(elevenDaysAgo.getDate() - 11);
 
+    // Create book and session for today's progress
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "Author/Book",
+      totalPages: 300,
+    });
+    
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+    
+    // Create progress for today
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 50,
+      currentPercentage: 16.67,
+      pagesRead: 50,
+      progressDate: new Date(),
+    });
+
     await streakRepository.create({
       userId: null,
       currentStreak: 10,
@@ -195,6 +273,32 @@ describe("updateStreaks", () => {
     const tenDaysAgo = new Date(today);
     tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
+    // Create book and session for today's progress
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "Author/Book",
+      totalPages: 300,
+    });
+    
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+    
+    // Create progress for today
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 50,
+      currentPercentage: 16.67,
+      pagesRead: 50,
+      progressDate: new Date(),
+    });
+
     await streakRepository.create({
       userId: null,
       currentStreak: 7,
@@ -218,6 +322,32 @@ describe("updateStreaks", () => {
     const today = startOfDay(new Date());
     const threeDaysAgo = new Date(today);
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    // Create book and session for today's progress
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "Author/Book",
+      totalPages: 300,
+    });
+    
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+    
+    // Create progress for today
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 50,
+      currentPercentage: 16.67,
+      pagesRead: 50,
+      progressDate: new Date(),
+    });
 
     await streakRepository.create({
       userId: null,
