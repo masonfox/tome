@@ -129,6 +129,8 @@ async function getStats(): Promise<DashboardStats | null> {
 
 async function getStreak(): Promise<DashboardStreak | null> {
   try {
+    // Read-only: Streak is kept up-to-date by events (progress logging, threshold changes)
+    // No need to recalculate on every dashboard load - efficient and fast
     const { streakService } = await import("@/lib/services/streak.service");
     const streak = await streakService.getStreak(null);
 

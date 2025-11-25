@@ -31,6 +31,7 @@ export class StreakService {
   /**
    * Update daily threshold with validation
    * Auto-creates streak record if it doesn't exist
+   * Recalculates current streak with new threshold
    */
   async updateThreshold(userId: number | null, newThreshold: number): Promise<Streak> {
     // Validate threshold
@@ -62,10 +63,30 @@ export class StreakService {
         newThreshold,
         streakId: updated.id,
       },
-      "Streak threshold updated successfully"
+      "Streak threshold updated successfully, recalculating streak"
     );
 
-    return updated;
+    // Recalculate streak with new threshold
+    // This handles the case where user has already logged progress today
+    // that now meets (or no longer meets) the new threshold
+    const { updateStreaks } = await import("@/lib/streaks");
+    await updateStreaks(userId);
+
+    // Fetch the final streak state which includes both the new threshold
+    // and the recalculated streak values
+    const finalStreak = await streakRepository.findByUserId(userId);
+
+    logger.info(
+      {
+        userId,
+        currentStreak: finalStreak?.currentStreak,
+        longestStreak: finalStreak?.longestStreak,
+        dailyThreshold: finalStreak?.dailyThreshold,
+      },
+      "Streak recalculated after threshold change"
+    );
+
+    return finalStreak!;
   }
 }
 

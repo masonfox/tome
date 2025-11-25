@@ -51,18 +51,12 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
     thresholdMet,
   }, "[Streak] Checking daily threshold");
 
-  if (!thresholdMet) {
-    // Threshold not met yet, don't update streak
-    logger.debug("[Streak] Threshold not met yet, returning existing streak");
-    return streak;
-  }
-
   // Has activity today, check if it's consecutive
   const lastActivity = startOfDay(streak.lastActivityDate);
   const daysDiff = differenceInDays(today, lastActivity);
 
   if (daysDiff === 0) {
-    // Same day activity
+    // Same day activity - handle threshold changes
     if (streak.currentStreak === 0 && thresholdMet) {
       // Special case: First activity that meets threshold
       // This handles fresh database or restart after breaking streak
@@ -80,10 +74,37 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
         totalDaysActive: updated?.totalDaysActive,
       }, "[Streak] Streak initialized to 1");
       return updated!;
+    } else if (streak.currentStreak > 0 && !thresholdMet) {
+      // Special case: Threshold was raised and is no longer met
+      // Reset streak to 0 to reflect that today's goal is not met anymore
+      logger.info({
+        currentStreak: streak.currentStreak,
+        pagesRead: todayProgress.pagesRead,
+        dailyThreshold,
+      }, "[Streak] Threshold no longer met, resetting streak to 0");
+      const updated = await streakRepository.update(streak.id, {
+        currentStreak: 0,
+        lastActivityDate: today,
+      } as any);
+      logger.info({
+        currentStreak: updated?.currentStreak,
+      }, "[Streak] Streak reset to 0 due to threshold increase");
+      return updated!;
+    } else if (streak.currentStreak === 0 && !thresholdMet) {
+      // Threshold not met and streak already 0, nothing to do
+      logger.debug("[Streak] Threshold not met yet, streak remains 0");
+      return streak;
     }
-    
-    // Normal same-day activity, streak already set for today
+
+    // Normal same-day activity, streak already set for today and threshold met
     logger.debug("[Streak] Same day activity, streak unchanged");
+    return streak;
+  }
+
+  // Only continue to consecutive/broken streak logic if threshold is met
+  if (!thresholdMet) {
+    // Threshold not met on a new day - this would break the streak on different day
+    logger.debug("[Streak] Threshold not met yet, returning existing streak");
     return streak;
   } else if (daysDiff === 1) {
     // Consecutive day, increment streak
