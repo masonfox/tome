@@ -62,7 +62,27 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   const daysDiff = differenceInDays(today, lastActivity);
 
   if (daysDiff === 0) {
-    // Same day activity, streak unchanged
+    // Same day activity
+    if (streak.currentStreak === 0 && thresholdMet) {
+      // Special case: First activity that meets threshold
+      // This handles fresh database or restart after breaking streak
+      logger.info("[Streak] First day activity meets threshold, setting streak to 1");
+      const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive;
+      const updated = await streakRepository.update(streak.id, {
+        currentStreak: 1,
+        longestStreak: Math.max(1, streak.longestStreak),
+        totalDaysActive: newTotalDays,
+        lastActivityDate: today,
+      } as any);
+      logger.info({
+        currentStreak: updated?.currentStreak,
+        longestStreak: updated?.longestStreak,
+        totalDaysActive: updated?.totalDaysActive,
+      }, "[Streak] Streak initialized to 1");
+      return updated!;
+    }
+    
+    // Normal same-day activity, streak already set for today
     logger.debug("[Streak] Same day activity, streak unchanged");
     return streak;
   } else if (daysDiff === 1) {
