@@ -1,162 +1,199 @@
-<!--
-SYNC IMPACT REPORT - Constitution Update
-Generated: 2025-11-24
-
-Version Change: 1.0.0 → 1.0.1 (Documentation consolidation - PATCH)
-
-Changes in v1.0.1:
-  - Updated documentation references
-  - Consolidated BOOK_TRACKER_ARCHITECTURE.md and BOOK_TRACKER_QUICK_REFERENCE.md into ARCHITECTURE.md
-  - No principle changes (PATCH version bump per governance rules)
-
-Principles Defined (grounded in actual documented practices):
-  1. Data Integrity First - Calibre read-only with ratings exception (ADR-002), Drizzle migrations, factory pattern
-  2. Layered Architecture Pattern - Routes → Services → Repositories (REPOSITORY_PATTERN_GUIDE.md, ADR-004)
-  3. Self-Contained Deployment - SQLite only, zero external deps (ADR-001 MongoDB migration)
-  4. User Experience Standards - Smart defaults, temporal validation, preserved history (ARCHITECTURE.md)
-  5. Observability & Testing - Pino structured logging, real database tests with setDatabase() (LOGGING_GUIDE.md, AI_CODING_PATTERNS.md)
-
-Documentation Sources Referenced:
-  - ADR-001-MONGODB-TO-SQLITE-MIGRATION.md
-  - ADR-002-RATING-ARCHITECTURE.md
-  - ADR-004-BACKEND-SERVICE-LAYER-ARCHITECTURE.md
-  - REPOSITORY_PATTERN_GUIDE.md
-  - AI_CODING_PATTERNS.md
-  - LOGGING_GUIDE.md
-  - ARCHITECTURE.md (consolidated from BOOK_TRACKER_ARCHITECTURE.md and BOOK_TRACKER_QUICK_REFERENCE.md)
-  - .specify/memory/patterns.md
-
--->
-
 # Tome Constitution
 
-## Core Principles
+**Version**: | 1.0.0 | **Ratified**: 2025-11-24
 
-### I. Data Integrity First
+---
 
-**Rule**: All database operations MUST protect data integrity and prevent corruption.
+## 1. Purpose
 
-Requirements:
-- Calibre database is read-only with ONE exception: ratings may be written via `updateCalibreRating()` for bidirectional sync
-- Rating writes MUST only touch `ratings` and `books_ratings_link` tables (never `books`, `authors`, `series`, `tags`)
-- All Calibre writes MUST use the approved abstraction in `lib/db/calibre-write.ts`
-- Tome SQLite database MUST use Drizzle ORM with foreign keys, CHECK constraints, and unique indexes
-- Database connections MUST use the factory pattern (`createDatabase()`) for runtime-appropriate driver selection
-- All schema changes MUST go through Drizzle migrations (never direct ALTER TABLE)
+Tome exists to give readers durable, local ownership of their reading history.
 
-**Rationale**: Tome integrates with Calibre's library, which is the user's primary book collection. The read-only policy protects metadata integrity while allowing ratings to sync bidirectionally (Calibre's expected behavior per ADR-002). The Tome tracking database contains irreplaceable user reading history protected through Drizzle's migration system and SQLite's ACID guarantees.
+Most book tracking happens in cloud services that can disappear, change terms, or lock users out. Tome pulls tracking closer to where books already live—in personal Calibre libraries—and provides clean, permanent records of reading journeys that users fully control.
 
-### II. Layered Architecture Pattern
+---
 
-**Rule**: Data access MUST follow the documented three-layer pattern: Routes → Services → Repositories.
+## 2. Mission
 
-Requirements:
-- Route handlers MUST be thin (HTTP concerns only) and delegate to Service Layer
-- Service Layer MUST contain business logic, validation, and orchestration
-- Repository Layer MUST handle all database access (never bypass repositories)
-- Never use raw Drizzle queries outside repositories (use `bookRepository`, `sessionRepository`, etc.)
-- Complex client pages MUST use Client Service Layer pattern: `Page → Hook → ClientService → API`
-- Database Factory pattern MUST be used for all connections (`createDatabase()` abstracts runtime detection)
+Tome commits to:
 
-**Rationale**: The Repository Pattern is the primary data access pattern (per REPOSITORY_PATTERN_GUIDE.md). This separation enables testing business logic without database mocks, provides consistent query interfaces, and isolates Drizzle ORM details. The Service Layer (added post-launch per ADR-004) centralizes business rules across multiple repositories.
+- **Tracking reading history locally** with complete fidelity and zero data loss
+- **Integrating seamlessly with Calibre** without disrupting existing workflows
+- **Preserving every reading session** so users can see their full journey with each book
+- **Enabling self-hosting** without complex infrastructure or maintenance burden
+- **Protecting user data** with limits writes and read-primary Calibre access and bulletproof local storage
 
-### III. Self-Contained Deployment
+---
 
-**Rule**: The application MUST be deployable as a single unit with no external service dependencies.
+## 3. Vision
 
-Requirements:
-- Single SQLite database for all tracking data (migrated from MongoDB per ADR-001)
-- All dependencies bundled in deployment artifact (Bun runtime + Next.js)
-- No required external services (no Redis, no message queues, no cloud services)
-- Environment configuration via single `.env` file with sensible defaults
-- Docker container MUST be fully self-contained (single volume for data persistence)
-- Backup strategy: Copy `data/tome.db` file (no complex export procedures)
+A world where personal book tracking is as durable and accessible as the books themselves.
 
-**Rationale**: Users want self-hosted solutions that "just work" without managing complex infrastructure (per README "Think: Goodreads/StoryGraph but powered by your personal Calibre library"). SQLite migration (ADR-001) eliminated MongoDB dependency, providing zero external dependencies, simpler deployment, better performance, data locality with Calibre, and easier backups.
+Reading history should outlive services, survive platform changes, and remain under user control. Tome envisions a future where readers own their data, self-hosting is simple, and tracking integrates naturally with existing book management—not as a replacement, but as a complement to tools like Calibre and Calibre Web, continuously enriching your ebook ecosystem.
 
-### IV. User Experience Standards
+---
 
-**Rule**: The interface MUST provide smart defaults, temporal validation, and preserve user history.
+## 4. Guiding Principles
 
-Requirements:
-- Smart defaults: Auto-set `startedDate` on first progress, `completedDate` at 100% completion
-- Temporal validation: Reject backward progress with current date (prevent timeline inconsistencies)
-- Allow backdated entries for legitimate use cases (book clubs, catch-up logging)
-- Preserved history: Archive sessions on re-read (never delete), maintain reading counts
-- Re-reading support: "Start Re-reading" creates new session while preserving complete history
-- Rating integration: Book-level ratings (stored in Calibre), session-level notes (can differ per read)
-- Error messages MUST be actionable (explain what happened and how to fix it)
+These principles guide every decision. When evaluating features, changes, or trade-offs, ask: does this align with these principles?
 
-**Rationale**: Reading tracking involves complex temporal relationships (start dates, progress timestamps, completion dates). Smart defaults reduce data entry burden. Temporal validation prevents user errors (e.g., backdating progress by accident). Preserved history respects that users re-read books and want to see their journey over time.
+### I. Protect User Data Above All
 
-### V. Observability & Testing
+User data is irreplaceable. Reading history represents time, memories, and personal growth.
 
-**Rule**: All critical operations MUST be observable through structured logging, and testable with real databases.
+**Decision Filter**: Would this change risk data loss, corruption, or confusion? If yes, find another way.
 
-Requirements:
-- Structured logging via Pino: `getLogger().info({ bookId }, 'Action')` format
-- Correlation IDs: Use `reqId` for request tracing across service boundaries
-- Sensitive field redaction: `authorization`, `password`, `token` automatically redacted
-- Development tooling: Drizzle Studio (database browser), detailed error pages
-- Test with real databases: Use `setDatabase()` and `resetDatabase()` for isolation (never global module mocks)
-- Test coverage: Run full test suite before completing tasks (`bun test` - 99+ tests)
-- Database queries logged in development mode for N+1 detection
+**Examples**:
+- Prefer read-only access to Calibre's database (only write ratings bidirectionally)
+- Use migrations with automatic backups, never ad-hoc schema changes
+- Validate temporal relationships to prevent timeline inconsistencies
 
-**Rationale**: When things go wrong, developers need clear visibility into what happened. Pino's structured logging (per LOGGING_GUIDE.md) enables rapid diagnosis with correlation across requests. Testing with real databases (per AI_CODING_PATTERNS.md) catches integration issues that mocks hide. Test isolation via `setDatabase()` prevents cross-test pollution.
+---
 
-## Development Workflow
+### II. Respect Calibre as Source of Truth
 
-### Migration Safety
+Calibre is the user's primary book library. Tome tracks reading; Calibre manages books.
 
-- Migrations run automatically in Docker/production with retry logic (3 attempts)
-- Migrations MUST run manually in development (explicit control)
-- Automatic backups created before migrations (kept: last 3 backups)
-- Pre-flight checks validate system state before migration execution
-- Lock files prevent concurrent migrations (5-minute timeout)
+**Decision Filter**: Would this feature compete with, duplicate, or modify Calibre's or Calibre Web's core responsibilities? If yes, don't build it.
 
-### Testing Gates
+**Examples**:
+- Never edit book metadata, authors, series, or tags in Calibre
+- Sync ratings bidirectionally (Calibre expects this)
 
-- Comprehensive test suite (99+ tests) MUST pass before merging to main
-- New features SHOULD include tests (unit + integration) but not strictly required
-- Test with real databases using `setDatabase()` pattern (never global mocks)
-- Test isolation MUST be maintained (use `resetDatabase()` between tests)
-- Integration tests SHOULD validate end-to-end user journeys
-- Service layer tests focus on business logic (77 unit tests for BookService, SessionService, ProgressService)
+---
 
-### Commit Practices
+### III. Preserve Complete History
 
-- Confirm to commit after each logical task completion
-- Commit messages MUST follow: `type(scope): description`
-- Types: feat, fix, refactor, test, docs, chore
-- Breaking changes MUST include `BREAKING CHANGE:` in commit body
+Users re-read books. They change their minds. They want to see their journey over time.
 
-## Governance
+**Decision Filter**: Would this feature delete or overwrite historical data? If yes, rethink it.
 
-### Amendment Procedure
+**Examples**:
+- Archive old sessions when re-reading, never delete them
+- Maintain reading counts across all sessions
+- Allow backdated entries for catch-up logging without losing temporal integrity
 
-1. Propose changes via GitHub issue tagged "constitution"
-2. Changes MUST include:
-   - Rationale (why needed)
-   - Impact assessment (what breaks)
-   - Migration plan (how to comply)
-3. Approval required before amendment
-4. Version bump according to semantic versioning:
-   - MAJOR: Backward incompatible principle removal/redefinition
-   - MINOR: New principle or materially expanded guidance
-   - PATCH: Clarifications, wording fixes, non-semantic refinements
+---
 
-### Compliance Verification
+### IV. Make Complexity Invisible
 
-- All PRs MUST verify compliance with Core Principles
-- Code reviews MUST check for principle violations
-- Constitution violations MUST be justified in PR description
-- Unjustified complexity will be rejected
+Users shouldn't think about databases, migrations, sync logic, or temporal validation. The app should "just work."
 
-### Runtime Development Guidance
+**Decision Filter**: Does this require users to understand implementation details? If yes, simplify the interface.
 
-For agent-based development, runtime guidance is provided in:
-- `.claude/instructions.md` - Claude Code specific patterns
-- `.github/copilot-instructions.md` - GitHub Copilot specific patterns
-- `AI_INSTRUCTIONS.md` - Universal AI assistant patterns
+**Examples**:
+- Auto-set start dates on first progress entry
+- Auto-complete sessions at 100% progress
+- Provide smart defaults; allow overrides for power users
 
-**Version**: 1.0.1 | **Ratified**: 2025-11-17 | **Last Amended**: 2025-11-24
+---
+
+### V. Trust but Verify
+
+Logging and testing aren't overhead—they're how we keep promises to users and our only means for quality and confidence.
+
+**Decision Filter**: Can we diagnose failures when this breaks? Can we verify correctness before shipping?
+
+**Examples**:
+- Structured logging with correlation IDs for request tracing
+- Test with real databases to catch integration issues mocks miss
+- Run comprehensive tests before merging to main
+
+---
+
+## 5. Non-Negotiables
+
+These constraints define Tome's identity. Violating them means building a different product.
+
+1. **Local-First Architecture**
+   All user data lives locally. No cloud sync, no mandatory accounts, no server-side storage.
+
+2. **Calibre Integration**
+   Tome reads from Calibre's library. Breaking this integration breaks Tome's core value proposition.
+
+3. **Self-Hostable**
+   Users deploy Tome on their own infrastructure. No SaaS version, no vendor lock-in.
+
+4. **Zero External Service Dependencies**
+   Tome must run in complete isolation. No Redis, no cloud APIs, no message queues.
+
+5. **Reading History is Never Deleted**
+   Sessions can be archived, hidden, or marked inactive—but never destroyed.
+
+---
+
+## 6. Domain Vocabulary
+
+Tome uses these terms consistently across code, docs, and UI:
+
+- **Session**: A single read-through of a book from start to finish (or abandonment). Users can have multiple sessions for the same book.
+
+- **Progress**: A snapshot of reading advancement within a session (page number, percentage, timestamp).
+
+- **Re-reading**: Starting a new session for a book with existing sessions. Previous sessions are archived and preserved.
+
+- **Calibre Sync**: Bidirectional rating synchronization between Tome and Calibre. Tome writes ratings to Calibre; Calibre remains the source of truth for book metadata.
+
+- **Reading Streak**: Consecutive days with at least one progress entry. Breaks on missed days; resets on new streaks.
+
+- **Completion**: A session reaches 100% progress. Automatically sets `completedDate` unless backdated.
+
+---
+
+## 7. Scope Boundaries
+
+Tome is focused. These are out of scope permanently:
+
+### What Tome Will NOT Do
+
+1. **Replace Calibre**
+   Calibre manage books, metadata, and libraries. Tome tracks reading. They complement each other.
+
+2. **Discover or Recommend Books**
+   No algorithmic recommendations, trending lists, or discovery features. Users know what they want to read; it's their Calibre library.
+
+3. **Provide Social Features**
+   No followers, likes, comments, or sharing. Tome is personal, not social.
+
+4. **Operate as a Cloud Service**
+   No SaaS version, no hosted offering. Tome is self-hosted only.
+
+5. **Edit Book Metadata**
+   Calibre owns title, author, series, tags, and cover images. Tome respects that boundary.
+
+---
+
+## 8. Amendment Process
+
+The constitution evolves, but changes must be deliberate and justified.
+
+### Proposing Amendments
+
+1. **Open a GitHub issue** tagged `constitution`
+2. **Include**:
+   - **Rationale**: Why is this change needed?
+   - **Impact Assessment**: What breaks? What must change?
+   - **Migration Plan**: How do existing systems comply?
+3. **Discussion period**: Allow time for feedback and refinement
+4. **Approval**: Maintainer approval required before amendment
+
+### Versioning
+
+Constitution follows semantic versioning:
+
+- **MAJOR (x.0.0)**: Removes or redefines core principles. Breaking change to project identity.
+- **MINOR (0.x.0)**: Adds new principles or materially expands guidance. New constraints or commitments.
+- **PATCH (0.0.x)**: Clarifies wording, fixes typos, refines non-semantic details. No new constraints.
+
+### Compliance
+
+- All commits and pull requests must verify compliance with this constitution
+- Principle violations must be explicitly justified in commit or PR descriptions
+- Code reviews check for alignment with guiding principles
+- Unjustified complexity or external dependencies are rejected
+
+---
+
+## Change Log
+
+**v1.0.0** (2025-11-24)
+Initial constitution ratified with five core principles.

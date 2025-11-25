@@ -193,8 +193,8 @@ Feature Complete ✅
 
 **Before creating spec:**
 - Read `.specify/memory/constitution.md`
-- Understand the 5 core principles
-- Know what's allowed/disallowed
+- Understand the 7 guiding principles
+- Know what's in scope and out of scope (Non-Negotiables + Scope Boundaries)
 
 ### 2. Keep User Stories Independent
 
@@ -278,11 +278,13 @@ specs/001-feature-name/
 SpecKit automatically validates against:
 
 **Constitution** (`.specify/memory/constitution.md`):
-- Data Integrity First
-- Layered Architecture Pattern
-- Self-Contained Deployment
-- User Experience Standards
-- Observability & Testing
+- Protect User Data Above All
+- Respect Calibre as Source of Truth
+- Preserve Complete History
+- Minimize External Dependencies
+- Make Complexity Invisible
+- Design for Longevity
+- Trust but Verify
 
 **Patterns** (`.specify/memory/patterns.md`):
 - References patterns by name
