@@ -129,6 +129,31 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
     }
     return updated;
   }
+
+  /**
+   * Update daily threshold for user
+   * Validates that threshold is between 1 and 9999
+   */
+  async updateThreshold(userId: number | null, dailyThreshold: number): Promise<Streak> {
+    // Validation
+    if (!Number.isInteger(dailyThreshold)) {
+      throw new Error('Daily threshold must be an integer');
+    }
+    if (dailyThreshold < 1 || dailyThreshold > 9999) {
+      throw new Error('Daily threshold must be between 1 and 9999');
+    }
+
+    const streak = await this.getOrCreate(userId);
+
+    const updated = await this.update(streak.id, {
+      dailyThreshold,
+      updatedAt: new Date(),
+    } as any);
+    if (!updated) {
+      throw new Error('Failed to update threshold');
+    }
+    return updated;
+  }
 }
 
 // Singleton instance

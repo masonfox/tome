@@ -17,6 +17,8 @@ export interface DashboardStats {
 export interface DashboardStreak {
   currentStreak: number;
   longestStreak: number;
+  dailyThreshold: number;
+  hoursRemainingToday: number;
 }
 
 export interface BookWithStatus {
@@ -124,18 +126,23 @@ async function getStats(): Promise<DashboardStats | null> {
 
 async function getStreak(): Promise<DashboardStreak | null> {
   try {
-    const streak = await streakRepository.findByUserId(null);
+    const { streakService } = await import("@/lib/services/streak.service");
+    const streak = await streakService.getStreak(null);
 
     if (!streak) {
       return {
         currentStreak: 0,
         longestStreak: 0,
+        dailyThreshold: 1,
+        hoursRemainingToday: 0,
       };
     }
 
     return {
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
+      dailyThreshold: streak.dailyThreshold,
+      hoursRemainingToday: streak.hoursRemainingToday,
     };
   } catch (error) {
     const { getLogger } = require("@/lib/logger");

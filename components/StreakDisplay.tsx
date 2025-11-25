@@ -6,12 +6,16 @@ import { cn } from "@/utils/cn";
 interface StreakDisplayProps {
   currentStreak: number;
   longestStreak: number;
+  dailyThreshold?: number;
+  hoursRemainingToday?: number;
   className?: string;
 }
 
 export function StreakDisplay({
   currentStreak,
   longestStreak,
+  dailyThreshold,
+  hoursRemainingToday,
   className,
 }: StreakDisplayProps) {
   return (
@@ -53,6 +57,39 @@ export function StreakDisplay({
           </p>
         </div>
       </div>
+
+      {/* Threshold and time remaining */}
+      {(dailyThreshold || hoursRemainingToday !== undefined) && (
+        <div className="mt-6 pt-6 border-t border-[var(--border-color)] grid grid-cols-2 gap-4">
+          {dailyThreshold && (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
+                Daily Goal
+              </p>
+              <p className="text-lg font-serif font-bold text-[var(--foreground)] mt-1">
+                {dailyThreshold} {dailyThreshold === 1 ? "page" : "pages"}
+              </p>
+            </div>
+          )}
+
+          {hoursRemainingToday !== undefined && (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
+                Time Left Today
+              </p>
+              <p className="text-lg font-serif font-bold text-[var(--foreground)] mt-1">
+                {hoursRemainingToday} {hoursRemainingToday === 1 ? "hour" : "hours"}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {currentStreak === 0 && (
+        <p className="text-sm mt-6 pt-6 border-t border-[var(--border-color)] text-[var(--foreground)]/70 font-medium">
+          Start reading today to begin your streak!
+        </p>
+      )}
 
       {currentStreak > 0 && (
         <p className="text-sm mt-6 pt-6 border-t border-[var(--border-color)] text-[var(--foreground)]/70 font-medium">

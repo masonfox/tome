@@ -28,6 +28,8 @@ export default async function Dashboard() {
         <StreakDisplay
           currentStreak={streak.currentStreak}
           longestStreak={streak.longestStreak}
+          dailyThreshold={streak.dailyThreshold}
+          hoursRemainingToday={streak.hoursRemainingToday}
         />
       )}
 

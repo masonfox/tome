@@ -76,10 +76,10 @@ Setup (Phase 1) → Foundational (Phase 2)
 
 ### Tasks
 
-- [ ] T001 Create database migration file for dailyThreshold column in migrations/XXXX_add_streak_threshold.sql
-- [ ] T002 Add CHECK constraint (dailyThreshold >= 1 AND dailyThreshold <= 9999) to migration in migrations/XXXX_add_streak_threshold.sql
-- [ ] T003 Run database migration using bun run db:migrate
-- [ ] T004 Verify migration success using bun run db:studio (check streaks table has daily_threshold column)
+- [X] T001 Create database migration file for dailyThreshold column in migrations/XXXX_add_streak_threshold.sql
+- [X] T002 Add CHECK constraint (dailyThreshold >= 1 AND dailyThreshold <= 9999) to migration in migrations/XXXX_add_streak_threshold.sql
+- [X] T003 Run database migration using bun run db:migrate
+- [X] T004 Verify migration success using bun run db:studio (check streaks table has daily_threshold column)
 
 ## Phase 2: Foundational Layer
 
@@ -87,15 +87,15 @@ Setup (Phase 1) → Foundational (Phase 2)
 
 ### Tasks
 
-- [ ] T005 [P] Update streaks schema to include dailyThreshold field in lib/db/schema/streaks.ts
-- [ ] T006 [P] Add TypeScript type for dailyThreshold to Streak and NewStreak types in lib/db/schema/streaks.ts
-- [ ] T007 Add updateThreshold method to StreakRepository in lib/repositories/streak.repository.ts
-- [ ] T008 Add validation logic (1-9999 range) to updateThreshold method in lib/repositories/streak.repository.ts
-- [ ] T009 Create StreakService class in lib/services/streak.service.ts
-- [ ] T010 Implement getStreak method with hoursRemainingToday calculation in lib/services/streak.service.ts
-- [ ] T011 Implement updateThreshold method with validation in lib/services/streak.service.ts
-- [ ] T012 Update updateStreaks function to respect dailyThreshold when checking if threshold met in lib/streaks.ts
-- [ ] T013 Add Pino logging for threshold updates and streak calculations in lib/services/streak.service.ts
+- [X] T005 [P] Update streaks schema to include dailyThreshold field in lib/db/schema/streaks.ts
+- [X] T006 [P] Add TypeScript type for dailyThreshold to Streak and NewStreak types in lib/db/schema/streaks.ts
+- [X] T007 Add updateThreshold method to StreakRepository in lib/repositories/streak.repository.ts
+- [X] T008 Add validation logic (1-9999 range) to updateThreshold method in lib/repositories/streak.repository.ts
+- [X] T009 Create StreakService class in lib/services/streak.service.ts
+- [X] T010 Implement getStreak method with hoursRemainingToday calculation in lib/services/streak.service.ts
+- [X] T011 Implement updateThreshold method with validation in lib/services/streak.service.ts
+- [X] T012 Update updateStreaks function to respect dailyThreshold when checking if threshold met in lib/streaks.ts
+- [X] T013 Add Pino logging for threshold updates and streak calculations in lib/services/streak.service.ts
 
 ## Phase 3: User Story 1 - View Current Streak on Homepage (P1)
 
@@ -105,12 +105,12 @@ Setup (Phase 1) → Foundational (Phase 2)
 
 ### Tasks
 
-- [ ] T014 [US1] Update StreakDisplay component props interface to include dailyThreshold and hoursRemainingToday in components/StreakDisplay.tsx
-- [ ] T015 [US1] Add threshold display section to StreakDisplay component in components/StreakDisplay.tsx
-- [ ] T016 [US1] Add time remaining display section to StreakDisplay component in components/StreakDisplay.tsx
-- [ ] T017 [US1] Update homepage to fetch enhanced streak data including threshold in app/page.tsx
-- [ ] T018 [US1] Pass dailyThreshold and hoursRemainingToday props to StreakDisplay in app/page.tsx
-- [ ] T019 [US1] Add encouraging message logic for zero streak in StreakDisplay component in components/StreakDisplay.tsx
+- [X] T014 [US1] Update StreakDisplay component props interface to include dailyThreshold and hoursRemainingToday in components/StreakDisplay.tsx
+- [X] T015 [US1] Add threshold display section to StreakDisplay component in components/StreakDisplay.tsx
+- [X] T016 [US1] Add time remaining display section to StreakDisplay component in components/StreakDisplay.tsx
+- [X] T017 [US1] Update homepage to fetch enhanced streak data including threshold in app/page.tsx
+- [X] T018 [US1] Pass dailyThreshold and hoursRemainingToday props to StreakDisplay in app/page.tsx
+- [X] T019 [US1] Add encouraging message logic for zero streak in StreakDisplay component in components/StreakDisplay.tsx
 - [ ] T020 [US1] Verify streak display shows correct data after reading activities (manual test)
 
 **Parallel Opportunities**:
@@ -125,17 +125,17 @@ Setup (Phase 1) → Foundational (Phase 2)
 
 ### Tasks
 
-- [ ] T021 [P] [US2] Create GET /api/streak endpoint to fetch current streak in app/api/streak/route.ts
-- [ ] T022 [P] [US2] Create PATCH /api/streak/threshold endpoint to update threshold in app/api/streak/route.ts
-- [ ] T023 [US2] Add request body validation for PATCH endpoint (check dailyThreshold field) in app/api/streak/route.ts
-- [ ] T024 [US2] Add range validation (1-9999) with error responses in app/api/streak/route.ts
-- [ ] T025 [US2] Add error handling for missing streak record (404) in app/api/streak/route.ts
-- [ ] T026 [US2] Create StreakSettings client component in components/StreakSettings.tsx
-- [ ] T027 [US2] Add form with number input (min=1, max=9999) in components/StreakSettings.tsx
-- [ ] T028 [US2] Implement threshold update handler with fetch to PATCH endpoint in components/StreakSettings.tsx
-- [ ] T029 [US2] Add toast notifications for success/error states using sonner in components/StreakSettings.tsx
-- [ ] T030 [US2] Add loading state during threshold update in components/StreakSettings.tsx
-- [ ] T031 [US2] Integrate StreakSettings component into settings page in app/settings/page.tsx
+- [X] T021 [P] [US2] Create GET /api/streak endpoint to fetch current streak in app/api/streak/route.ts
+- [X] T022 [P] [US2] Create PATCH /api/streak/threshold endpoint to update threshold in app/api/streak/route.ts
+- [X] T023 [US2] Add request body validation for PATCH endpoint (check dailyThreshold field) in app/api/streak/route.ts
+- [X] T024 [US2] Add range validation (1-9999) with error responses in app/api/streak/route.ts
+- [X] T025 [US2] Add error handling for missing streak record (404) in app/api/streak/route.ts
+- [X] T026 [US2] Create StreakSettings client component in components/StreakSettings.tsx
+- [X] T027 [US2] Add form with number input (min=1, max=9999) in components/StreakSettings.tsx
+- [X] T028 [US2] Implement threshold update handler with fetch to PATCH endpoint in components/StreakSettings.tsx
+- [X] T029 [US2] Add toast notifications for success/error states using sonner in components/StreakSettings.tsx
+- [X] T030 [US2] Add loading state during threshold update in components/StreakSettings.tsx
+- [X] T031 [US2] Integrate StreakSettings component into settings page in app/settings/page.tsx
 - [ ] T032 [US2] Verify invalid thresholds (0, 10000, negative) show appropriate error messages (manual test)
 - [ ] T033 [US2] Verify threshold updates persist across page refreshes (manual test)
 - [ ] T034 [US2] Verify streak calculation respects new threshold after mid-day change (manual test)

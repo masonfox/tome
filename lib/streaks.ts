@@ -41,6 +41,22 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
     return streak;
   }
 
+  // Check if daily threshold is met
+  const dailyThreshold = streak.dailyThreshold || 1;
+  const thresholdMet = todayProgress.pagesRead >= dailyThreshold;
+
+  logger.debug({
+    pagesRead: todayProgress.pagesRead,
+    dailyThreshold,
+    thresholdMet,
+  }, "[Streak] Checking daily threshold");
+
+  if (!thresholdMet) {
+    // Threshold not met yet, don't update streak
+    logger.debug("[Streak] Threshold not met yet, returning existing streak");
+    return streak;
+  }
+
   // Has activity today, check if it's consecutive
   const lastActivity = startOfDay(streak.lastActivityDate);
   const daysDiff = differenceInDays(today, lastActivity);
