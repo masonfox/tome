@@ -55,6 +55,7 @@ export default function BookDetailPage() {
   async function handleConfirmRead(rating: number, review?: string) {
     await handleConfirmReadFromHook(rating, review);
     bookProgressHook.clearFormState();
+    setHistoryRefreshKey(prev => prev + 1);
   }
 
   const {
