@@ -172,12 +172,14 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
           <ReferenceLine
             y={threshold}
             stroke="#f59e0b"
+            strokeOpacity={0.5}
             strokeDasharray="5 5"
             strokeWidth={2}
             label={{
               value: `Goal: ${threshold} pages`,
               position: "insideTopLeft",
               fill: "#f59e0b",
+              opacity: 0.7,
               fontSize: 10,
               fontWeight: 700,
               offset: 5,
