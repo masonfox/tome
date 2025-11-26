@@ -888,7 +888,7 @@ describe("rebuildStreak", () => {
 });
 
 describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
-  test.skip("should set streak to 1 when first activity meets threshold - SKIPPED: timezone issues, see docs/PLAN-SKIP-STREAK-TESTS-IN-CI.md", async () => {
+  test("should set streak to 1 when first activity meets threshold", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -898,29 +898,30 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       isActive: true,
     });
 
-    // Use current date to match what updateStreaks() checks
-    const today = startOfDay(new Date());
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Set lastActivityDate to earlier today (same calendar day)
+    // This ensures daysDiff === 0, triggering "same day, first activity" logic
+    const today = new Date();
+    const earlierToday = new Date(today.getTime() - 1 * 60 * 60 * 1000); // 1 hour ago
 
     const streak = await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: threeDaysAgo,
-      streakStartDate: threeDaysAgo,
+      lastActivityDate: earlierToday,
+      streakStartDate: earlierToday,
       totalDaysActive: 0,
       dailyThreshold: 1,
     });
 
-    // Act - log progress that meets threshold
+    // Act - log progress that meets threshold (use current time, not startOfDay)
+    // ADR-006: Queries match by calendar day, so any time today works
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 10,
       currentPercentage: 10,
       pagesRead: 10,
-      progressDate: today,
+      progressDate: new Date(), // Current time, will match today's calendar day
     });
 
     const result = await updateStreaks();
@@ -931,7 +932,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(1);
   });
 
-  test.skip("should keep streak at 0 if threshold not met - SKIPPED: timezone issues, see docs/PLAN-SKIP-STREAK-TESTS-IN-CI.md", async () => {
+  test("should keep streak at 0 if threshold not met", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -941,16 +942,16 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       isActive: true,
     });
 
-    const today = startOfDay(new Date());
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Set lastActivityDate to earlier today (same calendar day)
+    const today = new Date();
+    const earlierToday = new Date(today.getTime() - 1 * 60 * 60 * 1000); // 1 hour ago
 
     const streak = await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: threeDaysAgo,
-      streakStartDate: threeDaysAgo,
+      lastActivityDate: earlierToday,
+      streakStartDate: earlierToday,
       totalDaysActive: 0,
       dailyThreshold: 10,
     });
@@ -962,7 +963,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       currentPage: 5,
       currentPercentage: 5,
       pagesRead: 5,
-      progressDate: today,
+      progressDate: new Date(), // Current time, will match today's calendar day
     });
 
     const result = await updateStreaks();
@@ -973,7 +974,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(0);
   });
 
-  test.skip("should not double-increment on multiple logs same day - SKIPPED: timezone issues, see docs/PLAN-SKIP-STREAK-TESTS-IN-CI.md", async () => {
+  test("should not double-increment on multiple logs same day", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -983,16 +984,16 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       isActive: true,
     });
 
-    const today = startOfDay(new Date());
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Set lastActivityDate to earlier today (same calendar day)
+    const today = new Date();
+    const earlierToday = new Date(today.getTime() - 3 * 60 * 60 * 1000); // 3 hours ago
 
     const streak = await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: threeDaysAgo,
-      streakStartDate: threeDaysAgo,
+      lastActivityDate: earlierToday,
+      streakStartDate: earlierToday,
       totalDaysActive: 0,
       dailyThreshold: 10,
     });
@@ -1004,7 +1005,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       currentPage: 10,
       currentPercentage: 10,
       pagesRead: 10,
-      progressDate: today,
+      progressDate: new Date(), // Current time
     });
 
     const result1 = await updateStreaks();
@@ -1017,7 +1018,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       currentPage: 20,
       currentPercentage: 20,
       pagesRead: 10,
-      progressDate: today,
+      progressDate: new Date(), // Current time (same day)
     });
 
     const result2 = await updateStreaks();
@@ -1027,8 +1028,9 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result2.totalDaysActive).toBe(1);
   });
 
-  test.skip("should preserve longestStreak when setting first day - SKIPPED: timezone issues, see docs/PLAN-SKIP-STREAK-TESTS-IN-CI.md", async () => {
-    // Arrange - simulate user who had a streak before, broke it, now starting fresh
+  test("should preserve longestStreak when setting first day", async () => {
+    // Arrange - simulate user who had a streak before, broke it long ago
+    // Now they're starting fresh today (first progress today, currentStreak = 0)
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -1037,39 +1039,40 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       isActive: true,
     });
 
-    const today = startOfDay(new Date());
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    
+    // Set lastActivityDate to today minus a few hours (same calendar day)
+    // This ensures daysDiff === 0, triggering "same day, first activity" logic
+    const today = new Date();
+    const earlierToday = new Date(today.getTime() - 3 * 60 * 60 * 1000); // 3 hours ago
+
     const streak = await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 15, // Had a 15-day streak before
-      lastActivityDate: threeDaysAgo,
-      streakStartDate: threeDaysAgo,
+      lastActivityDate: earlierToday,
+      streakStartDate: earlierToday,
       totalDaysActive: 20,
       dailyThreshold: 1,
     });
 
-    // Act
+    // Act - First progress that meets threshold today
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 5,
       currentPercentage: 5,
       pagesRead: 5,
-      progressDate: today,
+      progressDate: new Date(), // Current time
     });
 
     const result = await updateStreaks();
 
-    // Assert - current = 1, but longest should stay 15
+    // Assert - current = 1, but longest should stay 15, totalDays should not increment
     expect(result.currentStreak).toBe(1);
     expect(result.longestStreak).toBe(15);
-    expect(result.totalDaysActive).toBe(20); // Should not increment totalDaysActive
+    expect(result.totalDaysActive).toBe(20); // Should not increment on same day
   });
 
-  test.skip("should set totalDaysActive to 1 on very first activity - SKIPPED: timezone issues, see docs/PLAN-SKIP-STREAK-TESTS-IN-CI.md", async () => {
+  test("should set totalDaysActive to 1 on very first activity", async () => {
     // Arrange - completely fresh, first time ever
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -1079,28 +1082,29 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
       isActive: true,
     });
 
-    const today = startOfDay(new Date());
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Set lastActivityDate to earlier today (same calendar day)
+    // This ensures daysDiff === 0, triggering "same day, first activity" logic
+    const today = new Date();
+    const earlierToday = new Date(today.getTime() - 2 * 60 * 60 * 1000); // 2 hours ago
 
     const streak = await streakRepository.create({
       userId: null,
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: threeDaysAgo,
-      streakStartDate: threeDaysAgo,
+      lastActivityDate: earlierToday,
+      streakStartDate: earlierToday,
       totalDaysActive: 0, // Never read before
       dailyThreshold: 1,
     });
 
-    // Act
+    // Act - First activity ever that meets threshold
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 5,
       currentPercentage: 5,
       pagesRead: 5,
-      progressDate: today,
+      progressDate: new Date(), // Current time
     });
 
     const result = await updateStreaks();
@@ -1111,7 +1115,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(1); // Should increment from 0 to 1
   });
 
-  test.skipIf(isCI)("should work with consecutive days using rebuildStreak", async () => {
+  test("should work with consecutive days using rebuildStreak", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
