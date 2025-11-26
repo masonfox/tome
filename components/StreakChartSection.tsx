@@ -26,7 +26,6 @@ export function StreakChartSection({
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
   const [data, setData] = useState<DailyReading[]>(initialData);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchAnalytics = useCallback(async (days: TimePeriod) => {
     setError(null);
@@ -60,14 +59,6 @@ export function StreakChartSection({
     },
     [fetchAnalytics]
   );
-
-  // Fetch 7-day data on initial mount since server provides 365 days by default
-  useEffect(() => {
-    if (isInitialLoad) {
-      setIsInitialLoad(false);
-      fetchAnalytics(7);
-    }
-  }, [isInitialLoad, fetchAnalytics]);
 
   return (
     <div>

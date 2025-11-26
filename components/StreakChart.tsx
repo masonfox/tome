@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Line,
   XAxis,
@@ -41,8 +41,9 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
       return newSet;
     });
   };
-  // Calculate moving average
-  const calculateMovingAverage = (data: DailyReading[], windowSize: number = 7) => {
+  // Calculate moving average - memoized to avoid recalculation on every render
+  const dataWithAverage = useMemo(() => {
+    const windowSize = 7;
     return data.map((item, index) => {
       const start = Math.max(0, index - windowSize + 1);
       const window = data.slice(start, index + 1);
@@ -53,9 +54,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
         movingAverage: Math.round(average * 10) / 10, // Round to 1 decimal place
       };
     });
-  };
-
-  const dataWithAverage = calculateMovingAverage(data);
+  }, [data]);
 
   // Format date for display (show MM/DD)
   const formatDate = (dateStr: string) => {
