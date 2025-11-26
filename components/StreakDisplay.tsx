@@ -38,9 +38,14 @@ export function StreakDisplay({
   // Check if user has met their goal today
   const goalMet = dailyThreshold ? todayPagesRead >= dailyThreshold : false;
 
-  // Determine flame color based on goal completion
+  // Check if user is at a new record (current streak >= longest streak and streak > 0)
+  const isNewRecord = currentStreak > 0 && currentStreak >= longestStreak && currentStreak > 1;
+
+  // Determine flame color based on goal completion and new record status
   const flameColor = goalMet
-    ? "text-orange-500"  // Orange/red color when goal met
+    ? isNewRecord
+      ? "text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]"  // Glowing effect for new record
+      : "text-orange-500"  // Orange/red color when goal met
     : "text-[var(--foreground)] opacity-35"; // Very dim color when goal not met
 
   // Only show time remaining if goal not met
@@ -49,7 +54,7 @@ export function StreakDisplay({
   return (
     <div className="flex flex-col items-center gap-1">
       <Link href="/streak" className="group transition-opacity">
-        <div className={cn("flex items-center gap-1", className)}>
+        <div className={cn("flex items-center gap-1", isNewRecord && "animate-pulse", className)}>
           {/* Colored flame indicator - filled when goal met, outline when not */}
           {goalMet ? (
             <FilledFlame className={cn("w-5 h-5", flameColor)} />
@@ -64,8 +69,15 @@ export function StreakDisplay({
             </span>
           </div>
         </div>
-        {/* Time remaining (only if goal not met) */}
-        {showTimeRemaining && (
+        {/* Celebration message for new record */}
+        {isNewRecord && (
+          <div className="text-xs mt-2 text-orange-500 font-semibold leading-tight text-center animate-pulse">
+            New record! 🎉
+          </div>
+        )}
+
+        {/* Time remaining (only if goal not met and not showing celebration) */}
+        {showTimeRemaining && !isNewRecord && (
           <div className="text-xs mt-1 text-[var(--subheading-text)] leading-tight text-center">
             {hoursRemainingToday} {hoursRemainingToday === 1 ? "hour" : "hours"} left today
           </div>
