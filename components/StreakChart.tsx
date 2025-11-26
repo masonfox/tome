@@ -32,12 +32,17 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
+  // Format Y-axis ticks as integers
+  const formatYAxis = (value: number) => {
+    return Math.round(value).toString();
+  };
+
   // Determine if we should show every label or skip some based on data length
   const tickInterval = data.length > 30 ? Math.floor(data.length / 10) : 0;
 
   // Calculate Y-axis domain to always show the threshold
   const maxPagesRead = Math.max(...data.map(d => d.pagesRead), 0);
-  const yAxisMax = Math.max(threshold * 1.2, maxPagesRead * 1.1); // Show at least 120% of threshold or 110% of max data
+  const yAxisMax = Math.ceil(Math.max(threshold * 1.2, maxPagesRead * 1.1)); // Show at least 120% of threshold or 110% of max data, rounded up
 
   // Custom tooltip using site design system
   const CustomTooltip = ({ active, payload }: any) => {
@@ -86,6 +91,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
           />
           <YAxis
             domain={[0, yAxisMax]}
+            tickFormatter={formatYAxis}
             label={{
               value: "Pages Read",
               angle: -90,
@@ -101,6 +107,14 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             iconType="line"
             wrapperStyle={{ paddingBottom: "10px" }}
           />
+          <Area
+            type="monotone"
+            dataKey="pagesRead"
+            stroke="#059669"
+            strokeWidth={3}
+            fill="url(#colorGradient)"
+            name="Pages Read"
+          />
           <ReferenceLine
             y={threshold}
             stroke="#f59e0b"
@@ -114,14 +128,6 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
               fontWeight: 700,
               offset: 10,
             }}
-          />
-          <Area
-            type="monotone"
-            dataKey="pagesRead"
-            stroke="#059669"
-            strokeWidth={3}
-            fill="url(#colorGradient)"
-            name="Pages Read"
           />
         </AreaChart>
       </ResponsiveContainer>
