@@ -37,8 +37,14 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
     return Math.round(value).toString();
   };
 
-  // Determine if we should show every label or skip some based on data length
-  const tickInterval = data.length > 30 ? Math.floor(data.length / 10) : 0;
+  // Dynamic tick interval based on data length for better readability
+  const getTickInterval = (length: number) => {
+    if (length <= 30) return Math.floor(length / 7); // ~7 labels for 30 days
+    if (length <= 90) return Math.floor(length / 9); // ~9 labels for 90 days
+    return Math.floor(length / 10); // ~10 labels for 365 days
+  };
+
+  const tickInterval = getTickInterval(data.length);
 
   // Calculate Y-axis domain to always show the threshold
   const maxPagesRead = Math.max(...data.map(d => d.pagesRead), 0);

@@ -1,8 +1,8 @@
-import { StreakChart } from "@/components/StreakChart";
 import { StreakAnalytics } from "@/components/StreakAnalytics";
+import { StreakChartSection } from "@/components/StreakChartSection";
 import { PageHeader } from "@/components/PageHeader";
 import { getLogger } from "@/lib/logger";
-import { Flame, TrendingUp } from "lucide-react";
+import { Flame } from "lucide-react";
 
 const logger = getLogger();
 
@@ -90,26 +90,10 @@ export default async function StreakPage() {
       />
 
       {/* Chart Section */}
-      <div>
-        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
-          Daily Reading Activity
-        </h2>
-        {dailyReadingHistory.length > 0 ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-3 md:p-6">
-            <StreakChart
-              data={dailyReadingHistory}
-              threshold={streak.dailyThreshold}
-            />
-          </div>
-        ) : (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center rounded-md">
-            <TrendingUp className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-            <p className="text-[var(--foreground)]/70 font-medium">
-              No reading data available yet. Start reading to see your progress!
-            </p>
-          </div>
-        )}
-      </div>
+      <StreakChartSection
+        initialData={dailyReadingHistory}
+        threshold={streak.dailyThreshold}
+      />
     </div>
   );
 }
