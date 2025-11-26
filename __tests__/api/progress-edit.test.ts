@@ -75,7 +75,7 @@ describe("Progress Edit API", () => {
 
       const data = await response.json();
       expect(data.currentPage).toBe(150);
-      expect(data.currentPercentage).toBe(37.5); // 150/400 * 100
+      expect(data.currentPercentage).toBe(37); // Math.floor(150/400 * 100) = 37
       expect(data.notes).toBe("Updated progress");
     });
 

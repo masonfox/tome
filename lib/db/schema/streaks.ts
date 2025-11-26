@@ -11,6 +11,7 @@ export const streaks = sqliteTable(
     lastActivityDate: integer("last_activity_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     streakStartDate: integer("streak_start_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     totalDaysActive: integer("total_days_active").notNull().default(0),
+    dailyThreshold: integer("daily_threshold").notNull().default(1),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   },
   (table) => ({

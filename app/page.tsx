@@ -14,22 +14,32 @@ export default async function Dashboard() {
     <div className="space-y-10">
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-6">
-        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
-          <BookOpen className="w-8 h-8" />
-          Dashboard
-        </h1>
-        <p className="text-[var(--subheading-text)] mt-2 font-medium">
-          Welcome back to your reading journey
-        </p>
-      </div>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+          <div>
+            <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
+              <BookOpen className="w-8 h-8" />
+              Dashboard
+            </h1>
+            <p className="text-[var(--subheading-text)] mt-2 font-medium">
+              Welcome back to your reading journey
+            </p>
+          </div>
 
-      {/* Streak Display */}
-      {streak && (
-        <StreakDisplay
-          currentStreak={streak.currentStreak}
-          longestStreak={streak.longestStreak}
-        />
-      )}
+          {/* Streak Display */}
+          <div className="flex justify-center md:justify-end">
+            {streak && (
+              <StreakDisplay
+                currentStreak={streak.currentStreak}
+                longestStreak={streak.longestStreak}
+                dailyThreshold={streak.dailyThreshold}
+                hoursRemainingToday={streak.hoursRemainingToday}
+                todayPagesRead={streak.todayPagesRead}
+                className="flex-shrink-0"
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Currently Reading */}
       <div>

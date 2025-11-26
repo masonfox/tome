@@ -131,6 +131,12 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <h3 className="text-lg font-semibold text-[var(--heading-text)]">
                   Read #{session.sessionNumber}
                 </h3>
+                {session.progressSummary.latestProgress && 
+                 session.progressSummary.latestProgress.currentPercentage < 100 && (
+                  <span className="px-2 py-0.5 text-xs font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full border border-amber-500/30">
+                    Abandoned
+                  </span>
+                )}
               </div>
               <button
                 onClick={() => handleOpenEditModal(session)}

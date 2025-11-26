@@ -1,0 +1,1 @@
+ALTER TABLE `streaks` ADD `daily_threshold` integer DEFAULT 1 NOT NULL CHECK (daily_threshold >= 1 AND daily_threshold <= 9999);

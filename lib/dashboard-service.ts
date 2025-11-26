@@ -17,6 +17,9 @@ export interface DashboardStats {
 export interface DashboardStreak {
   currentStreak: number;
   longestStreak: number;
+  dailyThreshold: number;
+  hoursRemainingToday: number;
+  todayPagesRead: number;
 }
 
 export interface BookWithStatus {
@@ -80,6 +83,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 async function getStats(): Promise<DashboardStats | null> {
   try {
     const currentYear = new Date().getFullYear();
+    
+    // Use local timezone (as per spec requirement)
     const startOfYearDate = startOfYear(new Date(currentYear, 0, 1));
     const today = startOfDay(new Date());
     const startOfMonthDate = startOfMonth(new Date());
@@ -124,18 +129,21 @@ async function getStats(): Promise<DashboardStats | null> {
 
 async function getStreak(): Promise<DashboardStreak | null> {
   try {
-    const streak = await streakRepository.findByUserId(null);
+    // Read-only: Streak is kept up-to-date by events (progress logging, threshold changes)
+    // No need to recalculate on every dashboard load - efficient and fast
+    const { streakService } = await import("@/lib/services/streak.service");
+    const streak = await streakService.getStreak(null);
 
-    if (!streak) {
-      return {
-        currentStreak: 0,
-        longestStreak: 0,
-      };
-    }
+    // Get today's pages read (use local timezone as per spec requirement)
+    const today = startOfDay(new Date());
+    const todayPages = await progressRepository.getPagesReadAfterDate(today);
 
     return {
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
+      dailyThreshold: streak.dailyThreshold,
+      hoursRemainingToday: streak.hoursRemainingToday,
+      todayPagesRead: todayPages,
     };
   } catch (error) {
     const { getLogger } = require("@/lib/logger");

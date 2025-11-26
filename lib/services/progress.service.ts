@@ -3,6 +3,10 @@ import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { validateProgressTimeline, validateProgressEdit } from "./progress-validation";
 import { updateStreaks } from "@/lib/streaks";
 import { revalidatePath } from "next/cache";
+import { 
+  calculatePercentage, 
+  calculatePageFromPercentage
+} from "@/lib/utils/progress-calculations";
 
 /**
  * Progress log data for creating new entries
@@ -260,9 +264,9 @@ export class ProgressService {
 
     // Calculate based on what was provided
     if (currentPage !== undefined && book.totalPages) {
-      finalCurrentPercentage = (currentPage / book.totalPages) * 100;
+      finalCurrentPercentage = calculatePercentage(currentPage, book.totalPages);
     } else if (currentPercentage !== undefined && book.totalPages) {
-      finalCurrentPage = Math.floor((currentPercentage / 100) * book.totalPages);
+      finalCurrentPage = calculatePageFromPercentage(currentPercentage, book.totalPages);
     } else if (currentPage !== undefined) {
       finalCurrentPercentage = 0; // Can't calculate without total pages
     }
@@ -284,6 +288,8 @@ export class ProgressService {
    */
   private async checkForCompletion(sessionId: number, percentage: number): Promise<void> {
     // If book is completed (100%), update session status to "read"
+    // Note: We use >= 100 here because percentage is already calculated with Math.floor,
+    // and only reaching the last page will result in exactly 100%
     if (percentage >= 100) {
       const session = await sessionRepository.findById(sessionId);
       

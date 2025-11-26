@@ -44,11 +44,13 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
       isActive: true,
     });
 
-    // Add progress
+    // Add progress with explicit date
+    const progressDate = new Date("2025-11-20T12:00:00.000Z");
     await progressRepository.create({
       ...mockProgressLog1,
       bookId: book.id,
       sessionId: session.id,
+      progressDate,
     });
 
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -64,9 +66,14 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(data.status).toBe("read-next");
     expect(data.isActive).toBe(true);
 
-    // Verify old session is archived
+    // Verify old session is archived with completedDate
     const oldSession = await sessionRepository.findById(session.id);
     expect(oldSession?.isActive).toBe(false);
+    expect(oldSession?.completedDate).toBeDefined();
+    
+    // completedDate should match last progress date
+    const completedDate = new Date(oldSession!.completedDate!);
+    expect(completedDate.toISOString().split('T')[0]).toBe(progressDate.toISOString().split('T')[0]);
   });
 
   test("should archive session when moving from 'reading' to 'to-read' with progress", async () => {

@@ -1,5 +1,6 @@
 ---
 description: Execute the implementation plan by processing and executing all tasks defined in tasks.md
+auto_commit: false
 ---
 
 ## User Input

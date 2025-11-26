@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
+import { parseISO, startOfDay } from "date-fns";
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -78,7 +79,13 @@ export default function ProgressEditModal({
     }
 
     data.notes = notes.trim() || undefined;
-    data.progressDate = new Date(progressDate + "T00:00:00.000Z").toISOString();
+    
+    // Parse the selected date and get midnight in LOCAL timezone
+    // This ensures the timestamp represents the intended calendar day in the user's timezone
+    const localMidnight = startOfDay(parseISO(progressDate));
+    
+    // Send as ISO string (will be stored as UTC but represents local midnight)
+    data.progressDate = localMidnight.toISOString();
 
     onConfirm(data);
   }

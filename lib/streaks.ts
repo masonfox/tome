@@ -41,13 +41,70 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
     return streak;
   }
 
+  // Check if daily threshold is met
+  const dailyThreshold = streak.dailyThreshold || 1;
+  const thresholdMet = todayProgress.pagesRead >= dailyThreshold;
+
+  logger.debug({
+    pagesRead: todayProgress.pagesRead,
+    dailyThreshold,
+    thresholdMet,
+  }, "[Streak] Checking daily threshold");
+
   // Has activity today, check if it's consecutive
   const lastActivity = startOfDay(streak.lastActivityDate);
   const daysDiff = differenceInDays(today, lastActivity);
 
   if (daysDiff === 0) {
-    // Same day activity, streak unchanged
+    // Same day activity - handle threshold changes
+    if (streak.currentStreak === 0 && thresholdMet) {
+      // Special case: First activity that meets threshold
+      // This handles fresh database or restart after breaking streak
+      logger.info("[Streak] First day activity meets threshold, setting streak to 1");
+      const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive;
+      const updated = await streakRepository.update(streak.id, {
+        currentStreak: 1,
+        longestStreak: Math.max(1, streak.longestStreak),
+        totalDaysActive: newTotalDays,
+        lastActivityDate: today,
+      } as any);
+      logger.info({
+        currentStreak: updated?.currentStreak,
+        longestStreak: updated?.longestStreak,
+        totalDaysActive: updated?.totalDaysActive,
+      }, "[Streak] Streak initialized to 1");
+      return updated!;
+    } else if (streak.currentStreak > 0 && !thresholdMet) {
+      // Special case: Threshold was raised and is no longer met
+      // Reset streak to 0 to reflect that today's goal is not met anymore
+      logger.info({
+        currentStreak: streak.currentStreak,
+        pagesRead: todayProgress.pagesRead,
+        dailyThreshold,
+      }, "[Streak] Threshold no longer met, resetting streak to 0");
+      const updated = await streakRepository.update(streak.id, {
+        currentStreak: 0,
+        lastActivityDate: today,
+      } as any);
+      logger.info({
+        currentStreak: updated?.currentStreak,
+      }, "[Streak] Streak reset to 0 due to threshold increase");
+      return updated!;
+    } else if (streak.currentStreak === 0 && !thresholdMet) {
+      // Threshold not met and streak already 0, nothing to do
+      logger.debug("[Streak] Threshold not met yet, streak remains 0");
+      return streak;
+    }
+
+    // Normal same-day activity, streak already set for today and threshold met
     logger.debug("[Streak] Same day activity, streak unchanged");
+    return streak;
+  }
+
+  // Only continue to consecutive/broken streak logic if threshold is met
+  if (!thresholdMet) {
+    // Threshold not met on a new day - this would break the streak on different day
+    logger.debug("[Streak] Threshold not met yet, returning existing streak");
     return streak;
   } else if (daysDiff === 1) {
     // Consecutive day, increment streak
@@ -85,9 +142,8 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   return streak;
 }
 
-export async function getStreak(userId?: number | null): Promise<Streak | null> {
-  const streak = await streakRepository.findByUserId(userId || null);
-  return streak ?? null;
+export async function getStreak(userId?: number | null): Promise<Streak> {
+  return await streakRepository.getOrCreate(userId || null);
 }
 
 export async function getOrCreateStreak(userId?: number | null): Promise<Streak> {
@@ -111,6 +167,12 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
   logger.info("[Streak] Rebuilding streak from all progress data");
 
+  // Get current streak to check the dailyThreshold
+  const existingStreak = await streakRepository.findByUserId(userId || null);
+  const dailyThreshold = existingStreak?.dailyThreshold || 1;
+
+  logger.info({ dailyThreshold }, "[Streak] Using threshold for rebuild");
+
   // Get all progress logs ordered by date
   const allProgress = await progressRepository.getAllProgressOrdered();
 
@@ -121,19 +183,26 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
 
   // Group progress by date and calculate daily activity
   const dailyActivity = new Map<string, number>();
-  const uniqueDates = new Set<string>();
+  const qualifyingDates = new Set<string>(); // Only dates that meet the threshold
 
   allProgress.forEach((progress) => {
     const dateKey = progress.progressDate.toISOString().split('T')[0]; // YYYY-MM-DD
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {
-      uniqueDates.add(dateKey);
-      dailyActivity.set(dateKey, (dailyActivity.get(dateKey) || 0) + pagesRead);
+      const current = dailyActivity.get(dateKey) || 0;
+      dailyActivity.set(dateKey, current + pagesRead);
     }
   });
 
-  const sortedDates = Array.from(uniqueDates).sort();
+  // Filter dates that meet the threshold
+  dailyActivity.forEach((pagesRead, dateKey) => {
+    if (pagesRead >= dailyThreshold) {
+      qualifyingDates.add(dateKey);
+    }
+  });
+
+  const sortedDates = Array.from(qualifyingDates).sort();
 
   // Calculate streak from consecutive active days
   let currentStreak = 0;
@@ -175,7 +244,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     }
   }
 
-  const totalDaysActive = uniqueDates.size;
+  const totalDaysActive = qualifyingDates.size;
 
   logger.info({
     currentStreak,
