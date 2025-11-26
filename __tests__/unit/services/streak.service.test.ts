@@ -1,13 +1,21 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { streakService } from "@/lib/services/streak.service";
 import { streakRepository } from "@/lib/repositories/streak.repository";
-import { db } from "@/lib/db/sqlite";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { getDatabase } from "@/lib/db/context";
 import { streaks } from "@/lib/db/schema/streaks";
 
 describe("StreakService - Auto-initialization", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
   beforeEach(async () => {
-    // Clean up streaks table before each test
-    await db.delete(streaks);
+    await clearTestDatabase(__filename);
   });
 
   describe("getStreak()", () => {
@@ -79,7 +87,7 @@ describe("StreakService - Auto-initialization", () => {
       expect(streak3.id).toBe(streak1.id);
 
       // Verify only one streak exists in DB
-      const allStreaks = await db.select().from(streaks);
+      const allStreaks = await getDatabase().select().from(streaks);
       expect(allStreaks.length).toBe(1);
     });
   });
@@ -180,7 +188,7 @@ describe("StreakService - Auto-initialization", () => {
       expect(streak3.dailyThreshold).toBe(30);
 
       // Verify only one streak exists
-      const allStreaks = await db.select().from(streaks);
+      const allStreaks = await getDatabase().select().from(streaks);
       expect(allStreaks.length).toBe(1);
     });
   });
