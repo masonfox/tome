@@ -4,7 +4,8 @@
  */
 
 import { syncCalibreLibrary } from "@/lib/sync-service";
-import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { rebuildStreak } from "@/lib/streaks";
 import { getLogger } from "@/lib/logger";
 import {
   generateActiveStreak,
@@ -21,6 +22,9 @@ export interface SeedResult {
   sessionsSeeded: number;
   progressLogsSeeded: number;
   booksUsed: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  totalDaysActive?: number;
   error?: string;
 }
 
@@ -276,9 +280,21 @@ export async function seedDatabase(): Promise<SeedResult> {
       }
     }
 
+    // Phase 5: Rebuild streak from progress logs
+    logger.info("Phase 5: Rebuilding streak from progress logs...");
+    const rebuiltStreak = await rebuildStreak(null); // null for single-user mode
+    
+    logger.info({
+      currentStreak: rebuiltStreak.currentStreak,
+      longestStreak: rebuiltStreak.longestStreak,
+      totalDaysActive: rebuiltStreak.totalDaysActive,
+      lastActivityDate: rebuiltStreak.lastActivityDate,
+    }, "Streak rebuilt successfully");
+
     logger.info({
       sessionsCreated,
       progressLogsCreated,
+      currentStreak: rebuiltStreak.currentStreak,
     }, "Seeding completed successfully");
 
     return {
@@ -287,6 +303,9 @@ export async function seedDatabase(): Promise<SeedResult> {
       sessionsSeeded: sessionsCreated,
       progressLogsSeeded: progressLogsCreated,
       booksUsed: booksToUse.length,
+      currentStreak: rebuiltStreak.currentStreak,
+      longestStreak: rebuiltStreak.longestStreak,
+      totalDaysActive: rebuiltStreak.totalDaysActive,
     };
   } catch (error) {
     logger.error({ error }, "Seeding failed");

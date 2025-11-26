@@ -50,6 +50,9 @@ async function main() {
       booksUsed: result.booksUsed,
       sessionsSeeded: result.sessionsSeeded,
       progressLogsSeeded: result.progressLogsSeeded,
+      currentStreak: result.currentStreak,
+      longestStreak: result.longestStreak,
+      totalDaysActive: result.totalDaysActive,
     }, "Database seeding completed successfully");
 
     // Pretty console output
@@ -59,6 +62,11 @@ async function main() {
     console.log(`  📖 Books used for seeding: ${result.booksUsed}`);
     console.log(`  📝 Sessions created: ${result.sessionsSeeded}`);
     console.log(`  📊 Progress logs created: ${result.progressLogsSeeded}`);
+    if (result.currentStreak !== undefined) {
+      console.log(`  🔥 Current streak: ${result.currentStreak} ${result.currentStreak === 1 ? 'day' : 'days'}`);
+      console.log(`  ⭐ Longest streak: ${result.longestStreak} ${result.longestStreak === 1 ? 'day' : 'days'}`);
+      console.log(`  📅 Total active days: ${result.totalDaysActive}`);
+    }
     console.log(`  ⏱️  Duration: ${duration}s\n`);
 
     console.log("Next steps:");
