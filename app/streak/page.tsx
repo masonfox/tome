@@ -1,6 +1,7 @@
 import { StreakChart } from "@/components/StreakChart";
 import { StreakAnalytics } from "@/components/StreakAnalytics";
 import { getLogger } from "@/lib/logger";
+import { Flame, TrendingUp, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 const logger = getLogger();
@@ -51,20 +52,29 @@ export default async function StreakPage() {
 
   if (!analyticsData) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <Link
-            href="/"
-            className="text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
-          >
-            ← Back to Home
-          </Link>
-          <h1 className="text-3xl font-bold mb-6">Reading Streak Analytics</h1>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-            <p className="text-red-800 dark:text-red-200">
-              Unable to load streak analytics. Please try again later.
-            </p>
-          </div>
+      <div className="space-y-10">
+        {/* Back to Dashboard Link */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Link>
+
+        <div className="border-b border-[var(--border-color)] pb-6">
+          <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
+            <Flame className="w-8 h-8" />
+            Streak Analytics
+          </h1>
+          <p className="text-[var(--subheading-text)] mt-2 font-medium">
+            Track your reading habits and progress over time
+          </p>
+        </div>
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center rounded-md">
+          <p className="text-[var(--foreground)]/70 font-medium">
+            Unable to load streak analytics. Please try again later.
+          </p>
         </div>
       </div>
     );
@@ -73,52 +83,57 @@ export default async function StreakPage() {
   const { streak, dailyReadingHistory, booksAheadOrBehind } = analyticsData;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Link
-            href="/"
-            className="text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
-          >
-            ← Back to Home
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Reading Streak Analytics
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Track your reading habits and see your progress over time
-          </p>
-        </div>
+    <div className="space-y-10">
+      {/* Back to Dashboard Link */}
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] font-medium transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Dashboard
+      </Link>
 
-        {/* Analytics Stats */}
-        <div className="mb-8">
-          <StreakAnalytics
-            currentStreak={streak.currentStreak}
-            longestStreak={streak.longestStreak}
-            totalDaysActive={streak.totalDaysActive}
-            dailyThreshold={streak.dailyThreshold}
-            booksAheadOrBehind={booksAheadOrBehind}
-            daysOfData={dailyReadingHistory.length}
-          />
-        </div>
+      {/* Header */}
+      <div className="border-b border-[var(--border-color)] pb-6">
+        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
+          <Flame className="w-8 h-8" />
+          Streak Analytics
+        </h1>
+        <p className="text-[var(--subheading-text)] mt-2 font-medium">
+          Track your reading habits and progress over time
+        </p>
+      </div>
 
-        {/* Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Daily Reading Activity
-          </h2>
-          {dailyReadingHistory.length > 0 ? (
+      {/* Analytics Stats */}
+      <StreakAnalytics
+        currentStreak={streak.currentStreak}
+        longestStreak={streak.longestStreak}
+        totalDaysActive={streak.totalDaysActive}
+        dailyThreshold={streak.dailyThreshold}
+        booksAheadOrBehind={booksAheadOrBehind}
+        daysOfData={dailyReadingHistory.length}
+      />
+
+      {/* Chart Section */}
+      <div>
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+          Daily Reading Activity
+        </h2>
+        {dailyReadingHistory.length > 0 ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
             <StreakChart
               data={dailyReadingHistory}
               threshold={streak.dailyThreshold}
             />
-          ) : (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <p>No reading data available yet. Start reading to see your progress!</p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center rounded-md">
+            <TrendingUp className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
+            <p className="text-[var(--foreground)]/70 font-medium">
+              No reading data available yet. Start reading to see your progress!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

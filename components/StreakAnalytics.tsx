@@ -1,5 +1,9 @@
 "use client";
 
+import { StatsCard } from "@/components/ui/StatsCard";
+import { Flame, Calendar, Target, TrendingUp, TrendingDown, Settings } from "lucide-react";
+import Link from "next/link";
+
 interface StreakAnalyticsProps {
   currentStreak: number;
   longestStreak: number;
@@ -24,127 +28,153 @@ export function StreakAnalytics({
     <div className="space-y-6">
       {/* Encouraging message for new users */}
       {showEncouragingMessage && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <p className="text-blue-800 dark:text-blue-200 text-sm">
-            Keep going! You&apos;re just getting started. Come back after a week to
+        <div className="bg-gradient-to-r from-teal-500 to-cyan-500 rounded-md p-4 text-white">
+          <p className="text-sm font-semibold">
+            🌱 Keep going! You&apos;re just getting started. Come back after a week to
             see more detailed insights about your reading habits.
           </p>
         </div>
       )}
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Current Streak */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Current Streak
+      {/* Streak Stats */}
+      <div>
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+          Reading Streaks
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Current Streak - Vibrant Orange */}
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                  Current Streak
+                </p>
+                <p className="text-4xl font-serif font-bold mt-3">
+                  {currentStreak}
+                </p>
+                <p className="text-xs mt-2 font-medium opacity-80">
+                  {currentStreak === 1 ? "day" : "consecutive days"}
+                </p>
+              </div>
+              <div className="opacity-80">
+                <Flame className="w-6 h-6" />
+              </div>
+            </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-white">
-            {currentStreak}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            consecutive days
-          </div>
-        </div>
 
-        {/* Longest Streak */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Longest Streak
+          {/* Longest Streak - Pantone Green */}
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                  Longest Streak
+                </p>
+                <p className="text-4xl font-serif font-bold mt-3">
+                  {longestStreak}
+                </p>
+                <p className="text-xs mt-2 font-medium opacity-80">
+                  {longestStreak === 1 ? "day" : "all-time best"}
+                </p>
+              </div>
+              <div className="opacity-80">
+                <Flame className="w-6 h-6" />
+              </div>
+            </div>
           </div>
-          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-            {longestStreak}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            all-time best
-          </div>
-        </div>
 
-        {/* Total Days Active */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Total Days Active
+          {/* Total Days Active - Purple */}
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                  Total Days Active
+                </p>
+                <p className="text-4xl font-serif font-bold mt-3">
+                  {totalDaysActive}
+                </p>
+                <p className="text-xs mt-2 font-medium opacity-80">
+                  days with reading
+                </p>
+              </div>
+              <div className="opacity-80">
+                <Calendar className="w-6 h-6" />
+              </div>
+            </div>
           </div>
-          <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-            {totalDaysActive}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            days with reading
-          </div>
-        </div>
 
-        {/* Daily Goal */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Daily Goal
-          </div>
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-            {dailyThreshold}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            pages per day
-          </div>
+          {/* Daily Goal - Blue with hover effect */}
+          <Link href="/settings" className="block hover:scale-[1.02] transition-transform">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white cursor-pointer">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                    Daily Goal
+                  </p>
+                  <p className="text-4xl font-serif font-bold mt-3">
+                    {dailyThreshold}
+                  </p>
+                  <p className="text-xs mt-2 font-medium opacity-80">
+                    pages per day • edit
+                  </p>
+                </div>
+                <div className="opacity-80">
+                  <Settings className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
 
       {/* Books Ahead/Behind (conditional) */}
       {booksAheadOrBehind !== undefined && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+        <div>
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
             Reading Goal Progress
-          </div>
-          <div className="flex items-center gap-2">
-            {booksAheadOrBehind > 0 ? (
-              <>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {Math.abs(booksAheadOrBehind)} books ahead
+          </h2>
+          {booksAheadOrBehind > 0 ? (
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-md p-6 text-white">
+              <div className="flex items-center gap-4">
+                <TrendingUp className="w-10 h-10 opacity-90" />
+                <div>
+                  <p className="text-3xl font-serif font-bold">
+                    {Math.abs(booksAheadOrBehind)} {Math.abs(booksAheadOrBehind) === 1 ? "book" : "books"} ahead
+                  </p>
+                  <p className="text-sm mt-1 font-medium opacity-90">
+                    Great job! You&apos;re exceeding your annual reading goal 🎉
+                  </p>
                 </div>
-                <div className="text-green-600 dark:text-green-400">
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                    />
-                  </svg>
-                </div>
-              </>
-            ) : booksAheadOrBehind < 0 ? (
-              <>
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {Math.abs(booksAheadOrBehind)} books behind
-                </div>
-                <div className="text-red-600 dark:text-red-400">
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"
-                    />
-                  </svg>
-                </div>
-              </>
-            ) : (
-              <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                Right on pace!
               </div>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Compared to your annual reading goal
-          </p>
+            </div>
+          ) : booksAheadOrBehind < 0 ? (
+            <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-md p-6 text-white">
+              <div className="flex items-center gap-4">
+                <TrendingDown className="w-10 h-10 opacity-90" />
+                <div>
+                  <p className="text-3xl font-serif font-bold">
+                    {Math.abs(booksAheadOrBehind)} {Math.abs(booksAheadOrBehind) === 1 ? "book" : "books"} behind
+                  </p>
+                  <p className="text-sm mt-1 font-medium opacity-90">
+                    You can catch up! Keep reading to reach your annual goal 📚
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-md p-6 text-white">
+              <div className="flex items-center gap-4">
+                <Target className="w-10 h-10 opacity-90" />
+                <div>
+                  <p className="text-3xl font-serif font-bold">
+                    Right on pace! 🎯
+                  </p>
+                  <p className="text-sm mt-1 font-medium opacity-90">
+                    You&apos;re perfectly aligned with your annual reading goal
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -10,6 +10,8 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Legend,
+  Area,
+  AreaChart,
 } from "recharts";
 
 interface DailyReading {
@@ -33,23 +35,23 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
   // Determine if we should show every label or skip some based on data length
   const tickInterval = data.length > 30 ? Math.floor(data.length / 10) : 0;
 
-  // Custom tooltip
+  // Calculate Y-axis domain to always show the threshold
+  const maxPagesRead = Math.max(...data.map(d => d.pagesRead), 0);
+  const yAxisMax = Math.max(threshold * 1.2, maxPagesRead * 1.1); // Show at least 120% of threshold or 110% of max data
+
+  // Custom tooltip using site design system
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-300 dark:border-gray-600 rounded shadow-lg">
-          <p className="text-sm font-medium">{data.date}</p>
-          <p className="text-sm">
+        <div className="bg-[var(--card-bg)] p-3 border border-[var(--border-color)] rounded-md shadow-lg">
+          <p className="text-sm font-semibold text-[var(--heading-text)]">{data.date}</p>
+          <p className="text-sm text-[var(--foreground)] mt-1">
             Pages: <span className="font-bold">{data.pagesRead}</span>
           </p>
-          <p className="text-sm">
+          <p className="text-sm text-[var(--foreground)] mt-1">
             Status:{" "}
-            <span
-              className={
-                data.thresholdMet ? "text-green-600" : "text-gray-500"
-              }
-            >
+            <span className={data.thresholdMet ? "text-[var(--accent)] font-semibold" : "text-[var(--foreground)]/60"}>
               {data.thresholdMet ? "Goal met" : "Below goal"}
             </span>
           </p>
@@ -62,10 +64,16 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
   return (
     <div className="w-full h-96">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
+        <AreaChart
           data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+          margin={{ top: 20, right: 40, left: 20, bottom: 60 }}
         >
+          <defs>
+            <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+            </linearGradient>
+          </defs>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <XAxis
             dataKey="date"
@@ -77,6 +85,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             tick={{ fontSize: 12 }}
           />
           <YAxis
+            domain={[0, yAxisMax]}
             label={{
               value: "Pages Read",
               angle: -90,
@@ -94,23 +103,27 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
           />
           <ReferenceLine
             y={threshold}
-            stroke="#ef4444"
-            strokeDasharray="3 3"
-            strokeWidth={2}
+            stroke="#f59e0b"
+            strokeDasharray="5 5"
+            strokeWidth={2.5}
             label={{
-              value: `Daily Goal: ${threshold} pages`,
-              position: "right",
-              fill: "#ef4444",
+              value: `Goal: ${threshold}p`,
+              position: "insideTopLeft",
+              fill: "#f59e0b",
               fontSize: 12,
+              fontWeight: 700,
+              offset: 10,
             }}
           />
-          <Bar
+          <Area
+            type="monotone"
             dataKey="pagesRead"
-            fill="#3b82f6"
+            stroke="#059669"
+            strokeWidth={3}
+            fill="url(#colorGradient)"
             name="Pages Read"
-            radius={[4, 4, 0, 0]}
           />
-        </BarChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
