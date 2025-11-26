@@ -116,7 +116,7 @@ describe("ProgressService", () => {
       });
 
       expect(result.currentPage).toBe(100);
-      expect(result.currentPercentage).toBeCloseTo(9.62, 1); // 100/1040
+      expect(result.currentPercentage).toBe(9); // Math.floor(100/1040 * 100) = 9
       expect(result.pagesRead).toBe(100); // First entry, so pagesRead = currentPage
     });
 

@@ -4,6 +4,7 @@
  */
 
 import { subDays, subMonths, setHours, setMinutes, startOfDay } from "date-fns";
+import { calculatePercentage } from "@/lib/utils/progress-calculations";
 
 export interface ProgressLogData {
   bookId: number;
@@ -52,7 +53,7 @@ export function generateActiveStreak(
       bookId,
       sessionId,
       currentPage,
-      currentPercentage: (currentPage / totalPages) * 100,
+      currentPercentage: calculatePercentage(currentPage, totalPages),
       pagesRead,
       progressDate,
       notes: i === 0 ? "Today's reading session" : undefined,
@@ -120,7 +121,7 @@ export function generateHistoricalProgress(
         bookId,
         sessionId,
         currentPage,
-        currentPercentage: (currentPage / totalPages) * 100,
+        currentPercentage: calculatePercentage(currentPage, totalPages),
         pagesRead,
         progressDate,
       });
@@ -135,7 +136,7 @@ export function generateHistoricalProgress(
   for (const log of logs) {
     cumulativePage += log.pagesRead;
     log.currentPage = Math.min(cumulativePage, targetPage);
-    log.currentPercentage = (log.currentPage / totalPages) * 100;
+    log.currentPercentage = calculatePercentage(log.currentPage, totalPages);
   }
 
   return logs;
@@ -188,7 +189,7 @@ export function generateBookInProgress(
         bookId,
         sessionId,
         currentPage,
-        currentPercentage: (currentPage / totalPages) * 100,
+        currentPercentage: calculatePercentage(currentPage, totalPages),
         pagesRead,
         progressDate,
       });
