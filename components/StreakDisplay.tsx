@@ -33,9 +33,9 @@ export function StreakDisplay({
   const showTimeRemaining = !goalMet && hoursRemainingToday !== undefined && hoursRemainingToday > 0;
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-1">
       <Link href="/streak" className="group transition-opacity">
-        <div className={cn("flex items-center gap-1", className)}>
+        <div className={cn("flex items-center gap-2", className)}>
           {/* Colored flame indicator */}
           <Flame className={cn("w-5 h-5", flameColor)} />
 
@@ -48,11 +48,11 @@ export function StreakDisplay({
         </div>
         {/* Time remaining (only if goal not met) */}
         {showTimeRemaining && (
-          <div className="text-xs mt-1.5 text-[var(--subheading-text)] leading-tight mt-0.5">
+          <div className="text-xs mt-1 text-[var(--subheading-text)] leading-tight text-center">
             {hoursRemainingToday} {hoursRemainingToday === 1 ? "hour" : "hours"} left today
           </div>
         )}
-        <div className="text-xs mt-2 text-[var(--subheading-text)] opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="text-xs mt-2 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity text-center">
           View analytics →
         </div>
       </Link>
