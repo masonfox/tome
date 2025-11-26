@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Line,
   XAxis,
@@ -25,6 +26,21 @@ interface StreakChartProps {
 }
 
 export function StreakChart({ data, threshold }: StreakChartProps) {
+  // State to track which data series are visible
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  // Toggle visibility of a data series
+  const handleLegendClick = (dataKey: string) => {
+    setHiddenSeries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(dataKey)) {
+        newSet.delete(dataKey);
+      } else {
+        newSet.add(dataKey);
+      }
+      return newSet;
+    });
+  };
   // Calculate moving average
   const calculateMovingAverage = (data: DailyReading[], windowSize: number = 7) => {
     return data.map((item, index) => {
@@ -75,7 +91,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
           <p className="text-sm text-[var(--foreground)] mt-1">
             Pages: <span className="font-bold">{data.pagesRead}</span>
           </p>
-          {data.movingAverage !== undefined && (
+          {data.movingAverage !== undefined && !hiddenSeries.has("movingAverage") && (
             <p className="text-sm text-[var(--foreground)] mt-1">
               7-day avg: <span className="font-bold">{data.movingAverage}</span>
             </p>
@@ -132,7 +148,8 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             verticalAlign="top"
             height={36}
             iconType="line"
-            wrapperStyle={{ paddingBottom: "10px" }}
+            wrapperStyle={{ paddingBottom: "10px", cursor: "pointer" }}
+            onClick={(e: any) => handleLegendClick(e.dataKey)}
           />
           <Area
             type="monotone"
@@ -141,6 +158,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             strokeWidth={2}
             fill="url(#colorGradient)"
             name="Pages Read"
+            hide={hiddenSeries.has("pagesRead")}
           />
           <Line
             type="monotone"
@@ -148,7 +166,8 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             stroke="#3b82f6"
             strokeWidth={2}
             dot={false}
-            name="7-day Average"
+            name="7-day Avg"
+            hide={hiddenSeries.has("movingAverage")}
           />
           <ReferenceLine
             y={threshold}
