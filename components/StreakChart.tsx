@@ -128,7 +128,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             strokeDasharray="5 5"
             strokeWidth={2}
             label={{
-              value: `Goal: ${threshold}p`,
+              value: `Goal: ${threshold} pages`,
               position: "insideTopLeft",
               fill: "#f59e0b",
               fontSize: 10,
