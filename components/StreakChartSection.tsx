@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { StreakChart } from "@/components/StreakChart";
 import { TimePeriodFilter, TimePeriod } from "@/components/TimePeriodFilter";
-import { TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
@@ -25,12 +25,10 @@ export function StreakChartSection({
 }: StreakChartSectionProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
   const [data, setData] = useState<DailyReading[]>(initialData);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchAnalytics = useCallback(async (days: TimePeriod) => {
-    setLoading(true);
     setError(null);
 
     try {
@@ -52,8 +50,6 @@ export function StreakChartSection({
     } catch (err) {
       logger.error({ err }, "Failed to fetch analytics");
       setError("Failed to load chart data. Please try again.");
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -83,7 +79,6 @@ export function StreakChartSection({
         <TimePeriodFilter
           selected={selectedPeriod}
           onChange={handlePeriodChange}
-          disabled={loading}
         />
       </div>
 
@@ -97,18 +92,6 @@ export function StreakChartSection({
       {/* Chart Container */}
       {data.length > 0 ? (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-3 md:p-6 relative">
-          {/* Loading Overlay */}
-          {loading && (
-            <div className="absolute inset-0 bg-[var(--card-bg)]/80 backdrop-blur-sm flex items-center justify-center rounded-md z-10">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin" />
-                <p className="text-sm font-medium text-[var(--foreground)]/70">
-                  Loading data...
-                </p>
-              </div>
-            </div>
-          )}
-
           <StreakChart data={data} threshold={threshold} />
         </div>
       ) : (
