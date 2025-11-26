@@ -67,11 +67,11 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
   };
 
   return (
-    <div className="w-full h-96">
+    <div className="w-full h-80 md:h-96">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 20, right: 40, left: 20, bottom: 60 }}
+          margin={{ top: 20, right: 10, left: 0, bottom: 40 }}
         >
           <defs>
             <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
@@ -86,8 +86,8 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             angle={-45}
             textAnchor="end"
             interval={tickInterval}
-            height={80}
-            tick={{ fontSize: 12 }}
+            height={60}
+            tick={{ fontSize: 10 }}
           />
           <YAxis
             domain={[0, yAxisMax]}
@@ -96,9 +96,10 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
               value: "Pages Read",
               angle: -90,
               position: "insideLeft",
-              style: { textAnchor: "middle" },
+              style: { textAnchor: "middle", fontSize: 10 },
             }}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 10 }}
+            width={40}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
@@ -111,7 +112,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             type="monotone"
             dataKey="pagesRead"
             stroke="#059669"
-            strokeWidth={3}
+            strokeWidth={2}
             fill="url(#colorGradient)"
             name="Pages Read"
           />
@@ -119,14 +120,14 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             y={threshold}
             stroke="#f59e0b"
             strokeDasharray="5 5"
-            strokeWidth={2.5}
+            strokeWidth={2}
             label={{
               value: `Goal: ${threshold}p`,
               position: "insideTopLeft",
               fill: "#f59e0b",
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: 700,
-              offset: 10,
+              offset: 5,
             }}
           />
         </AreaChart>

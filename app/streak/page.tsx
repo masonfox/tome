@@ -119,7 +119,7 @@ export default async function StreakPage() {
           Daily Reading Activity
         </h2>
         {dailyReadingHistory.length > 0 ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-3 md:p-6">
             <StreakChart
               data={dailyReadingHistory}
               threshold={streak.dailyThreshold}
