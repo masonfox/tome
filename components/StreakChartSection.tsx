@@ -4,6 +4,9 @@ import { useState, useCallback, useEffect } from "react";
 import { StreakChart } from "@/components/StreakChart";
 import { TimePeriodFilter, TimePeriod } from "@/components/TimePeriodFilter";
 import { TrendingUp, Loader2 } from "lucide-react";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger();
 
 interface DailyReading {
   date: string;
@@ -47,7 +50,7 @@ export function StreakChartSection({
         throw new Error(json.error?.message || "Failed to load data");
       }
     } catch (err) {
-      console.error("Failed to fetch analytics:", err);
+      logger.error({ err }, "Failed to fetch analytics");
       setError("Failed to load chart data. Please try again.");
     } finally {
       setLoading(false);

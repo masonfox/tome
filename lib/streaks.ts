@@ -167,6 +167,12 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
   logger.info("[Streak] Rebuilding streak from all progress data");
 
+  // Get current streak to check the dailyThreshold
+  const existingStreak = await streakRepository.findByUserId(userId || null);
+  const dailyThreshold = existingStreak?.dailyThreshold || 1;
+
+  logger.info({ dailyThreshold }, "[Streak] Using threshold for rebuild");
+
   // Get all progress logs ordered by date
   const allProgress = await progressRepository.getAllProgressOrdered();
 
@@ -177,19 +183,26 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
 
   // Group progress by date and calculate daily activity
   const dailyActivity = new Map<string, number>();
-  const uniqueDates = new Set<string>();
+  const qualifyingDates = new Set<string>(); // Only dates that meet the threshold
 
   allProgress.forEach((progress) => {
     const dateKey = progress.progressDate.toISOString().split('T')[0]; // YYYY-MM-DD
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {
-      uniqueDates.add(dateKey);
-      dailyActivity.set(dateKey, (dailyActivity.get(dateKey) || 0) + pagesRead);
+      const current = dailyActivity.get(dateKey) || 0;
+      dailyActivity.set(dateKey, current + pagesRead);
     }
   });
 
-  const sortedDates = Array.from(uniqueDates).sort();
+  // Filter dates that meet the threshold
+  dailyActivity.forEach((pagesRead, dateKey) => {
+    if (pagesRead >= dailyThreshold) {
+      qualifyingDates.add(dateKey);
+    }
+  });
+
+  const sortedDates = Array.from(qualifyingDates).sort();
 
   // Calculate streak from consecutive active days
   let currentStreak = 0;
@@ -231,7 +244,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     }
   }
 
-  const totalDaysActive = uniqueDates.size;
+  const totalDaysActive = qualifyingDates.size;
 
   logger.info({
     currentStreak,

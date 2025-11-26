@@ -66,11 +66,11 @@ export class StreakService {
       "Streak threshold updated successfully, recalculating streak"
     );
 
-    // Recalculate streak with new threshold
-    // This handles the case where user has already logged progress today
-    // that now meets (or no longer meets) the new threshold
-    const { updateStreaks } = await import("@/lib/streaks");
-    await updateStreaks(userId);
+    // Recalculate streak with new threshold from all historical data
+    // We need to use rebuildStreak (not updateStreaks) because updateStreaks only
+    // considers today's activity, not the full historical streak with the new threshold
+    const { rebuildStreak } = await import("@/lib/streaks");
+    await rebuildStreak(userId);
 
     // Fetch the final streak state which includes both the new threshold
     // and the recalculated streak values
