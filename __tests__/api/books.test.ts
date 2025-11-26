@@ -184,7 +184,6 @@ describe("GET /api/books", () => {
         startedDate: new Date("2024-01-01"),
         completedDate: new Date("2024-01-15"),
         isActive: false, // Archived
-        rating: 5,
       });
 
       // Active session for 'reading' status
@@ -229,7 +228,6 @@ describe("GET /api/books", () => {
         startedDate: new Date("2023-01-01"),
         completedDate: new Date("2023-01-15"),
         isActive: false,
-        rating: 4,
       });
 
       // Second read (archived more recently)
@@ -240,7 +238,6 @@ describe("GET /api/books", () => {
         startedDate: new Date("2024-01-01"),
         completedDate: new Date("2024-01-15"),
         isActive: false,
-        rating: 5,
       });
 
       // Act

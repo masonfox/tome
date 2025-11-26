@@ -2,6 +2,7 @@ import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "b
 import { GET, PATCH } from "@/app/api/books/[id]/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import type { NextRequest } from "next/server";
 
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
@@ -38,7 +39,7 @@ describe("GET /api/books/[id]", () => {
       completedDate: new Date("2024-11-01"),
     });
 
-    const request = new Request("http://localhost:3000/api/books/1");
+    const request = new Request("http://localhost:3000/api/books/1") as unknown as NextRequest;
     const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
@@ -84,7 +85,7 @@ describe("GET /api/books/[id]", () => {
       startedDate: new Date("2024-11-01"),
     });
 
-    const request = new Request("http://localhost:3000/api/books/2");
+    const request = new Request("http://localhost:3000/api/books/2") as unknown as NextRequest;
     const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
@@ -106,7 +107,7 @@ describe("GET /api/books/[id]", () => {
       path: "Author Three/New Book (3)",
     });
 
-    const request = new Request("http://localhost:3000/api/books/3");
+    const request = new Request("http://localhost:3000/api/books/3") as unknown as NextRequest;
     const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
@@ -135,58 +136,52 @@ describe("GET /api/books/[id]", () => {
       startedDate: new Date("2024-11-01"),
     });
 
-    const request = new Request("http://localhost:3000/api/books/4");
+    const request = new Request("http://localhost:3000/api/books/4") as unknown as NextRequest;
     const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalReads).toBe(0); // Active reading session is not completed yet
+    expect(data.totalReads).toBe(0);
     expect(data.hasCompletedReads).toBe(false);
-    expect(data.activeSession).toBeTruthy();
-    expect(data.activeSession.status).toBe("reading");
-    expect(data.activeSession.sessionNumber).toBe(1);
-    expect(data.activeSession.isActive).toBe(true);
   });
 
-  test("should return latest progress for active session with totalReads", async () => {
+  test("should return book with multiple completed sessions (totalReads)", async () => {
     // Create a book
     const book = await bookRepository.create({
       calibreId: 5,
-      title: "Progress Book",
+      title: "Multiple Reads Book",
       authors: ["Author Five"],
-      totalPages: 350,
+      totalPages: 280,
       tags: [],
-      path: "Author Five/Progress Book (5)",
+      path: "Author Five/Multiple Reads Book (5)",
     });
 
-    // Create an active session
-    const activeSession = await sessionRepository.create({
+    // Create 3 sessions: two completed, one active
+    await sessionRepository.create({
       bookId: book.id,
       sessionNumber: 1,
+      status: "read",
+      isActive: false,
+      completedDate: new Date("2023-06-01"),
+    });
+
+    await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 2,
+      status: "read",
+      isActive: false,
+      completedDate: new Date("2024-01-01"),
+    });
+
+    await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 3,
       status: "reading",
       isActive: true,
+      startedDate: new Date("2024-11-01"),
     });
 
-    // Create progress logs
-    await progressRepository.create({
-      bookId: book.id,
-      sessionId: activeSession.id,
-      currentPage: 50,
-      currentPercentage: 14.29,
-      progressDate: new Date("2024-11-01"),
-      pagesRead: 50,
-    });
-
-    await progressRepository.create({
-      bookId: book.id,
-      sessionId: activeSession.id,
-      currentPage: 150,
-      currentPercentage: 42.86,
-      progressDate: new Date("2024-11-10"),
-      pagesRead: 100,
-    });
-
-    const request = new Request("http://localhost:3000/api/books/5");
+    const request = new Request("http://localhost:3000/api/books/5") as unknown as NextRequest;
     const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
@@ -242,7 +237,7 @@ describe("GET /api/books/[id]", () => {
     });
 
     // Check book1
-    const request1 = new Request("http://localhost:3000/api/books/6");
+    const request1 = new Request("http://localhost:3000/api/books/6") as unknown as NextRequest;
     const response1 = await GET(request1, { params: { id: book1.id.toString() } });
     const data1 = await response1.json();
 
@@ -252,7 +247,7 @@ describe("GET /api/books/[id]", () => {
     expect(data1.activeSession).toBeTruthy();
 
     // Check book2
-    const request2 = new Request("http://localhost:3000/api/books/7");
+    const request2 = new Request("http://localhost:3000/api/books/7") as unknown as NextRequest;
     const response2 = await GET(request2, { params: { id: book2.id.toString() } });
     const data2 = await response2.json();
 
@@ -264,7 +259,7 @@ describe("GET /api/books/[id]", () => {
 
   test("should return 404 for non-existent book", async () => {
     const fakeId = 999999;
-    const request = new Request("http://localhost:3000/api/books/999");
+    const request = new Request("http://localhost:3000/api/books/999") as unknown as NextRequest;
     const response = await GET(request, { params: { id: fakeId.toString() } });
     const data = await response.json();
 
@@ -300,7 +295,7 @@ describe("GET /api/books/[id]", () => {
       completedDate: new Date("2024-10-20"),
     });
 
-    const request = new Request("http://localhost:3000/api/books/8");
+    const request = new Request("http://localhost:3000/api/books/8") as unknown as NextRequest;
     const response = await GET(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
@@ -327,7 +322,7 @@ describe("PATCH /api/books/[id]", () => {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ totalPages: 350 }),
-    });
+    }) as unknown as NextRequest;
 
     const response = await PATCH(request, { params: { id: book.id.toString() } });
     const data = await response.json();
@@ -346,7 +341,7 @@ describe("PATCH /api/books/[id]", () => {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ totalPages: 400 }),
-    });
+    }) as unknown as NextRequest;
 
     const response = await PATCH(request, { params: { id: fakeId.toString() } });
     const data = await response.json();

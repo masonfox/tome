@@ -220,7 +220,7 @@ export function createMockRequest(
   method: string,
   url: string,
   body?: any
-): Request & { nextUrl: URL } {
+): any {
   const headers = new Headers({
     "content-type": "application/json",
   });
@@ -237,10 +237,23 @@ export function createMockRequest(
   // Ensure we have a full URL (Request constructor requires it)
   const fullUrl = url.startsWith("http") ? url : `http://localhost${url}`;
 
-  const request = new Request(fullUrl, requestInit) as Request & { nextUrl: URL };
+  const request = new Request(fullUrl, requestInit) as any;
 
-  // Add nextUrl property for Next.js compatibility
+  // Add nextUrl property for Next.js NextRequest compatibility
   request.nextUrl = new URL(fullUrl);
+  
+  // Add other NextRequest properties as empty/mock values
+  request.cookies = {
+    get: () => undefined,
+    getAll: () => [],
+    has: () => false,
+    set: () => {},
+    delete: () => {},
+  };
+  request.geo = {};
+  request.ip = undefined;
+  request.page = {};
+  request.ua = {};
 
   return request;
 }

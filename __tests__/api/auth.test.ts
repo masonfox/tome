@@ -119,7 +119,7 @@ describe("Auth API Routes Logic", () => {
       delete process.env.AUTH_PASSWORD;
       
       // Simulate middleware logic
-      const password = process.env.AUTH_PASSWORD || "";
+      const password = (process.env.AUTH_PASSWORD || "") as string;
       const AUTH_ENABLED = !!password && password.trim() !== "";
       const pathname = "/login";
       
@@ -141,7 +141,7 @@ describe("Auth API Routes Logic", () => {
       
       // Test with auth disabled
       delete process.env.AUTH_PASSWORD;
-      password = process.env.AUTH_PASSWORD || "";
+      password = (process.env.AUTH_PASSWORD || "") as string;
       AUTH_ENABLED = !!password && password.trim() !== "";
       pathname = "/api/stats/overview";
       
@@ -152,7 +152,40 @@ describe("Auth API Routes Logic", () => {
     test("should allow regular routes when auth is disabled", () => {
       delete process.env.AUTH_PASSWORD;
       
-      const password = process.env.AUTH_PASSWORD || "";
+      const password = (process.env.AUTH_PASSWORD || "") as string;
+      const AUTH_ENABLED = !!password && password.trim() !== "";
+      const pathname = "/login";
+      
+      // When auth is disabled, /login should redirect to home
+      const shouldRedirectToHome = !AUTH_ENABLED && pathname === "/login";
+      expect(shouldRedirectToHome).toBe(true);
+    });
+
+    test("should allow all API routes regardless of auth status", () => {
+      // Test with auth enabled
+      process.env.AUTH_PASSWORD = "testpass123";
+      let password = process.env.AUTH_PASSWORD || "";
+      let AUTH_ENABLED = !!password && password.trim() !== "";
+      let pathname: string = "/api/books";
+      
+      // API routes should always be allowed
+      let shouldAllow = pathname.startsWith("/api/") || (!AUTH_ENABLED && pathname === "/login");
+      expect(shouldAllow).toBe(true);
+      
+      // Test with auth disabled
+      delete process.env.AUTH_PASSWORD;
+      password = (process.env.AUTH_PASSWORD || "") as string;
+      AUTH_ENABLED = !!password && password.trim() !== "";
+      pathname = "/api/stats/overview";
+      
+      shouldAllow = pathname.startsWith("/api/") || (!AUTH_ENABLED && pathname === "/login");
+      expect(shouldAllow).toBe(true);
+    });
+
+    test("should allow regular routes when auth is disabled", () => {
+      delete process.env.AUTH_PASSWORD;
+      
+      const password = (process.env.AUTH_PASSWORD || "") as string;
       const AUTH_ENABLED = !!password && password.trim() !== "";
       const pathname: string = "/library";
       
