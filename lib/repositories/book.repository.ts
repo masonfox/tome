@@ -2,6 +2,7 @@ import { eq, and, or, sql, like, inArray, desc, asc, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { books, Book, NewBook } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
+import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { db } from "@/lib/db/sqlite";
 
 export interface BookFilter {
@@ -35,6 +36,204 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .from(books)
       .where(eq(books.calibreId, calibreId))
       .get();
+  }
+
+  /**
+   * Find a book by ID with enriched details (session, progress, read count) - OPTIMIZED
+   * Uses a single query with LEFT JOINs and subqueries instead of 3 separate queries
+   */
+  async findByIdWithDetails(bookId: number): Promise<{
+    book: Book;
+    activeSession: any | null;
+    latestProgress: any | null;
+    totalReads: number;
+  } | null> {
+    // Correlated subquery to select ONLY active session
+    // Returns null if no active session exists
+    const sessionIdSubquery = sql`(
+      SELECT rs.id FROM ${readingSessions} rs
+      WHERE rs.book_id = ${books.id}
+        AND rs.is_active = 1
+      LIMIT 1
+    )`;
+
+    // Main query with LEFT JOIN and scalar subqueries
+    const result = this.getDatabase()
+      .select({
+        // Book fields
+        bookId: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        path: books.path,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+
+        // Session fields
+        sessionId: readingSessions.id,
+        sessionUserId: readingSessions.userId,
+        sessionBookId: readingSessions.bookId,
+        sessionNumber: readingSessions.sessionNumber,
+        sessionStatus: readingSessions.status,
+        sessionStartedDate: readingSessions.startedDate,
+        sessionCompletedDate: readingSessions.completedDate,
+        sessionReview: readingSessions.review,
+        sessionIsActive: readingSessions.isActive,
+        sessionCreatedAt: readingSessions.createdAt,
+        sessionUpdatedAt: readingSessions.updatedAt,
+
+        // Latest progress fields (scalar subqueries)
+        progressId: sql`(
+          SELECT pl.id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressId'),
+        progressUserId: sql`(
+          SELECT pl.user_id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressUserId'),
+        progressBookId: sql`(
+          SELECT pl.book_id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressBookId'),
+        progressSessionId: sql`(
+          SELECT pl.session_id FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressSessionId'),
+        progressCurrentPage: sql`(
+          SELECT pl.current_page FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressCurrentPage'),
+        progressCurrentPercentage: sql`(
+          SELECT pl.current_percentage FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressCurrentPercentage'),
+        progressDate: sql`(
+          SELECT pl.progress_date FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressDate'),
+        progressNotes: sql`(
+          SELECT pl.notes FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressNotes'),
+        progressPagesRead: sql`(
+          SELECT pl.pages_read FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressPagesRead'),
+        progressCreatedAt: sql`(
+          SELECT pl.created_at FROM progress_logs pl
+          WHERE pl.session_id = ${readingSessions.id}
+          ORDER BY pl.progress_date DESC, pl.id DESC
+          LIMIT 1
+        )`.as('progressCreatedAt'),
+
+        // Total completed reads count
+        totalReads: sql`(
+          SELECT COUNT(*) FROM ${readingSessions} rs_count
+          WHERE rs_count.book_id = ${books.id}
+            AND rs_count.status = 'read'
+            AND rs_count.is_active = 0
+        )`.as('totalReads'),
+      })
+      .from(books)
+      .leftJoin(
+        readingSessions,
+        sql`${readingSessions.id} = ${sessionIdSubquery}`
+      )
+      .where(eq(books.id, bookId))
+      .get();
+
+    if (!result) {
+      return null;
+    }
+
+    // Map result to proper structure
+    const book: Book = {
+      id: result.bookId,
+      calibreId: result.calibreId,
+      title: result.title,
+      authors: result.authors,
+      isbn: result.isbn,
+      totalPages: result.totalPages,
+      addedToLibrary: result.addedToLibrary,
+      lastSynced: result.lastSynced,
+      publisher: result.publisher,
+      pubDate: result.pubDate,
+      series: result.series,
+      seriesIndex: result.seriesIndex,
+      tags: result.tags,
+      path: result.path,
+      description: result.description,
+      rating: result.rating,
+      orphaned: result.orphaned,
+      orphanedAt: result.orphanedAt,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
+
+    const activeSession = result.sessionId ? {
+      id: result.sessionId,
+      userId: result.sessionUserId,
+      bookId: result.sessionBookId,
+      sessionNumber: result.sessionNumber,
+      status: result.sessionStatus,
+      startedDate: result.sessionStartedDate,
+      completedDate: result.sessionCompletedDate,
+      review: result.sessionReview,
+      isActive: result.sessionIsActive,
+      createdAt: result.sessionCreatedAt,
+      updatedAt: result.sessionUpdatedAt,
+    } : null;
+
+    const latestProgress = result.progressId ? {
+      id: result.progressId,
+      userId: result.progressUserId,
+      bookId: result.progressBookId,
+      sessionId: result.progressSessionId,
+      currentPage: result.progressCurrentPage,
+      currentPercentage: result.progressCurrentPercentage,
+      progressDate: result.progressDate,
+      notes: result.progressNotes,
+      pagesRead: result.progressPagesRead,
+      createdAt: result.progressCreatedAt,
+    } : null;
+
+    return {
+      book,
+      activeSession,
+      latestProgress,
+      totalReads: result.totalReads as number || 0,
+    };
   }
 
   /**

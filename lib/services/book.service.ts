@@ -28,15 +28,22 @@ export interface BookWithDetails extends Book {
 export class BookService {
   /**
    * Get a book by ID with enriched details (session, progress, read count)
+   * OPTIMIZED: Uses single query instead of 3 separate queries
    */
   async getBookById(bookId: number): Promise<BookWithDetails | null> {
-    const book = await bookRepository.findById(bookId);
-    
-    if (!book) {
+    const result = await bookRepository.findByIdWithDetails(bookId);
+
+    if (!result) {
       return null;
     }
 
-    return this.enrichBookWithDetails(book);
+    return {
+      ...result.book,
+      activeSession: result.activeSession,
+      latestProgress: result.latestProgress,
+      hasCompletedReads: result.totalReads > 0,
+      totalReads: result.totalReads,
+    };
   }
 
   /**
@@ -119,8 +126,10 @@ export class BookService {
 
   /**
    * Enrich a book with session, progress, and read count details
+   * DEPRECATED: Replaced by optimized single-query approach in getBookById
+   * Kept temporarily for reference/rollback purposes
    */
-  private async enrichBookWithDetails(book: Book): Promise<BookWithDetails> {
+  private async enrichBookWithDetails_OLD(book: Book): Promise<BookWithDetails> {
     // Get active session
     const activeSession = await sessionRepository.findActiveByBookId(book.id);
 
