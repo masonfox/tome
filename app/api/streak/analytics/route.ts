@@ -12,25 +12,40 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const daysParam = searchParams.get("days");
-    const days = daysParam ? parseInt(daysParam) : 365;
-
-    // Validate days parameter (1-365 range)
-    if (isNaN(days) || days < 1 || days > 365) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "INVALID_PARAMETER",
-            message: "days parameter must be between 1 and 365",
-            details: {
-              provided: days,
-              min: 1,
-              max: 365,
+    
+    let days: number;
+    const now = new Date();
+    
+    // Handle special time period options
+    if (daysParam === "this-year") {
+      // Calculate days from January 1st of current year to today
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      days = Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+    } else if (daysParam === "all-time") {
+      // Use a large number to fetch all available data
+      days = 3650; // ~10 years
+    } else {
+      // Parse as numeric days
+      days = daysParam ? parseInt(daysParam) : 365;
+      
+      // Validate numeric days parameter (1-3650 range for all-time support)
+      if (isNaN(days) || days < 1 || days > 3650) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "INVALID_PARAMETER",
+              message: "days parameter must be between 1 and 3650, or 'this-year', or 'all-time'",
+              details: {
+                provided: daysParam,
+                validNumericRange: "1-3650",
+                validSpecialValues: ["this-year", "all-time"],
+              },
             },
           },
-        },
-        { status: 400 }
-      );
+          { status: 400 }
+        );
+      }
     }
 
     const streak = await streakService.getStreak();

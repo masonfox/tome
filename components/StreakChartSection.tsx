@@ -23,7 +23,7 @@ export function StreakChartSection({
   initialData,
   threshold,
 }: StreakChartSectionProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(30);
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
   const [data, setData] = useState<DailyReading[]>(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,11 +65,11 @@ export function StreakChartSection({
     [fetchAnalytics]
   );
 
-  // Fetch 30-day data on initial mount since server provides 365 days
+  // Fetch 7-day data on initial mount since server provides 365 days by default
   useEffect(() => {
     if (isInitialLoad) {
       setIsInitialLoad(false);
-      fetchAnalytics(30);
+      fetchAnalytics(7);
     }
   }, [isInitialLoad, fetchAnalytics]);
 

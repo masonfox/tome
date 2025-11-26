@@ -1,8 +1,9 @@
 "use client";
 
 import { cn } from "@/utils/cn";
+import { ChevronDown } from "lucide-react";
 
-export type TimePeriod = 30 | 90 | 365;
+export type TimePeriod = 7 | 30 | 90 | 180 | "this-year" | "all-time";
 
 interface TimePeriodOption {
   value: TimePeriod;
@@ -21,43 +22,52 @@ export function TimePeriodFilter({
   disabled = false,
 }: TimePeriodFilterProps) {
   const options: TimePeriodOption[] = [
-    { value: 30, label: "Last 30 days" },
-    { value: 90, label: "Last 90 days" },
-    { value: 365, label: "All time" },
+    { value: 7, label: "7 days" },
+    { value: 30, label: "30 days" },
+    { value: 90, label: "3 months" },
+    { value: 180, label: "6 months" },
+    { value: "this-year", label: "This Year" },
+    { value: "all-time", label: "All Time" },
   ];
 
+  const selectedOption = options.find((opt) => opt.value === selected);
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => {
-        const isActive = selected === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            disabled={disabled}
-            className={cn(
-              // Base styles
-              "px-4 py-2 rounded-md font-semibold text-sm transition-colors",
-              "border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2",
+    <div className="relative inline-block">
+      <select
+        value={selected}
+        onChange={(e) => {
+          const value = e.target.value;
+          // Parse numeric values, keep string values as-is
+          const period = /^\d+$/.test(value) ? Number(value) : value;
+          onChange(period as TimePeriod);
+        }}
+        disabled={disabled}
+        className={cn(
+          // Base styles
+          "appearance-none px-4 py-2 pr-10 rounded-md font-semibold text-sm",
+          "border border-[var(--border-color)] bg-[var(--background)]",
+          "text-[var(--foreground)] cursor-pointer transition-colors",
+          "focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2",
+          "hover:border-[var(--accent)]",
 
-              // Active state
-              isActive &&
-                "bg-[var(--accent)] text-white border-[var(--accent)]",
-
-              // Inactive state
-              !isActive &&
-                "bg-[var(--background)] text-[var(--foreground)] border-[var(--border-color)] hover:border-[var(--accent)]",
-
-              // Disabled state
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
-            aria-pressed={isActive}
-          >
+          // Disabled state
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
             {option.label}
-          </button>
-        );
-      })}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className={cn(
+          "absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4",
+          "text-[var(--foreground)]/60 pointer-events-none",
+          disabled && "opacity-50"
+        )}
+      />
     </div>
   );
 }
