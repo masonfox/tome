@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -11,7 +10,7 @@ import {
   ReferenceLine,
   Legend,
   Area,
-  AreaChart,
+  ComposedChart,
 } from "recharts";
 
 interface DailyReading {
@@ -96,7 +95,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
   return (
     <div className="w-full h-80 md:h-96">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
+        <ComposedChart
           data={dataWithAverage}
           margin={{ top: 20, right: 10, left: 0, bottom: 40 }}
         >
@@ -165,7 +164,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
               offset: 5,
             }}
           />
-        </AreaChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
