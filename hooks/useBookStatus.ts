@@ -55,6 +55,10 @@ export function useBookStatus(
   }, [book]);
 
   const performStatusChange = useCallback(async (newStatus: string) => {
+    // OPTIMISTIC UPDATE: Set status immediately for instant UI feedback
+    const previousStatus = selectedStatus;
+    setSelectedStatus(newStatus);
+
     try {
       const body: any = { status: newStatus };
 
@@ -66,7 +70,6 @@ export function useBookStatus(
 
       if (response.ok) {
         const data = await response.json();
-        setSelectedStatus(newStatus);
 
         // Call callbacks
         onStatusChange?.();
@@ -80,12 +83,18 @@ export function useBookStatus(
         } else {
           toast.success("Status updated");
         }
+      } else {
+        // Rollback optimistic update on error
+        setSelectedStatus(previousStatus);
+        toast.error("Failed to update status");
       }
     } catch (error) {
+      // Rollback optimistic update on error
+      setSelectedStatus(previousStatus);
       console.error("Failed to update status:", error);
       toast.error("Failed to update status");
     }
-  }, [bookId, onStatusChange, onRefresh]);
+  }, [bookId, selectedStatus, onStatusChange, onRefresh]);
 
   const handleUpdateStatus = useCallback(async (newStatus: string) => {
     // If marking as "read", show confirmation dialog
@@ -127,6 +136,10 @@ export function useBookStatus(
   const handleConfirmRead = useCallback(async (rating: number, review?: string) => {
     setShowReadConfirmation(false);
 
+    // OPTIMISTIC UPDATE: Set status immediately
+    const previousStatus = selectedStatus;
+    setSelectedStatus("read");
+
     try {
       // First, set the progress to 100% if book has total pages
       if (book?.totalPages) {
@@ -163,14 +176,20 @@ export function useBookStatus(
       });
 
       if (statusResponse.ok) {
-        setSelectedStatus("read");
         onRefresh?.();
         toast.success("Marked as read!");
+      } else {
+        // Rollback on error
+        setSelectedStatus(previousStatus);
+        toast.error("Failed to mark book as read");
       }
     } catch (error) {
+      // Rollback on error
+      setSelectedStatus(previousStatus);
       console.error("Failed to mark book as read:", error);
+      toast.error("Failed to mark book as read");
     }
-  }, [book, bookId, onRefresh]);
+  }, [book, bookId, selectedStatus, onRefresh]);
 
   const handleStartReread = useCallback(async () => {
     try {

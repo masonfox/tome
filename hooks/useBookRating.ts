@@ -15,12 +15,14 @@ export interface UseBookRatingReturn {
  * @param book - The current book data
  * @param bookId - The ID of the book
  * @param onRefresh - Callback to refresh book data
+ * @param updateBookPartial - Optional callback for optimistic updates
  * @returns Rating management state and functions
  */
 export function useBookRating(
   book: Book | null,
   bookId: string,
-  onRefresh?: () => void
+  onRefresh?: () => void,
+  updateBookPartial?: (updates: Partial<Book>) => void
 ): UseBookRatingReturn {
   const [showRatingModal, setShowRatingModal] = useState(false);
 
@@ -39,6 +41,10 @@ export function useBookRating(
       return;
     }
 
+    // OPTIMISTIC UPDATE: Update rating immediately for instant UI feedback
+    const previousRating = book?.rating;
+    updateBookPartial?.({ rating: newRating });
+
     try {
       const response = await fetch(`/api/books/${bookId}/rating`, {
         method: "POST",
@@ -56,14 +62,18 @@ export function useBookRating(
         setShowRatingModal(false);
         onRefresh?.();
       } else {
+        // Rollback optimistic update on error
+        updateBookPartial?.({ rating: previousRating });
         const error = await response.json();
         toast.error(error.error || "Failed to update rating");
       }
     } catch (error) {
+      // Rollback optimistic update on error
+      updateBookPartial?.({ rating: previousRating });
       console.error("Failed to update rating:", error);
       toast.error("Failed to update rating");
     }
-  }, [book?.rating, bookId, onRefresh]);
+  }, [book?.rating, bookId, onRefresh, updateBookPartial]);
 
   return {
     showRatingModal,
