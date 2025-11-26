@@ -56,7 +56,7 @@ export default async function StreakPage() {
         {/* Back to Dashboard Link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] font-medium transition-colors"
+          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] my-5 font-medium transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
@@ -84,17 +84,16 @@ export default async function StreakPage() {
 
   return (
     <div className="space-y-10">
-      {/* Back to Dashboard Link */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] font-medium transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Dashboard
-      </Link>
-
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-6">
+        {/* Back to Dashboard Link */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] my-5 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Link>
         <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
           <Flame className="w-8 h-8" />
           Streak Analytics
