@@ -145,40 +145,42 @@ describe("GET /api/books/[id]", () => {
     expect(data.hasCompletedReads).toBe(false);
   });
 
-  test("should return book with multiple completed sessions (totalReads)", async () => {
+  test("should return latest progress for active session with totalReads", async () => {
     // Create a book
     const book = await bookRepository.create({
       calibreId: 5,
-      title: "Multiple Reads Book",
+      title: "Progress Book",
       authors: ["Author Five"],
-      totalPages: 280,
+      totalPages: 350,
       tags: [],
-      path: "Author Five/Multiple Reads Book (5)",
+      path: "Author Five/Progress Book (5)",
     });
 
-    // Create 3 sessions: two completed, one active
-    await sessionRepository.create({
+    // Create an active session
+    const activeSession = await sessionRepository.create({
       bookId: book.id,
       sessionNumber: 1,
-      status: "read",
-      isActive: false,
-      completedDate: new Date("2023-06-01"),
-    });
-
-    await sessionRepository.create({
-      bookId: book.id,
-      sessionNumber: 2,
-      status: "read",
-      isActive: false,
-      completedDate: new Date("2024-01-01"),
-    });
-
-    await sessionRepository.create({
-      bookId: book.id,
-      sessionNumber: 3,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2024-11-01"),
+    });
+
+    // Create progress logs
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: activeSession.id,
+      currentPage: 50,
+      currentPercentage: 14.29,
+      progressDate: new Date("2024-11-01"),
+      pagesRead: 50,
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: activeSession.id,
+      currentPage: 150,
+      currentPercentage: 42.86,
+      progressDate: new Date("2024-11-10"),
+      pagesRead: 100,
     });
 
     const request = new Request("http://localhost:3000/api/books/5") as unknown as NextRequest;
