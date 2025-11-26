@@ -111,7 +111,7 @@ Setup (Phase 1) → Foundational (Phase 2)
 - [X] T017 [US1] Update homepage to fetch enhanced streak data including threshold in app/page.tsx
 - [X] T018 [US1] Pass dailyThreshold and hoursRemainingToday props to StreakDisplay in app/page.tsx
 - [X] T019 [US1] Add encouraging message logic for zero streak in StreakDisplay component in components/StreakDisplay.tsx
-- [ ] T020 [US1] Verify streak display shows correct data after reading activities (manual test)
+- [X] T020 [US1] Verify streak display shows correct data after reading activities (manual test)
 
 **Parallel Opportunities**:
 - T014-T016 (component updates) can be done in parallel
@@ -194,8 +194,8 @@ Setup (Phase 1) → Foundational (Phase 2)
 - [X] T055 [US4] Add celebration message logic when currentStreak >= longestStreak in components/StreakDisplay.tsx
 - [X] T056 [US4] Add celebration animation or visual indicator for new record in components/StreakDisplay.tsx
 - [X] T057 [US4] Display longest streak prominently on analytics page in components/StreakAnalytics.tsx
-- [ ] T058 [US4] Verify celebration shows when surpassing previous longest streak (manual test)
-- [ ] T059 [US4] Verify longest streak persists after current streak is broken (manual test)
+- [X] T058 [US4] Verify celebration shows when surpassing previous longest streak (manual test)
+- [X] T059 [US4] Verify longest streak persists after current streak is broken (manual test)
 
 **Parallel Opportunities**:
 - T054 (verification) can be done first
