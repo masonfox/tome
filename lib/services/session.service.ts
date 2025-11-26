@@ -90,8 +90,17 @@ export class SessionService {
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`);
 
-      // Archive current session
-      await sessionRepository.archive(readingSession.id);
+      // Get last progress date for completedDate (use last activity or current date)
+      const latestProgress = await progressRepository.findLatestBySessionId(readingSession.id);
+      const completedDate = latestProgress?.progressDate 
+        ? new Date(latestProgress.progressDate)
+        : new Date();
+
+      // Archive current session WITH completedDate
+      await sessionRepository.update(readingSession.id, {
+        isActive: false,
+        completedDate,
+      } as any);
 
       // Create new session with new status
       const newSessionNumber = readingSession.sessionNumber + 1;

@@ -9,6 +9,7 @@ import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
 import RereadConfirmModal from "@/components/RereadConfirmModal";
+import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import BookMetadata from "@/components/BookDetail/BookMetadata";
 import BookProgress from "@/components/BookDetail/BookProgress";
@@ -45,7 +46,7 @@ export default function BookDetailPage() {
     showStatusChangeConfirmation,
     pendingStatusChange,
     handleUpdateStatus,
-    handleConfirmStatusChange,
+    handleConfirmStatusChange: handleConfirmStatusChangeFromHook,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
     handleStartReread,
@@ -55,6 +56,12 @@ export default function BookDetailPage() {
   async function handleConfirmRead(rating: number, review?: string) {
     await handleConfirmReadFromHook(rating, review);
     bookProgressHook.clearFormState();
+    setHistoryRefreshKey(prev => prev + 1);
+  }
+
+  // Wrap handleConfirmStatusChange to refresh history after archiving session
+  async function handleConfirmStatusChange() {
+    await handleConfirmStatusChangeFromHook();
     setHistoryRefreshKey(prev => prev + 1);
   }
 
@@ -385,34 +392,13 @@ export default function BookDetailPage() {
         bookTitle={book.title}
       />
 
-      {showStatusChangeConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-2">Archive Reading Session?</h2>
-            <p className="text-[var(--foreground)]/70 mb-4 font-medium">You have logged progress for this book. Changing the status will:</p>
-            <ul className="list-disc list-inside text-[var(--foreground)]/70 mb-4 space-y-1 font-medium">
-              <li>Archive your current reading session with its progress</li>
-              <li>Start a fresh session with {pendingStatusChange === "read-next" ? "Read Next" : "Want to Read"} status</li>
-              <li>Preserve your reading history (viewable in Reading History)</li>
-            </ul>
-            <p className="text-[var(--foreground)] mb-6 font-semibold">Continue with status change?</p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={handleCancelStatusChange}
-                className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmStatusChange}
-                className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
-              >
-                Archive & Change Status
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ArchiveSessionModal
+        isOpen={showStatusChangeConfirmation}
+        onClose={handleCancelStatusChange}
+        onConfirm={handleConfirmStatusChange}
+        bookTitle={book.title}
+        pendingStatus={pendingStatusChange}
+      />
 
       {bookProgressHook.selectedProgressEntry && (
         <ProgressEditModal

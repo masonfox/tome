@@ -1,6 +1,5 @@
 "use client";
 
-import { StatsCard } from "@/components/ui/StatsCard";
 import { Flame, Calendar, Target, TrendingUp, TrendingDown, Settings } from "lucide-react";
 import Link from "next/link";
 

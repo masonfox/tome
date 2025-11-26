@@ -48,7 +48,9 @@ async function fetchAnalytics(days: number = 365): Promise<AnalyticsData | null>
 }
 
 export default async function StreakPage() {
-  const analyticsData = await fetchAnalytics();
+  // Fetch 7 days by default to match initial client state (StreakChartSection)
+  // This avoids wasting bandwidth and server resources on 365 days that get immediately discarded
+  const analyticsData = await fetchAnalytics(7);
 
   if (!analyticsData) {
     return (

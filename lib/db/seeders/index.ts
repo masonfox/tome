@@ -4,7 +4,7 @@
  */
 
 import { syncCalibreLibrary } from "@/lib/sync-service";
-import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
 import { getLogger } from "@/lib/logger";
 import {
