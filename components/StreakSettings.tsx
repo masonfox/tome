@@ -55,11 +55,11 @@ export function StreakSettings({ initialThreshold }: StreakSettingsProps) {
         </h3>
       </div>
 
-      <p className="text-sm text-[var(--foreground)]/70 mb-4 font-medium">
+      <p className="text-sm text-[var(--subheading-text)] mb-4 font-medium">
         Set how many pages you want to read each day to maintain your streak.
       </p>
 
-      <div className="flex items-end gap-4">
+      <div className="flex items-start gap-4">
         <div className="flex-1">
           <label
             htmlFor="daily-threshold"
@@ -77,19 +77,21 @@ export function StreakSettings({ initialThreshold }: StreakSettingsProps) {
             className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
             disabled={saving}
           />
-          <p className="text-xs text-[var(--foreground)]/60 mt-1 font-medium">
+          <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
             Must be between 1 and 9999
           </p>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving || threshold === initialThreshold}
-          className="px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
-        >
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saving ? "Saving..." : "Save"}
-        </button>
+        <div className="pt-7">
+          <button
+            onClick={handleSave}
+            disabled={saving || threshold === initialThreshold}
+            className="px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
       </div>
     </div>
   );
