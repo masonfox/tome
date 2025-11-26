@@ -33,34 +33,35 @@ export async function setupTestDatabase(testFilePath: string): Promise<TestDatab
     console.log(`Test database already exists for: ${testFilePath}`);
     return databases.get(testFilePath)!;
   }
-
-  // Create separate test database in memory for complete isolation
+ 
+  // Always use in-memory database for speed and consistency across environments
   const testSqlite = new Database(":memory:");
   testSqlite.exec("PRAGMA foreign_keys = ON");
   // Use DELETE journal mode instead of WAL for better test isolation
   testSqlite.exec("PRAGMA journal_mode = DELETE");
   testSqlite.exec("PRAGMA synchronous = FULL");
-
+ 
   const testDb = drizzle(testSqlite, { schema });
   console.log(`Test database created for: ${testFilePath}`);
-
+ 
   const instance: TestDatabaseInstance = {
     db: testDb,
     sqlite: testSqlite,
     testFilePath,
   };
-
+ 
   // Store the database for this test file
   databases.set(testFilePath, instance);
-
+ 
   // Register the test database so getDatabase() can find it via call stack
   __registerTestDatabase(testFilePath, testDb);
-
+ 
   // Run migrations on test database
   await runMigrationsOnDatabase(testDb);
-
+ 
   return instance;
 }
+
 
 /**
  * Teardown the test database
@@ -71,7 +72,7 @@ export async function setupTestDatabase(testFilePath: string): Promise<TestDatab
 export async function teardownTestDatabase(dbInstanceOrPath: TestDatabaseInstance | string): Promise<void> {
   let testFilePath: string;
   let sqlite: any;
-
+ 
   if (typeof dbInstanceOrPath === 'string') {
     // Legacy API: string path
     const instance = databases.get(dbInstanceOrPath);
@@ -86,14 +87,15 @@ export async function teardownTestDatabase(dbInstanceOrPath: TestDatabaseInstanc
     testFilePath = dbInstanceOrPath.testFilePath;
     sqlite = dbInstanceOrPath.sqlite;
   }
-
+ 
   // Clean up the database
   sqlite.close();
   databases.delete(testFilePath);
-
+ 
   // Unregister the test database
   __unregisterTestDatabase(testFilePath);
 }
+
 
 /**
  * Clear all data from the test database
@@ -103,35 +105,25 @@ export async function teardownTestDatabase(dbInstanceOrPath: TestDatabaseInstanc
  * @param dbInstanceOrPath - Database instance (DI) or file path (legacy)
  */
 export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance | string): Promise<void> {
-  let db: any;
   let testFilePath: string;
-
+  let rawDb: any;
+ 
   if (typeof dbInstanceOrPath === 'string') {
     // Legacy API: string path
     const instance = databases.get(dbInstanceOrPath);
     if (!instance) {
       throw new Error(`No test database found for ${dbInstanceOrPath}. Did you call setupTestDatabase()?`);
     }
-    db = instance.db;
     testFilePath = instance.testFilePath;
+    rawDb = instance.sqlite;
   } else {
     // DI API: instance object
-    db = dbInstanceOrPath.db;
     testFilePath = dbInstanceOrPath.testFilePath;
+    rawDb = dbInstanceOrPath.sqlite;
   }
-
+ 
   console.log(`[clearTestDatabase] Clearing database for: ${testFilePath}`);
 
-  // Get the raw SQLite instance from the databases map
-  const dbInstance = typeof dbInstanceOrPath === 'string' 
-    ? databases.get(dbInstanceOrPath) 
-    : { sqlite: dbInstanceOrPath.db.$client, db: dbInstanceOrPath.db, testFilePath };
-  
-  if (!dbInstance || !dbInstance.sqlite) {
-    throw new Error(`Cannot find SQLite instance for ${testFilePath}`);
-  }
-
-  const rawDb = dbInstance.sqlite;
 
   // Use raw SQL DELETE statements to ensure they execute synchronously
   // Delete in order that respects foreign key constraints (children first, then parents)

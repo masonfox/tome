@@ -1,6 +1,6 @@
 # CI Streak Test Failure Investigation
 
-**Status**: RESOLVED - Tests skipped in CI  
+**Status**: IN PROGRESS - Testing standardized lifecycle with in-memory DB  
 **Date**: November 21-22, 2025  
 **Resolution Date**: November 22, 2025  
 **Issue**: Streak tests pass 100% locally, fail 100% in CI

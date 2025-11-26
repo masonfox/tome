@@ -1,62 +1,48 @@
-import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { updateStreaks, getStreak, getOrCreateStreak, rebuildStreak } from "@/lib/streaks";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { mockBook1, mockSessionReading, createTestDate } from "@/__tests__/fixtures/test-data";
 import { startOfDay } from "date-fns";
 
 /**
  * Streak Logic Tests
- * Using SQLite for accurate testing with DI pattern to avoid path resolution issues
- * 
- * NOTE: These tests are skipped in CI due to a Bun test runner issue where
- * database clearing doesn't work properly in GitHub Actions. The tests pass
- * 100% locally but fail 100% in CI with identical code and environment.
- * 
- * See: /docs/CI-STREAK-TEST-FAILURE-INVESTIGATION.md for full details.
- * 
- * The streak implementation itself is correct - this is purely a test 
- * infrastructure issue in CI environments.
+ * Using SQLite for accurate testing with the shared test DB helper.
+ *
+ * CI behavior:
+ * - Historically, these tests were skipped in GitHub Actions due to a Bun
+ *   test runner issue where the in-memory SQLite database was not reliably
+ *   cleared between tests.
+ * - We've now standardized the test lifecycle to match other unit/lib tests
+ *   (using __filename-based DB registration and beforeEach cleanup).
+ * - All tests use in-memory SQLite for speed and consistency across environments.
+ *
+ * See: docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md for the original
+ * investigation and rationale.
  */
-
-// Check if running in CI environment
-const isCI = process.env.CI === 'true';
 
 // Helper to convert Unix timestamp (seconds) from createTestDate to Date object
 function unixSecondsToDate(unixSeconds: number): Date {
   return new Date(unixSeconds * 1000);
 }
 
-// Store the database instance for this test file
-let testDb: TestDatabaseInstance;
-
 // Shared setup for all describe blocks in this file
 beforeAll(async () => {
-  console.log("[TEST LIFECYCLE] beforeAll starting...");
-  testDb = await setupTestDatabase(__filename);
-  console.log("[TEST LIFECYCLE] testDb instance created:", typeof testDb, "path:", testDb.testFilePath);
-  // Clear any initial data
-  await clearTestDatabase(testDb);
-  console.log("[TEST LIFECYCLE] beforeAll completed");
+  await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  console.log("[TEST LIFECYCLE] afterAll starting...");
-  await teardownTestDatabase(testDb);
-  console.log("[TEST LIFECYCLE] afterAll completed");
+  await teardownTestDatabase(__filename);
 });
 
-// Clear AFTER each test instead of BEFORE to ensure cleanup happens
-afterEach(async () => {
-  console.log("[TEST LIFECYCLE] afterEach starting for test...");
-  console.log("[TEST LIFECYCLE] testDb instance:", typeof testDb, "path:", testDb?.testFilePath);
-  await clearTestDatabase(testDb);
-  console.log("[TEST LIFECYCLE] afterEach completed");
+// Clear BEFORE each test to ensure a clean slate
+beforeEach(async () => {
+  await clearTestDatabase(__filename);
 });
 
 describe("updateStreaks", () => {
 
-  test.skipIf(isCI)("creates new streak when no existing streak found", async () => {
+  test("creates new streak when no existing streak found", async () => {
     // Act
     const result = await updateStreaks();
 
@@ -71,7 +57,7 @@ describe("updateStreaks", () => {
     expect(found).toBeDefined();
   });
 
-   test.skipIf(isCI)("initializes streak to 1 when currentStreak is 0 on same day", async () => {
+   test("initializes streak to 1 when currentStreak is 0 on same day", async () => {
      // Arrange - Create streak with values from today
      const existingStreak = await streakRepository.create({
        userId: null,
@@ -91,7 +77,7 @@ describe("updateStreaks", () => {
      expect(result.totalDaysActive).toBe(1);
    });
 
-  test.skipIf(isCI)("returns unchanged streak when activity on same day with existing streak", async () => {
+  test("returns unchanged streak when activity on same day with existing streak", async () => {
     // Arrange - Create active streak from today
     await streakRepository.create({
       userId: null,
@@ -111,7 +97,7 @@ describe("updateStreaks", () => {
     expect(result.totalDaysActive).toBe(15);
   });
 
-  test.skipIf(isCI)("initializes streak when daysDiff is 1 but currentStreak is 0", async () => {
+  test("initializes streak when daysDiff is 1 but currentStreak is 0", async () => {
     // Arrange - Streak created yesterday with 0 values
     const today = startOfDay(new Date());
     const yesterday = new Date(today);
@@ -161,7 +147,7 @@ describe("updateStreaks", () => {
     expect(result.totalDaysActive).toBe(1);
   });
 
-  test.skipIf(isCI)("increments streak on consecutive day activity", async () => {
+  test("increments streak on consecutive day activity", async () => {
     // Arrange - Active streak from yesterday
     const today = startOfDay(new Date());
     const yesterday = new Date(today);
@@ -213,7 +199,7 @@ describe("updateStreaks", () => {
     expect(result.totalDaysActive).toBe(16);
   });
 
-  test.skipIf(isCI)("updates longestStreak when current exceeds it", async () => {
+  test("updates longestStreak when current exceeds it", async () => {
     // Arrange - Current streak about to exceed longest
     const today = startOfDay(new Date());
     const yesterday = new Date(today);
@@ -265,7 +251,7 @@ describe("updateStreaks", () => {
     expect(result.totalDaysActive).toBe(21);
   });
 
-  test.skipIf(isCI)("resets streak to 1 when gap is more than 1 day", async () => {
+  test("resets streak to 1 when gap is more than 1 day", async () => {
     // Arrange - Last activity was 3 days ago
     const today = startOfDay(new Date());
     const threeDaysAgo = new Date(today);
@@ -317,7 +303,7 @@ describe("updateStreaks", () => {
     expect(result.totalDaysActive).toBe(16); // Incremented
   });
 
-  test.skipIf(isCI)("handles totalDaysActive = 0 on broken streak", async () => {
+  test("handles totalDaysActive = 0 on broken streak", async () => {
     // Arrange - Broken streak with no previous activity
     const today = startOfDay(new Date());
     const threeDaysAgo = new Date(today);
@@ -367,7 +353,7 @@ describe("updateStreaks", () => {
 });
 
 describe("getStreak", () => {
-  test.skipIf(isCI)("returns streak when found", async () => {
+  test("returns streak when found", async () => {
     // Arrange
     const today = new Date();
     const fiveDaysAgo = new Date(today);
@@ -391,7 +377,7 @@ describe("getStreak", () => {
     expect(result?.longestStreak).toBe(10);
   });
 
-  test.skipIf(isCI)("auto-creates streak when not found", async () => {
+  test("auto-creates streak when not found", async () => {
     // Act
     const result = await getStreak();
 
@@ -405,7 +391,7 @@ describe("getStreak", () => {
 });
 
 describe("getOrCreateStreak", () => {
-  test.skipIf(isCI)("returns existing streak if found", async () => {
+  test("returns existing streak if found", async () => {
     // Arrange
     const today = new Date();
     const fiveDaysAgo = new Date(today);
@@ -428,7 +414,7 @@ describe("getOrCreateStreak", () => {
     expect(result.longestStreak).toBe(10);
   });
 
-  test.skipIf(isCI)("creates new streak with 0 values if not found", async () => {
+  test("creates new streak with 0 values if not found", async () => {
     // Act
     const result = await getOrCreateStreak();
 
@@ -448,7 +434,7 @@ describe("rebuildStreak", () => {
   // BASIC FUNCTIONALITY
   // ============================================================================
 
-  test.skipIf(isCI)("should create new streak when no progress logs exist", async () => {
+  test("should create new streak when no progress logs exist", async () => {
     const result = await rebuildStreak(null, new Date("2025-11-19T12:00:00.000Z"));
 
     expect(result).toBeDefined();
@@ -461,7 +447,7 @@ describe("rebuildStreak", () => {
     expect(found).toBeDefined();
   });
 
-  test.skipIf(isCI)("should calculate streak from single day of progress", async () => {
+  test("should calculate streak from single day of progress", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -487,7 +473,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(1);
   });
 
-  test.skipIf(isCI)("should calculate streak from consecutive days", async () => {
+  test("should calculate streak from consecutive days", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -516,7 +502,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(5);
   });
 
-  test.skipIf(isCI)("should handle broken streak (gap in days)", async () => {
+  test("should handle broken streak (gap in days)", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -553,7 +539,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(5); // Total unique days
   });
 
-  test.skipIf(isCI)("should reset current streak if last activity > 1 day ago", async () => {
+  test("should reset current streak if last activity > 1 day ago", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -586,7 +572,7 @@ describe("rebuildStreak", () => {
   // MULTI-SESSION SCENARIOS
   // ============================================================================
 
-  test.skipIf(isCI)("should count progress from multiple sessions for the same book", async () => {
+  test("should count progress from multiple sessions for the same book", async () => {
     const book = await bookRepository.create(mockBook1);
 
     // Session 1
@@ -639,7 +625,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(3);
   });
 
-  test.skipIf(isCI)("should count progress from multiple books", async () => {
+  test("should count progress from multiple books", async () => {
     const book1 = await bookRepository.create(mockBook1);
     const book2 = await bookRepository.create({ ...mockBook1, calibreId: 999, title: "Other Book" });
 
@@ -696,7 +682,7 @@ describe("rebuildStreak", () => {
   // EDGE CASES
   // ============================================================================
 
-  test.skipIf(isCI)("should handle multiple progress logs on the same day", async () => {
+  test("should handle multiple progress logs on the same day", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -740,7 +726,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(1);
   });
 
-  test.skipIf(isCI)("should update existing streak record", async () => {
+  test("should update existing streak record", async () => {
     // Create an existing streak
     const existingStreak = await streakRepository.create({
       userId: null,
@@ -780,7 +766,7 @@ describe("rebuildStreak", () => {
     expect(result.id).toBe(existingStreak.id);
   });
 
-  test.skipIf(isCI)("should find longest streak in multiple separate streaks", async () => {
+  test("should find longest streak in multiple separate streaks", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -823,7 +809,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(10); // Total unique days
   });
 
-  test.skipIf(isCI)("should handle progress logs without sessionId (legacy data)", async () => {
+  test("should handle progress logs without sessionId (legacy data)", async () => {
     const book = await bookRepository.create(mockBook1);
 
     // Create legacy progress logs without sessionId (ending today 2025-11-19)
@@ -852,7 +838,7 @@ describe("rebuildStreak", () => {
     expect(result.totalDaysActive).toBe(2);
   });
 
-  test.skipIf(isCI)("should correctly set lastActivityDate and streakStartDate", async () => {
+  test("should correctly set lastActivityDate and streakStartDate", async () => {
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       bookId: book.id,
@@ -888,7 +874,7 @@ describe("rebuildStreak", () => {
 });
 
 describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
-  test.skipIf(isCI)("should set streak to 1 when first activity meets threshold", async () => {
+  test("should set streak to 1 when first activity meets threshold", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -932,7 +918,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(1);
   });
 
-  test.skipIf(isCI)("should keep streak at 0 if threshold not met", async () => {
+  test("should keep streak at 0 if threshold not met", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -974,7 +960,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(0);
   });
 
-  test.skipIf(isCI)("should not double-increment on multiple logs same day", async () => {
+  test("should not double-increment on multiple logs same day", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -1028,7 +1014,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result2.totalDaysActive).toBe(1);
   });
 
-  test.skipIf(isCI)("should preserve longestStreak when setting first day", async () => {
+  test("should preserve longestStreak when setting first day", async () => {
     // Arrange - simulate user who had a streak before, broke it long ago
     // Now they're starting fresh today (first progress today, currentStreak = 0)
     const book = await bookRepository.create(mockBook1);
@@ -1072,7 +1058,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(20); // Should not increment on same day
   });
 
-  test.skipIf(isCI)("should set totalDaysActive to 1 on very first activity", async () => {
+  test("should set totalDaysActive to 1 on very first activity", async () => {
     // Arrange - completely fresh, first time ever
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
@@ -1115,7 +1101,7 @@ describe("updateStreaks - First Day Activity (currentStreak = 0)", () => {
     expect(result.totalDaysActive).toBe(1); // Should increment from 0 to 1
   });
 
-  test.skipIf(isCI)("should work with consecutive days using rebuildStreak", async () => {
+  test("should work with consecutive days using rebuildStreak", async () => {
     // Arrange
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
