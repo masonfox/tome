@@ -1,4 +1,5 @@
 import { StatsCard } from "@/components/ui/StatsCard";
+import { PageHeader } from "@/components/PageHeader";
 import {
   BookOpen,
   BookCheck,
@@ -54,15 +55,11 @@ export default async function StatsPage() {
 
   return (
     <div className="space-y-10">
-      <div className="border-b border-[var(--border-color)] pb-6">
-        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
-          <BarChart3 className="w-8 h-8" />
-          Reading Statistics
-        </h1>
-        <p className="text-[var(--subheading-text)] mt-2 font-medium">
-          Track your reading progress and achievements
-        </p>
-      </div>
+      <PageHeader
+        title="Reading Statistics"
+        subtitle="Track your reading progress and achievements"
+        icon={BarChart3}
+      />
 
       {/* Streak Stats */}
       {streak && (

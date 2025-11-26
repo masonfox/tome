@@ -1,8 +1,8 @@
 import { StreakChart } from "@/components/StreakChart";
 import { StreakAnalytics } from "@/components/StreakAnalytics";
+import { PageHeader } from "@/components/PageHeader";
 import { getLogger } from "@/lib/logger";
-import { Flame, TrendingUp, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Flame, TrendingUp } from "lucide-react";
 
 const logger = getLogger();
 
@@ -53,24 +53,12 @@ export default async function StreakPage() {
   if (!analyticsData) {
     return (
       <div className="space-y-10">
-        {/* Back to Dashboard Link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] my-5 font-medium transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </Link>
-
-        <div className="border-b border-[var(--border-color)] pb-6">
-          <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
-            <Flame className="w-8 h-8" />
-            Streak Analytics
-          </h1>
-          <p className="text-[var(--subheading-text)] mt-2 font-medium">
-            Track your reading habits and progress over time
-          </p>
-        </div>
+        <PageHeader
+          title="Streak Analytics"
+          subtitle="Track your reading habits and progress over time"
+          icon={Flame}
+          backLink={{ href: "/", label: "Back to Dashboard" }}
+        />
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center rounded-md">
           <p className="text-[var(--foreground)]/70 font-medium">
             Unable to load streak analytics. Please try again later.
@@ -84,24 +72,12 @@ export default async function StreakPage() {
 
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <div className="border-b border-[var(--border-color)] pb-6">
-        {/* Back to Dashboard Link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] my-5 font-medium transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </Link>
-        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
-          <Flame className="w-8 h-8" />
-          Streak Analytics
-        </h1>
-        <p className="text-[var(--subheading-text)] mt-2 font-medium">
-          Track your reading habits and progress over time
-        </p>
-      </div>
+      <PageHeader
+        title="Streak Analytics"
+        subtitle="Track your reading habits and progress over time"
+        icon={Flame}
+        backLink={{ href: "/", label: "Back to Dashboard" }}
+      />
 
       {/* Analytics Stats */}
       <StreakAnalytics
