@@ -33,7 +33,11 @@ Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre libra
 - **Calibre Integration**: Direct read-only access to your Calibre database
 - **Automatic Sync**: Automatically detects and syncs changes from Calibre (like calibre-web!)
 - **Reading Progress Tracking**: Track page-based or percentage-based progress
-- **Reading Streaks**: Daily streak tracking with activity calendar
+- **Enhanced Reading Streaks**: Daily streak tracking with configurable thresholds, detailed analytics, and historical visualizations
+  - Set personalized daily reading goals (1-9999 pages)
+  - Track current and longest streaks
+  - View 365 days of reading history with interactive charts
+  - Real-time progress indicators and celebration for new records
 - **Book Status Management**: To Read, Reading, and Read status tracking
 - **Statistics Dashboard**: Comprehensive reading statistics and analytics
 - **Self-Hosted**: Full control over your data

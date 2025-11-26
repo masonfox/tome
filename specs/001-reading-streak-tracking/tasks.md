@@ -227,19 +227,19 @@ Setup (Phase 1) → Foundational (Phase 2)
 
 ### Tasks
 
-- [ ] T060 [P] Create unit tests for StreakService validation logic in tests/unit/streak.service.test.ts
-- [ ] T061 [P] Create integration tests for StreakRepository.updateThreshold in tests/integration/streak.repository.test.ts
-- [ ] T062 [P] Add component tests for StreakSettings form validation in tests/component/streak-settings.test.tsx
-- [ ] T063 [P] Add tests for streak calculation with threshold in tests/integration/streaks.test.ts
-- [ ] T064 Add error boundary for streak components in app/page.tsx and app/streak/page.tsx
-- [ ] T065 Add fallback UI for when streak data fails to load in components/StreakDisplay.tsx
-- [ ] T066 Review all logging statements for consistency with Pino patterns in lib/services/streak.service.ts
-- [ ] T067 Add TypeScript strict mode compliance checks for new files
-- [ ] T068 Run full test suite and fix any failures (bun test)
-- [ ] T069 Run TypeScript compiler and fix any type errors (bun run build)
-- [ ] T070 Perform manual end-to-end testing of all user stories
-- [ ] T071 Update README or docs with streak threshold feature description
-- [ ] T072 Create database backup before final deployment (bun run db:backup)
+- [X] T060 [P] Create unit tests for StreakService validation logic in tests/unit/streak.service.test.ts
+- [X] T061 [P] Create integration tests for StreakRepository.updateThreshold in tests/integration/streak.repository.test.ts
+- [X] T062 [P] Add component tests for StreakSettings form validation in tests/component/streak-settings.test.tsx
+- [X] T063 [P] Add tests for streak calculation with threshold in tests/integration/streaks.test.ts
+- [X] T064 Add error boundary for streak components in app/page.tsx and app/streak/page.tsx
+- [X] T065 Add fallback UI for when streak data fails to load in components/StreakDisplay.tsx
+- [X] T066 Review all logging statements for consistency with Pino patterns in lib/services/streak.service.ts
+- [X] T067 Add TypeScript strict mode compliance checks for new files
+- [X] T068 Run full test suite and fix any failures (bun test)
+- [X] T069 Run TypeScript compiler and fix any type errors (bun run build)
+- [X] T070 Perform manual end-to-end testing of all user stories
+- [X] T071 Update README or docs with streak threshold feature description
+- [X] T072 Create database backup before final deployment (bun run db:backup)
 
 **Parallel Opportunities**:
 - T060-T063 (all test files) can be written in parallel
