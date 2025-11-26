@@ -35,6 +35,7 @@ export interface UseBookDetailReturn {
   setImageError: (error: boolean) => void;
   refetchBook: () => Promise<void>;
   updateTotalPages: (totalPages: number) => Promise<void>;
+  updateBookPartial: (updates: Partial<Book>) => void;
 }
 
 /**
@@ -73,13 +74,18 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
       });
 
       if (response.ok) {
-        // Refetch book to get updated data
-        await fetchBook();
+        // Optimistically update local state instead of full refetch
+        setBook(prev => prev ? { ...prev, totalPages } : null);
       }
     } catch (error) {
       console.error("Failed to update total pages:", error);
     }
-  }, [bookId, fetchBook]);
+  }, [bookId]);
+
+  // Partial update method for optimistic updates
+  const updateBookPartial = useCallback((updates: Partial<Book>) => {
+    setBook(prev => prev ? { ...prev, ...updates } : null);
+  }, []);
 
   // Fetch book on mount or when bookId changes
   useEffect(() => {
@@ -94,5 +100,6 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     setImageError,
     refetchBook,
     updateTotalPages,
+    updateBookPartial,
   };
 }

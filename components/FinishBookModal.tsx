@@ -101,7 +101,7 @@ export default function FinishBookModal({
             onChange={(e) => setReview(e.target.value)}
             placeholder="What did you think about this book?"
             rows={4}
-            className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm rounded focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
+            className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm rounded focus:outline-none focus:border-[var(--accent)] transition-colors"
           />
           <p className="text-xs italic text-[var(--subheading-text)] mt-1">
             Personal notes just for you

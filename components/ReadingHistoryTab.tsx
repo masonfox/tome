@@ -98,19 +98,9 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     }
   }
 
-  if (loading) {
-    return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-          Reading History
-        </h2>
-        <p className="text-[var(--foreground)]/60 font-medium">Loading reading history...</p>
-      </div>
-    );
-  }
-
-  if (sessions.length === 0) {
-    return null; // Don't show the section if there are no archived sessions
+  // Don't show anything while loading or if there are no archived sessions
+  if (loading || sessions.length === 0) {
+    return null;
   }
 
   return (

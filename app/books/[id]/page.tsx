@@ -35,6 +35,7 @@ export default function BookDetailPage() {
     setImageError,
     refetchBook,
     updateTotalPages,
+    updateBookPartial,
   } = useBookDetail(bookId);
 
   const bookProgressHook = useBookProgress(bookId, book, handleRefresh);
@@ -55,6 +56,7 @@ export default function BookDetailPage() {
   async function handleConfirmRead(rating: number, review?: string) {
     await handleConfirmReadFromHook(rating, review);
     bookProgressHook.clearFormState();
+    setHistoryRefreshKey(prev => prev + 1);
   }
 
   // Wrap handleConfirmStatusChange to refresh history after archiving session
@@ -68,7 +70,7 @@ export default function BookDetailPage() {
     openRatingModal,
     closeRatingModal,
     handleUpdateRating,
-  } = useBookRating(book, bookId, handleRefresh);
+  } = useBookRating(book, bookId, handleRefresh, updateBookPartial);
 
   const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, handleRefresh);
 
@@ -87,7 +89,7 @@ export default function BookDetailPage() {
   function handleRefresh() {
     refetchBook();
     bookProgressHook.refetchProgress();
-    router.refresh();
+    // router.refresh() removed - Phase 2 optimization
   }
 
   // Handle re-read with history refresh
@@ -113,7 +115,7 @@ export default function BookDetailPage() {
     await updateTotalPages(parseInt(totalPagesInput));
     setTotalPagesInput("");
     toast.success("Pages updated");
-    router.refresh();
+    // router.refresh() removed - Phase 2 optimization
   }
 
   // Close dropdowns when clicking outside
