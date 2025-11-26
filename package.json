@@ -14,6 +14,7 @@
     "db:generate": "DATABASE_PATH=./data/tome.db bunx drizzle-kit generate",
     "db:push": "DATABASE_PATH=./data/tome.db bunx drizzle-kit push",
     "db:studio": "DATABASE_PATH=./data/tome.db bunx drizzle-kit studio",
+    "db:seed": "bun run scripts/seed.ts",
     "sync-calibre": "bun run scripts/sync-calibre.ts",
     "test": "bun test",
     "test:watch": "bun test --watch"
