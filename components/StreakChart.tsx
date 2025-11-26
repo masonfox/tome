@@ -26,6 +26,22 @@ interface StreakChartProps {
 }
 
 export function StreakChart({ data, threshold }: StreakChartProps) {
+  // Calculate moving average
+  const calculateMovingAverage = (data: DailyReading[], windowSize: number = 7) => {
+    return data.map((item, index) => {
+      const start = Math.max(0, index - windowSize + 1);
+      const window = data.slice(start, index + 1);
+      const sum = window.reduce((acc, d) => acc + d.pagesRead, 0);
+      const average = sum / window.length;
+      return {
+        ...item,
+        movingAverage: Math.round(average * 10) / 10, // Round to 1 decimal place
+      };
+    });
+  };
+
+  const dataWithAverage = calculateMovingAverage(data);
+
   // Format date for display (show MM/DD)
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -60,6 +76,11 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
           <p className="text-sm text-[var(--foreground)] mt-1">
             Pages: <span className="font-bold">{data.pagesRead}</span>
           </p>
+          {data.movingAverage !== undefined && (
+            <p className="text-sm text-[var(--foreground)] mt-1">
+              7-day avg: <span className="font-bold">{data.movingAverage}</span>
+            </p>
+          )}
           <p className="text-sm text-[var(--foreground)] mt-1">
             Status:{" "}
             <span className={data.thresholdMet ? "text-[var(--accent)] font-semibold" : "text-[var(--foreground)]/60"}>
@@ -76,7 +97,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
     <div className="w-full h-80 md:h-96">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
-          data={data}
+          data={dataWithAverage}
           margin={{ top: 20, right: 10, left: 0, bottom: 40 }}
         >
           <defs>
@@ -121,6 +142,14 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             strokeWidth={2}
             fill="url(#colorGradient)"
             name="Pages Read"
+          />
+          <Line
+            type="monotone"
+            dataKey="movingAverage"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            dot={false}
+            name="7-day Average"
           />
           <ReferenceLine
             y={threshold}
