@@ -1,0 +1,73 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run linter
+        run: bun run lint
+        continue-on-error: true
+
+      - name: Run type check
+        run: bunx tsc --noEmit
+
+      - name: Run tests
+        run: bun test
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: Build application
+        run: bun run build
+        env:
+          NODE_ENV: production
+
+  # Additional job for test coverage (if you want to add it later)
+  # coverage:
+  #   name: Test Coverage
+  #   runs-on: ubuntu-latest
+  #   needs: test
+  #   
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #     
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v1
+  #       with:
+  #         bun-version: latest
+  #     
+  #     - name: Install dependencies
+  #       run: bun install --frozen-lockfile
+  #     
+  #     - name: Generate coverage report
+  #       run: bun test --coverage
+  #       env:
+  #         CI: true
+  #         NODE_ENV: test
