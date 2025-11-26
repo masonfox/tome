@@ -54,7 +54,7 @@ export function StreakDisplay({
   return (
     <div className="flex flex-col items-center gap-1">
       <Link href="/streak" className="group transition-opacity">
-        <div className={cn("flex items-center gap-1", isNewRecord && "animate-pulse", className)}>
+        <div className={cn("flex items-center gap-1", className)}>
           {/* Colored flame indicator - filled when goal met, outline when not */}
           {goalMet ? (
             <FilledFlame className={cn("w-5 h-5", flameColor)} />
@@ -71,7 +71,7 @@ export function StreakDisplay({
         </div>
         {/* Celebration message for new record */}
         {isNewRecord && (
-          <div className="text-xs mt-2 text-orange-500 font-semibold leading-tight text-center animate-pulse">
+          <div className="text-xs mt-2 text-orange-500 font-semibold leading-tight text-center">
             New record! 🎉
           </div>
         )}
