@@ -234,4 +234,160 @@ describe("StreakService - Auto-initialization", () => {
       expect(fetched.dailyThreshold).toBe(40);
     });
   });
+
+  describe("checkAndResetStreakIfNeeded()", () => {
+    it("should reset streak to 0 when more than 1 day has passed", async () => {
+      // Create a streak with last activity 3 days ago
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 6,
+        longestStreak: 10,
+        lastActivityDate: threeDaysAgo,
+        streakStartDate: threeDaysAgo,
+        totalDaysActive: 20,
+        dailyThreshold: 1,
+      });
+
+      // Call checkAndResetStreakIfNeeded
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
+
+      // Verify reset occurred
+      expect(wasReset).toBe(true);
+
+      // Verify streak is now 0
+      const streak = await streakService.getStreakBasic(null);
+      expect(streak.currentStreak).toBe(0);
+      expect(streak.longestStreak).toBe(10); // Longest streak preserved
+    });
+
+    it("should not reset streak when last activity was yesterday", async () => {
+      // Create a streak with last activity yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 5,
+        longestStreak: 10,
+        lastActivityDate: yesterday,
+        streakStartDate: yesterday,
+        totalDaysActive: 15,
+        dailyThreshold: 1,
+      });
+
+      // Call checkAndResetStreakIfNeeded
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
+
+      // Verify NO reset occurred
+      expect(wasReset).toBe(false);
+
+      // Verify streak is still 5
+      const streak = await streakService.getStreakBasic(null);
+      expect(streak.currentStreak).toBe(5);
+    });
+
+    it("should not reset streak when last activity was today", async () => {
+      // Create a streak with last activity today
+      const today = new Date();
+
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 3,
+        longestStreak: 8,
+        lastActivityDate: today,
+        streakStartDate: today,
+        totalDaysActive: 10,
+        dailyThreshold: 1,
+      });
+
+      // Call checkAndResetStreakIfNeeded
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
+
+      // Verify NO reset occurred
+      expect(wasReset).toBe(false);
+
+      // Verify streak is still 3
+      const streak = await streakService.getStreakBasic(null);
+      expect(streak.currentStreak).toBe(3);
+    });
+
+    it("should not reset when streak is already 0", async () => {
+      // Create a streak that's already 0, with old last activity
+      const fiveDaysAgo = new Date();
+      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 15,
+        lastActivityDate: fiveDaysAgo,
+        streakStartDate: fiveDaysAgo,
+        totalDaysActive: 25,
+        dailyThreshold: 1,
+      });
+
+      // Call checkAndResetStreakIfNeeded
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
+
+      // Verify NO reset occurred (already 0)
+      expect(wasReset).toBe(false);
+
+      // Verify streak is still 0
+      const streak = await streakService.getStreakBasic(null);
+      expect(streak.currentStreak).toBe(0);
+    });
+
+    it("should auto-create streak if none exists", async () => {
+      // Verify no streak exists
+      const existingStreak = await streakRepository.findByUserId(null);
+      expect(existingStreak).toBeUndefined();
+
+      // Call checkAndResetStreakIfNeeded
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
+
+      // No reset needed for new streak
+      expect(wasReset).toBe(false);
+
+      // Verify streak was created
+      const streak = await streakService.getStreakBasic(null);
+      expect(streak).toBeDefined();
+      expect(streak.currentStreak).toBe(0);
+    });
+  });
+
+  describe("getStreak() - Read-only behavior", () => {
+    it("should not have side effects when called multiple times", async () => {
+      // Create a streak with last activity 3 days ago
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      const created = await streakRepository.create({
+        userId: null,
+        currentStreak: 6,
+        longestStreak: 10,
+        lastActivityDate: threeDaysAgo,
+        streakStartDate: threeDaysAgo,
+        totalDaysActive: 20,
+        dailyThreshold: 1,
+      });
+
+      // Call getStreak multiple times
+      const streak1 = await streakService.getStreak(null);
+      const streak2 = await streakService.getStreak(null);
+      const streak3 = await streakService.getStreak(null);
+
+      // Verify streak values haven't changed
+      expect(streak1.currentStreak).toBe(6);
+      expect(streak2.currentStreak).toBe(6);
+      expect(streak3.currentStreak).toBe(6);
+
+      // Verify database wasn't modified
+      const fromDb = await streakRepository.findByUserId(null);
+      expect(fromDb?.currentStreak).toBe(6);
+      expect(fromDb?.id).toBe(created.id);
+    });
+  });
 });
