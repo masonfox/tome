@@ -4,7 +4,7 @@ import { GET as GET_BOOKS } from "@/app/api/books/route";
 import { POST as UPDATE_STATUS } from "@/app/api/books/[id]/status/route";
 import { POST as LOG_PROGRESS } from "@/app/api/books/[id]/progress/route";
 import { POST as START_REREAD } from "@/app/api/books/[id]/reread/route";
-import { createMockRequest } from "../../fixtures/test-data";
+import { createMockRequest, createTestBook } from "../../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 // Mock Next.js cache revalidation - required for integration tests
@@ -29,13 +29,13 @@ describe("Integration: Read Filter Lifecycle", () => {
     // ========================================================================
     // STEP 1: Create a book
     // ========================================================================
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "Test Book",
       authors: ["Test Author"],
       totalPages: 300,
-    });
+    }));
 
     // ========================================================================
     // STEP 2: Mark as "to-read"
@@ -182,13 +182,13 @@ describe("Integration: Read Filter Lifecycle", () => {
     // ========================================================================
     // STEP 1: Create a book
     // ========================================================================
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "Re-read Book",
       authors: ["Test Author"],
       totalPages: 300,
-    });
+    }));
 
     // ========================================================================
     // STEP 2: First read - mark as reading then read
@@ -255,29 +255,29 @@ describe("Integration: Read Filter Lifecycle", () => {
     // ========================================================================
     // Create books with different statuses
     // ========================================================================
-    const toReadBook = await bookRepository.create({
+    const toReadBook = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "To Read Book",
       authors: ["Author 1"],
       totalPages: 300,
-    });
+    }));
 
-    const readingBook = await bookRepository.create({
+    const readingBook = await bookRepository.create(createTestBook({
       calibreId: 2,
       path: "test/path/2",
       title: "Reading Book",
       authors: ["Author 2"],
       totalPages: 400,
-    });
+    }));
 
-    const readBook = await bookRepository.create({
+    const readBook = await bookRepository.create(createTestBook({
       calibreId: 3,
       path: "test/path/3",
       title: "Read Book",
       authors: ["Author 3"],
       totalPages: 350,
-    });
+    }));
 
     // Set statuses
     let request = createMockRequest("POST", `/api/books/${toReadBook.id}/status`, {
@@ -339,13 +339,13 @@ describe("Integration: Read Filter Lifecycle", () => {
     // Simulate a book that was marked as read but has no active session
     // (This can happen after migration or manual data manipulation)
     // ========================================================================
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "Only Archived Session",
       authors: ["Test Author"],
       totalPages: 300,
-    });
+    }));
 
     // Create archived session directly
     await sessionRepository.create({

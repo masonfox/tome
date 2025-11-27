@@ -19,7 +19,11 @@ import {
 let testDb: Database;
 let mockGetCalibreDB: ReturnType<typeof mock>;
 
-// Mock the getCalibreDB function to return our test database
+/**
+ * Mock Rationale: Use an in-memory SQLite database instead of a real Calibre file.
+ * This allows us to test our query logic without depending on external files,
+ * making tests faster, more reliable, and independent of filesystem state.
+ */
 mock.module("@/lib/db/calibre", () => {
   const actual = require("@/lib/db/calibre");
   return {

@@ -3,7 +3,12 @@ import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BookHeader from "@/components/BookDetail/BookHeader";
 
-// Mock Next.js Image component
+/**
+ * Mock Rationale: Simplify Next.js Image component for testing.
+ * Next/Image has complex optimization logic that's not relevant to our component
+ * tests. We replace it with a simple <img> tag to test our rendering logic without
+ * Next.js image optimization concerns.
+ */
 mock.module("next/image", () => ({
   default: ({ alt, ...props }: any) => <img alt={alt} {...props} />,
 }));

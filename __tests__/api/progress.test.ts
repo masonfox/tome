@@ -16,7 +16,11 @@ import type { NextRequest } from "next/server";
  * - Streak integration (real - runs with test database)
  */
 
-// Mock revalidatePath (Next.js cache revalidation) - this is a Next.js internal
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The progress API calls revalidatePath to update cached pages, but we don't need
+ * to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));
@@ -88,24 +92,29 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
   });
 
   test("fetches all progress logs for a book", async () => {
+    // Arrange: Test book with 3 progress logs created in beforeEach
     const request = createMockRequest("GET", "/api/books/123/progress");
     const params = { id: testBook.id.toString() };
 
+    // Act: Fetch all progress logs
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
 
+    // Assert: All 3 logs returned
     expect(response.status).toBe(200);
     expect(data).toHaveLength(3);
   });
 
   test("sorts progress logs by date descending (most recent first)", async () => {
+    // Arrange: Test book with 3 progress logs on different dates
     const request = createMockRequest("GET", "/api/books/123/progress");
     const params = { id: testBook.id.toString() };
 
+    // Act: Fetch all progress logs
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
 
-    // Most recent should be first
+    // Assert: Logs returned in descending date order (most recent first)
     expect(new Date(data[0].progressDate).getTime()).toBeGreaterThan(
       new Date(data[1].progressDate).getTime()
     );
@@ -119,6 +128,7 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
   });
 
   test("returns empty array for book with no progress", async () => {
+    // Arrange: Create book without any progress logs
     const newBook = await bookRepository.create({
       calibreId: 2,
       title: "New Book",
@@ -128,12 +138,14 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
       orphaned: false,
     });
 
+    // Act: Fetch progress for book with no logs
     const request = createMockRequest("GET", "/api/books/123/progress");
     const params = { id: newBook.id.toString() };
 
     const response = await GET(request as NextRequest, { params });
     const data = await response.json();
 
+    // Assert: Empty array returned
     expect(response.status).toBe(200);
     expect(data).toHaveLength(0);
   });

@@ -3,7 +3,7 @@ import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { createMockRequest } from "@/__tests__/fixtures/test-data";
+import { createMockRequest , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
 
 /**
@@ -15,7 +15,12 @@ import type { NextRequest } from "next/server";
  * - /api/stats/activity: Activity calendar and monthly aggregations
  */
 
-// Mock getActivityCalendar function
+/**
+ * Mock Rationale: Control activity calendar data for deterministic testing.
+ * The activity calendar involves complex date/time aggregations. We mock it
+ * to return predictable data, allowing us to test the stats API response
+ * structure without dependency on actual streak calculation logic.
+ */
 let mockGetActivityCalendar: ReturnType<typeof mock>;
 mock.module("@/lib/streaks", () => ({
   getActivityCalendar: (userId: any, year: number, month?: number) =>
@@ -39,32 +44,32 @@ describe("Stats API - GET /api/stats/overview", () => {
     await clearTestDatabase(__filename);
 
     // Create test books
-    testBook1 = await bookRepository.create({
+    testBook1 = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book 1",
       authors: ["Author 1"],
       totalPages: 500,
       path: "Book1",
       orphaned: false,
-    });
+    }));
 
-    testBook2 = await bookRepository.create({
+    testBook2 = await bookRepository.create(createTestBook({
       calibreId: 2,
       title: "Book 2",
       authors: ["Author 2"],
       totalPages: 300,
       path: "Book2",
       orphaned: false,
-    });
+    }));
 
-    testBook3 = await bookRepository.create({
+    testBook3 = await bookRepository.create(createTestBook({
       calibreId: 3,
       title: "Book 3",
       authors: ["Author 3"],
       totalPages: 400,
       path: "Book3",
       orphaned: false,
-    });
+    }));
   });
 
   test("returns zero stats when no data exists", async () => {
@@ -372,14 +377,14 @@ describe("Stats API - GET /api/stats/activity", () => {
   beforeEach(async () => {
     await clearTestDatabase(__filename);
 
-    testBook = await bookRepository.create({
+    testBook = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Test Book",
       authors: ["Author"],
       totalPages: 500,
       path: "Book",
       orphaned: false,
-    });
+    }));
 
     // Mock getActivityCalendar to return sample data
     mockGetActivityCalendar = mock(() => [

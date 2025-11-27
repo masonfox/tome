@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, beforeEach, afterAll } from "bun:tes
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { BookService } from "@/lib/services/book.service";
-import { mockBook1, mockBook2, mockSessionReading, mockProgressLog1 } from "@/__tests__/fixtures/test-data";
+import { mockBook1, mockBook2, mockSessionReading, mockProgressLog1, createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 
 describe("BookService", () => {
@@ -22,8 +22,8 @@ describe("BookService", () => {
   beforeEach(async () => {
     await clearTestDatabase(__filename);
     // Create fresh test books for each test
-    book1 = await bookRepository.create(mockBook1 as any);
-    book2 = await bookRepository.create(mockBook2 as any);
+    book1 = await bookRepository.create(createTestBook(mockBook1));
+    book2 = await bookRepository.create(createTestBook(mockBook2));
   });
 
   describe("getBookById", () => {
@@ -41,17 +41,17 @@ describe("BookService", () => {
 
     test("should return book with active session and progress", async () => {
       // Create active session
-      const session = await sessionRepository.create({
+      const session = await sessionRepository.create(createTestSession({
         ...mockSessionReading,
         bookId: book1.id,
-      } as any);
+      }));
 
       // Create progress
-      const progress = await progressRepository.create({
+      const progress = await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       const result = await bookService.getBookById(book1.id);
 
@@ -66,30 +66,30 @@ describe("BookService", () => {
 
     test("should calculate total reads correctly", async () => {
       // Create completed session (archived)
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
         completedDate: new Date("2025-10-01"),
-      } as any);
+      }));
 
       // Create another completed session
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 2,
         status: "read",
         isActive: false,
         completedDate: new Date("2025-11-01"),
-      } as any);
+      }));
 
       // Create active session
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 3,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       const result = await bookService.getBookById(book1.id);
 
@@ -142,16 +142,16 @@ describe("BookService", () => {
     });
 
     test("should set rating to null (remove rating)", async () => {
-      // First set a rating
+      // Arrange: Book with existing rating
       await bookRepository.update(book1.id, { rating: 4 });
 
-      // Then remove it
+      // Act: Remove rating by setting to null
       const result = await bookService.updateRating(book1.id, null);
 
+      // Assert: Rating removed from both result and database
       expect(result).toBeDefined();
       expect(result.rating).toBeNull();
 
-      // Verify in database
       const updated = await bookRepository.findById(book1.id);
       expect(updated?.rating).toBeNull();
     });
@@ -192,13 +192,13 @@ describe("BookService", () => {
       await clearTestDatabase(__filename);
 
       // Create book without tags
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: 10,
         title: "No Tags Book",
         authors: ["Author"],
         path: "Author/No Tags Book (10)",
         tags: [],
-      } as any);
+      }));
 
       const result = await bookService.getAllTags();
 
@@ -216,12 +216,12 @@ describe("BookService", () => {
 
     test("should filter by status", async () => {
       // Create session for book1
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       const result = await bookService.getBooksByFilters({ status: "reading" }, 10, 0);
 
@@ -259,12 +259,12 @@ describe("BookService", () => {
 
     test("should handle pagination with skip and limit", async () => {
       // Create more books
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: 3,
         title: "Book 3",
         authors: ["Author 3"],
         path: "Author 3/Book 3 (3)",
-      } as any);
+      }));
 
       const result = await bookService.getBooksByFilters({}, 2, 1);
 
@@ -274,13 +274,13 @@ describe("BookService", () => {
 
     test("should exclude orphaned books by default", async () => {
       // Create orphaned book
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: 999,
         title: "Orphaned",
         authors: ["Unknown"],
         path: "Unknown/Orphaned (999)",
         orphaned: true,
-      } as any);
+      }));
 
       const result = await bookService.getBooksByFilters({}, 10, 0);
 
@@ -290,13 +290,13 @@ describe("BookService", () => {
 
     test("should include orphaned books when showOrphaned is true", async () => {
       // Create orphaned book
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: 999,
         title: "Orphaned",
         authors: ["Unknown"],
         path: "Unknown/Orphaned (999)",
         orphaned: true,
-      } as any);
+      }));
 
       const result = await bookService.getBooksByFilters({ showOrphaned: true }, 10, 0);
 

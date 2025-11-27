@@ -2,10 +2,14 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "b
 import { POST } from "@/app/api/books/[id]/status/route";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { createMockRequest } from "../fixtures/test-data";
+import { createMockRequest, createTestBook, createTestSession } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
 
-// Mock revalidatePath (Next.js cache revalidation)
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The status API calls revalidatePath to update cached pages, but we don't need
+ * to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));
@@ -13,7 +17,11 @@ mock.module("next/cache", () => ({
 // Track calls to updateCalibreRating for verification
 let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
 
-// Mock the calibre-write module to capture calls
+/**
+ * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+ * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
+ * our code correctly attempts to sync ratings, without actually writing to disk.
+ */
 mock.module("@/lib/db/calibre-write", () => ({
   updateCalibreRating: (calibreId: number, rating: number | null) => {
     calibreRatingCalls.push({ calibreId, rating });
@@ -39,21 +47,21 @@ beforeEach(async () => {
 describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   test("should sync rating to Calibre when marking book as 'read' with rating", async () => {
     // Arrange
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
       tags: [],
       path: "Test/Book",
       orphaned: false,
-    } as any);
+    }));
     
-    await sessionRepository.create({
+    await sessionRepository.create(createTestSession({
       bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-    } as any);
+    }));
 
     // Act
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -81,7 +89,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should remove rating from Calibre when marking as 'read' with rating=null", async () => {
     // Arrange - Book with existing rating
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 2,
       title: "Test Book 2",
       authors: ["Test Author"],
@@ -89,14 +97,14 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       path: "Test/Book2",
       orphaned: false,
       rating: 4,
-    } as any);
+    }));
     
-    await sessionRepository.create({
+    await sessionRepository.create(createTestSession({
       bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-    } as any);
+    }));
 
     // Act - Mark as read with null rating
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -110,30 +118,30 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     // Assert - Calibre was updated with null
     expect(calibreRatingCalls).toHaveLength(1);
     expect(calibreRatingCalls[0].calibreId).toBe(book.calibreId);
-    expect(calibreRatingCalls[0].rating).toBe(null);
+    expect(calibreRatingCalls[0].rating).toBeNull();
 
     // Assert - Tome DB also updated to null
     const updatedBook = await bookRepository.findById(book.id);
-    expect(updatedBook?.rating).toBe(null);
+    expect(updatedBook?.rating).toBeNull();
   });
 
   test("should NOT call updateCalibreRating when rating is not provided", async () => {
     // Arrange
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 3,
       title: "Test Book 3",
       authors: ["Test Author"],
       tags: [],
       path: "Test/Book3",
       orphaned: false,
-    } as any);
+    }));
     
-    await sessionRepository.create({
+    await sessionRepository.create(createTestSession({
       bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-    } as any);
+    }));
 
     // Act - Mark as read WITHOUT rating
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -159,21 +167,21 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
     for (const testCase of testCases) {
       // Arrange
-      const book = await bookRepository.create({
+      const book = await bookRepository.create(createTestBook({
         calibreId: testCase.calibreId,
         title: `Test Book ${testCase.rating}`,
         authors: ["Test Author"],
         tags: [],
         path: `Test/Book${testCase.rating}`,
         orphaned: false,
-      } as any);
+      }));
       
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       // Act
       const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -196,21 +204,21 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should update Tome DB even if Calibre sync throws error", async () => {
     // Arrange - Book with session
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 20,
       title: "Test Book Error",
       authors: ["Test Author"],
       tags: [],
       path: "Test/BookError",
       orphaned: false,
-    } as any);
+    }));
     
-    await sessionRepository.create({
+    await sessionRepository.create(createTestSession({
       bookId: book.id,
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-    } as any);
+    }));
 
     // Mock Calibre write to throw error
     let calibreSyncAttempted = false;

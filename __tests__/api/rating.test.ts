@@ -20,7 +20,12 @@ import * as calibreWrite from "@/lib/db/calibre-write";
  * - Calibre write failure handling
  */
 
-// Mock Calibre write operations
+/**
+ * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+ * We mock Calibre write operations to: (1) verify our code attempts to sync ratings,
+ * and (2) simulate error conditions (e.g., Calibre database unavailable) to test
+ * our error handling without requiring actual file system failures.
+ */
 let mockUpdateCalibreRating = mock(() => {});
 let mockCalibreShouldFail = false;
 

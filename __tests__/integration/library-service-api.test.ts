@@ -6,14 +6,25 @@ import { LibraryService } from "@/lib/library-service";
 import { createMockRequest } from "../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-// Mock Next.js cache revalidation
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Library operations may trigger cache invalidation, but we don't need to test
+ * Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
 let service: LibraryService;
 
-// Mock fetch to call actual API handlers (real integration)
+/**
+ * Mock Rationale: Route fetch calls to real API handlers for integration testing.
+ * This integration test verifies LibraryService → API → Repository flows work
+ * together correctly. We intercept fetch() and route to actual handlers rather
+ * than starting a real HTTP server, making tests faster while still testing
+ * the full integration path.
+ */
+// @ts-expect-error - Simplified fetch mock for integration testing
 global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input.toString();
   const method = init?.method || "GET";
@@ -221,7 +232,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should handle pagination correctly", async () => {
-      // Create 10 books
+      // Arrange: Create 10 books for pagination testing
       const books = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
           bookRepository.create({
@@ -234,21 +245,21 @@ describe("LibraryService → API Integration", () => {
         )
       );
 
-      // Page 1: limit=5, skip=0
+      // Act & Assert: Page 1 - First 5 books, has more
       const page1 = await service.getBooks({
         pagination: { limit: 5, skip: 0 },
       });
       expect(page1.books).toHaveLength(5);
       expect(page1.hasMore).toBe(true);
 
-      // Page 2: limit=5, skip=5
+      // Act & Assert: Page 2 - Next 5 books, no more
       const page2 = await service.getBooks({
         pagination: { limit: 5, skip: 5 },
       });
       expect(page2.books).toHaveLength(5);
       expect(page2.hasMore).toBe(false);
 
-      // Page 3: limit=5, skip=10 (no more books)
+      // Act & Assert: Page 3 - Beyond available books, empty
       const page3 = await service.getBooks({
         pagination: { limit: 5, skip: 10 },
       });

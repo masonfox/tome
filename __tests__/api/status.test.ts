@@ -10,10 +10,16 @@ import {
   mockSessionRead,
   mockProgressLog1,
   createMockRequest,
+  createTestBook,
+  createTestSession,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
 
-// Mock revalidatePath (Next.js cache revalidation)
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The status API calls revalidatePath to update cached pages, but we don't need
+ * to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));
@@ -601,7 +607,11 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
   
   beforeAll(() => {
-    // Mock the calibre-write module to capture calls
+    /**
+     * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+     * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
+     * our code correctly attempts to sync ratings, without actually writing to disk.
+     */
     mock.module("@/lib/db/calibre-write", () => ({
       updateCalibreRating: (calibreId: number, rating: number | null) => {
         calibreRatingCalls.push({ calibreId, rating });
@@ -623,14 +633,14 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should sync rating to Calibre when marking book as 'read' with rating", async () => {
     // Arrange
-    const book = await bookRepository.create(mockBook1 as any);
-    await sessionRepository.create({
+    const book = await bookRepository.create(createTestBook(mockBook1));
+    await sessionRepository.create(createTestSession({
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
       isActive: true,
       sessionNumber: 1,
-    } as any);
+    }));
 
     // Act
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -670,16 +680,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       calibreRatingCalls = [];
       
       // Arrange
-      const book = await bookRepository.create({
+      const book = await bookRepository.create(createTestBook({
         ...mockBook1,
         calibreId: testCase.rating, // Use unique calibreId for each
-      });
-      await sessionRepository.create({
+      }));
+      await sessionRepository.create(createTestSession({
         ...mockSessionReading,
         bookId: book.id,
         status: "reading",
         isActive: true,
-      });
+      }));
 
       // Act
       const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -698,16 +708,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should remove rating from Calibre when marking as 'read' with rating=null", async () => {
     // Arrange - Book with existing rating
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       ...mockBook1,
       rating: 4,
-    });
-    await sessionRepository.create({
+    }));
+    await sessionRepository.create(createTestSession({
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
       isActive: true,
-    });
+    }));
 
     // Act
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -865,16 +875,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should sync rating when updating existing 'read' status with new rating", async () => {
     // Arrange - Book already marked as read
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       ...mockBook1,
       rating: 3,
-    });
-    await sessionRepository.create({
+    }));
+    await sessionRepository.create(createTestSession({
       ...mockSessionRead,
       bookId: book.id,
       status: "read",
       isActive: false,
-    });
+    }));
 
     // Act - Update rating on already-read book
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {

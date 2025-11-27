@@ -3,6 +3,11 @@ import { GET, PATCH } from "@/app/api/books/[id]/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Book detail API calls revalidatePath on updates, but we don't need to test
+ * Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {
