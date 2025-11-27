@@ -47,10 +47,13 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
    * Update streak for user (upsert behavior)
    */
   async upsert(userId: number | null, data: Partial<NewStreak>): Promise<Streak> {
+    console.log("[DIAGNOSTIC] upsert ENTRY - userId:", userId, "data:", data);
     const existing = await this.findByUserId(userId);
+    console.log("[DIAGNOSTIC] upsert existing:", existing);
 
     if (existing) {
       const updated = await this.update(existing.id, data);
+      console.log("[DIAGNOSTIC] upsert updated:", updated);
       if (!updated) {
         throw new Error('Failed to update streak');
       }
@@ -66,6 +69,7 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
         totalDaysActive: 0,
         ...data,
       });
+      console.log("[DIAGNOSTIC] upsert created:", created);
       return created;
     }
   }

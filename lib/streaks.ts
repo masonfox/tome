@@ -165,6 +165,7 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 }
 
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
+  console.log("[DIAGNOSTIC] rebuildStreak ENTRY - userId:", userId, "currentDate:", currentDate);
   logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get current streak to check the dailyThreshold
@@ -263,6 +264,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     totalDaysActive,
   });
 
+  console.log("[DIAGNOSTIC] rebuildStreak BEFORE RETURN - streak:", streak);
   logger.info("[Streak] Streak rebuilt and saved successfully");
   return streak;
 }
