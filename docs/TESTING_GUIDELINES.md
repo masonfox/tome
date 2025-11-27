@@ -833,6 +833,77 @@ describe("Error Handling", () => {
 
 ## Troubleshooting
 
+### Problem: Tests fail in CI but pass locally (Bun Module Caching Bug)
+
+**Symptoms**:
+- Tests pass 100% locally
+- Tests fail in CI after 40+ serial test runs
+- Functions return `undefined` or use stale implementations
+- Dynamic `await import()` doesn't help
+
+**Cause**: Bun's transpiler cache returns stale/cached versions of ES6 module exports after many serial test runs in CI environments. This affects direct function imports from library modules.
+
+**Example**:
+```typescript
+// ❌ PROBLEMATIC: Direct function import (can be cached)
+import { rebuildStreak, updateStreaks } from "@/lib/streaks";
+
+// In CI after 40+ tests:
+const result = await rebuildStreak(); // Returns undefined (stale version)
+```
+
+**Solution**: Use service layer pattern with inline implementations
+
+**Step 1**: Create service class with inline method implementations
+```typescript
+// lib/services/streak.service.ts
+export class StreakService {
+  /**
+   * Rebuild streak from all progress data
+   * Inline implementation to avoid Bun module caching issues in tests
+   */
+  async rebuildStreak(userId: number | null = null): Promise<Streak> {
+    // Full implementation here (not delegating to another module)
+    const existingStreak = await streakRepository.findByUserId(userId);
+    const allProgress = await progressRepository.getAllProgressOrdered();
+    // ... rest of implementation
+  }
+}
+
+export const streakService = new StreakService();
+```
+
+**Step 2**: Update tests to use service layer
+```typescript
+// ❌ Before (direct import - susceptible to caching)
+import { rebuildStreak } from "@/lib/streaks";
+await rebuildStreak();
+
+// ✅ After (service layer - cache-immune)
+import { streakService } from "@/lib/services/streak.service";
+await streakService.rebuildStreak();
+```
+
+**Why this works**:
+- Class methods are not affected by ES6 module caching
+- Test imports service once at start (method is "live")
+- Methods execute current code, not cached transpiled versions
+- Complete isolation from Bun's module cache
+
+**When to apply this pattern**:
+- Functions that are called in many tests (40+ cumulative calls)
+- Functions that fail in CI but work locally
+- Functions that return `undefined` in CI
+- Integration/unit tests that run after many other tests
+
+**Reference**: See `docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md` for full investigation details and the 7-phase debugging process that led to this solution.
+
+**Related commits**:
+- `4910da0` - Fix Bun module caching by inlining rebuildStreak in StreakService
+- `d7a72ce` - Add updateStreaks and getStreakBasic to service layer for cache isolation
+
+---
+
 ### Problem: Tests fail with "Database not found"
 
 **Cause**: Forgot to call `setupTestDatabase(__filename)`

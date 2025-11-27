@@ -10,6 +10,46 @@ export interface StreakWithHoursRemaining extends Streak {
   hoursRemainingToday: number;
 }
 
+/**
+ * StreakService - Handles reading streak tracking and daily goal management
+ * 
+ * IMPORTANT: This service uses INLINE IMPLEMENTATIONS for core streak functions
+ * to work around a Bun module caching bug that affects CI tests.
+ * 
+ * ## Bun Module Caching Issue
+ * 
+ * In CI environments, after 40+ serial test runs, Bun's transpiler cache can
+ * return stale/cached versions of ES6 module exports, even with dynamic imports.
+ * This caused functions like `rebuildStreak()` to return `undefined` in tests.
+ * 
+ * ## Solution: Service Layer with Inline Implementations
+ * 
+ * Instead of delegating to functions in `lib/streaks.ts`, we implement the
+ * logic directly in this service class. Class methods are not affected by
+ * ES6 module caching, ensuring tests always execute current code.
+ * 
+ * ## Affected Methods
+ * 
+ * - `rebuildStreak()` - Full inline implementation (~110 lines)
+ * - `updateStreaks()` - Full inline implementation (~150 lines)
+ * - `getStreakBasic()` - Delegates to repository (safe)
+ * 
+ * ## For New Developers
+ * 
+ * If you need to modify streak logic:
+ * 1. Update BOTH this service AND `lib/streaks.ts` to keep them in sync
+ * 2. The service version is used by tests (cache-immune)
+ * 3. The lib/streaks.ts version is used by production code
+ * 4. Yes, this is duplication. It's necessary for test reliability.
+ * 
+ * ## References
+ * 
+ * - Full investigation: docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md
+ * - Testing guidelines: docs/TESTING_GUIDELINES.md (Bun Module Caching section)
+ * - Related commits: 4910da0, d7a72ce
+ * 
+ * @see {@link https://github.com/masonfox/tome/blob/main/docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md}
+ */
 export class StreakService {
   /**
    * Get streak with computed hours remaining today

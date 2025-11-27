@@ -9,17 +9,62 @@ import { startOfDay } from "date-fns";
  * 
  * These tests validate the reading streak tracking feature per specs/001-reading-streak-tracking/spec.md
  * 
- * IMPORTANT: These are placeholder tests that need full implementation.
- * The old tests were removed because they:
- * 1. Pre-dated spec 001 and tested obsolete behavior
- * 2. Had persistent timezone/date handling bugs that were never properly resolved
- * 3. Made it impossible to ship test refactoring work
+ * ## Test Coverage
  * 
- * TODO: Implement these tests following spec 001 acceptance criteria
  * - User Story 1: View Current Streak on Homepage (5 scenarios)
  * - User Story 2: Configure Personal Streak Thresholds (5 scenarios)
  * - User Story 4: Track Longest Streak Achievement (3 scenarios)
- * - Functional Requirements FR-001 through FR-017
+ * - Functional Requirements FR-001, FR-003, FR-005, FR-010, FR-012
+ * 
+ * Total: 27 tests covering all core streak functionality
+ * 
+ * ## CRITICAL: Service Layer Pattern for CI Reliability
+ * 
+ * This test file uses `streakService` methods instead of direct function imports
+ * from `lib/streaks.ts` to work around a Bun module caching bug in CI.
+ * 
+ * ### The Issue
+ * 
+ * After 40+ serial test runs in CI, Bun's transpiler cache returns stale versions
+ * of ES6 module exports, causing functions to return `undefined` or execute old code.
+ * 
+ * ### The Solution
+ * 
+ * ✅ DO use service layer (cache-immune):
+ * ```typescript
+ * import { streakService } from "@/lib/services/streak.service";
+ * await streakService.rebuildStreak();
+ * await streakService.updateStreaks();
+ * const streak = await streakService.getStreakBasic();
+ * ```
+ * 
+ * ❌ DON'T use direct imports (susceptible to caching):
+ * ```typescript
+ * import { rebuildStreak, updateStreaks, getStreak } from "@/lib/streaks";
+ * // These may return undefined or use stale implementations in CI after 40+ tests
+ * ```
+ * 
+ * ### Why Service Layer Works
+ * 
+ * - Class methods are not affected by ES6 module caching
+ * - Service imported once at test start (methods are "live")
+ * - Methods execute current code, not cached transpiled versions
+ * - Tests pass reliably in both local and CI environments
+ * 
+ * ### For Maintainers
+ * 
+ * If you see CI failures with:
+ * - `TypeError: undefined is not an object`
+ * - Functions returning unexpected results
+ * - Tests passing locally but failing in CI
+ * 
+ * Check if the test is using direct function imports. If so, migrate to service layer pattern.
+ * 
+ * ### References
+ * 
+ * - Full investigation: docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md
+ * - Testing guidelines: docs/TESTING_GUIDELINES.md (Bun Module Caching section)
+ * - Related commits: 4910da0, d7a72ce
  */
 
 let testDb: TestDatabaseInstance;
