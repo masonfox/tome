@@ -31,6 +31,9 @@ bun install
 cp .env.example .env
 # Edit .env and set CALIBRE_DB_PATH to your Calibre library
 
+# Run database migrations
+bun run db:migrate
+
 # Start development server
 bun run dev
 ```
