@@ -141,7 +141,66 @@ Covers:
 
 ---
 
-### Operations
+### User and Operations Guides
+
+#### [DEPLOYMENT.md](./DEPLOYMENT.md)
+**Comprehensive deployment guide**
+
+Covers:
+- Docker deployment options (GHCR, Docker Compose, build from source)
+- Environment variables and configuration
+- Volume management and backups
+- Database migrations in production
+- Production best practices and security
+- Monitoring and common issues
+
+**When to read:**
+- Deploying Tome to production
+- Setting up Docker containers
+- Configuring production environments
+- Troubleshooting deployment issues
+
+---
+
+#### [DATABASE.md](./DATABASE.md)
+**Database management and operations**
+
+Covers:
+- Database commands (migrations, backups, restore)
+- Data models and schema details
+- Backup strategies and maintenance
+- Migration system details
+- Advanced operations (export, import, querying)
+- Best practices
+
+**When to read:**
+- Managing database schema
+- Creating backups
+- Running migrations
+- Understanding data models
+- Database troubleshooting
+
+---
+
+#### [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+**Common issues and solutions**
+
+Covers:
+- Calibre database issues
+- Tome database problems
+- Port conflicts
+- Docker-specific issues
+- Development issues
+- Preventive measures
+
+**When to read:**
+- Encountering errors or issues
+- Database not found errors
+- Migration failures
+- Permission problems
+- Before deploying to production
+
+---
 
 #### [CLEANUP_OPERATIONS.md](./CLEANUP_OPERATIONS.md)
 **Maintenance and cleanup procedures**
@@ -221,6 +280,9 @@ Covers:
 | Add a new page | `ARCHITECTURE.md` Section 4 |
 | Write tests | `../__tests__/README.md` |
 | Update documentation | `DOCUMENTATION_GUIDE.md` |
+| Deploy to production | `DEPLOYMENT.md` |
+| Manage database | `DATABASE.md` |
+| Fix issues | `TROUBLESHOOTING.md` |
 
 ---
 
@@ -286,6 +348,9 @@ Understanding these is essential for working on Tome:
 | "Calibre sync flow" | `ARCHITECTURE.md` Section 3 |
 | "Component patterns" | `.specify/memory/patterns.md` |
 | "Test examples" | `../__tests__/README.md` |
+| "Docker deployment" | `DEPLOYMENT.md` |
+| "Database management" | `DATABASE.md` |
+| "Error troubleshooting" | `TROUBLESHOOTING.md` |
 
 ---
 
@@ -364,11 +429,13 @@ __tests__/README.md                         # Test documentation
 
 ---
 
-**Last Updated:** 2025-11-19
-**Documentation Version:** 1.1 (SQLite Migration)
+**Last Updated:** 2025-11-27
+**Documentation Version:** 1.2 (Documentation Reorganization)
 **Project:** Tome (Book Tracker)
 
-**Major Changes in v1.1:**
-- Added ADR-001 for MongoDB to SQLite migration
-- Updated technology stack references
-- Consolidated documentation into ARCHITECTURE.md
+**Major Changes in v1.2:**
+- Added DEPLOYMENT.md for comprehensive deployment guide
+- Added DATABASE.md for database management operations
+- Added TROUBLESHOOTING.md for common issues and solutions
+- Streamlined main README.md to focus on getting started
+- Organized documentation into clear user/operations guides
