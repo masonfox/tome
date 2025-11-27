@@ -34,10 +34,11 @@ export class StreakService {
    */
   async rebuildStreak(userId: number | null = null, currentDate?: Date): Promise<Streak> {
     console.log('[StreakService.rebuildStreak] Called');
-    const { rebuildStreak } = await import("@/lib/streaks");
-    console.log('[StreakService.rebuildStreak] Imported, calling function');
-    const result = await rebuildStreak(userId, currentDate);
-    console.log('[StreakService.rebuildStreak] Result:', !!result);
+    const streaksModule = await import("@/lib/streaks");
+    console.log('[StreakService.rebuildStreak] Module imported:', Object.keys(streaksModule));
+    console.log('[StreakService.rebuildStreak] rebuildStreak type:', typeof streaksModule.rebuildStreak);
+    const result = await streaksModule.rebuildStreak(userId, currentDate);
+    console.log('[StreakService.rebuildStreak] Result:', result);
     return result;
   }
 
