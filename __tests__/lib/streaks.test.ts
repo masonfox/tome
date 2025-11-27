@@ -4,6 +4,8 @@ import { bookRepository, sessionRepository, progressRepository, streakRepository
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
 import { startOfDay } from "date-fns";
 
+console.log('[streaks.test.ts] rebuildStreak type:', typeof rebuildStreak, 'value:', rebuildStreak);
+
 /**
  * Reading Streak Tests (Spec 001)
  * 
