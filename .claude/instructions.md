@@ -98,6 +98,8 @@ When launching multiple agents, send a SINGLE message with multiple Task calls (
 
 ## 🔄 Git Workflow
 
+**See `AI_INSTRUCTIONS.md` for branching policy:** Always branch off main, never commit directly to main.
+
 ### Creating Commits
 
 Only create commits when user requests. Follow the Git Safety Protocol:
