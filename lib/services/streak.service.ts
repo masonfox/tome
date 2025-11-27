@@ -1,7 +1,8 @@
 import { streakRepository } from "@/lib/repositories/streak.repository";
+import { progressRepository } from "@/lib/repositories/progress.repository";
 import { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
-import { differenceInHours, endOfDay } from "date-fns";
+import { differenceInHours, endOfDay, differenceInDays, startOfDay } from "date-fns";
 
 const logger = getLogger();
 
@@ -30,16 +31,110 @@ export class StreakService {
 
   /**
    * Rebuild streak from all progress data
-   * Uses dynamic import to work around Bun module caching issues in tests
+   * Inline implementation to avoid Bun module caching issues in tests
    */
   async rebuildStreak(userId: number | null = null, currentDate?: Date): Promise<Streak> {
-    console.log('[StreakService.rebuildStreak] Called');
-    const streaksModule = await import("@/lib/streaks");
-    console.log('[StreakService.rebuildStreak] Module imported:', Object.keys(streaksModule));
-    console.log('[StreakService.rebuildStreak] rebuildStreak type:', typeof streaksModule.rebuildStreak);
-    const result = await streaksModule.rebuildStreak(userId, currentDate);
-    console.log('[StreakService.rebuildStreak] Result:', result);
-    return result;
+    logger.info("[Streak] Rebuilding streak from all progress data");
+
+    // Get current streak to check the dailyThreshold
+    const existingStreak = await streakRepository.findByUserId(userId || null);
+    const dailyThreshold = existingStreak?.dailyThreshold || 1;
+
+    logger.info({ dailyThreshold }, "[Streak] Using threshold for rebuild");
+
+    // Get all progress logs ordered by date
+    const allProgress = await progressRepository.getAllProgressOrdered();
+
+    if (allProgress.length === 0) {
+      logger.info("[Streak] No progress data found, creating empty streak");
+      const { getOrCreateStreak } = await import("@/lib/streaks");
+      return await getOrCreateStreak(userId);
+    }
+
+    // Group progress by date and calculate daily activity
+    const dailyActivity = new Map<string, number>();
+    const qualifyingDates = new Set<string>(); // Only dates that meet the threshold
+
+    allProgress.forEach((progress) => {
+      const dateKey = progress.progressDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const pagesRead = progress.pagesRead || 0;
+
+      if (pagesRead > 0) {
+        const current = dailyActivity.get(dateKey) || 0;
+        dailyActivity.set(dateKey, current + pagesRead);
+      }
+    });
+
+    // Filter dates that meet the threshold
+    dailyActivity.forEach((pagesRead, dateKey) => {
+      if (pagesRead >= dailyThreshold) {
+        qualifyingDates.add(dateKey);
+      }
+    });
+
+    const sortedDates = Array.from(qualifyingDates).sort();
+
+    // Calculate streak from consecutive active days
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let streakStartDate = sortedDates[0] ? new Date(sortedDates[0]) : new Date();
+    let lastActivityDate = sortedDates[0] ? new Date(sortedDates[0]) : new Date();
+
+    if (sortedDates.length > 0) {
+      currentStreak = 1;
+      longestStreak = 1;
+
+      for (let i = 1; i < sortedDates.length; i++) {
+        const dateInLoop = new Date(sortedDates[i]);
+        const prevDate = new Date(sortedDates[i - 1]);
+        const daysDiff = differenceInDays(dateInLoop, prevDate);
+
+        if (daysDiff === 1) {
+          // Consecutive day
+          currentStreak++;
+        } else {
+          // Gap in streak
+          longestStreak = Math.max(longestStreak, currentStreak);
+          currentStreak = 1;
+          streakStartDate = dateInLoop;
+        }
+        lastActivityDate = dateInLoop;
+      }
+
+      longestStreak = Math.max(longestStreak, currentStreak);
+
+      // Check if last activity was more than 1 day ago (streak is broken)
+      const today = startOfDay(currentDate || new Date());
+      const lastActivityDayStart = startOfDay(lastActivityDate);
+      const daysSinceLastActivity = differenceInDays(today, lastActivityDayStart);
+
+      if (daysSinceLastActivity > 1) {
+        // Streak is broken - last activity was more than 1 day ago
+        currentStreak = 0;
+      }
+    }
+
+    const totalDaysActive = qualifyingDates.size;
+
+    logger.info({
+      currentStreak,
+      longestStreak,
+      totalDaysActive,
+      lastActivityDate: lastActivityDate.toISOString(),
+      streakStartDate: streakStartDate.toISOString(),
+    }, "[Streak] Calculated streak stats");
+
+    // Update or create streak record
+    const streak = await streakRepository.upsert(userId || null, {
+      currentStreak,
+      longestStreak,
+      lastActivityDate: lastActivityDate,
+      streakStartDate: streakStartDate,
+      totalDaysActive,
+    });
+
+    logger.info("[Streak] Streak rebuilt and saved successfully");
+    return streak;
   }
 
   /**
