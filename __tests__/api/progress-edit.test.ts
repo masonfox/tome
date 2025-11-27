@@ -300,7 +300,7 @@ describe("Progress Edit API", () => {
         ...testBook,
         calibreId: 2,
         path: "Test Author/Another Book (2)",
-      });
+      }));
 
       const session1 = await sessionRepository.create({
         bookId: book1.id,
@@ -408,7 +408,7 @@ describe("Progress Edit API", () => {
         ...testBook,
         calibreId: 2,
         path: "Test Author/Another Book (2)",
-      });
+      }));
 
       const session1 = await sessionRepository.create({
         bookId: book1.id,

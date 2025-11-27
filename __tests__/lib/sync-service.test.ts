@@ -93,7 +93,7 @@ describe("syncCalibreLibrary", () => {
       tags: [],
       path: "Old/Path",
       orphaned: false,
-    });
+    }));
 
     await sessionRepository.create({
       bookId: existingBook.id,
@@ -147,7 +147,7 @@ describe("syncCalibreLibrary", () => {
       tags: [],
       path: "Author1/Book1",
       orphaned: false,
-    });
+    }));
 
     const book2 = await bookRepository.create(createTestBook({
       calibreId: 2,
@@ -156,7 +156,7 @@ describe("syncCalibreLibrary", () => {
       tags: [],
       path: "Author2/Book2",
       orphaned: false,
-    });
+    }));
 
     // Create 10 more books to stay under 10% threshold (1/12 = 8.3%)
     for (let i = 3; i <= 12; i++) {
@@ -167,7 +167,7 @@ describe("syncCalibreLibrary", () => {
         tags: [],
         path: `Author${i}/Book${i}`,
         orphaned: false,
-      });
+      }));
     }
 
     // Mock Calibre with all books except book 2
@@ -440,7 +440,7 @@ describe("syncCalibreLibrary", () => {
       path: "Author/Book",
       orphaned: true,
       orphanedAt: orphanedDate,
-    });
+    }));
 
     // Mock Calibre with different book
     const testCalibreSource: CalibreDataSource = {
@@ -499,7 +499,7 @@ describe("syncCalibreLibrary", () => {
       path: "Author/Book",
       orphaned: false,
       rating: 5,
-    });
+    }));
 
     // Mock Calibre with no rating
     const testCalibreSource: CalibreDataSource = {
