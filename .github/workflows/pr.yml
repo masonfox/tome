@@ -27,6 +27,8 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run tests
+        env:
+          NODE_ENV: test
         run: bun test
 
       - name: Build application
