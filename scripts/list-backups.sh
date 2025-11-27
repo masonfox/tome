@@ -24,8 +24,8 @@ if [ ! -d "$BACKUP_DIR" ]; then
   exit 0
 fi
 
-# Get list of backups (sorted by modification time, newest first)
-BACKUPS=$(ls -t "$BACKUP_DIR"/tome.db.backup-* 2>/dev/null || true)
+# Get list of backups from date-based folders (sorted by modification time, newest first)
+BACKUPS=$(find "$BACKUP_DIR" -type f -name "tome.db.backup-*" -exec ls -t {} + 2>/dev/null | grep -v '\-wal$\|\-shm$' || true)
 
 if [ -z "$BACKUPS" ]; then
   echo "No backups found in: $BACKUP_DIR"
@@ -75,9 +75,13 @@ for BACKUP in $BACKUPS; do
   [ -f "${BACKUP}-wal" ] && EXTRA_FILES="${EXTRA_FILES}+WAL "
   [ -f "${BACKUP}-shm" ] && EXTRA_FILES="${EXTRA_FILES}+SHM "
 
+  # Get the date folder from the path
+  FOLDER_NAME=$(basename "$(dirname "$BACKUP")")
+
   # Display backup info
   echo "[$INDEX] $BACKUP_NAME"
   echo "    Date: $FORMATTED_DATE"
+  echo "    Folder: $FOLDER_NAME"
   echo "    Size: $SIZE $EXTRA_FILES"
   echo "    Path: $BACKUP"
   echo ""

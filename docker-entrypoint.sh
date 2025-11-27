@@ -40,28 +40,31 @@ ensure_data_directory() {
 # Function to create backup of database
 backup_database() {
   if [ -f "$DATABASE_PATH" ]; then
-    # Use dedicated backups directory
+    # Use dedicated backups directory with date-based folders
     DATA_DIR=$(dirname "$DATABASE_PATH")
     BACKUP_DIR="${DATA_DIR}/backups"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    DATE_FOLDER=$(date +%Y-%m-%d)
+    BACKUP_FOLDER="${BACKUP_DIR}/${DATE_FOLDER}"
 
-    # Create backups directory if it doesn't exist
-    if [ ! -d "$BACKUP_DIR" ]; then
-      echo "Creating backup directory: ${BACKUP_DIR}"
-      mkdir -p "$BACKUP_DIR" || {
-        echo "ERROR: Failed to create backup directory"
+    # Create date-based backup folder if it doesn't exist
+    if [ ! -d "$BACKUP_FOLDER" ]; then
+      echo "Creating backup folder: ${BACKUP_FOLDER}"
+      mkdir -p "$BACKUP_FOLDER" || {
+        echo "ERROR: Failed to create backup folder"
         return 1
       }
     fi
 
-    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
     BACKUP_BASE=$(basename "$DATABASE_PATH")
-    BACKUP_PATH="${BACKUP_DIR}/${BACKUP_BASE}.backup-${TIMESTAMP}"
+    BACKUP_PATH="${BACKUP_FOLDER}/${BACKUP_BASE}.backup-${TIMESTAMP}"
 
     echo "Creating database backup: ${BACKUP_PATH}"
     cp "$DATABASE_PATH" "$BACKUP_PATH"
 
-    # Keep only last 3 backups in the backups directory
-    ls -t "${BACKUP_DIR}/${BACKUP_BASE}.backup-"* 2>/dev/null | tail -n +4 | xargs -r rm -f
+    # Keep only last 3 backups across all date folders
+    find "$BACKUP_DIR" -type f -name "${BACKUP_BASE}.backup-*" -print0 2>/dev/null | \
+      xargs -0 ls -t 2>/dev/null | tail -n +4 | xargs -r rm -f
 
     echo "Backup created successfully"
   else

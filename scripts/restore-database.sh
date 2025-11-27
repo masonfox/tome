@@ -25,7 +25,8 @@ list_backups() {
     exit 1
   fi
 
-  BACKUPS=$(ls -t "$BACKUP_DIR"/tome.db.backup-* 2>/dev/null || true)
+  # Find backups in date-based folders, sorted by modification time (newest first)
+  BACKUPS=$(find "$BACKUP_DIR" -type f -name "tome.db.backup-*" -exec ls -t {} + 2>/dev/null | grep -v '\-wal$\|\-shm$' || true)
 
   if [ -z "$BACKUPS" ]; then
     echo "❌ Error: No backups found in: $BACKUP_DIR"
@@ -65,10 +66,12 @@ create_safety_backup() {
   fi
 
   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-  SAFETY_BACKUP="${BACKUP_DIR}/tome.db.before-restore-${TIMESTAMP}"
+  DATE_FOLDER=$(date +%Y-%m-%d)
+  BACKUP_FOLDER="${BACKUP_DIR}/${DATE_FOLDER}"
+  SAFETY_BACKUP="${BACKUP_FOLDER}/tome.db.before-restore-${TIMESTAMP}"
 
   echo "Creating safety backup of current database..."
-  mkdir -p "$BACKUP_DIR"
+  mkdir -p "$BACKUP_FOLDER"
 
   cp "$DATABASE_PATH" "$SAFETY_BACKUP" || {
     echo "❌ Error: Failed to create safety backup"
@@ -178,8 +181,10 @@ else
     BACKUP_NAME=$(basename "$BACKUP")
     BACKUP_SIZE=$(du -h "$BACKUP" | cut -f1)
     BACKUP_DATE=$(echo "$BACKUP_NAME" | sed 's/tome.db.backup-//' | sed 's/_/ /')
+    FOLDER_NAME=$(basename "$(dirname "$BACKUP")")
     echo "  [$INDEX] $BACKUP_NAME ($BACKUP_SIZE)"
     echo "       Date: $BACKUP_DATE"
+    echo "       Folder: $FOLDER_NAME"
     echo ""
     INDEX=$((INDEX + 1))
   done
