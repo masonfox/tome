@@ -26,10 +26,8 @@ let currentTestDatabase: BunSQLiteDatabase | null = null;
  * Used internally by test infrastructure - do not call directly
  */
 export function __registerTestDatabase(testFilePath: string, database: BunSQLiteDatabase) {
-  console.log('[__registerTestDatabase] Registering test database for:', testFilePath);
   testDatabases.set(testFilePath, database);
   currentTestDatabase = database;
-  console.log('[__registerTestDatabase] testDatabases.size:', testDatabases.size, 'currentTestDatabase:', !!currentTestDatabase);
 }
 
 /**
@@ -97,30 +95,21 @@ export function getDatabase(): BunSQLiteDatabase {
   // Tier 1: Try AsyncLocalStorage first (most reliable for async contexts)
   const context = testContext.getStore();
   if (context) {
-    console.log('[getDatabase] Using Tier 1: AsyncLocalStorage');
     return context.database;
   }
 
   // Tier 2: Fall back to stack inspection (works when called directly from test)
   const testFilePath = getTestFilePathFromStack();
   if (testFilePath && testDatabases.has(testFilePath)) {
-    console.log('[getDatabase] Using Tier 2: Stack inspection, testFilePath:', testFilePath);
     return testDatabases.get(testFilePath)!;
   }
 
   // Tier 3: Global fallback (works for serial execution, prevents parallel execution)
   // NOTE: This is the blocker for true parallel execution
   if (currentTestDatabase && process.env.NODE_ENV === 'test') {
-    console.log('[getDatabase] Using Tier 3: Global fallback');
     return currentTestDatabase;
   }
 
   // Production mode: return production database
-  console.log('[getDatabase] Using production database', {
-    hasCurrentTestDatabase: !!currentTestDatabase,
-    nodeEnv: process.env.NODE_ENV,
-    testDatabasesSize: testDatabases.size,
-    testFilePath,
-  });
   return db;
 }

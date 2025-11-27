@@ -1,10 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
-import { updateStreaks, getStreak, rebuildStreak } from "@/lib/streaks";
+import { updateStreaks, getStreak } from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
 import { startOfDay } from "date-fns";
-
-console.log('[streaks.test.ts] rebuildStreak type:', typeof rebuildStreak, 'value:', rebuildStreak);
 
 /**
  * Reading Streak Tests (Spec 001)
@@ -77,7 +76,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       }
 
       // Act: Rebuild streak from all progress
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Should show 5 days
       expect(streak.currentStreak).toBe(5);
@@ -115,7 +114,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Should still show streak (current = 1, last activity yesterday)
       expect(streak.currentStreak).toBe(1);
@@ -156,7 +155,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       await updateStreaks();
 
       // Act: Rebuild streak to detect break
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Streak should be 0 (broken yesterday)
       expect(streak.currentStreak).toBe(0);
@@ -299,7 +298,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Streak continues (2 consecutive days)
       expect(streak.currentStreak).toBe(2);
@@ -349,7 +348,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       await updateStreaks();
       
       // Rebuild to detect the break properly
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Streak is broken (0 because last qualifying activity was yesterday)
       expect(streak.currentStreak).toBe(0);
@@ -409,14 +408,14 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Check with original threshold
-      let streak = await rebuildStreak();
+      let streak = await streakService.rebuildStreak();
       expect(streak.currentStreak).toBe(2);
 
       // Act: Change threshold mid-day to 15 pages
       await streakRepository.updateThreshold(null, 15);
 
       // Rebuild with new threshold
-      streak = await rebuildStreak();
+      streak = await streakService.rebuildStreak();
 
       // Assert: Today no longer meets new threshold (10 < 15), streak is 0
       expect(streak.currentStreak).toBe(0);
@@ -560,7 +559,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       }
 
       // Act: Rebuild streak from all progress
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Current is 7, longest is 15
       expect(streak.currentStreak).toBe(7);
@@ -603,7 +602,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         });
       }
 
-      let streak = await rebuildStreak();
+      let streak = await streakService.rebuildStreak();
       expect(streak.currentStreak).toBe(5);
       expect(streak.longestStreak).toBe(5);
 
@@ -620,7 +619,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         progressDate: tomorrow,
       });
 
-      streak = await rebuildStreak(null, tomorrow);
+      streak = await streakService.rebuildStreak(null, tomorrow);
 
       // Assert: Both current and longest should be 6
       expect(streak.currentStreak).toBe(6);
@@ -664,7 +663,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       }
 
       // Act: Rebuild streak
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Longest equals current (both 3)
       expect(streak.currentStreak).toBe(3);
@@ -739,7 +738,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Only today counts (day 2 broke the streak)
       expect(streak.currentStreak).toBe(1);
@@ -825,7 +824,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       // Last qualifying day was day1. When checking from day2's perspective:
       // daysSinceLastActivity = differenceInDays(day2, day1) = 1
       // Since daysSinceLastActivity is NOT > 1, streak should still be 1
-      let streak = await rebuildStreak(null, day2);
+      let streak = await streakService.rebuildStreak(null, day2);
       
       // Assert: Streak is 1 (day1 was yesterday from day2's perspective)
       expect(streak.currentStreak).toBe(1);
@@ -841,7 +840,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Check streak after day 3
-      streak = await rebuildStreak();
+      streak = await streakService.rebuildStreak();
 
       // Assert: Streak is immediately 1
       expect(streak.currentStreak).toBe(1);
@@ -907,7 +906,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak (aggregates all logs for the day)
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Streak is 1 (all logs aggregated = 10 pages, meets threshold)
       expect(streak.currentStreak).toBe(1);
@@ -957,7 +956,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Build streak with old threshold
-      let streak = await rebuildStreak();
+      let streak = await streakService.rebuildStreak();
       expect(streak.currentStreak).toBe(1); // Yesterday counts
 
       // Today: 7 pages
@@ -974,7 +973,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       await streakRepository.updateThreshold(null, 10);
 
       // Rebuild with new threshold
-      streak = await rebuildStreak();
+      streak = await streakService.rebuildStreak();
 
       // Assert: Yesterday still counts (7 pages met old threshold of 5)
       // But with threshold now at 10, today's 7 pages doesn't meet it
@@ -1057,7 +1056,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Should recognize 2 consecutive days
       expect(streak.currentStreak).toBe(2);
@@ -1216,7 +1215,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: Both days count, streak is 2
       expect(streak.currentStreak).toBe(2);
@@ -1295,7 +1294,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Rebuild streak (should aggregate all 4 logs)
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak();
 
       // Assert: All logs aggregated = 15 pages, meets threshold
       expect(streak.currentStreak).toBe(1);

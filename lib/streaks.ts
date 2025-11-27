@@ -165,27 +165,20 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 }
 
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
-  console.log('[rebuildStreak] Function called, about to try block');
-  try {
-    console.log('[rebuildStreak] Inside try block');
-    logger.info("[Streak] Rebuilding streak from all progress data");
+  logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get current streak to check the dailyThreshold
   const existingStreak = await streakRepository.findByUserId(userId || null);
-  console.log('[rebuildStreak] Existing streak:', !!existingStreak);
   const dailyThreshold = existingStreak?.dailyThreshold || 1;
 
   logger.info({ dailyThreshold }, "[Streak] Using threshold for rebuild");
 
   // Get all progress logs ordered by date
   const allProgress = await progressRepository.getAllProgressOrdered();
-  console.log('[rebuildStreak] Progress count:', allProgress.length);
 
   if (allProgress.length === 0) {
     logger.info("[Streak] No progress data found, creating empty streak");
-    const result = await getOrCreateStreak(userId);
-    console.log('[rebuildStreak] Returning empty streak:', !!result);
-    return result;
+    return await getOrCreateStreak(userId);
   }
 
   // Group progress by date and calculate daily activity
@@ -253,14 +246,6 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
 
   const totalDaysActive = qualifyingDates.size;
 
-  console.log('[rebuildStreak] Calculated stats:', {
-    currentStreak,
-    longestStreak,
-    totalDaysActive,
-    lastActivityDate: lastActivityDate.toISOString(),
-    streakStartDate: streakStartDate.toISOString(),
-  });
-
   logger.info({
     currentStreak,
     longestStreak,
@@ -270,7 +255,6 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   }, "[Streak] Calculated streak stats");
 
   // Update or create streak record
-  console.log('[rebuildStreak] About to call upsert');
   const streak = await streakRepository.upsert(userId || null, {
     currentStreak,
     longestStreak,
@@ -278,14 +262,9 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     streakStartDate: streakStartDate,
     totalDaysActive,
   });
-  console.log('[rebuildStreak] Upsert result:', !!streak, streak ? `id=${streak.id}` : 'undefined');
 
   logger.info("[Streak] Streak rebuilt and saved successfully");
   return streak;
-  } catch (error) {
-    console.error('[rebuildStreak] Error:', error);
-    throw error;
-  }
 }
 
 export async function getActivityCalendar(

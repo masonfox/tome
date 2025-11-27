@@ -29,6 +29,15 @@ export class StreakService {
   }
 
   /**
+   * Rebuild streak from all progress data
+   * Uses dynamic import to work around Bun module caching issues in tests
+   */
+  async rebuildStreak(userId: number | null = null, currentDate?: Date): Promise<Streak> {
+    const { rebuildStreak } = await import("@/lib/streaks");
+    return await rebuildStreak(userId, currentDate);
+  }
+
+  /**
    * Update daily threshold with validation
    * Auto-creates streak record if it doesn't exist
    * Recalculates current streak with new threshold
