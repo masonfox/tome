@@ -232,7 +232,7 @@ describe("LibraryService → API Integration", () => {
     });
 
     test("should handle pagination correctly", async () => {
-      // Create 10 books
+      // Arrange: Create 10 books for pagination testing
       const books = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
           bookRepository.create({
@@ -245,21 +245,21 @@ describe("LibraryService → API Integration", () => {
         )
       );
 
-      // Page 1: limit=5, skip=0
+      // Act & Assert: Page 1 - First 5 books, has more
       const page1 = await service.getBooks({
         pagination: { limit: 5, skip: 0 },
       });
       expect(page1.books).toHaveLength(5);
       expect(page1.hasMore).toBe(true);
 
-      // Page 2: limit=5, skip=5
+      // Act & Assert: Page 2 - Next 5 books, no more
       const page2 = await service.getBooks({
         pagination: { limit: 5, skip: 5 },
       });
       expect(page2.books).toHaveLength(5);
       expect(page2.hasMore).toBe(false);
 
-      // Page 3: limit=5, skip=10 (no more books)
+      // Act & Assert: Page 3 - Beyond available books, empty
       const page3 = await service.getBooks({
         pagination: { limit: 5, skip: 10 },
       });

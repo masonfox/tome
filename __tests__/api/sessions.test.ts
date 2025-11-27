@@ -30,9 +30,8 @@ describe("GET /api/books/[id]/sessions", () => {
   // ============================================================================
 
   test("should return all sessions sorted by sessionNumber descending", async () => {
+    // Arrange: Create book with 3 sessions
     const book = await bookRepository.create(mockBook1);
-
-    // Create 3 sessions
     await sessionRepository.create({
       ...mockSessionRead,
       bookId: book.id,
@@ -52,10 +51,12 @@ describe("GET /api/books/[id]/sessions", () => {
       isActive: true,
     });
 
+    // Act: Fetch all sessions
     const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
     const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
+    // Assert: Sessions returned in descending order
     expect(response.status).toBe(200);
     expect(data.length).toBe(3);
     expect(data[0].sessionNumber).toBe(3);
@@ -64,6 +65,7 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should include progress summary for each session", async () => {
+    // Arrange: Create book, session, and 2 progress logs
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       ...mockSessionRead,
@@ -71,8 +73,6 @@ describe("GET /api/books/[id]/sessions", () => {
       sessionNumber: 1,
       isActive: true,
     });
-
-    // Add progress logs
     await progressRepository.create({
       ...mockProgressLog1,
       bookId: book.id,
@@ -88,10 +88,12 @@ describe("GET /api/books/[id]/sessions", () => {
       progressDate: new Date("2025-11-16"),
     });
 
+    // Act: Fetch sessions
     const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
     const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
+    // Assert: Progress summary included with correct aggregations
     expect(response.status).toBe(200);
     expect(data.length).toBe(1);
 
@@ -106,6 +108,7 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should return empty progress summary for session with no progress", async () => {
+    // Arrange: Create book and session without progress logs
     const book = await bookRepository.create(mockBook1);
     await sessionRepository.create({
       ...mockSessionRead,
@@ -114,10 +117,12 @@ describe("GET /api/books/[id]/sessions", () => {
       isActive: true,
     });
 
+    // Act: Fetch sessions
     const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
     const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
+    // Assert: Progress summary shows zero values
     expect(response.status).toBe(200);
     expect(data.length).toBe(1);
 
@@ -130,12 +135,15 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should return empty array if book has no sessions", async () => {
+    // Arrange: Create book without sessions
     const book = await bookRepository.create(mockBook1);
 
+    // Act: Fetch sessions
     const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
     const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
+    // Assert: Empty array returned
     expect(response.status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBe(0);
@@ -175,6 +183,7 @@ describe("GET /api/books/[id]/sessions", () => {
   });
 
   test("should calculate correct progress summary with multiple logs", async () => {
+    // Arrange: Create book, session, and 5 progress logs across different dates
     const book = await bookRepository.create(mockBook1);
     const session = await sessionRepository.create({
       ...mockSessionRead,
@@ -183,7 +192,6 @@ describe("GET /api/books/[id]/sessions", () => {
       isActive: true,
     });
 
-    // Add 5 progress logs
     const dates = [
       "2025-11-10",
       "2025-11-12",
@@ -203,10 +211,12 @@ describe("GET /api/books/[id]/sessions", () => {
       });
     }
 
+    // Act: Fetch sessions with progress summary
     const request = createMockRequest("GET", `/api/books/${book.id}/sessions`);
     const response = await GET(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
+    // Assert: Progress summary correctly aggregates all 5 logs
     expect(response.status).toBe(200);
 
     const progressSummary = data[0].progressSummary;

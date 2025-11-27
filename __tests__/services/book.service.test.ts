@@ -142,16 +142,16 @@ describe("BookService", () => {
     });
 
     test("should set rating to null (remove rating)", async () => {
-      // First set a rating
+      // Arrange: Book with existing rating
       await bookRepository.update(book1.id, { rating: 4 });
 
-      // Then remove it
+      // Act: Remove rating by setting to null
       const result = await bookService.updateRating(book1.id, null);
 
+      // Assert: Rating removed from both result and database
       expect(result).toBeDefined();
       expect(result.rating).toBeNull();
 
-      // Verify in database
       const updated = await bookRepository.findById(book1.id);
       expect(updated?.rating).toBeNull();
     });
