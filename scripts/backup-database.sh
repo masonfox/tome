@@ -42,13 +42,22 @@ if [ ! -w "$BACKUP_DIR" ]; then
   exit 1
 fi
 
-# Generate timestamp
+# Generate timestamp and date-based folder
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+DATE_FOLDER=$(date +%Y-%m-%d)
 BACKUP_NAME="tome.db.backup-${TIMESTAMP}"
-BACKUP_PATH="${BACKUP_DIR}/${BACKUP_NAME}"
+BACKUP_FOLDER="${BACKUP_DIR}/${DATE_FOLDER}"
+BACKUP_PATH="${BACKUP_FOLDER}/${BACKUP_NAME}"
+
+# Create date-based backup folder
+echo "Creating backup folder: $BACKUP_FOLDER"
+mkdir -p "$BACKUP_FOLDER" || {
+  echo "❌ Error: Failed to create backup folder"
+  exit 1
+}
 
 echo "Database: $DATABASE_PATH"
-echo "Backup directory: $BACKUP_DIR"
+echo "Backup directory: $BACKUP_FOLDER"
 echo "Backup name: $BACKUP_NAME"
 echo ""
 
@@ -92,9 +101,9 @@ echo "To restore this backup:"
 echo "  bun run db:restore $BACKUP_PATH"
 echo ""
 
-# List all backups
-BACKUP_COUNT=$(ls -1 "$BACKUP_DIR"/tome.db.backup-* 2>/dev/null | wc -l)
-echo "Total backups in directory: $BACKUP_COUNT"
+# List all backups (search in date-based folders)
+BACKUP_COUNT=$(find "$BACKUP_DIR" -type f -name "tome.db.backup-*" 2>/dev/null | wc -l)
+echo "Total backups across all folders: $BACKUP_COUNT"
 
 if [ "$BACKUP_COUNT" -gt 10 ]; then
   echo ""
