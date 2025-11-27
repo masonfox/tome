@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "b
 import { POST } from "@/app/api/books/[id]/status/route";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { createMockRequest } from "../fixtures/test-data";
+import { createMockRequest, createTestBook, createTestSession } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
 
 /**

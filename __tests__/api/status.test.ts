@@ -10,6 +10,8 @@ import {
   mockSessionRead,
   mockProgressLog1,
   createMockRequest,
+  createTestBook,
+  createTestSession,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
 
@@ -632,7 +634,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   test("should sync rating to Calibre when marking book as 'read' with rating", async () => {
     // Arrange
     const book = await bookRepository.create(createTestBook(mockBook1));
-    await sessionRepository.create({
+    await sessionRepository.create(createTestSession({
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
@@ -681,13 +683,13 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       const book = await bookRepository.create(createTestBook({
         ...mockBook1,
         calibreId: testCase.rating, // Use unique calibreId for each
-      });
-      await sessionRepository.create({
+      }));
+      await sessionRepository.create(createTestSession({
         ...mockSessionReading,
         bookId: book.id,
         status: "reading",
         isActive: true,
-      });
+      }));
 
       // Act
       const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -709,13 +711,13 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     const book = await bookRepository.create(createTestBook({
       ...mockBook1,
       rating: 4,
-    });
-    await sessionRepository.create({
+    }));
+    await sessionRepository.create(createTestSession({
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
       isActive: true,
-    });
+    }));
 
     // Act
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -876,13 +878,13 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     const book = await bookRepository.create(createTestBook({
       ...mockBook1,
       rating: 3,
-    });
-    await sessionRepository.create({
+    }));
+    await sessionRepository.create(createTestSession({
       ...mockSessionRead,
       bookId: book.id,
       status: "read",
       isActive: false,
-    });
+    }));
 
     // Act - Update rating on already-read book
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {

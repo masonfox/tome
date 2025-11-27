@@ -51,7 +51,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       totalPages: 500,
       path: "Book1",
       orphaned: false,
-    });
+    }));
 
     testBook2 = await bookRepository.create(createTestBook({
       calibreId: 2,
@@ -60,7 +60,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       totalPages: 300,
       path: "Book2",
       orphaned: false,
-    });
+    }));
 
     testBook3 = await bookRepository.create(createTestBook({
       calibreId: 3,
@@ -69,7 +69,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       totalPages: 400,
       path: "Book3",
       orphaned: false,
-    });
+    }));
   });
 
   test("returns zero stats when no data exists", async () => {
@@ -384,7 +384,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       totalPages: 500,
       path: "Book",
       orphaned: false,
-    });
+    }));
 
     // Mock getActivityCalendar to return sample data
     mockGetActivityCalendar = mock(() => [
