@@ -166,6 +166,38 @@ Follow this document + docs listed above for comprehensive guidance
 
 ---
 
+## 🔄 Git Workflow
+
+### Branching Policy
+
+**NEVER commit directly to main.** Always work on feature branches:
+
+1. **Starting Work:**
+   - Create a new branch from main: `git checkout -b feature/descriptive-name`
+   - Branch naming conventions: `feature/`, `fix/`, `docs/`, `refactor/`
+   - Always branch off main, never off other feature branches
+
+2. **During Development:**
+   - Commit regularly as you complete phases of work
+   - Each commit should represent a logical unit of work
+   - Write meaningful commit messages following repository style (check `git log`)
+   - Commits should explain WHY, not just WHAT
+
+3. **Completing Work:**
+   - Push branch to remote: `git push -u origin branch-name`
+   - Create pull request to merge into main (use `gh pr create`)
+   - Never merge directly to main without PR
+
+### Commit Guidelines
+
+- **Commit early and often** during development phases
+- Each commit should compile and ideally pass tests
+- Follow existing commit message style and conventions
+- Include co-authorship footer when working with AI assistants
+- Stage only relevant files (avoid `git add .` without review)
+
+---
+
 ## 📋 Essential Rules
 
 ### ✅ DO
@@ -178,6 +210,7 @@ Follow this document + docs listed above for comprehensive guidance
 6. **Follow the Database Factory Pattern** (never import SQLite drivers directly)
 7. **Update docs** when making architectural or pattern changes
 8. **Ask for clarification** when documentation is unclear
+9. **Always branch off main** before starting work (never commit directly to main)
 
 ### ❌ DON'T
 
@@ -188,6 +221,7 @@ Follow this document + docs listed above for comprehensive guidance
 5. **Create new markdown files** without explicit user request
 6. **Skip documentation** before making architectural changes
 7. **Bypass the Repository Pattern** (violates constitution)
+8. **Commit directly to main** (always use feature branches and PRs)
 
 ---
 
