@@ -12,6 +12,10 @@ FROM base AS prod-deps
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
+# Install migration dependencies only (drizzle-orm and pino for migration scripts)
+FROM base AS migration-deps
+RUN bun add drizzle-orm@^0.44.7 pino@^9.3.1
+
 # Build the application
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -54,9 +58,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
-# Copy production node_modules for migration script dependencies
-# The standalone build's node_modules don't include all deps needed by lib/db/migrate.ts
-COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+# Copy only migration dependencies (drizzle-orm and pino) instead of all node_modules
+# The standalone build's node_modules don't include deps needed by lib/db/migrate.ts
+# This optimization significantly reduces image size by copying only what's needed
+COPY --from=migration-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy and set up entrypoint script
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
