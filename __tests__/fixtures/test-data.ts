@@ -1,7 +1,7 @@
-import type { Book, NewBook } from "@/lib/db/schema/books";
-import type { ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
-import type { ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
-import type { Streak, NewStreak } from "@/lib/db/schema/streaks";
+import type { NewBook } from "@/lib/db/schema/books";
+import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
+import type { NewProgressLog } from "@/lib/db/schema/progress-logs";
+import type { NewStreak } from "@/lib/db/schema/streaks";
 
 /**
  * Test fixtures and utilities for tests
@@ -187,6 +187,68 @@ export const mockCalibreBook = {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/**
+ * Create a properly typed test book with defaults
+ * Usage: createTestBook({ title: "Custom Title", totalPages: 500 })
+ */
+export function createTestBook(overrides?: Partial<NewBook>): NewBook {
+  return {
+    calibreId: 1,
+    title: "Test Book",
+    authors: ["Test Author"],
+    tags: [],
+    path: "Test Author/Test Book (1)",
+    orphaned: false,
+    ...overrides,
+  };
+}
+
+/**
+ * Create a properly typed test session with defaults
+ * Usage: createTestSession({ bookId: book.id, status: "reading" })
+ */
+export function createTestSession(overrides: Partial<NewReadingSession> & { bookId: number }): NewReadingSession {
+  return {
+    bookId: overrides.bookId,
+    sessionNumber: 1,
+    status: "to-read",
+    isActive: true,
+    userId: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Create a properly typed test progress log with defaults
+ * Usage: createTestProgress({ bookId: book.id, sessionId: session.id, currentPage: 100 })
+ */
+export function createTestProgress(overrides: Partial<NewProgressLog> & { bookId: number; sessionId: number }): NewProgressLog {
+  return {
+    bookId: overrides.bookId,
+    sessionId: overrides.sessionId,
+    currentPage: 0,
+    currentPercentage: 0,
+    pagesRead: 0,
+    progressDate: new Date(),
+    ...overrides,
+  };
+}
+
+/**
+ * Create a properly typed test streak with defaults
+ * Usage: createTestStreak({ currentStreak: 5 })
+ */
+export function createTestStreak(overrides?: Partial<NewStreak>): NewStreak {
+  return {
+    currentStreak: 0,
+    longestStreak: 0,
+    lastActivityDate: new Date("2025-11-17T05:00:00.000Z"),
+    streakStartDate: new Date("2025-11-17T05:00:00.000Z"),
+    totalDaysActive: 0,
+    ...overrides,
+  };
+}
 
 /**
  * Helper to create dates for testing (returns Date object)

@@ -205,8 +205,6 @@ describe("GET /api/books", () => {
       expect(data.books).toHaveLength(1);
       expect(data.books[0].title).toBe("Finished Book");
       expect(data.books[0].status).toBe("read");
-      // Rating now comes from books table, not sessions
-      // expect(data.books[0].rating).toBe(5);
       expect(data.total).toBe(1);
     });
 
@@ -253,8 +251,6 @@ describe("GET /api/books", () => {
       expect(data.books).toHaveLength(1);
       expect(data.books[0].title).toBe("Book Read Twice");
       expect(data.books[0].status).toBe("read");
-      // Rating now comes from books table, not sessions
-      // expect(data.books[0].rating).toBe(5);
     });
 
     test("should not include books with active sessions when filtering by 'read'", async () => {
