@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "b
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { SessionService } from "@/lib/services/session.service";
-import { mockBook1, mockSessionToRead, mockSessionReading, mockProgressLog1 } from "@/__tests__/fixtures/test-data";
+import { mockBook1, mockSessionToRead, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 
 // Mock the streak system to avoid external dependencies
@@ -31,15 +31,15 @@ describe("SessionService", () => {
 
   beforeEach(async () => {
     await clearTestDatabase(__filename);
-    book1 = await bookRepository.create(mockBook1 as any);
+    book1 = await bookRepository.create(createTestBook(mockBook1));
   });
 
   describe("getActiveSession", () => {
     test("should return active session when it exists", async () => {
-      const session = await sessionRepository.create({
+      const session = await sessionRepository.create(createTestSession({
         ...mockSessionReading,
         bookId: book1.id,
-      } as any);
+      }));
 
       const result = await sessionService.getActiveSession(book1.id);
 
@@ -55,12 +55,12 @@ describe("SessionService", () => {
     });
 
     test("should not return archived sessions", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         isActive: false, // Archived
-      } as any);
+      }));
 
       const result = await sessionService.getActiveSession(book1.id);
 
@@ -70,19 +70,19 @@ describe("SessionService", () => {
 
   describe("getAllSessionsForBook", () => {
     test("should return all sessions ordered by session number descending", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
-      } as any);
+      }));
 
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 2,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.getAllSessionsForBook(book1.id);
 
@@ -144,12 +144,12 @@ describe("SessionService", () => {
   describe("updateStatus - updating existing session", () => {
     test("should update existing session status (forward movement)", async () => {
       // Create to-read session
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "to-read",
         isActive: true,
-      } as any);
+      }));
 
       // Update to read-next
       const result = await sessionService.updateStatus(book1.id, {
@@ -162,12 +162,12 @@ describe("SessionService", () => {
     });
 
     test("should set startedDate when moving to reading", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read-next",
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "reading",
@@ -180,13 +180,13 @@ describe("SessionService", () => {
     test("should not override existing startedDate", async () => {
       const existingDate = new Date("2025-01-01");
       
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         startedDate: existingDate,
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "reading",
@@ -198,13 +198,13 @@ describe("SessionService", () => {
 
   describe("updateStatus - completion (read status)", () => {
     test("should archive session and set completedDate when marking as read", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         startedDate: new Date("2025-11-01"),
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "read",
@@ -218,12 +218,12 @@ describe("SessionService", () => {
     test("should use custom completedDate", async () => {
       const customDate = new Date("2025-11-20");
       
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "read",
@@ -234,12 +234,12 @@ describe("SessionService", () => {
     });
 
     test("should set startedDate if not present when marking as read", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "to-read",
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "read",
@@ -253,13 +253,13 @@ describe("SessionService", () => {
   describe("updateStatus - backward movement", () => {
     test("should allow backward movement without progress (no archival)", async () => {
       // Create reading session without progress
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         startedDate: new Date("2025-11-01"),
         isActive: true,
-      } as any);
+      }));
 
       // Move back to read-next
       const result = await sessionService.updateStatus(book1.id, {
@@ -273,20 +273,20 @@ describe("SessionService", () => {
 
     test("should archive session and create new one when moving backward with progress", async () => {
       // Create reading session
-      const session = await sessionRepository.create({
+      const session = await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         startedDate: new Date("2025-11-01"),
         isActive: true,
-      } as any);
+      }));
 
       // Add progress
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       // Move back to read-next
       const result = await sessionService.updateStatus(book1.id, {
@@ -305,18 +305,18 @@ describe("SessionService", () => {
     });
 
     test("should also archive on backward movement to to-read with progress", async () => {
-      const session = await sessionRepository.create({
+      const session = await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "to-read",
@@ -329,12 +329,12 @@ describe("SessionService", () => {
 
   describe("updateStatus - with rating", () => {
     test("should update book rating when provided", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       await sessionService.updateStatus(book1.id, {
         status: "read",
@@ -349,12 +349,12 @@ describe("SessionService", () => {
       // Set initial rating
       await bookRepository.update(book1.id, { rating: 4 });
 
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       await sessionService.updateStatus(book1.id, {
         status: "read",
@@ -368,12 +368,12 @@ describe("SessionService", () => {
 
   describe("updateStatus - with review", () => {
     test("should save review when provided", async () => {
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       const result = await sessionService.updateStatus(book1.id, {
         status: "read",
@@ -387,13 +387,13 @@ describe("SessionService", () => {
   describe("startReread", () => {
     test("should create new session for re-reading", async () => {
       // Create completed session
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
         completedDate: new Date("2025-10-01"),
-      } as any);
+      }));
 
       const result = await sessionService.startReread(book1.id);
 
@@ -411,19 +411,19 @@ describe("SessionService", () => {
 
     test("should increment session number correctly", async () => {
       // Create multiple completed sessions
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
-      } as any);
+      }));
 
-      await sessionRepository.create({
+      await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 2,
         status: "read",
         isActive: false,
-      } as any);
+      }));
 
       const result = await sessionService.startReread(book1.id);
 
@@ -433,12 +433,12 @@ describe("SessionService", () => {
 
   describe("updateSessionDate", () => {
     test("should update startedDate", async () => {
-      const session = await sessionRepository.create({
+      const session = await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-      } as any);
+      }));
 
       const newDate = new Date("2025-01-15");
       const result = await sessionService.updateSessionDate(session.id, "startedDate", newDate);
@@ -447,13 +447,13 @@ describe("SessionService", () => {
     });
 
     test("should update completedDate", async () => {
-      const session = await sessionRepository.create({
+      const session = await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
         completedDate: new Date("2025-11-01"),
-      } as any);
+      }));
 
       const newDate = new Date("2025-11-20");
       const result = await sessionService.updateSessionDate(session.id, "completedDate", newDate);

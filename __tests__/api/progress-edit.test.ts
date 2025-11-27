@@ -7,7 +7,7 @@ import {
 import { PATCH, DELETE } from "@/app/api/books/[id]/progress/[progressId]/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { type NewBook } from "@/lib/db/schema/books";
-import { createMockRequest } from "@/__tests__/fixtures/test-data";
+import { createMockRequest , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 
 // Mock revalidatePath
 mock.module("next/cache", () => ({
@@ -292,7 +292,7 @@ describe("Progress Edit API", () => {
     test("should return 403 when progress entry does not belong to book", async () => {
       // Setup: Create two books with sessions
       const book1 = await bookRepository.create(testBook);
-      const book2 = await bookRepository.create({
+      const book2 = await bookRepository.create(createTestBook({
         ...testBook,
         calibreId: 2,
         path: "Test Author/Another Book (2)",
@@ -400,7 +400,7 @@ describe("Progress Edit API", () => {
     test("should return 403 when progress entry does not belong to book", async () => {
       // Setup: Create two books with sessions
       const book1 = await bookRepository.create(testBook);
-      const book2 = await bookRepository.create({
+      const book2 = await bookRepository.create(createTestBook({
         ...testBook,
         calibreId: 2,
         path: "Test Author/Another Book (2)",

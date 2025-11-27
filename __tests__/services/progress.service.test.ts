@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "b
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { ProgressService } from "@/lib/services/progress.service";
-import { mockBook1, mockSessionReading, mockProgressLog1 } from "@/__tests__/fixtures/test-data";
+import { mockBook1, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 
@@ -32,20 +32,20 @@ describe("ProgressService", () => {
 
   beforeEach(async () => {
     await clearTestDatabase(__filename);
-    book1 = await bookRepository.create(mockBook1 as any);
-    session = await sessionRepository.create({
+    book1 = await bookRepository.create(createTestBook(mockBook1));
+    session = await sessionRepository.create(createTestSession({
       ...mockSessionReading,
       bookId: book1.id,
-    } as any);
+    }));
   });
 
   describe("getProgressForSession", () => {
     test("should return progress for specific session", async () => {
-      const progress = await progressRepository.create({
+      const progress = await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       const result = await progressService.getProgressForSession(session.id);
 
@@ -60,23 +60,23 @@ describe("ProgressService", () => {
     });
 
     test("should return progress ordered by date descending", async () => {
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
         progressDate: new Date("2025-11-01"),
-      } as any);
+      }));
 
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 100,
         currentPercentage: 10,
         pagesRead: 50,
         progressDate: new Date("2025-11-15"),
-      } as any);
+      }));
 
       const result = await progressService.getProgressForSession(session.id);
 
@@ -88,11 +88,11 @@ describe("ProgressService", () => {
 
   describe("getProgressForActiveSession", () => {
     test("should return progress for active session", async () => {
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       const result = await progressService.getProgressForActiveSession(book1.id);
 
@@ -101,7 +101,7 @@ describe("ProgressService", () => {
 
     test("should return empty array when no active session exists", async () => {
       await clearTestDatabase(__filename);
-      book1 = await bookRepository.create(mockBook1 as any);
+      book1 = await bookRepository.create(createTestBook(mockBook1));
 
       const result = await progressService.getProgressForActiveSession(book1.id);
 
@@ -138,14 +138,14 @@ describe("ProgressService", () => {
 
     test("should calculate pages read from last progress", async () => {
       // First progress
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 100,
         currentPercentage: 9.62,
         pagesRead: 100,
         progressDate: new Date("2025-11-10"),
-      } as any);
+      }));
 
       // Log second progress
       const result = await progressService.logProgress(book1.id, {
@@ -179,7 +179,7 @@ describe("ProgressService", () => {
   describe("logProgress - validation", () => {
     test("should require active reading session", async () => {
       // Archive the session
-      await sessionRepository.update(session.id, { isActive: false } as any);
+      await sessionRepository.update(session.id, { isActive: false });
 
       await expect(
         progressService.logProgress(book1.id, { currentPage: 100 })
@@ -188,7 +188,7 @@ describe("ProgressService", () => {
 
     test("should require 'reading' status", async () => {
       // Change status to something other than 'reading'
-      await sessionRepository.update(session.id, { status: "to-read" } as any);
+      await sessionRepository.update(session.id, { status: "to-read" });
 
       await expect(
         progressService.logProgress(book1.id, { currentPage: 100 })
@@ -197,14 +197,14 @@ describe("ProgressService", () => {
 
     test("should validate temporal consistency (progress must be >= previous entries)", async () => {
       // Create earlier progress entry at page 200
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 200,
         currentPercentage: 19.23,
         pagesRead: 200,
         progressDate: new Date("2025-11-10"),
-      } as any);
+      }));
 
       // Try to log progress at page 100 (before page 200) with later date
       await expect(
@@ -217,14 +217,14 @@ describe("ProgressService", () => {
 
     test("should validate temporal consistency (progress must be <= future entries)", async () => {
       // Create future progress entry at page 200
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 200,
         currentPercentage: 19.23,
         pagesRead: 200,
         progressDate: new Date("2025-11-20"),
-      } as any);
+      }));
 
       // Try to log backdated progress at page 300 (after page 200)
       await expect(
@@ -284,11 +284,11 @@ describe("ProgressService", () => {
 
   describe("updateProgress", () => {
     test("should update progress entry successfully", async () => {
-      const progress = await progressRepository.create({
+      const progress = await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       const result = await progressService.updateProgress(progress.id, {
         currentPage: 200,
@@ -301,32 +301,32 @@ describe("ProgressService", () => {
 
     test("should validate updated progress position in timeline", async () => {
       // Create three progress entries
-      const p1 = await progressRepository.create({
+      const p1 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 100,
         currentPercentage: 9.62,
         pagesRead: 100,
         progressDate: new Date("2025-11-10"),
-      } as any);
+      }));
 
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 200,
         currentPercentage: 19.23,
         pagesRead: 100,
         progressDate: new Date("2025-11-15"),
-      } as any);
+      }));
 
-      await progressRepository.create({
+      await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
         currentPage: 300,
         currentPercentage: 28.85,
         pagesRead: 100,
         progressDate: new Date("2025-11-20"),
-      } as any);
+      }));
 
       // Try to update p1 to page 250 (would conflict with later entries)
       await expect(
@@ -345,11 +345,11 @@ describe("ProgressService", () => {
 
   describe("deleteProgress", () => {
     test("should delete progress entry successfully", async () => {
-      const progress = await progressRepository.create({
+      const progress = await progressRepository.create(createTestProgress({
         ...mockProgressLog1,
         bookId: book1.id,
         sessionId: session.id,
-      } as any);
+      }));
 
       const result = await progressService.deleteProgress(progress.id);
 

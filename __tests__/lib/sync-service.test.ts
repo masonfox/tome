@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:tes
 import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress, CalibreDataSource } from "@/lib/sync-service";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { mockCalibreBook } from "@/__tests__/fixtures/test-data";
+import { mockCalibreBook , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import { CalibreBook } from "@/lib/db/calibre";
 
 /**
@@ -86,7 +86,7 @@ describe("syncCalibreLibrary", () => {
 
   test("updates existing books without creating duplicate status", async () => {
     // Arrange - Create existing book and status
-    const existingBook = await bookRepository.create({
+    const existingBook = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Old Title",
       authors: ["Old Author"],
@@ -140,7 +140,7 @@ describe("syncCalibreLibrary", () => {
 
   test("detects and marks orphaned books", async () => {
     // Arrange - Create multiple books in DB (need 11+ for 10% threshold)
-    const book1 = await bookRepository.create({
+    const book1 = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book Still in Calibre",
       authors: ["Author 1"],
@@ -149,7 +149,7 @@ describe("syncCalibreLibrary", () => {
       orphaned: false,
     });
 
-    const book2 = await bookRepository.create({
+    const book2 = await bookRepository.create(createTestBook({
       calibreId: 2,
       title: "Book Removed from Calibre",
       authors: ["Author 2"],
@@ -160,7 +160,7 @@ describe("syncCalibreLibrary", () => {
 
     // Create 10 more books to stay under 10% threshold (1/12 = 8.3%)
     for (let i = 3; i <= 12; i++) {
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
@@ -432,7 +432,7 @@ describe("syncCalibreLibrary", () => {
   test("doesn't re-orphan already orphaned books", async () => {
     // Arrange - Create already orphaned book
     const orphanedDate = new Date("2025-11-01");
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 999,
       title: "Already Orphaned",
       authors: ["Author"],
@@ -491,7 +491,7 @@ describe("syncCalibreLibrary", () => {
 
   test("syncs null ratings from Calibre to Tome", async () => {
     // Arrange - Create book with rating
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book with Rating",
       authors: ["Author"],
@@ -607,21 +607,21 @@ describe("Sync Service - Orphaning Safety Checks", () => {
 
   test("CRITICAL: Empty Calibre results abort sync and prevent orphaning", async () => {
     // Arrange - Create books in DB
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book 1",
       authors: ["Author 1"],
       tags: [],
       path: "Author1/Book1",
-    } as any);
+    }));
 
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 2,
       title: "Book 2",
       authors: ["Author 2"],
       tags: [],
       path: "Author2/Book2",
-    } as any);
+    }));
 
     // Mock Calibre returning empty array (simulating DB connection failure)
     const testCalibreSource: CalibreDataSource = {
@@ -650,13 +650,13 @@ describe("Sync Service - Orphaning Safety Checks", () => {
   test("CRITICAL: Mass orphaning (>10%) aborts sync with error", async () => {
     // Arrange - Create 100 books in DB
     for (let i = 1; i <= 100; i++) {
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
         tags: [],
         path: `Author${i}/Book${i}`,
-      } as any);
+      }));
     }
 
     // Mock Calibre with only 85 books (15 books would be orphaned = 15%)
@@ -710,13 +710,13 @@ describe("Sync Service - Orphaning Safety Checks", () => {
   test("Allows orphaning under 10% threshold", async () => {
     // Arrange - Create 100 books in DB
     for (let i = 1; i <= 100; i++) {
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
         tags: [],
         path: `Author${i}/Book${i}`,
-      } as any);
+      }));
     }
 
     // Mock Calibre with 95 books (5 books would be orphaned = 5%)
@@ -777,21 +777,21 @@ describe("Sync Service - Orphaning Safety Checks", () => {
 
   test("findNotInCalibreIds returns empty array for empty input", async () => {
     // Arrange - Create books in DB
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book 1",
       authors: ["Author 1"],
       tags: [],
       path: "Author1/Book1",
-    } as any);
+    }));
 
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 2,
       title: "Book 2",
       authors: ["Author 2"],
       tags: [],
       path: "Author2/Book2",
-    } as any);
+    }));
 
     // Act - Call with empty array
     const result = await bookRepository.findNotInCalibreIds([]);
@@ -804,13 +804,13 @@ describe("Sync Service - Orphaning Safety Checks", () => {
   test("findNotInCalibreIds correctly identifies missing books", async () => {
     // Arrange - Create 5 books
     for (let i = 1; i <= 5; i++) {
-      await bookRepository.create({
+      await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
         tags: [],
         path: `Author${i}/Book${i}`,
-      } as any);
+      }));
     }
 
     // Act - Call with calibreIds [1, 2, 3] (books 4 and 5 are missing)
@@ -823,16 +823,16 @@ describe("Sync Service - Orphaning Safety Checks", () => {
 
   test("findNotInCalibreIds ignores already orphaned books", async () => {
     // Arrange - Create books, one already orphaned
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Active Book",
       authors: ["Author 1"],
       tags: [],
       path: "Author1/Book1",
       orphaned: false,
-    } as any);
+    }));
 
-    await bookRepository.create({
+    await bookRepository.create(createTestBook({
       calibreId: 2,
       title: "Already Orphaned Book",
       authors: ["Author 2"],
@@ -840,7 +840,7 @@ describe("Sync Service - Orphaning Safety Checks", () => {
       path: "Author2/Book2",
       orphaned: true,
       orphanedAt: new Date("2025-11-01"),
-    } as any);
+    }));
 
     // Act - Call with empty calibreIds (only book 1 is active)
     const result = await bookRepository.findNotInCalibreIds([]);

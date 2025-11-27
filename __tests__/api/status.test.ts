@@ -623,14 +623,14 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should sync rating to Calibre when marking book as 'read' with rating", async () => {
     // Arrange
-    const book = await bookRepository.create(mockBook1 as any);
+    const book = await bookRepository.create(createTestBook(mockBook1));
     await sessionRepository.create({
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
       isActive: true,
       sessionNumber: 1,
-    } as any);
+    }));
 
     // Act
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -670,7 +670,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       calibreRatingCalls = [];
       
       // Arrange
-      const book = await bookRepository.create({
+      const book = await bookRepository.create(createTestBook({
         ...mockBook1,
         calibreId: testCase.rating, // Use unique calibreId for each
       });
@@ -698,7 +698,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should remove rating from Calibre when marking as 'read' with rating=null", async () => {
     // Arrange - Book with existing rating
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       ...mockBook1,
       rating: 4,
     });
@@ -865,7 +865,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should sync rating when updating existing 'read' status with new rating", async () => {
     // Arrange - Book already marked as read
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       ...mockBook1,
       rating: 3,
     });

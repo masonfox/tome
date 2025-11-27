@@ -29,7 +29,7 @@ describe("Integration: Read Filter Lifecycle", () => {
     // ========================================================================
     // STEP 1: Create a book
     // ========================================================================
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "Test Book",
@@ -182,7 +182,7 @@ describe("Integration: Read Filter Lifecycle", () => {
     // ========================================================================
     // STEP 1: Create a book
     // ========================================================================
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "Re-read Book",
@@ -255,7 +255,7 @@ describe("Integration: Read Filter Lifecycle", () => {
     // ========================================================================
     // Create books with different statuses
     // ========================================================================
-    const toReadBook = await bookRepository.create({
+    const toReadBook = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "To Read Book",
@@ -263,7 +263,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       totalPages: 300,
     });
 
-    const readingBook = await bookRepository.create({
+    const readingBook = await bookRepository.create(createTestBook({
       calibreId: 2,
       path: "test/path/2",
       title: "Reading Book",
@@ -271,7 +271,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       totalPages: 400,
     });
 
-    const readBook = await bookRepository.create({
+    const readBook = await bookRepository.create(createTestBook({
       calibreId: 3,
       path: "test/path/3",
       title: "Read Book",
@@ -339,7 +339,7 @@ describe("Integration: Read Filter Lifecycle", () => {
     // Simulate a book that was marked as read but has no active session
     // (This can happen after migration or manual data manipulation)
     // ========================================================================
-    const book = await bookRepository.create({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       path: "test/path/1",
       title: "Only Archived Session",
