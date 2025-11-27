@@ -1249,8 +1249,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       const today = getStreakDate(0);
 
       // Day 1: Exactly 10 pages
-      const day1 = new Date(today);
-      day1.setDate(day1.getDate() - 1);
+      const day1 = getStreakDate(-1);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -1354,6 +1353,334 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
       // Assert: All logs aggregated = 15 pages, meets threshold
       expect(streak.currentStreak).toBe(1);
+    });
+  });
+
+  describe("Timezone Edge Cases", () => {
+    test("DST transition (Spring Forward): Streak continues across 'lost hour'", async () => {
+      // Arrange: Test streak continuity during Spring DST transition
+      // In America/New_York, DST 2025 begins at 2:00 AM on March 9
+      // Clock jumps from 1:59:59 AM to 3:00:00 AM (losing 1 hour)
+      
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 0,
+        dailyThreshold: 1,
+        userTimezone: 'America/New_York',
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        tags: [],
+        path: "Author/Test Book",
+        orphaned: false,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        userId: null,
+      });
+
+      // March 8, 2025 (day before DST) - 11 PM EST
+      const beforeDST = new Date("2025-03-09T04:00:00.000Z"); // 11 PM EST = 4 AM UTC
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 5,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: beforeDST,
+      });
+
+      // March 9, 2025 (DST day) - 4 AM EDT (after spring forward)
+      const afterDST = new Date("2025-03-09T08:00:00.000Z"); // 4 AM EDT = 8 AM UTC
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 10,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: afterDST,
+      });
+
+      // Act: Rebuild streak
+      const streak = await streakService.rebuildStreak(null, afterDST);
+
+      // Assert: Should recognize 2 consecutive days despite DST transition
+      expect(streak.currentStreak).toBe(2);
+      expect(streak.totalDaysActive).toBe(2);
+    });
+
+    test("DST transition (Fall Back): Streak continues across 'extra hour'", async () => {
+      // Arrange: Test streak continuity during Fall DST transition
+      // In America/New_York, DST 2025 ends at 2:00 AM on November 2
+      // Clock falls back from 1:59:59 AM to 1:00:00 AM (gaining 1 hour)
+      
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 0,
+        dailyThreshold: 1,
+        userTimezone: 'America/New_York',
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        tags: [],
+        path: "Author/Test Book",
+        orphaned: false,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        userId: null,
+      });
+
+      // November 1, 2025 (day before DST ends) - 11 PM EDT
+      const beforeDST = new Date("2025-11-02T03:00:00.000Z"); // 11 PM EDT = 3 AM UTC
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 5,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: beforeDST,
+      });
+
+      // November 2, 2025 (DST ends) - 3 AM EST (after fall back)
+      const afterDST = new Date("2025-11-02T08:00:00.000Z"); // 3 AM EST = 8 AM UTC
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 10,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: afterDST,
+      });
+
+      // Act: Rebuild streak
+      const streak = await streakService.rebuildStreak(null, afterDST);
+
+      // Assert: Should recognize 2 consecutive days despite DST transition
+      expect(streak.currentStreak).toBe(2);
+      expect(streak.totalDaysActive).toBe(2);
+    });
+
+    test("Timezone change: Rebuilding streak after timezone change recalculates correctly", async () => {
+      // Arrange: User starts in New York, builds a streak, then moves to Tokyo
+      const streak = await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 0,
+        dailyThreshold: 1,
+        userTimezone: 'America/New_York',
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        tags: [],
+        path: "Author/Test Book",
+        orphaned: false,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        userId: null,
+      });
+
+      // Create 3 days of progress in New York timezone
+      const day1 = new Date("2025-11-25T04:00:00.000Z"); // Nov 24, 11 PM EST
+      const day2 = new Date("2025-11-26T04:00:00.000Z"); // Nov 25, 11 PM EST
+      const day3 = new Date("2025-11-27T04:00:00.000Z"); // Nov 26, 11 PM EST
+
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 5,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: day1,
+      });
+
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 10,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: day2,
+      });
+
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 15,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: day3,
+      });
+
+      // Build streak in NY timezone
+      let result = await streakService.rebuildStreak(null, day3);
+      expect(result.currentStreak).toBe(3);
+
+      // Act: User changes timezone to Tokyo (Asia/Tokyo is UTC+9)
+      await streakRepository.setTimezone(null, 'Asia/Tokyo');
+
+      // Rebuild streak with Tokyo timezone
+      result = await streakService.rebuildStreak(null, day3);
+
+      // Assert: Streak should still be valid (same UTC moments, different timezone interpretation)
+      // The dates should still be consecutive when viewed in Tokyo time
+      expect(result.currentStreak).toBe(3);
+      expect(result.totalDaysActive).toBe(3);
+    });
+
+    test("Cross-timezone midnight: Progress logged just before and after timezone midnight", async () => {
+      // Arrange: Test edge case where progress is logged very close to midnight in user's timezone
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 0,
+        dailyThreshold: 1,
+        userTimezone: 'America/New_York', // EST is UTC-5
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        tags: [],
+        path: "Author/Test Book",
+        orphaned: false,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        userId: null,
+      });
+
+      // 11:59 PM EST on Nov 26 = 4:59 AM UTC on Nov 27
+      const beforeMidnight = new Date("2025-11-27T04:59:00.000Z");
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 5,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: beforeMidnight,
+      });
+
+      // 12:01 AM EST on Nov 27 = 5:01 AM UTC on Nov 27
+      const afterMidnight = new Date("2025-11-27T05:01:00.000Z");
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 10,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: afterMidnight,
+      });
+
+      // Act: Rebuild streak
+      const streak = await streakService.rebuildStreak(null, afterMidnight);
+
+      // Assert: Should recognize as 2 different days in user's timezone
+      expect(streak.currentStreak).toBe(2);
+      expect(streak.totalDaysActive).toBe(2);
+    });
+
+    test("UTC midnight vs local midnight: Same UTC day can span 2 local days", async () => {
+      // Arrange: Demonstrate that a single UTC day can cross local day boundaries
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 0,
+        dailyThreshold: 10, // Need 10 pages per day
+        userTimezone: 'America/Los_Angeles', // PST is UTC-8
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        tags: [],
+        path: "Author/Test Book",
+        orphaned: false,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        userId: null,
+      });
+
+      // 6 PM PST Nov 26 = 2 AM UTC Nov 27 (still Nov 26 in PST)
+      const evening = new Date("2025-11-27T02:00:00.000Z");
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 6,
+        currentPercentage: 0,
+        pagesRead: 6,
+        progressDate: evening,
+      });
+
+      // 10 AM UTC Nov 27 = 2 AM PST Nov 27 (now Nov 27 in PST)
+      const morning = new Date("2025-11-27T10:00:00.000Z");
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 11,
+        currentPercentage: 0,
+        pagesRead: 5,
+        progressDate: morning,
+      });
+
+      // Act: Rebuild streak
+      const streak = await streakService.rebuildStreak(null, morning);
+
+      // Assert: Should aggregate by LOCAL day, not UTC day
+      // Nov 26 PST: 6 pages (doesn't meet threshold)
+      // Nov 27 PST: 5 pages (doesn't meet threshold)
+      expect(streak.currentStreak).toBe(0);
+      expect(streak.totalDaysActive).toBe(0);
     });
   });
 
