@@ -3,6 +3,7 @@ import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
 import { startOfDay } from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 
 /**
  * Reading Streak Tests (Spec 001)
@@ -69,6 +70,28 @@ import { startOfDay } from "date-fns";
 
 let testDb: TestDatabaseInstance;
 
+/**
+ * Helper: Get timezone-aware date for streak tests
+ * 
+ * The streak service uses user's timezone (default: America/New_York) for day boundaries.
+ * This helper creates dates in that timezone to match the implementation.
+ * 
+ * @param daysOffset - Number of days to offset from today (negative for past, positive for future)
+ * @returns Date in UTC that represents start of day in user's timezone
+ */
+function getStreakDate(daysOffset: number = 0): Date {
+  const userTimezone = 'America/New_York'; // Default timezone from schema
+  const now = new Date();
+  const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+  
+  // Apply offset
+  const targetDate = new Date(todayInUserTz);
+  targetDate.setDate(targetDate.getDate() + daysOffset);
+  
+  // Convert back to UTC for storage
+  return fromZonedTime(targetDate, userTimezone);
+}
+
 beforeAll(async () => {
   testDb = await setupTestDatabase(__filename);
   await clearTestDatabase(testDb);
@@ -104,10 +127,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Create progress for 5 consecutive days (1 page each day)
-      const today = startOfDay(new Date());
       for (let i = 4; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+        const date = getStreakDate(-i); // Use timezone-aware dates
         
         await progressRepository.create({
           bookId: book.id,
@@ -145,8 +166,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const yesterday = new Date(startOfDay(new Date()));
-      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterday = getStreakDate(-1);
+      const today = getStreakDate(0);
       
       await progressRepository.create({
         bookId: book.id,
@@ -157,12 +178,13 @@ describe("Reading Streak Tracking - Spec 001", () => {
         progressDate: yesterday,
       });
 
-      // Act: Rebuild streak
-      const streak = await streakService.rebuildStreak();
+      // Act: Rebuild streak (check as of today - yesterday should still count)
+      const streak = await streakService.rebuildStreak(null, today);
 
       // Assert: Should still show streak (current = 1, last activity yesterday)
       expect(streak.currentStreak).toBe(1);
-      expect(startOfDay(streak.lastActivityDate).toDateString()).toBe(yesterday.toDateString());
+      // Compare timestamps as both are in UTC
+      expect(startOfDay(streak.lastActivityDate).getTime()).toBe(startOfDay(yesterday).getTime());
     });
 
     test("Given user broke streak yesterday and hasn't read today, then show 'Current Streak: 0 days'", async () => {
@@ -184,8 +206,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const twoDaysAgo = new Date(startOfDay(new Date()));
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      const twoDaysAgo = getStreakDate(-2);
+      
       
       await progressRepository.create({
         bookId: book.id,
@@ -225,8 +247,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Progress 2 days ago
-      const twoDaysAgo = new Date(startOfDay(new Date()));
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      const twoDaysAgo = getStreakDate(-2);
+      
       
       await progressRepository.create({
         bookId: book.id,
@@ -240,7 +262,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       await streakService.updateStreaks();
 
       // Progress today (starts new streak)
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -317,11 +339,11 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       
       // Yesterday: 5 pages
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterday = getStreakDate(-1);
+      
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -354,8 +376,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 3,
-        lastActivityDate: new Date(startOfDay(new Date()).getTime() - 86400000), // Yesterday
-        streakStartDate: new Date(startOfDay(new Date()).getTime() - 3 * 86400000),
+        lastActivityDate: getStreakDate(-1), // Yesterday
+        streakStartDate: getStreakDate(-3),
         totalDaysActive: 3,
         dailyThreshold: 20,
       });
@@ -378,7 +400,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Read only 15 pages today (below threshold)
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -427,11 +449,11 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       
       // Yesterday: 10 pages
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterday = getStreakDate(-1);
+      
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -509,12 +531,11 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Create 15-day streak, then break it, then create 7-day streak
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       
       // Days 20-6 ago: 15 consecutive days
       for (let i = 20; i >= 6; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+        const date = getStreakDate(-i);
         
         await progressRepository.create({
           bookId: book.id,
@@ -529,8 +550,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       // Day 5 ago: GAP (streak breaks)
       // Days 4-0: 5 consecutive days, then we'll add 2 more to make 7
       for (let i = 4; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+        const date = getStreakDate(-i);
         
         await progressRepository.create({
           bookId: book.id,
@@ -574,8 +594,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
       // Past 15-day streak
       for (let i = 22; i >= 8; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+        const date = getStreakDate(-i);
         
         await progressRepository.create({
           bookId: book2.id,
@@ -589,8 +608,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
       // Current 7-day streak (skip day -7)
       for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+        const date = getStreakDate(-i);
         
         await progressRepository.create({
           bookId: book2.id,
@@ -629,12 +647,11 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       
       // Create 5-day streak
       for (let i = 4; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+        const date = getStreakDate(-i);
         
         await progressRepository.create({
           bookId: book.id,
@@ -651,8 +668,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       expect(streak.longestStreak).toBe(5);
 
       // Act: Add one more day to surpass
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrow = getStreakDate(1);
       
       await progressRepository.create({
         bookId: book.id,
@@ -689,7 +705,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       
       // Create 3-day streak (first ever)
       for (let i = 2; i >= 0; i--) {
@@ -745,11 +761,10 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
 
       // Day 1: 5 pages (meets threshold)
-      const day1 = new Date(today);
-      day1.setDate(day1.getDate() - 2);
+      const day1 = getStreakDate(-2);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -760,8 +775,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Day 2: 3 pages (below threshold - breaks streak)
-      const day2 = new Date(today);
-      day2.setDate(day2.getDate() - 1);
+      const day2 = getStreakDate(-1);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -838,11 +852,10 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
 
       // Day 1: 10 pages (meets threshold)
-      const day1 = new Date(today);
-      day1.setDate(day1.getDate() - 2);
+      const day1 = getStreakDate(-2);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -853,8 +866,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Day 2: 5 pages (below threshold - breaks)
-      const day2 = new Date(today);
-      day2.setDate(day2.getDate() - 1);
+      const day2 = getStreakDate(-1);
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -919,7 +931,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
 
       // Multiple progress logs on same day totaling 10 pages
       await progressRepository.create({
@@ -985,11 +997,11 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
 
       // Yesterday: 7 pages (met old threshold of 5)
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterday = getStreakDate(-1);
+      
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -999,8 +1011,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         progressDate: yesterday,
       });
 
-      // Build streak with old threshold
-      let streak = await streakService.rebuildStreak();
+      // Build streak with old threshold (check as of yesterday)
+      let streak = await streakService.rebuildStreak(null, yesterday);
       expect(streak.currentStreak).toBe(1); // Yesterday counts
 
       // Today: 7 pages
@@ -1075,7 +1087,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       
       // 11:59 PM yesterday (counts toward yesterday)
       const yesterdayEnd = new Date(today.getTime() - 60000); // 1 minute before midnight
@@ -1154,8 +1166,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityDate: new Date(startOfDay(new Date()).getTime() - 86400000),
-        streakStartDate: new Date(startOfDay(new Date()).getTime() - 86400000),
+        lastActivityDate: getStreakDate(-1),
+        streakStartDate: getStreakDate(-1),
         totalDaysActive: 1,
         dailyThreshold: 5,
       });
@@ -1178,7 +1190,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Read 8 pages in the morning
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
       const morning = new Date(today.getTime() + 10 * 3600000); // 10 AM
       await progressRepository.create({
         bookId: book.id,
@@ -1234,7 +1246,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
 
       // Day 1: Exactly 10 pages
       const day1 = new Date(today);
@@ -1294,7 +1306,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
       });
 
-      const today = startOfDay(new Date());
+      const today = getStreakDate(0);
 
       // Create 4 reading sessions throughout the day
       // Morning: 4 pages

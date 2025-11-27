@@ -282,17 +282,24 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   // Calculate streak from consecutive active days
   let currentStreak = 0;
   let longestStreak = 0;
-  let streakStartDate = sortedDates[0] ? new Date(sortedDates[0]) : new Date();
-  let lastActivityDate = sortedDates[0] ? new Date(sortedDates[0]) : new Date();
+  // Convert date strings back to proper timezone-aware dates
+  const firstDateStr = sortedDates[0];
+  const firstDateInTz = firstDateStr ? new Date(`${firstDateStr}T00:00:00`) : new Date();
+  const firstDateUtc = firstDateStr ? fromZonedTime(firstDateInTz, userTimezone) : new Date();
+  let streakStartDate = firstDateUtc;
+  let lastActivityDate = firstDateUtc;
 
   if (sortedDates.length > 0) {
     currentStreak = 1;
     longestStreak = 1;
 
     for (let i = 1; i < sortedDates.length; i++) {
-      const dateInLoop = new Date(sortedDates[i]);
-      const prevDate = new Date(sortedDates[i - 1]);
-      const daysDiff = differenceInDays(dateInLoop, prevDate);
+      // Convert date strings to timezone-aware dates
+      const dateInLoopStr = sortedDates[i];
+      const prevDateStr = sortedDates[i - 1];
+      const dateInLoopInTz = new Date(`${dateInLoopStr}T00:00:00`);
+      const prevDateInTz = new Date(`${prevDateStr}T00:00:00`);
+      const daysDiff = differenceInDays(dateInLoopInTz, prevDateInTz);
 
       if (daysDiff === 1) {
         // Consecutive day
@@ -301,9 +308,9 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
         // Gap in streak
         longestStreak = Math.max(longestStreak, currentStreak);
         currentStreak = 1;
-        streakStartDate = dateInLoop;
+        streakStartDate = fromZonedTime(dateInLoopInTz, userTimezone);
       }
-      lastActivityDate = dateInLoop;
+      lastActivityDate = fromZonedTime(dateInLoopInTz, userTimezone);
     }
 
     longestStreak = Math.max(longestStreak, currentStreak);
