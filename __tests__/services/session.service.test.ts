@@ -5,13 +5,22 @@ import { SessionService } from "@/lib/services/session.service";
 import { mockBook1, mockSessionToRead, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 
-// Mock the streak system to avoid external dependencies
+/**
+ * Mock Rationale: Isolate session service tests from streak calculation complexity.
+ * Streak logic involves complex date/time calculations and database queries that
+ * aren't relevant to testing session lifecycle. We mock with reasonable return
+ * values to verify session service integrates with streaks without testing streak logic.
+ */
 mock.module("@/lib/streaks", () => ({
   rebuildStreak: mock(() => Promise.resolve()),
   updateStreaks: mock(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
 }));
 
-// Mock cache revalidation
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Session operations may trigger cache invalidation, but we don't need to test
+ * Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: mock(() => {}),
 }));

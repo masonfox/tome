@@ -12,7 +12,11 @@ import {
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import type { NextRequest } from "next/server";
 
-// Mock Next.js revalidatePath since it requires Next.js context
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The reread API calls revalidatePath to update cached pages, but we don't need
+ * to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));

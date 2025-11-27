@@ -6,12 +6,21 @@ import { mockBook1, mockSessionReading, mockProgressLog1 , createTestBook, creat
 import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 
-// Mock the streak system
+/**
+ * Mock Rationale: Isolate progress service tests from streak calculation complexity.
+ * Streak logic involves complex date/time calculations and database queries that
+ * aren't relevant to testing progress tracking. We mock with reasonable return
+ * values to verify progress service integrates with streaks without testing streak logic.
+ */
 mock.module("@/lib/streaks", () => ({
   updateStreaks: mock(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
 }));
 
-// Mock cache revalidation
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Progress operations may trigger cache invalidation, but we don't need to test
+ * Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: mock(() => {}),
 }));

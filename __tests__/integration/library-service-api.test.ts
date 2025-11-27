@@ -6,14 +6,25 @@ import { LibraryService } from "@/lib/library-service";
 import { createMockRequest } from "../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-// Mock Next.js cache revalidation
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Library operations may trigger cache invalidation, but we don't need to test
+ * Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
 let service: LibraryService;
 
-// Mock fetch to call actual API handlers (real integration)
+/**
+ * Mock Rationale: Route fetch calls to real API handlers for integration testing.
+ * This integration test verifies LibraryService → API → Repository flows work
+ * together correctly. We intercept fetch() and route to actual handlers rather
+ * than starting a real HTTP server, making tests faster while still testing
+ * the full integration path.
+ */
+// @ts-expect-error - Simplified fetch mock for integration testing
 global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input.toString();
   const method = init?.method || "GET";

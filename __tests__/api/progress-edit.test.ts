@@ -9,7 +9,11 @@ import { bookRepository, sessionRepository, progressRepository } from "@/lib/rep
 import { type NewBook } from "@/lib/db/schema/books";
 import { createMockRequest , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 
-// Mock revalidatePath
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The progress edit API calls revalidatePath to update cached pages, but we don't
+ * need to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: mock(() => {}),
 }));

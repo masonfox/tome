@@ -16,7 +16,11 @@ import type { NextRequest } from "next/server";
  * - Streak integration (real - runs with test database)
  */
 
-// Mock revalidatePath (Next.js cache revalidation) - this is a Next.js internal
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The progress API calls revalidatePath to update cached pages, but we don't need
+ * to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));

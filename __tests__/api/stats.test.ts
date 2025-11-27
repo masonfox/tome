@@ -15,7 +15,12 @@ import type { NextRequest } from "next/server";
  * - /api/stats/activity: Activity calendar and monthly aggregations
  */
 
-// Mock getActivityCalendar function
+/**
+ * Mock Rationale: Control activity calendar data for deterministic testing.
+ * The activity calendar involves complex date/time aggregations. We mock it
+ * to return predictable data, allowing us to test the stats API response
+ * structure without dependency on actual streak calculation logic.
+ */
 let mockGetActivityCalendar: ReturnType<typeof mock>;
 mock.module("@/lib/streaks", () => ({
   getActivityCalendar: (userId: any, year: number, month?: number) =>

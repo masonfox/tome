@@ -3,7 +3,11 @@ import { getDashboardData } from "@/lib/dashboard-service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
-// Mock Next.js cache revalidation
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Dashboard service may trigger cache invalidation in some flows, but we don't
+ * need to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));

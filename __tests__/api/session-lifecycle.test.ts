@@ -2,6 +2,11 @@ import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "b
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * Session lifecycle tests trigger status changes that call revalidatePath, but we
+ * don't need to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {

@@ -13,7 +13,11 @@ import {
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
 
-// Mock revalidatePath (Next.js cache revalidation)
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ * The status API calls revalidatePath to update cached pages, but we don't need
+ * to test Next.js's caching behavior - just our business logic.
+ */
 mock.module("next/cache", () => ({
   revalidatePath: () => {},
 }));
@@ -601,7 +605,11 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
   
   beforeAll(() => {
-    // Mock the calibre-write module to capture calls
+    /**
+     * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+     * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
+     * our code correctly attempts to sync ratings, without actually writing to disk.
+     */
     mock.module("@/lib/db/calibre-write", () => ({
       updateCalibreRating: (calibreId: number, rating: number | null) => {
         calibreRatingCalls.push({ calibreId, rating });
