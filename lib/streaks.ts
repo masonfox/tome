@@ -165,8 +165,9 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 }
 
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
-  console.log('[rebuildStreak] Starting rebuild');
-  logger.info("[Streak] Rebuilding streak from all progress data");
+  try {
+    console.log('[rebuildStreak] Starting rebuild');
+    logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get current streak to check the dailyThreshold
   const existingStreak = await streakRepository.findByUserId(userId || null);
@@ -280,6 +281,10 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
 
   logger.info("[Streak] Streak rebuilt and saved successfully");
   return streak;
+  } catch (error) {
+    console.error('[rebuildStreak] Error:', error);
+    throw error;
+  }
 }
 
 export async function getActivityCalendar(
