@@ -34,7 +34,7 @@ export function TimezoneDetector() {
         setDetected(true);
       } catch (error) {
         // Silently fail - timezone detection is non-critical
-        console.error("Failed to auto-detect timezone:", error);
+        // No logging needed as this is a best-effort enhancement
       }
     };
 
