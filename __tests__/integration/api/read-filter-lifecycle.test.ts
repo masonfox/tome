@@ -4,7 +4,7 @@ import { GET as GET_BOOKS } from "@/app/api/books/route";
 import { POST as UPDATE_STATUS } from "@/app/api/books/[id]/status/route";
 import { POST as LOG_PROGRESS } from "@/app/api/books/[id]/progress/route";
 import { POST as START_REREAD } from "@/app/api/books/[id]/reread/route";
-import { createMockRequest } from "../../fixtures/test-data";
+import { createMockRequest, createTestBook } from "../../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 // Mock Next.js cache revalidation - required for integration tests
