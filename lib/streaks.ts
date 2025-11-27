@@ -165,8 +165,9 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 }
 
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
+  console.log('[rebuildStreak] Function called, about to try block');
   try {
-    console.log('[rebuildStreak] Starting rebuild');
+    console.log('[rebuildStreak] Inside try block');
     logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get current streak to check the dailyThreshold
