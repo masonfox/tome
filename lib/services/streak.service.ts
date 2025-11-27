@@ -33,8 +33,12 @@ export class StreakService {
    * Uses dynamic import to work around Bun module caching issues in tests
    */
   async rebuildStreak(userId: number | null = null, currentDate?: Date): Promise<Streak> {
+    console.log('[StreakService.rebuildStreak] Called');
     const { rebuildStreak } = await import("@/lib/streaks");
-    return await rebuildStreak(userId, currentDate);
+    console.log('[StreakService.rebuildStreak] Imported, calling function');
+    const result = await rebuildStreak(userId, currentDate);
+    console.log('[StreakService.rebuildStreak] Result:', !!result);
+    return result;
   }
 
   /**
