@@ -13,11 +13,6 @@ interface BookGridProps {
     status: string | null;
     tags: string[];
     totalPages?: number;
-    latestProgress?: {
-      currentPage: number;
-      currentPercentage: number;
-      progressDate: string;
-    } | null;
   }>;
   loading?: boolean;
   loadingMore?: boolean;
@@ -44,7 +39,6 @@ export function BookGrid({ books, loading = false, loadingMore = false }: BookGr
                 authors={book.authors}
                 calibreId={book.calibreId}
                 status={book.status}
-                currentProgress={book.latestProgress?.currentPercentage}
               />
             ))}
           </div>
