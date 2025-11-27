@@ -49,7 +49,7 @@ docker run -d \
   --name tome \
   -p 3000:3000 \
   -v tome-data:/app/data \
-  -v /path/to/calibre/library:/calibre:ro \
+  -v /path/to/calibre/library:/calibre \
   -e CALIBRE_DB_PATH=/calibre/metadata.db \
   ghcr.io/masonfox/tome:latest
 ```

@@ -13,7 +13,7 @@ docker run -d \
   --name tome \
   -p 3000:3000 \
   -v tome-data:/app/data \
-  -v /path/to/calibre/library:/calibre:ro \
+  -v /path/to/calibre/library:/calibre \
   -e NODE_ENV=production \
   -e CALIBRE_DB_PATH=/calibre/metadata.db \
   --restart unless-stopped \
@@ -34,7 +34,7 @@ docker-compose up -d
 The included `docker-compose.yml` is pre-configured with:
 - Automatic container restart
 - Volume persistence
-- Read-only Calibre library mount
+- Calibre library mount with rating sync support
 - Production environment settings
 
 ### Option 3: Build from Source
@@ -50,7 +50,7 @@ docker run -d \
   --name tome \
   -p 3000:3000 \
   -v tome-data:/app/data \
-  -v /path/to/calibre/library:/calibre:ro \
+  -v /path/to/calibre/library:/calibre \
   -e CALIBRE_DB_PATH=/calibre/metadata.db \
   tome
 ```
@@ -72,12 +72,14 @@ The SQLite database is stored in the `tome-data` volume at `/app/data/tome.db` i
 
 ### Calibre Library Mount
 
-Your Calibre library should be mounted as **read-only** (`:ro`) to prevent accidental modifications:
+Your Calibre library should be mounted with **write access** to enable bidirectional rating synchronization:
 
 ```yaml
 volumes:
-  - /path/to/calibre/library:/calibre:ro
+  - /path/to/calibre/library:/calibre
 ```
+
+**Note**: Tome requires write access to sync ratings back to Calibre. Tome only writes to the ratings field and maintains read-only behavior for all other book metadata.
 
 Common Calibre library locations:
 - **Linux**: `~/Calibre Library/metadata.db`
@@ -258,7 +260,7 @@ docker-compose logs -f tome
 
 ### Security Considerations
 
-1. **Mount Calibre as read-only**: Prevents accidental modifications
+1. **Calibre write access**: Tome requires write access for rating sync but only modifies the ratings field
 2. **Use named volumes**: Better than bind mounts for portability
 3. **Regular backups**: Automate database backups before updates
 4. **Non-root user**: Container runs as `nextjs` user (UID 1001)
