@@ -34,7 +34,7 @@ jobs:
         run: bun test
 
       - name: Build application
-        run: bun build
+        run: bun run build
 
   build-and-push:
     name: Build and Push Docker Image
