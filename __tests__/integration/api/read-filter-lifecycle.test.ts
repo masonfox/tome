@@ -35,7 +35,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       title: "Test Book",
       authors: ["Test Author"],
       totalPages: 300,
-    });
+    }));
 
     // ========================================================================
     // STEP 2: Mark as "to-read"
@@ -188,7 +188,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       title: "Re-read Book",
       authors: ["Test Author"],
       totalPages: 300,
-    });
+    }));
 
     // ========================================================================
     // STEP 2: First read - mark as reading then read
@@ -261,7 +261,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       title: "To Read Book",
       authors: ["Author 1"],
       totalPages: 300,
-    });
+    }));
 
     const readingBook = await bookRepository.create(createTestBook({
       calibreId: 2,
@@ -269,7 +269,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       title: "Reading Book",
       authors: ["Author 2"],
       totalPages: 400,
-    });
+    }));
 
     const readBook = await bookRepository.create(createTestBook({
       calibreId: 3,
@@ -277,7 +277,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       title: "Read Book",
       authors: ["Author 3"],
       totalPages: 350,
-    });
+    }));
 
     // Set statuses
     let request = createMockRequest("POST", `/api/books/${toReadBook.id}/status`, {
@@ -345,7 +345,7 @@ describe("Integration: Read Filter Lifecycle", () => {
       title: "Only Archived Session",
       authors: ["Test Author"],
       totalPages: 300,
-    });
+    }));
 
     // Create archived session directly
     await sessionRepository.create({
