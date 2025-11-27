@@ -33,9 +33,9 @@ services:
       #   1. Let the container handle permissions (recommended)
       #   2. Or run with: docker-compose run --user 1001:1001 tome
       - tome-data:/app/data
-      # Mount your Calibre library (read-only)
+      # Mount your Calibre library (read-write for rating sync)
       # Replace with your actual Calibre library path
-      - ./calibre-library:/calibre:ro
+      - ./calibre-library:/calibre
     restart: unless-stopped
 
 volumes:
