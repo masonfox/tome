@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
-import { updateStreaks, getStreak } from "@/lib/streaks";
 import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
@@ -152,7 +151,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         progressDate: twoDaysAgo,
       });
 
-      await updateStreaks();
+      await streakService.updateStreaks();
 
       // Act: Rebuild streak to detect break
       const streak = await streakService.rebuildStreak();
@@ -193,7 +192,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         progressDate: twoDaysAgo,
       });
 
-      await updateStreaks();
+      await streakService.updateStreaks();
 
       // Progress today (starts new streak)
       const today = startOfDay(new Date());
@@ -207,8 +206,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Update streak with today's activity
-      await updateStreaks();
-      const streak = await getStreak();
+      await streakService.updateStreaks();
+      const streak = await streakService.getStreakBasic();
 
       // Assert: Should show 1 day (new streak started today)
       expect(streak.currentStreak).toBe(1);
@@ -219,7 +218,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       // (database is already cleared in afterEach)
 
       // Act: Get or create streak
-      const streak = await getStreak();
+      const streak = await streakService.getStreakBasic();
 
       // Assert: Should have initial streak with 0 days
       expect(streak.currentStreak).toBe(0);
@@ -231,7 +230,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
   describe("User Story 2: Configure Personal Streak Thresholds", () => {
     test("Given user sets threshold to 10 pages, then system saves and applies it", async () => {
       // Arrange: Create streak
-      const streak = await getStreak();
+      const streak = await streakService.getStreakBasic();
 
       // Act: Update threshold
       const updated = await streakRepository.updateThreshold(null, 10);
@@ -240,7 +239,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       expect(updated.dailyThreshold).toBe(10);
       
       // Verify it persists
-      const retrieved = await getStreak();
+      const retrieved = await streakService.getStreakBasic();
       expect(retrieved.dailyThreshold).toBe(10);
     });
 
@@ -345,7 +344,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Act: Update streak - should not increment because threshold not met
-      await updateStreaks();
+      await streakService.updateStreaks();
       
       // Rebuild to detect the break properly
       const streak = await streakService.rebuildStreak();
@@ -423,7 +422,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
     test("Given user sets invalid threshold (0 or negative), then show error requiring minimum 1 page", async () => {
       // Arrange: Get or create streak
-      await getStreak();
+      await streakService.getStreakBasic();
 
       // Act & Assert: Try to set invalid thresholds
       await expect(streakRepository.updateThreshold(null, 0)).rejects.toThrow(
@@ -747,7 +746,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
     test("FR-003: Allow custom threshold between 1-9999 pages", async () => {
       // Arrange & Act & Assert: Test boundary values
-      await getStreak();
+      await streakService.getStreakBasic();
 
       // Valid thresholds
       let updated = await streakRepository.updateThreshold(null, 1);
@@ -992,7 +991,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
     test("FR-016: Validate threshold is positive integer 1-9999", async () => {
       // Arrange
-      await getStreak();
+      await streakService.getStreakBasic();
 
       // Act & Assert: Test validation
       await expect(streakRepository.updateThreshold(null, 0)).rejects.toThrow();
@@ -1146,16 +1145,16 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Check streak with old threshold (should increment)
-      await updateStreaks();
-      let streak = await getStreak();
+      await streakService.updateStreaks();
+      let streak = await streakService.getStreakBasic();
       expect(streak.currentStreak).toBe(2);
 
       // Act: Change threshold to 10 at noon
       await streakRepository.updateThreshold(null, 10);
 
       // Trigger recalculation
-      await updateStreaks();
-      streak = await getStreak();
+      await streakService.updateStreaks();
+      streak = await streakService.getStreakBasic();
 
       // Assert: Today no longer meets new threshold, streak resets
       expect(streak.currentStreak).toBe(0);
@@ -1320,7 +1319,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
     });
 
     test("getStreak returns existing or creates new streak", async () => {
-      const streak = await getStreak();
+      const streak = await streakService.getStreakBasic();
       
       expect(streak).toBeDefined();
       expect(streak.currentStreak).toBeGreaterThanOrEqual(0);

@@ -138,6 +138,156 @@ export class StreakService {
   }
 
   /**
+   * Get streak without computed fields (plain Streak object)
+   * Used for testing - avoids hoursRemainingToday computation
+   */
+  async getStreakBasic(userId: number | null = null): Promise<Streak> {
+    return await streakRepository.getOrCreate(userId);
+  }
+
+  /**
+   * Update streaks based on today's activity
+   * Inline implementation to avoid Bun module caching issues in tests
+   */
+  async updateStreaks(userId: number | null = null): Promise<Streak> {
+    logger.debug({ userId: userId || null }, "[Streak] updateStreaks called");
+
+    // Get or create streak record
+    let streak = await streakRepository.findByUserId(userId || null);
+
+    if (!streak) {
+      logger.debug("[Streak] No existing streak found, creating new one");
+      const now = new Date();
+      streak = await streakRepository.create({
+        userId: userId || null,
+        currentStreak: 1,
+        longestStreak: 1,
+        lastActivityDate: now,
+        streakStartDate: now,
+        totalDaysActive: 1,
+      });
+      logger.info({
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
+        lastActivityDate: streak.lastActivityDate,
+        streakStartDate: streak.streakStartDate,
+        totalDaysActive: streak.totalDaysActive,
+      }, "[Streak] New streak created");
+      return streak;
+    }
+
+    // Get today's progress to check if there's activity
+    const today = startOfDay(new Date());
+    const todayProgress = await progressRepository.getProgressForDate(today);
+
+    if (!todayProgress || todayProgress.pagesRead === 0) {
+      // No activity today, return existing streak
+      logger.debug("[Streak] No activity today, returning existing streak");
+      return streak;
+    }
+
+    // Check if daily threshold is met
+    const dailyThreshold = streak.dailyThreshold || 1;
+    const thresholdMet = todayProgress.pagesRead >= dailyThreshold;
+
+    logger.debug({
+      pagesRead: todayProgress.pagesRead,
+      dailyThreshold,
+      thresholdMet,
+    }, "[Streak] Checking daily threshold");
+
+    // Has activity today, check if it's consecutive
+    const lastActivity = startOfDay(streak.lastActivityDate);
+    const daysDiff = differenceInDays(today, lastActivity);
+
+    if (daysDiff === 0) {
+      // Same day activity - handle threshold changes
+      if (streak.currentStreak === 0 && thresholdMet) {
+        // Special case: First activity that meets threshold
+        // This handles fresh database or restart after breaking streak
+        logger.info("[Streak] First day activity meets threshold, setting streak to 1");
+        const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive;
+        const updated = await streakRepository.update(streak.id, {
+          currentStreak: 1,
+          longestStreak: Math.max(1, streak.longestStreak),
+          totalDaysActive: newTotalDays,
+          lastActivityDate: today,
+        } as any);
+        logger.info({
+          currentStreak: updated?.currentStreak,
+          longestStreak: updated?.longestStreak,
+          totalDaysActive: updated?.totalDaysActive,
+        }, "[Streak] Streak initialized to 1");
+        return updated!;
+      } else if (streak.currentStreak > 0 && !thresholdMet) {
+        // Special case: Threshold was raised and is no longer met
+        // Reset streak to 0 to reflect that today's goal is not met anymore
+        logger.info({
+          currentStreak: streak.currentStreak,
+          pagesRead: todayProgress.pagesRead,
+          dailyThreshold,
+        }, "[Streak] Threshold no longer met, resetting streak to 0");
+        const updated = await streakRepository.update(streak.id, {
+          currentStreak: 0,
+          lastActivityDate: today,
+        } as any);
+        logger.info({
+          currentStreak: updated?.currentStreak,
+        }, "[Streak] Streak reset to 0 due to threshold increase");
+        return updated!;
+      } else if (streak.currentStreak === 0 && !thresholdMet) {
+        // Threshold not met and streak already 0, nothing to do
+        logger.debug("[Streak] Threshold not met yet, streak remains 0");
+        return streak;
+      }
+
+      // Normal same-day activity, streak already set for today and threshold met
+      logger.debug("[Streak] Same day activity, streak unchanged");
+      return streak;
+    }
+
+    // Only continue to consecutive/broken streak logic if threshold is met
+    if (!thresholdMet) {
+      // Threshold not met on a new day - this would break the streak on different day
+      logger.debug("[Streak] Threshold not met yet, returning existing streak");
+      return streak;
+    } else if (daysDiff === 1) {
+      // Consecutive day, increment streak
+      logger.debug("[Streak] Consecutive day activity, incrementing streak");
+      const oldStreak = streak.currentStreak;
+      const newCurrentStreak = streak.currentStreak + 1;
+      const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
+      const newTotalDays = streak.totalDaysActive + 1;
+
+      const updated = await streakRepository.update(streak.id, {
+        currentStreak: newCurrentStreak,
+        longestStreak: newLongestStreak,
+        totalDaysActive: newTotalDays,
+        lastActivityDate: today,
+      } as any);
+      logger.info({
+        from: oldStreak,
+        to: updated?.currentStreak,
+        longestStreak: updated?.longestStreak,
+      }, "[Streak] Streak incremented");
+      return updated!;
+    } else if (daysDiff > 1) {
+      // Streak broken (or first activity after a gap)
+      logger.warn({ gapDays: daysDiff }, "[Streak] Streak broken");
+      const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
+      const updated = await streakRepository.update(streak.id, {
+        currentStreak: 1,
+        streakStartDate: today,
+        totalDaysActive: newTotalDays,
+        lastActivityDate: today,
+      } as any);
+      return updated!;
+    }
+
+    return streak;
+  }
+
+  /**
    * Update daily threshold with validation
    * Auto-creates streak record if it doesn't exist
    * Recalculates current streak with new threshold
