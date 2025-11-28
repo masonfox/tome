@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Bookmark, Clock, BookCheck } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { useState } from "react";
+import { useState, memo } from "react";
 
 interface BookCardProps {
   id: string;
@@ -16,7 +16,7 @@ interface BookCardProps {
   className?: string;
 }
 
-export function BookCard({
+export const BookCard = memo(function BookCard({
   id,
   title,
   authors,
@@ -60,6 +60,7 @@ export function BookCard({
               src={`/api/covers/${calibreId}/cover.jpg`}
               alt={title}
               fill
+              loading="lazy"
               className="object-cover group-hover:opacity-95 transition-opacity"
               onError={() => setImageError(true)}
             />
@@ -108,4 +109,14 @@ export function BookCard({
       </div>
     </Link>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for memo
+  // Only re-render if these key props change
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.title === nextProps.title &&
+    prevProps.status === nextProps.status &&
+    prevProps.currentProgress === nextProps.currentProgress &&
+    prevProps.calibreId === nextProps.calibreId
+  );
+});

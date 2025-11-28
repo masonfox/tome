@@ -5,12 +5,112 @@ import { getBookById } from "@/lib/db/calibre";
 
 export const dynamic = 'force-dynamic';
 
+// LRU Cache for cover images
+interface CoverCacheEntry {
+  buffer: Buffer;
+  contentType: string;
+  timestamp: number;
+}
+
+class CoverCache {
+  private cache = new Map<number, CoverCacheEntry>();
+  private maxSize = 500; // Cache up to 500 covers
+  private maxAge = 1000 * 60 * 60 * 24; // 24 hours
+
+  get(bookId: number): CoverCacheEntry | null {
+    const entry = this.cache.get(bookId);
+    if (!entry) return null;
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > this.maxAge) {
+      this.cache.delete(bookId);
+      return null;
+    }
+
+    return entry;
+  }
+
+  set(bookId: number, buffer: Buffer, contentType: string): void {
+    // Implement LRU by deleting oldest entries when at capacity
+    if (this.cache.size >= this.maxSize) {
+      // Delete oldest entry (first entry in Map)
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+
+    this.cache.set(bookId, {
+      buffer,
+      contentType,
+      timestamp: Date.now(),
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  getSize(): number {
+    return this.cache.size;
+  }
+}
+
+// Global cache instance
+const coverCache = new CoverCache();
+
+// Cache for book path lookups (avoid repeated Calibre DB queries)
+interface BookPathCacheEntry {
+  path: string;
+  hasCover: boolean;
+  timestamp: number;
+}
+
+class BookPathCache {
+  private cache = new Map<number, BookPathCacheEntry>();
+  private maxSize = 1000;
+  private maxAge = 1000 * 60 * 60; // 1 hour
+
+  get(bookId: number): BookPathCacheEntry | null {
+    const entry = this.cache.get(bookId);
+    if (!entry) return null;
+
+    if (Date.now() - entry.timestamp > this.maxAge) {
+      this.cache.delete(bookId);
+      return null;
+    }
+
+    return entry;
+  }
+
+  set(bookId: number, path: string, hasCover: boolean): void {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+
+    this.cache.set(bookId, {
+      path,
+      hasCover,
+      timestamp: Date.now(),
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+const bookPathCache = new BookPathCache();
+
 // Helper function to serve the placeholder "no cover" image
 function servePlaceholderImage() {
   const placeholderPath = path.join(process.cwd(), "public", "cover-fallback.png");
   const imageBuffer = readFileSync(placeholderPath);
 
-  return new NextResponse(imageBuffer, {
+  return new NextResponse(new Uint8Array(imageBuffer), {
     headers: {
       "Content-Type": "image/png",
       "Cache-Control": "public, max-age=31536000, immutable",
@@ -44,37 +144,62 @@ export async function GET(
       return servePlaceholderImage();
     }
 
-    // Look up the book in Calibre to get its path
-    const calibreBook = getBookById(bookId);
-
-    if (!calibreBook) {
-      const { getLogger } = require("@/lib/logger");
-      getLogger().error({ bookId }, "Book not found in Calibre");
-      return servePlaceholderImage();
+    // Check cover cache first (PERFORMANCE OPTIMIZATION)
+    const cachedCover = coverCache.get(bookId);
+    if (cachedCover) {
+      return new NextResponse(new Uint8Array(cachedCover.buffer), {
+        headers: {
+          "Content-Type": cachedCover.contentType,
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "X-Cache": "HIT",
+        },
+      });
     }
 
-    if (!calibreBook.has_cover) {
-      const { getLogger } = require("@/lib/logger");
-      getLogger().warn({ bookId }, "Book has no cover");
-      return servePlaceholderImage();
+    // Check book path cache to avoid Calibre DB query
+    let bookPath: string;
+    let hasCover: boolean;
+    
+    const cachedBookPath = bookPathCache.get(bookId);
+    if (cachedBookPath) {
+      bookPath = cachedBookPath.path;
+      hasCover = cachedBookPath.hasCover;
+      
+      if (!hasCover) {
+        return servePlaceholderImage();
+      }
+    } else {
+      // Look up the book in Calibre to get its path
+      const calibreBook = getBookById(bookId);
+
+      if (!calibreBook) {
+        const { getLogger } = require("@/lib/logger");
+        getLogger().error({ bookId }, "Book not found in Calibre");
+        return servePlaceholderImage();
+      }
+
+      bookPath = calibreBook.path;
+      hasCover = Boolean(calibreBook.has_cover);
+
+      // Cache the book path lookup
+      bookPathCache.set(bookId, bookPath, hasCover);
+
+      if (!hasCover) {
+        const { getLogger } = require("@/lib/logger");
+        getLogger().warn({ bookId }, "Book has no cover");
+        return servePlaceholderImage();
+      }
     }
 
     // Construct the file path
-    const filePath = path.join(libraryPath, calibreBook.path, "cover.jpg");
-
-    const { getLogger } = require("@/lib/logger");
-    getLogger().info({
-      bookId,
-      libraryPath,
-      bookPath: calibreBook.path,
-      filePath,
-    }, "Cover request");
+    const filePath = path.join(libraryPath, bookPath, "cover.jpg");
 
     // Security check: ensure the resolved path is still within the library
     const resolvedPath = path.resolve(filePath);
     const resolvedLibrary = path.resolve(libraryPath);
 
     if (!resolvedPath.startsWith(resolvedLibrary)) {
+      const { getLogger } = require("@/lib/logger");
       getLogger().error({
         resolvedPath,
         resolvedLibrary,
@@ -107,11 +232,15 @@ export async function GET(
       contentType = "image/webp";
     }
 
+    // Cache the cover image for future requests
+    coverCache.set(bookId, imageBuffer, contentType);
+
     // Return the image
-    return new NextResponse(imageBuffer, {
+    return new NextResponse(new Uint8Array(imageBuffer), {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Cache": "MISS",
       },
     });
   } catch (error) {

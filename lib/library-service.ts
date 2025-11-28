@@ -39,6 +39,7 @@ export interface BookWithStatus {
 export class LibraryService {
   private cache = new Map<string, PaginatedBooks>();
   private tagsCache: string[] | null = null;
+  private readonly MAX_CACHE_SIZE = 50; // Limit cached pages to prevent memory bloat
 
   private buildCacheKey(filters: LibraryFilters): string {
     return JSON.stringify({
@@ -51,6 +52,16 @@ export class LibraryService {
       showOrphaned: filters.showOrphaned,
       sortBy: filters.sortBy,
     });
+  }
+
+  private enforceCacheLimit(): void {
+    // Implement LRU by removing oldest entries when at capacity
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
   }
 
   async getBooks(filters: LibraryFilters): Promise<PaginatedBooks> {
@@ -92,6 +103,9 @@ export class LibraryService {
         skip,
         hasMore: skip + (data.books?.length || 0) < (data.total || 0),
       };
+
+      // Enforce cache size limit before adding new entry
+      this.enforceCacheLimit();
 
       // Cache the result
       this.cache.set(cacheKey, result);
@@ -162,7 +176,25 @@ export class LibraryService {
     this.tagsCache = null;
   }
 
-  // Utility method to invalidate specific cache entries
+  // Smart cache invalidation for updated books
+  invalidateCacheForBooks(updatedBookIds: number[]): void {
+    const keysToDelete: string[] = [];
+    
+    for (const [key, value] of Array.from(this.cache.entries())) {
+      // Check if any cached result contains an updated book
+      const hasUpdatedBook = value.books.some(book => 
+        updatedBookIds.includes(book.id)
+      );
+      
+      if (hasUpdatedBook) {
+        keysToDelete.push(key);
+      }
+    }
+    
+    keysToDelete.forEach(key => this.cache.delete(key));
+  }
+
+  // Utility method to invalidate specific cache entries by filter criteria
   invalidateCache(filters: Partial<LibraryFilters>): void {
     const keysToDelete: string[] = [];
     
@@ -182,6 +214,14 @@ export class LibraryService {
     }
     
     keysToDelete.forEach(key => this.cache.delete(key));
+  }
+
+  // Get cache statistics for monitoring
+  getCacheStats(): { size: number; maxSize: number; hitRate?: number } {
+    return {
+      size: this.cache.size,
+      maxSize: this.MAX_CACHE_SIZE,
+    };
   }
 }
 
