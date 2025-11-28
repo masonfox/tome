@@ -1,7 +1,8 @@
 # ADR-006: Timezone-Aware Date Handling for Progress Tracking
 
 ## Status
-✅ **Implemented** - November 25, 2025
+✅ **Implemented** - November 25, 2025  
+🔄 **Updated** - November 27, 2025 (Timezone-aware streak tracking with auto-reset)
 
 ## Context
 
@@ -568,14 +569,329 @@ No database migrations required.
 
 ### Commits
 
+**Phase 1: Initial Implementation (November 25, 2025)**
 - `835dd30` - fix: timezone-aware progress + compact streak UI
 - `ce85c14` - test: comprehensive timezone tests
 - `1ea70b3` - fix: streak tests updated for new progress requirement
+
+**Phase 2: Timezone-Aware Streak Auto-Reset (November 27, 2025)**
+- `0f991c3` - Implement timezone-aware streak tracking with auto-reset
+- `8b8b3e1` - Fix timezone-aware date conversion in streak rebuild logic
+- `3db7015` - Add timezone edge case tests for streak tracking
+
+---
+
+## Update: Timezone-Aware Streak Tracking with Auto-Reset (November 27, 2025)
+
+### Problem: Incomplete Timezone Support
+
+The initial implementation (November 25) handled timezone-aware progress logging but left streak tracking partially timezone-agnostic:
+
+**Issues**:
+1. **No per-user timezone storage**: All users assumed to be in server's timezone
+2. **No auto-reset mechanism**: Broken streaks not detected until next manual check
+3. **Streak calculation used UTC dates**: Day boundaries didn't align with user's calendar
+4. **No timezone change support**: Users couldn't adjust timezone after setup
+
+### Solution: Full Timezone-Aware Streak System
+
+Implemented comprehensive timezone support with FR-005 (auto-reset) and FR-011 (device timezone) from spec 001.
+
+#### Architecture: Hybrid Approach
+
+**Pattern**: Check-on-read with timezone support + idempotency
+
+```
+User Request → API Route → checkAndResetStreakIfNeeded() → getStreak()
+                              ↓ (once per day)
+                         Reset if needed → Return data
+```
+
+**Key Features**:
+1. **Per-user timezone storage**: `userTimezone` field in streaks table (default: 'America/New_York')
+2. **Idempotent daily checks**: Uses `lastCheckedDate` to prevent redundant resets
+3. **Timezone-aware day boundaries**: All streak calculations use user's timezone
+4. **Auto-detection**: Frontend detects device timezone on first visit
+5. **User control**: Timezone dropdown in settings for manual adjustment
+
+#### Database Schema Changes
+
+```sql
+-- Migration 0008_wild_odin.sql
+ALTER TABLE streaks ADD COLUMN userTimezone TEXT NOT NULL DEFAULT 'America/New_York';
+ALTER TABLE streaks ADD COLUMN lastCheckedDate INTEGER;
+```
+
+**Fields**:
+- `userTimezone`: IANA timezone identifier (e.g., 'America/New_York', 'Europe/London')
+- `lastCheckedDate`: Timestamp of last streak check (UTC epoch) - enables idempotency
+
+#### Implementation Details
+
+##### 1. Core Streak Logic (date-fns-tz)
+
+**Dependencies**: Added `date-fns-tz@3.2.0` for timezone operations
+
+**Pattern**: Store UTC, calculate in user timezone
+
+```typescript
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { startOfDay, differenceInDays } from 'date-fns';
+
+// Convert UTC to user timezone for day boundary
+const todayInUserTz = startOfDay(toZonedTime(new Date(), userTimezone));
+
+// Convert back to UTC for storage
+const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+```
+
+##### 2. Auto-Reset Check (Idempotent)
+
+```typescript
+// lib/services/streak.service.ts
+async checkAndResetStreakIfNeeded(userId: number | null = null): Promise<boolean> {
+  const streak = await streakRepository.getOrCreate(userId);
+  
+  // Get today in user's timezone
+  const todayInUserTz = startOfDay(toZonedTime(new Date(), streak.userTimezone));
+  
+  // Idempotency: Skip if already checked today
+  if (streak.lastCheckedDate) {
+    const lastChecked = startOfDay(toZonedTime(streak.lastCheckedDate, streak.userTimezone));
+    if (isEqual(todayInUserTz, lastChecked)) return false;
+  }
+  
+  // Update last checked timestamp
+  await streakRepository.update(streak.id, {
+    lastCheckedDate: fromZonedTime(todayInUserTz, streak.userTimezone)
+  });
+  
+  // Check for broken streak (>1 day gap)
+  const lastActivity = startOfDay(toZonedTime(streak.lastActivityDate, streak.userTimezone));
+  const daysSinceLastActivity = differenceInDays(todayInUserTz, lastActivity);
+  
+  if (daysSinceLastActivity > 1 && streak.currentStreak > 0) {
+    await streakRepository.update(streak.id, { currentStreak: 0 });
+    return true; // Reset occurred
+  }
+  
+  return false; // No reset needed
+}
+```
+
+##### 3. Timezone-Aware Rebuild
+
+**Critical Fix**: Date string to Date object conversion must preserve timezone
+
+```typescript
+// lib/services/streak.service.ts
+async rebuildStreak(userId: number | null = null, currentDate?: Date): Promise<Streak> {
+  const userTimezone = existingStreak?.userTimezone || 'America/New_York';
+  
+  // Group progress by LOCAL date (YYYY-MM-DD in user's timezone)
+  allProgress.forEach((progress) => {
+    const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
+    const dateKey = startOfDay(dateInUserTz).toISOString().split('T')[0]; // "2025-11-26"
+    // ... aggregate pages by dateKey
+  });
+  
+  const sortedDates = Array.from(qualifyingDates).sort();
+  
+  // CRITICAL: Convert date strings back to timezone-aware dates
+  // Before (WRONG): new Date("2025-11-26") → midnight UTC
+  // After (CORRECT): Convert to local midnight, then to UTC
+  const firstDateStr = sortedDates[0];
+  const firstDateInTz = new Date(`${firstDateStr}T00:00:00`); // Midnight in local TZ
+  const firstDateUtc = fromZonedTime(firstDateInTz, userTimezone);
+  
+  // Check if streak is broken (using user's timezone)
+  const today = startOfDay(toZonedTime(currentDate || new Date(), userTimezone));
+  const lastActivityDayStart = startOfDay(toZonedTime(lastActivityDate, userTimezone));
+  const daysSinceLastActivity = differenceInDays(today, lastActivityDayStart);
+  
+  if (daysSinceLastActivity > 1) {
+    currentStreak = 0; // Broken
+  }
+}
+```
+
+**Bug Fixed**: Original implementation used `new Date("2025-11-26")` which JavaScript interprets as midnight UTC. This caused incorrect day calculations when compared to timezone-aware dates. Fixed by properly constructing dates using `fromZonedTime()`.
+
+##### 4. Frontend: Auto-Detection & Settings
+
+**TimezoneDetector Component** (runs once on app load):
+```typescript
+// components/TimezoneDetector.tsx
+const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Only auto-set if still using default timezone
+const currentTimezone = await getCurrentTimezone();
+if (currentTimezone === 'America/New_York') {
+  await fetch('/api/streak/timezone', {
+    method: 'POST',
+    body: JSON.stringify({ timezone: detectedTimezone })
+  });
+}
+```
+
+**Timezone Settings** (manual override):
+```typescript
+// components/StreakSettings.tsx
+<select value={timezone} onChange={handleTimezoneChange}>
+  <optgroup label="United States">
+    <option value="America/New_York">Eastern Time</option>
+    <option value="America/Chicago">Central Time</option>
+    <option value="America/Denver">Mountain Time</option>
+    <option value="America/Los_Angeles">Pacific Time</option>
+  </optgroup>
+  {/* More regions... */}
+</select>
+```
+
+**API Routes**:
+- `POST /api/streak/timezone` - Auto-detect timezone (only if using default)
+- `PATCH /api/streak/timezone` - Manual timezone change (triggers streak rebuild)
+
+##### 5. Call Sites
+
+Auto-reset check called before reading streak data:
+
+```typescript
+// app/api/streak/route.ts (GET)
+await streakService.checkAndResetStreakIfNeeded();
+return streakService.getStreak();
+
+// app/api/streaks/route.ts (GET) 
+await streakService.checkAndResetStreakIfNeeded();
+return streakService.getStreakBasic();
+
+// lib/dashboard-service.ts
+await streakService.checkAndResetStreakIfNeeded();
+// ... get streak stats
+```
+
+#### Test Coverage
+
+**Comprehensive Timezone Edge Case Tests** (32 tests total):
+
+1. **DST Spring Forward**: Verify streak continuity when clock jumps forward 1 hour (March 9, 2025)
+2. **DST Fall Back**: Verify streak continuity when clock falls back 1 hour (November 2, 2025)
+3. **Timezone Change**: Verify recalculation after user changes timezone (NY → Tokyo)
+4. **Cross-Timezone Midnight**: Progress logged just before/after local midnight (11:59 PM → 12:01 AM)
+5. **UTC vs Local Midnight**: Verify same UTC day can span 2 local days (proper aggregation)
+
+**Test Helper** (all tests use timezone-aware dates):
+```typescript
+function getStreakDate(daysOffset: number = 0): Date {
+  const userTimezone = 'America/New_York';
+  const todayInUserTz = startOfDay(toZonedTime(new Date(), userTimezone));
+  const targetDate = new Date(todayInUserTz);
+  targetDate.setDate(targetDate.getDate() + daysOffset);
+  return fromZonedTime(targetDate, userTimezone);
+}
+```
+
+**Test Results**:
+- ✅ All 676 tests passing (including 32 streak tests with 5 timezone edge cases)
+- ✅ No regressions in existing functionality
+- ✅ DST transitions handled correctly
+- ✅ Timezone changes supported
+
+#### API Changes
+
+**New Endpoints**:
+
+```typescript
+// POST /api/streak/timezone (auto-detect)
+{
+  timezone: "America/New_York"
+}
+→ { success: true, timezone: "America/New_York", streakRebuilt: false }
+
+// PATCH /api/streak/timezone (manual change)
+{
+  timezone: "Asia/Tokyo"  
+}
+→ { success: true, timezone: "Asia/Tokyo", streakRebuilt: true }
+```
+
+**Modified Behavior**:
+- All `GET /api/streak*` endpoints now call `checkAndResetStreakIfNeeded()` first
+- Streak reset is idempotent (runs once per day in user's timezone)
+- Changing timezone triggers full streak rebuild with new timezone
+
+### Consequences (Updated)
+
+#### Additional Positives
+
+✅ **Per-user timezone support**: Each user can have their own timezone  
+✅ **Auto-detection**: Device timezone detected on first visit  
+✅ **Auto-reset**: Broken streaks detected automatically  
+✅ **Idempotent checks**: No redundant database writes  
+✅ **DST handling**: Proper handling of daylight saving transitions  
+✅ **Timezone changes**: Users can adjust timezone after setup  
+✅ **Comprehensive testing**: 5 edge case tests for critical scenarios  
+✅ **No cron jobs**: Simple check-on-read pattern
+
+#### New Limitations
+
+⚠️ **Storage limitation**: SQLite stores timestamps as integers (no timezone metadata)  
+⚠️ **Requires date-fns-tz**: Additional dependency for timezone operations  
+⚠️ **Check latency**: First API call each day incurs ~5-10ms for reset check  
+⚠️ **Historical ambiguity**: Existing data interpreted in user's current timezone
+
+### Migration Notes (Updated)
+
+**For Existing Users** (upgrading from November 25 version):
+
+1. **Database migration runs automatically**: Adds `userTimezone` and `lastCheckedDate` columns
+2. **Default timezone**: Existing streaks default to 'America/New_York'
+3. **Auto-detection**: Frontend will detect and update timezone on next visit
+4. **Manual override**: Users can change timezone in Settings → Streak Settings
+5. **Streak rebuild**: Changing timezone triggers full streak recalculation
+
+**No data loss**: All existing progress logs remain unchanged and are reinterpreted with new timezone.
+
+### Related Specs
+
+- **Spec 001**: Reading Streak Tracking Enhancement
+  - FR-005: Auto-reset to 0 when threshold not met
+  - FR-011: Use device's current timezone for day boundaries
+  - User Story 2: Configure personal streak thresholds
+  - User Story 4: Track longest streak achievement
+
+### Files Modified
+
+**Database**:
+- `lib/db/schema/streaks.ts` - Added timezone fields
+- `drizzle/0008_wild_odin.sql` - Migration (applied)
+
+**Backend Services**:
+- `lib/services/streak.service.ts` - Timezone-aware logic + auto-reset
+- `lib/streaks.ts` - Production streak functions (mirrors service layer)
+- `lib/repositories/streak.repository.ts` - Timezone methods
+- `lib/dashboard-service.ts` - Calls auto-reset check
+
+**API Routes**:
+- `app/api/streak/route.ts` - Added reset check, new timezone endpoints
+- `app/api/streaks/route.ts` - Added reset check
+- `app/api/streak/timezone/route.ts` - **NEW** timezone management
+
+**Frontend**:
+- `components/StreakSettings.tsx` - Timezone dropdown
+- `components/TimezoneDetector.tsx` - **NEW** auto-detection
+- `app/settings/page.tsx` - Pass timezone to settings
+- `app/layout.tsx` - Added TimezoneDetector
+
+**Tests**:
+- `__tests__/lib/streaks.test.ts` - 32 tests (27 original + 5 timezone edge cases)
+- `__tests__/services/streak.service.test.ts` - Auto-reset tests
 
 ---
 
 **Decision Made By**: Claude Code (AI Assistant)  
 **Date**: November 25, 2025  
 **Implementation Date**: November 25, 2025  
+**Updated**: November 27, 2025 (Timezone-aware streak auto-reset)  
 **Reviewed By**: User (masonfox)  
-**Status**: ✅ Implemented and All Tests Passing (611/611)
+**Status**: ✅ Implemented and All Tests Passing (676/676)

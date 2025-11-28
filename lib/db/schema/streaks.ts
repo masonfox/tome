@@ -1,4 +1,4 @@
-import { sqliteTable, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const streaks = sqliteTable(
@@ -12,6 +12,8 @@ export const streaks = sqliteTable(
     streakStartDate: integer("streak_start_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     totalDaysActive: integer("total_days_active").notNull().default(0),
     dailyThreshold: integer("daily_threshold").notNull().default(1),
+    userTimezone: text("user_timezone").notNull().default("America/New_York"),
+    lastCheckedDate: integer("last_checked_date", { mode: "timestamp" }),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   },
   (table) => ({
