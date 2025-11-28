@@ -148,8 +148,22 @@ html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator:ho
     filter: invert(1);
     opacity: 0.5;
   }
-  
+
   html:not([data-theme]) input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 0.7;
   }
+}
+
+/* Fix for iOS Safari date input oversized display */
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-height: 0;
+  line-height: normal;
+}
+
+/* Restore calendar picker indicator after removing appearance */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
 }
