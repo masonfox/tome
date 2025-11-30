@@ -21,11 +21,15 @@ export function Navigation() {
     const currentTheme = document.documentElement.getAttribute("data-theme");
     setDarkMode(currentTheme === "dark");
 
-    // Check if auth is enabled
-    fetch("/api/auth/status")
-      .then((res) => res.json())
-      .then((data) => setAuthEnabled(data.enabled))
-      .catch(() => setAuthEnabled(false));
+    // Defer auth check to reduce initial load blocking
+    const authCheckTimer = setTimeout(() => {
+      fetch("/api/auth/status")
+        .then((res) => res.json())
+        .then((data) => setAuthEnabled(data.enabled))
+        .catch(() => setAuthEnabled(false));
+    }, 100);
+
+    return () => clearTimeout(authCheckTimer);
   }, []);
 
   // Close mobile menu when route changes
@@ -70,7 +74,7 @@ export function Navigation() {
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 bg-[var(--border-color)] rounded-md flex items-center justify-center p-1.5">
               <Image 
-                src="/logo.png" 
+                src="/logo-small.webp" 
                 alt="Tome Logo" 
                 width={28} 
                 height={28}
