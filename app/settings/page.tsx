@@ -6,9 +6,10 @@ import { streakService } from "@/lib/services/streak.service";
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  // Get current streak to fetch threshold (auto-creates if doesn't exist)
+  // Get current streak to fetch threshold and timezone (auto-creates if doesn't exist)
   const streak = await streakService.getStreak(null);
   const initialThreshold = streak.dailyThreshold;
+  const initialTimezone = streak.userTimezone;
 
   return (
     <div className="space-y-10">
@@ -19,7 +20,10 @@ export default async function SettingsPage() {
       />
 
       {/* Reading Streak Settings */}
-      <StreakSettings initialThreshold={initialThreshold} />
+      <StreakSettings 
+        initialThreshold={initialThreshold}
+        initialTimezone={initialTimezone}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { StreakAnalytics } from "@/components/StreakAnalytics";
 import { StreakChartSection } from "@/components/StreakChartSection";
+import { StreakRebuildSection } from "@/components/StreakRebuildSection";
 import { PageHeader } from "@/components/PageHeader";
 import { getLogger } from "@/lib/logger";
 import { Flame } from "lucide-react";
@@ -96,6 +97,9 @@ export default async function StreakPage() {
         initialData={dailyReadingHistory}
         threshold={streak.dailyThreshold}
       />
+
+      {/* Rebuild Section */}
+      <StreakRebuildSection />
     </div>
   );
 }
