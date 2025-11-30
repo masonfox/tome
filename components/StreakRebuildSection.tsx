@@ -31,6 +31,7 @@ export function StreakRebuildSection() {
         
         // Refresh the page after a short delay to show the success message
         setTimeout(() => {
+          setIsRebuilding(false);
           router.refresh();
         }, 1000);
       } else {
@@ -56,7 +57,7 @@ export function StreakRebuildSection() {
           <h3 className="text-sm font-semibold text-[var(--heading-text)] mb-1">
             Streak Data Incorrect?
           </h3>
-          <p className="text-xs text-[var(--foreground)]/70">
+          <p className="text-xs text-[var(--subheading-text)]">
             Recalculate your streak from all reading history
           </p>
         </div>
