@@ -1,6 +1,6 @@
 import { Settings as SettingsIcon } from "lucide-react";
-import { StreakSettings } from "@/components/StreakSettings";
-import { ReadingGoalsSettings } from "@/components/ReadingGoalsSettings";
+import { TimezoneSettings } from "@/components/TimezoneSettings";
+import { ReadingGoalsPanel } from "@/components/ReadingGoalsPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { streakService } from "@/lib/services/streak.service";
 import { readingGoalsService } from "@/lib/services";
@@ -24,14 +24,14 @@ export default async function SettingsPage() {
         icon={SettingsIcon}
       />
 
-      {/* Reading Streak Settings */}
-      <StreakSettings 
-        initialThreshold={initialThreshold}
-        initialTimezone={initialTimezone}
-      />
+      {/* Timezone Settings (First) */}
+      <TimezoneSettings initialTimezone={initialTimezone} />
 
-      {/* Reading Goals Settings */}
-      <ReadingGoalsSettings initialGoals={goals} />
+      {/* Reading Goals Panel (Daily + Annual Goals Combined) */}
+      <ReadingGoalsPanel 
+        initialGoals={goals}
+        initialThreshold={initialThreshold}
+      />
     </div>
   );
 }
