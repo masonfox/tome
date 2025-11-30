@@ -898,7 +898,31 @@ await streakService.rebuildStreak();
 
 **Reference**: See `docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md` for full investigation details and the 7-phase debugging process that led to this solution.
 
+**Alternative Solution**: Import service layer instead of direct functions
+
+For functions where inlining is not practical, use service layer imports instead of direct function imports:
+
+```typescript
+// ❌ PROBLEMATIC: Direct function import
+import { rebuildStreak } from "@/lib/streaks";
+await rebuildStreak();
+
+// ✅ SOLUTION: Service layer import (bypasses module cache)
+import { streakService } from "@/lib/services/streak.service";
+await streakService.rebuildStreak();
+```
+
+This works because:
+- Service layer is imported once, class methods remain "live"
+- Methods bypass ES6 module export caching
+- No need to inline entire implementation
+- Original library functions remain unchanged
+
+**Real-world example**:
+After 40+ tests in CI, `ProgressService.updateStreakSystem()` was calling `rebuildStreak()` which returned `undefined` due to stale cached exports. Changing to `streakService.rebuildStreak()` resolved all 4 failing tests.
+
 **Related commits**:
+- `cd0c6b6` - Fix CI test failures by using StreakService instead of direct rebuildStreak import
 - `4910da0` - Fix Bun module caching by inlining rebuildStreak in StreakService
 - `d7a72ce` - Add updateStreaks and getStreakBasic to service layer for cache isolation
 
