@@ -2,13 +2,19 @@ import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react
 import { StatsCard } from "@/components/ui/StatsCard";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { BookCard } from "@/components/BookCard";
+import { ReadingGoalWidget } from "@/components/ReadingGoalWidget";
+import { CreateGoalPrompt } from "@/components/CreateGoalPrompt";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard-service";
+import { readingGoalsService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Dashboard() {
   const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal } = await getDashboardData();
+  
+  // Get current year's reading goal
+  const currentGoal = await readingGoalsService.getCurrentYearGoal(null);
 
   return (
     <div className="space-y-10">
@@ -40,6 +46,13 @@ export default async function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Reading Goal Widget */}
+      {currentGoal ? (
+        <ReadingGoalWidget goalData={currentGoal} />
+      ) : (
+        <CreateGoalPrompt />
+      )}
 
       {/* Currently Reading */}
       <div>
