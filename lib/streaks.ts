@@ -290,13 +290,18 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   });
 
   // Filter dates that meet the threshold
+  console.log('[REBUILD] Filtering qualifying dates, dailyThreshold:', dailyThreshold);
+  console.log('[REBUILD] dailyActivity map size:', dailyActivity.size);
   dailyActivity.forEach((pagesRead, dateKey) => {
+    console.log('[REBUILD] Checking date:', dateKey, 'pagesRead:', pagesRead, 'qualifies?', pagesRead >= dailyThreshold);
     if (pagesRead >= dailyThreshold) {
       qualifyingDates.add(dateKey);
     }
   });
 
+  console.log('[REBUILD] qualifyingDates count:', qualifyingDates.size);
   const sortedDates = Array.from(qualifyingDates).sort();
+  console.log('[REBUILD] sortedDates:', sortedDates);
 
   // Calculate streak from consecutive active days
   let currentStreak = 0;
@@ -359,6 +364,11 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   }, "[Streak] Calculated streak stats");
 
   // Update or create streak record
+  console.log('[REBUILD] About to upsert streak with data:', {
+    currentStreak,
+    longestStreak,
+    totalDaysActive,
+  });
   const streak = await streakRepository.upsert(userId || null, {
     currentStreak,
     longestStreak,
@@ -367,6 +377,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     totalDaysActive,
   });
 
+  console.log('[REBUILD] upsert returned:', streak ? 'streak object' : 'undefined');
   logger.info("[Streak] Streak rebuilt and saved successfully");
   return streak;
 }
