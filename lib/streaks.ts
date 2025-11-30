@@ -249,6 +249,15 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   // Get all progress logs ordered by date
   const allProgress = await progressRepository.getAllProgressOrdered();
 
+  console.log('[REBUILD] getAllProgressOrdered returned:', allProgress.length, 'entries');
+  if (allProgress.length > 0) {
+    console.log('[REBUILD] First progress:', {
+      id: allProgress[0].id,
+      pagesRead: allProgress[0].pagesRead,
+      progressDate: allProgress[0].progressDate.toISOString(),
+    });
+  }
+
   if (allProgress.length === 0) {
     logger.info("[Streak] No progress data found, creating empty streak");
     return await getOrCreateStreak(userId);
