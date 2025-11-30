@@ -70,7 +70,7 @@ export function Navigation() {
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 bg-[var(--border-color)] rounded-md flex items-center justify-center p-1.5">
               <Image 
-                src="/logo.png" 
+                src="/logo-small.webp" 
                 alt="Tome Logo" 
                 width={28} 
                 height={28}
