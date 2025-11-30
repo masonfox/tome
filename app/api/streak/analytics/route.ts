@@ -63,48 +63,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch daily reading history
-    const requestedStartDate = new Date();
-    requestedStartDate.setDate(requestedStartDate.getDate() - days);
-    const endDate = new Date();
-    
-    // Get the earliest progress date to avoid showing empty days before tracking started
-    const earliestProgressDate = await progressRepository.getEarliestProgressDate();
-    
-    // Use the later of: requested start date OR earliest progress date
-    // This prevents showing empty data before the user started tracking
-    const actualStartDate = earliestProgressDate && earliestProgressDate > requestedStartDate
-      ? earliestProgressDate
-      : requestedStartDate;
-    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
     const history = await progressRepository.getActivityCalendar(
-      actualStartDate,
-      endDate
+      startDate,
+      new Date()
     );
 
-    // Create a map of existing data for quick lookup
-    const dataMap = new Map<string, number>();
-    history.forEach((day) => {
-      dataMap.set(day.date, day.pagesRead);
-    });
-
-    // Fill in all days in the range, including days with no data (0 pages)
-    const allDays: { date: string; pagesRead: number; thresholdMet: boolean }[] = [];
-    const currentDate = new Date(actualStartDate);
-    
-    while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      const pagesRead = dataMap.get(dateStr) || 0;
-      
-      allDays.push({
-        date: dateStr,
-        pagesRead,
-        thresholdMet: pagesRead >= streak.dailyThreshold,
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    const enrichedHistory = allDays;
+    // Enrich history data with thresholdMet boolean flag
+    const enrichedHistory = history.map((day) => ({
+      date: day.date,
+      pagesRead: day.pagesRead,
+      thresholdMet: day.pagesRead >= streak.dailyThreshold,
+    }));
 
     // Calculate books ahead/behind (optional, only if reading goal exists)
     // TODO: Implement when reading goal feature is available

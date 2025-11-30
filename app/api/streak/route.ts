@@ -8,14 +8,9 @@ const logger = getLogger();
  * GET /api/streak
  * Get current streak with enhanced data
  * Auto-creates streak record if it doesn't exist
- * Automatically checks and resets streak if days have been missed
  */
 export async function GET(request: NextRequest) {
   try {
-    // First, check and reset streak if needed (explicit write operation)
-    await streakService.checkAndResetStreakIfNeeded(null);
-
-    // Then, get the current streak data (read-only operation)
     const streak = await streakService.getStreak(null);
     return NextResponse.json({ success: true, data: streak });
   } catch (error) {

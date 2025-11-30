@@ -64,13 +64,6 @@
       "when": 1732800000000,
       "tag": "0008_add_library_performance_indexes",
       "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1764259258154,
-      "tag": "0009_wild_odin",
-      "breakpoints": true
     }
   ]
 }

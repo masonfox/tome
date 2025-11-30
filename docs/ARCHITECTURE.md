@@ -118,21 +118,15 @@
 ---
 
 #### Streaks Table
-**Purpose:** Tracks reading consistency streaks with timezone-aware auto-reset
+**Purpose:** Tracks reading consistency streaks
 
 **Key Fields:**
-- `currentStreak`, `longestStreak` - Consecutive days meeting threshold
-- `lastActivityDate`, `streakStartDate` - Dates in UTC (interpreted in user timezone)
-- `totalDaysActive` - Lifetime count of days meeting threshold
-- `dailyThreshold` - Pages required per day (default: 1, configurable 1-9999)
-- `userTimezone` - IANA timezone identifier (default: 'America/New_York')
-- `lastCheckedDate` - Idempotency flag for daily auto-reset checks
+- `currentStreak`, `longestStreak`
+- `lastActivityDate`, `streakStartDate`
+- `totalDaysActive`
 
-**Pattern:** Singleton (one record per user)  
-**Auto-Reset:** Check-on-read with idempotency (FR-005 from spec 001)  
-**Timezone Support:** Per-user timezone with auto-detection (FR-011 from spec 001)  
-**Repository:** `streakRepository` | **Schema:** `lib/db/schema/streaks.ts`  
-**Service:** `streakService` | **Functions:** `lib/streaks.ts`
+**Pattern:** Singleton (one record per user)
+**Repository:** `streakRepository` | **Schema:** `lib/db/schema/streaks.ts`
 
 ---
 
@@ -368,41 +362,10 @@ Database (SQLite + Drizzle ORM)
 
 #### Streaks
 
-**GET /api/streak**
-- Get streak with hours remaining today
-- Auto-calls `checkAndResetStreakIfNeeded()` before returning data
-- Returns: `Streak` + `hoursRemainingToday`
-- Auto-creates if doesn't exist
-
 **GET /api/streaks**
-- Get basic streak data (no computed fields)
-- Auto-calls `checkAndResetStreakIfNeeded()` before returning data
-- Returns: full `Streak` object
+- Get or create user streak record
+- Returns: full Streak object
 - Auto-creates if doesn't exist
-
-**PATCH /api/streak/threshold**
-- Update daily page threshold (1-9999 pages)
-- Body: `{ threshold: number }`
-- Returns: updated `Streak` object
-
-**POST /api/streak/timezone**
-- Auto-detect and set user's timezone (only if using default)
-- Body: `{ timezone: string }` (IANA identifier, e.g., "America/New_York")
-- Returns: `{ success: boolean, timezone: string, streakRebuilt: boolean }`
-- Idempotent: Only updates if current timezone is default
-
-**PATCH /api/streak/timezone**
-- Manually change user's timezone
-- Body: `{ timezone: string }`
-- Triggers full streak rebuild with new timezone
-- Returns: `{ success: boolean, timezone: string, streakRebuilt: true }`
-
-**Streak Auto-Reset Logic**:
-- Pattern: Check-on-read with idempotency
-- Trigger: Called before any streak data retrieval
-- Check: Runs once per day (uses `lastCheckedDate` flag)
-- Condition: Resets `currentStreak` to 0 if >1 day since last activity
-- Timezone: Uses user's configured timezone for day boundaries
 
 ---
 
@@ -491,96 +454,13 @@ See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
 
 ### Reading Streaks
 
-**Overview**: Timezone-aware streak tracking with configurable thresholds and automatic reset detection.
+- Calculated from all progress entries (all sessions count together)
+- **Metrics**: Current streak, longest streak, total days active, last activity date
+- **Calculation**: Consecutive days with at least one progress entry
+- **Updates**: Recalculated on progress logging
+- **Persistence**: Rebuilds on re-reading (streak continues)
 
-**Core Metrics**:
-- `currentStreak`: Consecutive days meeting daily threshold (timezone-aware)
-- `longestStreak`: All-time best streak
-- `totalDaysActive`: Lifetime count of days meeting threshold
-- `dailyThreshold`: Pages required per day (default: 1, range: 1-9999)
-- `userTimezone`: IANA timezone identifier (default: 'America/New_York')
-
-**Key Features**:
-1. **Per-User Timezone Support** (FR-011):
-   - Auto-detection: Frontend detects device timezone on first visit
-   - Manual override: Timezone selector in Settings
-   - Day boundaries: All calculations use user's local midnight, not UTC
-   - DST handling: Automatic handling of daylight saving transitions
-
-2. **Configurable Thresholds** (FR-012):
-   - Users set personal daily goals (1-9999 pages)
-   - Validation: Must be positive integer in range
-   - Immediate application: New threshold applies to current day
-   - Historical preservation: Past days evaluated with their original threshold
-
-3. **Auto-Reset Detection** (FR-005):
-   - Pattern: Check-on-read with idempotency (no cron jobs)
-   - Trigger: Called before any streak data retrieval
-   - Check: Runs once per day (uses `lastCheckedDate` flag)
-   - Condition: Resets to 0 if >1 day since last activity
-   - Timezone-aware: Uses user's configured timezone for gap detection
-
-4. **Timezone-Aware Calculation**:
-   - All progress aggregated by LOCAL calendar day (not UTC day)
-   - Uses `date-fns-tz` for timezone conversions
-   - Pattern: Store UTC, calculate in user timezone
-   - Example: 8 AM EST progress counts toward "today" (not "yesterday UTC")
-
-**Architecture**:
-```
-User Logs Progress → API → checkAndResetStreakIfNeeded() → updateStreaks()
-                              ↓ (idempotent daily check)
-                         Reset if >1 day gap → Aggregate by local day → Update streak
-```
-
-**Timezone Pattern**:
-```typescript
-// Convert UTC to user timezone
-const todayInUserTz = startOfDay(toZonedTime(new Date(), userTimezone));
-
-// Perform calculations in user timezone
-const daysSinceLastActivity = differenceInDays(todayInUserTz, lastActivity);
-
-// Convert back to UTC for storage  
-const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-```
-
-**Streak Rebuild**:
-- Triggered by: Progress logging, re-reading, timezone changes
-- Process: 
-  1. Get all progress logs across all sessions
-  2. Group by local date (YYYY-MM-DD in user's timezone)
-  3. Filter days meeting threshold
-  4. Calculate consecutive sequences
-  5. Check for broken streaks (>1 day gap from today)
-- Timezone-aware: All date comparisons use user's timezone
-
-**Database Dependencies**:
-- Calculated from ALL progress logs across ALL sessions and books
-- Single `streaks` record per user (singleton pattern)
-- Timezone metadata: `userTimezone`, `lastCheckedDate`
-- Progress date storage: UTC epoch, interpreted in user timezone
-
-**Frontend Integration**:
-- `TimezoneDetector`: Auto-detects and sets timezone on first visit
-- `StreakSettings`: Manual timezone picker with common timezones
-- `StreakDisplay`: Shows current/longest streak with visual indicators
-- Goal completion: Dynamic UI based on `todayPagesRead` vs `threshold`
-
-**Edge Cases Tested**:
-- DST transitions (Spring Forward / Fall Back)
-- Timezone changes (user moves or changes settings)
-- Cross-timezone midnight (11:59 PM → 12:01 AM)
-- UTC vs local day boundaries
-- Multi-log aggregation within same day
-
-**Implementation**:
-- Service: `lib/services/streak.service.ts` (preferred, repository pattern)
-- Functions: `lib/streaks.ts` (production, direct imports)
-- Repository: `lib/repositories/streak.repository.ts`
-- API: `app/api/streak/` (timezone endpoints, threshold updates)
-
-**Specification**: See `specs/001-reading-streak-tracking/` for full requirements and acceptance criteria
+**Implementation details:** See `lib/streaks.ts` for date normalization and streak calculation logic
 
 ### Rating System
 

@@ -154,39 +154,6 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
     }
     return updated;
   }
-
-  /**
-   * Set timezone for user
-   * Validates timezone using Intl.DateTimeFormat
-   */
-  async setTimezone(userId: number | null, timezone: string): Promise<Streak> {
-    // Validate timezone using Intl
-    try {
-      Intl.DateTimeFormat(undefined, { timeZone: timezone });
-    } catch {
-      throw new Error(`Invalid timezone: ${timezone}`);
-    }
-
-    const streak = await this.getOrCreate(userId);
-
-    const updated = await this.update(streak.id, {
-      userTimezone: timezone,
-      updatedAt: new Date(),
-    } as any);
-    if (!updated) {
-      throw new Error('Failed to update timezone');
-    }
-    return updated;
-  }
-
-  /**
-   * Get timezone for user
-   * Returns default if no streak exists
-   */
-  async getTimezone(userId: number | null): Promise<string> {
-    const streak = await this.findByUserId(userId);
-    return streak?.userTimezone || 'America/New_York';
-  }
 }
 
 // Singleton instance
