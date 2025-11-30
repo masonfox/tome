@@ -80,6 +80,31 @@ function LibraryPageContent() {
     rating: searchParams?.get("rating") || undefined,
   });
 
+  // Performance monitoring - track page load times
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const startTime = performance.now();
+
+    return () => {
+      const loadTime = performance.now() - startTime;
+      
+      // Track slow page loads (over 1 second) in development
+      if (loadTime > 1000 && process.env.NODE_ENV === 'development') {
+        const perfData = {
+          loadTimeMs: Math.round(loadTime),
+          booksCount: books.length,
+          hasFilters: !!(filters.search || filters.status || filters.tags?.length || filters.rating),
+          total,
+        };
+        // Use performance API for client-side metrics
+        if (window.performance && window.performance.mark) {
+          window.performance.mark('library-page-slow-load');
+        }
+      }
+    };
+  }, [books.length, filters, total]);
+
   // Create wrapped setters that also update URL
   const handleStatusChange = useCallback((status: string | undefined) => {
     setStatus(status);
