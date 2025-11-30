@@ -16,6 +16,26 @@ interface BookCardProps {
   className?: string;
 }
 
+// Move outside component to avoid recreation on every render
+const statusConfig = {
+  "to-read": {
+    icon: Bookmark,
+    label: "Want to Read",
+  },
+  "read-next": {
+    icon: Clock,
+    label: "Read Next",
+  },
+  reading: {
+    icon: BookOpen,
+    label: "Reading",
+  },
+  read: {
+    icon: BookCheck,
+    label: "Read",
+  },
+};
+
 export const BookCard = memo(function BookCard({
   id,
   title,
@@ -26,25 +46,6 @@ export const BookCard = memo(function BookCard({
   className,
 }: BookCardProps) {
   const [imageError, setImageError] = useState(false);
-
-  const statusConfig = {
-    "to-read": {
-      icon: Bookmark,
-      label: "Want to Read",
-    },
-    "read-next": {
-      icon: Clock,
-      label: "Read Next",
-    },
-    reading: {
-      icon: BookOpen,
-      label: "Reading",
-    },
-    read: {
-      icon: BookCheck,
-      label: "Read",
-    },
-  };
 
   return (
     <Link href={`/books/${id}`}>

@@ -21,11 +21,15 @@ export function Navigation() {
     const currentTheme = document.documentElement.getAttribute("data-theme");
     setDarkMode(currentTheme === "dark");
 
-    // Check if auth is enabled
-    fetch("/api/auth/status")
-      .then((res) => res.json())
-      .then((data) => setAuthEnabled(data.enabled))
-      .catch(() => setAuthEnabled(false));
+    // Defer auth check to reduce initial load blocking
+    const authCheckTimer = setTimeout(() => {
+      fetch("/api/auth/status")
+        .then((res) => res.json())
+        .then((data) => setAuthEnabled(data.enabled))
+        .catch(() => setAuthEnabled(false));
+    }, 100);
+
+    return () => clearTimeout(authCheckTimer);
   }, []);
 
   // Close mobile menu when route changes
