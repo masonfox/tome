@@ -16,11 +16,6 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
   const currentYear = new Date().getFullYear();
 
   async function handleDelete(goal: ReadingGoal) {
-    if (goal.year < currentYear) {
-      toast.error("Cannot delete goals for past years");
-      return;
-    }
-
     if (!confirm(`Are you sure you want to delete your ${goal.year} reading goal?`)) {
       return;
     }
@@ -97,28 +92,30 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onEdit(goal)}
-                disabled={deletingId === goal.id}
-                className="p-2 text-[var(--foreground)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors disabled:opacity-50"
-                title={isPastYear ? "View goal (read-only)" : "Edit goal"}
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(goal)}
-                disabled={isPastYear || deletingId === goal.id}
-                className="p-2 text-[var(--foreground)]/60 hover:text-red-600 hover:bg-red-600/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isPastYear ? "Cannot delete past goals" : "Delete goal"}
-              >
-                {deletingId === goal.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+            {!isPastYear && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onEdit(goal)}
+                  disabled={deletingId === goal.id}
+                  className="p-2 text-[var(--foreground)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors disabled:opacity-50"
+                  title="Edit goal"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(goal)}
+                  disabled={deletingId === goal.id}
+                  className="p-2 text-[var(--foreground)]/60 hover:text-red-600 hover:bg-red-600/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Delete goal"
+                >
+                  {deletingId === goal.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         );
       })}
