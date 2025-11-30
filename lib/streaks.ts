@@ -264,9 +264,19 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     const dateKey = startOfDay(dateInUserTz).toISOString().split('T')[0]; // YYYY-MM-DD
     const pagesRead = progress.pagesRead || 0;
 
+    console.log('[REBUILD] Processing progress:', {
+      progressDate: progress.progressDate.toISOString(),
+      dateInUserTz: dateInUserTz.toISOString(),
+      startOfDay: startOfDay(dateInUserTz).toISOString(),
+      dateKey,
+      pagesRead,
+      userTimezone,
+    });
+
     if (pagesRead > 0) {
       const current = dailyActivity.get(dateKey) || 0;
       dailyActivity.set(dateKey, current + pagesRead);
+      console.log('[REBUILD] Added to daily activity:', { dateKey, totalPages: current + pagesRead });
     }
   });
 
