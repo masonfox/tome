@@ -42,7 +42,7 @@ export default function LoginPage() {
                   <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 bg-[var(--accent)] rounded-lg flex items-center justify-center mb-4 p-2.5">
               <Image 
-                src="/logo.png" 
+                src="/logo-small.webp" 
                 alt="Tome Logo" 
                 width={44} 
                 height={44}

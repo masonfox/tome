@@ -1,8 +1,27 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
+
+// Move static options outside component to avoid recreation
+const statusOptions = [
+  { value: "all", label: "All Books", icon: LibraryIcon },
+  { value: "to-read", label: "To Read", icon: Bookmark },
+  { value: "read-next", label: "Read Next", icon: Clock },
+  { value: "reading", label: "Reading", icon: BookOpen },
+  { value: "read", label: "Read", icon: BookCheck },
+];
+
+const ratingOptions = [
+  { value: "all", label: "All Ratings" },
+  { value: "5", label: "5 Stars" },
+  { value: "4", label: "4 Stars" },
+  { value: "3", label: "3 Stars" },
+  { value: "2", label: "2 Stars" },
+  { value: "1", label: "1 Stars" },
+  { value: "unrated", label: "Unrated" },
+];
 
 interface LibraryFiltersProps {
   search: string;
@@ -74,33 +93,22 @@ export function LibraryFilters({
     onTagsChange([]);
   };
 
-  const statusOptions = [
-    { value: "all", label: "All Books", icon: LibraryIcon },
-    { value: "to-read", label: "To Read", icon: Bookmark },
-    { value: "read-next", label: "Read Next", icon: Clock },
-    { value: "reading", label: "Reading", icon: BookOpen },
-    { value: "read", label: "Read", icon: BookCheck },
-  ];
+  // Memoize expensive filtering operation
+  const filteredTagSuggestions = useMemo(() => 
+    availableTags
+      .filter((tag) =>
+        tag.toLowerCase().includes(tagSearchInput.toLowerCase()) &&
+        !selectedTags.includes(tag)
+      )
+      .slice(0, 15),
+    [availableTags, tagSearchInput, selectedTags]
+  );
 
-  const ratingOptions = [
-    { value: "all", label: "All Ratings" },
-    { value: "5", label: "5 Stars" },
-    { value: "4", label: "4 Stars" },
-    { value: "3", label: "3 Stars" },
-    { value: "2", label: "2 Stars" },
-    { value: "1", label: "1 Stars" },
-    { value: "unrated", label: "Unrated" },
-  ];
-
-  const filteredTagSuggestions = availableTags
-    .filter((tag) =>
-      tag.toLowerCase().includes(tagSearchInput.toLowerCase()) &&
-      !selectedTags.includes(tag)
-    )
-    .slice(0, 15);
-
-  // Check if any filters are active to show/hide Clear All button
-  const hasActiveFilters = search || statusFilter !== "all" || ratingFilter !== "all" || selectedTags.length > 0;
+  // Memoize filter check
+  const hasActiveFilters = useMemo(() => 
+    search || statusFilter !== "all" || ratingFilter !== "all" || selectedTags.length > 0,
+    [search, statusFilter, ratingFilter, selectedTags.length]
+  );
 
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
