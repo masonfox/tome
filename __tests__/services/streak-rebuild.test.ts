@@ -73,9 +73,25 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     // Log progress today - this should rebuild streak
     console.log('[TEST] today:', today.toISOString());
     console.log('[TEST] now:', new Date().toISOString());
-    await progressService.logProgress(book.id, {
+    const progress = await progressService.logProgress(book.id, {
       currentPage: 50,
       progressDate: today,
+    });
+    console.log('[TEST] progress created:', {
+      id: progress.id,
+      currentPage: progress.currentPage,
+      pagesRead: progress.pagesRead,
+      progressDate: progress.progressDate.toISOString(),
+    });
+
+    // Check all progress in DB
+    const allProgress = await progressRepository.getAllProgressOrdered();
+    console.log('[TEST] all progress count:', allProgress.length);
+    allProgress.forEach((p, i) => {
+      console.log(`[TEST] progress[${i}]:`, {
+        pagesRead: p.pagesRead,
+        progressDate: p.progressDate.toISOString(),
+      });
     });
 
     // Verify streak was rebuilt correctly
