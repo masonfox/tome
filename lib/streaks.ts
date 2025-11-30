@@ -237,13 +237,16 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
 }
 
 export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
+  console.log('[REBUILD] rebuildStreak function called, userId:', userId, 'currentDate:', currentDate?.toISOString());
   logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get current streak to check the dailyThreshold and timezone
   const existingStreak = await streakRepository.findByUserId(userId || null);
+  console.log('[REBUILD] existingStreak found:', existingStreak ? 'yes' : 'no');
   const dailyThreshold = existingStreak?.dailyThreshold || 1;
   const userTimezone = existingStreak?.userTimezone || 'America/New_York';
 
+  console.log('[REBUILD] Using dailyThreshold:', dailyThreshold, 'userTimezone:', userTimezone);
   logger.info({ dailyThreshold, userTimezone }, "[Streak] Using threshold and timezone for rebuild");
 
   // Get all progress logs ordered by date
