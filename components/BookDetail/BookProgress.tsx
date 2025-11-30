@@ -149,7 +149,7 @@ export default function BookProgress({
                   value={progressDate}
                   onChange={(e) => onProgressDateChange(e.target.value)}
                   max={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent max-h-[42px] text-left"
                 />
               </div>
             </div>
