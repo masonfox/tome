@@ -325,6 +325,24 @@ export class ProgressRepository extends BaseRepository<
       .orderBy(asc(progressLogs.progressDate))
       .all();
   }
+
+  /**
+   * Get the earliest progress date across all logs
+   * Returns null if no progress logs exist
+   */
+  async getEarliestProgressDate(): Promise<Date | null> {
+    const result = this.getDatabase()
+      .select({ earliestDate: sql<number>`MIN(${progressLogs.progressDate})` })
+      .from(progressLogs)
+      .get();
+
+    if (!result?.earliestDate) {
+      return null;
+    }
+
+    // Convert Unix timestamp to Date
+    return new Date(result.earliestDate * 1000);
+  }
 }
 
 // Singleton instance
