@@ -1,7 +1,7 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { validateProgressTimeline, validateProgressEdit } from "./progress-validation";
-import { rebuildStreak } from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 import { revalidatePath } from "next/cache";
 import { 
   calculatePercentage, 
@@ -315,17 +315,11 @@ export class ProgressService {
    * Update streak system (best effort)
    */
   private async updateStreakSystem(): Promise<void> {
-    console.log('[PROGRESS_SERVICE] updateStreakSystem called');
     try {
       const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
       logger.info("[ProgressService] Rebuilding streak after progress log change");
-      console.log('[PROGRESS_SERVICE] About to call rebuildStreak()');
-      const updatedStreak = await rebuildStreak();
-      console.log('[PROGRESS_SERVICE] rebuildStreak() returned:', {
-        currentStreak: updatedStreak.currentStreak,
-        totalDaysActive: updatedStreak.totalDaysActive,
-      });
+      const updatedStreak = await streakService.rebuildStreak();
       logger.info("[ProgressService] Streak rebuilt:", {
         currentStreak: updatedStreak.currentStreak,
         longestStreak: updatedStreak.longestStreak,
@@ -333,7 +327,6 @@ export class ProgressService {
       });
     } catch (streakError) {
       const { getLogger } = require("@/lib/logger");
-      console.log('[PROGRESS_SERVICE] rebuildStreak() threw error:', streakError);
       getLogger().error({ err: streakError }, "[ProgressService] Failed to rebuild streak");
       // Don't fail the entire request if streak rebuild fails
     }
