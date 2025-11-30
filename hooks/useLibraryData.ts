@@ -14,7 +14,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
   });
 
   const [data, setData] = useState<PaginatedBooks | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
