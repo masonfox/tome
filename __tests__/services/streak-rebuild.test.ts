@@ -101,13 +101,16 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       isActive: true,
     });
 
-    // Create progress on Nov 27
+    const day3Ago = getDaysAgo(3);
+    const day2Ago = getDaysAgo(2);
+
+    // Create progress 3 days ago
     const progress = await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 12.5,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day3Ago,
       pagesRead: 50,
     });
 
@@ -115,22 +118,22 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date("2024-11-27"),
+      lastActivityDate: day3Ago,
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
 
-    // Update progress to a different date (Nov 28)
+    // Update progress to a different date (2 days ago)
     await progressService.updateProgress(progress.id, {
       currentPage: 100,
-      progressDate: new Date("2024-11-28T12:00:00Z"),
+      progressDate: day2Ago,
     });
 
     // Verify streak was rebuilt correctly
     const streak = await streakRepository.findByUserId(null);
     expect(streak).not.toBeNull();
     // Streak should still reflect accurate data based on actual progress dates
-    expect(streak!.totalDaysActive).toBe(1); // Only one day (Nov 28) now
+    expect(streak!.totalDaysActive).toBe(1); // Only one day (2 days ago) now
   });
 
   test("should rebuild streak when deleting progress log", async () => {
@@ -151,13 +154,16 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       isActive: true,
     });
 
-    // Create progress on Nov 27 and Nov 28
+    const day2Ago = getDaysAgo(2);
+    const day1Ago = getDaysAgo(1);
+
+    // Create progress on 2 consecutive days
     const progress1 = await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 14.29,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day2Ago,
       pagesRead: 50,
     });
 
@@ -166,7 +172,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 28.57,
-      progressDate: new Date("2024-11-28T12:00:00Z"),
+      progressDate: day1Ago,
       pagesRead: 50,
     });
 
@@ -174,7 +180,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     await streakRepository.create({
       currentStreak: 2,
       longestStreak: 2,
-      lastActivityDate: new Date("2024-11-28"),
+      lastActivityDate: day1Ago,
       dailyThreshold: 1,
       totalDaysActive: 2,
     });
@@ -185,7 +191,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     // Verify streak was rebuilt correctly
     const streak = await streakRepository.findByUserId(null);
     expect(streak).not.toBeNull();
-    expect(streak!.totalDaysActive).toBe(1); // Only Nov 28 remains
+    expect(streak!.totalDaysActive).toBe(1); // Only 1 day ago remains
   });
 
   test("should self-correct incorrect streak data on progress create", async () => {
@@ -279,12 +285,14 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       isActive: true,
     });
 
+    const day2Ago = getDaysAgo(2);
+
     // Don't create a streak - this might cause rebuildStreak to fail
 
     // Log progress - should succeed even if streak rebuild encounters issues
     const progress = await progressService.logProgress(book.id, {
       currentPage: 50,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day2Ago,
     });
 
     expect(progress).not.toBeNull();
@@ -314,28 +322,33 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       isActive: true,
     });
 
+    const day4Ago = getDaysAgo(4);
+    const day3Ago = getDaysAgo(3);
+    const day2Ago = getDaysAgo(2);
+    const day1Ago = getDaysAgo(1);
+
     // Initial streak
     await streakRepository.create({
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: new Date("2024-11-26"),
+      lastActivityDate: day4Ago,
       dailyThreshold: 1,
       totalDaysActive: 0,
     });
 
-    // Create progress on Nov 27
+    // Create progress 3 days ago
     const progress1 = await progressService.logProgress(book.id, {
       currentPage: 50,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day3Ago,
     });
 
     let streak = await streakRepository.findByUserId(null);
     expect(streak!.totalDaysActive).toBe(1);
 
-    // Create progress on Nov 28
+    // Create progress 2 days ago
     const progress2 = await progressService.logProgress(book.id, {
       currentPage: 100,
-      progressDate: new Date("2024-11-28T12:00:00Z"),
+      progressDate: day2Ago,
     });
 
     streak = await streakRepository.findByUserId(null);
@@ -353,16 +366,16 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     await progressService.deleteProgress(progress1.id);
 
     streak = await streakRepository.findByUserId(null);
-    expect(streak!.totalDaysActive).toBe(1); // Now should be 1 (only Nov 28)
+    expect(streak!.totalDaysActive).toBe(1); // Now should be 1 (only 2 days ago)
 
-    // Create new progress on Nov 29
+    // Create new progress 1 day ago
     await progressService.logProgress(book.id, {
       currentPage: 150,
-      progressDate: new Date("2024-11-29T12:00:00Z"),
+      progressDate: day1Ago,
     });
 
     streak = await streakRepository.findByUserId(null);
-    expect(streak!.totalDaysActive).toBe(2); // Nov 28 + Nov 29
+    expect(streak!.totalDaysActive).toBe(2); // 2 days ago + 1 day ago
   });
 });
 
@@ -385,10 +398,12 @@ describe("Progress Mutations - Data Integrity", () => {
       isActive: true,
     });
 
+    const day1Ago = getDaysAgo(1);
+
     // Log progress
     const progress = await progressService.logProgress(book.id, {
       currentPage: 75,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day1Ago,
     });
 
     // Verify progress was saved correctly
@@ -419,13 +434,15 @@ describe("Progress Mutations - Data Integrity", () => {
       isActive: true,
     });
 
+    const day2Ago = getDaysAgo(2);
+
     // Create initial progress
     const progress = await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 12.5,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day2Ago,
       pagesRead: 50,
     });
 
@@ -460,13 +477,15 @@ describe("Progress Mutations - Data Integrity", () => {
       isActive: true,
     });
 
+    const day3Ago = getDaysAgo(3);
+
     // Create progress
     const progress = await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day3Ago,
       pagesRead: 100,
     });
 
