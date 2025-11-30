@@ -1,7 +1,7 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { validateProgressTimeline, validateProgressEdit } from "./progress-validation";
-import { updateStreaks } from "@/lib/streaks";
+import { rebuildStreak } from "@/lib/streaks";
 import { revalidatePath } from "next/cache";
 import { 
   calculatePercentage, 
@@ -229,6 +229,9 @@ export class ProgressService {
       throw new Error("Failed to update progress entry");
     }
 
+    // Rebuild streak after progress update
+    await this.updateStreakSystem();
+
     // Invalidate cache
     await this.invalidateCache();
 
@@ -242,6 +245,9 @@ export class ProgressService {
     const result = await progressRepository.delete(progressId);
     
     if (result) {
+      // Rebuild streak after progress deletion
+      await this.updateStreakSystem();
+      
       // Invalidate cache
       await this.invalidateCache();
     }
@@ -312,16 +318,17 @@ export class ProgressService {
     try {
       const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
-      logger.info("[ProgressService] Updating streak after progress log");
-      const updatedStreak = await updateStreaks();
-      logger.info("[ProgressService] Updated:", {
+      logger.info("[ProgressService] Rebuilding streak after progress log change");
+      const updatedStreak = await rebuildStreak();
+      logger.info("[ProgressService] Streak rebuilt:", {
         currentStreak: updatedStreak.currentStreak,
         longestStreak: updatedStreak.longestStreak,
+        totalDaysActive: updatedStreak.totalDaysActive,
       });
     } catch (streakError) {
       const { getLogger } = require("@/lib/logger");
-      getLogger().error({ err: streakError }, "[ProgressService] Failed to update streak");
-      // Don't fail the entire request if streak update fails
+      getLogger().error({ err: streakError }, "[ProgressService] Failed to rebuild streak");
+      // Don't fail the entire request if streak rebuild fails
     }
   }
 
