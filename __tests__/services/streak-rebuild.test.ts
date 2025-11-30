@@ -31,6 +31,14 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
+// Helper to get relative dates
+function getDaysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  date.setHours(12, 0, 0, 0); // Noon UTC
+  return date;
+}
+
 describe("Progress Mutations - Streak Rebuild Integration", () => {
   test("should rebuild streak when creating new progress log", async () => {
     // Create book and session
@@ -50,19 +58,22 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       isActive: true,
     });
 
+    const today = getDaysAgo(0);
+    const yesterday = getDaysAgo(1);
+
     // Create initial streak (incorrect state)
     await streakRepository.create({
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: new Date("2024-11-26"),
+      lastActivityDate: yesterday,
       dailyThreshold: 1,
       totalDaysActive: 0,
     });
 
-    // Log progress on Nov 27 - this should rebuild streak
+    // Log progress today - this should rebuild streak
     await progressService.logProgress(book.id, {
       currentPage: 50,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: today,
     });
 
     // Verify streak was rebuilt correctly
@@ -195,13 +206,18 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       isActive: true,
     });
 
-    // Create historical progress (Nov 27, 28, 29, 30)
+    // Create historical progress (last 4 days)
+    const day3Ago = getDaysAgo(3);
+    const day2Ago = getDaysAgo(2);
+    const day1Ago = getDaysAgo(1);
+    const today = getDaysAgo(0);
+
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day3Ago,
       pagesRead: 50,
     });
 
@@ -210,7 +226,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: new Date("2024-11-28T12:00:00Z"),
+      progressDate: day2Ago,
       pagesRead: 50,
     });
 
@@ -219,7 +235,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 50.0,
-      progressDate: new Date("2024-11-29T12:00:00Z"),
+      progressDate: day1Ago,
       pagesRead: 50,
     });
 
@@ -227,15 +243,15 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date("2024-11-29"),
+      lastActivityDate: day1Ago,
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
 
-    // Log new progress on Nov 30 - this should rebuild and self-correct
+    // Log new progress today - this should rebuild and self-correct
     await progressService.logProgress(book.id, {
       currentPage: 200,
-      progressDate: new Date("2024-11-30T12:00:00Z"),
+      progressDate: today,
     });
 
     // Verify streak was self-corrected

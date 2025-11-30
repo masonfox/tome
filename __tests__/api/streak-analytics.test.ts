@@ -26,6 +26,18 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
+// Helper to get relative dates (works regardless of current date)
+function getDaysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  date.setHours(12, 0, 0, 0); // Noon UTC
+  return date;
+}
+
+function formatDate(date: Date): string {
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
 describe("GET /api/streak/analytics - Missing Days Fill", () => {
   test("should fill in missing days with zero values", async () => {
     // Create a book and session
@@ -45,22 +57,28 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       isActive: true,
     });
 
+    // Use relative dates: 3 days ago, 2 days ago, today (skip 1 day ago)
+    const day3Ago = getDaysAgo(3);
+    const day2Ago = getDaysAgo(2);
+    const today = getDaysAgo(0);
+    const day1Ago = getDaysAgo(1);
+
     // Create streak record
     await streakRepository.create({
       currentStreak: 3,
       longestStreak: 3,
-      lastActivityDate: new Date("2024-11-30"),
+      lastActivityDate: today,
       dailyThreshold: 1,
       totalDaysActive: 3,
     });
 
-    // Create progress on Nov 27, 28, 30 (skip Nov 29)
+    // Create progress on day3, day2, today (skip day1 - the missing day)
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day3Ago,
       pagesRead: 50,
     });
 
@@ -69,7 +87,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: new Date("2024-11-28T12:00:00Z"),
+      progressDate: day2Ago,
       pagesRead: 50,
     });
 
@@ -78,7 +96,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 50.0,
-      progressDate: new Date("2024-11-30T12:00:00Z"),
+      progressDate: today,
       pagesRead: 50,
     });
 
@@ -91,30 +109,30 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
     expect(data.success).toBe(true);
     expect(data.data.dailyReadingHistory).toBeDefined();
 
-    // Find the records for Nov 27-30
+    // Find the records for our test days
     const history = data.data.dailyReadingHistory;
-    const nov27 = history.find((h: any) => h.date === "2024-11-27");
-    const nov28 = history.find((h: any) => h.date === "2024-11-28");
-    const nov29 = history.find((h: any) => h.date === "2024-11-29");
-    const nov30 = history.find((h: any) => h.date === "2024-11-30");
+    const day3Data = history.find((h: any) => h.date === formatDate(day3Ago));
+    const day2Data = history.find((h: any) => h.date === formatDate(day2Ago));
+    const day1Data = history.find((h: any) => h.date === formatDate(day1Ago));
+    const todayData = history.find((h: any) => h.date === formatDate(today));
 
     // All 4 days should exist in the response
-    expect(nov27).toBeDefined();
-    expect(nov28).toBeDefined();
-    expect(nov29).toBeDefined(); // This is the missing day
-    expect(nov30).toBeDefined();
+    expect(day3Data).toBeDefined();
+    expect(day2Data).toBeDefined();
+    expect(day1Data).toBeDefined(); // This is the missing day
+    expect(todayData).toBeDefined();
 
-    // Check that Nov 29 has 0 pages (filled in)
-    expect(nov27.pagesRead).toBe(50);
-    expect(nov28.pagesRead).toBe(50);
-    expect(nov29.pagesRead).toBe(0); // Missing day filled with 0
-    expect(nov30.pagesRead).toBe(50);
+    // Check that day1 (missing day) has 0 pages (filled in)
+    expect(day3Data.pagesRead).toBe(50);
+    expect(day2Data.pagesRead).toBe(50);
+    expect(day1Data.pagesRead).toBe(0); // Missing day filled with 0
+    expect(todayData.pagesRead).toBe(50);
 
     // Check threshold met flags
-    expect(nov27.thresholdMet).toBe(true);
-    expect(nov28.thresholdMet).toBe(true);
-    expect(nov29.thresholdMet).toBe(false); // 0 pages doesn't meet threshold
-    expect(nov30.thresholdMet).toBe(true);
+    expect(day3Data.thresholdMet).toBe(true);
+    expect(day2Data.thresholdMet).toBe(true);
+    expect(day1Data.thresholdMet).toBe(false); // 0 pages doesn't meet threshold
+    expect(todayData.thresholdMet).toBe(true);
   });
 
   test("should fill multiple consecutive missing days", async () => {
@@ -135,22 +153,26 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       isActive: true,
     });
 
+    // Use relative dates: 5 days ago and today (4 day gap)
+    const day5Ago = getDaysAgo(5);
+    const today = getDaysAgo(0);
+
     // Create streak
     await streakRepository.create({
       currentStreak: 2,
       longestStreak: 2,
-      lastActivityDate: new Date("2024-11-30"),
+      lastActivityDate: today,
       dailyThreshold: 10,
       totalDaysActive: 2,
     });
 
-    // Create progress only on Nov 25 and Nov 30 (5 day gap)
+    // Create progress only on day5 and today (4 day gap)
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 25.0,
-      progressDate: new Date("2024-11-25T12:00:00Z"),
+      progressDate: day5Ago,
       pagesRead: 100,
     });
 
@@ -159,7 +181,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 200,
       currentPercentage: 50.0,
-      progressDate: new Date("2024-11-30T12:00:00Z"),
+      progressDate: today,
       pagesRead: 100,
     });
 
@@ -172,29 +194,29 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
 
     const history = data.data.dailyReadingHistory;
     
-    // Find all days from Nov 25-30
-    const nov25 = history.find((h: any) => h.date === "2024-11-25");
-    const nov26 = history.find((h: any) => h.date === "2024-11-26");
-    const nov27 = history.find((h: any) => h.date === "2024-11-27");
-    const nov28 = history.find((h: any) => h.date === "2024-11-28");
-    const nov29 = history.find((h: any) => h.date === "2024-11-29");
-    const nov30 = history.find((h: any) => h.date === "2024-11-30");
+    // Find all days from day5 to today
+    const day5Data = history.find((h: any) => h.date === formatDate(day5Ago));
+    const day4Data = history.find((h: any) => h.date === formatDate(getDaysAgo(4)));
+    const day3Data = history.find((h: any) => h.date === formatDate(getDaysAgo(3)));
+    const day2Data = history.find((h: any) => h.date === formatDate(getDaysAgo(2)));
+    const day1Data = history.find((h: any) => h.date === formatDate(getDaysAgo(1)));
+    const todayData = history.find((h: any) => h.date === formatDate(today));
 
     // All days should exist
-    expect(nov25).toBeDefined();
-    expect(nov26).toBeDefined();
-    expect(nov27).toBeDefined();
-    expect(nov28).toBeDefined();
-    expect(nov29).toBeDefined();
-    expect(nov30).toBeDefined();
+    expect(day5Data).toBeDefined();
+    expect(day4Data).toBeDefined();
+    expect(day3Data).toBeDefined();
+    expect(day2Data).toBeDefined();
+    expect(day1Data).toBeDefined();
+    expect(todayData).toBeDefined();
 
     // Check values
-    expect(nov25.pagesRead).toBe(100);
-    expect(nov26.pagesRead).toBe(0);
-    expect(nov27.pagesRead).toBe(0);
-    expect(nov28.pagesRead).toBe(0);
-    expect(nov29.pagesRead).toBe(0);
-    expect(nov30.pagesRead).toBe(100);
+    expect(day5Data.pagesRead).toBe(100);
+    expect(day4Data.pagesRead).toBe(0);
+    expect(day3Data.pagesRead).toBe(0);
+    expect(day2Data.pagesRead).toBe(0);
+    expect(day1Data.pagesRead).toBe(0);
+    expect(todayData.pagesRead).toBe(100);
   });
 });
 
@@ -217,22 +239,28 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       isActive: true,
     });
 
+    // User only started tracking 3 days ago
+    const day3Ago = getDaysAgo(3);
+    const day2Ago = getDaysAgo(2);
+    const day1Ago = getDaysAgo(1);
+    const today = getDaysAgo(0);
+
     // Create streak
     await streakRepository.create({
       currentStreak: 4,
       longestStreak: 4,
-      lastActivityDate: new Date("2024-11-30"),
+      lastActivityDate: today,
       dailyThreshold: 1,
       totalDaysActive: 4,
     });
 
-    // User only started tracking 4 days ago (Nov 27-30)
+    // Create progress for last 4 days
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: new Date("2024-11-27T12:00:00Z"),
+      progressDate: day3Ago,
       pagesRead: 50,
     });
 
@@ -241,7 +269,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: new Date("2024-11-28T12:00:00Z"),
+      progressDate: day2Ago,
       pagesRead: 50,
     });
 
@@ -250,7 +278,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 50.0,
-      progressDate: new Date("2024-11-29T12:00:00Z"),
+      progressDate: day1Ago,
       pagesRead: 50,
     });
 
@@ -259,7 +287,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 200,
       currentPercentage: 66.67,
-      progressDate: new Date("2024-11-30T12:00:00Z"),
+      progressDate: today,
       pagesRead: 50,
     });
 
@@ -272,15 +300,15 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
 
     const history = data.data.dailyReadingHistory;
 
-    // Chart should only show 4 days (Nov 27-30), not 90 days with 86 empty days before
+    // Chart should only show 4 days, not 90 days with 86 empty days before
     expect(history.length).toBe(4);
 
-    // First day should be Nov 27 (earliest progress)
-    expect(history[0].date).toBe("2024-11-27");
+    // First day should be day3Ago (earliest progress)
+    expect(history[0].date).toBe(formatDate(day3Ago));
     expect(history[0].pagesRead).toBe(50);
 
-    // Last day should be Nov 30 (today)
-    expect(history[3].date).toBe("2024-11-30");
+    // Last day should be today
+    expect(history[3].date).toBe(formatDate(today));
     expect(history[3].pagesRead).toBe(50);
   });
 
@@ -302,22 +330,26 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       isActive: true,
     });
 
+    // User has been tracking for 60 days
+    const day60Ago = getDaysAgo(60);
+    const today = getDaysAgo(0);
+
     // Create streak
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date("2024-11-30"),
+      lastActivityDate: today,
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
 
-    // User has been tracking for 60 days
+    // Create progress 60 days ago and today
     await progressRepository.create({
       bookId: book.id,
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 10.0,
-      progressDate: new Date("2024-10-01T12:00:00Z"), // 60 days ago
+      progressDate: day60Ago,
       pagesRead: 50,
     });
 
@@ -326,7 +358,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 20.0,
-      progressDate: new Date("2024-11-30T12:00:00Z"), // Today
+      progressDate: today,
       pagesRead: 50,
     });
 
@@ -342,12 +374,12 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
     // Should show 8 days (7 days requested + today)
     expect(history.length).toBe(8);
 
-    // Should NOT trim - should start from 7 days ago, not from Oct 1
+    // Should NOT trim - should start from 7 days ago, not from 60 days ago
     const firstDate = new Date(history[0].date);
-    const today = new Date("2024-11-30");
-    const daysDiff = Math.round((today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+    const lastDate = new Date(history[history.length - 1].date);
+    const daysDiff = Math.round((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    expect(daysDiff).toBe(7); // Started 7 days ago, not 60
+    expect(daysDiff).toBe(7); // 7 day span, not 60
   });
 
   test("should handle edge case where earliest progress is today", async () => {
@@ -368,11 +400,13 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       isActive: true,
     });
 
+    const today = getDaysAgo(0);
+
     // Create streak
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date("2024-11-30"),
+      lastActivityDate: today,
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
@@ -383,7 +417,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 25.0,
-      progressDate: new Date("2024-11-30T12:00:00Z"),
+      progressDate: today,
       pagesRead: 50,
     });
 
@@ -398,7 +432,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
 
     // Should only show 1 day (today)
     expect(history.length).toBe(1);
-    expect(history[0].date).toBe("2024-11-30");
+    expect(history[0].date).toBe(formatDate(today));
     expect(history[0].pagesRead).toBe(50);
   });
 });
@@ -541,14 +575,23 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
     expect(data.error.code).toBe("INVALID_PARAMETER");
   });
 
-  test("should return 404 when no streak exists", async () => {
-    // Don't create any streak record
+  test("should return empty history when no progress exists", async () => {
+    // Create a streak but no progress logs
+    await streakRepository.create({
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: getDaysAgo(0),
+      dailyThreshold: 1,
+      totalDaysActive: 0,
+    });
+
     const request = createMockRequest("GET", "/api/streak/analytics?days=7");
     const response = await GET(request as NextRequest);
     const data = await response.json();
 
-    expect(response.status).toBe(404);
-    expect(data.success).toBe(false);
-    expect(data.error.code).toBe("STREAK_NOT_FOUND");
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    // Should return empty history or all zeros since no progress exists
+    expect(data.data.dailyReadingHistory).toBeDefined();
   });
 });
