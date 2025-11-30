@@ -26,11 +26,11 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
-// Helper to get relative dates (works regardless of current date)
+// Helper to get relative dates (always in UTC)
 function getDaysAgo(days: number): Date {
   const date = new Date();
-  date.setDate(date.getDate() - days);
-  date.setHours(12, 0, 0, 0); // Noon UTC
+  date.setUTCDate(date.getUTCDate() - days);
+  date.setUTCHours(12, 0, 0, 0); // Noon UTC
   return date;
 }
 
