@@ -27,11 +27,11 @@
 
 **Purpose**: Database foundation and basic structure
 
-- [ ] T001 [P] Create database schema file in lib/db/schema/reading-goals.ts with readingGoals table definition
-- [ ] T002 [P] Export reading-goals schema from lib/db/schema/index.ts
-- [ ] T003 Generate database migration using `bun run db:generate` for reading_goals table
-- [ ] T004 Apply database migration using `bun run db:migrate` to create reading_goals table
-- [ ] T005 Verify migration with `sqlite3 data/tome.db ".schema reading_goals"`
+- [X] T001 [P] Create database schema file in lib/db/schema/reading-goals.ts with readingGoals table definition
+- [X] T002 [P] Export reading-goals schema from lib/db/schema/index.ts
+- [X] T003 Generate database migration using `bun run db:generate` for reading_goals table
+- [X] T004 Apply database migration using `bun run db:migrate` to create reading_goals table
+- [X] T005 Verify migration with `sqlite3 data/tome.db ".schema reading_goals"`
 
 **Checkpoint**: Database table created with constraints and indexes ✅
 
@@ -43,23 +43,23 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create ReadingGoalRepository class extending BaseRepository in lib/repositories/reading-goals.repository.ts
-- [ ] T007 [P] Implement findByUserAndYear() method in lib/repositories/reading-goals.repository.ts
-- [ ] T008 [P] Implement findByUserId() method with year ordering in lib/repositories/reading-goals.repository.ts
-- [ ] T009 [P] Implement getBooksCompletedInYear() query using strftime in lib/repositories/reading-goals.repository.ts
-- [ ] T010 [P] Implement getYearsWithCompletedBooks() aggregation query in lib/repositories/reading-goals.repository.ts
-- [ ] T011 Export readingGoalRepository singleton from lib/repositories/reading-goals.repository.ts
-- [ ] T012 Export reading-goals repository from lib/repositories/index.ts
-- [ ] T013 Create ReadingGoalsService class with validation methods in lib/services/reading-goals.service.ts
-- [ ] T014 [P] Implement validateYear() private method in lib/services/reading-goals.service.ts
-- [ ] T015 [P] Implement validateGoal() private method in lib/services/reading-goals.service.ts
-- [ ] T016 [P] Implement canEditGoal() private method in lib/services/reading-goals.service.ts
-- [ ] T017 Implement calculateProgress() method with pace logic in lib/services/reading-goals.service.ts
-- [ ] T018 Export readingGoalsService singleton from lib/services/reading-goals.service.ts
-- [ ] T019 Export reading-goals service from lib/services/index.ts
-- [ ] T020 [P] Write repository tests in __tests__/repositories/reading-goals.repository.test.ts
-- [ ] T021 [P] Write service validation tests in __tests__/services/reading-goals.service.test.ts
-- [ ] T022 Run foundational tests with `bun test __tests__/repositories/reading-goals.repository.test.ts __tests__/services/reading-goals.service.test.ts`
+- [X] T006 Create ReadingGoalRepository class extending BaseRepository in lib/repositories/reading-goals.repository.ts
+- [X] T007 [P] Implement findByUserAndYear() method in lib/repositories/reading-goals.repository.ts
+- [X] T008 [P] Implement findByUserId() method with year ordering in lib/repositories/reading-goals.repository.ts
+- [X] T009 [P] Implement getBooksCompletedInYear() query using strftime in lib/repositories/reading-goals.repository.ts
+- [X] T010 [P] Implement getYearsWithCompletedBooks() aggregation query in lib/repositories/reading-goals.repository.ts
+- [X] T011 Export readingGoalRepository singleton from lib/repositories/reading-goals.repository.ts
+- [X] T012 Export reading-goals repository from lib/repositories/index.ts
+- [X] T013 Create ReadingGoalsService class with validation methods in lib/services/reading-goals.service.ts
+- [X] T014 [P] Implement validateYear() private method in lib/services/reading-goals.service.ts
+- [X] T015 [P] Implement validateGoal() private method in lib/services/reading-goals.service.ts
+- [X] T016 [P] Implement canEditGoal() private method in lib/services/reading-goals.service.ts
+- [X] T017 Implement calculateProgress() method with pace logic in lib/services/reading-goals.service.ts
+- [X] T018 Export readingGoalsService singleton from lib/services/reading-goals.service.ts
+- [X] T019 Export reading-goals service from lib/services/index.ts
+- [X] T020 [P] Write repository tests in __tests__/repositories/reading-goals.repository.test.ts
+- [X] T021 [P] Write service validation tests in __tests__/services/reading-goals.service.test.ts
+- [X] T022 Run foundational tests with `bun test __tests__/repositories/reading-goals.repository.test.ts __tests__/services/reading-goals.service.test.ts`
 
 **Checkpoint**: Foundation ready - data access and business logic layers complete. User story implementation can now begin in parallel ✅
 
