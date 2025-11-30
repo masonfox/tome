@@ -27,7 +27,7 @@ export function StreakAnalytics({
     <div className="space-y-6">
       {/* Encouraging message for new users */}
       {showEncouragingMessage && (
-        <div className="bg-gradient-to-r from-teal-500 to-cyan-500 rounded-md p-4 text-white">
+        <div className="bg-[var(--accent)] rounded-md p-4 text-white">
           <p className="text-sm font-semibold">
             🌱 Keep going! You&apos;re just getting started. Come back after a week to
             see more detailed insights about your reading habits.
