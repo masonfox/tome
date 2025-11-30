@@ -31,7 +31,7 @@ export default function SessionDetails({
             value={editStartDate}
             onChange={(e) => onEditStartDateChange(e.target.value)}
             max={new Date().toISOString().split('T')[0]}
-            className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
           />
           <button
             onClick={onCancelEdit}
