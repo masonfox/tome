@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export function StreakRebuildSection() {
   const [isRebuilding, setIsRebuilding] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const router = useRouter();
 
   const handleRebuild = async () => {
     setIsRebuilding(true);
@@ -29,10 +27,9 @@ export function StreakRebuildSection() {
           text: "Streak recalculated successfully! Refreshing...",
         });
         
-        // Refresh the page after a short delay to show the success message
+        // Full page reload after a short delay to show the success message
         setTimeout(() => {
-          setIsRebuilding(false);
-          router.refresh();
+          window.location.reload();
         }, 1000);
       } else {
         setMessage({
