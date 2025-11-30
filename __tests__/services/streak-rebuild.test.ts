@@ -71,6 +71,8 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Log progress today - this should rebuild streak
+    console.log('[TEST] today:', today.toISOString());
+    console.log('[TEST] now:', new Date().toISOString());
     await progressService.logProgress(book.id, {
       currentPage: 50,
       progressDate: today,
@@ -78,6 +80,11 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
 
     // Verify streak was rebuilt correctly
     const streak = await streakRepository.findByUserId(null);
+    console.log('[TEST] streak after rebuild:', {
+      currentStreak: streak?.currentStreak,
+      totalDaysActive: streak?.totalDaysActive,
+      lastActivityDate: streak?.lastActivityDate?.toISOString(),
+    });
     expect(streak).not.toBeNull();
     expect(streak!.currentStreak).toBe(1); // Should be 1 (corrected from 0)
     expect(streak!.totalDaysActive).toBe(1);
