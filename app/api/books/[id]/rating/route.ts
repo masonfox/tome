@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { BookService } from "@/lib/services/book.service";
 
 export const dynamic = 'force-dynamic';
@@ -65,6 +66,9 @@ export async function POST(
     }
     
     const updatedBook = await bookService.updateRating(bookId, rating ?? null);
+    
+    // Revalidate the dashboard to update book rating display
+    revalidatePath('/');
     
     return NextResponse.json(updatedBook);
   } catch (error) {
