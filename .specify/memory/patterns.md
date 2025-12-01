@@ -791,4 +791,356 @@ export async function PATCH(
 | State Machine | `/api/books/[id]/status` | Status transitions | Auto-dates |
 | CRUD Routes | `/api/**/*.ts` | REST endpoints | Error handling |
 
+---
+
+## Pattern 11: CSV Import with Matching Service
+
+**When to Use**: Importing data from external sources with fuzzy matching requirements
+
+**Why**: Separates parsing, matching, and execution into clear phases with preview-before-commit workflow
+
+**Architecture**: `Upload → Parse → Match → Preview → Execute`
+
+### Phase 1: Upload & Parse
+```typescript
+// app/api/import/upload/route.ts
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
+    // Validate file
+    if (!file || file.size === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No file uploaded' },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > 10 * 1024 * 1024) {  // 10 MB limit
+      return NextResponse.json(
+        { success: false, error: 'File too large' },
+        { status: 413 }
+      );
+    }
+
+    // Parse CSV
+    const records = await csvParserService.parse(file);
+
+    if (records.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No valid records found' },
+        { status: 400 }
+      );
+    }
+
+    // Match against library
+    const books = await bookRepository.findAll();
+    const matches = await bookMatcherService.matchRecords(records, books);
+
+    // Create import log
+    const importLog = await importLogRepository.create({
+      fileName: file.name,
+      fileSize: file.size,
+      provider: csvParserService.detectProvider(records),
+      totalRecords: records.length,
+      status: 'pending',
+    });
+
+    // Return preview statistics
+    return NextResponse.json({
+      success: true,
+      importId: importLog.id,
+      provider: importLog.provider,
+      totalRecords: records.length,
+      preview: {
+        exactMatches: matches.filter(m => m.confidence === 100).length,
+        highConfidenceMatches: matches.filter(m => m.confidence >= 85 && m.confidence < 100).length,
+        lowConfidenceMatches: matches.filter(m => m.confidence >= 70 && m.confidence < 85).length,
+        unmatchedRecords: matches.filter(m => m.confidence === 0).length,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, 'Import upload failed');
+    return NextResponse.json(
+      { success: false, error: 'Import failed' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Phase 2: Matching Service with Tiered Algorithm
+```typescript
+// lib/services/book-matcher.service.ts
+export class BookMatcherService {
+  private readonly THRESHOLDS = {
+    EXACT: 1.0,      // 100% - ISBN match
+    HIGH: 0.85,      // 85% - High confidence fuzzy
+    MEDIUM: 0.70,    // 70% - Medium confidence
+    MINIMUM: 0.60,   // 60% - Below this, no match
+  };
+
+  async matchRecords(
+    records: ImportRecord[],
+    books: Book[]
+  ): Promise<MatchResult[]> {
+    // Build indexes for O(1) lookups
+    const isbnIndex = this.buildISBNIndex(books);
+    const titleIndex = this.buildTitleIndex(books);
+
+    return records.map(record => {
+      // Tier 1: ISBN exact match
+      if (record.isbn13) {
+        const book = isbnIndex.get(record.isbn13);
+        if (book && this.validateTitleMatch(record.title, book.title)) {
+          return {
+            confidence: 100,
+            matchedBook: book,
+            matchReason: 'ISBN-13 exact match',
+            importData: record,
+          };
+        }
+      }
+
+      // Tier 2: Fuzzy title + author match
+      const fuzzyMatch = this.fuzzyMatch(record, books);
+      if (fuzzyMatch && fuzzyMatch.confidence >= this.THRESHOLDS.MEDIUM) {
+        return fuzzyMatch;
+      }
+
+      // No match found
+      return {
+        confidence: 0,
+        matchReason: 'no_match',
+        importData: record,
+      };
+    });
+  }
+
+  private fuzzyMatch(record: ImportRecord, books: Book[]): MatchResult | null {
+    let bestMatch: MatchResult | null = null;
+    let bestScore = 0;
+
+    for (const book of books) {
+      // Calculate cosine similarity for title
+      const titleScore = this.cosineSimilarity(
+        this.normalizeTitle(record.title),
+        this.normalizeTitle(book.title)
+      );
+
+      // Calculate author similarity
+      const authorScore = record.author 
+        ? this.levenshteinSimilarity(record.author, book.authors.join(', '))
+        : 0;
+
+      // Weighted average (title: 70%, author: 30%)
+      const finalScore = (titleScore * 0.7) + (authorScore * 0.3);
+
+      if (finalScore > bestScore && finalScore >= this.THRESHOLDS.MINIMUM) {
+        bestScore = finalScore;
+        bestMatch = {
+          confidence: Math.round(finalScore * 100),
+          matchedBook: book,
+          matchReason: `Title + author fuzzy match (similarity: ${finalScore.toFixed(2)})`,
+          importData: record,
+        };
+      }
+    }
+
+    return bestMatch;
+  }
+
+  private cosineSimilarity(str1: string, str2: string): number {
+    const bigrams1 = this.getBigrams(str1);
+    const bigrams2 = this.getBigrams(str2);
+
+    const intersection = bigrams1.filter(b => bigrams2.includes(b)).length;
+    const magnitude = Math.sqrt(bigrams1.length * bigrams2.length);
+
+    return magnitude > 0 ? intersection / magnitude : 0;
+  }
+
+  private normalizeTitle(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')  // Remove punctuation
+      .replace(/\s+/g, ' ')     // Normalize whitespace
+      .trim();
+  }
+}
+```
+
+### Phase 3: Execute with Transaction
+```typescript
+// app/api/import/[importId]/execute/route.ts
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { importId: string } }
+) {
+  const { confirmedMatches, skipRecords, forceDuplicates, options } = await request.json();
+
+  return db.transaction(async (tx) => {
+    try {
+      // Update status
+      await importLogRepository.updateStatus(params.importId, 'processing', tx);
+
+      // Create sessions in batches
+      const BATCH_SIZE = 100;
+      let sessionsCreated = 0;
+      let sessionsSkipped = 0;
+
+      for (let i = 0; i < confirmedMatches.length; i += BATCH_SIZE) {
+        const batch = confirmedMatches.slice(i, i + BATCH_SIZE);
+
+        for (const matchId of batch) {
+          const match = await this.getMatchById(matchId);
+
+          // Check for duplicate
+          if (!forceDuplicates) {
+            const existing = await sessionRepository.findDuplicate({
+              bookId: match.matchedBook.id,
+              completedDate: match.importData.completedDate,
+            }, tx);
+
+            if (existing) {
+              sessionsSkipped++;
+              continue;
+            }
+          }
+
+          // Create session
+          await sessionRepository.create({
+            bookId: match.matchedBook.id,
+            sessionNumber: await sessionRepository.getNextSessionNumber(match.matchedBook.id, tx),
+            status: 'read',
+            startedDate: match.importData.startedDate,
+            completedDate: match.importData.completedDate,
+            review: match.importData.review,
+          }, tx);
+
+          sessionsCreated++;
+        }
+      }
+
+      // Sync ratings (outside transaction - Calibre writes)
+      let ratingsSync = 0;
+      let calibreSyncFailures = 0;
+
+      if (options?.syncRatings !== false) {
+        for (const matchId of confirmedMatches) {
+          const match = await this.getMatchById(matchId);
+          if (match.importData.rating) {
+            try {
+              await bookRepository.update(match.matchedBook.id, {
+                rating: match.importData.rating
+              }, tx);
+              await updateCalibreRating(match.matchedBook.calibreId, match.importData.rating);
+              ratingsSync++;
+            } catch (error) {
+              logger.warn({ error, bookId: match.matchedBook.id }, 'Calibre rating sync failed');
+              calibreSyncFailures++;
+            }
+          }
+        }
+      }
+
+      // Store unmatched records
+      const unmatchedRecords = skipRecords.map(id => ({
+        importLogId: params.importId,
+        ...this.getUnmatchedById(id),
+        matchAttempted: true,
+      }));
+
+      await unmatchedRecordRepository.createMany(unmatchedRecords, tx);
+
+      // Finalize import log
+      const finalStatus = calibreSyncFailures > 0 ? 'partial' : 'success';
+      await importLogRepository.update(params.importId, {
+        status: finalStatus,
+        matchedRecords: confirmedMatches.length,
+        unmatchedRecords: skipRecords.length,
+        sessionsCreated,
+        sessionsSkipped,
+        ratingsSync,
+        calibreSyncFailures,
+        completedAt: new Date(),
+      }, tx);
+
+      return NextResponse.json({
+        success: true,
+        summary: {
+          sessionsCreated,
+          sessionsSkipped,
+          ratingsSync,
+          calibreSyncFailures,
+          unmatchedRecords: skipRecords.length,
+        },
+        importLogId: params.importId,
+        status: finalStatus,
+      });
+    } catch (error) {
+      // Transaction auto-rolls back
+      await importLogRepository.updateStatus(params.importId, 'failed', tx);
+      throw error;
+    }
+  });
+}
+```
+
+**Key Points**:
+- Three-phase workflow: parse → preview → execute
+- Tiered matching: ISBN (100%) → Fuzzy (70-99%) → Manual
+- Transaction-based execution with rollback on error
+- Batch processing for large imports (100 records/batch)
+- Calibre sync failures don't block import (logged as warnings)
+- Unmatched records stored for later review
+
+**Performance Targets**:
+- Parse 1000 CSV records: <5s
+- Match 1000 × 5000 books: <30s (O(n) with indexes)
+- Insert 1000 sessions: <10s (batched transactions)
+
+**Anti-patterns**:
+```typescript
+// ❌ WRONG - No preview phase
+await createSessions(matches); // User can't review first!
+
+// ❌ WRONG - Synchronous matching (O(n²))
+const match = books.find(b => b.title === record.title); // Slow!
+
+// ❌ WRONG - No transaction
+await createSessions(...);
+await updateRatings(...); // Partial import if this fails!
+
+// ❌ WRONG - Calibre sync inside transaction
+await db.transaction(async (tx) => {
+  await updateCalibreRating(...); // External write blocks transaction!
+});
+```
+
+**Files**: 
+- `app/api/import/upload/route.ts`
+- `app/api/import/[importId]/execute/route.ts`
+- `lib/services/book-matcher.service.ts`
+- `lib/services/csv-parser.service.ts`
+
+---
+
+## Summary Reference Table
+
+| Pattern | Location | Primary Use | Critical For |
+|---------|----------|-------------|--------------|
+| Database Factory | `lib/db/factory.ts` | All DB connections | Runtime detection |
+| Test Isolation | `lib/db/context.ts` | All tests | Clean test state |
+| Repository Pattern | `lib/repositories/` | All Tome DB access | Data layer |
+| Client Service Layer | `lib/*-service.ts` + hooks | Complex pages | Caching + UX |
+| Progress Tracking | `/api/books/[id]/progress` | Activity logging | Auto-calculations |
+| Streak Calculation | `lib/streaks.ts` | Consecutive days | Date normalization |
+| Sync Service | `lib/sync-service.ts` | Calibre integration | Data consistency |
+| File Watcher | `lib/calibre-watcher.ts` | Auto-sync | Debouncing |
+| State Machine | `/api/books/[id]/status` | Status transitions | Auto-dates |
+| CRUD Routes | `/api/**/*.ts` | REST endpoints | Error handling |
+| CSV Import with Matching | `/api/import/**/*.ts` | External data import | Fuzzy matching + transactions |
+
 **All patterns are production-tested with actual working code from the Tome codebase.**

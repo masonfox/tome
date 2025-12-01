@@ -1,0 +1,1087 @@
+openapi: 3.0.3
+info:
+  title: Tome Import API
+  description: |
+    API for importing reading history from TheStoryGraph and Goodreads CSV exports.
+    
+    **Features:**
+    - Upload and parse CSV files from supported providers
+    - Intelligent book matching using ISBN, fuzzy title/author matching
+    - Preview matched/unmatched records before committing
+    - Create reading sessions and sync ratings to Calibre
+    - Track unmatched records for manual review
+    
+    **Workflow:**
+    1. POST /api/import/upload - Upload CSV, get preview
+    2. GET /api/import/:importId/preview - Review detailed matches
+    3. POST /api/import/:importId/execute - Confirm and execute import
+    4. GET /api/import/:importId/unmatched - Review unmatched records
+  version: 1.0.0
+  contact:
+    name: Tome Support
+    url: https://github.com/yourusername/tome
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://tome.example.com
+    description: Production server
+
+tags:
+  - name: import
+    description: Book import operations
+
+paths:
+  /api/import/upload:
+    post:
+      tags:
+        - import
+      summary: Upload CSV file for import
+      description: |
+        Upload and validate a CSV file from TheStoryGraph or Goodreads. The endpoint will:
+        - Detect provider automatically from CSV structure
+        - Parse all records
+        - Perform book matching against local library
+        - Return preview statistics
+        
+        **Matching Algorithm:**
+        - Tier 1 (100%): ISBN exact match with title validation
+        - Tier 2 (85-95%): Fuzzy title + author match (cosine similarity)
+        - Tier 3 (70-84%): Low confidence matches requiring review
+        - Unmatched: No match found
+        
+        **Performance:** Handles 1000 records in <5 seconds
+      operationId: uploadImportFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file from TheStoryGraph or Goodreads
+            encoding:
+              file:
+                contentType: text/csv
+      responses:
+        '200':
+          description: CSV uploaded and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+              examples:
+                successfulUpload:
+                  summary: Successful upload with mostly matched records
+                  value:
+                    success: true
+                    importId: "550e8400-e29b-41d4-a716-446655440000"
+                    provider: "goodreads"
+                    totalRecords: 234
+                    fileName: "goodreads_export_2024-12-01.csv"
+                    fileSize: 125840
+                    preview:
+                      exactMatches: 180
+                      highConfidenceMatches: 32
+                      lowConfidenceMatches: 8
+                      unmatchedRecords: 14
+                    createdAt: "2024-12-01T10:30:00Z"
+        '400':
+          description: Invalid request or CSV format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidFormat:
+                  summary: Missing required columns
+                  value:
+                    success: false
+                    error: "Invalid CSV format"
+                    details: "Missing required columns: Date Read, My Rating"
+                    code: "INVALID_CSV_FORMAT"
+                fileTooLarge:
+                  summary: File exceeds size limit
+                  value:
+                    success: false
+                    error: "File too large"
+                    details: "Maximum file size is 10 MB"
+                    code: "FILE_TOO_LARGE"
+                emptyFile:
+                  summary: CSV contains no valid records
+                  value:
+                    success: false
+                    error: "Empty CSV file"
+                    details: "CSV must contain at least one valid record"
+                    code: "EMPTY_CSV"
+        '413':
+          description: File size exceeds limit (10 MB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/import/{importId}/preview:
+    get:
+      tags:
+        - import
+      summary: Get detailed preview of import matches
+      description: |
+        Retrieve detailed information about matched and unmatched records for a specific import.
+        
+        **Use Cases:**
+        - Review match quality before executing import
+        - Inspect low-confidence matches
+        - Understand why records weren't matched
+        - Verify correct books are matched
+        
+        **Match Confidence Levels:**
+        - 100%: Exact ISBN match
+        - 95-99%: High confidence fuzzy match
+        - 85-94%: Medium confidence fuzzy match
+        - 70-84%: Low confidence (review recommended)
+        - 0%: No match found
+        
+        **Response Size:** First 500 matches returned. Use pagination for larger imports.
+      operationId: getImportPreview
+      parameters:
+        - name: importId
+          in: path
+          required: true
+          description: UUID of the import from upload response
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: limit
+          in: query
+          required: false
+          description: Number of matches to return (default 500)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 500
+        - name: offset
+          in: query
+          required: false
+          description: Pagination offset (default 0)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: confidenceFilter
+          in: query
+          required: false
+          description: Filter by confidence level
+          schema:
+            type: string
+            enum: [exact, high, medium, low, unmatched]
+      responses:
+        '200':
+          description: Import preview retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewResponse'
+              examples:
+                typicalPreview:
+                  summary: Typical preview with mixed confidence matches
+                  value:
+                    success: true
+                    import:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      provider: "goodreads"
+                      totalRecords: 234
+                      fileName: "goodreads_export_2024-12-01.csv"
+                      fileSize: 125840
+                      status: "pending"
+                      createdAt: "2024-12-01T10:30:00Z"
+                    matches:
+                      - id: "match-1"
+                        confidence: 100
+                        importData:
+                          title: "Dune"
+                          author: "Frank Herbert"
+                          isbn13: "9780441013593"
+                          rating: 5
+                          completedDate: "2023-05-21T00:00:00Z"
+                          status: "read"
+                          review: "Amazing world-building and political intrigue. The spice must flow!"
+                        matchedBook:
+                          id: 42
+                          calibreId: 123
+                          title: "Dune (Dune #1)"
+                          authors: ["Frank Herbert"]
+                          totalPages: 883
+                          isbn: "9780441013593"
+                        matchReason: "ISBN-13 exact match"
+                        willCreateSession: true
+                        isDuplicate: false
+                      - id: "match-2"
+                        confidence: 92
+                        importData:
+                          title: "Project Hail Mary"
+                          author: "Andy Weir"
+                          isbn13: null
+                          rating: 5
+                          completedDate: "2024-11-15T00:00:00Z"
+                          status: "read"
+                        matchedBook:
+                          id: 128
+                          calibreId: 456
+                          title: "Project Hail Mary"
+                          authors: ["Andy Weir"]
+                          totalPages: 496
+                        matchReason: "Title + author fuzzy match (cosine similarity: 0.92)"
+                        willCreateSession: true
+                        isDuplicate: false
+                    unmatched:
+                      - id: "unmatched-1"
+                        title: "Obscure Book Title"
+                        authors: ["Unknown Author"]
+                        isbn: null
+                        rating: 4
+                        completedDate: "2024-01-10T00:00:00Z"
+                        reason: "No ISBN and no title/author match in library (best match: 0.58)"
+                        suggestions: []
+                    pagination:
+                      total: 234
+                      limit: 500
+                      offset: 0
+                      hasMore: false
+        '404':
+          description: Import not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Import not found"
+                details: "No import found with ID: 550e8400-e29b-41d4-a716-446655440000"
+                code: "IMPORT_NOT_FOUND"
+        '410':
+          description: Import expired or already executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Import already executed"
+                details: "This import was already executed on 2024-12-01T11:00:00Z"
+                code: "IMPORT_ALREADY_EXECUTED"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/import/{importId}/execute:
+    post:
+      tags:
+        - import
+      summary: Execute confirmed import
+      description: |
+        Execute the import after user reviews and confirms matches. This endpoint will:
+        - Create reading sessions for matched books
+        - Sync ratings to Calibre database
+        - Store unmatched records for later review
+        - Update import log with final statistics
+        
+        **Operations Performed:**
+        1. Create reading_sessions records (start/end dates from CSV)
+        2. Create progress_logs at 100% completion
+        3. Update books.rating if different from CSV rating
+        4. Call updateCalibreRating() for each rating change
+        5. Store unmatched records in import_unmatched_records
+        
+        **Transaction Behavior:**
+        - All session/rating operations in single transaction
+        - Rollback on error (except Calibre sync failures)
+        - Calibre sync failures logged but don't block import
+        
+        **Performance:** Processes 1000 records in <30 seconds
+      operationId: executeImport
+      parameters:
+        - name: importId
+          in: path
+          required: true
+          description: UUID of the import to execute
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+            examples:
+              confirmAllMatches:
+                summary: Confirm all high-confidence matches
+                value:
+                  confirmedMatches: ["match-1", "match-2", "match-3"]
+                  skipRecords: ["unmatched-1", "unmatched-2"]
+                  forceDuplicates: false
+                  options:
+                    syncRatings: true
+                    createSessions: true
+                    skipExistingSessions: true
+              forceAllMatches:
+                summary: Force duplicates and confirm all
+                value:
+                  confirmedMatches: ["match-1", "match-2", "match-3", "match-4"]
+                  skipRecords: []
+                  forceDuplicates: true
+                  options:
+                    syncRatings: true
+                    createSessions: true
+                    skipExistingSessions: false
+      responses:
+        '200':
+          description: Import executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteResponse'
+              examples:
+                fullSuccess:
+                  summary: All records processed successfully
+                  value:
+                    success: true
+                    summary:
+                      sessionsCreated: 220
+                      sessionsSkipped: 10
+                      ratingsSync: 215
+                      calibreSyncFailures: 0
+                      unmatchedRecords: 4
+                      executionTimeMs: 28450
+                    importLogId: 15
+                    status: "success"
+                    completedAt: "2024-12-01T10:35:28Z"
+                partialSuccess:
+                  summary: Some Calibre sync failures
+                  value:
+                    success: true
+                    summary:
+                      sessionsCreated: 220
+                      sessionsSkipped: 10
+                      ratingsSync: 210
+                      calibreSyncFailures: 5
+                      unmatchedRecords: 4
+                      executionTimeMs: 29120
+                    importLogId: 15
+                    status: "partial"
+                    completedAt: "2024-12-01T10:35:29Z"
+                    warnings:
+                      - "Failed to sync 5 ratings to Calibre database"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidMatchIds:
+                  summary: Confirmed match IDs don't exist
+                  value:
+                    success: false
+                    error: "Invalid match IDs"
+                    details: "Match IDs not found: match-999, match-888"
+                    code: "INVALID_MATCH_IDS"
+                alreadyExecuted:
+                  summary: Import already executed
+                  value:
+                    success: false
+                    error: "Import already executed"
+                    details: "This import was already executed on 2024-12-01T11:00:00Z"
+                    code: "IMPORT_ALREADY_EXECUTED"
+        '404':
+          description: Import not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Import execution failed"
+                details: "Database transaction failed: UNIQUE constraint failed"
+                code: "EXECUTION_FAILED"
+
+  /api/import/{importId}/unmatched:
+    get:
+      tags:
+        - import
+      summary: Get unmatched records for an import
+      description: |
+        Retrieve all unmatched records for a specific import. Useful for:
+        - Exporting unmatched records to CSV
+        - Manual matching via UI
+        - Understanding matching failures
+        - Debugging import issues
+        
+        **Common Unmatched Reasons:**
+        - no_isbn: Book has no ISBN and title/author didn't match
+        - no_title_match: Title similarity below threshold (70%)
+        - ambiguous: Multiple potential matches found
+        - not_in_library: Book not in Calibre library
+      operationId: getUnmatchedRecords
+      parameters:
+        - name: importId
+          in: path
+          required: true
+          description: UUID of the import
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: format
+          in: query
+          required: false
+          description: Response format (json or csv)
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+      responses:
+        '200':
+          description: Unmatched records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnmatchedResponse'
+              example:
+                success: true
+                importId: "550e8400-e29b-41d4-a716-446655440000"
+                totalUnmatched: 14
+                unmatched:
+                  - id: 42
+                    title: "Obscure Indie Novel"
+                    authors: ["Unknown Author"]
+                    isbn: null
+                    rating: 4
+                    completedDate: "2024-01-10T00:00:00Z"
+                    status: "read"
+                    review: "Great story but hard to find"
+                    reason: "no_isbn"
+                    matchAttempted: true
+                    createdAt: "2024-12-01T10:35:00Z"
+                  - id: 43
+                    title: "The Art of Computer Programming Vol 1"
+                    authors: ["Donald Knuth"]
+                    isbn: "9780201896831"
+                    rating: 5
+                    completedDate: "2024-02-15T00:00:00Z"
+                    status: "read"
+                    reason: "not_in_library"
+                    matchAttempted: true
+                    createdAt: "2024-12-01T10:35:00Z"
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              example: |
+                title,authors,isbn,rating,completedDate,status,reason
+                "Obscure Indie Novel","Unknown Author",,"4","2024-01-10","read","no_isbn"
+                "The Art of Computer Programming Vol 1","Donald Knuth","9780201896831","5","2024-02-15","read","not_in_library"
+        '404':
+          description: Import not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    UploadResponse:
+      type: object
+      required:
+        - success
+        - importId
+        - provider
+        - totalRecords
+        - fileName
+        - fileSize
+        - preview
+        - createdAt
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          example: true
+        importId:
+          type: string
+          format: uuid
+          description: Unique identifier for this import
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        provider:
+          type: string
+          enum: [goodreads, storygraph]
+          description: Detected CSV provider
+          example: "goodreads"
+        totalRecords:
+          type: integer
+          minimum: 0
+          description: Total records parsed from CSV
+          example: 234
+        fileName:
+          type: string
+          description: Original filename
+          example: "goodreads_export_2024-12-01.csv"
+        fileSize:
+          type: integer
+          minimum: 1
+          maximum: 10485760
+          description: File size in bytes
+          example: 125840
+        preview:
+          $ref: '#/components/schemas/PreviewSummary'
+        createdAt:
+          type: string
+          format: date-time
+          description: Import creation timestamp
+          example: "2024-12-01T10:30:00Z"
+
+    PreviewSummary:
+      type: object
+      required:
+        - exactMatches
+        - highConfidenceMatches
+        - lowConfidenceMatches
+        - unmatchedRecords
+      properties:
+        exactMatches:
+          type: integer
+          minimum: 0
+          description: Records with 100% confidence (ISBN match)
+          example: 180
+        highConfidenceMatches:
+          type: integer
+          minimum: 0
+          description: Records with 85-99% confidence (fuzzy match)
+          example: 32
+        lowConfidenceMatches:
+          type: integer
+          minimum: 0
+          description: Records with 70-84% confidence (review recommended)
+          example: 8
+        unmatchedRecords:
+          type: integer
+          minimum: 0
+          description: Records with no match found
+          example: 14
+
+    PreviewResponse:
+      type: object
+      required:
+        - success
+        - import
+        - matches
+        - unmatched
+        - pagination
+      properties:
+        success:
+          type: boolean
+          example: true
+        import:
+          $ref: '#/components/schemas/ImportMetadata'
+        matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchPreview'
+        unmatched:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnmatchedPreview'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ImportMetadata:
+      type: object
+      required:
+        - id
+        - provider
+        - totalRecords
+        - fileName
+        - fileSize
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        provider:
+          type: string
+          enum: [goodreads, storygraph]
+          example: "goodreads"
+        totalRecords:
+          type: integer
+          example: 234
+        fileName:
+          type: string
+          example: "goodreads_export_2024-12-01.csv"
+        fileSize:
+          type: integer
+          example: 125840
+        status:
+          type: string
+          enum: [pending, processing, success, partial, failed]
+          example: "pending"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-12-01T10:30:00Z"
+
+    MatchPreview:
+      type: object
+      required:
+        - id
+        - confidence
+        - importData
+        - matchedBook
+        - matchReason
+        - willCreateSession
+        - isDuplicate
+      properties:
+        id:
+          type: string
+          description: Unique match identifier
+          example: "match-1"
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Match confidence score (0-100)
+          example: 100
+        importData:
+          $ref: '#/components/schemas/ImportRecord'
+        matchedBook:
+          $ref: '#/components/schemas/BookMatch'
+        matchReason:
+          type: string
+          description: Human-readable match explanation
+          example: "ISBN-13 exact match"
+        willCreateSession:
+          type: boolean
+          description: Whether a reading session will be created
+          example: true
+        isDuplicate:
+          type: boolean
+          description: Whether a session already exists for this book/date
+          example: false
+
+    ImportRecord:
+      type: object
+      required:
+        - title
+        - author
+        - status
+      properties:
+        title:
+          type: string
+          example: "Dune"
+        author:
+          type: string
+          description: Primary author name
+          example: "Frank Herbert"
+        isbn13:
+          type: string
+          nullable: true
+          pattern: '^\d{13}$'
+          example: "9780441013593"
+        rating:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+          example: 5
+        completedDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2023-05-21T00:00:00Z"
+        status:
+          type: string
+          enum: [read, currently-reading, to-read, did-not-finish]
+          example: "read"
+        review:
+          type: string
+          nullable: true
+          example: "Amazing world-building and political intrigue."
+
+    BookMatch:
+      type: object
+      required:
+        - id
+        - calibreId
+        - title
+        - authors
+      properties:
+        id:
+          type: integer
+          description: Tome book ID
+          example: 42
+        calibreId:
+          type: integer
+          description: Calibre database ID
+          example: 123
+        title:
+          type: string
+          example: "Dune (Dune #1)"
+        authors:
+          type: array
+          items:
+            type: string
+          example: ["Frank Herbert"]
+        totalPages:
+          type: integer
+          nullable: true
+          example: 883
+        isbn:
+          type: string
+          nullable: true
+          example: "9780441013593"
+
+    UnmatchedPreview:
+      type: object
+      required:
+        - id
+        - title
+        - authors
+        - reason
+        - suggestions
+      properties:
+        id:
+          type: string
+          example: "unmatched-1"
+        title:
+          type: string
+          example: "Obscure Book Title"
+        authors:
+          type: array
+          items:
+            type: string
+          example: ["Unknown Author"]
+        isbn:
+          type: string
+          nullable: true
+          example: null
+        rating:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+          example: 4
+        completedDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-10T00:00:00Z"
+        reason:
+          type: string
+          description: Why the record wasn't matched
+          example: "No ISBN and no title/author match in library (best match: 0.58)"
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookMatch'
+          description: Potential matches below threshold (for manual review)
+
+    ExecuteRequest:
+      type: object
+      required:
+        - confirmedMatches
+        - skipRecords
+        - forceDuplicates
+      properties:
+        confirmedMatches:
+          type: array
+          items:
+            type: string
+          description: Match IDs to process
+          example: ["match-1", "match-2", "match-3"]
+        skipRecords:
+          type: array
+          items:
+            type: string
+          description: Unmatched record IDs to skip
+          example: ["unmatched-1", "unmatched-2"]
+        forceDuplicates:
+          type: boolean
+          description: Create sessions even if duplicates exist
+          default: false
+          example: false
+        options:
+          type: object
+          properties:
+            syncRatings:
+              type: boolean
+              description: Sync ratings to Calibre database
+              default: true
+            createSessions:
+              type: boolean
+              description: Create reading sessions
+              default: true
+            skipExistingSessions:
+              type: boolean
+              description: Skip duplicate sessions
+              default: true
+
+    ExecuteResponse:
+      type: object
+      required:
+        - success
+        - summary
+        - importLogId
+        - status
+        - completedAt
+      properties:
+        success:
+          type: boolean
+          example: true
+        summary:
+          $ref: '#/components/schemas/ExecutionSummary'
+        importLogId:
+          type: integer
+          description: Database ID of import_logs record
+          example: 15
+        status:
+          type: string
+          enum: [success, partial, failed]
+          description: Final import status
+          example: "success"
+        completedAt:
+          type: string
+          format: date-time
+          example: "2024-12-01T10:35:28Z"
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Non-fatal warnings
+          example: ["Failed to sync 5 ratings to Calibre database"]
+
+    ExecutionSummary:
+      type: object
+      required:
+        - sessionsCreated
+        - sessionsSkipped
+        - ratingsSync
+        - calibreSyncFailures
+        - unmatchedRecords
+        - executionTimeMs
+      properties:
+        sessionsCreated:
+          type: integer
+          minimum: 0
+          description: Number of reading sessions created
+          example: 220
+        sessionsSkipped:
+          type: integer
+          minimum: 0
+          description: Number of duplicate sessions skipped
+          example: 10
+        ratingsSync:
+          type: integer
+          minimum: 0
+          description: Number of ratings synced to Calibre
+          example: 215
+        calibreSyncFailures:
+          type: integer
+          minimum: 0
+          description: Number of failed Calibre rating syncs
+          example: 0
+        unmatchedRecords:
+          type: integer
+          minimum: 0
+          description: Number of unmatched records stored
+          example: 4
+        executionTimeMs:
+          type: integer
+          minimum: 0
+          description: Total execution time in milliseconds
+          example: 28450
+
+    UnmatchedResponse:
+      type: object
+      required:
+        - success
+        - importId
+        - totalUnmatched
+        - unmatched
+      properties:
+        success:
+          type: boolean
+          example: true
+        importId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        totalUnmatched:
+          type: integer
+          minimum: 0
+          example: 14
+        unmatched:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnmatchedRecord'
+
+    UnmatchedRecord:
+      type: object
+      required:
+        - id
+        - title
+        - authors
+        - reason
+        - matchAttempted
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Database ID of unmatched record
+          example: 42
+        title:
+          type: string
+          example: "Obscure Indie Novel"
+        authors:
+          type: array
+          items:
+            type: string
+          example: ["Unknown Author"]
+        isbn:
+          type: string
+          nullable: true
+          example: null
+        rating:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+          example: 4
+        completedDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-10T00:00:00Z"
+        status:
+          type: string
+          example: "read"
+        review:
+          type: string
+          nullable: true
+          example: "Great story but hard to find"
+        reason:
+          type: string
+          enum: [no_isbn, no_title_match, ambiguous, not_in_library]
+          example: "no_isbn"
+        matchAttempted:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-12-01T10:35:00Z"
+
+    Pagination:
+      type: object
+      required:
+        - total
+        - limit
+        - offset
+        - hasMore
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of records
+          example: 234
+        limit:
+          type: integer
+          minimum: 1
+          description: Records per page
+          example: 500
+        offset:
+          type: integer
+          minimum: 0
+          description: Starting offset
+          example: 0
+        hasMore:
+          type: boolean
+          description: Whether more records exist
+          example: false
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - code
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Invalid CSV format"
+        details:
+          type: string
+          description: Additional error details
+          example: "Missing required columns: Date Read, My Rating"
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - INVALID_CSV_FORMAT
+            - FILE_TOO_LARGE
+            - EMPTY_CSV
+            - IMPORT_NOT_FOUND
+            - IMPORT_ALREADY_EXECUTED
+            - INVALID_MATCH_IDS
+            - EXECUTION_FAILED
+          example: "INVALID_CSV_FORMAT"
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Field-specific validation errors
+          example:
+            file: "File must be a CSV"
+
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js session token (automatically sent by browser)
+
+security:
+  - sessionAuth: []
