@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { ProgressService } from "@/lib/services/progress.service";
 import { progressRepository } from "@/lib/repositories";
 
@@ -41,6 +42,9 @@ export async function PATCH(
     };
 
     const updatedEntry = await progressService.updateProgress(progressId, updateData);
+
+    // Revalidate the dashboard to update streak data
+    revalidatePath('/');
 
     return NextResponse.json(updatedEntry);
   } catch (error: any) {
@@ -102,6 +106,9 @@ export async function DELETE(
     if (!success) {
       return NextResponse.json({ error: "Failed to delete progress entry" }, { status: 500 });
     }
+
+    // Revalidate the dashboard to update streak data
+    revalidatePath('/');
 
     return NextResponse.json({ success: true, message: "Progress entry deleted" });
   } catch (error) {
