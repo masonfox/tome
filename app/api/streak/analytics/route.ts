@@ -62,10 +62,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch daily reading history
+    // Calculate date range using UTC (to match database DATE() output)
+    // Database uses SQLite's DATE(timestamp, 'unixepoch') which gives UTC dates
     const requestedStartDate = new Date();
-    requestedStartDate.setDate(requestedStartDate.getDate() - days);
+    requestedStartDate.setUTCDate(requestedStartDate.getUTCDate() - days);
+    requestedStartDate.setUTCHours(0, 0, 0, 0);
+    
     const endDate = new Date();
+    endDate.setUTCHours(23, 59, 59, 999); // End of today UTC
     
     // Get the earliest progress date to avoid showing empty days before tracking started
     const earliestProgressDate = await progressRepository.getEarliestProgressDate();
@@ -88,11 +92,20 @@ export async function GET(request: NextRequest) {
     });
 
     // Fill in all days in the range, including days with no data (0 pages)
+    // Use UTC dates to match what the database returns (SQLite DATE() gives UTC dates)
     const allDays: { date: string; pagesRead: number; thresholdMet: boolean }[] = [];
-    const currentDate = new Date(actualStartDate);
     
-    while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Normalize start date to midnight UTC
+    const startDateUtc = new Date(actualStartDate);
+    startDateUtc.setUTCHours(0, 0, 0, 0);
+    
+    // Get today's date in UTC
+    const todayUtc = new Date();
+    todayUtc.setUTCHours(0, 0, 0, 0);
+    
+    const currentDate = new Date(startDateUtc);
+    while (currentDate <= todayUtc) {
+      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format in UTC
       const pagesRead = dataMap.get(dateStr) || 0;
       
       allDays.push({
@@ -101,7 +114,7 @@ export async function GET(request: NextRequest) {
         thresholdMet: pagesRead >= streak.dailyThreshold,
       });
       
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
     const enrichedHistory = allDays;

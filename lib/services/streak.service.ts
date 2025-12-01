@@ -124,10 +124,16 @@ export class StreakService {
   async getStreak(userId: number | null = null): Promise<StreakWithHoursRemaining> {
     const streak = await streakRepository.getOrCreate(userId);
 
-    // Calculate hours remaining today
+    // Calculate hours remaining today in user's timezone
     const now = new Date();
-    const endOfToday = endOfDay(now);
-    const hoursRemaining = Math.max(0, differenceInHours(endOfToday, now));
+    const userTimezone = streak.userTimezone || 'America/New_York';
+    
+    // Convert to user's timezone for accurate end-of-day calculation
+    const nowInUserTz = toZonedTime(now, userTimezone);
+    const endOfTodayInUserTz = endOfDay(nowInUserTz);
+    
+    // Calculate hours remaining in user's timezone
+    const hoursRemaining = Math.max(0, differenceInHours(endOfTodayInUserTz, nowInUserTz));
 
     return {
       ...streak,
