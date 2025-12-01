@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { SessionService } from "@/lib/services/session.service";
 
 export const dynamic = 'force-dynamic';
@@ -54,6 +55,9 @@ export async function POST(
     };
 
     const result = await sessionService.updateStatus(bookId, statusData);
+
+    // Revalidate the dashboard to update book status display
+    revalidatePath('/');
 
     // Return full result if session was archived, otherwise just the session
     if (result.sessionArchived) {
