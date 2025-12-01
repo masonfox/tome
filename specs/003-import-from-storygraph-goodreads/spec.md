@@ -63,25 +63,31 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 
 **Priority**: P0 (Blocker)
 
-**Description**: System must accept CSV files and validate format/structure.
+**Description**: System must accept CSV files with explicit provider selection and validate format/structure.
 
 **Acceptance Criteria:**
+- User must explicitly select provider (Goodreads or TheStoryGraph) before upload
 - Accept CSV files up to 10 MB in size
-- Detect provider (Goodreads or TheStoryGraph) automatically from column headers
-- Validate required columns exist for detected provider
-- Return clear error messages for malformed files
+- Validate required columns exist for selected provider
+- Return clear error messages for malformed files or column mismatches
 - Support UTF-8 encoding with BOM tolerance
 - Handle quoted fields containing commas, newlines, and special characters
 
-**Provider Detection Rules:**
-- **Goodreads**: Presence of columns `Book Id`, `Title`, `Author`, `My Rating`, `Date Read`
-- **TheStoryGraph**: Presence of columns `Title`, `Authors`, `Read Status`, `Star Rating`, `Last Date Read`
+**Provider Selection:**
+- User selects from dropdown/radio buttons: "Goodreads" or "TheStoryGraph"
+- Selection is required before file can be uploaded
+- UI shows expected column format for selected provider
+
+**Required Columns by Provider:**
+- **Goodreads**: `Book Id`, `Title`, `Author`, `My Rating`, `Date Read`, `Exclusive Shelf`
+- **TheStoryGraph**: `Title`, `Authors`, `Read Status`, `Star Rating`, `Last Date Read`
 
 **Error Conditions:**
 - File exceeds size limit → "File too large (max 10 MB)"
 - Missing required columns → "Invalid {provider} format: missing columns {list}"
 - Non-CSV file type → "File must be CSV format"
 - Empty file → "File is empty"
+- Column mismatch → "This file does not match the {provider} format. Please verify you selected the correct provider."
 
 ---
 
@@ -468,12 +474,15 @@ Stores unmatched records for later manual review/matching.
 
 ### POST /api/import/upload
 
-**Description**: Upload and validate CSV file.
+**Description**: Upload and validate CSV file with explicit provider selection.
 
 **Request:**
 ```typescript
 Content-Type: multipart/form-data
-Body: { file: File }
+Body: { 
+  file: File,
+  provider: 'goodreads' | 'storygraph'
+}
 ```
 
 **Response (200 OK):**
@@ -611,15 +620,19 @@ Body: { file: File }
 #### Step 1: File Upload
 
 **Components:**
+- Provider selection (required):
+  - Radio buttons or dropdown: "Goodreads" / "TheStoryGraph"
+  - Help text showing expected columns for each provider
 - File input (drag-drop or browse)
 - File format guide (link to help docs)
 - Size limit indicator (10 MB max)
-- Upload button
+- Upload button (disabled until provider selected)
 
 **Validation:**
+- Provider must be selected before upload
 - Real-time file size check
-- Format detection on upload
-- Error display for invalid files
+- Validate columns match selected provider format
+- Error display for invalid files or column mismatches
 
 ---
 

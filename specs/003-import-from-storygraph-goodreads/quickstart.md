@@ -114,7 +114,7 @@ CSV Upload → Parse → Match → Preview → Execute → Sessions/Ratings
 | File | Key Functions | Purpose |
 |------|---------------|---------|
 | `lib/services/import.service.ts` | `orchestrateImport()` | Main import coordinator |
-| `lib/services/csv-parser.service.ts` | `parseCSV()`, `detectProvider()` | CSV parsing + normalization |
+| `lib/services/csv-parser.service.ts` | `parseCSV()`, `validateProvider()` | CSV parsing + normalization |
 | `lib/services/book-matcher.service.ts` | `matchByISBN()`, `fuzzyMatch()` | Book matching algorithms |
 | `lib/services/session-importer.service.ts` | `createSessions()`, `detectDuplicates()` | Session creation logic |
 
@@ -162,9 +162,10 @@ bun run dev
 ### 2. Test the Import Flow
 
 ```bash
-# Upload a CSV
+# Upload a CSV (provider must be explicitly specified)
 curl -X POST http://localhost:3000/api/import/upload \
-  -F "file=@/path/to/goodreads.csv"
+  -F "file=@/path/to/goodreads.csv" \
+  -F "provider=goodreads"
 
 # Response:
 {
@@ -227,15 +228,19 @@ export const providerEnum = sqliteEnum('provider', [
 ]);
 ```
 
-**2. Implement Parser**
+**2. Implement Parser & Validation**
 ```typescript
 // lib/services/csv-parser.service.ts
 export class CsvParserService {
-  detectProvider(headers: string[]): Provider {
-    if (headers.includes('New Provider Column')) {
-      return 'new-provider';
-    }
-    // ...
+  validateProvider(provider: Provider, headers: string[]): boolean {
+    const requiredColumns = {
+      'goodreads': ['Book Id', 'Title', 'Author', 'My Rating', 'Date Read'],
+      'storygraph': ['Title', 'Authors', 'Read Status', 'Star Rating'],
+      'new-provider': ['Title Column', 'Author Column', 'Date Column'], // Add here
+    };
+
+    const required = requiredColumns[provider];
+    return required.every(col => headers.includes(col));
   }
 
   parseNewProvider(row: any): ImportRecord {
@@ -248,14 +253,30 @@ export class CsvParserService {
 }
 ```
 
-**3. Add Tests**
+**3. Update Frontend**
+```typescript
+// app/import/page.tsx - Add to provider selection
+<select name="provider">
+  <option value="goodreads">Goodreads</option>
+  <option value="storygraph">TheStoryGraph</option>
+  <option value="new-provider">New Provider</option>
+</select>
+```
+
+**4. Add Tests**
 ```typescript
 // __tests__/lib/csv-parser.service.test.ts
 describe('parseNewProvider', () => {
+  it('should validate new provider columns', () => {
+    const headers = ['Title Column', 'Author Column', 'Date Column'];
+    const isValid = csvParserService.validateProvider('new-provider', headers);
+    expect(isValid).toBe(true);
+  });
+
   it('should parse new provider CSV format', () => {
     const csvContent = `Title Column,Author Column\nBook1,Author1`;
-    const result = csvParserService.parse(csvContent);
-    expect(result.provider).toBe('new-provider');
+    const result = csvParserService.parse(csvContent, 'new-provider');
+    expect(result.records).toHaveLength(1);
   });
 });
 ```
@@ -797,7 +818,10 @@ async executeImport(importId: string): Promise<ExecuteResult> {
 **Request:**
 ```typescript
 Content-Type: multipart/form-data
-Body: { file: File }
+Body: { 
+  file: File,
+  provider: 'goodreads' | 'storygraph' // Required: user must explicitly select
+}
 ```
 
 **Response:**

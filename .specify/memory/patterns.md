@@ -808,6 +808,15 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const provider = formData.get('provider') as 'goodreads' | 'storygraph';
+
+    // Validate provider selection
+    if (!provider || !['goodreads', 'storygraph'].includes(provider)) {
+      return NextResponse.json(
+        { success: false, error: 'Provider must be specified' },
+        { status: 400 }
+      );
+    }
 
     // Validate file
     if (!file || file.size === 0) {
@@ -824,12 +833,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse CSV
-    const records = await csvParserService.parse(file);
+    // Parse CSV with provider context
+    const records = await csvParserService.parse(file, provider);
 
     if (records.length === 0) {
       return NextResponse.json(
         { success: false, error: 'No valid records found' },
+        { status: 400 }
+      );
+    }
+
+    // Validate columns match selected provider
+    const isValidFormat = csvParserService.validateProvider(provider, records[0]);
+    if (!isValidFormat) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Provider format mismatch',
+          details: `This file does not match the ${provider} format. Please verify you selected the correct provider.`
+        },
         { status: 400 }
       );
     }
@@ -842,7 +864,7 @@ export async function POST(request: NextRequest) {
     const importLog = await importLogRepository.create({
       fileName: file.name,
       fileSize: file.size,
-      provider: csvParserService.detectProvider(records),
+      provider,
       totalRecords: records.length,
       status: 'pending',
     });

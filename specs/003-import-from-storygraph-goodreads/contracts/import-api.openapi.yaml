@@ -38,11 +38,14 @@ paths:
         - import
       summary: Upload CSV file for import
       description: |
-        Upload and validate a CSV file from TheStoryGraph or Goodreads. The endpoint will:
-        - Detect provider automatically from CSV structure
+        Upload and validate a CSV file from TheStoryGraph or Goodreads with explicit provider selection. The endpoint will:
+        - Validate CSV structure matches the specified provider format
         - Parse all records
         - Perform book matching against local library
         - Return preview statistics
+        
+        **Provider Selection:** User must explicitly specify whether the CSV is from Goodreads or TheStoryGraph.
+        This ensures correct column mapping and validation.
         
         **Matching Algorithm:**
         - Tier 1 (100%): ISBN exact match with title validation
@@ -60,11 +63,16 @@ paths:
               type: object
               required:
                 - file
+                - provider
               properties:
                 file:
                   type: string
                   format: binary
                   description: CSV file from TheStoryGraph or Goodreads
+                provider:
+                  type: string
+                  enum: [goodreads, storygraph]
+                  description: CSV source provider (must be explicitly selected by user)
             encoding:
               file:
                 contentType: text/csv
@@ -119,6 +127,13 @@ paths:
                     error: "Empty CSV file"
                     details: "CSV must contain at least one valid record"
                     code: "EMPTY_CSV"
+                providerMismatch:
+                  summary: CSV columns don't match selected provider
+                  value:
+                    success: false
+                    error: "Provider format mismatch"
+                    details: "This file does not match the Goodreads format. Please verify you selected the correct provider."
+                    code: "PROVIDER_MISMATCH"
         '413':
           description: File size exceeds limit (10 MB)
           content:
@@ -1063,6 +1078,7 @@ components:
             - INVALID_CSV_FORMAT
             - FILE_TOO_LARGE
             - EMPTY_CSV
+            - PROVIDER_MISMATCH
             - IMPORT_NOT_FOUND
             - IMPORT_ALREADY_EXECUTED
             - INVALID_MATCH_IDS

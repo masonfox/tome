@@ -77,7 +77,8 @@ Verify compliance with principles from `.specify/memory/constitution.md`:
   - ✅ Matching algorithm runs in-memory (no ML service dependencies)
 
 - [x] **User Experience Standards**: 
-  - ✅ Smart defaults: Automatic format detection, ISBN-first matching
+  - ✅ Explicit provider selection (no auto-detection ambiguity)
+  - ✅ Smart defaults: ISBN-first matching, intelligent fuzzy matching
   - ✅ Validates temporal relationships (startedDate <= completedDate)
   - ✅ Preserves history: Creates new sessions, never overwrites or deletes
   - ✅ Preview before commit (user reviews matches before executing)
