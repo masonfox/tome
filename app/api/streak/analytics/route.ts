@@ -62,6 +62,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user timezone for date calculations
+    const userTimezone = streak.userTimezone || "America/New_York";
+
     // Calculate date range using UTC (to match database DATE() output)
     // Database uses SQLite's DATE(timestamp, 'unixepoch') which gives UTC dates
     const requestedStartDate = new Date();
@@ -82,7 +85,8 @@ export async function GET(request: NextRequest) {
     
     const history = await progressRepository.getActivityCalendar(
       actualStartDate,
-      endDate
+      endDate,
+      userTimezone
     );
 
     // Create a map of existing data for quick lookup

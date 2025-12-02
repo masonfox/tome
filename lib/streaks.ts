@@ -37,7 +37,13 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   const now = new Date();
   const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
   const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-  const todayProgress = await progressRepository.getProgressForDate(todayUtc);
+  
+  // Need end of day for date range query
+  const tomorrowInUserTz = new Date(todayInUserTz);
+  tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
+  const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
+  
+  const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
 
   if (!todayProgress || todayProgress.pagesRead === 0) {
     // No activity today, return existing streak
@@ -357,6 +363,10 @@ export async function getActivityCalendar(
   year?: number,
   month?: number
 ): Promise<{ date: string; pagesRead: number }[]> {
+  // Get user timezone from streak record
+  const streak = await streakRepository.getOrCreate(userId || null);
+  const userTimezone = streak.userTimezone || 'America/New_York';
+
   const startDate = new Date(year || new Date().getFullYear(), month || 0, 1);
   const endDate = new Date(
     year || new Date().getFullYear(),
@@ -364,5 +374,5 @@ export async function getActivityCalendar(
     0
   );
 
-  return await progressRepository.getActivityCalendar(startDate, endDate);
+  return await progressRepository.getActivityCalendar(startDate, endDate, userTimezone);
 }
