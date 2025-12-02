@@ -101,10 +101,10 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 - Parse all supported column mappings (see Data Mapping Tables below)
 - Normalize author names (remove extra whitespace, handle "Last, First" format)
 - Clean ISBNs (remove equals signs, quotes, dashes, and "ISBN:" prefixes)
-- Parse dates in multiple formats (YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY)
-- Convert ratings to 1-5 scale (Goodreads 0-5 → 0-5, TheStoryGraph 0.0-5.0 → 0-5)
+- Parse dates in multiple formats (YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY) as calendar dates (no timezone, day-level precision)
+- Convert ratings to 0-5 integer scale (Goodreads 0-5 direct, TheStoryGraph 0.0-5.0 via Math.round)
 - Handle multiple authors (comma-separated)
-- Extract read dates vs date ranges
+- Use single completedDate per record (ignore "Dates Read" and "Read Count" fields)
 
 **Data Mapping Tables:**
 
@@ -131,12 +131,12 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 | Title | title | Yes | Primary matching field |
 | Authors | authors | Yes | Comma-separated |
 | ISBN/UID | isbn | No | May contain non-ISBN identifiers |
-| Star Rating | rating | No | 0.0-5.0 scale, round to nearest 0.25 |
+| Star Rating | rating | No | 0.0-5.0 scale, round to nearest integer (Math.round) |
 | Read Status | status | Yes | read, currently-reading, to-read, did-not-finish, paused |
-| Last Date Read | completedDate | No | YYYY-MM-DD format |
-| Dates Read | readDates[] | No | Date ranges like "2024/01/17-2024/01/19" |
-| Read Count | readCount | No | Inferred from Dates Read if present |
-| Review | review | No | HTML content |
+| Last Date Read | completedDate | No | YYYY-MM-DD format, primary date source |
+| Dates Read | *(ignored)* | No | Not parsed (format unverified, use Last Date Read instead) |
+| Read Count | *(ignored)* | No | Not parsed (future enhancement) |
+| Review | review | No | HTML content, stripped to plain text |
 
 ---
 
@@ -274,9 +274,15 @@ author = lowercase(trim(author))
 - Skip rating sync if Calibre unavailable (log warning, continue import)
 
 **Rating Conversion:**
-- Goodreads: 0-5 → 0-5 (direct)
-- TheStoryGraph: 0.0-5.0 → Round to nearest 0.25, then to 0.5 (half-stars), then to 1.0 (whole stars)
-  - Example: 4.25 → 4.0, 4.75 → 5.0, 3.6 → 3.5
+- Goodreads: 0-5 → 0-5 (direct mapping, no conversion needed)
+- TheStoryGraph: 0.0-5.0 → Round to nearest integer (0-5)
+  - Algorithm: `Math.round(storyGraphRating)`
+  - Examples: 
+    - 4.25 → 4
+    - 4.5 → 5 (rounds up at .5 threshold)
+    - 4.75 → 5
+    - 3.4 → 3
+  - Note: 0 rating (unrated) remains 0, stored as null in database
 
 ---
 
@@ -289,7 +295,7 @@ author = lowercase(trim(author))
 **Acceptance Criteria:**
 - Before creating session, check for existing session with:
   - Same bookId
-  - Same completedDate (within 24 hours)
+  - Same completedDate (within 1 calendar day, using date comparison without timezone)
   - Same rating (if present)
 - If duplicate found: Skip creation, log as "already imported"
 - Display skipped records in import summary
@@ -297,13 +303,20 @@ author = lowercase(trim(author))
 
 **Duplicate Detection Logic:**
 ```sql
+-- Compare calendar dates (no timezone conversion)
+-- julianday() diff < 1.0 means within same day or adjacent day
 SELECT id FROM reading_sessions 
 WHERE bookId = ? 
   AND status = ?
-  AND ABS(julianday(completedDate) - julianday(?)) < 1
+  AND ABS(julianday(completedDate) - julianday(?)) < 1.0
   AND (rating IS NULL OR rating = ?)
 LIMIT 1
 ```
+
+**Date Storage:**
+- All dates stored as ISO 8601 date strings: "YYYY-MM-DD"
+- No time component, no timezone (calendar dates only)
+- Duplicate detection compares calendar dates (±1 day tolerance)
 
 ---
 

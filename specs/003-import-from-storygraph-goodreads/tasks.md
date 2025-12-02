@@ -64,7 +64,7 @@
 
 - [ ] T014 [P] Create ISBN normalizer: lib/utils/isbn-normalizer.ts (normalizeISBN function to clean Excel wrappers, validate format, convert ISBN-10 to ISBN-13)
 - [ ] T015 [P] Create string similarity utilities: lib/utils/string-similarity.ts (cosineSimilarity with word bigrams, levenshteinDistance wrapper for fastest-levenshtein)
-- [ ] T016 [P] Create date parser: lib/utils/date-parser.ts (parseFlexibleDate function supporting YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY formats)
+- [ ] T016 [P] Create date parser: lib/utils/date-parser.ts (parseFlexibleDate function supporting YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY formats, output ISO 8601 date strings without timezone)
 - [ ] T017 [P] Create string normalizer: lib/utils/string-normalizer.ts (normalizeTitle, normalizeAuthor, removeStopwords, extractPrimaryTitle functions)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
