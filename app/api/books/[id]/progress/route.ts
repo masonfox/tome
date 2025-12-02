@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { ProgressService } from "@/lib/services/progress.service";
 
 export const dynamic = 'force-dynamic';
@@ -64,8 +63,7 @@ export async function POST(
 
     const progressLog = await progressService.logProgress(bookId, progressData);
 
-    // Revalidate the dashboard to update streak data
-    revalidatePath('/');
+    // Note: Cache invalidation handled by ProgressService.invalidateCache()
 
     return NextResponse.json(progressLog);
   } catch (error) {
