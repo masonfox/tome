@@ -141,7 +141,7 @@ export class ProgressService {
     await this.checkForCompletion(activeSession.id, metrics.currentPercentage);
 
     // Invalidate cache
-    await this.invalidateCache();
+    await this.invalidateCache(bookId);
 
     return progressLog;
   }
@@ -233,7 +233,7 @@ export class ProgressService {
     await this.updateStreakSystem();
 
     // Invalidate cache
-    await this.invalidateCache();
+    await this.invalidateCache(existingProgress.bookId);
 
     return updated;
   }
@@ -242,14 +242,18 @@ export class ProgressService {
    * Delete progress entry
    */
   async deleteProgress(progressId: number): Promise<boolean> {
+    // Get the progress entry first to obtain bookId for cache invalidation
+    const progressEntry = await progressRepository.findById(progressId);
+    const bookId = progressEntry?.bookId;
+    
     const result = await progressRepository.delete(progressId);
     
-    if (result) {
+    if (result && bookId) {
       // Rebuild streak after progress deletion
       await this.updateStreakSystem();
       
       // Invalidate cache
-      await this.invalidateCache();
+      await this.invalidateCache(bookId);
     }
     
     return result;
@@ -335,10 +339,12 @@ export class ProgressService {
   /**
    * Invalidate Next.js cache for relevant pages
    */
-  private async invalidateCache(): Promise<void> {
+  private async invalidateCache(bookId: number): Promise<void> {
     try {
       revalidatePath("/"); // Dashboard
+      revalidatePath("/library"); // Library page
       revalidatePath("/stats"); // Stats page
+      revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
             const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "[ProgressService] Failed to invalidate cache");

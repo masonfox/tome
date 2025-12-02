@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard-service";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Disable all caching including router cache
 
 export default async function Dashboard() {
   const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal } = await getDashboardData();

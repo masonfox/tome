@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { SessionService } from "@/lib/services/session.service";
 import { sessionRepository } from "@/lib/repositories";
 
@@ -53,8 +52,7 @@ export async function POST(
 
     const newSession = await sessionService.startReread(bookId);
 
-    // Revalidate the dashboard to update book status display
-    revalidatePath('/');
+    // Note: Cache invalidation handled by SessionService.invalidateCache()
 
     return NextResponse.json({
       message: "Re-reading session started successfully",
