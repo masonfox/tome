@@ -6,6 +6,35 @@ DATA_DIR=$(dirname "$DATABASE_PATH")
 MAX_RETRIES=3
 RETRY_DELAY=5
 
+# Display banner with version
+show_banner() {
+  # Try to find package.json in common locations
+  if [ -f "/app/package.json" ]; then
+    VERSION=$(grep '"version"' /app/package.json | head -1 | awk -F'"' '{print $4}')
+  elif [ -f "./package.json" ]; then
+    VERSION=$(grep '"version"' ./package.json | head -1 | awk -F'"' '{print $4}')
+  elif [ -f "package.json" ]; then
+    VERSION=$(grep '"version"' package.json | head -1 | awk -F'"' '{print $4}')
+  else
+    VERSION="unknown"
+  fi
+  
+  echo ""
+  echo "============================================"
+  echo ""
+  echo "   ████████╗ ██████╗ ███╗   ███╗███████╗"
+  echo "   ╚══██╔══╝██╔═══██╗████╗ ████║██╔════╝"
+  echo "      ██║   ██║   ██║██╔████╔██║█████╗  "
+  echo "      ██║   ██║   ██║██║╚██╔╝██║██╔══╝  "
+  echo "      ██║   ╚██████╔╝██║ ╚═╝ ██║███████╗"
+  echo "      ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚══════╝"
+  echo ""
+  echo "              Version: ${VERSION}"
+  echo ""
+  echo "============================================"
+  echo ""
+}
+
 # Function to ensure data directory exists and is writable
 ensure_data_directory() {
   echo "Ensuring data directory exists: ${DATA_DIR}"
@@ -101,6 +130,8 @@ run_migrations() {
 }
 
 # Main execution
+show_banner
+
 echo "=== Database Migration Process ==="
 
 # Ensure data directory exists and is writable FIRST
