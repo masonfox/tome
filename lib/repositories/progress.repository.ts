@@ -316,6 +316,22 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
+   * Calculate pages read after a UTC date (timezone-agnostic)
+   * Compares UTC timestamps directly without timezone conversion
+   * Use this when you have a properly timezone-adjusted UTC timestamp
+   * @param date UTC timestamp representing the start of a day in a specific timezone
+   */
+  async getPagesReadAfterDateUTC(date: Date): Promise<number> {
+    const result = this.getDatabase()
+      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+      .from(progressLogs)
+      .where(gte(progressLogs.progressDate, date))
+      .get();
+
+    return result?.total ?? 0;
+  }
+
+  /**
    * Get all progress logs ordered by date
    */
   async getAllProgressOrdered(): Promise<ProgressLog[]> {

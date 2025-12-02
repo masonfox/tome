@@ -137,9 +137,14 @@ async function getStreak(): Promise<DashboardStreak | null> {
     // Then, get the current streak data (read-only operation)
     const streak = await streakService.getStreak(null);
 
-    // Get today's pages read (use local timezone as per spec requirement)
-    const today = startOfDay(new Date());
-    const todayPages = await progressRepository.getPagesReadAfterDate(today);
+    // Get today's pages read (use user's timezone from streak record)
+    const { toZonedTime, fromZonedTime } = require("date-fns-tz");
+    const userTimezone = streak.userTimezone || 'America/New_York';
+    const now = new Date();
+    const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+    // Use UTC comparison to avoid server timezone issues
+    const todayPages = await progressRepository.getPagesReadAfterDateUTC(todayUtc);
 
     return {
       currentStreak: streak.currentStreak,
