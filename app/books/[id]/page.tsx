@@ -89,7 +89,7 @@ export default function BookDetailPage() {
   function handleRefresh() {
     refetchBook();
     bookProgressHook.refetchProgress();
-    // router.refresh() removed - Phase 2 optimization
+    router.refresh(); // Refresh server components (dashboard, etc.)
   }
 
   // Handle re-read with history refresh
@@ -115,7 +115,7 @@ export default function BookDetailPage() {
     await updateTotalPages(parseInt(totalPagesInput));
     setTotalPagesInput("");
     toast.success("Pages updated");
-    // router.refresh() removed - Phase 2 optimization
+    router.refresh(); // Refresh server components (dashboard, etc.)
   }
 
   // Close dropdowns when clicking outside
