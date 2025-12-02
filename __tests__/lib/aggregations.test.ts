@@ -301,12 +301,23 @@ describe("Aggregation Query Tests", () => {
         progressDate: day2,
       });
 
-      const avg = await progressRepository.getAveragePagesPerDay(30);
+      // Calculate 30 days ago in user timezone
+      const userTimezone = 'America/New_York';
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
       expect(avg).toBe(75); // (50 + 100) / 2 = 75
     });
 
     test("should return 0 for no progress", async () => {
-      const avg = await progressRepository.getAveragePagesPerDay(30);
+      const userTimezone = 'America/New_York';
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
       expect(avg).toBe(0);
     });
   });

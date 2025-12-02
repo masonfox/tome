@@ -82,16 +82,29 @@ export async function getDashboardData(): Promise<DashboardData> {
 
 async function getStats(): Promise<DashboardStats | null> {
   try {
-    const currentYear = new Date().getFullYear();
+    // Get user timezone from streak record to ensure consistency
+    const streak = await streakRepository.getOrCreate(null);
+    const userTimezone = streak.userTimezone || 'America/New_York';
     
-    // Use local timezone (as per spec requirement)
-    const startOfYearDate = startOfYear(new Date(currentYear, 0, 1));
-    const today = startOfDay(new Date());
-    const startOfMonthDate = startOfMonth(new Date());
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const { toZonedTime, fromZonedTime } = require("date-fns-tz");
+    const { subDays } = require("date-fns");
+    const now = new Date();
+    
+    // Calculate all date boundaries in user's timezone
+    const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+    
+    const monthStartInUserTz = startOfMonth(toZonedTime(now, userTimezone));
+    const monthStartUtc = fromZonedTime(monthStartInUserTz, userTimezone);
+    
+    const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
+    const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
+    
+    const thirtyDaysAgoInUserTz = subDays(todayInUserTz, 30);
+    const thirtyDaysAgoUtc = fromZonedTime(thirtyDaysAgoInUserTz, userTimezone);
 
-    // Books read this year
-    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(startOfYearDate);
+    // Books read this year (using user's year boundary)
+    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(yearStartUtc);
 
     // Total books read
     const totalBooksRead = await sessionRepository.countByStatus("read", false);
@@ -99,14 +112,14 @@ async function getStats(): Promise<DashboardStats | null> {
     // Currently reading count
     const currentlyReadingCount = await sessionRepository.countByStatus("reading", true);
 
-    // Pages read today
-    const pagesToday = await progressRepository.getPagesReadAfterDate(today);
+    // Pages read today (using user's today)
+    const pagesToday = await progressRepository.getPagesReadAfterDate(todayUtc);
 
-    // Pages read this month
-    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(startOfMonthDate);
+    // Pages read this month (using user's month boundary)
+    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(monthStartUtc);
 
-    // Average pages per day (last 30 days)
-    const avgPages = await progressRepository.getAveragePagesPerDay(30);
+    // Average pages per day (last 30 days in user's timezone)
+    const avgPages = await progressRepository.getAveragePagesPerDay(thirtyDaysAgoUtc, userTimezone);
 
     return {
       booksRead: {
@@ -143,8 +156,7 @@ async function getStreak(): Promise<DashboardStreak | null> {
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
     const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    // Use UTC comparison to avoid server timezone issues
-    const todayPages = await progressRepository.getPagesReadAfterDateUTC(todayUtc);
+    const todayPages = await progressRepository.getPagesReadAfterDate(todayUtc);
 
     return {
       currentStreak: streak.currentStreak,

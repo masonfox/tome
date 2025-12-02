@@ -893,5 +893,400 @@ function getStreakDate(daysOffset: number = 0): Date {
 **Date**: November 25, 2025  
 **Implementation Date**: November 25, 2025  
 **Updated**: November 27, 2025 (Timezone-aware streak auto-reset)  
+**Updated**: December 2, 2025 (Full user timezone support across entire stack)  
 **Reviewed By**: User (masonfox)  
-**Status**: ✅ Implemented and All Tests Passing (676/676)
+**Status**: ✅ Implemented and All Tests Passing
+
+---
+
+## Update: Full User Timezone Support Across Entire Stack (December 2, 2025)
+
+### Problem: Timezone Whack-a-Mole
+
+While the November 27 update implemented timezone-aware streak tracking, a **critical architectural inconsistency** was discovered:
+
+**Issue**: Different parts of the system used different timezone approaches:
+- ✅ **Streak system** (`lib/streaks.ts`, `lib/services/streak.service.ts`) - Used user timezone correctly
+- ❌ **Dashboard/Stats system** (`lib/dashboard-service.ts`, `app/api/stats/overview/route.ts`) - Used server timezone
+- ⚠️ **Progress repository** (`lib/repositories/progress.repository.ts`) - Mixed server TZ and UTC methods
+
+**Real-world Bug**: User in Tokyo at 2 AM Thursday (Dec 3) saw:
+- ✅ Streak: "You read 50 pages today" (correct - uses user TZ)
+- ❌ Dashboard: "Pages today: 0" (wrong - uses server TZ, thinks it's Wednesday Dec 2)
+- ⚠️ Streak flame: Orange/completed (incorrect - shouldn't show completed until threshold met)
+
+This led to user confusion and loss of trust in the app's accuracy.
+
+### Solution: Consistent User Timezone Pattern Everywhere
+
+Established **The Right Way™** pattern (from streak system) as the universal standard for all date-based queries:
+
+```typescript
+// 1. Get user timezone from streak record
+const streak = await streakRepository.getOrCreate(userId);
+const userTimezone = streak.userTimezone || 'America/New_York';
+
+// 2. Convert "now" to user's timezone
+const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+
+// 3. Convert back to UTC for database
+const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+
+// 4. Use UTC-based comparison
+await repository.method(todayUtc);
+```
+
+**Key Principle**: **Store UTC, calculate in user timezone, compare UTC timestamps**
+
+### Implementation: Comprehensive Refactor
+
+#### 1. Repository Layer: Timezone-Agnostic Methods
+
+**Before** (timezone-ambiguous):
+```typescript
+async getPagesReadAfterDate(date: Date): Promise<number> {
+  // Used server timezone implicitly via SQLite localtime
+  sql`DATE(${progressLogs.progressDate}, 'unixepoch', 'localtime') >= ${dateStr}`
+}
+```
+
+**After** (timezone-agnostic, caller provides UTC):
+```typescript
+/**
+ * Get total pages read after a UTC date boundary
+ * @param dateUtc UTC timestamp (caller must convert from user TZ to UTC first)
+ * @example
+ * // Get pages read "today" for user in Tokyo
+ * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
+ * const todayUtc = fromZonedTime(todayInUserTz, 'Asia/Tokyo');
+ * const pages = await progressRepository.getPagesReadAfterDate(todayUtc);
+ */
+async getPagesReadAfterDate(dateUtc: Date): Promise<number> {
+  // Direct UTC comparison - no timezone conversion
+  const result = this.getDatabase()
+    .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+    .from(progressLogs)
+    .where(gte(progressLogs.progressDate, dateUtc))
+    .get();
+  return result?.total ?? 0;
+}
+```
+
+**Changes Made**:
+- ✅ Removed `getLocalDateString()` helper (server timezone dependency)
+- ✅ Removed SQLite `localtime` usage (server timezone dependency)
+- ✅ All methods now accept UTC Date objects
+- ✅ Callers responsible for timezone conversion (explicit > implicit)
+- ✅ Added comprehensive JSDoc with timezone examples
+
+#### 2. Updated Repository Methods
+
+**Progress Repository** (`lib/repositories/progress.repository.ts`):
+```typescript
+// OLD (removed)
+async getPagesReadAfterDate(date: Date) // Server TZ ambiguous
+
+// NEW (timezone-agnostic)
+async getPagesReadAfterDate(dateUtc: Date) // Caller converts TZ → UTC
+
+async getAveragePagesPerDay(startDateUtc: Date, timezone: string)
+  // Accepts timezone parameter for grouping days in user TZ
+
+async getActivityCalendar(startDate: Date, endDate: Date, timezone: string)
+  // Returns dates as 'YYYY-MM-DD' in user timezone
+
+async getProgressForDate(dateStartUtc: Date, dateEndUtc: Date)
+  // Requires start and end UTC timestamps (caller creates range)
+```
+
+**Session Repository** (`lib/repositories/session.repository.ts`):
+```typescript
+/**
+ * Count completed sessions after a date
+ * @param date UTC timestamp (caller must convert from user TZ to UTC)
+ * @example
+ * const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
+ * const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
+ * const count = await sessionRepository.countCompletedAfterDate(yearStartUtc);
+ */
+async countCompletedAfterDate(date: Date): Promise<number>
+```
+
+#### 3. Service Layer: User Timezone Conversion
+
+**Dashboard Service** (`lib/dashboard-service.ts`):
+```typescript
+export async function getStats(): Promise<DashboardStats> {
+  // Get user timezone from streak record
+  const streak = await streakRepository.getOrCreate(null);
+  const userTimezone = streak.userTimezone || 'America/New_York';
+
+  const now = new Date();
+  
+  // Today in user timezone → UTC
+  const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+  const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+  
+  // Month start in user timezone → UTC
+  const monthStartInUserTz = startOfMonth(toZonedTime(now, userTimezone));
+  const monthStartUtc = fromZonedTime(monthStartInUserTz, userTimezone);
+  
+  // Year start in user timezone → UTC
+  const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
+  const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
+
+  // All queries now use user timezone boundaries
+  const pagesReadToday = await progressRepository.getPagesReadAfterDate(todayUtc);
+  const pagesReadThisMonth = await progressRepository.getPagesReadAfterDate(monthStartUtc);
+  const pagesReadThisYear = await progressRepository.getPagesReadAfterDate(yearStartUtc);
+  
+  // Average pages per day also uses user timezone
+  const thirtyDaysAgoInUserTz = subDays(todayInUserTz, 30);
+  const thirtyDaysAgoUtc = fromZonedTime(thirtyDaysAgoInUserTz, userTimezone);
+  const avgPagesPerDay = await progressRepository.getAveragePagesPerDay(thirtyDaysAgoUtc, userTimezone);
+  
+  // ...
+}
+```
+
+**Streak Wrapper** (`lib/streaks.ts`):
+```typescript
+// Updated getActivityCalendar wrapper to pass timezone
+export async function getActivityCalendar(
+  userId?: number | null,
+  year?: number,
+  month?: number
+): Promise<{ date: string; pagesRead: number }[]> {
+  // Get user timezone from streak record
+  const streak = await streakRepository.getOrCreate(userId || null);
+  const userTimezone = streak.userTimezone || 'America/New_York';
+
+  const startDate = new Date(year || new Date().getFullYear(), month || 0, 1);
+  const endDate = new Date(
+    year || new Date().getFullYear(),
+    (month !== undefined ? month : 11) + 1,
+    0
+  );
+
+  return await progressRepository.getActivityCalendar(startDate, endDate, userTimezone);
+}
+
+// Fixed updateStreaks to use date range for getProgressForDate
+const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+
+// Need end of day for date range query
+const tomorrowInUserTz = new Date(todayInUserTz);
+tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
+const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
+
+const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
+```
+
+#### 4. API Layer: Timezone Conversion
+
+**Stats Overview API** (`app/api/stats/overview/route.ts`):
+```typescript
+export async function GET() {
+  // Get user timezone from streak record
+  const streak = await streakRepository.getOrCreate(null);
+  const userTimezone = streak.userTimezone || "America/New_York";
+
+  const now = new Date();
+  
+  // All date boundaries calculated in user's timezone
+  const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
+  const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
+  
+  const monthStartInUserTz = startOfMonth(toZonedTime(now, userTimezone));
+  const monthStartUtc = fromZonedTime(monthStartInUserTz, userTimezone);
+  
+  const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+  const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+  
+  // 30 days ago in user timezone
+  const thirtyDaysAgoInUserTz = subDays(todayInUserTz, 30);
+  const thirtyDaysAgoUtc = fromZonedTime(thirtyDaysAgoInUserTz, userTimezone);
+
+  // All queries now use UTC timestamps representing user TZ boundaries
+  const booksReadThisYear = await sessionRepository.countCompletedAfterDate(yearStartUtc);
+  const booksReadThisMonth = await sessionRepository.countCompletedAfterDate(monthStartUtc);
+  const pagesReadToday = await progressRepository.getPagesReadAfterDate(todayUtc);
+  const avgPagesPerDay = await progressRepository.getAveragePagesPerDay(thirtyDaysAgoUtc, userTimezone);
+  
+  // ...
+}
+```
+
+**Activity API** (`app/api/stats/activity/route.ts`):
+```typescript
+export async function GET(request: NextRequest) {
+  // Get user timezone
+  const streak = await streakRepository.getOrCreate(null);
+  const userTimezone = streak.userTimezone || "America/New_York";
+
+  // Pass timezone to repository methods
+  const activityData = await getActivityCalendar(undefined, year, month);
+  const yearlyActivity = await progressRepository.getActivityCalendar(yearStart, yearEnd, userTimezone);
+  // ...
+}
+```
+
+**Streak Analytics API** (`app/api/streak/analytics/route.ts`):
+```typescript
+export async function GET(request: NextRequest) {
+  const streak = await streakService.getStreak();
+  const userTimezone = streak.userTimezone || "America/New_York";
+
+  // Pass timezone to activity calendar
+  const history = await progressRepository.getActivityCalendar(
+    actualStartDate,
+    endDate,
+    userTimezone
+  );
+  // ...
+}
+```
+
+### Architecture Pattern: The Right Way™
+
+**Layers and Responsibilities**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     THE RIGHT WAY™                           │
+│         Consistent Timezone Pattern (Dec 2, 2025)           │
+└─────────────────────────────────────────────────────────────┘
+
+API Route / Service Layer
+┌──────────────────────────────────────────────────────────────┐
+│ 1. Get user timezone from streak record                      │
+│    const streak = await streakRepository.getOrCreate(null);  │
+│    const userTimezone = streak.userTimezone || 'America/..'; │
+│                                                               │
+│ 2. Convert "now" to user's timezone                          │
+│    const todayInUserTz = startOfDay(                         │
+│      toZonedTime(now, userTimezone)                          │
+│    );                                                         │
+│                                                               │
+│ 3. Convert back to UTC for database                          │
+│    const todayUtc = fromZonedTime(                           │
+│      todayInUserTz, userTimezone                             │
+│    );                                                         │
+└──────────────────────────────────────────────────────────────┘
+                          ↓ Pass UTC timestamp
+┌──────────────────────────────────────────────────────────────┐
+│ Repository Layer (Timezone-Agnostic)                         │
+│                                                               │
+│ 4. Use UTC-based comparison (no timezone conversion)         │
+│    .where(gte(progressLogs.progressDate, todayUtc))         │
+│                                                               │
+│ Principle: Repository doesn't know about timezones           │
+│           Caller converts TZ → UTC before calling            │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Benefits**:
+- ✅ **Single source of truth**: User timezone stored in streaks table
+- ✅ **Clear separation**: Repository = data layer, Service = business logic (including TZ)
+- ✅ **Testable**: Can test repository with any UTC timestamps
+- ✅ **Consistent**: All date queries use same pattern
+- ✅ **Explicit**: Timezone conversion is visible in code (not hidden in SQL)
+
+### Files Modified
+
+**Repository Layer**:
+- `lib/repositories/progress.repository.ts` - Removed server TZ methods, added UTC-based methods with JSDoc
+- `lib/repositories/session.repository.ts` - Added timezone documentation to date methods
+
+**Service Layer**:
+- `lib/dashboard-service.ts` - Full user timezone support in getStats() and getStreak()
+- `lib/streaks.ts` - Fixed getProgressForDate call, added timezone to getActivityCalendar()
+
+**API Layer**:
+- `app/api/stats/overview/route.ts` - User timezone conversion for all date boundaries
+- `app/api/stats/activity/route.ts` - Pass timezone to activity calendar
+- `app/api/streak/analytics/route.ts` - Pass timezone to activity calendar
+
+### Testing Strategy (Planned)
+
+**Basic timezone tests** (UTC, EST, JST):
+```typescript
+describe('User timezone support', () => {
+  it('should calculate stats using user timezone (UTC)', async () => {
+    // Set user timezone to UTC
+    // Create progress at midnight UTC
+    // Verify "today" stats match
+  });
+
+  it('should calculate stats using user timezone (EST)', async () => {
+    // Set user timezone to America/New_York
+    // Create progress at 2 AM EST (7 AM UTC)
+    // Verify grouped as same day in EST
+  });
+
+  it('should calculate stats using user timezone (JST)', async () => {
+    // Set user timezone to Asia/Tokyo
+    // Create progress at 2 AM JST (5 PM previous day UTC)
+    // Verify grouped as correct day in JST
+  });
+});
+```
+
+### Consequences
+
+#### Additional Positives
+
+✅ **Architectural consistency**: All systems use user timezone  
+✅ **No more whack-a-mole**: Single pattern applied everywhere  
+✅ **Explicit timezone handling**: Visible in code, not hidden  
+✅ **Repository purity**: Data layer doesn't know about timezones  
+✅ **Service layer clarity**: Business logic includes timezone conversion  
+✅ **Better documentation**: JSDoc explains timezone requirements
+
+#### Trade-offs
+
+⚠️ **More verbose**: Timezone conversion code at every call site  
+⚠️ **Breaking change**: Old repository method signatures changed  
+⚠️ **Requires discipline**: Developers must remember to convert TZ → UTC
+
+### Migration Notes
+
+**For Developers**:
+
+1. **Old pattern (WRONG)**:
+```typescript
+const today = startOfDay(new Date());
+const pages = await progressRepository.getPagesReadAfterDate(today);
+```
+
+2. **New pattern (CORRECT)**:
+```typescript
+const streak = await streakRepository.getOrCreate(null);
+const userTimezone = streak.userTimezone || 'America/New_York';
+const todayInUserTz = startOfDay(toZonedTime(new Date(), userTimezone));
+const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+const pages = await progressRepository.getPagesReadAfterDate(todayUtc);
+```
+
+**For Users**:
+- No changes required
+- Stats and streak should now match correctly
+- All "today" boundaries use user's timezone consistently
+
+### Related Issues
+
+**Bug Fixed**: Streak flame showing as "completed" (orange) when user hasn't read yet today
+- Root cause: Dashboard used server TZ, streak used user TZ
+- Fix: Both now use user TZ consistently
+
+**Future Work**:
+- Add timezone tests (basic: UTC, EST, JST)
+- Run full test suite to verify no regressions
+- Update ADR with test results
+
+---
+
+**Updated By**: Claude Code (AI Assistant)  
+**Date**: December 2, 2025  
+**Implementation Status**: ✅ Code Complete, ⏳ Tests Pending

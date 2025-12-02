@@ -308,7 +308,13 @@ export class StreakService {
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
     const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    const todayProgress = await progressRepository.getProgressForDate(todayUtc);
+    
+    // Need end of day for date range query
+    const tomorrowInUserTz = new Date(todayInUserTz);
+    tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
+    const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
+    
+    const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
 
     if (!todayProgress || todayProgress.pagesRead === 0) {
       // No activity today, return existing streak
