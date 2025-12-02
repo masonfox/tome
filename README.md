@@ -1,10 +1,24 @@
 # 📚 Tome
 
+[![Tome - ghcr.io](https://img.shields.io/badge/ghcr.io-tome%3Alatest-blue)](https://github.com/users/masonfox/packages/container/tome/latest)
+
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
 
 A self-hosted book tracking web application that integrates directly with Calibre's database to provide reading progress tracking, status management, and streak functionality.
 
 **Think**: Goodreads/StoryGraph but powered by your personal Calibre library.
+
+![Tome Dashboard](./docs/assets/dashboard.png)
+
+<details> <summary>Additional Screenshots</summary>
+
+**Library**
+![Library UI](./docs/assets/library.png)
+
+**Book Detail**
+![Book UI](./docs/assets/book-detail.png)
+
+</details>
 
 ## What is Tome?
 
