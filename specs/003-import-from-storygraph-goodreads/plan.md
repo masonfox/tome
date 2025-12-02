@@ -13,6 +13,7 @@ Enable users to import their complete reading history from Goodreads and TheStor
 **Primary Dependencies**: 
 - `papaparse` (CSV parsing with proper quote/escape handling)
 - `fastest-levenshtein` (string similarity calculation for fuzzy matching)
+- `string-strip-html` (strip HTML tags from TheStoryGraph reviews)
 - `drizzle-orm` (database access via repository pattern)
 - `zod` (validation for import data structures)
 - `pino` (structured logging for import operations)
@@ -348,7 +349,7 @@ Deliverable: `research.md` with sections:
 - authors array not empty
 - isbn must match ISBN-10 or ISBN-13 format (if provided)
 - rating must be 0-5 (if provided)
-- reason must be one of: 'no_isbn', 'no_title_match', 'ambiguous', 'not_in_library'
+- reason must be one of: 'no_isbn', 'no_title_match', 'ambiguous', 'not_in_library', 'dnf_not_supported'
 
 #### State Transitions
 
@@ -452,7 +453,7 @@ content:
           example: "Invalid CSV format"
         details:
           type: string
-          example: "Missing required columns: Date Read, My Rating"
+          example: "This file doesn't appear to be a valid Goodreads export. Please check: (1) You selected the correct provider, (2) The export file hasn't been modified, (3) You exported with all data included (not a filtered export)."
 ```
 
 **Response 413 Payload Too Large**:

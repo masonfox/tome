@@ -84,10 +84,10 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 
 **Error Conditions:**
 - File exceeds size limit → "File too large (max 10 MB)"
-- Missing required columns → "Invalid {provider} format: missing columns {list}"
+- Missing required columns → "This file doesn't appear to be a valid {provider} export. Please check: (1) You selected the correct provider, (2) The export file hasn't been modified, (3) You exported with all data included (not a filtered export)."
 - Non-CSV file type → "File must be CSV format"
 - Empty file → "File is empty"
-- Column mismatch → "This file does not match the {provider} format. Please verify you selected the correct provider."
+- Column mismatch → "This file doesn't match the expected {provider} export format. Try: (1) Verify you selected the correct provider (Goodreads or TheStoryGraph), (2) Re-export from {provider} and try again, (3) Check the file wasn't modified after export."
 
 ---
 
@@ -233,6 +233,7 @@ author = lowercase(trim(author))
 - Create separate `ReadingSession` for each read date in import
 - Set `sessionNumber` sequentially (check existing sessions)
 - Set `status` based on import data (read, currently-reading, to-read)
+- Skip "did-not-finish" status (store in unmatched_records for user review)
 - Set `startedDate` to null for "to-read", same as completedDate for "read"
 - Set `completedDate` from import date
 - Create single ProgressLog entry at 100% for each "read" session
@@ -242,13 +243,13 @@ author = lowercase(trim(author))
 
 **Session Status Mapping:**
 
-| Import Status | Tome Status | startedDate | completedDate | Progress |
-|--------------|-------------|-------------|---------------|----------|
-| read | read | completedDate | completedDate | 100% |
-| currently-reading | reading | today | null | 0% (or inferred) |
-| to-read | to-read | null | null | none |
-| did-not-finish | read | completedDate | completedDate | <100% |
-| paused | reading | null | null | 0% |
+| Import Status | Tome Status | startedDate | completedDate | Progress | Notes |
+|--------------|-------------|-------------|---------------|----------|-------|
+| read | read | completedDate | completedDate | 100% | Imported as completed session |
+| currently-reading | reading | today | null | 0% (or inferred) | Active reading session |
+| to-read | to-read | null | null | none | Not started |
+| did-not-finish | *(skipped)* | - | - | - | Stored in unmatched_records with reason 'dnf_not_supported' |
+| paused | reading | null | null | 0% | Treated as active reading session |
 
 **Multi-Read Handling:**
 - If readCount > 1 or multiple dates provided:
@@ -269,7 +270,7 @@ author = lowercase(trim(author))
 - Set `books.rating` to imported rating (0-5 scale, null if 0)
 - Sync rating to Calibre via `updateCalibreRating()` (best effort)
 - Store review text in `readingSessions.review`
-- Handle HTML content in TheStoryGraph reviews (strip tags or preserve)
+- Strip HTML tags from TheStoryGraph reviews (plain text only)
 - Skip rating sync if Calibre unavailable (log warning, continue import)
 
 **Rating Conversion:**
@@ -463,7 +464,7 @@ Stores unmatched records for later manual review/matching.
   status: string
   review: string | null
   matchAttempted: boolean
-  reason: string // "no_isbn", "no_title_match", "ambiguous"
+  reason: string // "no_isbn", "no_title_match", "ambiguous", "dnf_not_supported"
   createdAt: timestamp
 }
 ```

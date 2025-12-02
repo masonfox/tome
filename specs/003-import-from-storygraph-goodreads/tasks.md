@@ -32,7 +32,7 @@
 
 **Purpose**: Create project structure and install dependencies
 
-- [ ] T001 Install NPM dependencies: csv-parse (v5.5.6) and fastest-levenshtein (v1.0.16) in package.json
+- [ ] T001 Install NPM dependencies: csv-parse (v5.5.6), fastest-levenshtein (v1.0.16), and string-strip-html (v13.4.8) in package.json
 - [ ] T002 [P] Create directory structure: data/temp-imports/ for CSV uploads
 - [ ] T003 [P] Add .gitignore entry for data/temp-imports/*.csv (ignore uploaded CSV files)
 - [ ] T004 [P] Create lib/utils/ directory for utility functions
@@ -84,10 +84,10 @@
 - [ ] T018 [P] [US1] Create CSV parser service: lib/services/csv-parser.service.ts (parseCSV, validateProvider, normalizeRecord methods using csv-parse)
 - [ ] T019 [P] [US1] Create provider validation schemas: lib/schemas/csv-provider.schema.ts (Zod schemas for Goodreads and TheStoryGraph required columns)
 - [ ] T020 [US1] Implement Goodreads parser: Add parseGoodreadsRow method to csv-parser.service.ts (map columns per spec.md FR-002 Goodreads table)
-- [ ] T021 [US1] Implement TheStoryGraph parser: Add parseStoryGraphRow method to csv-parser.service.ts (map columns per spec.md FR-002 TheStoryGraph table)
+- [ ] T021 [US1] Implement TheStoryGraph parser: Add parseStoryGraphRow method to csv-parser.service.ts (map columns per spec.md FR-002 TheStoryGraph table, skip "did-not-finish" status records, strip HTML from review field using string-strip-html)
 - [ ] T022 [US1] Create file upload API route: app/api/import/upload/route.ts (POST handler with multipart/form-data, file size validation 10MB, provider parameter)
 - [ ] T023 [US1] Add upload validation: Implement file type check (CSV only), size limit enforcement, provider selection validation in upload/route.ts
-- [ ] T024 [US1] Add error responses: Implement error handling for invalid CSV, missing columns, empty file, provider mismatch in upload/route.ts per OpenAPI spec
+- [ ] T024 [US1] Add error responses: Implement user-friendly error handling for invalid CSV, missing columns, empty file, provider mismatch in upload/route.ts (use actionable error messages per spec.md FR-001 Error Conditions)
 
 **Checkpoint**: US1 complete - CSV files can be uploaded, validated, and parsed
 
@@ -150,7 +150,7 @@
 
 - [ ] T040 [P] [US4] Create session importer service: lib/services/session-importer.service.ts (createSessions, detectDuplicates, handleReReads methods)
 - [ ] T041 [US4] Implement duplicate detection: Add findDuplicate method to lib/repositories/session.repository.ts (SQL query with 24-hour tolerance per research.md)
-- [ ] T042 [US4] Create session creation logic: Implement createSession method with status mapping (read, currently-reading, to-read), sessionNumber increment
+- [ ] T042 [US4] Create session creation logic: Implement createSession method with status mapping (read, currently-reading, to-read), skip "did-not-finish" records to unmatched, sessionNumber increment
 - [ ] T043 [US4] Handle re-reads: Add handleMultipleReadDates method to create N sessions with sequential sessionNumbers, archive old sessions (isActive=false)
 - [ ] T044 [US4] Create progress logs: Add createProgressLog method to create 100% progress entry for each "read" session in session-importer.service.ts
 - [ ] T045 [US4] Implement rating sync: Add syncRating method to update books.rating and call updateCalibreRating() (best-effort, log failures)
