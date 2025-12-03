@@ -346,6 +346,55 @@ export class SessionRepository extends BaseRepository<
     return (result?.count ?? 0) > 0;
   }
 
+  /**
+   * Find duplicate session (within 24-hour window)
+   * Used for import duplicate detection
+   * 
+   * @param bookId - Book ID to check
+   * @param status - Session status
+   * @param completedDate - Completed date to check (nullable for non-completed sessions)
+   * @param rating - Rating to check (nullable)
+   * @returns Existing session if duplicate found, undefined otherwise
+   */
+  async findDuplicate(
+    bookId: number,
+    status: ReadingSession["status"],
+    completedDate: Date | null,
+    rating: number | null
+  ): Promise<ReadingSession | undefined> {
+    // For completed sessions, check date within 24-hour window
+    if (status === "read" && completedDate) {
+      // Use julianday for 24-hour tolerance
+      const result = this.getDatabase()
+        .select()
+        .from(readingSessions)
+        .where(
+          and(
+            eq(readingSessions.bookId, bookId),
+            eq(readingSessions.status, status),
+            sql`ABS(julianday(${readingSessions.completedDate}) - julianday(${completedDate})) < 1.0`
+          )
+        )
+        .limit(1)
+        .get();
+
+      return result;
+    }
+
+    // For non-completed sessions (to-read, reading, etc.), check exact bookId + status match
+    return this.getDatabase()
+      .select()
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          eq(readingSessions.status, status)
+        )
+      )
+      .limit(1)
+      .get();
+  }
+
    /**
     * Count total completed reads for a book
     */
