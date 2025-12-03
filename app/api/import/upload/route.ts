@@ -7,8 +7,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { csvParserService } from "@/lib/services/csv-parser.service";
+import { bookMatcherService } from "@/lib/services/book-matcher.service";
 import { ProviderSchema } from "@/lib/schemas/csv-provider.schema";
 import { importLogRepository } from "@/lib/repositories/import-log.repository";
+import { importCache } from "@/lib/services/import-cache.service";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
@@ -188,8 +190,34 @@ export async function POST(request: NextRequest) {
       "CSV parsed successfully"
     );
 
-    // TODO: Phase 4 - Perform book matching here
-    // For now, just return the parse result without matching
+    // Phase 4: Perform book matching
+    const { matches, summary } = await bookMatcherService.matchRecords(
+      parseResult.records
+    );
+
+    logger.info(
+      {
+        importId: importLog.id,
+        matchSummary: summary,
+      },
+      "Book matching completed"
+    );
+
+    // Update import log with match statistics
+    await importLogRepository.update(importLog.id, {
+      matchedRecords: summary.exactMatches + summary.highConfidenceMatches,
+      unmatchedRecords: summary.unmatchedRecords,
+    });
+
+    // Phase 5: Store matches in cache for preview
+    importCache.set({
+      importId: importLog.id,
+      userId: 0, // Single-user mode
+      provider,
+      fileName: file.name,
+      parsedRecords: parseResult.records,
+      matchResults: matches,
+    });
 
     // Return upload response
     return NextResponse.json(
@@ -201,10 +229,11 @@ export async function POST(request: NextRequest) {
         fileName: file.name,
         fileSize: file.size,
         preview: {
-          exactMatches: 0, // TODO: Phase 4 - calculate from matching
-          highConfidenceMatches: 0,
-          lowConfidenceMatches: 0,
-          unmatchedRecords: parseResult.validRows,
+          exactMatches: summary.exactMatches,
+          highConfidenceMatches: summary.highConfidenceMatches,
+          mediumConfidenceMatches: summary.mediumConfidenceMatches,
+          lowConfidenceMatches: summary.lowConfidenceMatches,
+          unmatchedRecords: summary.unmatchedRecords,
         },
         validRows: parseResult.validRows,
         skippedRows: parseResult.skippedRows,
