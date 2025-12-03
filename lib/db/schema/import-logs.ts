@@ -23,6 +23,7 @@ export const importLogs = sqliteTable(
       enum: ["pending", "processing", "success", "partial", "failed"],
     }).notNull().default("pending"),
     errorMessage: text("error_message"),
+    matchResults: text("match_results", { mode: "json" }), // JSON storage for match results to survive server restarts
     userId: integer("user_id"), // Nullable for single-user mode
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

@@ -50,24 +50,7 @@ export async function POST(
 
     logger.info({ importId, forceDuplicates }, 'Import execution started');
 
-    // Get cached import data
-    const cachedData = importCache.get(importId);
-    
-    if (!cachedData) {
-      logger.warn({ importId }, 'Import not found in cache');
-      
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Import not found or expired',
-          details: 'The import session has expired (30 min timeout) or does not exist. Please upload the file again.',
-          code: 'IMPORT_NOT_FOUND',
-        },
-        { status: 404 }
-      );
-    }
-
-    // Get import log
+    // Get import log with match results from DB (now persisted, not just cache)
     const importLog = await importLogRepository.findById(importId);
     if (!importLog) {
       return NextResponse.json(
@@ -79,6 +62,34 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Get match results from DB (survives server restarts)
+    const matchResults = importLog.matchResults as any;
+    
+    if (!matchResults || !Array.isArray(matchResults)) {
+      logger.warn({ importId }, 'Match results not found in database');
+      
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Import data not found',
+          details: 'Match results are missing. Please upload the file again.',
+          code: 'IMPORT_DATA_NOT_FOUND',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Build cached data structure from DB data
+    const cachedData = {
+      importId: importLog.id,
+      userId: importLog.userId || 0,
+      provider: importLog.provider as 'goodreads' | 'storygraph',
+      fileName: importLog.fileName,
+      parsedRecords: [], // Not needed for execution, only match results matter
+      matchResults: matchResults,
+      expiresAt: Date.now() + 30 * 60 * 1000, // Not actually used, but needed for type
+    };
 
     // Check if already executed
     if (importLog.status !== 'pending') {

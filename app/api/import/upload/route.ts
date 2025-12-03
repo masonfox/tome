@@ -203,13 +203,14 @@ export async function POST(request: NextRequest) {
       "Book matching completed"
     );
 
-    // Update import log with match statistics
+    // Update import log with match statistics AND store match results in DB
     await importLogRepository.update(importLog.id, {
       matchedRecords: summary.exactMatches + summary.highConfidenceMatches,
       unmatchedRecords: summary.unmatchedRecords,
+      matchResults: matches as any, // Store match results in DB to survive server restarts
     });
 
-    // Phase 5: Store matches in cache for preview
+    // Phase 5: Store matches in cache for preview (optional backup, DB is source of truth)
     importCache.set({
       importId: importLog.id,
       userId: 0, // Single-user mode
