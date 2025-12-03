@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Library, BarChart3, Settings, Upload, Sun, Moon, LogOut } from "lucide-react";
+import { BookOpen, Library, BarChart3, Settings, Sun, Moon, LogOut } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
@@ -62,7 +62,6 @@ export function Navigation() {
   const links = [
     { href: "/", label: "DASHBOARD", icon: BookOpen },
     { href: "/library", label: "LIBRARY", icon: Library },
-    { href: "/import", label: "IMPORT", icon: Upload },
     { href: "/stats", label: "STATS", icon: BarChart3 },
     { href: "/settings", label: "SETTINGS", icon: Settings },
   ];
