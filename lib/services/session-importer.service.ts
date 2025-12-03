@@ -394,8 +394,9 @@ class SessionImporterService {
   ): Promise<number[]> {
     const sessionIds: number[] = [];
 
-    // Sort dates chronologically
-    const sortedDates = [...completedDates].sort((a, b) => a.getTime() - b.getTime());
+    // Filter out invalid dates and sort chronologically
+    const validDates = completedDates.filter(d => d && d instanceof Date && !isNaN(d.getTime()));
+    const sortedDates = [...validDates].sort((a, b) => a.getTime() - b.getTime());
 
     for (const date of sortedDates) {
       const sessionNumber = await sessionRepository.getNextSessionNumber(book.id);
