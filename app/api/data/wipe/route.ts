@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { sqlite } from "@/lib/db/sqlite";
-import { runMigrations } from "@/lib/db/migrate";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
@@ -8,58 +7,68 @@ const logger = getLogger();
 export const dynamic = 'force-dynamic';
 
 /**
- * Drops all tables from the database
+ * Truncates all data from all tables, preserving schema
  */
-function dropAllTables() {
-  logger.info("Dropping all tables...");
+function truncateAllData() {
+  logger.info("Truncating all data from tables...");
   
-  // Get all table names
+  // Get all table names (excluding system tables and migrations)
   const tables = sqlite
     .prepare(
       `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__drizzle_migrations'`
     )
     .all() as { name: string }[];
 
-  logger.info({ tableCount: tables.length }, `Found ${tables.length} tables to drop`);
+  logger.info({ tableCount: tables.length }, `Found ${tables.length} tables to truncate`);
 
   // Disable foreign key checks temporarily
   sqlite.prepare("PRAGMA foreign_keys = OFF").run();
 
-  // Drop each table
+  // Delete all data from each table
   for (const { name } of tables) {
-    logger.info({ table: name }, `Dropping table: ${name}`);
-    sqlite.prepare(`DROP TABLE IF EXISTS "${name}"`).run();
+    logger.info({ table: name }, `Truncating table: ${name}`);
+    sqlite.prepare(`DELETE FROM "${name}"`).run();
   }
 
-  // Drop the migrations table as well to start fresh
-  logger.info("Dropping migrations table");
-  sqlite.prepare("DROP TABLE IF EXISTS __drizzle_migrations").run();
+  // Reset sqlite_sequence to reset auto-increment counters
+  const sequenceExists = sqlite
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+    .get();
+  
+  if (sequenceExists) {
+    logger.info("Resetting auto-increment sequences");
+    sqlite.prepare("DELETE FROM sqlite_sequence").run();
+  }
 
   // Re-enable foreign key checks
   sqlite.prepare("PRAGMA foreign_keys = ON").run();
 
-  logger.info("All tables dropped successfully");
+  // Checkpoint WAL to ensure changes are persisted
+  logger.info("Checkpointing WAL");
+  sqlite.prepare("PRAGMA wal_checkpoint(TRUNCATE)").run();
+
+  // Run VACUUM to reclaim space and optimize database
+  logger.info("Running VACUUM");
+  sqlite.prepare("VACUUM").run();
+
+  logger.info("All data truncated successfully");
 }
 
 /**
- * POST endpoint to wipe all data and refresh the database
+ * POST endpoint to wipe all data while preserving schema
  */
 export async function POST() {
   try {
     logger.info("Data wipe requested via API");
 
-    // Drop all tables
-    dropAllTables();
-
-    // Run migrations to recreate tables
-    logger.info("Running migrations...");
-    runMigrations();
+    // Truncate all data (preserves schema)
+    truncateAllData();
 
     logger.info("Data wipe completed successfully");
 
     return NextResponse.json({ 
       success: true, 
-      message: "All data has been wiped and database reset successfully" 
+      message: "All data has been wiped successfully" 
     });
   } catch (error) {
     logger.error({ err: error }, "Data wipe failed");

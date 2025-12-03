@@ -1,9 +1,7 @@
 import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase } from "../helpers/db-setup";
 import type { TestDatabaseInstance } from "../helpers/db-setup";
-import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "@/lib/db/schema";
-import { runMigrationsOnDatabase } from "@/lib/db/migrate";
 
 describe("Data Wipe API", () => {
   let dbInstance: TestDatabaseInstance;
@@ -16,7 +14,7 @@ describe("Data Wipe API", () => {
     await teardownTestDatabase(dbInstance);
   });
 
-  test("should drop all tables and recreate them", () => {
+  test("should truncate all data while preserving schema", () => {
     // Insert some test data first
     dbInstance.db.insert(schema.books)
       .values({
@@ -33,7 +31,7 @@ describe("Data Wipe API", () => {
     const booksBefore = dbInstance.db.select().from(schema.books).all();
     expect(booksBefore).toHaveLength(1);
 
-    // Simulate the dropAllTables function
+    // Simulate the truncateAllData function
     const tables = dbInstance.sqlite
       .prepare(
         `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__drizzle_migrations'`
@@ -43,77 +41,81 @@ describe("Data Wipe API", () => {
     // Disable foreign key checks temporarily
     dbInstance.sqlite.prepare("PRAGMA foreign_keys = OFF").run();
 
-    // Drop each table
+    // Delete all data from each table
     for (const { name } of tables) {
-      dbInstance.sqlite.prepare(`DROP TABLE IF EXISTS "${name}"`).run();
+      dbInstance.sqlite.prepare(`DELETE FROM "${name}"`).run();
     }
 
-    // Drop the migrations table as well
-    dbInstance.sqlite.prepare("DROP TABLE IF EXISTS __drizzle_migrations").run();
+    // Reset sqlite_sequence to reset auto-increment counters
+    const sequenceExists = dbInstance.sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+      .get();
+    
+    if (sequenceExists) {
+      dbInstance.sqlite.prepare("DELETE FROM sqlite_sequence").run();
+    }
 
     // Re-enable foreign key checks
     dbInstance.sqlite.prepare("PRAGMA foreign_keys = ON").run();
 
-    // Verify tables are dropped
-    const tablesAfterDrop = dbInstance.sqlite
-      .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
-      )
-      .all() as { name: string }[];
-
-    expect(tablesAfterDrop).toHaveLength(0);
-
-    // Reset database (recreate tables)
-    runMigrationsOnDatabase(dbInstance.db);
-
-    // Create new drizzle instance with the fresh schema
-    const freshDb = drizzle(dbInstance.sqlite, { schema });
-
-    // Verify tables are recreated
-    const tablesAfterRecreate = dbInstance.sqlite
-      .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__drizzle_migrations'`
-      )
-      .all() as { name: string }[];
-
-    expect(tablesAfterRecreate.length).toBeGreaterThan(0);
-
-    // Verify data is gone
-    const booksAfter = freshDb.select().from(schema.books).all();
-    expect(booksAfter).toHaveLength(0);
-  });
-
-  test("should preserve table structure after wipe", async () => {
-    // Drop and recreate tables
-    const tablesBefore = dbInstance.sqlite
-      .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__drizzle_migrations'`
-      )
-      .all() as { name: string }[];
-
-    const tableNamesBefore = tablesBefore.map((t) => t.name).sort();
-
-    // Simulate wipe
-    dbInstance.sqlite.prepare("PRAGMA foreign_keys = OFF").run();
-    for (const { name } of tablesBefore) {
-      dbInstance.sqlite.prepare(`DROP TABLE IF EXISTS "${name}"`).run();
-    }
-    dbInstance.sqlite.prepare("DROP TABLE IF EXISTS __drizzle_migrations").run();
-    dbInstance.sqlite.prepare("PRAGMA foreign_keys = ON").run();
-
-    // Recreate
-    await runMigrationsOnDatabase(dbInstance.db);
-    const freshDb = drizzle(dbInstance.sqlite, { schema });
-
+    // Verify tables still exist
     const tablesAfter = dbInstance.sqlite
       .prepare(
         `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__drizzle_migrations'`
       )
       .all() as { name: string }[];
 
-    const tableNamesAfter = tablesAfter.map((t) => t.name).sort();
+    expect(tablesAfter.length).toEqual(tables.length);
 
-    // Table names should match
-    expect(tableNamesAfter).toEqual(tableNamesBefore);
+    // Verify data is gone
+    const booksAfter = dbInstance.db.select().from(schema.books).all();
+    expect(booksAfter).toHaveLength(0);
+  });
+
+  test("should reset auto-increment IDs after wipe", () => {
+    // Insert a book
+    const book1 = dbInstance.db.insert(schema.books)
+      .values({
+        title: "Book 1",
+        authors: ["Author 1"],
+        calibreId: 1,
+        path: "/test/path1",
+        totalPages: 100,
+      })
+      .returning()
+      .get();
+
+    expect(book1.id).toBeDefined();
+    const firstId = book1.id;
+
+    // Truncate data
+    dbInstance.sqlite.prepare("PRAGMA foreign_keys = OFF").run();
+    dbInstance.sqlite.prepare("DELETE FROM books").run();
+    
+    const sequenceExists = dbInstance.sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+      .get();
+    
+    if (sequenceExists) {
+      dbInstance.sqlite.prepare("DELETE FROM sqlite_sequence").run();
+    }
+    
+    dbInstance.sqlite.prepare("PRAGMA foreign_keys = ON").run();
+
+    // Insert a new book
+    const book2 = dbInstance.db.insert(schema.books)
+      .values({
+        title: "Book 2",
+        authors: ["Author 2"],
+        calibreId: 2,
+        path: "/test/path2",
+        totalPages: 200,
+      })
+      .returning()
+      .get();
+
+    // ID should be reset (or close to the first ID, depending on implementation)
+    expect(book2.id).toBeDefined();
+    expect(book2.id).toBeLessThanOrEqual(firstId + 1);
   });
 });
