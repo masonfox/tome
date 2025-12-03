@@ -521,11 +521,26 @@ All backend functionality is fully implemented and tested:
 - Option B: 30-60 minutes (single button + fetch + CSV download)
 - Option C: 0 hours (done!)
 
+### Architecture Decisions
+
+**Match Results Storage (2025-12-03):**
+- **Issue:** Initial implementation used in-memory cache (30min TTL) to store match results between upload and execute steps
+- **Problem:** Dev server hot-reloads cleared cache, causing "Import not found or expired" errors
+- **Solution:** Added `matchResults` JSON column to `import_logs` table (migration 0011)
+- **Result:** Match results now persist in database, surviving server restarts
+- **Impact:** Import flow is now resilient to server restarts during development and production
+
+**Implementation Details:**
+- Upload route stores match results in both cache (performance) and DB (persistence)
+- Execute route retrieves from DB as source of truth (cache is optional backup)
+- Cache still used by preview endpoint for fast pagination
+- DB storage adds ~50-500KB per import depending on library size
+
 ### Testing Status
 
 All phases have been manually tested through the API. UI testing pending for detailed preview features.
 
 ---
 
-**Status as of 2025-12-03:** Backend complete, UI functional with enhancement opportunities
+**Status as of 2025-12-03:** Backend complete, UI functional with Option B enhancement (export unmatched)
 
