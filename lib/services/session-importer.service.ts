@@ -220,14 +220,30 @@ class SessionImporterService {
       }
     }
 
+    // Determine dates based on status and available data
+    let startedDate: Date | null = null;
+    let completedDate: Date | null = null;
+
+    if (sessionStatus === 'read' && record.completedDate) {
+      // For completed reads: set completedDate from import
+      // startedDate is unknown for imports, leave as null
+      completedDate = record.completedDate;
+      startedDate = null;
+    } else if (sessionStatus === 'reading') {
+      // For currently-reading: set startedDate to now or completedDate if available
+      startedDate = record.completedDate || new Date();
+      completedDate = null;
+    }
+    // For 'to-read': both dates remain null
+
     // Create the session
     const session = await sessionRepository.create({
       userId: null, // Single-user mode
       bookId: book.id,
       sessionNumber,
       status: sessionStatus,
-      startedDate: record.status === 'read' ? record.completedDate : null,
-      completedDate: record.completedDate,
+      startedDate,
+      completedDate,
       review: record.review,
       isActive: sessionStatus !== 'read', // Completed reads are archived
     });

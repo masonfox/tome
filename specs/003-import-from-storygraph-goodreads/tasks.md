@@ -544,3 +544,28 @@ All phases have been manually tested through the API. UI testing pending for det
 
 **Status as of 2025-12-03:** Backend complete, UI functional with Option B enhancement (export unmatched)
 
+### Bug Fix: Import Session Dates (2025-12-03)
+
+**Issue**: Sessions created from imports had NULL `startedDate` and `completedDate` fields, preventing dates from displaying in the Reading History UI.
+
+**Root Cause**: Logic in `session-importer.service.ts` line 229 incorrectly set dates:
+- For `status='read'`: Set `startedDate = completedDate` (should be `null`, as start date is unknown from imports)
+- For `status='currently-reading'`: Set `startedDate = null` (should be import date or now)
+- For `status='to-read'`: Correctly set both to `null`
+
+**Fix Applied**:
+1. Updated `lib/services/session-importer.service.ts` lines 223-237 with improved logic:
+   - `status='read'`: `completedDate` from import, `startedDate = null`
+   - `status='currently-reading'`: `startedDate` from import or now, `completedDate = null`
+   - `status='to-read'`: Both dates remain `null`
+
+2. Created backfill script `scripts/backfill-import-dates.ts` to fix existing 710 imported sessions using stored `match_results` from `import_logs` table
+
+**Impact**: 
+- Fixed 4 sessions with `status='read'` to have correct `completedDate`
+- Fixed 3 sessions with `status='currently-reading'` to have `startedDate`  
+- 701 `status='to-read'` sessions correctly retained NULL dates
+- Future imports will now correctly populate session dates
+
+**Note**: Backfill script stored dates as milliseconds for 3 reading sessions (needs one-time manual fix or script update)
+
