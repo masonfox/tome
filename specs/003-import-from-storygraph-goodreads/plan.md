@@ -727,7 +727,15 @@ content:
 2. String similarity calculation with fastest-levenshtein
 3. Batch database transactions with Drizzle (insert multiple sessions)
 4. File upload handling in Next.js API routes
-5. Import state management (in-memory cache or database)
+5. Import state management: **Database storage** (see Architecture Decision below)
+
+**Architecture Decision - Match Results Storage (2025-12-03):**
+- **Initial Design:** In-memory cache with 30-minute TTL for preview/execute workflow
+- **Issue Discovered:** Dev server hot-reloads cleared cache between upload and execute
+- **Final Implementation:** Store match results in `import_logs.matchResults` JSON column
+- **Benefits:** Survives server restarts, provides audit trail, enables resume after errors
+- **Trade-off:** ~50-500KB per import stored in DB vs pure memory efficiency
+- **Result:** Import flow is resilient to server restarts in both dev and production
 
 ---
 
