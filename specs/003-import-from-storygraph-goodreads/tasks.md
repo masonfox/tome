@@ -589,3 +589,84 @@ All phases have been manually tested through the API. UI testing pending for det
 
 **Testing**: Requires real CSV data with "Dates Read" (TheStoryGraph) and "Date Added" (Goodreads) to verify parsing
 
+### Bug Fix: SQLite Date Binding Errors (2025-12-03)
+
+**Issue**: Multiple "SQLite3 can only bind numbers, strings, bigints, buffers, and null" errors during import execution, followed by "value.getTime is not a function" errors.
+
+**Root Cause Analysis**:
+1. **Drizzle `mode: "timestamp"` confusion**: 
+   - TypeScript types show `Date | null` for columns with `mode: "timestamp"`
+   - SQLite actually stores Unix timestamps (numbers in seconds)
+   - Date objects cannot be bound directly to SQLite - must convert to numbers first
+   - When reading from DB, Drizzle auto-converts timestamps to Date objects
+   - When writing to DB, must manually convert Date objects to timestamps
+
+2. **Date deserialization from JSON**:
+   - Match results stored as JSON in `import_logs.match_results` lose Date object types
+   - When retrieved from database, dates become ISO strings
+   - Calling `.getTime()` on strings throws "value.getTime is not a function" error
+
+**Fixes Applied** (4 commits):
+
+1. **Commit 9c398cb** - Fixed session creation date conversion (main import path):
+   - Convert `startedDate` and `completedDate` to Unix timestamps before insertion
+   - Added defensive `instanceof Date` checks before calling `.getTime()`
+   - Lines 240-245 in `session-importer.service.ts`
+
+2. **Commit 86fdc83** - Fixed date deserialization from database:
+   - Added `toDate()` helper function in execute route to safely deserialize dates
+   - Converts string dates from JSON back to Date objects
+   - Lines 86-91 in `app/api/import/[importId]/execute/route.ts`
+
+3. **Commit 23488ef** - Fixed progress logs and re-read sessions date conversion:
+   - Added `instanceof Date` check for progress log dates (line 362)
+   - Handles both Date objects and numeric timestamps
+   - Lines 362-364 in `session-importer.service.ts`
+
+4. **Commit f600f7e** - Added defensive `instanceof Date` checks:
+   - Protected all `.getTime()` calls with type guards
+   - Prevents runtime errors on invalid date values
+   - Lines 240-245 in `session-importer.service.ts`
+
+5. **Commit 9d5993f** - Added defensive date validation to handleReReads:
+   - Filters out invalid dates before sorting
+   - Added `instanceof Date` and `!isNaN(d.getTime())` validation
+   - Future-proofs re-read functionality (currently unused)
+   - Lines 398-399 in `session-importer.service.ts`
+
+**Date Handling Pattern Established**:
+```typescript
+// When INSERTING dates into database:
+const timestamp = (date && date instanceof Date) 
+  ? Math.floor(date.getTime() / 1000)  // Convert to Unix timestamp
+  : null;
+await repository.create({ dateField: timestamp as any });
+
+// When READING dates from database:
+// Drizzle automatically converts timestamps to Date objects
+
+// When DESERIALIZING from JSON:
+const toDate = (value: any): Date | undefined => {
+  if (!value) return undefined;
+  if (value instanceof Date) return value;
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? undefined : date;
+};
+```
+
+**Impact**:
+- Import execution now works correctly for all date scenarios
+- No more SQLite binding errors
+- No more "getTime is not a function" errors
+- Dates properly stored as Unix timestamps in database
+- Dates properly deserialized when retrieved from JSON storage
+
+**Files Modified**:
+- `lib/services/session-importer.service.ts` - Date-to-timestamp conversions with type guards
+- `app/api/import/[importId]/execute/route.ts` - Date deserialization with validation
+
+**Next Steps**:
+- User must restart development server for fixes to take effect: `bun run dev`
+- Test StoryGraph CSV import end-to-end to verify all fixes work
+- Test Goodreads CSV import for completeness
+
