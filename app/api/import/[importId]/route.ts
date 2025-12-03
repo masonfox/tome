@@ -107,7 +107,7 @@ export async function GET(
     );
 
     // Get preview from cache
-    const preview = importPreviewService.getPreview(importId, {
+    const preview = await importPreviewService.getPreview(importId, {
       offset,
       limit,
       confidence: confidenceFilter,

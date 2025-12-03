@@ -3,10 +3,27 @@
  * Builds preview responses for import review UI
  */
 
-import type { Book } from '@/lib/db/schema/books';
-import type { ImportRecord } from './csv-parser.service';
 import type { MatchResult, MatchConfidence } from './book-matcher.service';
 import { importCache, CachedImportData } from './import-cache.service';
+import { sessionRepository } from '@/lib/repositories/session.repository';
+
+/**
+ * Map import status to session status
+ */
+function mapImportStatusToSession(
+  importStatus: 'read' | 'currently-reading' | 'to-read' | 'did-not-finish' | 'paused'
+): 'to-read' | 'reading' | 'read' {
+  switch (importStatus) {
+    case 'read':
+      return 'read';
+    case 'currently-reading':
+      return 'reading';
+    case 'to-read':
+      return 'to-read';
+    default:
+      return 'to-read';
+  }
+}
 
 /**
  * Preview item for UI display
@@ -77,10 +94,10 @@ class ImportPreviewService {
   /**
    * Build preview response from cached data
    */
-  buildPreview(
+  async buildPreview(
     cachedData: CachedImportData,
     filters: PreviewFilters = {}
-  ): PreviewResponse {
+  ): Promise<PreviewResponse> {
     const { offset = 0, limit = 500, confidence } = filters;
     
     // Apply confidence filter if provided
@@ -99,8 +116,8 @@ class ImportPreviewService {
     const paginatedResults = filteredResults.slice(offset, offset + limit);
 
     // Build preview items
-    const items = paginatedResults.map(result =>
-      this.buildPreviewItem(result)
+    const items = await Promise.all(
+      paginatedResults.map(result => this.buildPreviewItem(result))
     );
 
     return {
@@ -121,7 +138,7 @@ class ImportPreviewService {
   /**
    * Build a single preview item
    */
-  private buildPreviewItem(matchResult: MatchResult): PreviewItem {
+  private async buildPreviewItem(matchResult: MatchResult): Promise<PreviewItem> {
     const { importRecord, matchedBook, confidence, confidenceScore, matchReason } = matchResult;
     
     const warnings: string[] = [];
@@ -139,8 +156,26 @@ class ImportPreviewService {
       warnings.push('Review match accuracy before importing');
     }
 
+    // Check for duplicate session
+    let isDuplicate = false;
+    if (matchedBook) {
+      const sessionStatus = mapImportStatusToSession(importRecord.status);
+      const existingSession = await sessionRepository.findDuplicate(
+        matchedBook.id,
+        sessionStatus,
+        importRecord.completedDate || null,
+        importRecord.rating || null
+      );
+      
+      if (existingSession) {
+        isDuplicate = true;
+        warnings.push('Duplicate session exists - will be skipped');
+      }
+    }
+
     // Determine if this will create a new session
     const willCreateSession = matchedBook !== null && 
+                              !isDuplicate &&
                               importRecord.status === 'read' && 
                               importRecord.completedDate !== undefined;
 
@@ -232,17 +267,17 @@ class ImportPreviewService {
   /**
    * Get preview from cache by importId
    */
-  getPreview(
+  async getPreview(
     importId: number,
     filters: PreviewFilters = {}
-  ): PreviewResponse | null {
+  ): Promise<PreviewResponse | null> {
     const cachedData = importCache.get(importId);
     
     if (!cachedData) {
       return null;
     }
 
-    return this.buildPreview(cachedData, filters);
+    return await this.buildPreview(cachedData, filters);
   }
 }
 

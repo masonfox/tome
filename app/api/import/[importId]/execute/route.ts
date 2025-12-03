@@ -39,7 +39,16 @@ export async function POST(
       );
     }
 
-    logger.info({ importId }, 'Import execution started');
+    // Parse request body for options
+    let forceDuplicates = false;
+    try {
+      const body = await request.json();
+      forceDuplicates = body.forceDuplicates === true;
+    } catch {
+      // Empty body is OK, use defaults
+    }
+
+    logger.info({ importId, forceDuplicates }, 'Import execution started');
 
     // Get cached import data
     const cachedData = importCache.get(importId);
@@ -133,7 +142,7 @@ export async function POST(
       try {
         // Import sessions for this batch
         const batchResult = await sessionImporterService.importSessions(batch, {
-          skipDuplicates: true,
+          skipDuplicates: !forceDuplicates,
         });
 
         // Aggregate results
