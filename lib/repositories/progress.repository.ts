@@ -266,14 +266,14 @@ export class ProgressRepository extends BaseRepository<
 
     // Group by date in user's timezone
     const { toZonedTime } = require('date-fns-tz');
-    const { startOfDay } = require('date-fns');
+    const { startOfDay, format } = require('date-fns');
     
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
       const dateInUserTz = toZonedTime(log.progressDate, timezone);
       const dayStart = startOfDay(dateInUserTz);
-      const dateKey = dayStart.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
       
       const current = dailyMap.get(dateKey) || 0;
       dailyMap.set(dateKey, current + (log.pagesRead || 0));
@@ -316,14 +316,14 @@ export class ProgressRepository extends BaseRepository<
 
     // Group by date in user's timezone
     const { toZonedTime } = require('date-fns-tz');
-    const { startOfDay } = require('date-fns');
+    const { startOfDay, format } = require('date-fns');
     
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
       const dateInUserTz = toZonedTime(log.progressDate, timezone);
       const dayStart = startOfDay(dateInUserTz);
-      const dateKey = dayStart.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
       
       const current = dailyMap.get(dateKey) || 0;
       dailyMap.set(dateKey, current + (log.pagesRead || 0));

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streakService } from "@/lib/services/streak.service";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { getLogger } from "@/lib/logger";
+import { format } from "date-fns";
 
 const logger = getLogger();
 
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
     
     const currentDate = new Date(startDateUtc);
     while (currentDate <= todayUtc) {
-      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format in UTC
+      const dateStr = format(currentDate, 'yyyy-MM-dd');
       const pagesRead = dataMap.get(dateStr) || 0;
       
       allDays.push({

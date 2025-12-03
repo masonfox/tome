@@ -1,10 +1,12 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
-import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { startOfDay, subDays } from "date-fns";
 
 /**
  * Stats API Tests
@@ -236,9 +238,18 @@ describe("Stats API - GET /api/stats/overview", () => {
   });
 
   test("calculates pages read today correctly", async () => {
+    // Get user timezone (matches the API logic)
+    const streak = await streakRepository.getOrCreate(null);
+    const userTimezone = streak.userTimezone || "America/New_York";
+    
+    // Create dates in the user's timezone to match API behavior
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
-    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 10, 0, 0);
+    const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+    const yesterdayInUserTz = subDays(todayInUserTz, 1);
+    
+    // Convert back to UTC for storage (matches how progress is stored)
+    const today = fromZonedTime(todayInUserTz, userTimezone);
+    const yesterday = fromZonedTime(yesterdayInUserTz, userTimezone);
 
     await progressRepository.create({
       bookId: testBook1.id,

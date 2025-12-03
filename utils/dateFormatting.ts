@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 /**
  * Formats an ISO date string for display, avoiding timezone conversion issues.
@@ -27,4 +28,20 @@ export function formatDateOnly(isoString: string, formatString = "MMM d, yyyy"):
   const date = new Date(dateOnly + "T12:00:00");
   
   return format(date, formatString);
+}
+
+/**
+ * Returns today's date in YYYY-MM-DD format using the user's timezone.
+ * 
+ * Uses the browser's detected timezone via Intl API and date-fns-tz
+ * to ensure the date is correct for the user's actual location.
+ * 
+ * @returns Today's date in YYYY-MM-DD format for use in date inputs
+ * 
+ * @example
+ * getTodayLocalDate() // "2025-12-02" (based on user's actual timezone)
+ */
+export function getTodayLocalDate(): string {
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
 }
