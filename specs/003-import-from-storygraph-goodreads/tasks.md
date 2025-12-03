@@ -32,10 +32,10 @@
 
 **Purpose**: Create project structure and install dependencies
 
-- [ ] T001 Install NPM dependencies: csv-parse (v5.5.6), fastest-levenshtein (v1.0.16), and string-strip-html (v13.4.8) in package.json
-- [ ] T002 [P] Create directory structure: data/temp-imports/ for CSV uploads
-- [ ] T003 [P] Add .gitignore entry for data/temp-imports/*.csv (ignore uploaded CSV files)
-- [ ] T004 [P] Create lib/utils/ directory for utility functions
+- [X] T001 Install NPM dependencies: csv-parse (v5.5.6), fastest-levenshtein (v1.0.16), and string-strip-html (v13.4.8) in package.json
+- [X] T002 [P] Create directory structure: data/temp-imports/ for CSV uploads
+- [X] T003 [P] Add .gitignore entry for data/temp-imports/*.csv (ignore uploaded CSV files)
+- [X] T004 [P] Create lib/utils/ directory for utility functions
 
 ---
 
@@ -47,25 +47,25 @@
 
 ### Database Schema & Migrations
 
-- [ ] T005 Create Drizzle schema: lib/db/schema/import-logs.ts (importLogs table definition per data-model.md)
-- [ ] T006 Create Drizzle schema: lib/db/schema/import-unmatched-records.ts (importUnmatchedRecords table definition)
-- [ ] T007 Update schema index: lib/db/schema/index.ts (export new import-logs and import-unmatched-records schemas)
-- [ ] T008 Generate migration: Run `bun run drizzle-kit generate` to create 0010_add_import_logs_table.sql
-- [ ] T009 Generate migration: Run `bun run drizzle-kit generate` to create 0011_add_import_unmatched_records_table.sql
-- [ ] T010 Apply migrations: Run `bun run drizzle-kit migrate` to create tables in data/tome.db
-- [ ] T011 Add duplicate detection index: Create migration 0012_add_duplicate_check_index.sql with `CREATE INDEX idx_sessions_duplicate_check ON reading_sessions(bookId, completedDate, status);`
+- [X] T005 Create Drizzle schema: lib/db/schema/import-logs.ts (importLogs table definition per data-model.md)
+- [X] T006 Create Drizzle schema: lib/db/schema/import-unmatched-records.ts (importUnmatchedRecords table definition)
+- [X] T007 Update schema index: lib/db/schema/index.ts (export new import-logs and import-unmatched-records schemas)
+- [X] T008 Generate migration: Run `bun run drizzle-kit generate` to create 0010_add_import_logs_table.sql
+- [X] T009 Generate migration: Run `bun run drizzle-kit generate` to create 0011_add_import_unmatched_records_table.sql
+- [X] T010 Apply migrations: Run `bun run drizzle-kit migrate` to create tables in data/tome.db
+- [X] T011 Add duplicate detection index: Create migration 0012_add_duplicate_check_index.sql with `CREATE INDEX idx_sessions_duplicate_check ON reading_sessions(bookId, completedDate, status);`
 
 ### Repository Layer
 
-- [ ] T012 [P] Create ImportLogRepository: lib/repositories/import-log.repository.ts (extends BaseRepository, implements findByUserId, findFailed, updateStats, complete methods)
-- [ ] T013 [P] Create UnmatchedRecordRepository: lib/repositories/unmatched-record.repository.ts (extends BaseRepository, implements findByImportLogId, bulkCreate, searchByTitle methods)
+- [X] T012 [P] Create ImportLogRepository: lib/repositories/import-log.repository.ts (extends BaseRepository, implements findByUserId, findFailed, updateStats, complete methods)
+- [X] T013 [P] Create UnmatchedRecordRepository: lib/repositories/unmatched-record.repository.ts (extends BaseRepository, implements findByImportLogId, bulkCreate, searchByTitle methods)
 
 ### Utility Functions
 
-- [ ] T014 [P] Create ISBN normalizer: lib/utils/isbn-normalizer.ts (normalizeISBN function to clean Excel wrappers, validate format, convert ISBN-10 to ISBN-13)
-- [ ] T015 [P] Create string similarity utilities: lib/utils/string-similarity.ts (cosineSimilarity with word bigrams, levenshteinDistance wrapper for fastest-levenshtein)
-- [ ] T016 [P] Create date parser: lib/utils/date-parser.ts (parseFlexibleDate function supporting YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY formats, output ISO 8601 date strings without timezone)
-- [ ] T017 [P] Create string normalizer: lib/utils/string-normalizer.ts (normalizeTitle, normalizeAuthor, removeStopwords, extractPrimaryTitle functions)
+- [X] T014 [P] Create ISBN normalizer: lib/utils/isbn-normalizer.ts (normalizeISBN function to clean Excel wrappers, validate format, convert ISBN-10 to ISBN-13)
+- [X] T015 [P] Create string similarity utilities: lib/utils/string-similarity.ts (cosineSimilarity with word bigrams, levenshteinDistance wrapper for fastest-levenshtein)
+- [X] T016 [P] Create date parser: lib/utils/date-parser.ts (parseFlexibleDate function supporting YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY formats, output ISO 8601 date strings without timezone)
+- [X] T017 [P] Create string normalizer: lib/utils/string-normalizer.ts (normalizeTitle, normalizeAuthor, removeStopwords, extractPrimaryTitle functions)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -81,13 +81,13 @@
 
 ### Implementation
 
-- [ ] T018 [P] [US1] Create CSV parser service: lib/services/csv-parser.service.ts (parseCSV, validateProvider, normalizeRecord methods using csv-parse)
-- [ ] T019 [P] [US1] Create provider validation schemas: lib/schemas/csv-provider.schema.ts (Zod schemas for Goodreads and TheStoryGraph required columns)
-- [ ] T020 [US1] Implement Goodreads parser: Add parseGoodreadsRow method to csv-parser.service.ts (map columns per spec.md FR-002 Goodreads table)
-- [ ] T021 [US1] Implement TheStoryGraph parser: Add parseStoryGraphRow method to csv-parser.service.ts (map columns per spec.md FR-002 TheStoryGraph table, skip "did-not-finish" status records, strip HTML from review field using string-strip-html)
-- [ ] T022 [US1] Create file upload API route: app/api/import/upload/route.ts (POST handler with multipart/form-data, file size validation 10MB, provider parameter)
-- [ ] T023 [US1] Add upload validation: Implement file type check (CSV only), size limit enforcement, provider selection validation in upload/route.ts
-- [ ] T024 [US1] Add error responses: Implement user-friendly error handling for invalid CSV, missing columns, empty file, provider mismatch in upload/route.ts (use actionable error messages per spec.md FR-001 Error Conditions)
+- [X] T018 [P] [US1] Create CSV parser service: lib/services/csv-parser.service.ts (parseCSV, validateProvider, normalizeRecord methods using csv-parse)
+- [X] T019 [P] [US1] Create provider validation schemas: lib/schemas/csv-provider.schema.ts (Zod schemas for Goodreads and TheStoryGraph required columns)
+- [X] T020 [US1] Implement Goodreads parser: Add parseGoodreadsRow method to csv-parser.service.ts (map columns per spec.md FR-002 Goodreads table)
+- [X] T021 [US1] Implement TheStoryGraph parser: Add parseStoryGraphRow method to csv-parser.service.ts (map columns per spec.md FR-002 TheStoryGraph table, skip "did-not-finish" status records, strip HTML from review field using string-strip-html)
+- [X] T022 [US1] Create file upload API route: app/api/import/upload/route.ts (POST handler with multipart/form-data, file size validation 10MB, provider parameter)
+- [X] T023 [US1] Add upload validation: Implement file type check (CSV only), size limit enforcement, provider selection validation in upload/route.ts
+- [X] T024 [US1] Add error responses: Implement user-friendly error handling for invalid CSV, missing columns, empty file, provider mismatch in upload/route.ts (use actionable error messages per spec.md FR-001 Error Conditions)
 
 **Checkpoint**: US1 complete - CSV files can be uploaded, validated, and parsed
 
@@ -103,13 +103,13 @@
 
 ### Implementation
 
-- [ ] T025 [P] [US2] Create book matcher service: lib/services/book-matcher.service.ts (matchRecords, matchByISBN, fuzzyMatch, calculateConfidence methods)
-- [ ] T026 [US2] Implement ISBN matching (Tier 1): Add matchByISBN method using normalized ISBN-13 lookup with title similarity validation (>60%)
-- [ ] T027 [US2] Implement cosine similarity matching (Tier 2): Add cosineSimilarity method using word bigrams from string-similarity.ts (threshold ≥85%)
-- [ ] T028 [US2] Implement Levenshtein fallback matching: Add levenshteinMatch method for typo handling (threshold ≥70%) in book-matcher.service.ts
-- [ ] T029 [US2] Build library cache: Add buildLibraryCache method to precompute normalized titles and bigram vectors for all Calibre books
-- [ ] T030 [US2] Add confidence classification: Implement classifyMatch method to categorize scores (Exact 95-100%, High 85-94%, Medium 70-84%, Unmatched <70%)
-- [ ] T031 [US2] Integrate matching into upload flow: Call bookMatcherService.matchRecords in app/api/import/upload/route.ts after CSV parsing
+- [X] T025 [P] [US2] Create book matcher service: lib/services/book-matcher.service.ts (matchRecords, matchByISBN, fuzzyMatch, calculateConfidence methods)
+- [X] T026 [US2] Implement ISBN matching (Tier 1): Add matchByISBN method using normalized ISBN-13 lookup with title similarity validation (>60%)
+- [X] T027 [US2] Implement cosine similarity matching (Tier 2): Add cosineSimilarity method using word bigrams from string-similarity.ts (threshold ≥85%)
+- [X] T028 [US2] Implement Levenshtein fallback matching: Add levenshteinMatch method for typo handling (threshold ≥70%) in book-matcher.service.ts
+- [X] T029 [US2] Build library cache: Add buildLibraryCache method to precompute normalized titles and bigram vectors for all Calibre books
+- [X] T030 [US2] Add confidence classification: Implement classifyMatch method to categorize scores (Exact 95-100%, High 85-94%, Medium 70-84%, Unmatched <70%)
+- [X] T031 [US2] Integrate matching into upload flow: Call bookMatcherService.matchRecords in app/api/import/upload/route.ts after CSV parsing
 
 **Checkpoint**: US2 complete - Books can be matched with confidence scores and match reasons
 
@@ -125,14 +125,14 @@
 
 ### Implementation
 
-- [ ] T032 [P] [US3] Create import cache service: lib/services/import-cache.service.ts (store parsed results in memory with importId, TTL 30 minutes)
-- [ ] T033 [P] [US3] Create preview response builder: lib/services/preview-builder.service.ts (buildPreviewResponse, groupMatchesByConfidence methods)
-- [ ] T034 [US3] Store import metadata: Update app/api/import/upload/route.ts to create importLog record with status='pending'
-- [ ] T035 [US3] Cache match results: Store matched/unmatched records in import-cache.service.ts keyed by importId
-- [ ] T036 [US3] Create preview API route: app/api/import/[importId]/preview/route.ts (GET handler returning detailed matches per OpenAPI spec)
-- [ ] T037 [US3] Implement pagination: Add limit/offset query parameters to preview route (default limit=500, max=1000)
-- [ ] T038 [US3] Add confidence filtering: Implement confidenceFilter query parameter to filter by exact/high/medium/low/unmatched
-- [ ] T039 [US3] Build match preview response: Format matches with importData, matchedBook, matchReason, willCreateSession, isDuplicate fields
+- [X] T032 [P] [US3] Create import cache service: lib/services/import-cache.service.ts (store parsed results in memory with importId, TTL 30 minutes)
+- [X] T033 [P] [US3] Create preview response builder: lib/services/preview-builder.service.ts (buildPreviewResponse, groupMatchesByConfidence methods)
+- [X] T034 [US3] Store import metadata: Update app/api/import/upload/route.ts to create importLog record with status='pending'
+- [X] T035 [US3] Cache match results: Store matched/unmatched records in import-cache.service.ts keyed by importId
+- [X] T036 [US3] Create preview API route: app/api/import/[importId]/preview/route.ts (GET handler returning detailed matches per OpenAPI spec)
+- [X] T037 [US3] Implement pagination: Add limit/offset query parameters to preview route (default limit=500, max=1000)
+- [X] T038 [US3] Add confidence filtering: Implement confidenceFilter query parameter to filter by exact/high/medium/low/unmatched
+- [X] T039 [US3] Build match preview response: Format matches with importData, matchedBook, matchReason, willCreateSession, isDuplicate fields
 
 **Checkpoint**: US3 complete - Users can review detailed preview of matches before executing import
 
@@ -148,18 +148,18 @@
 
 ### Implementation
 
-- [ ] T040 [P] [US4] Create session importer service: lib/services/session-importer.service.ts (createSessions, detectDuplicates, handleReReads methods)
-- [ ] T041 [US4] Implement duplicate detection: Add findDuplicate method to lib/repositories/session.repository.ts (SQL query with 24-hour tolerance per research.md)
-- [ ] T042 [US4] Create session creation logic: Implement createSession method with status mapping (read, currently-reading, to-read), skip "did-not-finish" records to unmatched, sessionNumber increment
-- [ ] T043 [US4] Handle re-reads: Add handleMultipleReadDates method to create N sessions with sequential sessionNumbers, archive old sessions (isActive=false)
-- [ ] T044 [US4] Create progress logs: Add createProgressLog method to create 100% progress entry for each "read" session in session-importer.service.ts
-- [ ] T045 [US4] Implement rating sync: Add syncRating method to update books.rating and call updateCalibreRating() (best-effort, log failures)
-- [ ] T046 [US4] Create execute API route: app/api/import/[importId]/execute/route.ts (POST handler with transaction-based batch processing per OpenAPI spec)
-- [ ] T047 [US4] Implement batch processing: Process confirmedMatches in 100-record transaction batches to prevent timeouts
-- [ ] T048 [US4] Add transaction rollback: Wrap session/rating/progress creation in db.transaction with error handling and rollback
-- [ ] T049 [US4] Store unmatched records: Bulk insert skipRecords into import_unmatched_records table using unmatchedRecordRepository.bulkCreate
-- [ ] T050 [US4] Update import log: Set status='success'/'partial'/'failed', completedAt, sessionsCreated, sessionsSkipped, ratingsSync statistics
-- [ ] T051 [US4] Add execution summary: Return ExecuteResponse with summary statistics per OpenAPI spec
+- [X] T040 [P] [US4] Create session importer service: lib/services/session-importer.service.ts (createSessions, detectDuplicates, handleReReads methods)
+- [X] T041 [US4] Implement duplicate detection: Add findDuplicate method to lib/repositories/session.repository.ts (SQL query with 24-hour tolerance per research.md)
+- [X] T042 [US4] Create session creation logic: Implement createSession method with status mapping (read, currently-reading, to-read), skip "did-not-finish" records to unmatched, sessionNumber increment
+- [X] T043 [US4] Handle re-reads: Add handleMultipleReadDates method to create N sessions with sequential sessionNumbers, archive old sessions (isActive=false)
+- [X] T044 [US4] Create progress logs: Add createProgressLog method to create 100% progress entry for each "read" session in session-importer.service.ts
+- [X] T045 [US4] Implement rating sync: Add syncRating method to update books.rating and call updateCalibreRating() (best-effort, log failures)
+- [X] T046 [US4] Create execute API route: app/api/import/[importId]/execute/route.ts (POST handler with transaction-based batch processing per OpenAPI spec)
+- [X] T047 [US4] Implement batch processing: Process confirmedMatches in 100-record transaction batches to prevent timeouts
+- [X] T048 [US4] Add transaction rollback: Wrap session/rating/progress creation in db.transaction with error handling and rollback
+- [X] T049 [US4] Store unmatched records: Bulk insert skipRecords into import_unmatched_records table using unmatchedRecordRepository.bulkCreate
+- [X] T050 [US4] Update import log: Set status='success'/'partial'/'failed', completedAt, sessionsCreated, sessionsSkipped, ratingsSync statistics
+- [X] T051 [US4] Add execution summary: Return ExecuteResponse with summary statistics per OpenAPI spec
 
 **Checkpoint**: US4 complete - Full end-to-end import workflow functional (upload → preview → execute → sessions created)
 
@@ -175,10 +175,10 @@
 
 ### Implementation
 
-- [ ] T052 [P] [SU1] Create unmatched API route: app/api/import/[importId]/unmatched/route.ts (GET handler returning unmatched records per OpenAPI spec)
-- [ ] T053 [SU1] Implement JSON response: Query import_unmatched_records by importLogId, return UnmatchedResponse schema
-- [ ] T054 [SU1] Implement CSV export: Add format=csv query parameter to return unmatched records as text/csv with proper headers
-- [ ] T055 [SU1] Add filtering by reason: Implement optional reason query parameter to filter by no_isbn, isbn_not_found, no_title_match, etc.
+- [X] T052 [P] [SU1] Create unmatched API route: app/api/import/[importId]/unmatched/route.ts (GET handler returning unmatched records per OpenAPI spec)
+- [X] T053 [SU1] Implement JSON response: Query import_unmatched_records by importLogId, return UnmatchedResponse schema
+- [X] T054 [SU1] Implement CSV export: Add format=csv query parameter to return unmatched records as text/csv with proper headers
+- [X] T055 [SU1] Add filtering by reason: Implement optional reason query parameter to filter by no_isbn, isbn_not_found, no_title_match, etc.
 
 **Checkpoint**: Unmatched records feature complete - Users can export and review unmatched books
 
@@ -194,12 +194,12 @@
 
 ### Implementation
 
-- [ ] T056 [P] [SU2] Add import start logging: Log import start with { fileName, fileSize, provider, importId } in app/api/import/upload/route.ts using pino logger
-- [ ] T057 [P] [SU2] Add matching statistics logging: Log match results with { exactMatches, highConfidence, lowConfidence, unmatched } in book-matcher.service.ts
-- [ ] T058 [P] [SU2] Add execution logging: Log session creation with { sessionsCreated, sessionsSkipped, duplicatesFound } in session-importer.service.ts
-- [ ] T059 [P] [SU2] Add error logging: Log all errors with structured context (importId, step, errorMessage, stack) using logger.error
-- [ ] T060 [SU2] Add warning logging for Calibre sync failures: Use logger.warn with { calibreId, error } when updateCalibreRating fails (non-fatal)
-- [ ] T061 [SU2] Add completion logging: Log import complete with { status, totalTimeMs, importLogId } in execute route
+- [X] T056 [P] [SU2] Add import start logging: Log import start with { fileName, fileSize, provider, importId } in app/api/import/upload/route.ts using pino logger
+- [X] T057 [P] [SU2] Add matching statistics logging: Log match results with { exactMatches, highConfidence, lowConfidence, unmatched } in book-matcher.service.ts
+- [X] T058 [P] [SU2] Add execution logging: Log session creation with { sessionsCreated, sessionsSkipped, duplicatesFound } in session-importer.service.ts
+- [X] T059 [P] [SU2] Add error logging: Log all errors with structured context (importId, step, errorMessage, stack) using logger.error
+- [X] T060 [SU2] Add warning logging for Calibre sync failures: Use logger.warn with { calibreId, error } when updateCalibreRating fails (non-fatal)
+- [X] T061 [SU2] Add completion logging: Log import complete with { status, totalTimeMs, importLogId } in execute route
 
 **Checkpoint**: Logging complete - All import operations have detailed structured logs
 
@@ -215,10 +215,10 @@
 
 ### Implementation
 
-- [ ] T062 [US4-EXT] Enhance duplicate detection: Update findDuplicate in session.repository.ts to check bookId + completedDate (±24h) + status + rating match
-- [ ] T063 [US4-EXT] Add forceDuplicates flag: Implement forceDuplicates option in execute request to override duplicate detection
-- [ ] T064 [US4-EXT] Track skipped sessions: Increment sessionsSkipped counter in import log when duplicates detected
-- [ ] T065 [US4-EXT] Add duplicate indicator to preview: Set isDuplicate=true in MatchPreview when existing session found
+- [X] T062 [US4-EXT] Enhance duplicate detection: Update findDuplicate in session.repository.ts to check bookId + completedDate (±24h) + status + rating match
+- [X] T063 [US4-EXT] Add forceDuplicates flag: Implement forceDuplicates option in execute request to override duplicate detection
+- [X] T064 [US4-EXT] Track skipped sessions: Increment sessionsSkipped counter in import log when duplicates detected
+- [X] T065 [US4-EXT] Add duplicate indicator to preview: Set isDuplicate=true in MatchPreview when existing session found
 
 **Checkpoint**: Idempotency complete - Re-importing CSV skips duplicates safely
 
@@ -228,14 +228,14 @@
 
 **Purpose**: Final refinements, documentation, and production readiness
 
-- [ ] T066 [P] Add environment variables: Document MAX_IMPORT_FILE_SIZE, IMPORT_BATCH_SIZE, MATCH_CONFIDENCE_THRESHOLD in .env.example
-- [ ] T067 [P] Create import UI page (basic): app/import/page.tsx with provider selection, file upload form, basic preview display (optional - can be Phase 2)
-- [ ] T068 [P] Add import cleanup cron: Create background job to delete temp CSVs older than 24 hours from data/temp-imports/
-- [ ] T069 [P] Add database indexes verification: Verify idx_sessions_duplicate_check, idx_import_logs_user_created, idx_unmatched_import_log exist
-- [ ] T070 Performance optimization: Add library cache warm-up on first import request to reduce initial matching latency
-- [ ] T071 [P] Code cleanup: Remove any console.log statements, ensure all errors use structured logging
-- [ ] T072 [P] Security review: Verify file upload limits, CSV injection prevention, SQL injection safety via Drizzle ORM
-- [ ] T073 Validate quickstart.md: Run through developer setup steps in quickstart.md to verify accuracy
+- [X] T066 [P] Add environment variables: Document MAX_IMPORT_FILE_SIZE, IMPORT_BATCH_SIZE, MATCH_CONFIDENCE_THRESHOLD in .env.example
+- [X] T067 [P] Create import UI page (basic): app/import/page.tsx with provider selection, file upload form, basic preview display (optional - can be Phase 2)
+- [X] T068 [P] Add import cleanup cron: Create background job to delete temp CSVs older than 24 hours from data/temp-imports/
+- [X] T069 [P] Add database indexes verification: Verify idx_sessions_duplicate_check, idx_import_logs_user_created, idx_unmatched_import_log exist
+- [X] T070 Performance optimization: Add library cache warm-up on first import request to reduce initial matching latency
+- [X] T071 [P] Code cleanup: Remove any console.log statements, ensure all errors use structured logging
+- [X] T072 [P] Security review: Verify file upload limits, CSV injection prevention, SQL injection safety via Drizzle ORM
+- [X] T073 Validate quickstart.md: Run through developer setup steps in quickstart.md to verify accuracy
 
 ---
 
@@ -389,40 +389,40 @@ After MVP:
 ## Validation Checkpoints
 
 ### After Phase 2 (Foundation)
-- [ ] Verify migrations applied: `sqlite3 data/tome.db ".schema import_logs"`
-- [ ] Verify tables exist: `import_logs`, `import_unmatched_records`
-- [ ] Verify indexes exist: `idx_sessions_duplicate_check`
-- [ ] Verify repositories instantiate: `new ImportLogRepository()`
+- [X] Verify migrations applied: `sqlite3 data/tome.db ".schema import_logs"`
+- [X] Verify tables exist: `import_logs`, `import_unmatched_records`
+- [X] Verify indexes exist: `idx_sessions_duplicate_check`
+- [X] Verify repositories instantiate: `new ImportLogRepository()`
 
 ### After Phase 3 (US1 - CSV Upload)
-- [ ] Upload valid Goodreads CSV → returns 200 with importId
-- [ ] Upload invalid CSV → returns 400 with clear error
-- [ ] Upload oversized file (>10MB) → returns 413
-- [ ] Verify provider validation: wrong columns → error
+- [X] Upload valid Goodreads CSV → returns 200 with importId
+- [X] Upload invalid CSV → returns 400 with clear error
+- [X] Upload oversized file (>10MB) → returns 413
+- [X] Verify provider validation: wrong columns → error
 
 ### After Phase 4 (US2 - Matching)
-- [ ] Book with ISBN matches at 100% confidence
-- [ ] Book without ISBN matches via fuzzy title/author (85%+)
-- [ ] Book with typo matches via Levenshtein fallback (70-84%)
-- [ ] Unknown book marked as unmatched with reason
+- [X] Book with ISBN matches at 100% confidence
+- [X] Book without ISBN matches via fuzzy title/author (85%+)
+- [X] Book with typo matches via Levenshtein fallback (70-84%)
+- [X] Unknown book marked as unmatched with reason
 
 ### After Phase 5 (US3 - Preview)
-- [ ] GET /api/import/:id/preview returns all matches
-- [ ] Matches grouped by confidence (exact/high/medium/low)
-- [ ] Pagination works (limit/offset parameters)
-- [ ] Unmatched records included with reasons
+- [X] GET /api/import/:id/preview returns all matches
+- [X] Matches grouped by confidence (exact/high/medium/low)
+- [X] Pagination works (limit/offset parameters)
+- [X] Unmatched records included with reasons
 
 ### After Phase 6 (US4 - Execute)
-- [ ] Execute creates reading_sessions records
-- [ ] Progress logs created at 100% for "read" status
-- [ ] Book ratings updated and synced to Calibre
-- [ ] Duplicate sessions skipped (sessionsSkipped count)
-- [ ] Import log updated with final status and statistics
+- [X] Execute creates reading_sessions records
+- [X] Progress logs created at 100% for "read" status
+- [X] Book ratings updated and synced to Calibre
+- [X] Duplicate sessions skipped (sessionsSkipped count)
+- [X] Import log updated with final status and statistics
 
 ### After Phase 9 (Idempotency)
-- [ ] Re-import same CSV skips all duplicates
-- [ ] Summary shows sessionsSkipped = original sessionsCreated
-- [ ] No duplicate sessions in database
+- [X] Re-import same CSV skips all duplicates
+- [X] Summary shows sessionsSkipped = original sessionsCreated
+- [X] No duplicate sessions in database
 
 ---
 
