@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "bun run ./lib/db/migrate.ts",
+    "db:refresh": "bun run scripts/db-refresh.ts",
     "db:backup": "bash scripts/backup-database.sh",
     "db:restore": "bash scripts/restore-database.sh",
     "db:list-backups": "bash scripts/list-backups.sh",

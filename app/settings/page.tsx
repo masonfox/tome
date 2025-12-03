@@ -1,5 +1,6 @@
 import { Settings as SettingsIcon } from "lucide-react";
 import { StreakSettings } from "@/components/StreakSettings";
+import { DataWipeSettings } from "@/components/DataWipeSettings";
 import { PageHeader } from "@/components/PageHeader";
 import { streakService } from "@/lib/services/streak.service";
 
@@ -24,6 +25,9 @@ export default async function SettingsPage() {
         initialThreshold={initialThreshold}
         initialTimezone={initialTimezone}
       />
+
+      {/* Data Wipe Settings */}
+      <DataWipeSettings />
     </div>
   );
 }
