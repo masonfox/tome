@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "@/utils/toast";
+import { getTodayLocalDate } from "@/utils/dateFormatting";
 
 interface Session {
   id: number;
@@ -18,7 +19,7 @@ export function useSessionDetails(
     if (session?.startedDate) {
       setEditStartDate(session.startedDate.split("T")[0]);
     } else {
-      setEditStartDate(new Date().toISOString().split("T")[0]);
+      setEditStartDate(getTodayLocalDate());
     }
     setIsEditingStartDate(true);
   }

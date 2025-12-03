@@ -1,5 +1,5 @@
 import { startOfDay, differenceInDays, isEqual } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { streakRepository, progressRepository } from "@/lib/repositories";
 import type { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
@@ -267,7 +267,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   allProgress.forEach((progress) => {
     // Convert progress date to user's timezone for day boundary calculation
     const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-    const dateKey = startOfDay(dateInUserTz).toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateKey = formatInTimeZone(startOfDay(dateInUserTz), userTimezone, 'yyyy-MM-dd');
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {

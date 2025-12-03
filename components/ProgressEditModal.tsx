@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getTodayLocalDate } from "@/utils/dateFormatting";
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
@@ -197,7 +198,7 @@ export default function ProgressEditModal({
             type="date"
             value={progressDate}
             onChange={(e) => setProgressDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
+            max={getTodayLocalDate()}
             className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
           />
         </div>
