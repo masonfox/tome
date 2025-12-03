@@ -81,18 +81,24 @@ export async function POST(
     }
 
     // Deserialize dates from JSON (they come back as strings from DB)
-    const matchResults = matchResultsRaw.map((result: any) => ({
-      ...result,
-      importRecord: {
-        ...result.importRecord,
-        startedDate: result.importRecord.startedDate 
-          ? new Date(result.importRecord.startedDate) 
-          : undefined,
-        completedDate: result.importRecord.completedDate 
-          ? new Date(result.importRecord.completedDate) 
-          : undefined,
-      }
-    }));
+    const matchResults = matchResultsRaw.map((result: any) => {
+      // Helper to safely convert to Date
+      const toDate = (value: any): Date | undefined => {
+        if (!value) return undefined;
+        if (value instanceof Date) return value;
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? undefined : date;
+      };
+
+      return {
+        ...result,
+        importRecord: {
+          ...result.importRecord,
+          startedDate: toDate(result.importRecord.startedDate),
+          completedDate: toDate(result.importRecord.completedDate),
+        }
+      };
+    });
 
     // Build cached data structure from DB data
     const cachedData = {

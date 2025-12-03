@@ -237,8 +237,12 @@ class SessionImporterService {
 
     // Convert Date objects to Unix timestamps (seconds) for SQLite
     // Note: Drizzle's mode: "timestamp" expects numeric timestamps for insertion
-    const startedDateTs = startedDate ? Math.floor(startedDate.getTime() / 1000) : null;
-    const completedDateTs = completedDate ? Math.floor(completedDate.getTime() / 1000) : null;
+    const startedDateTs = (startedDate && startedDate instanceof Date) 
+      ? Math.floor(startedDate.getTime() / 1000) 
+      : null;
+    const completedDateTs = (completedDate && completedDate instanceof Date) 
+      ? Math.floor(completedDate.getTime() / 1000) 
+      : null;
 
     // Create the session
     const session = await sessionRepository.create({
