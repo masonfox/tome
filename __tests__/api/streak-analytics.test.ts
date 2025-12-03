@@ -35,7 +35,7 @@ function getDaysAgo(days: number): Date {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  return date.toISOString().split('T')[0]; // Keep UTC for test consistency
 }
 
 describe("GET /api/streak/analytics - Missing Days Fill", () => {
