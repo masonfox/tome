@@ -102,9 +102,9 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 - Normalize author names (remove extra whitespace, handle "Last, First" format)
 - Clean ISBNs (remove equals signs, quotes, dashes, and "ISBN:" prefixes)
 - Parse dates in multiple formats (YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY) as calendar dates (no timezone, day-level precision)
+- Parse date ranges from TheStoryGraph "Dates Read" (format: YYYY/MM/DD-YYYY/MM/DD) to extract startedDate and completedDate
 - Convert ratings to 0-5 integer scale (Goodreads 0-5 direct, TheStoryGraph 0.0-5.0 via Math.round)
 - Handle multiple authors (comma-separated)
-- Use single completedDate per record (ignore "Dates Read" and "Read Count" fields)
 
 **Data Mapping Tables:**
 
@@ -119,6 +119,7 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 | ISBN13 | isbn13 | No | Remove ="..." wrapper, preferred over ISBN |
 | Number of Pages | totalPages | No | Integer validation |
 | My Rating | rating | No | 0-5 scale, 0 = unrated |
+| Date Added | startedDate | No | YYYY/MM/DD format |
 | Date Read | completedDate | No | YYYY/MM/DD format |
 | Exclusive Shelf | status | Yes | to-read, currently-reading, read |
 | My Review | review | No | Free text |
@@ -133,8 +134,8 @@ Users switching to Tome from TheStoryGraph or Goodreads should not need to manua
 | ISBN/UID | isbn | No | May contain non-ISBN identifiers |
 | Star Rating | rating | No | 0.0-5.0 scale, round to nearest integer (Math.round) |
 | Read Status | status | Yes | read, currently-reading, to-read, did-not-finish, paused |
-| Last Date Read | completedDate | No | YYYY-MM-DD format, primary date source |
-| Dates Read | *(ignored)* | No | Not parsed (format unverified, use Last Date Read instead) |
+| Dates Read | startedDate, completedDate | No | YYYY/MM/DD-YYYY/MM/DD format, parsed as date range |
+| Last Date Read | completedDate | No | YYYY-MM-DD format, fallback if Dates Read not available |
 | Read Count | *(ignored)* | No | Not parsed (future enhancement) |
 | Review | review | No | HTML content, stripped to plain text |
 

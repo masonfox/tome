@@ -280,3 +280,42 @@ export function normalizeDate(dateStr: string | null | undefined): string | null
 export function isValidDateString(dateStr: string | null | undefined): boolean {
   return parseDate(dateStr) !== null;
 }
+
+/**
+ * Parse a date range string (e.g., "2024/01/17-2024/01/19")
+ * Returns { startDate, endDate } or null if parsing fails
+ * 
+ * Formats supported:
+ * - "YYYY/MM/DD-YYYY/MM/DD"
+ * - "YYYY-MM-DD to YYYY-MM-DD"
+ * - "MM/DD/YYYY - MM/DD/YYYY"
+ */
+export function parseDateRange(
+  dateRangeStr: string | null | undefined
+): { startDate: Date; endDate: Date } | null {
+  if (!dateRangeStr) return null;
+
+  const trimmed = dateRangeStr.trim();
+  if (!trimmed) return null;
+
+  // Try different separators
+  const separators = ['-', ' to ', ' - ', '–', '—'];
+  
+  for (const separator of separators) {
+    const parts = trimmed.split(separator);
+    
+    if (parts.length === 2) {
+      const startDate = parseDate(parts[0].trim());
+      const endDate = parseDate(parts[1].trim());
+      
+      if (startDate && endDate) {
+        // Validate that start is before or equal to end
+        if (startDate.getTime() <= endDate.getTime()) {
+          return { startDate, endDate };
+        }
+      }
+    }
+  }
+
+  return null;
+}

@@ -225,13 +225,12 @@ class SessionImporterService {
     let completedDate: Date | null = null;
 
     if (sessionStatus === 'read' && record.completedDate) {
-      // For completed reads: set completedDate from import
-      // startedDate is unknown for imports, leave as null
+      // For completed reads: use startedDate and completedDate from import if available
+      startedDate = record.startedDate || null;
       completedDate = record.completedDate;
-      startedDate = null;
     } else if (sessionStatus === 'reading') {
-      // For currently-reading: set startedDate to now or completedDate if available
-      startedDate = record.completedDate || new Date();
+      // For currently-reading: use startedDate from import, or fall back to completedDate or now
+      startedDate = record.startedDate || record.completedDate || new Date();
       completedDate = null;
     }
     // For 'to-read': both dates remain null

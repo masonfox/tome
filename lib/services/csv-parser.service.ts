@@ -12,7 +12,7 @@ import {
   StoryGraphColumns,
 } from "@/lib/schemas/csv-provider.schema";
 import { normalizeISBN } from "@/lib/utils/isbn-normalizer";
-import { parseDate } from "@/lib/utils/date-parser";
+import { parseDate, parseDateRange } from "@/lib/utils/date-parser";
 import { normalizeAuthors, cleanString } from "@/lib/utils/string-normalizer";
 import { stripHtml } from "string-strip-html";
 
@@ -26,6 +26,7 @@ export interface ImportRecord {
   isbn13?: string;
   totalPages?: number;
   rating?: number;
+  startedDate?: Date;
   completedDate?: Date;
   status: "read" | "currently-reading" | "to-read" | "did-not-finish" | "paused";
   review?: string;
@@ -205,6 +206,7 @@ export class CSVParserService {
     // Parse optional fields
     const totalPages = this.parseInteger(row["Number of Pages"]);
     const rating = this.parseRating(row["My Rating"], 5); // Goodreads uses 0-5
+    const startedDate = parseDate(row["Date Added"]);
     const completedDate = parseDate(row["Date Read"]);
     const review = cleanString(row["My Review"]);
     const readCount = this.parseInteger(row["Read Count"]) || 1;
@@ -216,6 +218,7 @@ export class CSVParserService {
       isbn13,
       totalPages,
       rating,
+      startedDate: startedDate || undefined,
       completedDate: completedDate || undefined,
       status,
       review,
@@ -273,14 +276,30 @@ export class CSVParserService {
     const starRating = row["Star Rating"];
     const rating = starRating ? Math.round(parseFloat(starRating)) : undefined;
 
-    // Parse completed date (prefer "Last Date Read")
-    const completedDate = parseDate(row["Last Date Read"]);
+    // Parse dates - try "Dates Read" first (contains start-end range), fall back to "Last Date Read"
+    let startedDate: Date | undefined = undefined;
+    let completedDate: Date | undefined = undefined;
+
+    const datesReadStr = row["Dates Read"];
+    if (datesReadStr) {
+      // Parse date range (e.g., "2024/01/17-2024/01/19")
+      const dateRange = parseDateRange(datesReadStr);
+      if (dateRange) {
+        startedDate = dateRange.startDate;
+        completedDate = dateRange.endDate;
+      }
+    }
+
+    // Fall back to "Last Date Read" if "Dates Read" didn't parse
+    if (!completedDate) {
+      completedDate = parseDate(row["Last Date Read"]) || undefined;
+    }
 
     // Parse review (strip HTML)
     const reviewRaw = row["Review"] || "";
     const review = reviewRaw ? stripHtml(reviewRaw).result : undefined;
 
-    // Note: We ignore "Dates Read" and "Read Count" per spec
+    // Note: We ignore "Read Count" per spec
     const readCount = 1;
 
     return {
@@ -290,7 +309,8 @@ export class CSVParserService {
       isbn13: undefined, // TheStoryGraph doesn't provide ISBN13 separately
       totalPages: undefined, // TheStoryGraph doesn't provide page count
       rating,
-      completedDate: completedDate || undefined,
+      startedDate,
+      completedDate,
       status,
       review,
       readCount,

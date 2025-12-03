@@ -569,3 +569,23 @@ All phases have been manually tested through the API. UI testing pending for det
 
 **Note**: Backfill script stored dates as milliseconds for 3 reading sessions (needs one-time manual fix or script update)
 
+### Enhancement: Start/End Date Parsing (2025-12-03)
+
+**Goal**: Parse and store BOTH `startedDate` and `completedDate` from CSV imports instead of inferring dates.
+
+**Implementation**:
+1. Added `startedDate?: Date` field to `ImportRecord` interface in `csv-parser.service.ts`
+2. Updated `parseStoryGraphRow()` to parse "Dates Read" column (format: `YYYY/MM/DD-YYYY/MM/DD`):
+   - Uses new `parseDateRange()` function from `date-parser.ts` to extract start and end dates
+   - Falls back to "Last Date Read" for `completedDate` if "Dates Read" is empty or invalid
+3. Updated `parseGoodreadsRow()` to parse "Date Added" column as `startedDate`
+4. Updated `session-importer.service.ts` to use `startedDate` from import record instead of defaulting to null/now
+5. Updated spec documentation (`spec.md`) to reflect new column mappings
+
+**Result**: 
+- TheStoryGraph imports now capture date ranges (e.g., "2024/01/17-2024/01/19" → startedDate=2024-01-17, completedDate=2024-01-19)
+- Goodreads imports now capture when books were added to shelves (Date Added → startedDate)
+- Sessions created from imports now have more accurate date information
+
+**Testing**: Requires real CSV data with "Dates Read" (TheStoryGraph) and "Date Added" (Goodreads) to verify parsing
+
