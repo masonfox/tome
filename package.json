@@ -35,7 +35,8 @@
     "recharts": "^2.12.0",
     "sonner": "^2.0.7",
     "string-strip-html": "^13.5.0",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^2.2.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
