@@ -353,6 +353,12 @@ class SessionImporterService {
       }
 
       // Create 100% progress log
+      // Convert date to timestamp - session dates come back as Date objects from DB
+      const progressDate = session.completedDate || session.createdAt;
+      const progressDateTs = progressDate instanceof Date 
+        ? Math.floor(progressDate.getTime() / 1000)
+        : progressDate; // Already a timestamp if it's a number
+      
       await progressRepository.create({
         userId: null, // Single-user mode
         bookId: session.bookId,
@@ -360,7 +366,7 @@ class SessionImporterService {
         currentPage: book.totalPages || 0,
         pagesRead: book.totalPages || 0,
         currentPercentage: 100,
-        progressDate: session.completedDate || session.createdAt,
+        progressDate: progressDateTs as any, // Cast to any - Drizzle types expect Date but SQLite needs number
         notes: 'Imported from reading history',
       });
 
@@ -390,13 +396,16 @@ class SessionImporterService {
     for (const date of sortedDates) {
       const sessionNumber = await sessionRepository.getNextSessionNumber(book.id);
 
+      // Convert Date to timestamp for SQLite
+      const dateTs = Math.floor(date.getTime() / 1000);
+
       const session = await sessionRepository.create({
         userId: null,
         bookId: book.id,
         sessionNumber,
         status: 'read',
-        startedDate: date,
-        completedDate: date,
+        startedDate: dateTs as any, // Cast to any - Drizzle types expect Date but SQLite needs number
+        completedDate: dateTs as any,
         review,
         isActive: false, // Re-reads are archived
       });
