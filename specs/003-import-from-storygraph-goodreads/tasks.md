@@ -229,7 +229,7 @@
 **Purpose**: Final refinements, documentation, and production readiness
 
 - [X] T066 [P] Add environment variables: Document MAX_IMPORT_FILE_SIZE, IMPORT_BATCH_SIZE, MATCH_CONFIDENCE_THRESHOLD in .env.example
-- [X] T067 [P] Create import UI page (basic): app/import/page.tsx with provider selection, file upload form, basic preview display (optional - can be Phase 2)
+- [X] T067 [P] Create import UI page (basic): app/import/page.tsx with provider selection, file upload form, summary stats preview (detailed preview table not implemented - see notes)
 - [X] T068 [P] Add import cleanup cron: Create background job to delete temp CSVs older than 24 hours from data/temp-imports/
 - [X] T069 [P] Add database indexes verification: Verify idx_sessions_duplicate_check, idx_import_logs_user_created, idx_unmatched_import_log exist
 - [X] T070 Performance optimization: Add library cache warm-up on first import request to reduce initial matching latency
@@ -442,3 +442,90 @@ After MVP:
 ---
 
 **End of Task Breakdown**
+
+---
+
+## Implementation Notes
+
+### Backend Status: ✅ 100% Complete (All 10 Phases)
+
+All backend functionality is fully implemented and tested:
+- ✅ Phase 1-2: Setup & Foundation (schemas, repos, utilities)
+- ✅ Phase 3: CSV Upload & Validation API
+- ✅ Phase 4: Book Matching Algorithm with confidence scoring
+- ✅ Phase 5: Preview API at `/api/import/[importId]` (GET endpoint)
+- ✅ Phase 6: Session Creation & Execute API
+- ✅ Phase 7: Unmatched Records Export API (JSON & CSV formats)
+- ✅ Phase 8: Structured logging throughout
+- ✅ Phase 9: Duplicate detection with idempotency
+- ✅ Phase 10: Production polish, security, performance
+
+**API Endpoints:**
+- `POST /api/import/upload` - Upload CSV with provider selection
+- `GET /api/import/[importId]` - Get detailed preview with pagination
+- `POST /api/import/[importId]/execute` - Execute import with confirmed matches
+- `GET /api/import/[importId]/unmatched` - Export unmatched records (JSON/CSV)
+
+### Frontend UI Status: ⚠️ Partially Complete
+
+**✅ Implemented:**
+- 3-step import flow (upload → preview → complete)
+- Provider selection (Goodreads/TheStoryGraph)
+- CSV file upload with validation
+- Summary statistics preview (exact/high/medium/low/unmatched counts)
+- Import execution and results display
+- Import completion summary with session counts
+- Integration into Settings page
+
+**❌ Not Yet Implemented (Phase 7 UI Features):**
+- Detailed preview table showing individual book matches
+- Per-book match details (matched book title, confidence %, match reason)
+- Manual match confirmation/skip for uncertain matches
+- Unmatched records export button in UI
+- Warning indicators for low-confidence matches
+- Duplicate session indicators in preview
+
+**Current UX:** The UI provides a simple, streamlined flow showing only aggregate statistics. Users cannot review individual matches before import or export unmatched records through the UI (though the API supports both).
+
+### Recommendations for UI Enhancement
+
+**Option A: Enhanced Preview Table (Full Phase 7)**
+- Add paginated table of individual matches with:
+  - Import data (title, author, date, rating)
+  - Matched book (title, author, confidence %)
+  - Match reason (ISBN exact, fuzzy title, etc.)
+  - Checkboxes to confirm/skip each match
+  - Warning badges for duplicates/low-confidence
+- Add "Export Unmatched Records" button with CSV download
+- Allows power users to review and curate imports
+
+**Option B: Simple + Export Button (Minimal Enhancement)**
+- Keep current summary stats preview
+- Add single "Export Unmatched Records" button
+- Clicking downloads CSV of unmatched books
+- Maintains simple 3-step flow for most users
+
+**Option C: Keep As-Is (Current State)**
+- Current UI is functional and sufficient for most use cases
+- Users can still re-import after fixing unmatched books in Calibre
+- Detailed preview API exists for future enhancement
+
+**Recommendation:** **Option B** (Simple + Export) strikes the best balance:
+- Maintains simple, fast workflow for 95% of users
+- Provides unmatched export for power users who need it
+- Small UI change, big value for edge cases
+- Aligns with Tome's philosophy of "simple by default, powerful when needed"
+
+**Estimated Effort:**
+- Option A: 4-6 hours (table component, pagination, checkboxes, API integration)
+- Option B: 30-60 minutes (single button + fetch + CSV download)
+- Option C: 0 hours (done!)
+
+### Testing Status
+
+All phases have been manually tested through the API. UI testing pending for detailed preview features.
+
+---
+
+**Status as of 2025-12-03:** Backend complete, UI functional with enhancement opportunities
+
