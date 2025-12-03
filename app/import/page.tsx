@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Upload, FileUp, Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Upload, FileUp, Loader2, CheckCircle, XCircle, AlertCircle, Download } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 type ImportStep = "upload" | "preview" | "complete";
@@ -32,6 +32,7 @@ export default function ImportPage() {
   const [importId, setImportId] = useState<string | null>(null);
   const [previewStats, setPreviewStats] = useState<PreviewStats | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [exportingUnmatched, setExportingUnmatched] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -144,6 +145,43 @@ export default function ImportPage() {
     setImportId(null);
     setPreviewStats(null);
     setImportResult(null);
+  };
+
+  const handleExportUnmatched = async () => {
+    if (!importId) return;
+
+    setExportingUnmatched(true);
+
+    try {
+      const response = await fetch(`/api/import/${importId}/unmatched?format=csv`);
+
+      if (!response.ok) {
+        toast.error("Failed to export unmatched records");
+        return;
+      }
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `unmatched-records-${importId}.csv`;
+
+      // Download the CSV
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Unmatched records exported successfully!");
+    } catch (error) {
+      toast.error("Failed to export unmatched records");
+    } finally {
+      setExportingUnmatched(false);
+    }
   };
 
   return (
@@ -335,6 +373,19 @@ export default function ImportPage() {
               )}
             </div>
 
+            {/* Info about unmatched records */}
+            {previewStats.unmatchedRecords > 0 && (
+              <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-md">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-[var(--subheading-text)]">
+                    <strong className="text-[var(--heading-text)]">Note:</strong> Unmatched books will be skipped during import. 
+                    You'll be able to export a list of these books after the import completes.
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-4">
               <button
                 onClick={handleReset}
@@ -386,6 +437,40 @@ export default function ImportPage() {
                 </div>
               )}
             </div>
+
+            {/* Export Unmatched Records */}
+            {importResult.unmatchedRecords > 0 && (
+              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[var(--heading-text)] mb-1">
+                      {importResult.unmatchedRecords} book{importResult.unmatchedRecords !== 1 ? "s" : ""} could not be matched
+                    </h3>
+                    <p className="text-sm text-[var(--subheading-text)] mb-3">
+                      These books were not found in your Calibre library. Export them to see which books to add.
+                    </p>
+                    <button
+                      onClick={handleExportUnmatched}
+                      disabled={exportingUnmatched}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm"
+                    >
+                      {exportingUnmatched ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Export Unmatched Records (CSV)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button
