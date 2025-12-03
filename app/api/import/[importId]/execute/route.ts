@@ -64,9 +64,9 @@ export async function POST(
     }
 
     // Get match results from DB (survives server restarts)
-    const matchResults = importLog.matchResults as any;
+    const matchResultsRaw = importLog.matchResults as any;
     
-    if (!matchResults || !Array.isArray(matchResults)) {
+    if (!matchResultsRaw || !Array.isArray(matchResultsRaw)) {
       logger.warn({ importId }, 'Match results not found in database');
       
       return NextResponse.json(
@@ -79,6 +79,20 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Deserialize dates from JSON (they come back as strings from DB)
+    const matchResults = matchResultsRaw.map((result: any) => ({
+      ...result,
+      importRecord: {
+        ...result.importRecord,
+        startedDate: result.importRecord.startedDate 
+          ? new Date(result.importRecord.startedDate) 
+          : undefined,
+        completedDate: result.importRecord.completedDate 
+          ? new Date(result.importRecord.completedDate) 
+          : undefined,
+      }
+    }));
 
     // Build cached data structure from DB data
     const cachedData = {
