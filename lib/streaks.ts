@@ -1,4 +1,4 @@
-import { startOfDay, differenceInDays, isEqual } from "date-fns";
+import { startOfDay, differenceInDays, isEqual, format } from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { streakRepository, progressRepository } from "@/lib/repositories";
 import type { Streak } from "@/lib/db/schema/streaks";
@@ -267,7 +267,8 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   allProgress.forEach((progress) => {
     // Convert progress date to user's timezone for day boundary calculation
     const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-    const dateKey = formatInTimeZone(startOfDay(dateInUserTz), userTimezone, 'yyyy-MM-dd');
+    const dayStart = startOfDay(dateInUserTz);
+    const dateKey = format(dayStart, 'yyyy-MM-dd');
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {
@@ -290,7 +291,13 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   let longestStreak = 0;
   // Convert date strings back to proper timezone-aware dates
   const firstDateStr = sortedDates[0];
-  const firstDateInTz = firstDateStr ? new Date(`${firstDateStr}T00:00:00`) : new Date();
+  let firstDateInTz: Date;
+  if (firstDateStr) {
+    const [year, month, day] = firstDateStr.split('-').map(Number);
+    firstDateInTz = new Date(year, month - 1, day);
+  } else {
+    firstDateInTz = new Date();
+  }
   const firstDateUtc = firstDateStr ? fromZonedTime(firstDateInTz, userTimezone) : new Date();
   let streakStartDate = firstDateUtc;
   let lastActivityDate = firstDateUtc;
@@ -303,8 +310,10 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
       // Convert date strings to timezone-aware dates
       const dateInLoopStr = sortedDates[i];
       const prevDateStr = sortedDates[i - 1];
-      const dateInLoopInTz = new Date(`${dateInLoopStr}T00:00:00`);
-      const prevDateInTz = new Date(`${prevDateStr}T00:00:00`);
+      const [year1, month1, day1] = dateInLoopStr.split('-').map(Number);
+      const [year2, month2, day2] = prevDateStr.split('-').map(Number);
+      const dateInLoopInTz = new Date(year1, month1 - 1, day1);
+      const prevDateInTz = new Date(year2, month2 - 1, day2);
       const daysDiff = differenceInDays(dateInLoopInTz, prevDateInTz);
 
       if (daysDiff === 1) {

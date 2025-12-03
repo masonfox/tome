@@ -265,15 +265,15 @@ export class ProgressRepository extends BaseRepository<
       .all();
 
     // Group by date in user's timezone
-    const { toZonedTime, formatInTimeZone } = require('date-fns-tz');
-    const { startOfDay } = require('date-fns');
+    const { toZonedTime } = require('date-fns-tz');
+    const { startOfDay, format } = require('date-fns');
     
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
       const dateInUserTz = toZonedTime(log.progressDate, timezone);
       const dayStart = startOfDay(dateInUserTz);
-      const dateKey = formatInTimeZone(dayStart, timezone, 'yyyy-MM-dd');
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
       
       const current = dailyMap.get(dateKey) || 0;
       dailyMap.set(dateKey, current + (log.pagesRead || 0));
@@ -315,15 +315,15 @@ export class ProgressRepository extends BaseRepository<
     }
 
     // Group by date in user's timezone
-    const { toZonedTime, formatInTimeZone } = require('date-fns-tz');
-    const { startOfDay } = require('date-fns');
+    const { toZonedTime } = require('date-fns-tz');
+    const { startOfDay, format } = require('date-fns');
     
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
       const dateInUserTz = toZonedTime(log.progressDate, timezone);
       const dayStart = startOfDay(dateInUserTz);
-      const dateKey = formatInTimeZone(dayStart, timezone, 'yyyy-MM-dd');
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
       
       const current = dailyMap.get(dateKey) || 0;
       dailyMap.set(dateKey, current + (log.pagesRead || 0));
