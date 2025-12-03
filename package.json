@@ -21,9 +21,11 @@
   },
   "dependencies": {
     "clsx": "^2.1.0",
+    "csv-parse": "^6.1.0",
     "date-fns": "^3.3.0",
     "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.44.7",
+    "fastest-levenshtein": "^1.0.16",
     "lucide-react": "^0.344.0",
     "next": "^14.2.0",
     "pino": "^9.3.1",
@@ -32,6 +34,7 @@
     "react-dom": "^18.3.0",
     "recharts": "^2.12.0",
     "sonner": "^2.0.7",
+    "string-strip-html": "^13.5.0",
     "tailwind-merge": "^2.2.0"
   },
   "devDependencies": {

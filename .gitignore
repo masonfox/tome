@@ -47,3 +47,6 @@ bun.lockb
 # database backups
 /data/backups/
 *.backup-*
+
+# import temporary files
+/data/temp-imports/*.csv
