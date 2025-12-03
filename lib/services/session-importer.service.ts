@@ -235,14 +235,19 @@ class SessionImporterService {
     }
     // For 'to-read': both dates remain null
 
+    // Convert Date objects to Unix timestamps (seconds) for SQLite
+    // Note: Drizzle's mode: "timestamp" expects numeric timestamps for insertion
+    const startedDateTs = startedDate ? Math.floor(startedDate.getTime() / 1000) : null;
+    const completedDateTs = completedDate ? Math.floor(completedDate.getTime() / 1000) : null;
+
     // Create the session
     const session = await sessionRepository.create({
       userId: null, // Single-user mode
       bookId: book.id,
       sessionNumber,
       status: sessionStatus,
-      startedDate,
-      completedDate,
+      startedDate: startedDateTs as any, // Cast to any - Drizzle types expect Date but SQLite needs number
+      completedDate: completedDateTs as any,
       review: record.review,
       isActive: sessionStatus !== 'read', // Completed reads are archived
     });
