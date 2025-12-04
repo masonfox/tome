@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streakService } from "@/lib/services/streak.service";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { getLogger } from "@/lib/logger";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { toZonedTime, formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 const logger = getLogger();
 
@@ -97,27 +97,28 @@ export async function GET(request: NextRequest) {
     });
 
     // Fill in all days in the range, including days with no data (0 pages)
-    // Use UTC dates to match what the database returns (SQLite DATE() gives UTC dates)
+    // getActivityCalendar returns dates in the user's timezone, so we iterate through
+    // dates in the user's timezone as well
     const allDays: { date: string; pagesRead: number; thresholdMet: boolean }[] = [];
     
-    // Normalize start date to midnight UTC
-    const startDateUtc = new Date(actualStartDate);
-    startDateUtc.setUTCHours(0, 0, 0, 0);
+    // Get the start date in the user's timezone
+    const startDateInUserTz = toZonedTime(actualStartDate, userTimezone);
+    startDateInUserTz.setHours(0, 0, 0, 0);
     
-    // Get today's date in the user's timezone, then convert to UTC midnight for comparison
+    // Get today's date in the user's timezone to know when to stop
     // This ensures we only show data up to the current day in the user's timezone
     // (not UTC, which could be a day ahead)
     const nowInUserTz = toZonedTime(new Date(), userTimezone);
-    const todayUtc = new Date(Date.UTC(
-      nowInUserTz.getFullYear(),
-      nowInUserTz.getMonth(),
-      nowInUserTz.getDate(),
-      0, 0, 0, 0
-    ));
+    nowInUserTz.setHours(23, 59, 59, 999);
     
-    const currentDate = new Date(startDateUtc);
-    while (currentDate <= todayUtc) {
-      const dateStr = formatInTimeZone(currentDate, 'UTC', 'yyyy-MM-dd');
+    const currentDate = new Date(startDateInUserTz);
+    while (currentDate <= nowInUserTz) {
+      // Format as a date string in the user's timezone
+      const dateStr = formatInTimeZone(
+        fromZonedTime(currentDate, userTimezone),
+        userTimezone,
+        'yyyy-MM-dd'
+      );
       const pagesRead = dataMap.get(dateStr) || 0;
       
       allDays.push({
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest) {
         thresholdMet: pagesRead >= streak.dailyThreshold,
       });
       
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     const enrichedHistory = allDays;
