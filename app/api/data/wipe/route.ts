@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sqlite } from "@/lib/db/sqlite";
 import { getLogger } from "@/lib/logger";
+import { syncCalibreLibrary } from "@/lib/sync-service";
 
 const logger = getLogger();
 
@@ -64,12 +65,35 @@ export async function POST() {
     // Truncate all data (preserves schema)
     truncateAllData();
 
-    logger.info("Data wipe completed successfully");
+    logger.info("Data wipe completed successfully, starting Calibre sync...");
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "All data has been wiped successfully" 
-    });
+    // Automatically sync with Calibre to reimport books
+    const syncResult = await syncCalibreLibrary();
+
+    if (syncResult.success) {
+      logger.info(
+        { 
+          syncedCount: syncResult.syncedCount, 
+          updatedCount: syncResult.updatedCount 
+        }, 
+        "Calibre sync completed after data wipe"
+      );
+      return NextResponse.json({ 
+        success: true, 
+        message: "All data has been wiped and Calibre library has been synced",
+        syncResult: {
+          syncedCount: syncResult.syncedCount,
+          totalBooks: syncResult.totalBooks,
+        }
+      });
+    } else {
+      logger.warn({ syncError: syncResult.error }, "Data wipe succeeded but Calibre sync failed");
+      return NextResponse.json({ 
+        success: true, 
+        message: "Data has been wiped, but Calibre sync failed. You may need to sync manually.",
+        syncError: syncResult.error
+      });
+    }
   } catch (error) {
     logger.error({ err: error }, "Data wipe failed");
     return NextResponse.json(
