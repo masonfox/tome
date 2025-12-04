@@ -243,8 +243,18 @@ export default function BookDetailPage() {
             </div>
           </div>
 
-          {/* Progress Section - only show when reading */}
-          {selectedStatus === "reading" && book.activeSession && (
+          {/* Add Total Pages Form - only show when pages not set */}
+          {!book.totalPages && (
+            <BookMetadata
+              hasTotalPages={!!book.totalPages}
+              totalPagesInput={totalPagesInput}
+              onTotalPagesChange={setTotalPagesInput}
+              onTotalPagesSubmit={handleTotalPagesSubmit}
+            />
+          )}
+
+          {/* Progress Section - only show when reading and totalPages is set */}
+          {selectedStatus === "reading" && book.activeSession && book.totalPages && (
             <>
               {/* Session Start Date */}
               <SessionDetails
@@ -309,16 +319,6 @@ export default function BookDetailPage() {
                 />
               </div>
             </>
-          )}
-
-          {/* Add Total Pages Form - only show when pages not set */}
-          {!book.totalPages && (
-            <BookMetadata
-              hasTotalPages={!!book.totalPages}
-              totalPagesInput={totalPagesInput}
-              onTotalPagesChange={setTotalPagesInput}
-              onTotalPagesSubmit={handleTotalPagesSubmit}
-            />
           )}
 
           {/* Description */}
