@@ -190,6 +190,33 @@ export async function POST(request: NextRequest) {
       "CSV parsed successfully"
     );
 
+    // Phase 3.5: Sync with Calibre library to ensure latest book data
+    // This ensures we have the most up-to-date book metadata for accurate matching
+    logger.info({ importId: importLog.id }, "Syncing with Calibre library before matching");
+    const { syncCalibreLibrary } = await import("@/lib/sync-service");
+    const syncResult = await syncCalibreLibrary();
+    
+    if (!syncResult.success) {
+      logger.warn(
+        {
+          importId: importLog.id,
+          syncError: syncResult.error,
+        },
+        "Calibre sync failed, continuing with existing book data"
+      );
+      // Continue with import even if sync fails - use existing book data
+    } else {
+      logger.info(
+        {
+          importId: importLog.id,
+          syncedCount: syncResult.syncedCount,
+          updatedCount: syncResult.updatedCount,
+          totalBooks: syncResult.totalBooks,
+        },
+        "Calibre sync completed successfully"
+      );
+    }
+
     // Phase 4: Perform book matching
     const { matches, summary } = await bookMatcherService.matchRecords(
       parseResult.records
