@@ -122,11 +122,14 @@ export default function ImportPage() {
         return;
       }
 
+      // API response structure: { success: true, data: { summary: {...} } }
+      const summary = data.data?.summary || data.summary;
+      
       setImportResult({
-        sessionsCreated: data.summary.sessionsCreated,
-        sessionsSkipped: data.summary.sessionsSkipped,
-        ratingsSync: data.summary.ratingsSync,
-        unmatchedRecords: data.summary.unmatchedRecords,
+        sessionsCreated: summary.sessionsCreated || 0,
+        sessionsSkipped: summary.sessionsSkipped || 0,
+        ratingsSync: summary.ratingsUpdated || summary.ratingsSync || 0,
+        unmatchedRecords: summary.unmatched || summary.unmatchedRecords || 0,
       });
 
       toast.success("Import completed successfully!");
