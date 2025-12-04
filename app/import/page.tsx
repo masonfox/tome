@@ -380,7 +380,7 @@ export default function ImportPage() {
                   <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-[var(--subheading-text)]">
                     <strong className="text-[var(--heading-text)]">Note:</strong> Unmatched books will be skipped during import. 
-                    You'll be able to export a list of these books after the import completes.
+                    You&apos;ll be able to export a list of these books after the import completes.
                   </div>
                 </div>
               </div>

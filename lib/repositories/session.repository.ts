@@ -3,6 +3,7 @@ import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
+import { getLogger } from "@/lib/logger";
 
 export class SessionRepository extends BaseRepository<
   ReadingSession,
@@ -364,7 +365,33 @@ export class SessionRepository extends BaseRepository<
   ): Promise<ReadingSession | undefined> {
     // For completed sessions, check date within 24-hour window
     if (status === "read" && completedDate) {
+      // Convert Date to Unix timestamp if needed
+      let completedDateTs: number;
+      if (completedDate instanceof Date) {
+        const time = completedDate.getTime();
+        if (isNaN(time)) {
+          // Invalid date, skip duplicate check
+          return undefined;
+        }
+        completedDateTs = Math.floor(time / 1000);
+      } else if (typeof completedDate === 'number') {
+        completedDateTs = completedDate;
+      } else if (typeof completedDate === 'string') {
+        // If we get a string, try to parse it
+        const parsed = new Date(completedDate);
+        if (!isNaN(parsed.getTime())) {
+          completedDateTs = Math.floor(parsed.getTime() / 1000);
+        } else {
+          // Invalid date string, skip duplicate check
+          return undefined;
+        }
+      } else {
+        // Unknown type, skip duplicate check
+        return undefined;
+      }
+      
       // Use julianday for 24-hour tolerance
+      // julianday() works with Unix timestamps when prefixed with 'unixepoch'
       const result = this.getDatabase()
         .select()
         .from(readingSessions)
@@ -372,7 +399,7 @@ export class SessionRepository extends BaseRepository<
           and(
             eq(readingSessions.bookId, bookId),
             eq(readingSessions.status, status),
-            sql`ABS(julianday(${readingSessions.completedDate}) - julianday(${completedDate})) < 1.0`
+            sql`ABS(julianday(${readingSessions.completedDate}, 'unixepoch') - julianday(${completedDateTs}, 'unixepoch')) < 1.0`
           )
         )
         .limit(1)

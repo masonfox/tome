@@ -86,16 +86,28 @@ export async function POST(
       const toDate = (value: any): Date | undefined => {
         if (!value) return undefined;
         if (value instanceof Date) return value;
-        const date = new Date(value);
-        return isNaN(date.getTime()) ? undefined : date;
+        
+        // Handle various input types
+        if (typeof value === 'string') {
+          const date = new Date(value);
+          return isNaN(date.getTime()) ? undefined : date;
+        }
+        
+        if (typeof value === 'number') {
+          // Could be Unix timestamp (seconds or milliseconds)
+          const date = new Date(value > 10000000000 ? value : value * 1000);
+          return isNaN(date.getTime()) ? undefined : date;
+        }
+        
+        return undefined;
       };
 
       return {
         ...result,
         importRecord: {
           ...result.importRecord,
-          startedDate: toDate(result.importRecord.startedDate),
-          completedDate: toDate(result.importRecord.completedDate),
+          startedDate: toDate(result.importRecord?.startedDate),
+          completedDate: toDate(result.importRecord?.completedDate),
         }
       };
     });
@@ -188,8 +200,11 @@ export async function POST(
         logger.error(
           {
             err: error,
+            errorMessage: error.message,
+            errorStack: error.stack,
             importId,
             batchStart: i,
+            batchSize: batch.length,
           },
           'Batch processing failed'
         );
@@ -290,8 +305,8 @@ export async function POST(
             errors: allErrors.length,
           },
           executionTime: `${(totalTimeMs / 1000).toFixed(2)}s`,
-          errors: allErrors.slice(0, 10), // Return first 10 errors only
-          hasMoreErrors: allErrors.length > 10,
+          errors: allErrors.slice(0, 50), // Return first 50 errors for debugging
+          hasMoreErrors: allErrors.length > 50,
         },
       },
       { status: 200 }

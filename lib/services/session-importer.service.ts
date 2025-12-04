@@ -126,8 +126,20 @@ class SessionImporterService {
         logger.error(
           {
             err: error,
+            errorMessage: error.message,
+            errorStack: error.stack,
             rowNumber: match.importRecord.rowNumber,
             bookId: match.matchedBook.id,
+            bookTitle: match.matchedBook.title,
+            importRecordData: {
+              status: match.importRecord.status,
+              startedDate: match.importRecord.startedDate,
+              startedDateType: typeof match.importRecord.startedDate,
+              completedDate: match.importRecord.completedDate,
+              completedDateType: typeof match.importRecord.completedDate,
+              rating: match.importRecord.rating,
+              review: match.importRecord.review?.substring(0, 50),
+            },
           },
           'Failed to import session'
         );
@@ -140,7 +152,17 @@ class SessionImporterService {
     summary.calibreSyncFailures = ratingResults.failures;
 
     // Create progress logs for completed sessions
-    summary.progressLogsCreated = await this.createProgressLogs();
+    try {
+      summary.progressLogsCreated = await this.createProgressLogs();
+    } catch (error: any) {
+      logger.error({
+        err: error,
+        errorMessage: error.message,
+        errorStack: error.stack,
+      }, 'Failed to create progress logs (non-fatal)');
+      summary.progressLogsCreated = 0;
+      // Don't fail the entire import if progress log creation fails
+    }
 
     logger.info(summary, 'Session import completed');
 
@@ -156,6 +178,17 @@ class SessionImporterService {
     options: { skipDuplicates: boolean }
   ): Promise<SessionImportResult> {
     const { skipDuplicates } = options;
+
+    // Helper to ensure we have a Date object (not a string) - defined at start for use throughout
+    const ensureDate = (value: any): Date | null => {
+      if (!value) return null;
+      if (value instanceof Date) return value;
+      if (typeof value === 'string' || typeof value === 'number') {
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? null : date;
+      }
+      return null;
+    };
 
     // Skip DNF records entirely
     if (record.status === 'did-not-finish') {
@@ -173,10 +206,15 @@ class SessionImporterService {
 
     // Check for duplicates if enabled
     if (skipDuplicates) {
+      // Convert completedDate to timestamp for duplicate check
+      const completedDateForDuplicateCheck = record.completedDate 
+        ? ensureDate(record.completedDate)
+        : null;
+      
       const duplicate = await sessionRepository.findDuplicate(
         book.id,
         sessionStatus,
-        record.completedDate || null,
+        completedDateForDuplicateCheck,
         record.rating || null
       );
 
@@ -226,32 +264,44 @@ class SessionImporterService {
 
     if (sessionStatus === 'read' && record.completedDate) {
       // For completed reads: use startedDate and completedDate from import if available
-      startedDate = record.startedDate || null;
-      completedDate = record.completedDate;
+      startedDate = ensureDate(record.startedDate);
+      completedDate = ensureDate(record.completedDate);
     } else if (sessionStatus === 'reading') {
       // For currently-reading: use startedDate from import, or fall back to completedDate or now
-      startedDate = record.startedDate || record.completedDate || new Date();
+      const recordStartedDate = ensureDate(record.startedDate);
+      const recordCompletedDate = ensureDate(record.completedDate);
+      startedDate = recordStartedDate || recordCompletedDate || new Date();
       completedDate = null;
     }
     // For 'to-read': both dates remain null
 
-    // Convert Date objects to Unix timestamps (seconds) for SQLite
-    // Note: Drizzle's mode: "timestamp" expects numeric timestamps for insertion
-    const startedDateTs = (startedDate && startedDate instanceof Date) 
-      ? Math.floor(startedDate.getTime() / 1000) 
-      : null;
-    const completedDateTs = (completedDate && completedDate instanceof Date) 
-      ? Math.floor(completedDate.getTime() / 1000) 
-      : null;
+    // Convert Date objects to Unix timestamps for intermediate processing
+    const convertToTimestamp = (date: Date | null): number | null => {
+      if (!date) return null;
+      if (typeof date === 'number') return date; // Already a timestamp
+      if (date instanceof Date) return Math.floor(date.getTime() / 1000);
+      if (typeof date === 'string') {
+        const parsed = new Date(date);
+        return !isNaN(parsed.getTime()) ? Math.floor(parsed.getTime() / 1000) : null;
+      }
+      return null;
+    };
+    
+    const startedDateTs = convertToTimestamp(startedDate);
+    const completedDateTs = convertToTimestamp(completedDate);
 
-    // Create the session
+    // Convert timestamps back to Date objects for Drizzle
+    // Drizzle's mode: "timestamp" expects Date objects, which it converts to timestamps internally
+    const startedDateForDb = startedDateTs ? new Date(startedDateTs * 1000) : null;
+    const completedDateForDb = completedDateTs ? new Date(completedDateTs * 1000) : null;
+    
     const session = await sessionRepository.create({
       userId: null, // Single-user mode
       bookId: book.id,
       sessionNumber,
       status: sessionStatus,
-      startedDate: startedDateTs as any, // Cast to any - Drizzle types expect Date but SQLite needs number
-      completedDate: completedDateTs as any,
+      startedDate: startedDateForDb,
+      completedDate: completedDateForDb,
       review: record.review,
       isActive: sessionStatus !== 'read', // Completed reads are archived
     });
@@ -344,37 +394,82 @@ class SessionImporterService {
     const completedSessions = await sessionRepository.findByStatus('read', false);
 
     for (const session of completedSessions) {
-      // Check if session already has progress
-      const hasProgress = await progressRepository.hasProgressForSession(session.id);
-      if (hasProgress) {
-        continue;
+      try {
+        // Check if session already has progress
+        const hasProgress = await progressRepository.hasProgressForSession(session.id);
+        if (hasProgress) {
+          continue;
+        }
+
+        // Get book details for page count
+        const book = await bookRepository.findById(session.bookId);
+        if (!book) {
+          logger.warn({ sessionId: session.id }, 'Book not found for session, skipping progress log');
+          continue;
+        }
+
+        // Create 100% progress log
+        // Convert date to timestamp - session dates come back as Date objects from DB
+        const progressDate = session.completedDate || session.createdAt;
+        
+        let progressDateTs: number;
+        if (progressDate instanceof Date) {
+          progressDateTs = Math.floor(progressDate.getTime() / 1000);
+        } else if (typeof progressDate === 'number') {
+          // Already a timestamp
+          progressDateTs = progressDate;
+        } else if (typeof progressDate === 'string') {
+          // Try to parse as date string
+          const parsedDate = new Date(progressDate);
+          if (!isNaN(parsedDate.getTime())) {
+            progressDateTs = Math.floor(parsedDate.getTime() / 1000);
+          } else {
+            logger.warn({ sessionId: session.id, progressDate }, 'Invalid progress date, using current time');
+            progressDateTs = Math.floor(Date.now() / 1000);
+          }
+        } else {
+          logger.warn({ 
+            sessionId: session.id, 
+            progressDate, 
+            progressDateType: typeof progressDate,
+            completedDate: session.completedDate,
+            completedDateType: typeof session.completedDate,
+            createdAt: session.createdAt,
+            createdAtType: typeof session.createdAt
+          }, 'Unknown progress date type, using current time');
+          progressDateTs = Math.floor(Date.now() / 1000);
+        }
+        
+        // Convert timestamp to Date object for Drizzle
+        const progressDateForDb = new Date(progressDateTs * 1000);
+        
+        await progressRepository.create({
+          userId: null, // Single-user mode
+          bookId: session.bookId,
+          sessionId: session.id,
+          currentPage: book.totalPages || 0,
+          pagesRead: book.totalPages || 0,
+          currentPercentage: 100,
+          progressDate: progressDateForDb,
+          notes: 'Imported from reading history',
+        });
+
+        created++;
+      } catch (error: any) {
+        logger.error({
+          err: error,
+          errorMessage: error.message,
+          errorStack: error.stack,
+          sessionId: session.id,
+          sessionData: {
+            completedDate: session.completedDate,
+            completedDateType: typeof session.completedDate,
+            createdAt: session.createdAt,
+            createdAtType: typeof session.createdAt,
+          }
+        }, 'Failed to create progress log for session');
+        // Continue with next session instead of failing entire import
       }
-
-      // Get book details for page count
-      const book = await bookRepository.findById(session.bookId);
-      if (!book) {
-        continue;
-      }
-
-      // Create 100% progress log
-      // Convert date to timestamp - session dates come back as Date objects from DB
-      const progressDate = session.completedDate || session.createdAt;
-      const progressDateTs = progressDate instanceof Date 
-        ? Math.floor(progressDate.getTime() / 1000)
-        : progressDate; // Already a timestamp if it's a number
-      
-      await progressRepository.create({
-        userId: null, // Single-user mode
-        bookId: session.bookId,
-        sessionId: session.id,
-        currentPage: book.totalPages || 0,
-        pagesRead: book.totalPages || 0,
-        currentPercentage: 100,
-        progressDate: progressDateTs as any, // Cast to any - Drizzle types expect Date but SQLite needs number
-        notes: 'Imported from reading history',
-      });
-
-      created++;
     }
 
     logger.info({ progressLogsCreated: created }, 'Progress logs created');
