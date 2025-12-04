@@ -175,10 +175,10 @@
 
 ### Implementation
 
-- [ ] T052 [P] [SU1] Create unmatched API route: app/api/import/[importId]/unmatched/route.ts (GET handler returning unmatched records per OpenAPI spec)
-- [ ] T053 [SU1] Implement JSON response: Query import_unmatched_records by importLogId, return UnmatchedResponse schema
-- [ ] T054 [SU1] Implement CSV export: Add format=csv query parameter to return unmatched records as text/csv with proper headers
-- [ ] T055 [SU1] Add filtering by reason: Implement optional reason query parameter to filter by no_isbn, isbn_not_found, no_title_match, etc.
+- [X] T052 [P] [SU1] Create unmatched API route: app/api/import/[importId]/unmatched/route.ts (GET handler returning unmatched records per OpenAPI spec)
+- [X] T053 [SU1] Implement JSON response: Query import_unmatched_records by importLogId, return UnmatchedResponse schema
+- [X] T054 [SU1] Implement CSV export: Add format=csv query parameter to return unmatched records as text/csv with proper headers
+- [X] T055 [SU1] Add filtering by reason: Implement optional reason query parameter to filter by no_isbn, isbn_not_found, no_title_match, etc.
 
 **Checkpoint**: Unmatched records feature complete - Users can export and review unmatched books
 
