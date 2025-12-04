@@ -166,7 +166,6 @@ export async function POST(
     let totalDuplicates = 0;
     let totalRatingsUpdated = 0;
     let totalCalibreSyncFailures = 0;
-    let totalProgressLogsCreated = 0;
     const allErrors: Array<{ rowNumber: number; error: string }> = [];
 
     // Process in batches to prevent timeouts
@@ -194,7 +193,6 @@ export async function POST(
         totalDuplicates += batchResult.duplicatesFound;
         totalRatingsUpdated += batchResult.ratingsUpdated;
         totalCalibreSyncFailures += batchResult.calibreSyncFailures;
-        totalProgressLogsCreated += batchResult.progressLogsCreated;
         allErrors.push(...batchResult.errors);
       } catch (error: any) {
         logger.error(
@@ -301,7 +299,6 @@ export async function POST(
             duplicatesFound: totalDuplicates,
             ratingsUpdated: totalRatingsUpdated,
             calibreSyncFailures: totalCalibreSyncFailures,
-            progressLogsCreated: totalProgressLogsCreated,
             errors: allErrors.length,
           },
           executionTime: `${(totalTimeMs / 1000).toFixed(2)}s`,

@@ -2,11 +2,15 @@
  * Session Importer Service
  * 
  * Handles import execution: creates reading sessions, detects duplicates, 
- * syncs ratings to Calibre, and creates progress logs
+ * and syncs ratings to Calibre.
+ * 
+ * Note: Progress logs are NOT created for imports. Progress logs track daily
+ * reading journeys (page-by-page progression), while imports only have
+ * historical completion dates. Creating progress logs would artificially
+ * inflate streak calculations. Session completedDate preserves history.
  */
 
 import { sessionRepository } from '@/lib/repositories/session.repository';
-import { progressRepository } from '@/lib/repositories/progress.repository';
 import { bookRepository } from '@/lib/repositories/book.repository';
 import type { Book } from '@/lib/db/schema/books';
 import type { ImportRecord } from './csv-parser.service';
@@ -40,7 +44,6 @@ export interface ImportExecutionSummary {
   duplicatesFound: number;
   ratingsUpdated: number;
   calibreSyncFailures: number;
-  progressLogsCreated: number;
   errors: Array<{ rowNumber: number; error: string }>;
 }
 
@@ -81,7 +84,6 @@ class SessionImporterService {
       duplicatesFound: 0,
       ratingsUpdated: 0,
       calibreSyncFailures: 0,
-      progressLogsCreated: 0,
       errors: [],
     };
 
@@ -151,18 +153,11 @@ class SessionImporterService {
     summary.ratingsUpdated = ratingResults.updated;
     summary.calibreSyncFailures = ratingResults.failures;
 
-    // Create progress logs for completed sessions
-    try {
-      summary.progressLogsCreated = await this.createProgressLogs();
-    } catch (error: any) {
-      logger.error({
-        err: error,
-        errorMessage: error.message,
-        errorStack: error.stack,
-      }, 'Failed to create progress logs (non-fatal)');
-      summary.progressLogsCreated = 0;
-      // Don't fail the entire import if progress log creation fails
-    }
+    // Note: We do NOT create progress logs for imports
+    // Rationale: Progress logs track daily reading progression (the journey)
+    // Imports only have completion dates (no daily granularity)
+    // Creating progress logs would artificially inflate streak calculations
+    // Session completedDate already preserves "when finished"
 
     logger.info(summary, 'Session import completed');
 
@@ -381,100 +376,6 @@ class SessionImporterService {
     }
 
     return { updated, failures };
-  }
-
-  /**
-   * Create progress logs for all completed sessions without progress
-   * Creates 100% progress entry for each "read" session
-   */
-  private async createProgressLogs(): Promise<number> {
-    let created = 0;
-
-    // Find all completed sessions
-    const completedSessions = await sessionRepository.findByStatus('read', false);
-
-    for (const session of completedSessions) {
-      try {
-        // Check if session already has progress
-        const hasProgress = await progressRepository.hasProgressForSession(session.id);
-        if (hasProgress) {
-          continue;
-        }
-
-        // Get book details for page count
-        const book = await bookRepository.findById(session.bookId);
-        if (!book) {
-          logger.warn({ sessionId: session.id }, 'Book not found for session, skipping progress log');
-          continue;
-        }
-
-        // Create 100% progress log
-        // Convert date to timestamp - session dates come back as Date objects from DB
-        const progressDate = session.completedDate || session.createdAt;
-        
-        let progressDateTs: number;
-        if (progressDate instanceof Date) {
-          progressDateTs = Math.floor(progressDate.getTime() / 1000);
-        } else if (typeof progressDate === 'number') {
-          // Already a timestamp
-          progressDateTs = progressDate;
-        } else if (typeof progressDate === 'string') {
-          // Try to parse as date string
-          const parsedDate = new Date(progressDate);
-          if (!isNaN(parsedDate.getTime())) {
-            progressDateTs = Math.floor(parsedDate.getTime() / 1000);
-          } else {
-            logger.warn({ sessionId: session.id, progressDate }, 'Invalid progress date, using current time');
-            progressDateTs = Math.floor(Date.now() / 1000);
-          }
-        } else {
-          logger.warn({ 
-            sessionId: session.id, 
-            progressDate, 
-            progressDateType: typeof progressDate,
-            completedDate: session.completedDate,
-            completedDateType: typeof session.completedDate,
-            createdAt: session.createdAt,
-            createdAtType: typeof session.createdAt
-          }, 'Unknown progress date type, using current time');
-          progressDateTs = Math.floor(Date.now() / 1000);
-        }
-        
-        // Convert timestamp to Date object for Drizzle
-        const progressDateForDb = new Date(progressDateTs * 1000);
-        
-        await progressRepository.create({
-          userId: null, // Single-user mode
-          bookId: session.bookId,
-          sessionId: session.id,
-          currentPage: book.totalPages || 0,
-          pagesRead: book.totalPages || 0,
-          currentPercentage: 100,
-          progressDate: progressDateForDb,
-          notes: 'Imported from reading history',
-        });
-
-        created++;
-      } catch (error: any) {
-        logger.error({
-          err: error,
-          errorMessage: error.message,
-          errorStack: error.stack,
-          sessionId: session.id,
-          sessionData: {
-            completedDate: session.completedDate,
-            completedDateType: typeof session.completedDate,
-            createdAt: session.createdAt,
-            createdAtType: typeof session.createdAt,
-          }
-        }, 'Failed to create progress log for session');
-        // Continue with next session instead of failing entire import
-      }
-    }
-
-    logger.info({ progressLogsCreated: created }, 'Progress logs created');
-
-    return created;
   }
 
   /**
