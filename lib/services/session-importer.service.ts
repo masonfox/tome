@@ -16,6 +16,7 @@ import type { Book } from '@/lib/db/schema/books';
 import type { ImportRecord } from './csv-parser.service';
 import type { MatchResult } from './book-matcher.service';
 import { getLogger } from '@/lib/logger';
+import { updateCalibreRating } from '@/lib/db/calibre-write';
 
 const logger = getLogger();
 
@@ -329,8 +330,8 @@ class SessionImporterService {
 
   /**
    * Sync ratings to Calibre (best-effort)
-   * Note: Calibre DB is read-only, so we only update ratings in Tome database
-   * Ratings sync back to Calibre happens via Calibre's own sync mechanisms
+   * Updates both Tome database and Calibre database
+   * Calibre sync failures are logged but don't fail the import
    */
   private async syncRatingsToCalibre(matches: MatchResult[]): Promise<{
     updated: number;
@@ -348,10 +349,27 @@ class SessionImporterService {
 
       try {
         // Update book rating in Tome database
-        // Calibre DB is read-only, ratings sync via Calibre's own mechanisms
         await bookRepository.update(matchedBook.id, {
           rating: importRecord.rating,
         });
+
+        // Sync rating to Calibre (best-effort)
+        try {
+          if (matchedBook.calibreId) {
+            updateCalibreRating(matchedBook.calibreId, importRecord.rating ?? null);
+          }
+        } catch (calibreError: any) {
+          // Log Calibre sync failure but don't fail the import
+          logger.warn(
+            {
+              err: calibreError,
+              bookId: matchedBook.id,
+              calibreId: matchedBook.calibreId,
+              rating: importRecord.rating,
+            },
+            'Failed to sync rating to Calibre (non-fatal)'
+          );
+        }
 
         updated++;
         logger.debug(
@@ -360,7 +378,7 @@ class SessionImporterService {
             calibreId: matchedBook.calibreId,
             rating: importRecord.rating,
           },
-          'Rating updated in Tome database'
+          'Rating updated in Tome database and synced to Calibre'
         );
       } catch (error: any) {
         failures++;
