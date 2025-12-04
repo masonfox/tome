@@ -820,7 +820,7 @@ const batches = chunk(confirmedMatches, BATCH_SIZE);
 for (const batch of batches) {
   await db.transaction(async (tx) => {
     for (const match of batch) {
-      // Create session
+      // Create session (no progress logs - imports are historical records, not tracked reading)
       const session = await sessionRepository.create(tx, {
         bookId: match.matchedBookId,
         sessionNumber: match.sessionNumber,
@@ -829,15 +829,11 @@ for (const batch of batches) {
         review: match.review
       });
       
-      // Create progress log at 100% for "read" status
-      if (match.status === 'read') {
-        await progressRepository.create(tx, {
-          bookId: match.matchedBookId,
-          sessionId: session.id,
-          currentPercentage: 100,
-          progressDate: match.completedDate
-        });
-      }
+      // Note: We do NOT create progress logs for imports because:
+      // - Progress logs track daily reading progression (the journey)
+      // - Imports only have completion dates (no daily granularity)
+      // - Streak calculations depend on progress logs for accuracy
+      // - Session completedDate already preserves "when finished"
       
       // Update book rating
       if (match.rating) {

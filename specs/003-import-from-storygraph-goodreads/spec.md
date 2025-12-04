@@ -237,20 +237,20 @@ author = lowercase(trim(author))
 - Skip "did-not-finish" status (store in unmatched_records for user review)
 - Set `startedDate` to null for "to-read", same as completedDate for "read"
 - Set `completedDate` from import date
-- Create single ProgressLog entry at 100% for each "read" session
+- **Do NOT create progress logs for imported sessions** (imports lack daily reading progression data; progress logs are for tracked reading journeys, not historical records)
 - Handle re-reads: increment sessionNumber, archive previous sessions
 - Link imported review to session
 - Sync rating to book record (not session)
 
 **Session Status Mapping:**
 
-| Import Status | Tome Status | startedDate | completedDate | Progress | Notes |
-|--------------|-------------|-------------|---------------|----------|-------|
-| read | read | completedDate | completedDate | 100% | Imported as completed session |
-| currently-reading | reading | today | null | 0% (or inferred) | Active reading session |
-| to-read | to-read | null | null | none | Not started |
+| Import Status | Tome Status | startedDate | completedDate | Progress Logs Created? | Notes |
+|--------------|-------------|-------------|---------------|----------------------|-------|
+| read | read | completedDate | completedDate | **No** | Session completion date preserved; no progress logs (imports lack daily tracking data) |
+| currently-reading | reading | today | null | **No** | Active reading session; user can track progress going forward |
+| to-read | to-read | null | null | **No** | Not started |
 | did-not-finish | *(skipped)* | - | - | - | Stored in unmatched_records with reason 'dnf_not_supported' |
-| paused | reading | null | null | 0% | Treated as active reading session |
+| paused | reading | null | null | **No** | Treated as active reading session |
 
 **Multi-Read Handling:**
 - If readCount > 1 or multiple dates provided:

@@ -914,7 +914,165 @@ async function parallelMatch(
 
 ---
 
-## 15. Next Steps
+## 15. Design Decisions
+
+### DD-001: Do Not Create Progress Logs for Imports
+
+**Date**: 2025-12-04  
+**Status**: Decided  
+**Decision Maker**: User (masonfox) + AI analysis
+
+#### Context
+
+When importing "read" books, the system can create reading sessions with completion dates. The question arose: should we also create progress log entries for these imported books?
+
+**Key Context from Spec 001 (Reading Streaks)**:
+- Streak tracking depends entirely on `progress_logs` table
+- Daily threshold checking queries: `SUM(progress_logs.pagesRead) >= dailyThreshold`
+- FR-010: "System MUST aggregate all progress logs within a calendar day when calculating streak maintenance"
+- No progress logs = no pages counted = threshold not met = streak breaks
+
+#### Problem Statement
+
+**Tension between two approaches:**
+
+1. **Create progress logs for imports**:
+   - Pro: Consistent data model (all "read" sessions have progress logs)
+   - Con: Single "100%" entry doesn't represent actual daily progression
+   - Con: **Critical**: Imported books would count toward streak calculations
+   - Con: Importing 50 books would create artificial 50-day streak
+   - Con: Page count data missing from TheStoryGraph exports (would show "0 pages")
+
+2. **Do NOT create progress logs for imports**:
+   - Pro: Streaks remain accurate (only actual tracked reading counts)
+   - Pro: Honest data representation (imports are historical, not tracked journeys)
+   - Pro: No confusion about "0 pages" or fake progress
+   - Con: Imported books don't contribute to daily page totals
+   - Con: Different data model (some sessions lack progress logs)
+
+#### Decision
+
+**Do NOT create progress logs for imported books.**
+
+Imports create **reading sessions only**, with completion dates preserved. No progress log entries are created.
+
+#### Rationale
+
+1. **Fundamental Mismatch**:
+   - Progress logs represent **daily reading journeys** (progressive page counts)
+   - Imports only have **historical completion dates** (no daily granularity)
+   - A single "100%" progress log is meaningless without the journey
+
+2. **Streak Integrity**:
+   - Streaks measure consistent daily reading habits
+   - Importing historical data should NOT inflate current streaks
+   - Users haven't "earned" imported streaks through daily tracking
+   - Spec 001 FR-010 requires progress logs for streak calculation
+
+3. **Data Honesty**:
+   - Imported sessions fundamentally differ from tracked sessions
+   - This difference should be reflected in the data model
+   - Session's `completedDate` already preserves "when finished"
+   - Progress logs reserved for "how I got there"
+
+4. **Simplicity**:
+   - No conditional logic for page counts
+   - No different behavior by provider (Goodreads vs Storygraph)
+   - Cleaner implementation
+   - Clear separation of concerns
+
+5. **User Understanding**:
+   - Users understand imports are historical records
+   - Streaks starting "from today" after import is intuitive
+   - Can manually add progress for favorite imported books if desired
+
+#### Implementation
+
+```typescript
+// In session-importer.service.ts
+async function importSession(match: ConfirmedMatch) {
+  // Create session with completion date
+  const session = await sessionRepository.create({
+    bookId: match.matchedBookId,
+    sessionNumber: match.sessionNumber,
+    status: match.status,
+    completedDate: match.completedDate,
+    review: match.review
+  });
+  
+  // DO NOT create progress logs for imports
+  // Rationale: Progress logs are for daily tracking, imports are historical records
+  // Session completedDate already preserves "when finished"
+  // Streaks depend on progress logs and should only count actual tracked reading
+}
+```
+
+#### Alternatives Considered
+
+**Alternative 1: Create progress logs with `source` field**
+- Add `source: 'tracked' | 'import'` to progress_logs table
+- Filter streak queries: `WHERE source = 'tracked'`
+- **Rejected**: Adds schema complexity for minimal benefit; simpler to not create them
+
+**Alternative 2: Create progress logs only if page count available**
+- Goodreads imports would get progress logs, Storygraph wouldn't
+- **Rejected**: Inconsistent behavior between providers; doesn't solve streak inflation problem
+
+**Alternative 3: Create "stub" progress logs with special flag**
+- Mark imported progress logs as `imported: true`
+- **Rejected**: Same issue as Alternative 1; unnecessary complexity
+
+#### Impact
+
+**What Changes:**
+- ✅ Imported books create reading sessions only (no progress logs)
+- ✅ Session `completedDate` preserves completion history
+- ✅ Streaks remain accurate (only count tracked reading)
+- ✅ No "0 pages" confusion in UI
+- ✅ Cleaner, simpler implementation
+
+**What Doesn't Change:**
+- Reading sessions still preserve full history (dates, ratings, reviews)
+- Users can manually add progress entries post-import if desired
+- Future reading (post-import) tracked normally with progress logs
+
+**Data Model:**
+- `reading_sessions`: Import creates new records ✅
+- `progress_logs`: Import does NOT interact ❌
+- `books`: Import updates ratings only ✅
+- `import_logs`: Audit trail ✅
+- `import_unmatched_records`: Unmatched books ✅
+
+**UI Impact:**
+- Book detail page shows session completion date (no progress timeline)
+- Streak calculations unaffected by imports
+- Reading history preserved in sessions table
+
+#### Success Criteria
+
+- ✅ Imported books appear in reading history (via sessions)
+- ✅ Streaks don't inflate from imports
+- ✅ No confusing "0 pages" displays
+- ✅ Users understand imports are historical (documentation/UI messaging)
+- ✅ Manual progress tracking available post-import
+
+#### Documentation Updates
+
+- ✅ spec.md FR-005 updated (no progress log creation)
+- ✅ data-model.md progress_logs section updated (no import interaction)
+- ✅ plan.md batch insert pattern updated (removed progress log creation)
+- ✅ research.md DD-001 added (this decision)
+
+#### References
+
+- **Spec 001**: Reading Streak Tracking (progress logs dependency)
+- **Spec 003**: Import from TheStoryGraph & Goodreads
+- **Analysis**: Streak system queries `progress_logs` table exclusively
+- **User Feedback**: "The value of progress logs is that they show the user's journey through reading a book"
+
+---
+
+## 16. Next Steps
 
 With all research complete, proceed to **Phase 1: Design & Contracts**:
 

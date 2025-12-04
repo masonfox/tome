@@ -380,28 +380,25 @@ const session = await sessionRepository.create({
 
 ---
 
-### progress_logs (Create only)
+### progress_logs (No import interaction)
 
-**Create Operations**:
-- Create single 100% progress entry for each "read" session
-- Link to session via sessionId
-- Set progressDate = completedDate
+**Import Policy**: **Imports do NOT create progress logs**
 
-**Pattern**:
-```typescript
-if (importData.status === 'read' && importData.completedDate) {
-  await progressRepository.create({
-    bookId: session.bookId,
-    sessionId: session.id,
-    currentPage: book.totalPages || 0,
-    currentPercentage: 100,
-    progressDate: importData.completedDate,
-    pagesRead: book.totalPages || 0
-  });
-}
-```
+**Rationale**:
+- Progress logs track daily reading progression (journey through a book)
+- Imports only have historical completion dates, not daily progress data
+- Streak calculations depend on progress logs for accuracy
+- Creating "fake" 100% progress logs would:
+  - Artificially inflate streak counts
+  - Misrepresent reading history (no actual daily tracking occurred)
+  - Confuse the purpose of progress logs (tracking vs. historical records)
 
-**Note**: Import creates simplified progress entries (single 100% log). Users can add detailed progress later if desired.
+**Reading History Preservation**:
+- Session `completedDate` field preserves when books were finished
+- Users can manually add progress entries for imported books if desired
+- Future reading (post-import) can be tracked normally with progress logs
+
+**No Operations**: Import feature does not interact with `progress_logs` table
 
 ---
 
