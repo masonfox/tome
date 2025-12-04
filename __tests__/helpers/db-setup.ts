@@ -120,8 +120,6 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
     testFilePath = dbInstanceOrPath.testFilePath;
   }
 
-  console.log(`[clearTestDatabase] Clearing database for: ${testFilePath}`);
-
   // Get the raw SQLite instance from the databases map
   const dbInstance = typeof dbInstanceOrPath === 'string' 
     ? databases.get(dbInstanceOrPath) 
@@ -141,15 +139,8 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
     const booksResult = rawDb.prepare("DELETE FROM books").run();
     const streaksResult = rawDb.prepare("DELETE FROM streaks").run();
 
-    console.log(
-      `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
-      `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
-      `${streaksResult.changes} streaks`
-    );
-
     // Run VACUUM to completely reclaim space and reset internal structures
     rawDb.exec("VACUUM");
-    console.log(`[clearTestDatabase] VACUUM completed`);
 
     // Verify tables are empty after clearing
     const streakCount = rawDb.prepare("SELECT COUNT(*) as count FROM streaks").get() as { count: number };
