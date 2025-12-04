@@ -245,14 +245,11 @@ export class BookMatcherService {
 
     // Check each book in library
     for (const book of this.cache.books) {
-      const normalizedBookTitle =
-        this.cache.normalizedTitles.get(book.id) ||
-        normalizeTitle(book.title);
       const normalizedBookAuthors =
         this.cache.normalizedAuthors.get(book.id) ||
         normalizeAuthors(book.authors);
 
-      // Calculate title similarity
+      // Calculate title similarity (using raw titles for now)
       const titleScore = titleSimilarity(record.title, book.title);
 
       // Calculate author similarity
@@ -261,18 +258,27 @@ export class BookMatcherService {
         normalizedBookAuthors
       );
 
+      // Calculate primary author similarity (fuzzy matching instead of exact)
+      const primaryAuthorScore =
+        normalizedRecordAuthors.length > 0 && normalizedBookAuthors.length > 0
+          ? authorSimilarity(
+              normalizedRecordAuthors.slice(0, 1),
+              normalizedBookAuthors.slice(0, 1)
+            )
+          : 0;
+
       // Scoring logic based on spec
       let finalScore = 0;
       let reason: MatchReason = "no_match";
 
-      // High confidence: title ≥90% AND same primary author
-      if (titleScore >= 0.9 && normalizedRecordAuthors.length > 0) {
-        const primaryAuthorMatch =
-          normalizedRecordAuthors[0] === normalizedBookAuthors[0];
-        if (primaryAuthorMatch) {
-          finalScore = 95;
-          reason = "title_author_exact";
-        }
+      // High confidence: title ≥90% AND primary author ≥80% (fuzzy match)
+      if (
+        titleScore >= 0.9 &&
+        normalizedRecordAuthors.length > 0 &&
+        primaryAuthorScore >= 0.8
+      ) {
+        finalScore = 95;
+        reason = "title_author_exact";
       }
 
       // High confidence: title ≥95% AND author ≥80%
@@ -281,8 +287,8 @@ export class BookMatcherService {
         reason = "title_author_high";
       }
 
-      // Medium confidence: title ≥85%
-      if (finalScore === 0 && titleScore >= 0.85) {
+      // Medium-High confidence: title ≥80% (lowered from 85%)
+      if (finalScore === 0 && titleScore >= 0.8) {
         finalScore = titleScore * 100;
         reason = "title_author_medium";
       }
@@ -324,7 +330,7 @@ export class BookMatcherService {
    */
   private classifyConfidence(score: number): MatchConfidence {
     if (score >= 95) return "exact";
-    if (score >= 85) return "high";
+    if (score >= 80) return "high"; // Lowered from 85% to 80%
     if (score >= 70) return "medium";
     if (score >= 60) return "low";
     return "unmatched";
