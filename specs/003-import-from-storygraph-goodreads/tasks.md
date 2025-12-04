@@ -175,10 +175,10 @@
 
 ### Implementation
 
-- [X] T052 [P] [SU1] Create unmatched API route: app/api/import/[importId]/unmatched/route.ts (GET handler returning unmatched records per OpenAPI spec)
-- [X] T053 [SU1] Implement JSON response: Query import_unmatched_records by importLogId, return UnmatchedResponse schema
-- [X] T054 [SU1] Implement CSV export: Add format=csv query parameter to return unmatched records as text/csv with proper headers
-- [X] T055 [SU1] Add filtering by reason: Implement optional reason query parameter to filter by no_isbn, isbn_not_found, no_title_match, etc.
+- [ ] T052 [P] [SU1] Create unmatched API route: app/api/import/[importId]/unmatched/route.ts (GET handler returning unmatched records per OpenAPI spec)
+- [ ] T053 [SU1] Implement JSON response: Query import_unmatched_records by importLogId, return UnmatchedResponse schema
+- [ ] T054 [SU1] Implement CSV export: Add format=csv query parameter to return unmatched records as text/csv with proper headers
+- [ ] T055 [SU1] Add filtering by reason: Implement optional reason query parameter to filter by no_isbn, isbn_not_found, no_title_match, etc.
 
 **Checkpoint**: Unmatched records feature complete - Users can export and review unmatched books
 
@@ -194,12 +194,12 @@
 
 ### Implementation
 
-- [X] T056 [P] [SU2] Add import start logging: Log import start with { fileName, fileSize, provider, importId } in app/api/import/upload/route.ts using pino logger
-- [X] T057 [P] [SU2] Add matching statistics logging: Log match results with { exactMatches, highConfidence, lowConfidence, unmatched } in book-matcher.service.ts
-- [X] T058 [P] [SU2] Add execution logging: Log session creation with { sessionsCreated, sessionsSkipped, duplicatesFound } in session-importer.service.ts
-- [X] T059 [P] [SU2] Add error logging: Log all errors with structured context (importId, step, errorMessage, stack) using logger.error
-- [X] T060 [SU2] Add warning logging for Calibre sync failures: Use logger.warn with { calibreId, error } when updateCalibreRating fails (non-fatal)
-- [X] T061 [SU2] Add completion logging: Log import complete with { status, totalTimeMs, importLogId } in execute route
+- [ ] T056 [P] [SU2] Add import start logging: Log import start with { fileName, fileSize, provider, importId } in app/api/import/upload/route.ts using pino logger
+- [ ] T057 [P] [SU2] Add matching statistics logging: Log match results with { exactMatches, highConfidence, lowConfidence, unmatched } in book-matcher.service.ts
+- [ ] T058 [P] [SU2] Add execution logging: Log session creation with { sessionsCreated, sessionsSkipped, duplicatesFound } in session-importer.service.ts
+- [ ] T059 [P] [SU2] Add error logging: Log all errors with structured context (importId, step, errorMessage, stack) using logger.error
+- [ ] T060 [SU2] Add warning logging for Calibre sync failures: Use logger.warn with { calibreId, error } when updateCalibreRating fails (non-fatal)
+- [ ] T061 [SU2] Add completion logging: Log import complete with { status, totalTimeMs, importLogId } in execute route
 
 **Checkpoint**: Logging complete - All import operations have detailed structured logs
 
@@ -215,10 +215,10 @@
 
 ### Implementation
 
-- [X] T062 [US4-EXT] Enhance duplicate detection: Update findDuplicate in session.repository.ts to check bookId + completedDate (±24h) + status + rating match
-- [X] T063 [US4-EXT] Add forceDuplicates flag: Implement forceDuplicates option in execute request to override duplicate detection
-- [X] T064 [US4-EXT] Track skipped sessions: Increment sessionsSkipped counter in import log when duplicates detected
-- [X] T065 [US4-EXT] Add duplicate indicator to preview: Set isDuplicate=true in MatchPreview when existing session found
+- [ ] T062 [US4-EXT] Enhance duplicate detection: Update findDuplicate in session.repository.ts to check bookId + completedDate (±24h) + status + rating match
+- [ ] T063 [US4-EXT] Add forceDuplicates flag: Implement forceDuplicates option in execute request to override duplicate detection
+- [ ] T064 [US4-EXT] Track skipped sessions: Increment sessionsSkipped counter in import log when duplicates detected
+- [ ] T065 [US4-EXT] Add duplicate indicator to preview: Set isDuplicate=true in MatchPreview when existing session found
 
 **Checkpoint**: Idempotency complete - Re-importing CSV skips duplicates safely
 
@@ -228,14 +228,14 @@
 
 **Purpose**: Final refinements, documentation, and production readiness
 
-- [X] T066 [P] Add environment variables: Document MAX_IMPORT_FILE_SIZE, IMPORT_BATCH_SIZE, MATCH_CONFIDENCE_THRESHOLD in .env.example
-- [X] T067 [P] Create import UI page (basic): app/import/page.tsx with provider selection, file upload form, summary stats preview (detailed preview table not implemented - see notes)
-- [X] T068 [P] Add import cleanup cron: Create background job to delete temp CSVs older than 24 hours from data/temp-imports/
-- [X] T069 [P] Add database indexes verification: Verify idx_sessions_duplicate_check, idx_import_logs_user_created, idx_unmatched_import_log exist
-- [X] T070 Performance optimization: Add library cache warm-up on first import request to reduce initial matching latency
-- [X] T071 [P] Code cleanup: Remove any console.log statements, ensure all errors use structured logging
-- [X] T072 [P] Security review: Verify file upload limits, CSV injection prevention, SQL injection safety via Drizzle ORM
-- [X] T073 Validate quickstart.md: Run through developer setup steps in quickstart.md to verify accuracy
+- [ ] T066 [P] Add environment variables: Document MAX_IMPORT_FILE_SIZE, IMPORT_BATCH_SIZE, MATCH_CONFIDENCE_THRESHOLD in .env.example
+- [ ] T067 [P] Create import UI page (basic): app/import/page.tsx with provider selection, file upload form, summary stats preview (detailed preview table not implemented - see notes)
+- [ ] T068 [P] Add import cleanup cron: Create background job to delete temp CSVs older than 24 hours from data/temp-imports/
+- [ ] T069 [P] Add database indexes verification: Verify idx_sessions_duplicate_check, idx_import_logs_user_created, idx_unmatched_import_log exist
+- [ ] T070 Performance optimization: Add library cache warm-up on first import request to reduce initial matching latency
+- [ ] T071 [P] Code cleanup: Remove any console.log statements, ensure all errors use structured logging
+- [ ] T072 [P] Security review: Verify file upload limits, CSV injection prevention, SQL injection safety via Drizzle ORM
+- [ ] T073 Validate quickstart.md: Run through developer setup steps in quickstart.md to verify accuracy
 
 ---
 
