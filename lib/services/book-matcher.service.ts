@@ -293,10 +293,35 @@ export class BookMatcherService {
         reason = "title_author_medium";
       }
 
-      // Low confidence: title ≥70% (Levenshtein fallback)
-      if (finalScore === 0 && titleScore >= 0.7) {
+      // Low confidence: title ≥65% (Levenshtein fallback, lowered from 70%)
+      if (finalScore === 0 && titleScore >= 0.65) {
         finalScore = titleScore * 100;
-        reason = "title_fuzzy";
+        reason = "title_fuzzy_relaxed";
+      }
+
+      // Tier 4: Substring matching for series books with title prefixes
+      // e.g., "The Wishing Spell" matches "The Land of Stories: The Wishing Spell"
+      if (finalScore === 0) {
+        const normalizedImportTitle = normalizeTitle(record.title);
+        const normalizedDbTitle = normalizeTitle(book.title);
+
+        // Check if import title is a significant substring of database title
+        if (
+          normalizedImportTitle.length >= 10 && // Minimum 10 chars to avoid spurious matches
+          normalizedDbTitle.includes(normalizedImportTitle)
+        ) {
+          // Calculate author overlap to prevent false positives
+          const authorScore = authorSimilarity(
+            record.authors,
+            book.authors
+          );
+
+          // Require at least 50% author overlap for substring matches
+          if (authorScore >= 0.5) {
+            finalScore = 75; // Medium confidence for substring matches
+            reason = "substring_title_match";
+          }
+        }
       }
 
       // Update best match if this is better
