@@ -69,6 +69,26 @@ function mapImportStatus(
 
 class SessionImporterService {
   /**
+   * Determines if we should update the existing session vs creating a new one.
+   *
+   * Rules:
+   * - If existing session is 'read' (completed), always create new (re-read scenario)
+   * - Otherwise, update existing session to new status (status progression)
+   */
+  private shouldUpdateExisting(
+    existingStatus: string,
+    importStatus: string
+  ): boolean {
+    // If the existing session is already completed, this is a re-read
+    if (existingStatus === 'read') {
+      return false; // Create new session
+    }
+
+    // Otherwise, this is a status progression - update existing
+    return true;
+  }
+
+  /**
    * Import sessions from matched records
    * Processes in batch with transaction safety
    */
@@ -236,24 +256,6 @@ class SessionImporterService {
       }
     }
 
-    // Get next session number
-    const sessionNumber = await sessionRepository.getNextSessionNumber(book.id);
-
-    // Archive existing active session if this is a new read
-    if (sessionStatus === 'read' || sessionStatus === 'reading') {
-      const activeSession = await sessionRepository.findActiveByBookId(book.id);
-      if (activeSession) {
-        await sessionRepository.archive(activeSession.id);
-        logger.debug(
-          {
-            bookId: book.id,
-            archivedSessionId: activeSession.id,
-          },
-          'Archived previous active session'
-        );
-      }
-    }
-
     // Determine dates based on status and available data
     let startedDate: Date | null = null;
     let completedDate: Date | null = null;
@@ -282,7 +284,7 @@ class SessionImporterService {
       }
       return null;
     };
-    
+
     const startedDateTs = convertToTimestamp(startedDate);
     const completedDateTs = convertToTimestamp(completedDate);
 
@@ -290,27 +292,95 @@ class SessionImporterService {
     // Drizzle's mode: "timestamp" expects Date objects, which it converts to timestamps internally
     const startedDateForDb = startedDateTs ? new Date(startedDateTs * 1000) : null;
     const completedDateForDb = completedDateTs ? new Date(completedDateTs * 1000) : null;
-    
-    const session = await sessionRepository.create({
-      userId: null, // Single-user mode
-      bookId: book.id,
-      sessionNumber,
-      status: sessionStatus,
-      startedDate: startedDateForDb,
-      completedDate: completedDateForDb,
-      review: record.review,
-      isActive: sessionStatus !== 'read', // Completed reads are archived
-    });
 
-    logger.info(
-      {
-        sessionId: session.id,
+    // Check for existing active session
+    const activeSession = await sessionRepository.findActiveByBookId(book.id);
+    let session;
+    let sessionNumber;
+    let wasUpdated = false;
+
+    if (activeSession && this.shouldUpdateExisting(activeSession.status, sessionStatus)) {
+      // Update existing session (status progression)
+      logger.debug(
+        {
+          bookId: book.id,
+          sessionId: activeSession.id,
+          oldStatus: activeSession.status,
+          newStatus: sessionStatus,
+        },
+        'Updating existing session with import data'
+      );
+
+      // Prepare update data
+      const updateData: any = {
+        status: sessionStatus,
+        isActive: sessionStatus !== 'read',
+      };
+
+      // Update dates if provided by import
+      if (startedDateForDb) {
+        updateData.startedDate = startedDateForDb;
+      }
+      if (completedDateForDb) {
+        updateData.completedDate = completedDateForDb;
+      }
+
+      // Merge reviews (keep existing if import doesn't have one)
+      if (record.review) {
+        updateData.review = record.review;
+      }
+
+      session = await sessionRepository.update(activeSession.id, updateData);
+      sessionNumber = activeSession.sessionNumber;
+      wasUpdated = true;
+
+      logger.info(
+        {
+          sessionId: session.id,
+          bookId: book.id,
+          sessionNumber,
+          status: sessionStatus,
+          oldStatus: activeSession.status,
+        },
+        'Session updated'
+      );
+    } else {
+      // Create new session (first read or re-read)
+      sessionNumber = await sessionRepository.getNextSessionNumber(book.id);
+
+      // Archive previous active session if this is a re-read
+      if (activeSession && (sessionStatus === 'read' || sessionStatus === 'reading')) {
+        await sessionRepository.archive(activeSession.id);
+        logger.debug(
+          {
+            bookId: book.id,
+            archivedSessionId: activeSession.id,
+          },
+          'Archived previous active session for re-read'
+        );
+      }
+
+      session = await sessionRepository.create({
+        userId: null, // Single-user mode
         bookId: book.id,
         sessionNumber,
         status: sessionStatus,
-      },
-      'Session created'
-    );
+        startedDate: startedDateForDb,
+        completedDate: completedDateForDb,
+        review: record.review,
+        isActive: sessionStatus !== 'read', // Completed reads are archived
+      });
+
+      logger.info(
+        {
+          sessionId: session.id,
+          bookId: book.id,
+          sessionNumber,
+          status: sessionStatus,
+        },
+        'Session created'
+      );
+    }
 
     // Update book rating if provided
     if (record.rating && record.rating > 0) {
@@ -322,7 +392,7 @@ class SessionImporterService {
       bookId: book.id,
       bookTitle: book.title,
       action: 'created',
-      reason: 'Session created successfully',
+      reason: wasUpdated ? 'Session updated successfully' : 'Session created successfully',
       sessionId: session.id,
       sessionNumber,
     };
@@ -445,6 +515,9 @@ class SessionImporterService {
     return sessionIds;
   }
 }
+
+// Export class for testing
+export { SessionImporterService };
 
 // Singleton instance
 export const sessionImporterService = new SessionImporterService();
