@@ -21,7 +21,7 @@ export function runMigrations() {
   try {
     logger.info("Running migrations...");
     
-    // Check which migrations exist
+    // Check which migrations exist and which have been applied
     const migrationsFolder = './drizzle';
     const migrationFiles = readdirSync(migrationsFolder)
       .filter((file) => file.endsWith('.sql'))
@@ -30,34 +30,23 @@ export function runMigrations() {
     logger.info(`Found ${migrationFiles.length} migration files`);
     
     // Check which migrations have already been applied
-    let appliedMigrations: string[] = [];
+    let appliedMigrationCount = 0;
     try {
       const result = sqlite.prepare(
-        "SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at"
-      ).all() as Array<{ hash: string; created_at: number }>;
+        "SELECT COUNT(*) as count FROM __drizzle_migrations"
+      ).get() as { count: number };
       
-      appliedMigrations = result.map(row => {
-        // The hash is stored as a number, we need to match it to migration files
-        // Drizzle uses the migration index (0000, 0001, etc.)
-        return row.hash;
-      });
-      
-      logger.info(`${appliedMigrations.length} migrations already applied`);
+      appliedMigrationCount = result.count;
+      logger.info(`${appliedMigrationCount} migrations already applied`);
     } catch (error) {
       // Table doesn't exist yet (first run)
       logger.info("No migrations applied yet (first run)");
     }
     
-    // Determine which migrations will be applied
-    const pendingCount = migrationFiles.length - appliedMigrations.length;
-    if (pendingCount > 0) {
-      logger.info(`${pendingCount} new migration(s) to apply:`);
-      migrationFiles.slice(appliedMigrations.length).forEach((file) => {
-        logger.info(`  → ${file}`);
-      });
-    } else {
-      logger.info("All migrations up to date");
-    }
+    // Note: We can't reliably determine which specific migrations will be applied
+    // because Drizzle uses content hashes, not just file counts or names.
+    // Drizzle's migrate() function will handle the actual detection and execution.
+    logger.info("Checking for pending migrations...");
     
     // Pass the Drizzle database instance (which contains dialect and session)
     migrate(db, { migrationsFolder: "./drizzle" });

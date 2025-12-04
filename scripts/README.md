@@ -71,6 +71,32 @@ bash scripts/list-backups.sh
 
 ---
 
+### Database Maintenance
+
+#### `fix-orphan-migration.ts`
+Identifies and removes orphaned migration entries from the `__drizzle_migrations` table.
+
+**Usage:**
+```bash
+# Direct execution (interactive)
+bun run scripts/fix-orphan-migration.ts
+```
+
+**Details:**
+- Compares migration entries to actual SQL files
+- Identifies entries with no corresponding migration file
+- Removes orphaned entries (schema is not affected)
+- Use when migrations show as "always pending"
+
+**When to use:**
+- Migration always shows "1 new migration(s) to apply"
+- After deleting or regenerating migration files
+- Database has more migration entries than SQL files exist
+
+**⚠️ NOTE:** This only removes tracking entries, not schema changes. If you need to revert schema changes, restore a backup.
+
+---
+
 ### Calibre Integration
 
 #### `sync-calibre.ts`
