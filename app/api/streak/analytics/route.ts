@@ -66,14 +66,22 @@ export async function GET(request: NextRequest) {
     // Get user timezone for date calculations
     const userTimezone = streak.userTimezone || "America/New_York";
 
-    // Calculate date range using UTC (to match database DATE() output)
-    // Database uses SQLite's DATE(timestamp, 'unixepoch') which gives UTC dates
-    const requestedStartDate = new Date();
-    requestedStartDate.setUTCDate(requestedStartDate.getUTCDate() - days);
-    requestedStartDate.setUTCHours(0, 0, 0, 0);
+    // Calculate date range in the user's timezone to ensure correct day boundaries
+    // Get current date/time in user's timezone
+    const nowInUserTz = toZonedTime(new Date(), userTimezone);
     
-    const endDate = new Date();
-    endDate.setUTCHours(23, 59, 59, 999); // End of today UTC
+    // Calculate start date by going back N days in user's timezone
+    const requestedStartDateInUserTz = new Date(nowInUserTz);
+    requestedStartDateInUserTz.setDate(requestedStartDateInUserTz.getDate() - days);
+    requestedStartDateInUserTz.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC timestamp for database queries
+    const requestedStartDate = fromZonedTime(requestedStartDateInUserTz, userTimezone);
+    
+    // End date is end of today in user's timezone
+    const endDateInUserTz = new Date(nowInUserTz);
+    endDateInUserTz.setHours(23, 59, 59, 999);
+    const endDate = fromZonedTime(endDateInUserTz, userTimezone);
     
     // Get the earliest progress date to avoid showing empty days before tracking started
     const earliestProgressDate = await progressRepository.getEarliestProgressDate();
@@ -105,14 +113,11 @@ export async function GET(request: NextRequest) {
     const startDateInUserTz = toZonedTime(actualStartDate, userTimezone);
     startDateInUserTz.setHours(0, 0, 0, 0);
     
-    // Get today's date in the user's timezone to know when to stop
+    // Use endDateInUserTz calculated earlier (end of today in user's timezone)
     // This ensures we only show data up to the current day in the user's timezone
-    // (not UTC, which could be a day ahead)
-    const nowInUserTz = toZonedTime(new Date(), userTimezone);
-    nowInUserTz.setHours(23, 59, 59, 999);
     
     const currentDate = new Date(startDateInUserTz);
-    while (currentDate <= nowInUserTz) {
+    while (currentDate <= endDateInUserTz) {
       // Format as a date string in the user's timezone
       const dateStr = formatInTimeZone(
         fromZonedTime(currentDate, userTimezone),
