@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streakService } from "@/lib/services/streak.service";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { getLogger } from "@/lib/logger";
-import { format } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 
 const logger = getLogger();
 
@@ -104,13 +104,20 @@ export async function GET(request: NextRequest) {
     const startDateUtc = new Date(actualStartDate);
     startDateUtc.setUTCHours(0, 0, 0, 0);
     
-    // Get today's date in UTC
-    const todayUtc = new Date();
-    todayUtc.setUTCHours(0, 0, 0, 0);
+    // Get today's date in the user's timezone, then convert to UTC midnight for comparison
+    // This ensures we only show data up to the current day in the user's timezone
+    // (not UTC, which could be a day ahead)
+    const nowInUserTz = toZonedTime(new Date(), userTimezone);
+    const todayUtc = new Date(Date.UTC(
+      nowInUserTz.getFullYear(),
+      nowInUserTz.getMonth(),
+      nowInUserTz.getDate(),
+      0, 0, 0, 0
+    ));
     
     const currentDate = new Date(startDateUtc);
     while (currentDate <= todayUtc) {
-      const dateStr = format(currentDate, 'yyyy-MM-dd');
+      const dateStr = formatInTimeZone(currentDate, 'UTC', 'yyyy-MM-dd');
       const pagesRead = dataMap.get(dateStr) || 0;
       
       allDays.push({
