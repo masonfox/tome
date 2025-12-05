@@ -86,32 +86,34 @@ export class BookService {
     const { getDatabase } = await import("@/lib/db/context");
     const { calculatePercentage } = await import("@/lib/utils/progress-calculations");
     const { getLogger } = await import("@/lib/logger");
-    const logger = getLogger();
+    const { books } = await import("@/lib/db/schema/books");
+    const { readingSessions } = await import("@/lib/db/schema/reading-sessions");
+    const { progressLogs } = await import("@/lib/db/schema/progress-logs");
+    const { eq, and } = await import("drizzle-orm");
 
+    const logger = getLogger();
     const db = getDatabase(); // Get the correct database instance (test or production)
 
     // Use transaction for atomic update + recalculation
+    // NOTE: better-sqlite3 requires synchronous transaction callbacks (no async/await)
+    // Bun's sqlite supports async, but Drizzle handles the difference
     try {
-      return await db.transaction(async (tx) => {
-        // Import schema for direct queries
-        const { books } = await import("@/lib/db/schema/books");
-        const { readingSessions } = await import("@/lib/db/schema/reading-sessions");
-        const { progressLogs } = await import("@/lib/db/schema/progress-logs");
-        const { eq, and } = await import("drizzle-orm");
-        
+      return await db.transaction((tx) => {
+
         // 1. Update book's totalPages using transaction
-        const [updated] = await tx
+        const [updated] = tx
           .update(books)
           .set({ totalPages })
           .where(eq(books.id, bookId))
-          .returning();
-        
+          .returning()
+          .all();
+
         if (!updated) {
           throw new Error("Failed to update total pages");
         }
 
         // 2. Find active sessions for this book using transaction
-        const activeSessions = await tx
+        const activeSessions = tx
           .select()
           .from(readingSessions)
           .where(
@@ -120,28 +122,31 @@ export class BookService {
               eq(readingSessions.isActive, true),
               eq(readingSessions.status, 'reading')
             )
-          );
-        
+          )
+          .all();
+
         // 3. For each active session, recalculate progress log percentages
         let totalLogsUpdated = 0;
         for (const session of activeSessions) {
           // Get progress logs for this session
-          const logs = await tx
+          const logs = tx
             .select()
             .from(progressLogs)
-            .where(eq(progressLogs.sessionId, session.id));
-          
+            .where(eq(progressLogs.sessionId, session.id))
+            .all();
+
           // Update each log with new percentage
           for (const log of logs) {
             const newPercentage = calculatePercentage(log.currentPage, totalPages);
-            await tx
+            tx
               .update(progressLogs)
               .set({ currentPercentage: newPercentage })
-              .where(eq(progressLogs.id, log.id));
+              .where(eq(progressLogs.id, log.id))
+              .run();
             totalLogsUpdated++;
           }
         }
-        
+
         // Log for debugging/monitoring
         logger.info({
           bookId,
@@ -149,7 +154,7 @@ export class BookService {
           activeSessionsCount: activeSessions.length,
           progressLogsUpdated: totalLogsUpdated
         }, "[BookService] Updated total pages and recalculated progress");
-        
+
         return updated;
       });
     } catch (error) {
