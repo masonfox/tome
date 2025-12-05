@@ -95,6 +95,9 @@ backup_database() {
     find "$BACKUP_DIR" -type f -name "${BACKUP_BASE}.backup-*" -print0 2>/dev/null | \
       xargs -0 ls -t 2>/dev/null | tail -n +4 | xargs -r rm -f
 
+    # Remove empty date folders after cleanup
+    find "$BACKUP_DIR" -mindepth 1 -type d -empty -delete 2>/dev/null || true
+
     echo "Backup created successfully"
   else
     echo "Database does not exist yet, skipping backup (first run)"
