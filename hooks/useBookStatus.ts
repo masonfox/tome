@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
+import { getLogger } from "@/lib/logger";
 
 interface ProgressEntry {
   id: number;
@@ -91,7 +92,7 @@ export function useBookStatus(
     } catch (error) {
       // Rollback optimistic update on error
       setSelectedStatus(previousStatus);
-      console.error("Failed to update status:", error);
+      getLogger().error({ err: error }, "Failed to update status");
       toast.error("Failed to update status");
     }
   }, [bookId, selectedStatus, onStatusChange, onRefresh]);
@@ -156,7 +157,7 @@ export function useBookStatus(
         });
 
         if (!progressResponse.ok) {
-          console.error("Failed to update progress to 100%");
+          getLogger().error("Failed to update progress to 100%");
         }
       }
 
@@ -186,7 +187,7 @@ export function useBookStatus(
     } catch (error) {
       // Rollback on error
       setSelectedStatus(previousStatus);
-      console.error("Failed to mark book as read:", error);
+      getLogger().error({ err: error }, "Failed to mark book as read");
       toast.error("Failed to mark book as read");
     }
   }, [book, bookId, selectedStatus, onRefresh]);

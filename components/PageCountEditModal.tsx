@@ -3,6 +3,7 @@
 import { useState } from "react";
 import BaseModal from "./BaseModal";
 import { toast } from "@/utils/toast";
+import { getLogger } from "@/lib/logger";
 
 interface PageCountEditModalProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export default function PageCountEditModal({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Failed to update page count:", error);
+      getLogger().error({ err: error, bookId }, "Failed to update page count");
       toast.error(error instanceof Error ? error.message : "Failed to update page count");
     } finally {
       setIsSubmitting(false);
