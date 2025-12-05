@@ -38,6 +38,8 @@ export type MatchReason =
   | "title_author_high"
   | "title_author_medium"
   | "title_fuzzy"
+  | "title_fuzzy_relaxed"
+  | "substring_title_match"
   | "no_match";
 
 /**

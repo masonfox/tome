@@ -331,6 +331,11 @@ class SessionImporterService {
       }
 
       session = await sessionRepository.update(activeSession.id, updateData);
+      
+      if (!session) {
+        throw new Error(`Failed to update session ${activeSession.id}`);
+      }
+      
       sessionNumber = activeSession.sessionNumber;
       wasUpdated = true;
 
