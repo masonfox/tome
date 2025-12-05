@@ -1,6 +1,7 @@
 import { eq, and, desc, asc, sql, gte, lte, lt, gt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
+import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { db } from "@/lib/db/sqlite";
 
 export class ProgressRepository extends BaseRepository<
@@ -390,7 +391,6 @@ export class ProgressRepository extends BaseRepository<
    * @returns The maximum currentPage value from active sessions, or 0 if no active progress exists
    */
   async getHighestCurrentPageForActiveSessions(bookId: number): Promise<number> {
-    const { readingSessions } = require("@/lib/db/schema/reading-sessions");
 
     const result = this.getDatabase()
       .select({ maxPage: sql<number>`MAX(${this.table.currentPage})` })

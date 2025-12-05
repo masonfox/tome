@@ -172,6 +172,18 @@ export class BookService {
     } catch (error) {
       const { getLogger } = await import("@/lib/logger");
       getLogger().error({ err: error, bookId }, "[BookService] Failed to update total pages");
+      
+      // Re-throw validation errors as-is (they have user-friendly messages)
+      if (
+        error instanceof Error && (
+          error.message.includes("Cannot reduce") ||
+          error.message.includes("Total pages must be a positive number") ||
+          error.message.includes("Book not found")
+        )
+      ) {
+        throw error;
+      }
+      
       throw new Error("Failed to update page count. Please try again.");
     }
   }

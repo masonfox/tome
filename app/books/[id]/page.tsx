@@ -278,7 +278,7 @@ export default function BookDetailPage() {
                     className="absolute inset-y-0 left-0 bg-[var(--accent)] transition-all duration-300"
                     style={{
                       width: bookProgressHook.progress.length > 0
-                        ? `${Math.min((bookProgressHook.progress[0].currentPage / (book.totalPages || 1)) * 100, 100)}%`
+                        ? `${calculatePercentage(bookProgressHook.progress[0].currentPage, book.totalPages || 1)}%`
                         : "0%",
                     }}
                   />

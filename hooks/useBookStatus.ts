@@ -157,7 +157,17 @@ export function useBookStatus(
         });
 
         if (!progressResponse.ok) {
-          getLogger().error("Failed to update progress to 100%");
+          const errorDetails: any = {
+            status: progressResponse.status,
+            statusText: progressResponse.statusText,
+          };
+          try {
+            const data = await progressResponse.json();
+            errorDetails.body = data;
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+          getLogger().error({ err: errorDetails }, "Failed to update progress to 100%");
         }
       }
 

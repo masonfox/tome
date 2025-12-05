@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BaseModal from "./BaseModal";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
@@ -23,10 +23,23 @@ export default function PageCountEditModal({
   const [pageCount, setPageCount] = useState(currentPageCount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Reset form when modal opens with different book
+  useEffect(() => {
+    if (isOpen) {
+      setPageCount(currentPageCount?.toString() || "");
+    }
+  }, [isOpen, currentPageCount]);
+
   const handleSubmit = async () => {
+    // Check for decimal input first
+    if (pageCount.includes('.')) {
+      toast.error("Please enter a whole number of pages");
+      return;
+    }
+    
     const parsedCount = parseInt(pageCount);
     
-    if (!pageCount || parsedCount <= 0 || !Number.isInteger(parsedCount)) {
+    if (!pageCount || parsedCount <= 0 || isNaN(parsedCount)) {
       toast.error("Please enter a valid page count");
       return;
     }

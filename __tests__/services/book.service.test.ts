@@ -363,7 +363,7 @@ describe("BookService", () => {
         progressDate: new Date('2024-01-01'),
       }));
 
-      const originalTotalPages = testBook.totalPages;
+
 
       // Note: This test verifies error handling, but we can't easily mock
       // the calculatePercentage function since it's dynamically imported.
