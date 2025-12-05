@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, BookCheck } from "lucide-react";
+import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
@@ -12,7 +12,7 @@ import RereadConfirmModal from "@/components/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
-import BookMetadata from "@/components/BookDetail/BookMetadata";
+
 import BookProgress from "@/components/BookDetail/BookProgress";
 import ProgressHistory from "@/components/BookDetail/ProgressHistory";
 import SessionDetails from "@/components/BookDetail/SessionDetails";
@@ -79,7 +79,6 @@ export default function BookDetailPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-  const [totalPagesInput, setTotalPagesInput] = useState("");
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
 
@@ -109,11 +108,9 @@ export default function BookDetailPage() {
     setShowRereadConfirmation(false);
   }
 
-  // Handle page count editing
+  // Handle page count editing (works for both null and existing values)
   function handlePageCountClick() {
-    if (book?.totalPages) {
-      setShowPageCountModal(true);
-    }
+    setShowPageCountModal(true);
   }
 
   function handlePageCountUpdateSuccess() {
@@ -121,16 +118,7 @@ export default function BookDetailPage() {
     handleRefresh(); // Existing centralized refresh
   }
 
-  // Total pages submit handler
-  async function handleTotalPagesSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!totalPagesInput || parseInt(totalPagesInput) <= 0) return;
 
-    await updateTotalPages(parseInt(totalPagesInput));
-    setTotalPagesInput("");
-    toast.success("Pages updated");
-    router.refresh(); // Refresh server components (dashboard, etc.)
-  }
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -193,7 +181,6 @@ export default function BookDetailPage() {
           onStatusChange={handleUpdateStatus}
           onRatingClick={openRatingModal}
           onRereadClick={handleRereadClick}
-          onPageCountClick={handlePageCountClick}
           showStatusDropdown={showStatusDropdown}
           setShowStatusDropdown={setShowStatusDropdown}
           dropdownRef={dropdownRef}
@@ -236,17 +223,16 @@ export default function BookDetailPage() {
               {book.totalReads !== undefined && book.totalReads > 0 && book.totalPages && (
                 <span className="text-[var(--border-color)]">•</span>
               )}
-              {book.totalPages ? (
-                <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                  <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
-                  <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-[var(--accent)] italic">
-                  <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
-                  <span className="font-medium">Pages not set</span>
-                </div>
-              )}
+              <div 
+                onClick={handlePageCountClick}
+                className="flex items-center gap-1.5 text-[var(--accent)] group cursor-pointer"
+              >
+                <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
+                <span className="font-semibold group-hover:underline">
+                  {book.totalPages ? `${book.totalPages.toLocaleString()} pages` : 'Pages not set'}
+                </span>
+                <Pencil className="w-3 h-3 text-[var(--subheading-text)]" />
+              </div>
               {book.pubDate && (
                 <>
                   <span className="text-[var(--border-color)]">•</span>
@@ -326,15 +312,7 @@ export default function BookDetailPage() {
             </>
           )}
 
-          {/* Add Total Pages Form - only show when pages not set */}
-          {!book.totalPages && (
-            <BookMetadata
-              hasTotalPages={!!book.totalPages}
-              totalPagesInput={totalPagesInput}
-              onTotalPagesChange={setTotalPagesInput}
-              onTotalPagesSubmit={handleTotalPagesSubmit}
-            />
-          )}
+
 
           {/* Description */}
           {book.description && (

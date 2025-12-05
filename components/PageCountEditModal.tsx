@@ -104,9 +104,9 @@ export default function PageCountEditModal({
           />
         </div>
         
-        <div className="text-xs text-[var(--foreground)]/60 bg-[var(--background)] p-3 rounded border border-[var(--border-color)]">
-          <p className="font-medium">
-            This will update progress calculations for all active reading sessions.
+        <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 rounded border border-amber-200 dark:border-amber-800">
+          <p className="font-semibold">
+            ⚠️ This will update progress calculations for all active reading sessions.
           </p>
         </div>
       </div>
