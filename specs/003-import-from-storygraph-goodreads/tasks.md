@@ -194,12 +194,12 @@
 
 ### Implementation
 
-- [ ] T056 [P] [SU2] Add import start logging: Log import start with { fileName, fileSize, provider, importId } in app/api/import/upload/route.ts using pino logger
-- [ ] T057 [P] [SU2] Add matching statistics logging: Log match results with { exactMatches, highConfidence, lowConfidence, unmatched } in book-matcher.service.ts
-- [ ] T058 [P] [SU2] Add execution logging: Log session creation with { sessionsCreated, sessionsSkipped, duplicatesFound } in session-importer.service.ts
-- [ ] T059 [P] [SU2] Add error logging: Log all errors with structured context (importId, step, errorMessage, stack) using logger.error
-- [ ] T060 [SU2] Add warning logging for Calibre sync failures: Use logger.warn with { calibreId, error } when updateCalibreRating fails (non-fatal)
-- [ ] T061 [SU2] Add completion logging: Log import complete with { status, totalTimeMs, importLogId } in execute route
+- [X] T056 [P] [SU2] Add import start logging: Log import start with { fileName, fileSize, provider, importId } in app/api/import/upload/route.ts using pino logger
+- [X] T057 [P] [SU2] Add matching statistics logging: Log match results with { exactMatches, highConfidence, lowConfidence, unmatched } in book-matcher.service.ts
+- [X] T058 [P] [SU2] Add execution logging: Log session creation with { sessionsCreated, sessionsSkipped, duplicatesFound } in session-importer.service.ts
+- [X] T059 [P] [SU2] Add error logging: Log all errors with structured context (importId, step, errorMessage, stack) using logger.error
+- [X] T060 [SU2] Add warning logging for Calibre sync failures: Use logger.warn with { calibreId, error } when updateCalibreRating fails (non-fatal)
+- [X] T061 [SU2] Add completion logging: Log import complete with { status, totalTimeMs, importLogId } in execute route
 
 **Checkpoint**: Logging complete - All import operations have detailed structured logs
 
