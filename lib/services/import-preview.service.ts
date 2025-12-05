@@ -203,7 +203,7 @@ class ImportPreviewService {
       confidence,
       confidenceScore,
       willCreateSession,
-      isDuplicate: false, // TODO: Implement duplicate detection in Phase 6
+      isDuplicate,
       warnings,
     };
   }

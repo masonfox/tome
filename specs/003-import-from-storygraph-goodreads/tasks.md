@@ -215,10 +215,10 @@
 
 ### Implementation
 
-- [ ] T062 [US4-EXT] Enhance duplicate detection: Update findDuplicate in session.repository.ts to check bookId + completedDate (±24h) + status + rating match
-- [ ] T063 [US4-EXT] Add forceDuplicates flag: Implement forceDuplicates option in execute request to override duplicate detection
-- [ ] T064 [US4-EXT] Track skipped sessions: Increment sessionsSkipped counter in import log when duplicates detected
-- [ ] T065 [US4-EXT] Add duplicate indicator to preview: Set isDuplicate=true in MatchPreview when existing session found
+- [X] T062 [US4-EXT] Enhance duplicate detection: Update findDuplicate in session.repository.ts to check bookId + completedDate (±24h) + status + rating match
+- [X] T063 [US4-EXT] Add forceDuplicates flag: Implement forceDuplicates option in execute request to override duplicate detection
+- [X] T064 [US4-EXT] Track skipped sessions: Increment sessionsSkipped counter in import log when duplicates detected
+- [X] T065 [US4-EXT] Add duplicate indicator to preview: Set isDuplicate=true in MatchPreview when existing session found
 
 **Checkpoint**: Idempotency complete - Re-importing CSV skips duplicates safely
 
