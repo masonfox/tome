@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Test & Build App
+    name: Test
     runs-on: ubuntu-latest
     
     steps:
@@ -31,9 +31,6 @@ jobs:
         env:
           NODE_ENV: test
         run: bun test
-
-      - name: Build application
-        run: bun run build
 
   docker-build:
     name: Validate Docker Build (PRs only)
