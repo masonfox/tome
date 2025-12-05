@@ -71,6 +71,20 @@
       "when": 1764259258154,
       "tag": "0009_wild_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1764719741914,
+      "tag": "0010_fair_makkari",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1764771406545,
+      "tag": "0011_optimal_wasp",
+      "breakpoints": true
     }
   ]
 }

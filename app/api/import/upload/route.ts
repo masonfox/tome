@@ -1,0 +1,292 @@
+/**
+ * Import Upload API Route
+ * POST /api/import/upload
+ * 
+ * Handles CSV file upload, validation, and initial parsing
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { csvParserService } from "@/lib/services/csv-parser.service";
+import { bookMatcherService } from "@/lib/services/book-matcher.service";
+import { ProviderSchema } from "@/lib/schemas/csv-provider.schema";
+import { importLogRepository } from "@/lib/repositories/import-log.repository";
+import { importCache } from "@/lib/services/import-cache.service";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger();
+
+// Maximum file size: 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+export async function POST(request: NextRequest) {
+  const importId = crypto.randomUUID();
+  
+  try {
+    // Parse multipart/form-data
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const providerParam = formData.get("provider") as string | null;
+
+    // Validate provider parameter
+    if (!providerParam) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Provider is required",
+          details: "Please specify whether the CSV is from Goodreads or TheStoryGraph",
+          code: "PROVIDER_REQUIRED",
+        },
+        { status: 400 }
+      );
+    }
+
+    const providerValidation = ProviderSchema.safeParse(providerParam);
+    if (!providerValidation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid provider",
+          details: "Provider must be either 'goodreads' or 'storygraph'",
+          code: "INVALID_PROVIDER",
+        },
+        { status: 400 }
+      );
+    }
+
+    const provider = providerValidation.data;
+
+    // Validate file
+    if (!file) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "File is required",
+          details: "Please upload a CSV file",
+          code: "FILE_REQUIRED",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check file type
+    if (!file.type.includes("csv") && !file.name.endsWith(".csv")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid file type",
+          details: "Only CSV files are supported",
+          code: "INVALID_FILE_TYPE",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "File too large",
+          details: `Maximum file size is ${MAX_FILE_SIZE / 1024 / 1024} MB`,
+          code: "FILE_TOO_LARGE",
+        },
+        { status: 413 }
+      );
+    }
+
+    // Check if file is empty
+    if (file.size === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Empty file",
+          details: "The uploaded file is empty",
+          code: "EMPTY_FILE",
+        },
+        { status: 400 }
+      );
+    }
+
+    logger.info(
+      {
+        importId,
+        fileName: file.name,
+        fileSize: file.size,
+        provider,
+      },
+      "Import upload started"
+    );
+
+    // Read file content
+    const csvContent = await file.text();
+
+    // Parse CSV
+    const parseResult = await csvParserService.parseCSV(csvContent, provider);
+
+    // Check for parsing errors
+    if (parseResult.errors.length > 0) {
+      // Fatal error (e.g., missing columns, invalid format)
+      const fatalError = parseResult.errors.find((e) => e.rowNumber === 0);
+      
+      if (fatalError) {
+        logger.error(
+          {
+            importId,
+            error: fatalError.message,
+            provider,
+          },
+          "CSV parsing failed"
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid CSV format",
+            details: fatalError.message,
+            code: "INVALID_CSV_FORMAT",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check if any records were parsed
+    if (parseResult.validRows === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Empty CSV file",
+          details: "CSV must contain at least one valid record",
+          code: "EMPTY_CSV",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create import log record (status: pending)
+    const importLog = await importLogRepository.create({
+      fileName: file.name,
+      fileSize: file.size,
+      provider,
+      totalRecords: parseResult.totalRows,
+      matchedRecords: 0, // Will be updated after matching
+      unmatchedRecords: 0,
+      sessionsCreated: 0,
+      sessionsSkipped: 0,
+      ratingsSync: 0,
+      calibreSyncFailures: 0,
+      startedAt: new Date(),
+      status: "pending",
+      userId: null, // Single-user mode
+    });
+
+    logger.info(
+      {
+        importId: importLog.id,
+        totalRecords: parseResult.totalRows,
+        validRows: parseResult.validRows,
+        skippedRows: parseResult.skippedRows,
+      },
+      "CSV parsed successfully"
+    );
+
+    // Phase 3.5: Sync with Calibre library to ensure latest book data
+    // This ensures we have the most up-to-date book metadata for accurate matching
+    logger.info({ importId: importLog.id }, "Syncing with Calibre library before matching");
+    const { syncCalibreLibrary } = await import("@/lib/sync-service");
+    const syncResult = await syncCalibreLibrary();
+    
+    if (!syncResult.success) {
+      logger.warn(
+        {
+          importId: importLog.id,
+          syncError: syncResult.error,
+        },
+        "Calibre sync failed, continuing with existing book data"
+      );
+      // Continue with import even if sync fails - use existing book data
+    } else {
+      logger.info(
+        {
+          importId: importLog.id,
+          syncedCount: syncResult.syncedCount,
+          updatedCount: syncResult.updatedCount,
+          totalBooks: syncResult.totalBooks,
+        },
+        "Calibre sync completed successfully"
+      );
+    }
+
+    // Phase 4: Perform book matching
+    const { matches, summary } = await bookMatcherService.matchRecords(
+      parseResult.records
+    );
+
+    logger.info(
+      {
+        importId: importLog.id,
+        matchSummary: summary,
+      },
+      "Book matching completed"
+    );
+
+    // Update import log with match statistics AND store match results in DB
+    await importLogRepository.update(importLog.id, {
+      matchedRecords: summary.exactMatches + summary.highConfidenceMatches,
+      unmatchedRecords: summary.unmatchedRecords,
+      matchResults: matches as any, // Store match results in DB to survive server restarts
+    });
+
+    // Phase 5: Store matches in cache for preview (optional backup, DB is source of truth)
+    importCache.set({
+      importId: importLog.id,
+      userId: 0, // Single-user mode
+      provider,
+      fileName: file.name,
+      parsedRecords: parseResult.records,
+      matchResults: matches,
+    });
+
+    // Return upload response
+    return NextResponse.json(
+      {
+        success: true,
+        importId: importLog.id.toString(),
+        provider,
+        totalRecords: parseResult.totalRows,
+        fileName: file.name,
+        fileSize: file.size,
+        preview: {
+          exactMatches: summary.exactMatches,
+          highConfidenceMatches: summary.highConfidenceMatches,
+          mediumConfidenceMatches: summary.mediumConfidenceMatches,
+          lowConfidenceMatches: summary.lowConfidenceMatches,
+          unmatchedRecords: summary.unmatchedRecords,
+        },
+        validRows: parseResult.validRows,
+        skippedRows: parseResult.skippedRows,
+        parseErrors: parseResult.errors.filter((e) => e.rowNumber > 0),
+        createdAt: importLog.createdAt,
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    logger.error(
+      {
+        err: error,
+        importId,
+      },
+      "Import upload failed"
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        details: error.message || "Failed to process upload",
+        code: "INTERNAL_ERROR",
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE `import_logs` ADD `match_results` text;
