@@ -67,6 +67,8 @@ export class BookService {
 
   /**
    * Update total pages for a book
+   * Also recalculates progress percentages for all active reading sessions
+   * Uses transaction to ensure atomicity (rollback if recalculation fails)
    */
   async updateTotalPages(bookId: number, totalPages: number): Promise<Book> {
     // Validate input
@@ -80,14 +82,54 @@ export class BookService {
       throw new Error("Book not found");
     }
 
-    // Update
-    const updated = await bookRepository.update(bookId, { totalPages });
-    
-    if (!updated) {
-      throw new Error("Failed to update total pages");
-    }
+    // Import dependencies inside method to avoid circular imports
+    const { db } = await import("@/lib/db/sqlite");
+    const { calculatePercentage } = await import("@/lib/utils/progress-calculations");
+    const { getLogger } = await import("@/lib/logger");
+    const logger = getLogger();
 
-    return updated;
+    // Use transaction for atomic update + recalculation
+    try {
+      return await db.transaction(async () => {
+        // 1. Update book's totalPages
+        const updated = await bookRepository.update(bookId, { totalPages });
+        
+        if (!updated) {
+          throw new Error("Failed to update total pages");
+        }
+
+        // 2. Find active sessions for this book
+        const activeSessions = await sessionRepository.findActiveSessionsByBookId(bookId);
+        
+        // 3. For each active session, recalculate progress log percentages
+        let totalLogsUpdated = 0;
+        for (const session of activeSessions) {
+          const progressLogs = await progressRepository.findBySessionId(session.id);
+          
+          for (const log of progressLogs) {
+            const newPercentage = calculatePercentage(log.currentPage, totalPages);
+            await progressRepository.update(log.id, { 
+              currentPercentage: newPercentage 
+            });
+            totalLogsUpdated++;
+          }
+        }
+        
+        // Log for debugging/monitoring
+        logger.info({
+          bookId,
+          totalPages,
+          activeSessionsCount: activeSessions.length,
+          progressLogsUpdated: totalLogsUpdated
+        }, "[BookService] Updated total pages and recalculated progress");
+        
+        return updated;
+      });
+    } catch (error) {
+      const { getLogger } = await import("@/lib/logger");
+      getLogger().error({ err: error, bookId }, "[BookService] Failed to update total pages");
+      throw new Error("Failed to update page count. Please try again.");
+    }
   }
 
   /**

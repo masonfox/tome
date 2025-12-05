@@ -31,12 +31,13 @@ describe("BookService", () => {
       const result = await bookService.getBookById(book1.id);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(book1.id);
-      expect(result.title).toBe(book1.title);
-      expect(result.activeSession).toBeNull();
-      expect(result.latestProgress).toBeNull();
-      expect(result.hasCompletedReads).toBe(false);
-      expect(result.totalReads).toBe(0);
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(book1.id);
+      expect(result!.title).toBe(book1.title);
+      expect(result!.activeSession).toBeNull();
+      expect(result!.latestProgress).toBeNull();
+      expect(result!.hasCompletedReads).toBe(false);
+      expect(result!.totalReads).toBe(0);
     });
 
     test("should return book with active session and progress", async () => {
@@ -56,12 +57,13 @@ describe("BookService", () => {
       const result = await bookService.getBookById(book1.id);
 
       expect(result).toBeDefined();
-      expect(result.activeSession).toBeDefined();
-      expect(result.activeSession?.id).toBe(session.id);
-      expect(result.latestProgress).toBeDefined();
-      expect(result.latestProgress?.id).toBe(progress.id);
-      expect(result.hasCompletedReads).toBe(false);
-      expect(result.totalReads).toBe(0);
+      expect(result).not.toBeNull();
+      expect(result!.activeSession).toBeDefined();
+      expect(result!.activeSession?.id).toBe(session.id);
+      expect(result!.latestProgress).toBeDefined();
+      expect(result!.latestProgress?.id).toBe(progress.id);
+      expect(result!.hasCompletedReads).toBe(false);
+      expect(result!.totalReads).toBe(0);
     });
 
     test("should calculate total reads correctly", async () => {
@@ -93,8 +95,9 @@ describe("BookService", () => {
 
       const result = await bookService.getBookById(book1.id);
 
-      expect(result.hasCompletedReads).toBe(true);
-      expect(result.totalReads).toBe(2); // Only completed reads count
+      expect(result).not.toBeNull();
+      expect(result!.hasCompletedReads).toBe(true);
+      expect(result!.totalReads).toBe(2); // Only completed reads count
     });
 
     test("should return null for non-existent book", async () => {
@@ -104,18 +107,184 @@ describe("BookService", () => {
     });
   });
 
-  describe("updateTotalPages", () => {
-    test("should update total pages successfully", async () => {
-      const result = await bookService.updateTotalPages(book1.id, 500);
-
-      expect(result).toBeDefined();
-      expect(result.totalPages).toBe(500);
-
-      // Verify in database
-      const updated = await bookRepository.findById(book1.id);
-      expect(updated?.totalPages).toBe(500);
+  describe("updateTotalPages with active session recalculation", () => {
+    test("should update totalPages and recalculate active session percentages only", async () => {
+      // Setup: Create book with null totalPages
+      const testBook = await bookRepository.create(createTestBook({
+        calibreId: 9999,
+        title: "Test Book for Page Count Update",
+        authors: ["Test Author"],
+        path: "Test/Book (9999)",
+        totalPages: null,
+      }));
+      
+      // Create completed session with progress logs
+      const completedSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 1,
+        status: 'read',
+        isActive: false,
+        completedDate: new Date('2024-01-01'),
+      }));
+      
+      await progressRepository.create(createTestProgress({
+        bookId: testBook.id,
+        sessionId: completedSession.id,
+        currentPage: 150,
+        currentPercentage: 0, // Will stay 0 since no totalPages
+        pagesRead: 150,
+        progressDate: new Date('2024-01-01'),
+      }));
+      
+      // Create active session with progress logs
+      const activeSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 2,
+        status: 'reading',
+        isActive: true,
+        startedDate: new Date('2024-02-01'),
+      }));
+      
+      const activeProgress1 = await progressRepository.create(createTestProgress({
+        bookId: testBook.id,
+        sessionId: activeSession.id,
+        currentPage: 50,
+        currentPercentage: 0, // Will be recalculated
+        pagesRead: 50,
+        progressDate: new Date('2024-02-01'),
+      }));
+      
+      const activeProgress2 = await progressRepository.create(createTestProgress({
+        bookId: testBook.id,
+        sessionId: activeSession.id,
+        currentPage: 100,
+        currentPercentage: 0, // Will be recalculated
+        pagesRead: 50,
+        progressDate: new Date('2024-02-02'),
+      }));
+      
+      // Act: Update totalPages to 300
+      const result = await bookService.updateTotalPages(testBook.id, 300);
+      
+      // Assert: Book updated
+      expect(result.totalPages).toBe(300);
+      
+      // Assert: Active session progress logs recalculated
+      const updatedActiveProgress = await progressRepository.findBySessionId(activeSession.id);
+      expect(updatedActiveProgress).toHaveLength(2);
+      
+      const progress1 = updatedActiveProgress.find(p => p.id === activeProgress1.id);
+      const progress2 = updatedActiveProgress.find(p => p.id === activeProgress2.id);
+      
+      expect(progress1?.currentPercentage).toBe(16); // 50/300 = 16.66% → 16%
+      expect(progress2?.currentPercentage).toBe(33); // 100/300 = 33.33% → 33%
+      
+      // Assert: Completed session progress logs UNCHANGED
+      const completedProgress = await progressRepository.findBySessionId(completedSession.id);
+      expect(completedProgress).toHaveLength(1);
+      expect(completedProgress[0].currentPercentage).toBe(0); // Still 0
     });
-
+    
+    test("should handle book with no sessions", async () => {
+      const lonelyBook = await bookRepository.create(createTestBook({
+        calibreId: 8888,
+        title: "Book with no sessions",
+        authors: ["Author"],
+        path: "Author/Book (8888)",
+        totalPages: null,
+      }));
+      
+      const result = await bookService.updateTotalPages(lonelyBook.id, 200);
+      
+      expect(result.totalPages).toBe(200);
+      // Should not throw error
+    });
+    
+    test("should handle book with only completed sessions", async () => {
+      const testBook = await bookRepository.create(createTestBook({
+        calibreId: 7777,
+        title: "Book with completed sessions",
+        authors: ["Author"],
+        path: "Author/Book (7777)",
+        totalPages: null,
+      }));
+      
+      // Create completed session
+      const completedSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 1,
+        status: 'read',
+        isActive: false,
+        completedDate: new Date('2024-01-01'),
+      }));
+      
+      await progressRepository.create(createTestProgress({
+        bookId: testBook.id,
+        sessionId: completedSession.id,
+        currentPage: 150,
+        currentPercentage: 0,
+        pagesRead: 150,
+        progressDate: new Date('2024-01-01'),
+      }));
+      
+      const result = await bookService.updateTotalPages(testBook.id, 300);
+      
+      expect(result.totalPages).toBe(300);
+      
+      // Completed session should be unchanged
+      const completedProgress = await progressRepository.findBySessionId(completedSession.id);
+      expect(completedProgress[0].currentPercentage).toBe(0);
+    });
+    
+    test("should correctly calculate percentages for edge cases", async () => {
+      const testBook = await bookRepository.create(createTestBook({
+        calibreId: 6666,
+        title: "Edge case book",
+        authors: ["Author"],
+        path: "Author/Book (6666)",
+        totalPages: null,
+      }));
+      
+      const activeSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 1,
+        status: 'reading',
+        isActive: true,
+        startedDate: new Date('2024-02-01'),
+      }));
+      
+      // Test: currentPage > totalPages (user reduced page count)
+      const overflowProgress = await progressRepository.create(createTestProgress({
+        bookId: testBook.id,
+        sessionId: activeSession.id,
+        currentPage: 400, // Exceeds new totalPages
+        currentPercentage: 0,
+        pagesRead: 400,
+        progressDate: new Date('2024-02-03'),
+      }));
+      
+      // Test: currentPage = 0
+      const zeroProgress = await progressRepository.create(createTestProgress({
+        bookId: testBook.id,
+        sessionId: activeSession.id,
+        currentPage: 0,
+        currentPercentage: 0,
+        pagesRead: 0,
+        progressDate: new Date('2024-02-01'),
+      }));
+      
+      await bookService.updateTotalPages(testBook.id, 300);
+      
+      const progress = await progressRepository.findBySessionId(activeSession.id);
+      const overflowLog = progress.find(p => p.id === overflowProgress.id);
+      const zeroLog = progress.find(p => p.id === zeroProgress.id);
+      
+      // Should cap at 100%
+      expect(overflowLog?.currentPercentage).toBe(100);
+      // Should stay at 0%
+      expect(zeroLog?.currentPercentage).toBe(0);
+    });
+    
     test("should throw error for non-existent book", async () => {
       await expect(bookService.updateTotalPages(99999, 500)).rejects.toThrow("Book not found");
     });
@@ -127,6 +296,7 @@ describe("BookService", () => {
     test("should throw error for zero total pages", async () => {
       await expect(bookService.updateTotalPages(book1.id, 0)).rejects.toThrow("Total pages must be a positive number");
     });
+    
   });
 
   describe("updateRating", () => {
