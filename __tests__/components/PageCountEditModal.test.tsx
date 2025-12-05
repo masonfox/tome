@@ -98,7 +98,7 @@ describe("PageCountEditModal", () => {
 
       expect(
         screen.getByText(
-          "This will update progress calculations for all active reading sessions."
+          "⚠️ This will update progress calculations for all active reading sessions."
         )
       ).toBeInTheDocument();
     });
