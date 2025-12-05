@@ -12,6 +12,7 @@ import RereadConfirmModal from "@/components/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
+import { calculatePercentage } from "@/lib/utils/progress-calculations";
 
 import BookProgress from "@/components/BookDetail/BookProgress";
 import ProgressHistory from "@/components/BookDetail/ProgressHistory";
@@ -265,7 +266,7 @@ export default function BookDetailPage() {
                   <span className="text-[var(--foreground)]">
                     {bookProgressHook.progress.length > 0 ? (
                       <>
-                        {Math.round((bookProgressHook.progress[0].currentPage / (book.totalPages || 1)) * 100)}%
+                        {calculatePercentage(bookProgressHook.progress[0].currentPage, book.totalPages || 1)}%
                       </>
                     ) : (
                       "0%"
