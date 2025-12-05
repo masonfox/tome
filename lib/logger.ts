@@ -56,6 +56,10 @@ const baseOptions: LoggerOptions = {
       };
     },
   },
+  base: {
+    pid: undefined,
+    hostname: undefined,
+  },
 };
 
 let destination: DestinationStream | undefined;
