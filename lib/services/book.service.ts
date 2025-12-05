@@ -83,34 +83,61 @@ export class BookService {
     }
 
     // Import dependencies inside method to avoid circular imports
-    const { db } = await import("@/lib/db/sqlite");
+    const { getDatabase } = await import("@/lib/db/context");
     const { calculatePercentage } = await import("@/lib/utils/progress-calculations");
     const { getLogger } = await import("@/lib/logger");
     const logger = getLogger();
 
+    const db = getDatabase(); // Get the correct database instance (test or production)
+
     // Use transaction for atomic update + recalculation
     try {
-      return await db.transaction(async () => {
-        // 1. Update book's totalPages
-        const updated = await bookRepository.update(bookId, { totalPages });
+      return await db.transaction(async (tx) => {
+        // Import schema for direct queries
+        const { books } = await import("@/lib/db/schema/books");
+        const { readingSessions } = await import("@/lib/db/schema/reading-sessions");
+        const { progressLogs } = await import("@/lib/db/schema/progress-logs");
+        const { eq, and } = await import("drizzle-orm");
+        
+        // 1. Update book's totalPages using transaction
+        const [updated] = await tx
+          .update(books)
+          .set({ totalPages })
+          .where(eq(books.id, bookId))
+          .returning();
         
         if (!updated) {
           throw new Error("Failed to update total pages");
         }
 
-        // 2. Find active sessions for this book
-        const activeSessions = await sessionRepository.findActiveSessionsByBookId(bookId);
+        // 2. Find active sessions for this book using transaction
+        const activeSessions = await tx
+          .select()
+          .from(readingSessions)
+          .where(
+            and(
+              eq(readingSessions.bookId, bookId),
+              eq(readingSessions.isActive, true),
+              eq(readingSessions.status, 'reading')
+            )
+          );
         
         // 3. For each active session, recalculate progress log percentages
         let totalLogsUpdated = 0;
         for (const session of activeSessions) {
-          const progressLogs = await progressRepository.findBySessionId(session.id);
+          // Get progress logs for this session
+          const logs = await tx
+            .select()
+            .from(progressLogs)
+            .where(eq(progressLogs.sessionId, session.id));
           
-          for (const log of progressLogs) {
+          // Update each log with new percentage
+          for (const log of logs) {
             const newPercentage = calculatePercentage(log.currentPage, totalPages);
-            await progressRepository.update(log.id, { 
-              currentPercentage: newPercentage 
-            });
+            await tx
+              .update(progressLogs)
+              .set({ currentPercentage: newPercentage })
+              .where(eq(progressLogs.id, log.id));
             totalLogsUpdated++;
           }
         }
