@@ -31,9 +31,6 @@ jobs:
       - name: Run test suite
         run: bun test
 
-      - name: Build application
-        run: bun run build
-
   build-and-push-nightly:
     name: Build and Push Nightly Docker Image
     needs: test
