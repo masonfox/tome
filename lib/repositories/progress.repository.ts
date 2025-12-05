@@ -383,6 +383,35 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
+   * Get the highest currentPage across all progress logs for active sessions of a book
+   * Used to validate page count reductions don't contradict existing progress
+   *
+   * @param bookId - The book ID to check
+   * @returns The maximum currentPage value from active sessions, or 0 if no active progress exists
+   */
+  async getHighestCurrentPageForActiveSessions(bookId: number): Promise<number> {
+    const { readingSessions } = require("@/lib/db/schema/reading-sessions");
+
+    const result = this.getDatabase()
+      .select({ maxPage: sql<number>`MAX(${this.table.currentPage})` })
+      .from(this.table)
+      .innerJoin(
+        readingSessions,
+        eq(this.table.sessionId, readingSessions.id)
+      )
+      .where(
+        and(
+          eq(this.table.bookId, bookId),
+          eq(readingSessions.isActive, true),
+          eq(readingSessions.status, 'reading')
+        )
+      )
+      .get();
+
+    return result?.maxPage ?? 0;
+  }
+
+  /**
    * Get all progress logs ordered by date
    */
   async getAllProgressOrdered(): Promise<ProgressLog[]> {

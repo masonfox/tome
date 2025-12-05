@@ -82,6 +82,18 @@ export class BookService {
       throw new Error("Book not found");
     }
 
+    // Validate that new page count doesn't contradict existing progress in active sessions
+    const highestCurrentPage = await progressRepository.getHighestCurrentPageForActiveSessions(bookId);
+
+    if (highestCurrentPage > totalPages) {
+      throw new Error(
+        `Cannot reduce page count to ${totalPages}. ` +
+        `You've already logged progress up to page ${highestCurrentPage} ` +
+        `in your current reading session. ` +
+        `Please adjust your progress or use a higher page count.`
+      );
+    }
+
     // Import dependencies inside method to avoid circular imports
     const { getDatabase } = await import("@/lib/db/context");
     const { calculatePercentage } = await import("@/lib/utils/progress-calculations");
