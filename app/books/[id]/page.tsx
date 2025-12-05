@@ -10,6 +10,7 @@ import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
 import RereadConfirmModal from "@/components/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/ArchiveSessionModal";
+import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import BookMetadata from "@/components/BookDetail/BookMetadata";
 import BookProgress from "@/components/BookDetail/BookProgress";
@@ -80,6 +81,7 @@ export default function BookDetailPage() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [totalPagesInput, setTotalPagesInput] = useState("");
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
+  const [showPageCountModal, setShowPageCountModal] = useState(false);
 
   // Refs for dropdowns
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -105,6 +107,18 @@ export default function BookDetailPage() {
 
   function handleCancelReread() {
     setShowRereadConfirmation(false);
+  }
+
+  // Handle page count editing
+  function handlePageCountClick() {
+    if (book?.totalPages) {
+      setShowPageCountModal(true);
+    }
+  }
+
+  function handlePageCountUpdateSuccess() {
+    setShowPageCountModal(false);
+    handleRefresh(); // Existing centralized refresh
   }
 
   // Total pages submit handler
@@ -179,6 +193,7 @@ export default function BookDetailPage() {
           onStatusChange={handleUpdateStatus}
           onRatingClick={openRatingModal}
           onRereadClick={handleRereadClick}
+          onPageCountClick={handlePageCountClick}
           showStatusDropdown={showStatusDropdown}
           setShowStatusDropdown={setShowStatusDropdown}
           dropdownRef={dropdownRef}
@@ -398,6 +413,14 @@ export default function BookDetailPage() {
         onConfirm={handleConfirmStatusChange}
         bookTitle={book.title}
         pendingStatus={pendingStatusChange}
+      />
+
+      <PageCountEditModal
+        isOpen={showPageCountModal}
+        onClose={() => setShowPageCountModal(false)}
+        bookId={parseInt(bookId)}
+        currentPageCount={book.totalPages ?? null}
+        onSuccess={handlePageCountUpdateSuccess}
       />
 
       {bookProgressHook.selectedProgressEntry && (

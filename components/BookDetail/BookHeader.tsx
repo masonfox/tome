@@ -13,6 +13,7 @@ interface BookHeaderProps {
   onStatusChange: (status: string) => void;
   onRatingClick: () => void;
   onRereadClick: () => void;
+  onPageCountClick: () => void;
   showStatusDropdown: boolean;
   setShowStatusDropdown: (show: boolean) => void;
   dropdownRef?: React.RefObject<HTMLDivElement>;
@@ -29,6 +30,7 @@ export default function BookHeader({
   onStatusChange,
   onRatingClick,
   onRereadClick,
+  onPageCountClick,
   showStatusDropdown,
   setShowStatusDropdown,
   dropdownRef,
@@ -125,6 +127,20 @@ export default function BookHeader({
           <BookOpen className="w-16 md:w-24 h-16 md:h-24 text-[var(--foreground)]/40" />
         )}
       </div>
+
+      {/* Page Count - Clickable */}
+      {book.totalPages && (
+        <div
+          onClick={onPageCountClick}
+          className="py-2 group cursor-pointer"
+        >
+          <div className="flex justify-center items-center gap-2 text-[var(--foreground)]/70 hover:text-[var(--accent)] transition-colors">
+            <BookOpen className="w-4 h-4" />
+            <span className="font-medium">{book.totalPages} pages</span>
+            <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+      )}
 
       {/* Status dropdown */}
       <div className="relative" ref={dropdownRef}>
