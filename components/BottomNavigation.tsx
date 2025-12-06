@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Library, BarChart3, MoreHorizontal, Settings, LogOut } from "lucide-react";
+import { MoreHorizontal, Settings, LogOut } from "lucide-react";
 import { clsx } from "clsx";
 import { useState, useEffect } from "react";
 import { BottomSheet } from "./BottomSheet";
+import { NAV_LINKS, isActiveRoute } from "@/lib/navigation-config";
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -34,20 +35,6 @@ export function BottomNavigation() {
     }
   };
 
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: BookOpen },
-    { href: "/library", label: "Library", icon: Library },
-    { href: "/stats", label: "Stats", icon: BarChart3 },
-  ];
-
-  const isActive = (href: string) => {
-    if (!pathname) return false;
-    if (href === "/") {
-      return pathname === href;
-    }
-    return pathname.startsWith(href);
-  };
-
   const handleMoreClick = () => {
     setIsMoreOpen(true);
   };
@@ -63,14 +50,14 @@ export function BottomNavigation() {
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
         <div className="grid grid-cols-4 h-16">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
+          {NAV_LINKS.map((link) => {
+            const Icon = link.icon;
+            const active = isActiveRoute(pathname, link.href);
 
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={link.href}
+                href={link.href}
                 className={clsx(
                   "flex flex-col items-center justify-center gap-1 transition-colors",
                   active
@@ -79,7 +66,7 @@ export function BottomNavigation() {
                 )}
               >
                 <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-xs font-medium">{link.label}</span>
               </Link>
             );
           })}
