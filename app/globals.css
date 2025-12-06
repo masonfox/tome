@@ -167,3 +167,29 @@ input[type="date"] {
 input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
+
+/* Bottom sheet slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* iOS safe area support for bottom navigation */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent body scroll when bottom sheet is open */
+body.overflow-hidden {
+  overflow: hidden;
+}
