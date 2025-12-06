@@ -1,6 +1,7 @@
 import { eq, and, desc, asc, sql, gte, lte, lt, gt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
+import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { db } from "@/lib/db/sqlite";
 
 export class ProgressRepository extends BaseRepository<
@@ -380,6 +381,34 @@ export class ProgressRepository extends BaseRepository<
       .get();
 
     return result || { pagesRead: 0 };
+  }
+
+  /**
+   * Get the highest currentPage across all progress logs for active sessions of a book
+   * Used to validate page count reductions don't contradict existing progress
+   *
+   * @param bookId - The book ID to check
+   * @returns The maximum currentPage value from active sessions, or 0 if no active progress exists
+   */
+  async getHighestCurrentPageForActiveSessions(bookId: number): Promise<number> {
+
+    const result = this.getDatabase()
+      .select({ maxPage: sql<number>`MAX(${this.table.currentPage})` })
+      .from(this.table)
+      .innerJoin(
+        readingSessions,
+        eq(this.table.sessionId, readingSessions.id)
+      )
+      .where(
+        and(
+          eq(this.table.bookId, bookId),
+          eq(readingSessions.isActive, true),
+          eq(readingSessions.status, 'reading')
+        )
+      )
+      .get();
+
+    return result?.maxPage ?? 0;
   }
 
   /**

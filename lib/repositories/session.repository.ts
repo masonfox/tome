@@ -25,6 +25,25 @@ export class SessionRepository extends BaseRepository<
   }
 
   /**
+   * Find all active sessions for a book
+   * Active = is_active = true AND status = 'reading'
+   * Used for page count update to recalculate progress percentages
+   */
+  async findActiveSessionsByBookId(bookId: number): Promise<ReadingSession[]> {
+    return this.getDatabase()
+      .select()
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          eq(readingSessions.isActive, true),
+          eq(readingSessions.status, 'reading')
+        )
+      )
+      .all();
+  }
+
+  /**
    * Find session by book ID and session number
    */
   async findByBookIdAndSessionNumber(

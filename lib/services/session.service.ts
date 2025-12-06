@@ -70,6 +70,13 @@ export class SessionService {
       throw new Error("Book not found");
     }
 
+    // Validate page count requirement for reading/read status
+    if ((status === "reading" || status === "read") && !book.totalPages) {
+      const error = new Error("Page count required. Please set the total number of pages before starting to read.");
+      (error as any).code = "PAGES_REQUIRED";
+      throw error;
+    }
+
     // Find active reading session or prepare to create new one
     let readingSession = await sessionRepository.findActiveByBookId(bookId);
 
