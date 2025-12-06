@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Library, BarChart3, Settings, Sun, Moon, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
+import { NAV_LINKS, TOP_NAV_EXTRA_LINK, isActiveRoute } from "@/lib/navigation-config";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -59,12 +60,8 @@ export function Navigation() {
     }
   };
 
-  const links = [
-    { href: "/", label: "DASHBOARD", icon: BookOpen },
-    { href: "/library", label: "LIBRARY", icon: Library },
-    { href: "/stats", label: "STATS", icon: BarChart3 },
-    { href: "/settings", label: "SETTINGS", icon: Settings },
-  ];
+  // Combine primary nav links with settings link for top navigation
+  const topNavLinks = [...NAV_LINKS, TOP_NAV_EXTRA_LINK];
 
   return (
     <nav className="bg-[var(--card-bg)] border-b border-[var(--border-color)] sticky top-0 z-50">
@@ -88,8 +85,8 @@ export function Navigation() {
 
           {/* Center Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
+            {topNavLinks.map((link) => {
+              const active = isActiveRoute(pathname, link.href);
               const Icon = link.icon;
 
               return (
@@ -98,13 +95,13 @@ export function Navigation() {
                   href={link.href}
                   className={clsx(
                     "flex items-center gap-2 text-xs font-medium tracking-wider uppercase transition-colors py-2 border-b-2",
-                    isActive
+                    active
                       ? "text-[var(--accent)] border-[var(--accent)]"
                       : "text-[var(--foreground)]/70 border-transparent hover:text-[var(--accent)]"
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  {link.label}
+                  {link.label.toUpperCase()}
                 </Link>
               );
             })}
@@ -164,8 +161,8 @@ export function Navigation() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-[var(--bg)] border-t border-[var(--border-color)] py-4">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
+            {topNavLinks.map((link) => {
+              const active = isActiveRoute(pathname, link.href);
               const Icon = link.icon;
 
               return (
@@ -174,13 +171,13 @@ export function Navigation() {
                   href={link.href}
                   className={clsx(
                     "flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wider uppercase transition-colors",
-                    isActive
+                    active
                       ? "text-[var(--accent)] bg-[var(--accent)]/10"
                       : "text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  {link.label}
+                  {link.label.toUpperCase()}
                 </Link>
               );
             })}
