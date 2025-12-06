@@ -39,8 +39,8 @@ export default function BookHeader({
   const statusOptions = [
     { value: "to-read", label: "Want to Read", disabled: false, icon: Bookmark },
     { value: "read-next", label: "Read Next", disabled: false, icon: Clock },
-    { value: "reading", label: "Reading", disabled: !book.totalPages, icon: BookOpen },
-    { value: "read", label: "Read", disabled: !book.totalPages, icon: BookCheck },
+    { value: "reading", label: "Reading", disabled: false, icon: BookOpen },
+    { value: "read", label: "Read", disabled: false, icon: BookCheck },
   ];
 
   const getStatusLabel = (status: string) => {

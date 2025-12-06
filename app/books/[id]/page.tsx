@@ -47,7 +47,7 @@ export default function BookDetailPage() {
     showReadConfirmation,
     showStatusChangeConfirmation,
     pendingStatusChange,
-    handleUpdateStatus,
+    handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange: handleConfirmStatusChangeFromHook,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
@@ -82,6 +82,7 @@ export default function BookDetailPage() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
+  const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
 
   // Refs for dropdowns
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -92,6 +93,30 @@ export default function BookDetailPage() {
     refetchBook();
     bookProgressHook.refetchProgress();
     router.refresh(); // Refresh server components (dashboard, etc.)
+  }
+
+  // Wrapper for status updates with optimistic page count validation
+  async function handleUpdateStatus(newStatus: string) {
+    // Optimistic check: if trying to change to reading/read without pages, show modal immediately
+    if ((newStatus === "reading" || newStatus === "read") && !book?.totalPages) {
+      setPendingStatusForPageCount(newStatus);
+      setShowPageCountModal(true);
+      return;
+    }
+
+    // Otherwise, call the hook's handler
+    try {
+      await handleUpdateStatusFromHook(newStatus);
+    } catch (error: any) {
+      // Defense in depth: Handle API validation error
+      if (error?.code === "PAGES_REQUIRED" || error?.response?.data?.code === "PAGES_REQUIRED") {
+        setPendingStatusForPageCount(newStatus);
+        setShowPageCountModal(true);
+      } else {
+        // Re-throw other errors to be handled by the hook
+        throw error;
+      }
+    }
   }
 
   // Handle re-read with history refresh
@@ -114,9 +139,24 @@ export default function BookDetailPage() {
     setShowPageCountModal(true);
   }
 
-  function handlePageCountUpdateSuccess() {
+  async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
     handleRefresh(); // Existing centralized refresh
+    
+    // If there's a pending status change (user clicked Reading/Read without pages),
+    // automatically transition to that status after pages are set
+    if (pendingStatusForPageCount) {
+      await handleUpdateStatus(pendingStatusForPageCount);
+      setPendingStatusForPageCount(null);
+    }
+  }
+  
+  function handlePageCountModalClose() {
+    setShowPageCountModal(false);
+    // If user cancels the page count modal with a pending status, clear it
+    if (pendingStatusForPageCount) {
+      setPendingStatusForPageCount(null);
+    }
   }
 
 
@@ -396,7 +436,7 @@ export default function BookDetailPage() {
 
       <PageCountEditModal
         isOpen={showPageCountModal}
-        onClose={() => setShowPageCountModal(false)}
+        onClose={handlePageCountModalClose}
         bookId={parseInt(bookId)}
         currentPageCount={book.totalPages ?? null}
         onSuccess={handlePageCountUpdateSuccess}
