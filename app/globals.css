@@ -167,3 +167,51 @@ input[type="date"] {
 input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
+
+/* Bottom sheet slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* iOS safe area support for bottom navigation */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent body scroll when bottom sheet is open */
+body.overflow-hidden {
+  overflow: hidden;
+}
+
+/* Navigation visibility based on bottom-nav preference */
+/* Hide top nav when bottom nav is enabled (before React hydrates) */
+html[data-bottom-nav="true"] #top-navigation {
+  display: none;
+}
+
+/* Hide bottom nav when bottom nav is disabled (before React hydrates) */
+html[data-bottom-nav="false"] #bottom-navigation {
+  display: none;
+}
+
+/* Main content padding based on navigation type */
+html[data-bottom-nav="true"] #main-content {
+  padding-bottom: 6rem; /* pb-24 - increased for taller nav */
+  padding-top: 2rem; /* pt-8 */
+}
+
+html[data-bottom-nav="false"] #main-content {
+  padding-top: 3rem; /* py-12 */
+  padding-bottom: 3rem; /* py-12 */
+}
