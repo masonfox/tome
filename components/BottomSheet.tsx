@@ -46,7 +46,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
       />
       
       {/* Bottom Sheet */}
-      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-[var(--card-bg)] border-t border-[var(--border-color)] rounded-t-2xl shadow-lg max-h-[80vh] overflow-y-auto transition-transform duration-300 ${
+      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-[var(--card-bg)] border-t border-[var(--border-color)] rounded-t-2xl shadow-lg max-h-[80vh] overflow-y-auto transition-transform duration-300 pb-safe ${
         isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
       }`}>
         <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between">
@@ -59,7 +59,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 pb-8">
+        <div className="p-4 pb-12">
           {children}
         </div>
       </div>

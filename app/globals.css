@@ -207,7 +207,7 @@ html[data-bottom-nav="false"] #bottom-navigation {
 
 /* Main content padding based on navigation type */
 html[data-bottom-nav="true"] #main-content {
-  padding-bottom: 5rem; /* pb-20 */
+  padding-bottom: 6rem; /* pb-24 - increased for taller nav */
   padding-top: 2rem; /* pt-8 */
 }
 
