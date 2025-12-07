@@ -39,17 +39,13 @@ export function NavigationSettings() {
       </div>
 
       <p className="text-sm text-[var(--subheading-text)] mb-4 font-medium">
-        Choose between top navigation bar or bottom navigation for a native iOS feel.
-        Bottom navigation is optimized for iOS &quot;Add to Home Screen&quot;.
+        Choose between top navigation bar for a traditional web experience or bottom navigation for a native app experience.
       </p>
 
       <div className="flex items-center justify-between p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-sm">
         <div>
           <p className="font-semibold text-[var(--foreground)]">
             Bottom Navigation
-          </p>
-          <p className="text-xs text-[var(--subheading-text)] mt-1 font-medium">
-            iOS-style bottom bar with tabs
           </p>
         </div>
         
