@@ -193,3 +193,25 @@ input[type="date"]::-webkit-date-and-time-value {
 body.overflow-hidden {
   overflow: hidden;
 }
+
+/* Navigation visibility based on bottom-nav preference */
+/* Hide top nav when bottom nav is enabled (before React hydrates) */
+html[data-bottom-nav="true"] #top-navigation {
+  display: none;
+}
+
+/* Hide bottom nav when bottom nav is disabled (before React hydrates) */
+html[data-bottom-nav="false"] #bottom-navigation {
+  display: none;
+}
+
+/* Main content padding based on navigation type */
+html[data-bottom-nav="true"] #main-content {
+  padding-bottom: 5rem; /* pb-20 */
+  padding-top: 2rem; /* pt-8 */
+}
+
+html[data-bottom-nav="false"] #main-content {
+  padding-top: 3rem; /* py-12 */
+  padding-bottom: 3rem; /* py-12 */
+}

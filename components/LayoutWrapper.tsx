@@ -8,7 +8,7 @@ import { useBottomNavigation } from "@/hooks/useBottomNavigation";
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
-  const { enabled: bottomNavEnabled, mounted } = useBottomNavigation();
+  const { enabled: bottomNavEnabled } = useBottomNavigation();
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -16,15 +16,19 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {!bottomNavEnabled && <Navigation />}
+      {/* Always render both navs - CSS handles visibility based on data-bottom-nav attribute */}
+      <div id="top-navigation">
+        <Navigation />
+      </div>
       <main 
-        className={`container mx-auto px-4 max-w-7xl ${
-          bottomNavEnabled ? "pb-20 pt-8" : "py-12"
-        }`}
+        id="main-content"
+        className="container mx-auto px-4 max-w-7xl"
       >
         {children}
       </main>
-      {mounted && bottomNavEnabled && <BottomNavigation />}
+      <div id="bottom-navigation">
+        <BottomNavigation />
+      </div>
     </>
   );
 }
