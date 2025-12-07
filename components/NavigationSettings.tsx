@@ -19,10 +19,15 @@ export function NavigationSettings() {
     toggleEnabled(newValue);
     
     if (newValue) {
-      toast.success("Bottom navigation enabled! Perfect for iOS Add to Home Screen.");
+      toast.success("Bottom navigation enabled! Refreshing in 3 seconds...");
     } else {
-      toast.success("Top navigation enabled!");
+      toast.success("Top navigation enabled! Refreshing in 3 seconds...");
     }
+    
+    setTimeout(() => {
+      // Reload the page to apply the navigation style change
+      window.location.reload();
+    }, 3000);
   };
 
   if (!mounted) {
