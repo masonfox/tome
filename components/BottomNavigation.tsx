@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MoreHorizontal, Settings, LogOut } from "lucide-react";
+import { MoreHorizontal, Settings, LogOut, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
 import { useState, useEffect } from "react";
 import { BottomSheet } from "./BottomSheet";
@@ -14,15 +14,28 @@ export function BottomNavigation() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    
+    // Get current theme from DOM (already set by layout script)
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    setDarkMode(currentTheme === "dark");
+    
     // Check auth status
     fetch("/api/auth/status")
       .then((res) => res.json())
       .then((data) => setAuthEnabled(data.enabled))
       .catch(() => setAuthEnabled(false));
   }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("darkMode", newMode.toString());
+    document.documentElement.setAttribute("data-theme", newMode ? "dark" : "light");
+  };
 
   const handleLogout = async () => {
     try {
@@ -125,6 +138,14 @@ export function BottomNavigation() {
           >
             <Settings className="w-5 h-5" />
             <span className="font-medium">Settings</span>
+          </button>
+
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <span className="font-medium">{darkMode ? "Light Mode" : "Dark Mode"}</span>
           </button>
 
           {authEnabled && (
