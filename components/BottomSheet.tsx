@@ -43,7 +43,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 pb-safe">
+        <div className="p-4 pb-8">
           {children}
         </div>
       </div>
