@@ -141,10 +141,15 @@ export default function BookDetailPage() {
 
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
-    handleRefresh(); // Existing centralized refresh
-    
-    // If there's a pending status change (user clicked Reading/Read without pages),
-    // automatically transition to that status after pages are set
+
+    // Await book data refresh to ensure totalPages is updated
+    await refetchBook();
+
+    // Also refresh progress and UI
+    bookProgressHook.refetchProgress();
+    router.refresh();
+
+    // Now that book data is fresh, retry the status change if pending
     if (pendingStatusForPageCount) {
       await handleUpdateStatus(pendingStatusForPageCount);
       setPendingStatusForPageCount(null);
@@ -440,6 +445,7 @@ export default function BookDetailPage() {
         bookId={parseInt(bookId)}
         currentPageCount={book.totalPages ?? null}
         onSuccess={handlePageCountUpdateSuccess}
+        hasProgress={bookProgressHook.progress.length > 0}
       />
 
       {bookProgressHook.selectedProgressEntry && (

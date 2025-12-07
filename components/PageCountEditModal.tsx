@@ -11,6 +11,7 @@ interface PageCountEditModalProps {
   bookId: number;
   currentPageCount: number | null;
   onSuccess: () => void;
+  hasProgress?: boolean;
 }
 
 export default function PageCountEditModal({
@@ -19,6 +20,7 @@ export default function PageCountEditModal({
   bookId,
   currentPageCount,
   onSuccess,
+  hasProgress = false,
 }: PageCountEditModalProps) {
   const [pageCount, setPageCount] = useState(currentPageCount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,7 +120,7 @@ export default function PageCountEditModal({
           />
         </div>
         
-        {currentPageCount && (
+        {currentPageCount && hasProgress && (
           <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 rounded border border-amber-200 dark:border-amber-800">
             <p className="font-semibold">
               ⚠️ This will update progress calculations for all active reading sessions.
