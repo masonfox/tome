@@ -61,7 +61,7 @@ export function BottomNavigation() {
   if (!mounted) {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-4 h-20">
           {NAV_LINKS.map((link) => {
             const Icon = link.icon;
             return (
@@ -86,7 +86,7 @@ export function BottomNavigation() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-4 h-20">
           {NAV_LINKS.map((link) => {
             const Icon = link.icon;
             const active = isActiveRoute(pathname, link.href);
