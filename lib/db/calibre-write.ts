@@ -64,7 +64,7 @@ export function getCalibreWriteDB(): SQLiteDatabase {
         wal: false, // Don't modify journal mode on Calibre DB
       });
       const { getLogger } = require("../logger");
-      getLogger().info(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
+      getLogger().debug(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }

@@ -68,7 +68,7 @@ if (isTest) {
   const dataDir = dirname(DATABASE_PATH);
   try {
     mkdirSync(dataDir, { recursive: true });
-    logger.info({ dataDir }, `Data directory verified: ${dataDir}`);
+    logger.debug({ dataDir }, `Data directory verified: ${dataDir}`);
   } catch (err: any) {
     logger.fatal({ dataDir, err }, `CRITICAL: Failed to create data directory: ${dataDir}`);
     logger.fatal({ err }, `Error creating data directory: ${err.message}`);
@@ -88,7 +88,7 @@ if (isTest) {
   sqlite = instance.sqlite;
   db = instance.db;
 
-  logger.info({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
+  logger.debug({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
 }
 
 export { db, sqlite };
