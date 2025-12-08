@@ -157,8 +157,6 @@ export default function BookDetailPage() {
     }
   }
 
-
-
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
