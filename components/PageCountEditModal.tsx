@@ -12,6 +12,7 @@ interface PageCountEditModalProps {
   currentPageCount: number | null;
   onSuccess: () => void;
   hasProgress?: boolean;
+  pendingStatus?: string;
 }
 
 export default function PageCountEditModal({
@@ -21,6 +22,7 @@ export default function PageCountEditModal({
   currentPageCount,
   onSuccess,
   hasProgress = false,
+  pendingStatus,
 }: PageCountEditModalProps) {
   const [pageCount, setPageCount] = useState(currentPageCount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,9 +40,9 @@ export default function PageCountEditModal({
       toast.error("Please enter a whole number of pages");
       return;
     }
-    
+
     const parsedCount = parseInt(pageCount);
-    
+
     if (!pageCount || parsedCount <= 0 || isNaN(parsedCount)) {
       toast.error("Please enter a valid page count");
       return;
@@ -49,23 +51,41 @@ export default function PageCountEditModal({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/books/${bookId}`, {
+      // Step 1: Update page count
+      const pageResponse = await fetch(`/api/books/${bookId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ totalPages: parsedCount }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (!pageResponse.ok) {
+        const error = await pageResponse.json();
         throw new Error(error.error || "Failed to update page count");
       }
 
-      toast.success("Page count updated");
+      // Step 2: If status change pending, do that too
+      if (pendingStatus) {
+        const statusResponse = await fetch(`/api/books/${bookId}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: pendingStatus }),
+        });
+
+        if (!statusResponse.ok) {
+          const error = await statusResponse.json();
+          throw new Error(error.error || "Failed to update status");
+        }
+
+        toast.success(`Page count updated and status changed to "${pendingStatus}"!`);
+      } else {
+        toast.success("Page count updated");
+      }
+
       onSuccess();
       onClose();
     } catch (error) {
-      getLogger().error({ err: error, bookId }, "Failed to update page count");
-      toast.error(error instanceof Error ? error.message : "Failed to update page count");
+      getLogger().error({ err: error, bookId }, "Failed to update book");
+      toast.error(error instanceof Error ? error.message : "Failed to update");
     } finally {
       setIsSubmitting(false);
     }
@@ -103,6 +123,14 @@ export default function PageCountEditModal({
       }
     >
       <div className="space-y-4">
+        {pendingStatus && (
+          <div className="text-sm bg-blue-50 dark:bg-blue-950/30 p-3 rounded border border-blue-200 dark:border-blue-800">
+            <p className="font-semibold text-blue-900 dark:text-blue-200">
+              ℹ️ After saving, your book status will change to "{pendingStatus}".
+            </p>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
             Total Pages
@@ -119,7 +147,7 @@ export default function PageCountEditModal({
             autoFocus
           />
         </div>
-        
+
         {currentPageCount && hasProgress && (
           <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 rounded border border-amber-200 dark:border-amber-800">
             <p className="font-semibold">

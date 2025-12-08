@@ -141,19 +141,12 @@ export default function BookDetailPage() {
 
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
+    setPendingStatusForPageCount(null);
 
-    // Await book data refresh to ensure totalPages is updated
+    // Modal already handled the update, just refresh UI
     await refetchBook();
-
-    // Also refresh progress and UI
     bookProgressHook.refetchProgress();
     router.refresh();
-
-    // Now that book data is fresh, retry the status change if pending
-    if (pendingStatusForPageCount) {
-      await handleUpdateStatus(pendingStatusForPageCount);
-      setPendingStatusForPageCount(null);
-    }
   }
   
   function handlePageCountModalClose() {
@@ -446,6 +439,7 @@ export default function BookDetailPage() {
         currentPageCount={book.totalPages ?? null}
         onSuccess={handlePageCountUpdateSuccess}
         hasProgress={bookProgressHook.progress.length > 0}
+        pendingStatus={pendingStatusForPageCount ?? undefined}
       />
 
       {bookProgressHook.selectedProgressEntry && (
