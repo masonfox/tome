@@ -351,8 +351,6 @@ export default function BookDetailPage() {
             </>
           )}
 
-
-
           {/* Description */}
           {book.description && (
             <div>
