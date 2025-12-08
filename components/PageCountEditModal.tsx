@@ -13,6 +13,7 @@ interface PageCountEditModalProps {
   onSuccess: () => void;
   hasProgress?: boolean;
   pendingStatus?: string;
+  currentRating?: number | null;
 }
 
 export default function PageCountEditModal({
@@ -23,6 +24,7 @@ export default function PageCountEditModal({
   onSuccess,
   hasProgress = false,
   pendingStatus,
+  currentRating,
 }: PageCountEditModalProps) {
   const [pageCount, setPageCount] = useState(currentPageCount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,10 +67,17 @@ export default function PageCountEditModal({
 
       // Step 2: If status change pending, do that too
       if (pendingStatus) {
+        const statusBody: any = { status: pendingStatus };
+
+        // Include rating if available to ensure Calibre sync
+        if (currentRating !== undefined) {
+          statusBody.rating = currentRating;
+        }
+
         const statusResponse = await fetch(`/api/books/${bookId}/status`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: pendingStatus }),
+          body: JSON.stringify(statusBody),
         });
 
         if (!statusResponse.ok) {

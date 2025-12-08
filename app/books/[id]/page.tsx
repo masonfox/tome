@@ -440,6 +440,7 @@ export default function BookDetailPage() {
         onSuccess={handlePageCountUpdateSuccess}
         hasProgress={bookProgressHook.progress.length > 0}
         pendingStatus={pendingStatusForPageCount ?? undefined}
+        currentRating={book.rating}
       />
 
       {bookProgressHook.selectedProgressEntry && (

@@ -54,6 +54,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       tags: [],
       path: "Test/Book",
       orphaned: false,
+      totalPages: 300,
     }));
     
     await sessionRepository.create(createTestSession({
@@ -97,6 +98,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       path: "Test/Book2",
       orphaned: false,
       rating: 4,
+      totalPages: 300,
     }));
     
     await sessionRepository.create(createTestSession({
@@ -174,6 +176,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
         tags: [],
         path: `Test/Book${testCase.rating}`,
         orphaned: false,
+        totalPages: 300,
       }));
       
       await sessionRepository.create(createTestSession({
@@ -211,6 +214,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       tags: [],
       path: "Test/BookError",
       orphaned: false,
+      totalPages: 300,
     }));
     
     await sessionRepository.create(createTestSession({

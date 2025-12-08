@@ -94,7 +94,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should render informational message about active sessions", () => {
-      render(<PageCountEditModal {...defaultProps} />);
+      render(<PageCountEditModal {...defaultProps} hasProgress={true} />);
 
       expect(
         screen.getByText(
