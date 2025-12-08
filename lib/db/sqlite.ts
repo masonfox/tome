@@ -12,10 +12,18 @@ const isBun = detectRuntime() === 'bun';
 const isTest = isBun ? Bun.env.BUN_ENV === 'test' : process.env.NODE_ENV === 'test';
 const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
-// Singleton instances - initialized once and reused
-let sqlite: any = null;
-let db: any = null;
-let isInitialized = false;
+// Use global object to persist state across HMR reloads
+// This prevents re-initialization when Next.js reloads this module during development
+const globalForDb = globalThis as unknown as {
+  __tomeDb?: any;
+  __tomeSqlite?: any;
+  __tomeDbInitialized?: boolean;
+};
+
+// Singleton instances - initialized once and reused across HMR
+let sqlite: any = globalForDb.__tomeSqlite ?? null;
+let db: any = globalForDb.__tomeDb ?? null;
+let isInitialized = globalForDb.__tomeDbInitialized ?? false;
 
 /**
  * Initialize database connection (lazy singleton pattern)
@@ -28,6 +36,7 @@ function initializeDatabase() {
   }
 
   isInitialized = true;
+  globalForDb.__tomeDbInitialized = true;
 
   if (isBuild) {
     // In build mode, use an in-memory database to allow API routes to execute
@@ -41,6 +50,10 @@ function initializeDatabase() {
     });
     sqlite = instance.sqlite;
     db = instance.db;
+
+    // Persist to global for HMR
+    globalForDb.__tomeSqlite = sqlite;
+    globalForDb.__tomeDb = db;
 
     // Apply migrations to the in-memory database
     try {
@@ -98,6 +111,10 @@ function initializeDatabase() {
     sqlite = instance.sqlite;
     db = instance.db;
 
+    // Persist to global for HMR
+    globalForDb.__tomeSqlite = sqlite;
+    globalForDb.__tomeDb = db;
+
     logger.info({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
   }
 }
@@ -125,7 +142,14 @@ export function closeConnection(): void {
     return;
   }
   closeDatabaseConnection(sqlite);
-  isInitialized = false; // Allow re-initialization if needed
+  
+  // Clear both module and global state
+  isInitialized = false;
+  globalForDb.__tomeDbInitialized = false;
+  globalForDb.__tomeDb = null;
+  globalForDb.__tomeSqlite = null;
+  sqlite = null;
+  db = null;
 }
 
 // Track if listeners are registered to prevent duplicates during HMR
