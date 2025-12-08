@@ -135,7 +135,7 @@ export default function PageCountEditModal({
         {pendingStatus && (
           <div className="text-sm bg-blue-50 dark:bg-blue-950/30 p-3 rounded border border-blue-200 dark:border-blue-800">
             <p className="font-semibold text-blue-900 dark:text-blue-200">
-              ℹ️ After saving, your book status will change to "{pendingStatus}".
+              ℹ️ After saving, your book status will change to &quot;{pendingStatus}&quot;.
             </p>
           </div>
         )}
