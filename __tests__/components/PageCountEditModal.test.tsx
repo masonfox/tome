@@ -523,4 +523,338 @@ describe("PageCountEditModal", () => {
       expect(closeButton).toBeInTheDocument();
     });
   });
+
+  describe("Sequential API Calls with Pending Status", () => {
+    test("should make PATCH then POST when pendingStatus provided", async () => {
+      const mockFetchSequential = mock((url: string, options: any) => {
+        if (options.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ id: 1, totalPages: 400 }),
+          } as Response);
+        }
+        if (options.method === "POST" && url.includes("/status")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ status: "reading" }),
+          } as Response);
+        }
+        return Promise.reject(new Error("Unexpected call"));
+      });
+      global.fetch = mockFetchSequential as any;
+
+      render(
+        <PageCountEditModal
+          isOpen={true}
+          onClose={mock(() => {})}
+          bookId={1}
+          currentPageCount={null}
+          onSuccess={mock(() => {})}
+          pendingStatus="reading"
+        />
+      );
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "400" } });
+
+      const saveButton = screen.getByText("Save");
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        // Assert both calls made in sequence
+        expect(mockFetchSequential).toHaveBeenCalledTimes(2);
+      });
+
+      // First call: PATCH pages
+      expect(mockFetchSequential.mock.calls[0][0]).toBe("/api/books/1");
+      expect(mockFetchSequential.mock.calls[0][1].method).toBe("PATCH");
+      expect(JSON.parse(mockFetchSequential.mock.calls[0][1].body)).toEqual({ totalPages: 400 });
+
+      // Second call: POST status
+      expect(mockFetchSequential.mock.calls[1][0]).toBe("/api/books/1/status");
+      expect(mockFetchSequential.mock.calls[1][1].method).toBe("POST");
+      expect(JSON.parse(mockFetchSequential.mock.calls[1][1].body)).toEqual({ status: "reading" });
+    });
+
+    test("should include rating in status POST when currentRating provided", async () => {
+      const mockFetchWithRating = mock((url: string, options: any) => {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        } as Response);
+      });
+      global.fetch = mockFetchWithRating as any;
+
+      render(
+        <PageCountEditModal
+          isOpen={true}
+          onClose={mock(() => {})}
+          bookId={1}
+          currentPageCount={null}
+          onSuccess={mock(() => {})}
+          pendingStatus="reading"
+          currentRating={4}
+        />
+      );
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "400" } });
+
+      fireEvent.click(screen.getByText("Save"));
+
+      await waitFor(() => {
+        expect(mockFetchWithRating).toHaveBeenCalledTimes(2);
+      });
+
+      // Verify status POST includes rating
+      const statusCall = mockFetchWithRating.mock.calls.find(
+        (call: any) => call[0].includes("/status") && call[1].method === "POST"
+      );
+      expect(JSON.parse(statusCall[1].body)).toEqual({
+        status: "reading",
+        rating: 4,
+      });
+    });
+
+    test("should NOT include rating when currentRating is undefined", async () => {
+      const mockFetchNoRating = mock((url: string, options: any) => {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        } as Response);
+      });
+      global.fetch = mockFetchNoRating as any;
+
+      render(
+        <PageCountEditModal
+          isOpen={true}
+          onClose={mock(() => {})}
+          bookId={1}
+          currentPageCount={null}
+          onSuccess={mock(() => {})}
+          pendingStatus="reading"
+          currentRating={undefined}
+        />
+      );
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "400" } });
+
+      fireEvent.click(screen.getByText("Save"));
+
+      await waitFor(() => {
+        expect(mockFetchNoRating).toHaveBeenCalledTimes(2);
+      });
+
+      // Verify status POST does NOT include rating
+      const statusCall = mockFetchNoRating.mock.calls.find(
+        (call: any) => call[0].includes("/status") && call[1].method === "POST"
+      );
+      const body = JSON.parse(statusCall[1].body);
+      expect(body).toEqual({ status: "reading" });
+      expect(body.rating).toBeUndefined();
+    });
+
+    test("should show combined success message when pendingStatus provided", async () => {
+      global.fetch = mock(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        } as Response)
+      ) as any;
+
+      render(
+        <PageCountEditModal
+          isOpen={true}
+          onClose={mock(() => {})}
+          bookId={1}
+          currentPageCount={null}
+          onSuccess={mock(() => {})}
+          pendingStatus="reading"
+        />
+      );
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "400" } });
+      fireEvent.click(screen.getByText("Save"));
+
+      await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalledWith(
+          'Page count updated and status changed to "reading"!'
+        );
+      });
+    });
+
+    test("should abort status POST if PATCH fails", async () => {
+      const mockFetchPatchFail = mock((url: string, options: any) => {
+        if (options.method === "PATCH") {
+          return Promise.resolve({
+            ok: false,
+            json: () => Promise.resolve({ error: "Failed to update pages" }),
+          } as Response);
+        }
+        if (options.method === "POST") {
+          throw new Error("POST should not be called if PATCH fails");
+        }
+        return Promise.reject(new Error("Unexpected call"));
+      });
+      global.fetch = mockFetchPatchFail as any;
+
+      render(
+        <PageCountEditModal
+          isOpen={true}
+          onClose={mock(() => {})}
+          bookId={1}
+          currentPageCount={null}
+          onSuccess={mock(() => {})}
+          pendingStatus="reading"
+        />
+      );
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "400" } });
+      fireEvent.click(screen.getByText("Save"));
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalled();
+      });
+
+      // Verify only PATCH was called, POST was never attempted
+      expect(mockFetchPatchFail).toHaveBeenCalledTimes(1);
+      expect(mockFetchPatchFail.mock.calls[0][1].method).toBe("PATCH");
+    });
+
+    test("should handle status POST failure after successful PATCH", async () => {
+      const mockFetchStatusFail = mock((url: string, options: any) => {
+        if (options.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ totalPages: 400 }),
+          } as Response);
+        }
+        if (options.method === "POST") {
+          return Promise.resolve({
+            ok: false,
+            json: () => Promise.resolve({ error: "Failed to update status" }),
+          } as Response);
+        }
+        return Promise.reject(new Error("Unexpected call"));
+      });
+      global.fetch = mockFetchStatusFail as any;
+
+      const onSuccess = mock(() => {});
+
+      render(
+        <PageCountEditModal
+          isOpen={true}
+          onClose={mock(() => {})}
+          bookId={1}
+          currentPageCount={null}
+          onSuccess={onSuccess}
+          pendingStatus="reading"
+        />
+      );
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "400" } });
+      fireEvent.click(screen.getByText("Save"));
+
+      await waitFor(() => {
+        // onSuccess should NOT be called on failure
+        expect(onSuccess).not.toHaveBeenCalled();
+
+        // Error toast should be shown
+        expect(mockToast.error).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Decimal Input Validation", () => {
+    test("should reject decimal input and show error", async () => {
+      const mockFetchDecimal = mock(() => {});
+      global.fetch = mockFetchDecimal as any;
+
+      render(<PageCountEditModal {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText("e.g. 320");
+      fireEvent.change(input, { target: { value: "320.5" } });
+      fireEvent.click(screen.getByText("Save"));
+
+      await waitFor(() => {
+        // Error toast shown
+        expect(mockToast.error).toHaveBeenCalledWith("Please enter a whole number of pages");
+      });
+
+      // API never called
+      expect(mockFetchDecimal).not.toHaveBeenCalled();
+    });
+
+    test("should handle various decimal formats", async () => {
+      const testCases = [".5", "320.", "3.2.0", "100.99"];
+
+      for (const value of testCases) {
+        const mockFetchFormat = mock(() => {});
+        global.fetch = mockFetchFormat as any;
+
+        const { unmount } = render(<PageCountEditModal {...defaultProps} />);
+
+        const input = screen.getByPlaceholderText("e.g. 320");
+        fireEvent.change(input, { target: { value } });
+        fireEvent.click(screen.getByText("Save"));
+
+        await waitFor(() => {
+          expect(mockFetchFormat).not.toHaveBeenCalled();
+        });
+
+        unmount();
+        mockToast.error.mockClear();
+      }
+    });
+  });
+
+  describe("Pending Status Info Box", () => {
+    test("should render info box when pendingStatus provided", () => {
+      render(
+        <PageCountEditModal
+          {...defaultProps}
+          pendingStatus="reading"
+        />
+      );
+
+      expect(
+        screen.getByText(/After saving, your book status will change to "reading"/)
+      ).toBeInTheDocument();
+    });
+
+    test("should NOT render info box when pendingStatus undefined", () => {
+      render(
+        <PageCountEditModal
+          {...defaultProps}
+          pendingStatus={undefined}
+        />
+      );
+
+      expect(screen.queryByText(/After saving/)).not.toBeInTheDocument();
+    });
+
+    test("should show correct status in info box message", () => {
+      const { rerender } = render(
+        <PageCountEditModal
+          {...defaultProps}
+          pendingStatus="reading"
+        />
+      );
+
+      expect(screen.getByText(/"reading"/)).toBeInTheDocument();
+
+      rerender(
+        <PageCountEditModal
+          {...defaultProps}
+          pendingStatus="read"
+        />
+      );
+
+      expect(screen.getByText(/"read"/)).toBeInTheDocument();
+    });
+  });
 });
