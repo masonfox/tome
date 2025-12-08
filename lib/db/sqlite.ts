@@ -111,8 +111,11 @@ export function closeConnection(): void {
   closeDatabaseConnection(sqlite);
 }
 
-// Handle process termination
-if (typeof process !== "undefined") {
+// Track if listeners are registered to prevent duplicates
+let listenersRegistered = false;
+
+// Handle process termination - only register once
+if (typeof process !== "undefined" && !listenersRegistered) {
   process.on("exit", closeConnection);
   process.on("SIGINT", () => {
     closeConnection();
@@ -122,6 +125,7 @@ if (typeof process !== "undefined") {
     closeConnection();
     process.exit(0);
   });
+  listenersRegistered = true;
 }
 
 export default db;
