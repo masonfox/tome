@@ -111,7 +111,6 @@ export class BookService {
     // Bun's sqlite supports async, but Drizzle handles the difference
     try {
       return await db.transaction((tx) => {
-
         // 1. Update book's totalPages using transaction
         const [updated] = tx
           .update(books)
