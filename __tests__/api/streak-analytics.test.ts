@@ -26,16 +26,27 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
-// Helper to get relative dates (always in UTC)
+// Helper to get relative dates in America/New_York timezone (default for tests)
+// This ensures test data falls on the correct calendar day in the user's timezone
 function getDaysAgo(days: number): Date {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - days);
-  date.setUTCHours(12, 0, 0, 0); // Noon UTC
-  return date;
+  const { toZonedTime, fromZonedTime } = require('date-fns-tz');
+  const { subDays } = require('date-fns');
+  
+  // Get current date/time in EST/EDT
+  const nowInEst = toZonedTime(new Date(), 'America/New_York');
+  
+  // Subtract days
+  const targetDate = subDays(nowInEst, days);
+  
+  // Set to noon in EST/EDT to avoid edge cases
+  targetDate.setHours(12, 0, 0, 0);
+  
+  // Convert back to UTC timestamp for database
+  return fromZonedTime(targetDate, 'America/New_York');
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  return date.toISOString().split('T')[0]; // Keep UTC for test consistency
 }
 
 describe("GET /api/streak/analytics - Missing Days Fill", () => {

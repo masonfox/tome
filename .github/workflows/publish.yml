@@ -33,9 +33,6 @@ jobs:
       - name: Run test suite
         run: bun test
 
-      - name: Build application
-        run: bun run build
-
   build-and-push:
     name: Build and Push Docker Image
     needs: test
@@ -69,6 +66,9 @@ jobs:
             type=semver,pattern={{major}}
             # Tag with commit SHA (only on branch pushes, not tags)
             type=sha,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Tome
+            org.opencontainers.image.description=Personal book tracking and reading progress application
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

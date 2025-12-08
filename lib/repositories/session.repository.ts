@@ -26,6 +26,25 @@ export class SessionRepository extends BaseRepository<
   }
 
   /**
+   * Find all active sessions for a book
+   * Active = is_active = true AND status = 'reading'
+   * Used for page count update to recalculate progress percentages
+   */
+  async findActiveSessionsByBookId(bookId: number): Promise<ReadingSession[]> {
+    return this.getDatabase()
+      .select()
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          eq(readingSessions.isActive, true),
+          eq(readingSessions.status, 'reading')
+        )
+      )
+      .all();
+  }
+
+  /**
    * Find session by book ID and session number
    */
   async findByBookIdAndSessionNumber(
@@ -283,6 +302,18 @@ export class SessionRepository extends BaseRepository<
 
    /**
     * Count completed sessions (status='read') after a date
+    * 
+    * @param date UTC timestamp representing the start boundary (caller must convert from user TZ to UTC)
+    * @returns Count of completed sessions with completedDate >= date
+    * 
+    * @example
+    * // Count books completed this year in user's timezone
+    * const streak = await streakRepository.getOrCreate(null);
+    * const userTimezone = streak.userTimezone || 'America/New_York';
+    * const now = new Date();
+    * const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
+    * const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
+    * const count = await sessionRepository.countCompletedAfterDate(yearStartUtc);
     */
    async countCompletedAfterDate(date: Date): Promise<number> {
      const result = this.getDatabase()

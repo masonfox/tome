@@ -3,15 +3,17 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, BookCheck } from "lucide-react";
+import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
 import RereadConfirmModal from "@/components/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/ArchiveSessionModal";
+import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
-import BookMetadata from "@/components/BookDetail/BookMetadata";
+import { calculatePercentage } from "@/lib/utils/progress-calculations";
+
 import BookProgress from "@/components/BookDetail/BookProgress";
 import ProgressHistory from "@/components/BookDetail/ProgressHistory";
 import SessionDetails from "@/components/BookDetail/SessionDetails";
@@ -45,7 +47,7 @@ export default function BookDetailPage() {
     showReadConfirmation,
     showStatusChangeConfirmation,
     pendingStatusChange,
-    handleUpdateStatus,
+    handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange: handleConfirmStatusChangeFromHook,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
@@ -78,8 +80,9 @@ export default function BookDetailPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-  const [totalPagesInput, setTotalPagesInput] = useState("");
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
+  const [showPageCountModal, setShowPageCountModal] = useState(false);
+  const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
 
   // Refs for dropdowns
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -89,7 +92,31 @@ export default function BookDetailPage() {
   function handleRefresh() {
     refetchBook();
     bookProgressHook.refetchProgress();
-    // router.refresh() removed - Phase 2 optimization
+    router.refresh(); // Refresh server components (dashboard, etc.)
+  }
+
+  // Wrapper for status updates with optimistic page count validation
+  async function handleUpdateStatus(newStatus: string) {
+    // Optimistic check: if trying to change to reading/read without pages, show modal immediately
+    if ((newStatus === "reading" || newStatus === "read") && !book?.totalPages) {
+      setPendingStatusForPageCount(newStatus);
+      setShowPageCountModal(true);
+      return;
+    }
+
+    // Otherwise, call the hook's handler
+    try {
+      await handleUpdateStatusFromHook(newStatus);
+    } catch (error: any) {
+      // Defense in depth: Handle API validation error
+      if (error?.code === "PAGES_REQUIRED" || error?.response?.data?.code === "PAGES_REQUIRED") {
+        setPendingStatusForPageCount(newStatus);
+        setShowPageCountModal(true);
+      } else {
+        // Re-throw other errors to be handled by the hook
+        throw error;
+      }
+    }
   }
 
   // Handle re-read with history refresh
@@ -107,15 +134,27 @@ export default function BookDetailPage() {
     setShowRereadConfirmation(false);
   }
 
-  // Total pages submit handler
-  async function handleTotalPagesSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!totalPagesInput || parseInt(totalPagesInput) <= 0) return;
+  // Handle page count editing (works for both null and existing values)
+  function handlePageCountClick() {
+    setShowPageCountModal(true);
+  }
 
-    await updateTotalPages(parseInt(totalPagesInput));
-    setTotalPagesInput("");
-    toast.success("Pages updated");
-    // router.refresh() removed - Phase 2 optimization
+  async function handlePageCountUpdateSuccess() {
+    setShowPageCountModal(false);
+    setPendingStatusForPageCount(null);
+
+    // Modal already handled the update, just refresh UI
+    await refetchBook();
+    bookProgressHook.refetchProgress();
+    router.refresh();
+  }
+  
+  function handlePageCountModalClose() {
+    setShowPageCountModal(false);
+    // If user cancels the page count modal with a pending status, clear it
+    if (pendingStatusForPageCount) {
+      setPendingStatusForPageCount(null);
+    }
   }
 
   // Close dropdowns when clicking outside
@@ -221,17 +260,16 @@ export default function BookDetailPage() {
               {book.totalReads !== undefined && book.totalReads > 0 && book.totalPages && (
                 <span className="text-[var(--border-color)]">•</span>
               )}
-              {book.totalPages ? (
-                <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                  <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
-                  <span className="font-semibold">{book.totalPages.toLocaleString()} pages</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-[var(--accent)] italic">
-                  <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
-                  <span className="font-medium">Pages not set</span>
-                </div>
-              )}
+              <div 
+                onClick={handlePageCountClick}
+                className="flex items-center gap-1.5 text-[var(--accent)] group cursor-pointer"
+              >
+                <BookOpen className="w-3 md:w-4 h-3 md:h-4" />
+                <span className="font-semibold group-hover:underline">
+                  {book.totalPages ? `${book.totalPages.toLocaleString()} pages` : 'Pages not set'}
+                </span>
+                <Pencil className="w-3 h-3 text-[var(--subheading-text)]" />
+              </div>
               {book.pubDate && (
                 <>
                   <span className="text-[var(--border-color)]">•</span>
@@ -274,7 +312,7 @@ export default function BookDetailPage() {
                   <span className="text-[var(--foreground)]">
                     {bookProgressHook.progress.length > 0 ? (
                       <>
-                        {Math.round((bookProgressHook.progress[0].currentPage / (book.totalPages || 1)) * 100)}%
+                        {calculatePercentage(bookProgressHook.progress[0].currentPage, book.totalPages || 1)}%
                       </>
                     ) : (
                       "0%"
@@ -286,7 +324,7 @@ export default function BookDetailPage() {
                     className="absolute inset-y-0 left-0 bg-[var(--accent)] transition-all duration-300"
                     style={{
                       width: bookProgressHook.progress.length > 0
-                        ? `${Math.min((bookProgressHook.progress[0].currentPage / (book.totalPages || 1)) * 100, 100)}%`
+                        ? `${calculatePercentage(bookProgressHook.progress[0].currentPage, book.totalPages || 1)}%`
                         : "0%",
                     }}
                   />
@@ -398,6 +436,17 @@ export default function BookDetailPage() {
         onConfirm={handleConfirmStatusChange}
         bookTitle={book.title}
         pendingStatus={pendingStatusChange}
+      />
+
+      <PageCountEditModal
+        isOpen={showPageCountModal}
+        onClose={handlePageCountModalClose}
+        bookId={parseInt(bookId)}
+        currentPageCount={book.totalPages ?? null}
+        onSuccess={handlePageCountUpdateSuccess}
+        hasProgress={bookProgressHook.progress.length > 0}
+        pendingStatus={pendingStatusForPageCount ?? undefined}
+        currentRating={book.rating}
       />
 
       {bookProgressHook.selectedProgressEntry && (

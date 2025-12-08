@@ -52,6 +52,8 @@ export async function POST(
 
     const newSession = await sessionService.startReread(bookId);
 
+    // Note: Cache invalidation handled by SessionService.invalidateCache()
+
     return NextResponse.json({
       message: "Re-reading session started successfully",
       session: newSession,

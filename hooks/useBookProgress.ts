@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { parseISO, startOfDay } from "date-fns";
+import { getTodayLocalDate } from "@/utils/dateFormatting";
 
 export interface ProgressEntry {
   id: number;
@@ -101,7 +102,7 @@ export function useBookProgress(
   // Set default progress date to today when viewing a reading book
   useEffect(() => {
     if (book?.activeSession?.status === "reading") {
-      setProgressDate(new Date().toISOString().split("T")[0]);
+      setProgressDate(getTodayLocalDate());
     }
   }, [book?.activeSession?.status]);
 
@@ -196,7 +197,7 @@ export function useBookProgress(
       if (response.ok) {
         const newProgressEntry = await response.json();
         setNotes("");
-        setProgressDate(new Date().toISOString().split("T")[0]); // Reset to today
+        setProgressDate(getTodayLocalDate()); // Reset to today
         setHasUnsavedProgress(false); // Clear unsaved flag after successful submission
 
         fetchProgress();
@@ -285,7 +286,7 @@ export function useBookProgress(
     setCurrentPage("");
     setCurrentPercentage("");
     setNotes("");
-    setProgressDate(new Date().toISOString().split("T")[0]);
+    setProgressDate(getTodayLocalDate());
     setHasUnsavedProgress(false);
   }, []);
 

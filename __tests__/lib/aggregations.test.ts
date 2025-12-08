@@ -301,12 +301,23 @@ describe("Aggregation Query Tests", () => {
         progressDate: day2,
       });
 
-      const avg = await progressRepository.getAveragePagesPerDay(30);
+      // Calculate 30 days ago in user timezone
+      const userTimezone = 'America/New_York';
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
       expect(avg).toBe(75); // (50 + 100) / 2 = 75
     });
 
     test("should return 0 for no progress", async () => {
-      const avg = await progressRepository.getAveragePagesPerDay(30);
+      const userTimezone = 'America/New_York';
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
       expect(avg).toBe(0);
     });
   });
@@ -328,9 +339,17 @@ describe("Aggregation Query Tests", () => {
         isActive: true,
       });
 
-      const today = new Date();
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      // Use timezone-aware dates to avoid CI flakiness
+      const { toZonedTime, fromZonedTime } = require("date-fns-tz");
+      const { startOfDay, subDays } = require("date-fns");
+      const timezone = 'America/New_York';
+      
+      const now = new Date();
+      const todayInTz = startOfDay(toZonedTime(now, timezone));
+      const yesterdayInTz = subDays(todayInTz, 1);
+      
+      const today = fromZonedTime(todayInTz, timezone);
+      const yesterday = fromZonedTime(yesterdayInTz, timezone);
 
       // Multiple progress entries on same day should be summed
       await progressRepository.create({
@@ -360,14 +379,20 @@ describe("Aggregation Query Tests", () => {
         progressDate: yesterday,
       });
 
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgo = subDays(todayInTz, 7);
+      const sevenDaysAgoUtc = fromZonedTime(sevenDaysAgo, timezone);
 
-      const calendar = await progressRepository.getActivityCalendar(sevenDaysAgo, today);
+      const calendar = await progressRepository.getActivityCalendar(sevenDaysAgoUtc, today, timezone);
 
       expect(calendar.length).toBe(2); // 2 unique days
-      expect(calendar.find((day) => day.date.includes(today.toISOString().split("T")[0]))?.pagesRead).toBe(100);
-      expect(calendar.find((day) => day.date.includes(yesterday.toISOString().split("T")[0]))?.pagesRead).toBe(75);
+      
+      // Format dates in timezone for comparison
+      const { formatInTimeZone } = require("date-fns-tz");
+      const todayStr = formatInTimeZone(today, timezone, 'yyyy-MM-dd');
+      const yesterdayStr = formatInTimeZone(yesterday, timezone, 'yyyy-MM-dd');
+      
+      expect(calendar.find((day) => day.date === todayStr)?.pagesRead).toBe(100);
+      expect(calendar.find((day) => day.date === yesterdayStr)?.pagesRead).toBe(75);
     });
   });
 });

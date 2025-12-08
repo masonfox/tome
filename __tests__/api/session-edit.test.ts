@@ -10,6 +10,7 @@ import {
   createMockRequest,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { format } from "date-fns";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
@@ -84,11 +85,11 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
 
       // Verify started date was updated
       expect(data.startedDate).toBeDefined();
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe(newStartDate);
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe(newStartDate);
 
-      // Verify other fields unchanged
+      // Original values unchanged
       expect(data.completedDate).toBeDefined();
-      expect(new Date(data.completedDate).toISOString().split("T")[0]).toBe("2025-11-15");
+      expect(format(new Date(data.completedDate), 'yyyy-MM-dd')).toBe("2025-11-15");
       expect(data.review).toBe("Original review");
       expect(data.sessionNumber).toBe(session.sessionNumber);
     });
@@ -107,11 +108,11 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
 
       // Verify completed date was updated
       expect(data.completedDate).toBeDefined();
-      expect(new Date(data.completedDate).toISOString().split("T")[0]).toBe(newCompletedDate);
+      expect(format(new Date(data.completedDate), 'yyyy-MM-dd')).toBe(newCompletedDate);
 
-      // Verify other fields unchanged
+      // Original values unchanged
       expect(data.startedDate).toBeDefined();
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("2025-11-01");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("2025-11-01");
       expect(data.review).toBe("Original review");
     });
 
@@ -131,8 +132,8 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
       expect(data.review).toBe(newReview);
 
       // Verify dates unchanged
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("2025-11-01");
-      expect(new Date(data.completedDate).toISOString().split("T")[0]).toBe("2025-11-15");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("2025-11-01");
+      expect(format(new Date(data.completedDate), 'yyyy-MM-dd')).toBe("2025-11-15");
     });
 
     test("should update all fields at once", async () => {
@@ -151,8 +152,8 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
       const data = await response.json();
 
       // Verify all fields updated
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe(updates.startedDate);
-      expect(new Date(data.completedDate).toISOString().split("T")[0]).toBe(updates.completedDate);
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe(updates.startedDate);
+      expect(format(new Date(data.completedDate), 'yyyy-MM-dd')).toBe(updates.completedDate);
       expect(data.review).toBe(updates.review);
     });
 
@@ -169,8 +170,8 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
       const data = await response.json();
 
       // Verify dates updated
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("2025-11-02");
-      expect(new Date(data.completedDate).toISOString().split("T")[0]).toBe("2025-11-16");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("2025-11-02");
+      expect(format(new Date(data.completedDate), 'yyyy-MM-dd')).toBe("2025-11-16");
 
       // Verify review unchanged
       expect(data.review).toBe("Original review");
@@ -426,8 +427,8 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
       const data = await response.json();
 
       // Verify nothing changed
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("2025-11-01");
-      expect(new Date(data.completedDate).toISOString().split("T")[0]).toBe("2025-11-15");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("2025-11-01");
+      expect(format(new Date(data.completedDate), 'yyyy-MM-dd')).toBe("2025-11-15");
       expect(data.review).toBe("Original review");
     });
   });
@@ -461,7 +462,7 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("2025-11-10");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("2025-11-10");
       expect(data.isActive).toBe(true);
     });
 
@@ -518,7 +519,7 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("1970-01-01");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("1970-01-01");
     });
 
     test("should handle multiple updates to same session", async () => {
@@ -580,7 +581,7 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
       const data = await response.json();
 
       // Verify session updated
-      expect(new Date(data.startedDate).toISOString().split("T")[0]).toBe("2025-11-05");
+      expect(format(new Date(data.startedDate), 'yyyy-MM-dd')).toBe("2025-11-05");
       expect(data.review).toBe("Updated with progress logs");
 
       // Verify progress logs still exist and are linked

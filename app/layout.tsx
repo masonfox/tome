@@ -30,12 +30,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light" data-bottom-nav="false" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                // Set theme before page loads to prevent flicker
                 const savedMode = localStorage.getItem("darkMode");
                 if (savedMode !== null) {
                   document.documentElement.setAttribute("data-theme", savedMode === "true" ? "dark" : "light");
@@ -43,6 +44,14 @@ export default function RootLayout({
                   document.documentElement.setAttribute("data-theme", "dark");
                 } else {
                   document.documentElement.setAttribute("data-theme", "light");
+                }
+                
+                // Set bottom navigation preference before page loads to prevent flicker
+                const bottomNavEnabled = localStorage.getItem("bottomNavigationEnabled");
+                if (bottomNavEnabled === "true") {
+                  document.documentElement.setAttribute("data-bottom-nav", "true");
+                } else {
+                  document.documentElement.setAttribute("data-bottom-nav", "false");
                 }
               })();
             `,

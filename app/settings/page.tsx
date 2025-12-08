@@ -1,6 +1,7 @@
 import { Settings as SettingsIcon, Upload } from "lucide-react";
 import { StreakSettings } from "@/components/StreakSettings";
 import { DataWipeSettings } from "@/components/DataWipeSettings";
+import { NavigationSettings } from "@/components/NavigationSettings";
 import { PageHeader } from "@/components/PageHeader";
 import { streakService } from "@/lib/services/streak.service";
 import Link from "next/link";
@@ -20,6 +21,9 @@ export default async function SettingsPage() {
         subtitle="Configure your book tracker"
         icon={SettingsIcon}
       />
+
+      {/* Navigation Settings */}
+      <NavigationSettings />
 
       {/* Reading Streak Settings */}
       <StreakSettings 

@@ -1,6 +1,7 @@
 import { eq, and, desc, asc, sql, gte, lte, lt, gt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
+import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { db } from "@/lib/db/sqlite";
 
 export class ProgressRepository extends BaseRepository<
@@ -203,40 +204,58 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Calculate pages read after a date
-   * Uses timezone-aware comparison: converts both stored UTC timestamps and query date
-   * to local time before comparing, as per spec requirement for timezone support
+   * Calculate pages read after a UTC date (timezone-agnostic)
+   * Compares UTC timestamps directly without timezone conversion
+   * 
+   * IMPORTANT: Caller must convert user's day boundary to UTC before calling.
+   * Use toZonedTime/fromZonedTime to get user's "today" in UTC.
+   * 
+   * @param date UTC timestamp representing the start of a day in user's timezone
+   * @example
+   * // Get pages read "today" for user in Tokyo
+   * const now = new Date();
+   * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
+   * const todayUtc = fromZonedTime(todayInUserTz, 'Asia/Tokyo');
+   * const pages = await progressRepository.getPagesReadAfterDate(todayUtc);
    */
   async getPagesReadAfterDate(date: Date): Promise<number> {
-    // Convert the input date to YYYY-MM-DD format in LOCAL timezone
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const localDateStr = `${year}-${month}-${day}`;
-    
-    // Query using SQLite's datetime with 'localtime' to convert stored UTC to local time
-    // Then compare just the date portion
     const result = this.getDatabase()
       .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(sql`DATE(${progressLogs.progressDate}, 'unixepoch', 'localtime') >= ${localDateStr}`)
+      .where(gte(progressLogs.progressDate, date))
       .get();
 
     return result?.total ?? 0;
   }
 
   /**
-   * Get activity calendar (dates with page counts)
+   * Get activity calendar (dates with page counts) in user's timezone
+   * 
+   * IMPORTANT: Returns dates in user's timezone, not UTC.
+   * Caller must provide timezone for proper date grouping.
+   * 
+   * @param startDate Start of date range in UTC
+   * @param endDate End of date range in UTC
+   * @param timezone IANA timezone identifier (e.g., 'America/New_York', 'Asia/Tokyo')
+   * @returns Array of {date: 'YYYY-MM-DD' in user TZ, pagesRead: number}
+   * 
+   * @example
+   * // Get activity calendar for user in Tokyo
+   * const calendar = await progressRepository.getActivityCalendar(
+   *   startDateUtc, 
+   *   endDateUtc, 
+   *   'Asia/Tokyo'
+   * );
+   * // Returns dates like '2025-12-02' representing Dec 2 in Tokyo time
    */
   async getActivityCalendar(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    timezone: string = 'America/New_York'
   ): Promise<{ date: string; pagesRead: number }[]> {
-    const results = this.getDatabase()
-      .select({
-        date: sql<string>`DATE(${progressLogs.progressDate}, 'unixepoch')`,
-        pagesRead: sql<number>`SUM(${progressLogs.pagesRead})`,
-      })
+    // Get all progress logs in date range
+    const logs = this.getDatabase()
+      .select()
       .from(progressLogs)
       .where(
         and(
@@ -244,42 +263,78 @@ export class ProgressRepository extends BaseRepository<
           lte(progressLogs.progressDate, endDate)
         )
       )
-      .groupBy(sql`DATE(${progressLogs.progressDate}, 'unixepoch')`)
-      .orderBy(sql`DATE(${progressLogs.progressDate}, 'unixepoch')`)
       .all();
 
-    return results;
+    // Group by date in user's timezone
+    const { toZonedTime } = require('date-fns-tz');
+    const { startOfDay, format } = require('date-fns');
+    
+    const dailyMap = new Map<string, number>();
+    
+    logs.forEach(log => {
+      const dateInUserTz = toZonedTime(log.progressDate, timezone);
+      const dayStart = startOfDay(dateInUserTz);
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
+      
+      const current = dailyMap.get(dateKey) || 0;
+      dailyMap.set(dateKey, current + (log.pagesRead || 0));
+    });
+
+    // Convert to array and sort
+    return Array.from(dailyMap.entries())
+      .map(([date, pagesRead]) => ({ date, pagesRead }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
   /**
-   * Get average pages per day over a period
+   * Get average pages per day over a period in user's timezone
+   * 
+   * IMPORTANT: Caller must provide start date in UTC (representing start of day in user TZ)
+   * 
+   * @param startDateUtc Start of period in UTC (user's day boundary converted to UTC)
+   * @param timezone IANA timezone identifier for grouping by calendar day
+   * @returns Average pages per day, rounded to nearest integer
+   * 
+   * @example
+   * // Get average pages per day for last 30 days for user in Tokyo
+   * const now = new Date();
+   * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
+   * const thirtyDaysAgoInUserTz = subDays(todayInUserTz, 30);
+   * const startDateUtc = fromZonedTime(thirtyDaysAgoInUserTz, 'Asia/Tokyo');
+   * const avg = await progressRepository.getAveragePagesPerDay(startDateUtc, 'Asia/Tokyo');
    */
-  async getAveragePagesPerDay(days: number): Promise<number> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+  async getAveragePagesPerDay(startDateUtc: Date, timezone: string = 'America/New_York'): Promise<number> {
+    // Get all logs since start date
+    const logs = this.getDatabase()
+      .select()
+      .from(progressLogs)
+      .where(gte(progressLogs.progressDate, startDateUtc))
+      .all();
 
-    const result = this.getDatabase()
-      .select({
-        avgPages: sql<number>`
-          COALESCE(
-            AVG(daily_pages),
-            0
-          )
-        `,
-      })
-      .from(
-        db
-          .select({
-            daily_pages: sql<number>`SUM(${progressLogs.pagesRead})`.as("daily_pages"),
-          })
-          .from(progressLogs)
-          .where(gte(progressLogs.progressDate, startDate))
-          .groupBy(sql`DATE(${progressLogs.progressDate}, 'unixepoch')`)
-          .as("daily_totals")
-      )
-      .get();
+    if (logs.length === 0) {
+      return 0;
+    }
 
-    return Math.round(result?.avgPages ?? 0);
+    // Group by date in user's timezone
+    const { toZonedTime } = require('date-fns-tz');
+    const { startOfDay, format } = require('date-fns');
+    
+    const dailyMap = new Map<string, number>();
+    
+    logs.forEach(log => {
+      const dateInUserTz = toZonedTime(log.progressDate, timezone);
+      const dayStart = startOfDay(dateInUserTz);
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
+      
+      const current = dailyMap.get(dateKey) || 0;
+      dailyMap.set(dateKey, current + (log.pagesRead || 0));
+    });
+
+    // Calculate average
+    const totalPages = Array.from(dailyMap.values()).reduce((sum, pages) => sum + pages, 0);
+    const avgPages = dailyMap.size > 0 ? totalPages / dailyMap.size : 0;
+
+    return Math.round(avgPages);
   }
 
   /**
@@ -296,23 +351,64 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Get progress for a specific date (timezone-aware)
-   * Uses SQLite's localtime conversion to match the calendar day in the user's timezone
+   * Get progress for a specific date in user's timezone
+   * 
+   * IMPORTANT: Caller must provide UTC timestamps for start/end of day in user's timezone
+   * 
+   * @param dateStartUtc Start of day in UTC (user's midnight converted to UTC)
+   * @param dateEndUtc End of day in UTC (user's 23:59:59 converted to UTC)
+   * @returns Total pages read during that calendar day in user's timezone
+   * 
+   * @example
+   * // Get progress for "today" for user in Tokyo
+   * const now = new Date();
+   * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
+   * const tomorrowInUserTz = endOfDay(todayInUserTz);
+   * const startUtc = fromZonedTime(todayInUserTz, 'Asia/Tokyo');
+   * const endUtc = fromZonedTime(tomorrowInUserTz, 'Asia/Tokyo');
+   * const progress = await progressRepository.getProgressForDate(startUtc, endUtc);
    */
-  async getProgressForDate(date: Date): Promise<{ pagesRead: number } | undefined> {
-    // Convert the input date to YYYY-MM-DD format in LOCAL timezone
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const localDateStr = `${year}-${month}-${day}`;
-
+  async getProgressForDate(dateStartUtc: Date, dateEndUtc: Date): Promise<{ pagesRead: number }> {
     const result = this.getDatabase()
       .select({ pagesRead: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(sql`DATE(${progressLogs.progressDate}, 'unixepoch', 'localtime') = ${localDateStr}`)
+      .where(
+        and(
+          gte(progressLogs.progressDate, dateStartUtc),
+          lte(progressLogs.progressDate, dateEndUtc)
+        )
+      )
       .get();
 
     return result || { pagesRead: 0 };
+  }
+
+  /**
+   * Get the highest currentPage across all progress logs for active sessions of a book
+   * Used to validate page count reductions don't contradict existing progress
+   *
+   * @param bookId - The book ID to check
+   * @returns The maximum currentPage value from active sessions, or 0 if no active progress exists
+   */
+  async getHighestCurrentPageForActiveSessions(bookId: number): Promise<number> {
+
+    const result = this.getDatabase()
+      .select({ maxPage: sql<number>`MAX(${this.table.currentPage})` })
+      .from(this.table)
+      .innerJoin(
+        readingSessions,
+        eq(this.table.sessionId, readingSessions.id)
+      )
+      .where(
+        and(
+          eq(this.table.bookId, bookId),
+          eq(readingSessions.isActive, true),
+          eq(readingSessions.status, 'reading')
+        )
+      )
+      .get();
+
+    return result?.maxPage ?? 0;
   }
 
   /**
