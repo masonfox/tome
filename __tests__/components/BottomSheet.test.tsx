@@ -3,6 +3,9 @@ import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BottomSheet } from "@/components/BottomSheet";
 
+// Timeout should be longer than the component's focus delay (100ms) for reliability
+const FOCUS_TEST_TIMEOUT_MS = 200;
+
 afterEach(() => {
   cleanup();
 });
@@ -39,12 +42,12 @@ describe("BottomSheet", () => {
 
     const closeButton = screen.getByLabelText("Close");
     
-    // Wait for the focus to be applied (100ms timeout in component)
+    // Wait for the focus to be applied
     await waitFor(
       () => {
         expect(closeButton).toHaveFocus();
       },
-      { timeout: 200 }
+      { timeout: FOCUS_TEST_TIMEOUT_MS }
     );
   });
 
