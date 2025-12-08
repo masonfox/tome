@@ -19,15 +19,10 @@ export function NavigationSettings() {
     toggleEnabled(newValue);
     
     if (newValue) {
-      toast.success("Bottom navigation enabled! Refreshing in 3 seconds...");
+      toast.success("Bottom navigation enabled!");
     } else {
-      toast.success("Top navigation enabled! Refreshing in 3 seconds...");
+      toast.success("Top navigation enabled!");
     }
-    
-    setTimeout(() => {
-      // Reload the page to apply the navigation style change
-      window.location.reload();
-    }, 3000);
   };
 
   if (!mounted) {
