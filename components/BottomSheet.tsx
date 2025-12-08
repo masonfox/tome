@@ -10,7 +10,7 @@ interface BottomSheetProps {
 }
 
 // Delay before focusing close button to allow animation to complete
-const FOCUS_DELAY_MS = 100;
+export const FOCUS_DELAY_MS = 100;
 // Animation duration for closing transition
 const CLOSE_ANIMATION_MS = 300;
 
@@ -64,7 +64,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
           <button
             ref={closeButtonRef}
             onClick={handleClose}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1"
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
             aria-label="Close"
           >
             <X className="w-5 h-5" />

@@ -1,10 +1,10 @@
 import { test, expect, describe, afterEach } from "bun:test";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { BottomSheet } from "@/components/BottomSheet";
+import { BottomSheet, FOCUS_DELAY_MS } from "@/components/BottomSheet";
 
-// Timeout should be longer than the component's focus delay (100ms) for reliability
-const FOCUS_TEST_TIMEOUT_MS = 200;
+// Timeout should be longer than the component's focus delay for reliability
+const FOCUS_TEST_TIMEOUT_MS = FOCUS_DELAY_MS + 100;
 
 afterEach(() => {
   cleanup();
