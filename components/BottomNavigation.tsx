@@ -130,7 +130,7 @@ export function BottomNavigation() {
           <button
             onClick={() => handleSheetItemClick("/settings")}
             className={clsx(
-              "flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors",
+              "flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               pathname === "/settings"
                 ? "bg-[var(--accent)]/10 text-[var(--accent)]"
                 : "text-[var(--foreground)] hover:bg-[var(--border-color)]"
@@ -142,7 +142,7 @@ export function BottomNavigation() {
 
           <button
             onClick={toggleDarkMode}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors"
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             <span className="font-medium">{darkMode ? "Light Mode" : "Dark Mode"}</span>
@@ -151,7 +151,7 @@ export function BottomNavigation() {
           {authEnabled && (
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Logout</span>

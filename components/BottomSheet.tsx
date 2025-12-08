@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
 
 interface BottomSheetProps {
@@ -11,11 +11,16 @@ interface BottomSheetProps {
 
 export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setIsClosing(false);
+      // Focus the close button to prevent auto-focus on other elements
+      setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, 100);
     } else {
       document.body.style.overflow = "";
     }
@@ -52,6 +57,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
         <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-[var(--heading-text)]">More</h3>
           <button
+            ref={closeButtonRef}
             onClick={handleClose}
             className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1"
             aria-label="Close"
