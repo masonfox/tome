@@ -14,21 +14,15 @@ describe("Toast Utility", () => {
   });
 
   test("toast functions return values", () => {
-    // These will return toast IDs or undefined
-    const successResult = toast.success("Test success");
-    const errorResult = toast.error("Test error");
-    const infoResult = toast.info("Test info");
-    const warningResult = toast.warning("Test warning");
-    const loadingResult = toast.loading("Test loading");
-
+    // These will return toast IDs or undefined depending on environment
     // Just verify they execute without throwing
-    expect(successResult).toBeDefined();
-    expect(errorResult).toBeDefined();
-    expect(infoResult).toBeDefined();
-    expect(warningResult).toBeDefined();
-    expect(loadingResult).toBeDefined();
+    expect(() => toast.success("Test success")).not.toThrow();
+    expect(() => toast.error("Test error")).not.toThrow();
+    expect(() => toast.info("Test info")).not.toThrow();
+    expect(() => toast.warning("Test warning")).not.toThrow();
+    expect(() => toast.loading("Test loading")).not.toThrow();
 
-    // Clean up
-    toast.dismiss();
+    // Clean up - also verify dismiss doesn't throw
+    expect(() => toast.dismiss()).not.toThrow();
   });
 });
