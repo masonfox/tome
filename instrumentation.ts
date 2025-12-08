@@ -1,3 +1,6 @@
+// Track if cleanup listeners are registered to prevent duplicates during HMR
+let cleanupListenersRegistered = false;
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     // Calibre automatic sync works in both dev and production
@@ -19,17 +22,21 @@ export async function register() {
       getLogger().warn("CALIBRE_DB_PATH not configured. Automatic sync is disabled.");
     }
 
-    // Cleanup on shutdown
-    process.on("SIGTERM", () => {
-      const { getLogger } = require("@/lib/logger");
-      getLogger().info("Shutting down Calibre watcher...");
-      calibreWatcher.stop();
-    });
+    // Cleanup on shutdown - only register once to prevent memory leak warnings
+    if (!cleanupListenersRegistered) {
+      process.on("SIGTERM", () => {
+        const { getLogger } = require("@/lib/logger");
+        getLogger().info("Shutting down Calibre watcher...");
+        calibreWatcher.stop();
+      });
 
-    process.on("SIGINT", () => {
-      const { getLogger } = require("@/lib/logger");
-      getLogger().info("Shutting down Calibre watcher...");
-      calibreWatcher.stop();
-    });
+      process.on("SIGINT", () => {
+        const { getLogger } = require("@/lib/logger");
+        getLogger().info("Shutting down Calibre watcher...");
+        calibreWatcher.stop();
+      });
+      
+      cleanupListenersRegistered = true;
+    }
   }
 }
