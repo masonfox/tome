@@ -126,8 +126,6 @@ export default function BookHeader({
         )}
       </div>
 
-
-
       {/* Status dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
