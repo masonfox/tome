@@ -67,6 +67,8 @@ export class BookService {
 
   /**
    * Update total pages for a book
+   * Also recalculates progress percentages for all active reading sessions
+   * Uses transaction to ensure atomicity (rollback if recalculation fails)
    */
   async updateTotalPages(bookId: number, totalPages: number): Promise<Book> {
     // Validate input
@@ -80,14 +82,109 @@ export class BookService {
       throw new Error("Book not found");
     }
 
-    // Update
-    const updated = await bookRepository.update(bookId, { totalPages });
-    
-    if (!updated) {
-      throw new Error("Failed to update total pages");
+    // Validate that new page count doesn't contradict existing progress in active sessions
+    const highestCurrentPage = await progressRepository.getHighestCurrentPageForActiveSessions(bookId);
+
+    if (highestCurrentPage > totalPages) {
+      throw new Error(
+        `Cannot reduce page count to ${totalPages}. ` +
+        `You've already logged progress up to page ${highestCurrentPage} ` +
+        `in your current reading session. ` +
+        `Please adjust your progress or use a higher page count.`
+      );
     }
 
-    return updated;
+    // Import dependencies inside method to avoid circular imports
+    const { getDatabase } = await import("@/lib/db/context");
+    const { calculatePercentage } = await import("@/lib/utils/progress-calculations");
+    const { getLogger } = await import("@/lib/logger");
+    const { books } = await import("@/lib/db/schema/books");
+    const { readingSessions } = await import("@/lib/db/schema/reading-sessions");
+    const { progressLogs } = await import("@/lib/db/schema/progress-logs");
+    const { eq, and } = await import("drizzle-orm");
+
+    const logger = getLogger();
+    const db = getDatabase(); // Get the correct database instance (test or production)
+
+    // Use transaction for atomic update + recalculation
+    // NOTE: better-sqlite3 requires synchronous transaction callbacks (no async/await)
+    // Bun's sqlite supports async, but Drizzle handles the difference
+    try {
+      return await db.transaction((tx) => {
+        // 1. Update book's totalPages using transaction
+        const [updated] = tx
+          .update(books)
+          .set({ totalPages })
+          .where(eq(books.id, bookId))
+          .returning()
+          .all();
+
+        if (!updated) {
+          throw new Error("Failed to update total pages");
+        }
+
+        // 2. Find active sessions for this book using transaction
+        const activeSessions = tx
+          .select()
+          .from(readingSessions)
+          .where(
+            and(
+              eq(readingSessions.bookId, bookId),
+              eq(readingSessions.isActive, true),
+              eq(readingSessions.status, 'reading')
+            )
+          )
+          .all();
+
+        // 3. For each active session, recalculate progress log percentages
+        let totalLogsUpdated = 0;
+        for (const session of activeSessions) {
+          // Get progress logs for this session
+          const logs = tx
+            .select()
+            .from(progressLogs)
+            .where(eq(progressLogs.sessionId, session.id))
+            .all();
+
+          // Update each log with new percentage
+          for (const log of logs) {
+            const newPercentage = calculatePercentage(log.currentPage, totalPages);
+            tx
+              .update(progressLogs)
+              .set({ currentPercentage: newPercentage })
+              .where(eq(progressLogs.id, log.id))
+              .run();
+            totalLogsUpdated++;
+          }
+        }
+
+        // Log for debugging/monitoring
+        logger.info({
+          bookId,
+          totalPages,
+          activeSessionsCount: activeSessions.length,
+          progressLogsUpdated: totalLogsUpdated
+        }, "[BookService] Updated total pages and recalculated progress");
+
+        return updated;
+      });
+    } catch (error) {
+      const { getLogger } = await import("@/lib/logger");
+      getLogger().error({ err: error, bookId }, "[BookService] Failed to update total pages");
+      
+      // Re-throw validation errors as-is (they have user-friendly messages)
+      if (
+        error instanceof Error && (
+          error.message.includes("Cannot reduce") ||
+          error.message.includes("Total pages must be a positive number") ||
+          error.message.includes("Book not found")
+        )
+      ) {
+        throw error;
+      }
+      
+      throw new Error("Failed to update page count. Please try again.");
+    }
   }
 
   /**
