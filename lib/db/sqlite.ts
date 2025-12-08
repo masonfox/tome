@@ -30,11 +30,17 @@ let isInitialized = globalForDb.__tomeDbInitialized ?? false;
  * This ensures the database is only initialized once, even with HMR in development
  */
 function initializeDatabase() {
-  // Skip if already initialized or in test mode
-  if (isInitialized || isTest) {
+  // Check global state first to handle race conditions during parallel imports
+  if (globalForDb.__tomeDbInitialized || isInitialized || isTest) {
+    // If already initialized in global, sync local state
+    if (globalForDb.__tomeDb && globalForDb.__tomeSqlite) {
+      db = globalForDb.__tomeDb;
+      sqlite = globalForDb.__tomeSqlite;
+    }
     return;
   }
 
+  // Set both immediately to prevent race conditions
   isInitialized = true;
   globalForDb.__tomeDbInitialized = true;
 
