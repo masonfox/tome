@@ -286,3 +286,363 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
     expect(earliest?.toISOString()).toBe(oct10.toISOString());
   });
 });
+
+describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
+  test("should return 0 when no active sessions exist", async () => {
+    const book = await bookRepository.create({
+      calibreId: 100,
+      title: "Book Without Active Sessions",
+      authors: ["Author"],
+      totalPages: 300,
+      tags: [],
+      path: "Author/Book (100)",
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(0);
+  });
+
+  test("should return 0 when book has no sessions at all", async () => {
+    const book = await bookRepository.create({
+      calibreId: 101,
+      title: "Lonely Book",
+      authors: ["Author"],
+      totalPages: 300,
+      tags: [],
+      path: "Author/Book (101)",
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(0);
+  });
+
+  test("should return highest page from active session with single progress log", async () => {
+    const book = await bookRepository.create({
+      calibreId: 102,
+      title: "Single Progress Book",
+      authors: ["Author"],
+      totalPages: 400,
+      tags: [],
+      path: "Author/Book (102)",
+    });
+
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 250,
+      currentPercentage: 62,
+      pagesRead: 250,
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(250);
+  });
+
+  test("should return highest page from multiple progress logs in active session", async () => {
+    const book = await bookRepository.create({
+      calibreId: 103,
+      title: "Multi Progress Book",
+      authors: ["Author"],
+      totalPages: 500,
+      tags: [],
+      path: "Author/Book (103)",
+    });
+
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Create progress logs with different page counts
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 100,
+      currentPercentage: 20,
+      pagesRead: 100,
+      progressDate: new Date("2024-01-01"),
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 350, // Highest
+      currentPercentage: 70,
+      pagesRead: 250,
+      progressDate: new Date("2024-01-03"),
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 200,
+      currentPercentage: 40,
+      pagesRead: 100,
+      progressDate: new Date("2024-01-02"),
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(350);
+  });
+
+  test("should ignore completed sessions when finding highest page", async () => {
+    const book = await bookRepository.create({
+      calibreId: 104,
+      title: "Book With Completed Session",
+      authors: ["Author"],
+      totalPages: 400,
+      tags: [],
+      path: "Author/Book (104)",
+    });
+
+    // Create completed session with high page count
+    const completedSession = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read",
+      isActive: false,
+      completedDate: new Date("2024-01-01"),
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: completedSession.id,
+      currentPage: 400, // Should be ignored
+      currentPercentage: 100,
+      pagesRead: 400,
+    });
+
+    // Create active session with lower page count
+    const activeSession = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 2,
+      status: "reading",
+      isActive: true,
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: activeSession.id,
+      currentPage: 150, // Should be returned
+      currentPercentage: 37,
+      pagesRead: 150,
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(150); // Not 400 from completed session
+  });
+
+  test("should ignore non-reading status sessions (paused/abandoned)", async () => {
+    const book = await bookRepository.create({
+      calibreId: 105,
+      title: "Book With Paused Session",
+      authors: ["Author"],
+      totalPages: 400,
+      tags: [],
+      path: "Author/Book (105)",
+    });
+
+    // Create session that's active but not in 'reading' status
+    const pausedSession = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "to-read", // Not 'reading'
+      isActive: true, // But still marked active
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: pausedSession.id,
+      currentPage: 300, // Should be ignored
+      currentPercentage: 75,
+      pagesRead: 300,
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(0); // Paused session should be ignored
+  });
+
+  test("should handle books with only non-active reading sessions", async () => {
+    const book = await bookRepository.create({
+      calibreId: 106,
+      title: "Abandoned Book",
+      authors: ["Author"],
+      totalPages: 300,
+      tags: [],
+      path: "Author/Book (106)",
+    });
+
+    // Create session that's reading but not active (abandoned)
+    const abandonedSession = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading", // Status is reading
+      isActive: false, // But not active
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: abandonedSession.id,
+      currentPage: 200,
+      currentPercentage: 66,
+      pagesRead: 200,
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(0); // Abandoned session should be ignored
+  });
+
+  test("should handle NULL currentPage values gracefully", async () => {
+    const book = await bookRepository.create({
+      calibreId: 107,
+      title: "Book With Null Pages",
+      authors: ["Author"],
+      totalPages: 300,
+      tags: [],
+      path: "Author/Book (107)",
+    });
+
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Create progress with explicit 0 page (valid)
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 0,
+      currentPercentage: 0,
+      pagesRead: 0,
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 50,
+      currentPercentage: 16,
+      pagesRead: 50,
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(50); // Should handle 0 correctly
+  });
+
+  test("should find highest page even when logs are out of chronological order", async () => {
+    const book = await bookRepository.create({
+      calibreId: 108,
+      title: "Book With Varied Progress",
+      authors: ["Author"],
+      totalPages: 500,
+      tags: [],
+      path: "Author/Book (108)",
+    });
+
+    // Create single active session with multiple progress logs
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Create progress logs where highest isn't the most recent
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 350, // Highest - created first
+      currentPercentage: 70,
+      pagesRead: 350,
+      progressDate: new Date("2024-01-03"),
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 200, // Lower page - created later
+      currentPercentage: 40,
+      pagesRead: 200,
+      progressDate: new Date("2024-01-04"),
+    });
+
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
+    expect(highest).toBe(350); // Should return the maximum currentPage, not the most recent
+  });
+
+  test("should return 0 for non-existent book", async () => {
+    const highest = await progressRepository.getHighestCurrentPageForActiveSessions(99999);
+    expect(highest).toBe(0);
+  });
+
+  test("should only check progress for the specified book", async () => {
+    // Create two books
+    const book1 = await bookRepository.create({
+      calibreId: 109,
+      title: "Book One",
+      authors: ["Author"],
+      totalPages: 300,
+      tags: [],
+      path: "Author/Book One (109)",
+    });
+
+    const book2 = await bookRepository.create({
+      calibreId: 110,
+      title: "Book Two",
+      authors: ["Author"],
+      totalPages: 400,
+      tags: [],
+      path: "Author/Book Two (110)",
+    });
+
+    // Create active session for book1
+    const session1 = await sessionRepository.create({
+      bookId: book1.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    await progressRepository.create({
+      bookId: book1.id,
+      sessionId: session1.id,
+      currentPage: 150,
+      currentPercentage: 50,
+      pagesRead: 150,
+    });
+
+    // Create active session for book2 with higher page count
+    const session2 = await sessionRepository.create({
+      bookId: book2.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    await progressRepository.create({
+      bookId: book2.id,
+      sessionId: session2.id,
+      currentPage: 350,
+      currentPercentage: 87,
+      pagesRead: 350,
+    });
+
+    // Query for book1 should only return book1's progress
+    const highest1 = await progressRepository.getHighestCurrentPageForActiveSessions(book1.id);
+    expect(highest1).toBe(150);
+
+    // Query for book2 should only return book2's progress
+    const highest2 = await progressRepository.getHighestCurrentPageForActiveSessions(book2.id);
+    expect(highest2).toBe(350);
+  });
+});
