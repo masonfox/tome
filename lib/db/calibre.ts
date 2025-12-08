@@ -28,7 +28,7 @@ export function getCalibreDB() {
         wal: false, // Don't modify journal mode on read-only DB
       });
       const { getLogger } = require("../logger");
-      getLogger().info(`Calibre DB: Using ${dbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
+      getLogger().debug(`Calibre DB: Using ${dbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database: ${error}`);
     }
