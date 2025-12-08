@@ -1,7 +1,16 @@
 {
-  "name": "book-tracker",
+  "name": "tome",
   "version": "0.2.0",
-  "private": true,
+  "description": "A Calibre-integrated book tracker",
+  "homepage": "https://github.com/masonfox/tome",
+  "author": "Mason Fox <masonfox22@gmail.com> (https://github.com/masonfox)",
+  "funding": "https://www.buymeacoffee.com/masonfox",
+  "keywords": [
+    "calibre",
+    "books",
+    "book tracker",
+    "reading"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
