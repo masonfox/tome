@@ -116,6 +116,19 @@ export function LibraryFilters({
     [search, statusFilter, ratingFilter, selectedTags.length]
   );
 
+  // Clear all filters on Escape key
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && hasActiveFilters && onClearAll && !loading) {
+        event.preventDefault();
+        onClearAll();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [hasActiveFilters, onClearAll, loading]);
+
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
       {/* Header with Clear All button */}
