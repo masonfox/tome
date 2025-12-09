@@ -439,6 +439,62 @@ export class ProgressRepository extends BaseRepository<
     // Convert Unix timestamp to Date
     return new Date(result.earliestDate * 1000);
   }
+
+  /**
+   * Recalculate progress percentages for all active sessions of a book
+   * Used when book's totalPages is updated
+   * 
+   * @param bookId - The book ID
+   * @param newTotalPages - The new total page count
+   * @param tx - Optional transaction context (for use in transactions)
+   * @returns Number of progress logs updated
+   */
+  recalculatePercentagesForBook(
+    bookId: number,
+    newTotalPages: number,
+    tx?: any
+  ): number {
+    // Import synchronously since we're in a transaction callback
+    const { calculatePercentage } = require("@/lib/utils/progress-calculations");
+    const database = tx || this.getDatabase();
+
+    // 1. Find active sessions for this book
+    const activeSessions = database
+      .select()
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          eq(readingSessions.isActive, true),
+          eq(readingSessions.status, 'reading')
+        )
+      )
+      .all();
+
+    // 2. For each active session, recalculate progress log percentages
+    let totalLogsUpdated = 0;
+    for (const session of activeSessions) {
+      // Get progress logs for this session
+      const logs = database
+        .select()
+        .from(progressLogs)
+        .where(eq(progressLogs.sessionId, session.id))
+        .all();
+
+      // Update each log with new percentage
+      for (const log of logs) {
+        const newPercentage = calculatePercentage(log.currentPage, newTotalPages);
+        database
+          .update(progressLogs)
+          .set({ currentPercentage: newPercentage })
+          .where(eq(progressLogs.id, log.id))
+          .run();
+        totalLogsUpdated++;
+      }
+    }
+
+    return totalLogsUpdated;
+  }
 }
 
 // Singleton instance

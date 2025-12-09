@@ -458,6 +458,36 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Update book's totalPages within a transaction context
+   * Used when recalculating progress percentages atomically
+   * 
+   * @param bookId - The book ID
+   * @param totalPages - The new total page count
+   * @param tx - Optional transaction context (for use in transactions)
+   * @returns Updated book
+   */
+  updateTotalPagesWithRecalculation(
+    bookId: number,
+    totalPages: number,
+    tx?: any
+  ): Book {
+    const database = tx || this.getDatabase();
+
+    const [updated] = database
+      .update(books)
+      .set({ totalPages })
+      .where(eq(books.id, bookId))
+      .returning()
+      .all();
+
+    if (!updated) {
+      throw new Error("Failed to update total pages");
+    }
+
+    return updated;
+  }
+
+  /**
    * Find books with filters AND eagerly load their sessions and progress in a single query.
    * This replaces the N+1 query pattern with a performant JOIN.
    */
