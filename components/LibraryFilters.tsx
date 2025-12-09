@@ -120,6 +120,16 @@ export function LibraryFilters({
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && hasActiveFilters && onClearAll && !loading) {
+        // Don't clear filters if user is actively typing in an input or textarea
+        const activeElement = document.activeElement;
+        const isInputActive = activeElement?.tagName === 'INPUT' || 
+                              activeElement?.tagName === 'TEXTAREA' ||
+                              activeElement?.getAttribute('contenteditable') === 'true';
+        
+        if (isInputActive) {
+          return; // Let the input handle Escape (e.g., blur, clear suggestions)
+        }
+        
         event.preventDefault();
         onClearAll();
       }
