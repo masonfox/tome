@@ -124,12 +124,14 @@ export function LibraryFilters({
           <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
           <span className="text-sm font-medium text-[var(--foreground)]/70">Filters</span>
         </div>
-        {hasActiveFilters && onClearAll && (
+        {onClearAll && (
           <button
             type="button"
             onClick={onClearAll}
-            disabled={loading}
-            className="px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || !hasActiveFilters}
+            className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              !hasActiveFilters ? 'invisible' : ''
+            }`}
           >
             Clear All
           </button>
