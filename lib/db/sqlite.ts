@@ -68,7 +68,7 @@ if (isTest) {
   const dataDir = dirname(DATABASE_PATH);
   try {
     mkdirSync(dataDir, { recursive: true });
-    logger.info({ dataDir }, `Data directory verified: ${dataDir}`);
+    logger.debug({ dataDir }, `Data directory verified: ${dataDir}`);
   } catch (err: any) {
     logger.fatal({ dataDir, err }, `CRITICAL: Failed to create data directory: ${dataDir}`);
     logger.fatal({ err }, `Error creating data directory: ${err.message}`);
@@ -88,7 +88,7 @@ if (isTest) {
   sqlite = instance.sqlite;
   db = instance.db;
 
-  logger.info({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
+  logger.debug({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
 }
 
 export { db, sqlite };
@@ -111,8 +111,11 @@ export function closeConnection(): void {
   closeDatabaseConnection(sqlite);
 }
 
-// Handle process termination
-if (typeof process !== "undefined") {
+// Track if listeners are registered to prevent duplicates
+let listenersRegistered = false;
+
+// Handle process termination - only register once
+if (typeof process !== "undefined" && !listenersRegistered) {
   process.on("exit", closeConnection);
   process.on("SIGINT", () => {
     closeConnection();
@@ -122,6 +125,7 @@ if (typeof process !== "undefined") {
     closeConnection();
     process.exit(0);
   });
+  listenersRegistered = true;
 }
 
 export default db;
