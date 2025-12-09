@@ -100,10 +100,18 @@ export function releaseMigrationLock(): void {
   }
 }
 
+// Track if listeners are registered to prevent duplicates
+let lockCleanupRegistered = false;
+
 /**
  * Ensures lock is released on process exit
  */
 export function setupLockCleanup(): void {
+  // Prevent duplicate listener registration
+  if (lockCleanupRegistered) {
+    return;
+  }
+  
   process.on("exit", releaseMigrationLock);
   process.on("SIGINT", () => {
     releaseMigrationLock();
@@ -113,4 +121,6 @@ export function setupLockCleanup(): void {
     releaseMigrationLock();
     process.exit(0);
   });
+  
+  lockCleanupRegistered = true;
 }

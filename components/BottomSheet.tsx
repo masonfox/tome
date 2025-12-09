@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
 
 interface BottomSheetProps {
@@ -9,13 +9,23 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
+// Delay before focusing close button to allow animation to complete
+export const FOCUS_DELAY_MS = 100;
+// Animation duration for closing transition
+const CLOSE_ANIMATION_MS = 300;
+
 export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setIsClosing(false);
+      // Focus the close button to prevent auto-focus on other elements
+      setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, FOCUS_DELAY_MS);
     } else {
       document.body.style.overflow = "";
     }
@@ -30,7 +40,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
     setTimeout(() => {
       setIsClosing(false);
       onClose();
-    }, 300); // Match animation duration
+    }, CLOSE_ANIMATION_MS);
   };
 
   if (!isOpen && !isClosing) return null;
@@ -52,8 +62,9 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
         <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-[var(--heading-text)]">More</h3>
           <button
+            ref={closeButtonRef}
             onClick={handleClose}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1"
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
