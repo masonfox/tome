@@ -26,6 +26,8 @@ const ratingOptions = [
 interface LibraryFiltersProps {
   search: string;
   onSearchChange: (search: string) => void;
+  onSearchSubmit?: () => void;
+  onSearchClear?: () => void;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
   ratingFilter: string;
@@ -40,6 +42,8 @@ interface LibraryFiltersProps {
 export function LibraryFilters({
   search,
   onSearchChange,
+  onSearchSubmit,
+  onSearchClear,
   statusFilter,
   onStatusFilterChange,
   ratingFilter,
@@ -76,7 +80,9 @@ export function LibraryFilters({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearchChange(search);
+    if (onSearchSubmit) {
+      onSearchSubmit();
+    }
   };
 
   const handleTagSelect = (tag: string) => {
@@ -110,6 +116,29 @@ export function LibraryFilters({
     [search, statusFilter, ratingFilter, selectedTags.length]
   );
 
+  // Clear all filters on Escape key
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && hasActiveFilters && onClearAll && !loading) {
+        // Don't clear filters if user is actively typing in an input or textarea
+        const activeElement = document.activeElement;
+        const isInputActive = activeElement?.tagName === 'INPUT' || 
+                              activeElement?.tagName === 'TEXTAREA' ||
+                              activeElement?.getAttribute('contenteditable') === 'true';
+        
+        if (isInputActive) {
+          return; // Let the input handle Escape (e.g., blur, clear suggestions)
+        }
+        
+        event.preventDefault();
+        onClearAll();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [hasActiveFilters, onClearAll, loading]);
+
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
       {/* Header with Clear All button */}
@@ -118,12 +147,14 @@ export function LibraryFilters({
           <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
           <span className="text-sm font-medium text-[var(--foreground)]/70">Filters</span>
         </div>
-        {hasActiveFilters && onClearAll && (
+        {onClearAll && (
           <button
             type="button"
             onClick={onClearAll}
-            disabled={loading}
-            className="px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || !hasActiveFilters}
+            className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              !hasActiveFilters ? 'invisible' : ''
+            }`}
           >
             Clear All
           </button>
@@ -131,30 +162,44 @@ export function LibraryFilters({
       </div>
 
       <form onSubmit={handleSearchSubmit} className="space-y-3">
-        {/* Search Bar - Full Width */}
+        {/* Search Bar - Full Width with Button */}
         <div className="w-full">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-            <input
-              type="text"
-              placeholder="Search books..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              disabled={loading}
-              className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 ${
-                search ? "pr-10" : "pr-4"
-              }`}
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => onSearchChange("")}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+              <input
+                type="text"
+                placeholder="Search books..."
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
                 disabled={loading}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
+                className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 ${
+                  search ? "pr-10" : "pr-4"
+                }`}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSearchChange("");
+                    if (onSearchClear) {
+                      onSearchClear();
+                    }
+                  }}
+                  disabled={loading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shrink-0 self-stretch"
+            >
+              Search
+            </button>
           </div>
         </div>
 
