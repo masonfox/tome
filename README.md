@@ -1,6 +1,6 @@
 # 📚 Tome
 
-[![Tome - ghcr.io](https://img.shields.io/badge/ghcr.io-tome%3Alatest-blue)](https://github.com/users/masonfox/packages/container/tome/latest)
+[![Tome - ghcr.io](https://img.shields.io/badge/ghcr.io-tome%3Alatest-blue)](https://github.com/users/masonfox/packages/container/tome/latest) [![codecov](https://codecov.io/gh/masonfox/tome/graph/badge.svg?token=LRN9NISAZ6)](https://codecov.io/gh/masonfox/tome)
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
 
