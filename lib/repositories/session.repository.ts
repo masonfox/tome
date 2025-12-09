@@ -3,6 +3,7 @@ import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
+import { getLogger } from "@/lib/logger";
 
 export class SessionRepository extends BaseRepository<
   ReadingSession,
@@ -375,6 +376,81 @@ export class SessionRepository extends BaseRepository<
       .get();
 
     return (result?.count ?? 0) > 0;
+  }
+
+  /**
+   * Find duplicate session (within 24-hour window)
+   * Used for import duplicate detection
+   * 
+   * @param bookId - Book ID to check
+   * @param status - Session status
+   * @param completedDate - Completed date to check (nullable for non-completed sessions)
+   * @param rating - Rating to check (nullable)
+   * @returns Existing session if duplicate found, undefined otherwise
+   */
+  async findDuplicate(
+    bookId: number,
+    status: ReadingSession["status"],
+    completedDate: Date | null,
+    rating: number | null
+  ): Promise<ReadingSession | undefined> {
+    // For completed sessions, check date within 24-hour window
+    if (status === "read" && completedDate) {
+      // Convert Date to Unix timestamp if needed
+      let completedDateTs: number;
+      if (completedDate instanceof Date) {
+        const time = completedDate.getTime();
+        if (isNaN(time)) {
+          // Invalid date, skip duplicate check
+          return undefined;
+        }
+        completedDateTs = Math.floor(time / 1000);
+      } else if (typeof completedDate === 'number') {
+        completedDateTs = completedDate;
+      } else if (typeof completedDate === 'string') {
+        // If we get a string, try to parse it
+        const parsed = new Date(completedDate);
+        if (!isNaN(parsed.getTime())) {
+          completedDateTs = Math.floor(parsed.getTime() / 1000);
+        } else {
+          // Invalid date string, skip duplicate check
+          return undefined;
+        }
+      } else {
+        // Unknown type, skip duplicate check
+        return undefined;
+      }
+      
+      // Use julianday for 24-hour tolerance
+      // julianday() works with Unix timestamps when prefixed with 'unixepoch'
+      const result = this.getDatabase()
+        .select()
+        .from(readingSessions)
+        .where(
+          and(
+            eq(readingSessions.bookId, bookId),
+            eq(readingSessions.status, status),
+            sql`ABS(julianday(${readingSessions.completedDate}, 'unixepoch') - julianday(${completedDateTs}, 'unixepoch')) < 1.0`
+          )
+        )
+        .limit(1)
+        .get();
+
+      return result;
+    }
+
+    // For non-completed sessions (to-read, reading, etc.), check exact bookId + status match
+    return this.getDatabase()
+      .select()
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          eq(readingSessions.status, status)
+        )
+      )
+      .limit(1)
+      .get();
   }
 
    /**
