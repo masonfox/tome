@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MoreHorizontal, Settings, LogOut, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BottomSheet } from "./BottomSheet";
 import { NAV_LINKS, isActiveRoute } from "@/lib/navigation-config";
 
@@ -57,23 +57,56 @@ export function BottomNavigation() {
     router.push(href);
   };
 
+  // Memoize skeleton navigation items (only computed once since NAV_LINKS is static)
+  const skeletonNavItems = useMemo(
+    () =>
+      NAV_LINKS.map((link) => {
+        const Icon = link.icon;
+        return (
+          <div
+            key={link.href}
+            className="flex flex-col items-center justify-center gap-1 text-[var(--foreground)]/60"
+          >
+            <Icon className="w-6 h-6" />
+            <span className="text-xs font-medium">{link.label}</span>
+          </div>
+        );
+      }),
+    [] // Empty dependency array since NAV_LINKS is static
+  );
+
+  // Memoize active navigation items (recomputed only when pathname changes)
+  const activeNavItems = useMemo(
+    () =>
+      NAV_LINKS.map((link) => {
+        const Icon = link.icon;
+        const active = isActiveRoute(pathname, link.href);
+
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={clsx(
+              "flex flex-col items-center justify-center gap-1 transition-colors",
+              active
+                ? "text-[var(--accent)]"
+                : "text-[var(--foreground)]/60 hover:text-[var(--foreground)]"
+            )}
+          >
+            <Icon className="w-6 h-6" />
+            <span className="text-xs font-medium">{link.label}</span>
+          </Link>
+        );
+      }),
+    [pathname] // Only recompute when pathname changes
+  );
+
   // Render skeleton immediately to prevent flash
   if (!mounted) {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
         <div className="grid grid-cols-4 h-24">
-          {NAV_LINKS.map((link) => {
-            const Icon = link.icon;
-            return (
-              <div
-                key={link.href}
-                className="flex flex-col items-center justify-center gap-1 text-[var(--foreground)]/60"
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{link.label}</span>
-              </div>
-            );
-          })}
+          {skeletonNavItems}
           <div className="flex flex-col items-center justify-center gap-1 text-[var(--foreground)]/60">
             <MoreHorizontal className="w-6 h-6" />
             <span className="text-xs font-medium">More</span>
@@ -87,26 +120,7 @@ export function BottomNavigation() {
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
         <div className="grid grid-cols-4 h-24">
-          {NAV_LINKS.map((link) => {
-            const Icon = link.icon;
-            const active = isActiveRoute(pathname, link.href);
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={clsx(
-                  "flex flex-col items-center justify-center gap-1 transition-colors",
-                  active
-                    ? "text-[var(--accent)]"
-                    : "text-[var(--foreground)]/60 hover:text-[var(--foreground)]"
-                )}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{link.label}</span>
-              </Link>
-            );
-          })}
+          {activeNavItems}
 
           {/* More Button */}
           <button
