@@ -26,7 +26,8 @@
     "db:seed": "bun run scripts/seed.ts",
     "sync-calibre": "bun run scripts/sync-calibre.ts",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
   },
   "dependencies": {
     "clsx": "^2.1.0",
