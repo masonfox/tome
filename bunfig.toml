@@ -3,3 +3,6 @@ preload = ["./test-setup.ts"]
 # Run tests serially to prevent database context race conditions
 # AsyncLocalStorage support exists but isn't fully integrated - stack trace parsing fails in CI
 concurrency = 1
+coverage = true
+coverageReporter = ["lcov", "text"]
+coverageDirectory = "./coverage"

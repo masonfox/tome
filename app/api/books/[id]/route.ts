@@ -56,11 +56,11 @@ export async function PATCH(
       if (error.message.includes("not found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
-      if (error.message.includes("must be")) {
+      if (error.message.includes("must be") || error.message.includes("Cannot reduce")) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
-    
+
     return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
   }
 }

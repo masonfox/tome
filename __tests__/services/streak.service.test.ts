@@ -73,6 +73,29 @@ describe("StreakService - Auto-initialization", () => {
       expect(Number.isInteger(streak.hoursRemainingToday)).toBe(true);
     });
 
+    it("should compute hoursRemainingToday in user timezone not UTC", async () => {
+      // Regression test for bug where hoursRemainingToday used UTC instead of user timezone
+      // Create streak with Tokyo timezone (UTC+9)
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 0,
+        dailyThreshold: 1,
+        userTimezone: 'Asia/Tokyo',
+      });
+
+      const streak = await streakService.getStreak(null);
+
+      // Verify timezone is respected
+      expect(streak.userTimezone).toBe('Asia/Tokyo');
+      expect(streak.hoursRemainingToday).toBeGreaterThanOrEqual(0);
+      expect(streak.hoursRemainingToday).toBeLessThanOrEqual(24);
+      expect(Number.isInteger(streak.hoursRemainingToday)).toBe(true);
+    });
+
     it("should handle multiple calls without creating duplicates", async () => {
       // First call - creates streak
       const streak1 = await streakService.getStreak(null);

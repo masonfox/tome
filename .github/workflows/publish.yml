@@ -15,9 +15,60 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Auto-create version tag from package.json when pushing to main
+  auto-tag:
+    name: Auto-create Version Tag
+    runs-on: ubuntu-latest
+    # Only run on main branch pushes, not on tag pushes
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+    outputs:
+      tag_created: ${{ steps.create_tag.outputs.tag_created }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for tags
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Version from package.json: v$VERSION"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "refs/tags/${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag ${{ steps.version.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag ${{ steps.version.outputs.version }} does not exist"
+          fi
+
+      - name: Create and push tag
+        id: create_tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+          echo "tag_created=true" >> $GITHUB_OUTPUT
+          echo "Created and pushed tag ${{ steps.version.outputs.version }}"
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    # Skip tests if we just created a tag (they'll run again when the tag triggers the workflow)
+    if: |
+      always() && 
+      (needs.auto-tag.outputs.tag_created != 'true' || github.event_name == 'workflow_dispatch')
+    needs: [auto-tag]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,11 +81,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run test suite
-        run: bun test
+      - name: Run test suite with coverage
+        run: bun test --coverage
 
-      - name: Build application
-        run: bun run build
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
 
   build-and-push:
     name: Build and Push Docker Image
@@ -61,14 +118,17 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Tag 'latest' on main branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # Tag 'latest' on main branch or version tags
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
             # Tag version from git tag (v1.2.3 -> 1.2.3, 1.2, 1)
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            # Tag with commit SHA
-            type=sha,prefix={{branch}}-
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            # Tag with commit SHA (only on branch pushes, not tags)
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.title=Tome
+            org.opencontainers.image.description=Personal book tracking and reading progress application
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

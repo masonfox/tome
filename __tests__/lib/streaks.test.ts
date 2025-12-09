@@ -1152,8 +1152,12 @@ describe("Reading Streak Tracking - Spec 001", () => {
         progressDate: specificTime,
       });
 
-      // Act: Get progress for the date (uses localtime conversion)
-      const result = await progressRepository.getProgressForDate(specificTime);
+      // Act: Get progress for the date (create date range for the day)
+      const dayStart = new Date(specificTime);
+      dayStart.setUTCHours(0, 0, 0, 0);
+      const dayEnd = new Date(specificTime);
+      dayEnd.setUTCHours(23, 59, 59, 999);
+      const result = await progressRepository.getProgressForDate(dayStart, dayEnd);
 
       // Assert: Should return progress (timezone-aware query worked)
       expect(result).toBeDefined();

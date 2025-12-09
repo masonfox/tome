@@ -57,9 +57,10 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
   }, [data]);
 
   // Format date for display (show MM/DD)
+  // Use UTC methods to avoid timezone conversion issues
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
   };
 
   // Format Y-axis ticks as integers
@@ -170,15 +171,15 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
           />
           <ReferenceLine
             y={threshold}
-            stroke="#f59e0b"
-            strokeOpacity={0.5}
+            stroke="#d97706"
+            strokeOpacity={0.9}
             strokeDasharray="5 5"
             strokeWidth={2}
             label={{
               value: `Goal: ${threshold} pages`,
               position: "insideTopLeft",
-              fill: "#f59e0b",
-              opacity: 0.7,
+              fill: "#d97706",
+              opacity: 1,
               fontSize: 10,
               fontWeight: 700,
               offset: 5,

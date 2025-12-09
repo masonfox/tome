@@ -42,6 +42,8 @@ export async function PATCH(
 
     const updatedEntry = await progressService.updateProgress(progressId, updateData);
 
+    // Note: Cache invalidation handled by ProgressService.invalidateCache()
+
     return NextResponse.json(updatedEntry);
   } catch (error: any) {
     const { getLogger } = require("@/lib/logger");
@@ -102,6 +104,8 @@ export async function DELETE(
     if (!success) {
       return NextResponse.json({ error: "Failed to delete progress entry" }, { status: 500 });
     }
+
+    // Note: Cache invalidation handled by ProgressService.invalidateCache()
 
     return NextResponse.json({ success: true, message: "Progress entry deleted" });
   } catch (error) {

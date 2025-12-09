@@ -2,6 +2,7 @@ import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import type { Book } from "@/hooks/useBookDetail";
+import { getTodayLocalDate } from "@/utils/dateFormatting";
 
 const originalFetch = global.fetch;
 const originalLocalStorage = global.localStorage;
@@ -99,7 +100,7 @@ describe("useBookProgress", () => {
 
       const { result } = renderHook(() => useBookProgress("123", readingBook, mockOnRefresh));
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayLocalDate();
       expect(result.current.progressDate).toBe(today);
     });
   });

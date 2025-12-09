@@ -1,5 +1,5 @@
-import { startOfDay, differenceInDays, isEqual } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { startOfDay, differenceInDays, isEqual, format } from "date-fns";
+import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { streakRepository, progressRepository } from "@/lib/repositories";
 import type { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
@@ -37,7 +37,13 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   const now = new Date();
   const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
   const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-  const todayProgress = await progressRepository.getProgressForDate(todayUtc);
+  
+  // Need end of day for date range query
+  const tomorrowInUserTz = new Date(todayInUserTz);
+  tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
+  const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
+  
+  const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
 
   if (!todayProgress || todayProgress.pagesRead === 0) {
     // No activity today, return existing streak
@@ -261,7 +267,8 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   allProgress.forEach((progress) => {
     // Convert progress date to user's timezone for day boundary calculation
     const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-    const dateKey = startOfDay(dateInUserTz).toISOString().split('T')[0]; // YYYY-MM-DD
+    const dayStart = startOfDay(dateInUserTz);
+    const dateKey = format(dayStart, 'yyyy-MM-dd');
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {
@@ -284,7 +291,13 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
   let longestStreak = 0;
   // Convert date strings back to proper timezone-aware dates
   const firstDateStr = sortedDates[0];
-  const firstDateInTz = firstDateStr ? new Date(`${firstDateStr}T00:00:00`) : new Date();
+  let firstDateInTz: Date;
+  if (firstDateStr) {
+    const [year, month, day] = firstDateStr.split('-').map(Number);
+    firstDateInTz = new Date(year, month - 1, day);
+  } else {
+    firstDateInTz = new Date();
+  }
   const firstDateUtc = firstDateStr ? fromZonedTime(firstDateInTz, userTimezone) : new Date();
   let streakStartDate = firstDateUtc;
   let lastActivityDate = firstDateUtc;
@@ -297,8 +310,10 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
       // Convert date strings to timezone-aware dates
       const dateInLoopStr = sortedDates[i];
       const prevDateStr = sortedDates[i - 1];
-      const dateInLoopInTz = new Date(`${dateInLoopStr}T00:00:00`);
-      const prevDateInTz = new Date(`${prevDateStr}T00:00:00`);
+      const [year1, month1, day1] = dateInLoopStr.split('-').map(Number);
+      const [year2, month2, day2] = prevDateStr.split('-').map(Number);
+      const dateInLoopInTz = new Date(year1, month1 - 1, day1);
+      const prevDateInTz = new Date(year2, month2 - 1, day2);
       const daysDiff = differenceInDays(dateInLoopInTz, prevDateInTz);
 
       if (daysDiff === 1) {
@@ -357,6 +372,10 @@ export async function getActivityCalendar(
   year?: number,
   month?: number
 ): Promise<{ date: string; pagesRead: number }[]> {
+  // Get user timezone from streak record
+  const streak = await streakRepository.getOrCreate(userId || null);
+  const userTimezone = streak.userTimezone || 'America/New_York';
+
   const startDate = new Date(year || new Date().getFullYear(), month || 0, 1);
   const endDate = new Date(
     year || new Date().getFullYear(),
@@ -364,5 +383,5 @@ export async function getActivityCalendar(
     0
   );
 
-  return await progressRepository.getActivityCalendar(startDate, endDate);
+  return await progressRepository.getActivityCalendar(startDate, endDate, userTimezone);
 }

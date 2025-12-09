@@ -26,7 +26,7 @@ export function LibraryHeader({ totalBooks, syncing, onSync }: LibraryHeaderProp
         onClick={onSync}
         disabled={syncing}
         className={cn(
-          "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium mt-3 sm:mt-2",
+          "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-md text-white hover:bg-[var(--light-accent)] transition-colors font-medium mt-3 sm:mt-2",
           syncing && "opacity-50 cursor-not-allowed"
         )}
         title={syncing ? "Syncing..." : "Sync Calibre"}

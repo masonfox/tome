@@ -2,8 +2,8 @@ import { streakRepository } from "@/lib/repositories/streak.repository";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
-import { differenceInHours, endOfDay, differenceInDays, startOfDay, isEqual } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { differenceInHours, endOfDay, differenceInDays, startOfDay, isEqual, format } from "date-fns";
+import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 
 const logger = getLogger();
 
@@ -124,10 +124,16 @@ export class StreakService {
   async getStreak(userId: number | null = null): Promise<StreakWithHoursRemaining> {
     const streak = await streakRepository.getOrCreate(userId);
 
-    // Calculate hours remaining today
+    // Calculate hours remaining today in user's timezone
     const now = new Date();
-    const endOfToday = endOfDay(now);
-    const hoursRemaining = Math.max(0, differenceInHours(endOfToday, now));
+    const userTimezone = streak.userTimezone || 'America/New_York';
+    
+    // Convert to user's timezone for accurate end-of-day calculation
+    const nowInUserTz = toZonedTime(now, userTimezone);
+    const endOfTodayInUserTz = endOfDay(nowInUserTz);
+    
+    // Calculate hours remaining in user's timezone
+    const hoursRemaining = Math.max(0, differenceInHours(endOfTodayInUserTz, nowInUserTz));
 
     return {
       ...streak,
@@ -166,7 +172,8 @@ export class StreakService {
     allProgress.forEach((progress) => {
       // Convert progress date to user's timezone for day boundary calculation
       const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-      const dateKey = startOfDay(dateInUserTz).toISOString().split('T')[0]; // YYYY-MM-DD
+      const dayStart = startOfDay(dateInUserTz);
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
       const pagesRead = progress.pagesRead || 0;
 
       if (pagesRead > 0) {
@@ -189,7 +196,13 @@ export class StreakService {
     let longestStreak = 0;
     // Convert date strings back to proper timezone-aware dates
     const firstDateStr = sortedDates[0];
-    const firstDateInTz = firstDateStr ? new Date(`${firstDateStr}T00:00:00`) : new Date();
+    let firstDateInTz: Date;
+    if (firstDateStr) {
+      const [year, month, day] = firstDateStr.split('-').map(Number);
+      firstDateInTz = new Date(year, month - 1, day);
+    } else {
+      firstDateInTz = new Date();
+    }
     const firstDateUtc = firstDateStr ? fromZonedTime(firstDateInTz, userTimezone) : new Date();
     let streakStartDate = firstDateUtc;
     let lastActivityDate = firstDateUtc;
@@ -202,8 +215,10 @@ export class StreakService {
         // Convert date strings to timezone-aware dates
         const dateInLoopStr = sortedDates[i];
         const prevDateStr = sortedDates[i - 1];
-        const dateInLoopInTz = new Date(`${dateInLoopStr}T00:00:00`);
-        const prevDateInTz = new Date(`${prevDateStr}T00:00:00`);
+        const [year1, month1, day1] = dateInLoopStr.split('-').map(Number);
+        const [year2, month2, day2] = prevDateStr.split('-').map(Number);
+        const dateInLoopInTz = new Date(year1, month1 - 1, day1);
+        const prevDateInTz = new Date(year2, month2 - 1, day2);
         const daysDiff = differenceInDays(dateInLoopInTz, prevDateInTz);
 
         if (daysDiff === 1) {
@@ -302,7 +317,13 @@ export class StreakService {
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
     const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    const todayProgress = await progressRepository.getProgressForDate(todayUtc);
+    
+    // Need end of day for date range query
+    const tomorrowInUserTz = new Date(todayInUserTz);
+    tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
+    const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
+    
+    const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
 
     if (!todayProgress || todayProgress.pagesRead === 0) {
       // No activity today, return existing streak

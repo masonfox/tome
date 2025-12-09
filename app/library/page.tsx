@@ -136,23 +136,33 @@ function LibraryPageContent() {
     });
   }, [setRating, updateURL, filters.search, filters.status, filters.tags]);
 
-  // Debounce search input and URL update
-  useEffect(() => {
+  // Handle search submission
+  const handleSearchSubmit = useCallback(() => {
     if (!isReady) return;
     
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-      // Update URL with current filters including search
-      updateURL({
-        search: searchInput,
-        status: filters.status || 'all',
-        tags: filters.tags || [],
-        rating: filters.rating || 'all'
-      });
-    }, 300);
-
-    return () => clearTimeout(timer);
+    setSearch(searchInput);
+    // Update URL with current filters including search
+    updateURL({
+      search: searchInput,
+      status: filters.status || 'all',
+      tags: filters.tags || [],
+      rating: filters.rating || 'all'
+    });
   }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
+
+  // Handle search clear (X button)
+  const handleSearchClear = useCallback(() => {
+    if (!isReady) return;
+    
+    setSearch("");
+    // Update URL to remove search parameter
+    updateURL({
+      search: "",
+      status: filters.status || 'all',
+      tags: filters.tags || [],
+      rating: filters.rating || 'all'
+    });
+  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -226,6 +236,8 @@ function LibraryPageContent() {
       <LibraryFilters
         search={searchInput}
         onSearchChange={setSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+        onSearchClear={handleSearchClear}
         statusFilter={filters.status || "all"}
         onStatusFilterChange={(status) => handleStatusChange(status === "all" ? undefined : status)}
         selectedTags={filters.tags || []}

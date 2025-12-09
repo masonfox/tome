@@ -11,6 +11,7 @@ import {
   createMockRequest,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { format } from "date-fns";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
@@ -223,8 +224,8 @@ describe("GET /api/books/[id]/sessions", () => {
     expect(progressSummary.totalEntries).toBe(5);
     expect(progressSummary.totalPagesRead).toBe(500);
     expect(progressSummary.latestProgress.currentPage).toBe(500);
-    expect(new Date(progressSummary.firstProgressDate).toISOString().split("T")[0]).toBe("2025-11-10");
-    expect(new Date(progressSummary.lastProgressDate).toISOString().split("T")[0]).toBe("2025-11-18");
+    expect(format(new Date(progressSummary.firstProgressDate), 'yyyy-MM-dd')).toBe("2025-11-10");
+    expect(format(new Date(progressSummary.lastProgressDate), 'yyyy-MM-dd')).toBe("2025-11-18");
   });
 
   // ============================================================================

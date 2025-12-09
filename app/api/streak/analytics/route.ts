@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streakService } from "@/lib/services/streak.service";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { getLogger } from "@/lib/logger";
+import { toZonedTime, formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 const logger = getLogger();
 
@@ -62,10 +63,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch daily reading history
-    const requestedStartDate = new Date();
-    requestedStartDate.setDate(requestedStartDate.getDate() - days);
-    const endDate = new Date();
+    // Get user timezone for date calculations
+    const userTimezone = streak.userTimezone || "America/New_York";
+
+    // Calculate date range in the user's timezone to ensure correct day boundaries
+    // Get current date/time in user's timezone
+    const nowInUserTz = toZonedTime(new Date(), userTimezone);
+    
+    // Calculate start date by going back N days in user's timezone
+    const requestedStartDateInUserTz = new Date(nowInUserTz);
+    requestedStartDateInUserTz.setDate(requestedStartDateInUserTz.getDate() - days);
+    requestedStartDateInUserTz.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC timestamp for database queries
+    const requestedStartDate = fromZonedTime(requestedStartDateInUserTz, userTimezone);
+    
+    // End date is end of today in user's timezone
+    const endDateInUserTz = new Date(nowInUserTz);
+    endDateInUserTz.setHours(23, 59, 59, 999);
+    const endDate = fromZonedTime(endDateInUserTz, userTimezone);
     
     // Get the earliest progress date to avoid showing empty days before tracking started
     const earliestProgressDate = await progressRepository.getEarliestProgressDate();
@@ -78,7 +94,8 @@ export async function GET(request: NextRequest) {
     
     const history = await progressRepository.getActivityCalendar(
       actualStartDate,
-      endDate
+      endDate,
+      userTimezone
     );
 
     // Create a map of existing data for quick lookup
@@ -88,11 +105,25 @@ export async function GET(request: NextRequest) {
     });
 
     // Fill in all days in the range, including days with no data (0 pages)
+    // getActivityCalendar returns dates in the user's timezone, so we iterate through
+    // dates in the user's timezone as well
     const allDays: { date: string; pagesRead: number; thresholdMet: boolean }[] = [];
-    const currentDate = new Date(actualStartDate);
     
-    while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Get the start date in the user's timezone
+    const startDateInUserTz = toZonedTime(actualStartDate, userTimezone);
+    startDateInUserTz.setHours(0, 0, 0, 0);
+    
+    // Use endDateInUserTz calculated earlier (end of today in user's timezone)
+    // This ensures we only show data up to the current day in the user's timezone
+    
+    const currentDate = new Date(startDateInUserTz);
+    while (currentDate <= endDateInUserTz) {
+      // Format as a date string in the user's timezone
+      const dateStr = formatInTimeZone(
+        fromZonedTime(currentDate, userTimezone),
+        userTimezone,
+        'yyyy-MM-dd'
+      );
       const pagesRead = dataMap.get(dateStr) || 0;
       
       allDays.push({

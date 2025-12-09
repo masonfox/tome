@@ -63,6 +63,8 @@ export async function POST(
 
     const progressLog = await progressService.logProgress(bookId, progressData);
 
+    // Note: Cache invalidation handled by ProgressService.invalidateCache()
+
     return NextResponse.json(progressLog);
   } catch (error) {
     const { getLogger } = require("@/lib/logger");

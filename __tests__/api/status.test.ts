@@ -14,6 +14,7 @@ import {
   createTestSession,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { format } from "date-fns";
 
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
@@ -79,7 +80,7 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     
     // completedDate should match last progress date
     const completedDate = new Date(oldSession!.completedDate!);
-    expect(completedDate.toISOString().split('T')[0]).toBe(progressDate.toISOString().split('T')[0]);
+    expect(format(completedDate, 'yyyy-MM-dd')).toBe(format(progressDate, 'yyyy-MM-dd'));
   });
 
   test("should archive session when moving from 'reading' to 'to-read' with progress", async () => {

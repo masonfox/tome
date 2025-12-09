@@ -1,7 +1,16 @@
 {
-  "name": "book-tracker",
-  "version": "0.1.0",
-  "private": true,
+  "name": "tome",
+  "version": "0.2.0",
+  "description": "A Calibre-integrated book tracker",
+  "homepage": "https://github.com/masonfox/tome",
+  "author": "Mason Fox <masonfox22@gmail.com> (https://github.com/masonfox)",
+  "funding": "https://www.buymeacoffee.com/masonfox",
+  "keywords": [
+    "calibre",
+    "books",
+    "book tracker",
+    "reading"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,7 +26,8 @@
     "db:seed": "bun run scripts/seed.ts",
     "sync-calibre": "bun run scripts/sync-calibre.ts",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
   },
   "dependencies": {
     "clsx": "^2.1.0",

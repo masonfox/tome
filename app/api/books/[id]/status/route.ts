@@ -55,6 +55,8 @@ export async function POST(
 
     const result = await sessionService.updateStatus(bookId, statusData);
 
+    // Note: Cache invalidation handled by SessionService.invalidateCache()
+
     // Return full result if session was archived, otherwise just the session
     if (result.sessionArchived) {
       return NextResponse.json({
@@ -71,6 +73,15 @@ export async function POST(
     
     // Handle specific errors
     if (error instanceof Error) {
+      // Check for error code first
+      const errorWithCode = error as any;
+      if (errorWithCode.code === "PAGES_REQUIRED") {
+        return NextResponse.json({ 
+          error: error.message, 
+          code: "PAGES_REQUIRED" 
+        }, { status: 400 });
+      }
+      
       if (error.message.includes("not found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
