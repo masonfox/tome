@@ -56,9 +56,10 @@ export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorPro
 
 interface ReadingGoalWidgetProps {
   goalData: ReadingGoalWithProgress;
+  onEditClick?: () => void;
 }
 
-export function ReadingGoalWidget({ goalData }: ReadingGoalWidgetProps) {
+export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetProps) {
   const { goal, progress } = goalData;
   const {
     booksCompleted,
@@ -154,6 +155,18 @@ export function ReadingGoalWidget({ goalData }: ReadingGoalWidgetProps) {
               })}
             </span>
           </p>
+        </div>
+      )}
+
+      {/* Edit Button */}
+      {onEditClick && (
+        <div className={projectedFinishDate && !isExceeded ? "mt-4" : "mt-6 pt-6 border-t border-[var(--border-color)]"}>
+          <button
+            onClick={onEditClick}
+            className="w-full px-4 py-2.5 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold text-sm"
+          >
+            Edit Goal
+          </button>
         </div>
       )}
     </div>
