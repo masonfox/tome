@@ -146,7 +146,144 @@
 
 ---
 
-## Phase 6: User Story 4 - Filter Library by Completion Year (Priority: P3)
+## Phase 6: Goals Page Foundation (UX Redesign)
+
+**Purpose**: Move goals from dashboard to dedicated page, implement page structure
+
+**Goal**: Create /goals page with year selector, remove from dashboard and Settings
+
+**Independent Test**: Navigate to Goals page via bottom nav, see current year's goal with year selector dropdown.
+
+### Implementation
+
+- [ ] T061 [P] Create app/goals/page.tsx with basic layout and PageHeader
+- [ ] T062 [P] Create components/ReadingGoalsPanel.tsx wrapper component
+- [ ] T063 Add "Goals" to bottom navigation in components/BottomNavigation.tsx (after Library, before Streak)
+- [ ] T064 Update lib/navigation-config.ts to include Goals route
+- [ ] T065 Remove ReadingGoalWidget from app/page.tsx (lines 17-18, 52-56)
+- [ ] T066 Remove ReadingGoalsSettings section from app/settings/page.tsx
+- [ ] T067 Verify Goals page is accessible via navigation
+- [ ] T068 Verify dashboard no longer shows goal widget
+
+**Checkpoint**: Goals page exists, navigation works, dashboard is clean ✅
+
+---
+
+## Phase 7: Pace Calculation Fix (Books Not Days)
+
+**Purpose**: Update pace indicator to show "X books ahead/behind" instead of days
+
+**Goal**: Display pace in books for better user comprehension
+
+### Implementation
+
+- [ ] T069 Rename daysAheadBehind to booksAheadBehind in ProgressCalculation interface (lib/services/reading-goals.service.ts)
+- [ ] T070 Update calculateProgress() calculation logic to keep book difference calculation
+- [ ] T071 Update PaceIndicator component in components/ReadingGoalWidget.tsx to display "X.X books ahead/behind"
+- [ ] T072 Update service tests in __tests__/services/reading-goals.service.test.ts for renamed field
+- [ ] T073 Test pace displays correctly with decimal precision (e.g., "2.3 books ahead")
+
+**Checkpoint**: Pace shows book count instead of days ✅
+
+---
+
+## Phase 8: Modal-Based Goal Management
+
+**Purpose**: Move goal CRUD from Settings page to modal on Goals page
+
+**Goal**: Users can create/edit goals via modal interface
+
+### Implementation
+
+- [ ] T074 [P] Create components/ReadingGoalModal.tsx wrapper component
+- [ ] T075 Create components/ui/BaseModal.tsx if doesn't exist (or use existing modal pattern)
+- [ ] T076 Integrate ReadingGoalForm.tsx inside modal
+- [ ] T077 Add "Create Goal" button to ReadingGoalsPanel.tsx (shown when no goal exists)
+- [ ] T078 Add "Edit Goal" button to ReadingGoalWidget.tsx
+- [ ] T079 Implement modal open/close state management
+- [ ] T080 Handle form submission and data refresh
+- [ ] T081 Test modal opens/closes correctly
+- [ ] T082 Test ESC key and backdrop clicks close modal
+- [ ] T083 Test create flow creates goal and refreshes data
+- [ ] T084 Test edit flow updates goal and refreshes data
+
+**Checkpoint**: Goal CRUD works via modal on Goals page ✅
+
+---
+
+## Phase 9: Year Selector Implementation
+
+**Purpose**: Allow users to switch between different years' goals
+
+**Goal**: Dropdown showing only years with created goals
+
+### Implementation
+
+- [ ] T085 [P] Create components/YearSelector.tsx dropdown component
+- [ ] T086 Fetch all goals using existing getAllGoals() API endpoint
+- [ ] T087 Extract unique years from goals array, sort descending
+- [ ] T088 Implement year change handler in ReadingGoalsPanel.tsx
+- [ ] T089 Fetch goal data for selected year on change
+- [ ] T090 Update ReadingGoalWidget to display selected year's data
+- [ ] T091 Show "No goals created" message when goals array is empty
+- [ ] T092 Test year selector shows correct years
+- [ ] T093 Test switching years updates widget data
+- [ ] T094 Test year selector defaults to current year
+
+**Checkpoint**: Users can view any year's goal via selector ✅
+
+---
+
+## Phase 10: Monthly Breakdown Data Layer
+
+**Purpose**: API support for month-by-month book completion data
+
+**Goal**: Backend returns monthly aggregated data
+
+### Implementation
+
+- [ ] T095 Add getBooksCompletedByMonth() method to lib/repositories/reading-goals.repository.ts
+- [ ] T096 Implement SQL query grouping by month using strftime('%m', ...)
+- [ ] T097 Fill missing months (1-12) with count=0 in repository method
+- [ ] T098 Add getMonthlyBreakdown() method to lib/services/reading-goals.service.ts
+- [ ] T099 Create API route GET /api/reading-goals/[year]/monthly/route.ts
+- [ ] T100 Return structure: {year, goal, monthlyData: [{month, count}]}
+- [ ] T101 Write repository tests for monthly aggregation
+- [ ] T102 Test API endpoint returns correct monthly data
+- [ ] T103 Test missing months return 0 counts
+
+**Checkpoint**: API returns month-by-month book counts ✅
+
+---
+
+## Phase 11: Chart Visualization (Simplified)
+
+**Purpose**: Display month-by-month bar chart with pace line
+
+**Goal**: Visual representation of progress throughout the year
+
+### Implementation
+
+- [ ] T104 [P] Create components/ReadingGoalChart.tsx based on StreakChart.tsx pattern
+- [ ] T105 Implement monthly bars using Recharts Bar component (green gradient)
+- [ ] T106 Add expected pace reference line (orange dashed diagonal)
+- [ ] T107 Calculate pace line values: (goal / 12) * monthNumber
+- [ ] T108 Configure XAxis with month labels (Jan-Dec)
+- [ ] T109 Configure YAxis with book counts
+- [ ] T110 Add custom tooltip showing month name and count
+- [ ] T111 Implement responsive container for mobile/desktop
+- [ ] T112 Add chart to Goals page below ReadingGoalWidget
+- [ ] T113 Fetch monthly data on year change
+- [ ] T114 Test chart displays 12 bars correctly
+- [ ] T115 Test pace line renders at correct position
+- [ ] T116 Test tooltip shows correct data on hover
+- [ ] T117 Test chart is responsive on mobile (320px width)
+
+**Checkpoint**: Chart displays on Goals page with bars and pace line ✅
+
+---
+
+## Phase 12: User Story 4 - Filter Library by Completion Year (Priority: P3)
 
 **Goal**: Users can filter library books by year completed for retrospective browsing
 
@@ -154,41 +291,50 @@
 
 ### Implementation for User Story 4
 
-- [ ] T061 [US4] Create GET /api/reading-goals/years route handler in app/api/reading-goals/years/route.ts
-- [ ] T062 [US4] Implement getYearsSummary() method in lib/services/reading-goals.service.ts using getYearsWithCompletedBooks()
-- [ ] T063 [P] [US4] Create YearCompletionFilter component in components/YearCompletionFilter.tsx
-- [ ] T064 [US4] Add year filter dropdown to app/library/page.tsx
-- [ ] T065 [US4] Implement year-based filtering logic in library view
-- [ ] T066 [US4] Display year with book count in dropdown (e.g., "2025 (12 books)")
-- [ ] T067 [US4] Order years descending (newest first) in filter dropdown
-- [ ] T068 [US4] Show "No completed books yet" message when no years exist
-- [ ] T069 [P] [US4] Write years API tests in __tests__/api/reading-goals-years.test.ts
-- [ ] T070 [P] [US4] Write filter component tests in __tests__/components/YearCompletionFilter.test.tsx
-- [ ] T071 [US4] Test library filtering returns correct books for selected year
-- [ ] T072 [US4] Test year filter dropdown shows correct counts
-- [ ] T073 [US4] Add logging for year filter queries in lib/services/reading-goals.service.ts
+- [ ] T118 [US4] Create GET /api/reading-goals/years route handler in app/api/reading-goals/years/route.ts
+- [ ] T119 [US4] Implement getYearsSummary() method in lib/services/reading-goals.service.ts using getYearsWithCompletedBooks()
+- [ ] T120 [P] [US4] Create YearCompletionFilter component in components/YearCompletionFilter.tsx
+- [ ] T121 [US4] Add year filter dropdown to app/library/page.tsx
+- [ ] T122 [US4] Implement year-based filtering logic in library view
+- [ ] T123 [US4] Display year with book count in dropdown (e.g., "2025 (12 books)")
+- [ ] T124 [US4] Order years descending (newest first) in filter dropdown
+- [ ] T125 [US4] Show "No completed books yet" message when no years exist
+- [ ] T126 [P] [US4] Write years API tests in __tests__/api/reading-goals-years.test.ts
+- [ ] T127 [P] [US4] Write filter component tests in __tests__/components/YearCompletionFilter.test.tsx
+- [ ] T128 [US4] Test library filtering returns correct books for selected year
+- [ ] T129 [US4] Test year filter dropdown shows correct counts
+- [ ] T130 [US4] Add logging for year filter queries in lib/services/reading-goals.service.ts
 
 **Checkpoint**: All user stories should now be independently functional. Users can browse historical reading by year ✅
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 13: Polish & Validation
 
-**Purpose**: Improvements that affect multiple user stories and final validation
+**Purpose**: Final improvements, testing, and documentation
 
-- [ ] T074 [P] Add progress update performance logging in lib/services/reading-goals.service.ts
-- [ ] T075 [P] Optimize getBooksCompletedInYear() query with EXPLAIN QUERY PLAN
-- [ ] T076 [P] Add error boundary for dashboard widget in app/page.tsx
-- [ ] T077 [P] Add toast notifications for goal operations in components/ReadingGoalForm.tsx
-- [ ] T078 [P] Test goal creation under 30 seconds (SC-001)
-- [ ] T079 [P] Test progress updates within 2 seconds (SC-002)
-- [ ] T080 [P] Test year filter results under 1 second for 500+ books (SC-006)
-- [ ] T081 [P] Verify projected finish date margin of error ±3 days (SC-008)
-- [ ] T082 [P] Run full test suite: `bun test`
-- [ ] T083 [P] Verify TypeScript types: `bun run tsc --noEmit`
-- [ ] T084 [P] Run linter: `bun run lint`
-- [ ] T085 [P] Test quickstart.md validation steps manually
-- [ ] T086 Update CLAUDE.md with feature completion
+### Implementation
+
+- [ ] T131 [P] Add loading states (skeleton loaders) to Goals page
+- [ ] T132 [P] Add error handling for failed API calls
+- [ ] T133 [P] Add progress update performance logging in lib/services/reading-goals.service.ts
+- [ ] T134 [P] Optimize getBooksCompletedInYear() query with EXPLAIN QUERY PLAN
+- [ ] T135 [P] Optimize getBooksCompletedByMonth() query with EXPLAIN QUERY PLAN
+- [ ] T136 [P] Add error boundary for Goals page components
+- [ ] T137 [P] Add toast notifications for goal operations in ReadingGoalModal.tsx
+- [ ] T138 [P] Test goal creation under 30 seconds (SC-001)
+- [ ] T139 [P] Test progress updates within 2 seconds (SC-002)
+- [ ] T140 [P] Test year switching under 1 second (SC-009)
+- [ ] T141 [P] Test chart renders correctly on mobile 320px (SC-010)
+- [ ] T142 [P] Test year filter results under 1 second for 500+ books (SC-006)
+- [ ] T143 [P] Verify projected finish date margin of error ±3 days (SC-008)
+- [ ] T144 [P] Run full test suite: `bun test`
+- [ ] T145 [P] Verify TypeScript types: `bun run tsc --noEmit`
+- [ ] T146 [P] Run linter: `bun run lint`
+- [ ] T147 [P] Update spec.md if any changes needed during implementation
+- [ ] T148 Update CLAUDE.md with feature completion
+
+**Checkpoint**: Feature production-ready ✅
 
 ---
 
@@ -196,20 +342,29 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Story 1 (Phase 3)**: Depends on Foundational - Can start after Phase 2
-- **User Story 3 (Phase 4)**: Depends on Foundational - Can start after Phase 2 (independent of US1)
-- **User Story 2 (Phase 5)**: Depends on Foundational + US3 - Needs automatic tracking working
-- **User Story 4 (Phase 6)**: Depends on Foundational - Can start after Phase 2 (independent of US1/US2/US3)
-- **Polish (Phase 7)**: Depends on all user stories being complete
+- **Setup (Phase 1)**: ✅ Complete - Database foundation created
+- **Foundational (Phase 2)**: ✅ Complete - Data access layer ready
+- **User Story 1 (Phase 3)**: ✅ Complete - Goal management working
+- **User Story 3 (Phase 4)**: ✅ Complete - Automatic tracking functional
+- **User Story 2 (Phase 5)**: ✅ Complete - Dashboard widget implemented (will be moved)
+- **Goals Page Foundation (Phase 6)**: Depends on Phases 1-5 being complete
+- **Pace Calculation Fix (Phase 7)**: Can run in parallel with Phase 6
+- **Modal Goal Management (Phase 8)**: Depends on Phase 6
+- **Year Selector (Phase 9)**: Depends on Phase 6
+- **Monthly Data Layer (Phase 10)**: Can run in parallel with Phases 8-9
+- **Chart Visualization (Phase 11)**: Depends on Phase 10
+- **User Story 4 (Phase 12)**: Can run in parallel with Phases 6-11
+- **Polish (Phase 13)**: Depends on all previous phases being complete
 
-### User Story Dependencies
+### UX Redesign Phase Dependencies
 
-- **User Story 1 (P1)**: Can start after Foundational - No dependencies on other stories
-- **User Story 3 (P1)**: Can start after Foundational - No dependencies on other stories (automatic tracking foundation)
-- **User Story 2 (P2)**: Can start after Foundational + US3 - Dashboard display needs automatic tracking working
-- **User Story 4 (P3)**: Can start after Foundational - No dependencies on other stories
+- **Goals Page Foundation (Phase 6)**: Needs existing components (ReadingGoalWidget, CreateGoalPrompt)
+- **Pace Calculation Fix (Phase 7)**: Independent - can start anytime
+- **Modal Management (Phase 8)**: Needs Goals page structure (Phase 6)
+- **Year Selector (Phase 9)**: Needs Goals page structure (Phase 6)
+- **Monthly Data (Phase 10)**: Independent backend work
+- **Chart (Phase 11)**: Needs monthly data API (Phase 10)
+- **Library Filter (Phase 12)**: Independent of Goals page work
 
 ### Within Each User Story
 
@@ -219,21 +374,27 @@
 - Tests can run in parallel with implementation (TDD approach)
 - Story complete before moving to next priority
 
-### Parallel Opportunities
+### Parallel Opportunities (UX Redesign Phases)
 
-- **Phase 1**: T001 and T002 can run in parallel (different files)
-- **Phase 2**: T007-T010 (repository methods), T014-T016 (service validations), T020-T021 (tests) can all run in parallel
-- **Phase 3 (US1)**: T031-T032 (UI components), T034-T035 (tests) can run in parallel
-- **Phase 5 (US2)**: T047-T049 (components), T055-T056 (tests) can run in parallel
-- **Phase 6 (US4)**: T063 (filter component), T069-T070 (tests) can run in parallel
-- **Phase 7 (Polish)**: T074-T086 all marked [P] can run in parallel
+- **Phase 6**: T061-T062 (page and component) can run in parallel
+- **Phase 7**: All 5 tasks can run in parallel if desired (pace calculation fix)
+- **Phase 8**: T074-T075 (modal components) can run in parallel
+- **Phase 9**: T085 (YearSelector component) independent work
+- **Phase 10**: T095-T098 (repository and service) can run in parallel with UI work
+- **Phase 11**: T104-T105 (chart components) can run in parallel
+- **Phase 12**: T120 and T126-T127 (filter component and tests) can run in parallel
+- **Phase 13**: T131-T147 all marked [P] can run in parallel
 
-### Critical Path
+### Critical Path for UX Redesign
 
-1. Phase 1 (Setup) → Phase 2 (Foundational) → **MUST COMPLETE BEFORE STORIES**
-2. Then US3 (automatic tracking) → US2 (dashboard display)
-3. US1 and US4 can proceed in parallel with US2/US3
-4. Phase 7 (Polish) after all stories complete
+1. Phase 6 (Goals Page Foundation) - **START HERE**
+2. Phase 7 (Pace Fix) can run parallel to Phase 6
+3. Phase 8 (Modal) → requires Phase 6 complete
+4. Phase 9 (Year Selector) → requires Phase 6 complete
+5. Phase 10 (Monthly Data) can run parallel to Phases 8-9
+6. Phase 11 (Chart) → requires Phase 10 complete
+7. Phase 12 (Library Filter) can run parallel to Phases 6-11
+8. Phase 13 (Polish) after all previous phases complete
 
 ---
 
@@ -254,63 +415,118 @@ Task: "Write progress calculation tests in __tests__/services/reading-goals.serv
 
 ## Implementation Strategy
 
-### MVP First (User Stories 1 + 3 Only)
+### Completed Work (v1.0 - v1.1)
 
-1. Complete Phase 1: Setup (T001-T005)
-2. Complete Phase 2: Foundational (T006-T022) - **CRITICAL BLOCKER**
-3. Complete Phase 3: User Story 1 - Goal Management (T023-T038)
-4. Complete Phase 4: User Story 3 - Automatic Tracking (T039-T044)
-5. **STOP and VALIDATE**: Test goal creation and automatic progress tracking independently
-6. Deploy/demo if ready - **This is the MVP!**
+1. ✅ **Foundation** (Phases 1-2): Database + data access layer
+2. ✅ **MVP Release v1.0** (Phases 3-4): Goal CRUD + automatic tracking
+3. ✅ **Dashboard Release v1.1** (Phase 5): Dashboard widget with progress display
 
-### Incremental Delivery
+**Current State**: Basic goal tracking functional on dashboard
 
-1. **Foundation**: Setup + Foundational (T001-T022) → Infrastructure ready
-2. **MVP Release**: Add US1 + US3 (T023-T044) → Test independently → **Deploy v1.0** (goal management + auto-tracking)
-3. **Dashboard Release**: Add US2 (T045-T060) → Test independently → **Deploy v1.1** (visual progress display)
-4. **Library Enhancement**: Add US4 (T061-T073) → Test independently → **Deploy v1.2** (year filtering)
-5. **Polish Release**: Complete Phase 7 (T074-T086) → **Deploy v1.3** (performance optimized)
+---
 
-Each release adds value without breaking previous functionality.
+### UX Redesign Strategy (v2.0)
 
-### Parallel Team Strategy
+#### Recommended Order:
 
-With multiple developers after Foundational phase completes:
+**Iteration 1: Goals Page Migration** (Deploy v2.0-alpha)
+1. Complete Phase 6: Goals Page Foundation (T061-T068)
+2. Complete Phase 7: Pace Calculation Fix (T069-T073)
+3. **CHECKPOINT**: Test Goals page accessible, dashboard clean, pace shows books
 
-1. Team completes Setup + Foundational together (T001-T022)
-2. Once Foundational is done:
-   - **Developer A**: User Story 1 - Goal Management (T023-T038)
-   - **Developer B**: User Story 3 - Automatic Tracking (T039-T044) + User Story 4 - Library Filter (T061-T073)
-   - **Developer C**: User Story 2 - Dashboard Display (T045-T060) - starts after US3 complete
-3. Stories complete and integrate independently
+**Iteration 2: Enhanced Management** (Deploy v2.0-beta)
+4. Complete Phase 8: Modal Goal Management (T074-T084)
+5. Complete Phase 9: Year Selector (T085-T094)
+6. **CHECKPOINT**: Test modal CRUD works, year switching functional
+
+**Iteration 3: Visualizations** (Deploy v2.0-rc)
+7. Complete Phase 10: Monthly Data Layer (T095-T103)
+8. Complete Phase 11: Chart Visualization (T104-T117)
+9. **CHECKPOINT**: Test chart displays correctly with monthly data
+
+**Iteration 4: Polish & Ship** (Deploy v2.0)
+10. Complete Phase 12: Library Filter (T118-T130) - optional, can defer
+11. Complete Phase 13: Polish & Validation (T131-T148)
+12. **FINAL VALIDATION**: Full testing across all features
+13. **Deploy v2.0**: Goals page with visualizations
+
+---
+
+### Parallel Team Strategy (if multiple developers)
+
+**After Phase 5 complete:**
+
+- **Developer A**: Phase 6 + Phase 8 (Goals page + Modal) - Sequential
+- **Developer B**: Phase 7 (Pace fix) + Phase 10 (Monthly data) - Can start immediately
+- **Developer C**: Phase 12 (Library filter) - Independent work
+
+**After Phase 6 + Phase 8 complete:**
+- **Developer A**: Phase 9 (Year selector) + Phase 11 (Chart)
+- **Developer B**: Continue Phase 10, then help with Phase 13 (Polish)
+- **Developer C**: Continue Phase 12, then help with Phase 13 (Polish)
+
+---
+
+### Minimum Viable Redesign (Fast Path)
+
+If you want the **quickest path to Goals page**:
+
+1. Phase 6 (Goals Page Foundation) - 8 tasks
+2. Phase 7 (Pace Fix) - 5 tasks  
+3. Phase 8 (Modal Management) - 11 tasks
+4. Skip Phases 9-12 initially
+5. Phase 13 (Basic polish only) - ~8 core tasks
+
+**Result**: Goals page with modal management and correct pace display, without chart or year selector. Can add visualizations later.
+
+---
+
+### Full Feature Rollout (Recommended)
+
+Complete all phases 6-13 for the full redesigned experience with:
+- ✅ Dedicated Goals page
+- ✅ Books-based pace indicator
+- ✅ Modal goal management
+- ✅ Year selector for historical goals
+- ✅ Month-by-month chart with pace line
+- ✅ Library year filter
+- ✅ Full polish and testing
 
 ---
 
 ## Task Summary
 
-**Total Tasks**: 86
+**Total Tasks**: 148 (62 new tasks for UX redesign)
 
-**By Phase**:
-- Phase 1 (Setup): 5 tasks
-- Phase 2 (Foundational): 17 tasks
-- Phase 3 (US1 - Set Goal): 16 tasks
-- Phase 4 (US3 - Auto Tracking): 6 tasks
-- Phase 5 (US2 - Dashboard): 16 tasks
-- Phase 6 (US4 - Library Filter): 13 tasks
-- Phase 7 (Polish): 13 tasks
+**Completed Phases**:
+- Phase 1 (Setup): 5 tasks ✅
+- Phase 2 (Foundational): 17 tasks ✅
+- Phase 3 (US1 - Set Goal): 16 tasks ✅
+- Phase 4 (US3 - Auto Tracking): 6 tasks ✅
+- Phase 5 (US2 - Dashboard Widget): 16 tasks ✅
 
-**Parallel Opportunities**: 44 tasks marked [P] can execute concurrently
+**Remaining Phases (UX Redesign)**:
+- Phase 6 (Goals Page Foundation): 8 tasks
+- Phase 7 (Pace Calculation Fix): 5 tasks
+- Phase 8 (Modal Goal Management): 11 tasks
+- Phase 9 (Year Selector): 10 tasks
+- Phase 10 (Monthly Data Layer): 9 tasks
+- Phase 11 (Chart Visualization): 14 tasks
+- Phase 12 (US4 - Library Filter): 13 tasks
+- Phase 13 (Polish & Validation): 18 tasks
 
-**Independent Test Criteria**:
-- US1: Create/edit goal in Settings, verify persistence and validation
-- US3: Mark books complete, verify automatic progress increment
-- US2: View dashboard, verify progress display with pace indicators
-- US4: Filter library by year, verify correct subset display
+**Parallel Opportunities**: Tasks marked [P] can execute concurrently within each phase
 
-**MVP Scope** (Suggested): User Stories 1 + 3 (22 tasks after foundation)
-- Provides complete goal management + automatic tracking
-- Foundation for future enhancements
-- Can deploy and gather feedback before building dashboard UI
+**Current Status**: 
+- ✅ Core functionality complete (goal CRUD, auto-tracking, dashboard widget)
+- 🚧 UX redesign in progress (move to Goals page, add visualizations)
+
+**New Features Being Added**:
+- Dedicated Goals page with navigation
+- Year selector dropdown
+- Month-by-month bar chart
+- Books-based pace indicator (not days)
+- Modal-based goal management
 
 ---
 
@@ -324,3 +540,28 @@ With multiple developers after Foundational phase completes:
 - Tests use existing `setupTestDatabase()` and `clearTestDatabase()` patterns
 - Follow existing repository/service patterns from streak and progress features
 - All API routes follow existing error handling conventions
+
+### UX Redesign Notes (Phases 6-13)
+
+- **Chart Pattern**: Follow `StreakChart.tsx` implementation using Recharts ComposedChart
+- **Modal Pattern**: Reuse existing modal patterns if available, or create BaseModal wrapper
+- **Navigation**: Goals positioned after Library, before Streak in bottom nav
+- **Year Selector**: Only shows years where goals exist (not all years with books)
+- **Pace Display**: Changed from "X days ahead" to "X.X books ahead" for clarity
+- **Breaking Changes**: Dashboard widget removed, Settings section removed
+- **Component Migration**: ReadingGoalWidget and CreateGoalPrompt move to Goals page
+- **API Addition**: New endpoint `/api/reading-goals/[year]/monthly` for chart data
+- **Testing Priority**: Focus on Goals page navigation, modal interactions, chart rendering
+- **Responsive Design**: Chart must work on mobile (320px) to desktop (2560px)
+- **Performance**: Year switching < 1s, chart rendering < 1s (SC-009, SC-010)
+
+### Future Enhancements (Not in Current Scope)
+
+Documented in spec.md but deferred to later iterations:
+- Unified Stats page (merge Goals + Streak with sub-nav)
+- Projected trend line on chart
+- Cumulative books line
+- Reading velocity insights
+- Goal templates based on history
+- Year-over-year comparisons
+- Genre breakdown in goals
