@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { CreateGoalPrompt } from "./CreateGoalPrompt";
@@ -23,7 +24,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a)
   );
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // Track if component is mounted for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync with props when they change (after server refresh)
   useEffect(() => {
@@ -150,8 +157,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         </div>
       )}
 
-      {/* Modal Overlay */}
-      {isModalOpen && (
+      {/* Modal Overlay - Rendered via Portal to document.body */}
+      {mounted && isModalOpen && createPortal(
         <div 
           className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[100] p-4 animate-fade-in"
           onClick={handleCloseModal}
@@ -167,7 +174,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
               onCancel={handleCloseModal}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* TODO: Year selector will go here in Phase 9 */}
