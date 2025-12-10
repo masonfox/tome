@@ -219,16 +219,16 @@
 
 ### Implementation
 
-- [ ] T085 [P] Create components/YearSelector.tsx dropdown component
-- [ ] T086 Fetch all goals using existing getAllGoals() API endpoint
-- [ ] T087 Extract unique years from goals array, sort descending
-- [ ] T088 Implement year change handler in ReadingGoalsPanel.tsx
-- [ ] T089 Fetch goal data for selected year on change
-- [ ] T090 Update ReadingGoalWidget to display selected year's data
-- [ ] T091 Show "No goals created" message when goals array is empty
-- [ ] T092 Test year selector shows correct years
-- [ ] T093 Test switching years updates widget data
-- [ ] T094 Test year selector defaults to current year
+- [X] T085 [P] Create components/YearSelector.tsx dropdown component (created with ChevronDown icon)
+- [X] T086 Fetch all goals using existing getAllGoals() API endpoint (fetched in goals/page.tsx)
+- [X] T087 Extract unique years from goals array, sort descending (Array.from(new Set(...)).sort())
+- [X] T088 Implement year change handler in GoalsPagePanel.tsx (handleYearChange with API fetch)
+- [X] T089 Fetch goal data for selected year on change (GET /api/reading-goals?year=X)
+- [X] T090 Update ReadingGoalWidget to display selected year's data (currentGoalData state updates)
+- [X] T091 Show "No goals created" message when goals array is empty (CreateGoalPrompt shown when availableYears.length === 0)
+- [X] T092 Test year selector shows correct years (availableYears passed to YearSelector)
+- [X] T093 Test switching years updates widget data (handleYearChange updates currentGoalData)
+- [X] T094 Test year selector defaults to current year (selectedYear initializes to initialGoalData?.goal.year || currentYear)
 
 **Checkpoint**: Users can view any year's goal via selector ✅
 

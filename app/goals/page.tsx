@@ -9,6 +9,9 @@ export const revalidate = 0; // Disable all caching including router cache
 export default async function GoalsPage() {
   // Get current year's reading goal
   const currentGoal = await readingGoalsService.getCurrentYearGoal(null);
+  
+  // Get all goals for year selector
+  const allGoals = await readingGoalsService.getAllGoals(null);
 
   return (
     <div className="space-y-10">
@@ -18,7 +21,10 @@ export default async function GoalsPage() {
         icon={Target}
       />
 
-      <GoalsPagePanel initialGoalData={currentGoal} />
+      <GoalsPagePanel 
+        initialGoalData={currentGoal}
+        allGoals={allGoals}
+      />
     </div>
   );
 }
