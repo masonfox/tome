@@ -5,10 +5,10 @@ import { Target, TrendingUp, TrendingDown } from "lucide-react";
 
 interface PaceIndicatorProps {
   paceStatus: "ahead" | "on-track" | "behind";
-  daysAheadBehind: number;
+  booksAheadBehind: number;
 }
 
-export function PaceIndicator({ paceStatus, daysAheadBehind }: PaceIndicatorProps) {
+export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorProps) {
   const getStatusColor = () => {
     switch (paceStatus) {
       case "ahead":
@@ -25,13 +25,13 @@ export function PaceIndicator({ paceStatus, daysAheadBehind }: PaceIndicatorProp
       return "On Track";
     }
     
-    const days = Math.abs(daysAheadBehind);
-    const dayText = days === 1 ? "day" : "days";
+    const books = Math.abs(booksAheadBehind);
+    const bookText = books === 1 ? "book" : "books";
     
     if (paceStatus === "ahead") {
-      return `${days} ${dayText} ahead`;
+      return `${books.toFixed(1)} ${bookText} ahead`;
     } else {
-      return `${days} ${dayText} behind`;
+      return `${books.toFixed(1)} ${bookText} behind`;
     }
   };
 
@@ -66,7 +66,7 @@ export function ReadingGoalWidget({ goalData }: ReadingGoalWidgetProps) {
     completionPercentage,
     paceStatus,
     projectedFinishDate,
-    daysAheadBehind,
+    booksAheadBehind,
   } = progress;
 
   const isExceeded = booksCompleted > goal.booksGoal;
@@ -84,7 +84,7 @@ export function ReadingGoalWidget({ goalData }: ReadingGoalWidgetProps) {
             {booksCompleted} of {goal.booksGoal} books completed
           </p>
         </div>
-        {!isExceeded && <PaceIndicator paceStatus={paceStatus} daysAheadBehind={daysAheadBehind} />}
+        {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
         {isExceeded && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold text-emerald-700 bg-emerald-50/50">
             <Target className="w-3 h-3" />

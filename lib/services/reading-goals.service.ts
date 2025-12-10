@@ -12,7 +12,7 @@ export interface ProgressCalculation {
   paceStatus: "ahead" | "on-track" | "behind";
   daysElapsed: number;
   projectedFinishDate: Date | null;
-  daysAheadBehind: number;
+  booksAheadBehind: number;
 }
 
 export interface ReadingGoalWithProgress {
@@ -70,14 +70,14 @@ export class ReadingGoalsService {
     const expectedBooks = (booksGoal / daysInYear) * daysElapsed;
 
     let paceStatus: "ahead" | "on-track" | "behind";
-    let daysAheadBehind = 0;
+    let booksAheadBehind = 0;
 
     if (booksCompleted >= expectedBooks + 1) {
       paceStatus = "ahead";
-      daysAheadBehind = Math.floor(booksCompleted - expectedBooks);
+      booksAheadBehind = Math.floor(booksCompleted - expectedBooks);
     } else if (booksCompleted <= expectedBooks - 1) {
       paceStatus = "behind";
-      daysAheadBehind = Math.floor(booksCompleted - expectedBooks); // Negative
+      booksAheadBehind = Math.floor(booksCompleted - expectedBooks); // Negative
     } else {
       paceStatus = "on-track";
     }
@@ -104,7 +104,7 @@ export class ReadingGoalsService {
       paceStatus,
       daysElapsed,
       projectedFinishDate,
-      daysAheadBehind,
+      booksAheadBehind,
     };
   }
 
