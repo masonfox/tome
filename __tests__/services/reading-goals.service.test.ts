@@ -216,7 +216,8 @@ describe("ReadingGoalsService", () => {
   describe("calculateProgress()", () => {
     test("calculates progress correctly with zero books", async () => {
       const currentYear = new Date().getFullYear();
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40);
+      const goalCreatedAt = new Date(currentYear, 0, 1); // Jan 1
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40, goalCreatedAt);
 
       expect(progress.booksCompleted).toBe(0);
       expect(progress.booksRemaining).toBe(40);
@@ -226,27 +227,29 @@ describe("ReadingGoalsService", () => {
 
     test("caps completion percentage at 100", async () => {
       const currentYear = new Date().getFullYear();
+      const goalCreatedAt = new Date(currentYear, 0, 1); // Jan 1
       // Mock scenario: would need actual books to test realistically
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 1);
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 1, goalCreatedAt);
 
       expect(progress.completionPercentage).toBeLessThanOrEqual(100);
     });
 
     test("calculates pace status based on expected progress", async () => {
       const currentYear = new Date().getFullYear();
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40);
+      const goalCreatedAt = new Date(currentYear, 0, 1); // Jan 1
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40, goalCreatedAt);
 
       expect(["ahead", "on-track", "behind"]).toContain(progress.paceStatus);
     });
 
-    test("projected finish date is null when insufficient data", async () => {
+    test("shows on-track status for newly created mid-year goals", async () => {
       const currentYear = new Date().getFullYear();
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40);
+      const goalCreatedAt = new Date(); // Today
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40, goalCreatedAt);
 
-      // With 0 books and < 14 days, projection should be null
-      if (progress.daysElapsed < 14 && progress.booksCompleted < 2) {
-        expect(progress.projectedFinishDate).toBeNull();
-      }
+      // Should show on-track for brand new goals (0 days elapsed)
+      expect(progress.paceStatus).toBe("on-track");
+      expect(progress.booksAheadBehind).toBe(0);
     });
   });
 

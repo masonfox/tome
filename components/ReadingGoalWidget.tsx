@@ -66,7 +66,6 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
     booksRemaining,
     completionPercentage,
     paceStatus,
-    projectedFinishDate,
     booksAheadBehind,
   } = progress;
 
@@ -153,24 +152,6 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
           </p>
         </div>
       </div>
-
-      {/* Projected Finish Date */}
-      {projectedFinishDate && !isExceeded && (
-        <div className="mt-6 pt-6 border-t border-[var(--border-color)]">
-          <p className="text-sm text-[var(--foreground)]/80">
-            <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
-              Projected finish:
-            </span>{" "}
-            <span className="font-semibold text-[var(--heading-text)]">
-              {new Date(projectedFinishDate).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </span>
-          </p>
-        </div>
-      )}
     </div>
   );
 }

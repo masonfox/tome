@@ -1,6 +1,6 @@
 import { readingGoalRepository } from "@/lib/repositories";
 import type { ReadingGoal } from "@/lib/db/schema";
-import { differenceInDays, addDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
@@ -11,7 +11,6 @@ export interface ProgressCalculation {
   completionPercentage: number;
   paceStatus: "ahead" | "on-track" | "behind";
   daysElapsed: number;
-  projectedFinishDate: Date | null;
   booksAheadBehind: number;
 }
 
@@ -38,7 +37,7 @@ export class ReadingGoalsService {
     const goal = await readingGoalRepository.findByUserAndYear(userId, year);
     if (!goal) return null;
 
-    const progress = await this.calculateProgress(userId, year, goal.booksGoal);
+    const progress = await this.calculateProgress(userId, year, goal.booksGoal, goal.createdAt);
     return { goal, progress };
   }
 
@@ -59,11 +58,13 @@ export class ReadingGoalsService {
 
   /**
    * Calculate progress for a goal
+   * Uses goal creation date as start point to avoid penalizing mid-year goal creation
    */
   async calculateProgress(
     userId: number | null,
     year: number,
-    booksGoal: number
+    booksGoal: number,
+    goalCreatedAt: Date
   ): Promise<ProgressCalculation> {
     const booksCompleted = await readingGoalRepository.getBooksCompletedInYear(userId, year);
 
@@ -71,8 +72,15 @@ export class ReadingGoalsService {
     const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     const daysInYear = isLeapYear(year) ? 366 : 365;
     const startOfYearDate = new Date(year, 0, 1);
-    const daysElapsed = Math.max(0, differenceInDays(now, startOfYearDate));
-    const expectedBooks = (booksGoal / daysInYear) * daysElapsed;
+    
+    // Use the later of (goal creation date, Jan 1 of year) as the tracking start point
+    // This ensures users aren't penalized for creating goals mid-year
+    const trackingStartDate = goalCreatedAt > startOfYearDate ? goalCreatedAt : startOfYearDate;
+    const daysElapsed = Math.max(0, differenceInDays(now, trackingStartDate));
+    
+    // Calculate expected books based on tracking period, not full year
+    const daysRemainingInYear = Math.max(0, differenceInDays(new Date(year, 11, 31), trackingStartDate));
+    const expectedBooks = daysRemainingInYear > 0 ? (booksGoal / daysRemainingInYear) * daysElapsed : 0;
 
     let paceStatus: "ahead" | "on-track" | "behind";
     let booksAheadBehind = 0;
@@ -87,18 +95,8 @@ export class ReadingGoalsService {
       paceStatus = "on-track";
     }
 
-    let projectedFinishDate: Date | null = null;
-    if (daysElapsed >= 14 || booksCompleted >= 2) {
-      const booksPerDay = booksCompleted / daysElapsed;
-      if (booksPerDay > 0) {
-        const booksRemaining = booksGoal - booksCompleted;
-        const daysToFinish = booksRemaining / booksPerDay;
-        projectedFinishDate = addDays(now, Math.ceil(daysToFinish));
-      }
-    }
-
     logger.debug(
-      { year, booksCompleted, booksGoal, daysElapsed, paceStatus },
+      { year, booksCompleted, booksGoal, daysElapsed, paceStatus, trackingStartDate },
       "Calculated reading goal progress"
     );
 
@@ -108,7 +106,6 @@ export class ReadingGoalsService {
       completionPercentage: Math.min(100, Math.round((booksCompleted / booksGoal) * 100)),
       paceStatus,
       daysElapsed,
-      projectedFinishDate,
       booksAheadBehind,
     };
   }
