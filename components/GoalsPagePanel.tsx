@@ -8,6 +8,7 @@ import { CreateGoalPrompt } from "./CreateGoalPrompt";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";
+import { CompletedBooksSection } from "./CompletedBooksSection";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -22,10 +23,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
   const [currentGoalData, setCurrentGoalData] = useState<ReadingGoalWithProgress | null>(initialGoalData);
   const [monthlyData, setMonthlyData] = useState<MonthlyBreakdown[]>([]);
+  const [completedBooks, setCompletedBooks] = useState<any[]>([]);
+  const [booksCount, setBooksCount] = useState(0);
   const [availableYears, setAvailableYears] = useState<number[]>(
     Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a)
   );
   const [loading, setLoading] = useState(false);
+  const [booksLoading, setBooksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -45,9 +49,10 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     setCurrentGoalData(initialGoalData);
   }, [initialGoalData]);
 
-  // Fetch monthly data when selected year changes
+  // Fetch monthly data and books when selected year changes
   useEffect(() => {
     fetchMonthlyData(selectedYear);
+    fetchCompletedBooks(selectedYear);
   }, [selectedYear]);
 
   const handleOpenCreateModal = () => {
@@ -115,16 +120,44 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     }
   };
 
+  const fetchCompletedBooks = async (year: number) => {
+    setBooksLoading(true);
+    try {
+      const response = await fetch(`/api/reading-goals/books?year=${year}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch completed books: ${response.statusText}`);
+      }
+      const data = await response.json();
+
+      if (data.success) {
+        setCompletedBooks(data.data.books);
+        setBooksCount(data.data.count);
+      } else {
+        setCompletedBooks([]);
+        setBooksCount(0);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load completed books";
+      setError(errorMessage);
+      setCompletedBooks([]);
+      setBooksCount(0);
+    } finally {
+      setBooksLoading(false);
+    }
+  };
+
   const handleYearChange = async (year: number) => {
     setSelectedYear(year);
     setLoading(true);
+    setBooksLoading(true);
     setError(null);
 
     try {
-      // Fetch both goal data and monthly data
-      const [goalResponse, monthlyResponse] = await Promise.all([
+      // Fetch goal data, monthly data, and completed books
+      const [goalResponse, monthlyResponse, booksResponse] = await Promise.all([
         fetch(`/api/reading-goals?year=${year}`),
-        fetch(`/api/reading-goals/monthly?year=${year}`)
+        fetch(`/api/reading-goals/monthly?year=${year}`),
+        fetch(`/api/reading-goals/books?year=${year}`)
       ]);
 
       if (!goalResponse.ok) {
@@ -133,9 +166,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       if (!monthlyResponse.ok) {
         throw new Error(`Failed to fetch monthly data: ${monthlyResponse.statusText}`);
       }
+      if (!booksResponse.ok) {
+        throw new Error(`Failed to fetch completed books: ${booksResponse.statusText}`);
+      }
 
       const goalData = await goalResponse.json();
       const monthlyDataResponse = await monthlyResponse.json();
+      const booksData = await booksResponse.json();
 
       if (goalData.success) {
         setCurrentGoalData(goalData.data);
@@ -148,13 +185,24 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       } else {
         setMonthlyData([]);
       }
+
+      if (booksData.success) {
+        setCompletedBooks(booksData.data.books);
+        setBooksCount(booksData.data.count);
+      } else {
+        setCompletedBooks([]);
+        setBooksCount(0);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       setError(errorMessage);
       setCurrentGoalData(null);
       setMonthlyData([]);
+      setCompletedBooks([]);
+      setBooksCount(0);
     } finally {
       setLoading(false);
+      setBooksLoading(false);
     }
   };
 
@@ -252,6 +300,16 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             year={selectedYear}
           />
         </div>
+      )}
+
+      {/* Completed Books Section */}
+      {currentGoalData && (
+        <CompletedBooksSection
+          year={selectedYear}
+          books={completedBooks}
+          count={booksCount}
+          loading={booksLoading}
+        />
       )}
     </div>
   );

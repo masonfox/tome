@@ -1,7 +1,7 @@
 import { eq, and, desc, isNull, isNotNull, sql } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
-import { readingGoals, readingSessions } from "@/lib/db/schema";
-import type { ReadingGoal, NewReadingGoal } from "@/lib/db/schema";
+import { readingGoals, readingSessions, books } from "@/lib/db/schema";
+import type { ReadingGoal, NewReadingGoal, Book } from "@/lib/db/schema";
 
 export class ReadingGoalRepository extends BaseRepository<
   ReadingGoal,
@@ -157,6 +157,59 @@ export class ReadingGoalRepository extends BaseRepository<
     }
 
     return allMonths;
+  }
+
+  /**
+   * Get all books completed in a specific year
+   * Returns books with their completion dates, ordered by completion date descending
+   */
+  async getBooksByCompletionYear(
+    userId: number | null,
+    year: number
+  ): Promise<Array<Book & { completedDate: Date }>> {
+    const db = this.getDatabase();
+
+    const results = db
+      .select({
+        // Book fields
+        id: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        path: books.path,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+        // Completion date from session
+        completedDate: readingSessions.completedDate,
+      })
+      .from(readingSessions)
+      .innerJoin(books, eq(readingSessions.bookId, books.id))
+      .where(
+        and(
+          userId === null
+            ? isNull(readingSessions.userId)
+            : eq(readingSessions.userId, userId),
+          isNotNull(readingSessions.completedDate),
+          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+        )
+      )
+      .orderBy(desc(readingSessions.completedDate))
+      .all();
+
+    return results as Array<Book & { completedDate: Date }>;
   }
 }
 
