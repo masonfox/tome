@@ -20,7 +20,9 @@ export function ReadingGoalForm({
 }: ReadingGoalFormProps) {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(existingGoal?.year || currentYear);
-  const [booksGoal, setBooksGoal] = useState(existingGoal?.booksGoal || 40);
+  const [booksGoal, setBooksGoal] = useState<number | "">(
+    existingGoal?.booksGoal ?? ""
+  );
   const [saving, setSaving] = useState(false);
 
   const isPastYear = year < currentYear;
@@ -37,6 +39,11 @@ export function ReadingGoalForm({
     e.preventDefault();
 
     // Validation
+    if (booksGoal === "" || typeof booksGoal !== "number") {
+      toast.error("Please enter a goal");
+      return;
+    }
+
     if (booksGoal < 1 || booksGoal > 9999) {
       toast.error("Goal must be between 1 and 9999 books");
       return;
@@ -153,7 +160,10 @@ export function ReadingGoalForm({
             min="1"
             max="9999"
             value={booksGoal}
-            onChange={(e) => setBooksGoal(parseInt(e.target.value) || 1)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setBooksGoal(val === "" ? "" : parseInt(val) || "");
+            }}
             className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!canEdit || saving}
           />
