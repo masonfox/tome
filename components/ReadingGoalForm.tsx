@@ -19,12 +19,10 @@ export function ReadingGoalForm({
   mode,
 }: ReadingGoalFormProps) {
   const currentYear = new Date().getFullYear();
-  // Generate year options: current year + next 3 years
+  // Generate year options: current year + next year
   const yearOptions = [
     currentYear,
-    currentYear + 1,
-    currentYear + 2,
-    currentYear + 3,
+    currentYear + 1
   ];
   
   const [year, setYear] = useState(existingGoal?.year || currentYear);
