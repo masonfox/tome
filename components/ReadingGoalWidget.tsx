@@ -12,11 +12,11 @@ export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorPro
   const getStatusColor = () => {
     switch (paceStatus) {
       case "ahead":
-        return "text-emerald-700 bg-emerald-50/50";
+        return "text-emerald-700";
       case "on-track":
-        return "text-[var(--accent)] bg-[var(--accent)]/10";
+        return "text-[var(--accent)]";
       case "behind":
-        return "text-orange-700 bg-orange-50/50";
+        return "text-orange-700";
     }
   };
 
@@ -25,29 +25,29 @@ export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorPro
       return "On Track";
     }
     
-    const books = Math.abs(booksAheadBehind);
+    const books = Math.round(Math.abs(booksAheadBehind)); // Changed to whole number
     const bookText = books === 1 ? "book" : "books";
     
     if (paceStatus === "ahead") {
-      return `${books.toFixed(1)} ${bookText} ahead`;
+      return `${books} ${bookText} ahead`;
     } else {
-      return `${books.toFixed(1)} ${bookText} behind`;
+      return `${books} ${bookText} behind`;
     }
   };
 
   const getIcon = () => {
     switch (paceStatus) {
       case "ahead":
-        return <TrendingUp className="w-3 h-3" />;
+        return <TrendingUp className="w-3.5 h-3.5" />;
       case "on-track":
-        return <Target className="w-3 h-3" />;
+        return <Target className="w-3.5 h-3.5" />;
       case "behind":
-        return <TrendingDown className="w-3 h-3" />;
+        return <TrendingDown className="w-3.5 h-3.5" />;
     }
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold ${getStatusColor()}`}>
+    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${getStatusColor()}`}>
       {getIcon()}
       {getStatusText()}
     </span>
@@ -74,9 +74,23 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const displayPercentage = Math.min(completionPercentage, 100);
 
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow">
+    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
+      {/* Edit Button - Top Right */}
+      {onEditClick && (
+        <button
+          onClick={onEditClick}
+          className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]/70 hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="m15 5 4 4"/>
+          </svg>
+          Edit
+        </button>
+      )}
+
       {/* Header Section */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 pr-20">
         <div>
           <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
             {goal.year} Reading Goal
@@ -87,8 +101,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         </div>
         {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
         {isExceeded && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold text-emerald-700 bg-emerald-50/50">
-            <Target className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+            <Target className="w-3.5 h-3.5" />
             Goal Exceeded!
           </span>
         )}
@@ -155,18 +169,6 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               })}
             </span>
           </p>
-        </div>
-      )}
-
-      {/* Edit Button */}
-      {onEditClick && (
-        <div className={projectedFinishDate && !isExceeded ? "mt-4" : "mt-6 pt-6 border-t border-[var(--border-color)]"}>
-          <button
-            onClick={onEditClick}
-            className="w-full px-4 py-2.5 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold text-sm"
-          >
-            Edit Goal
-          </button>
         </div>
       )}
     </div>

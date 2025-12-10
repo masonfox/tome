@@ -114,30 +114,30 @@ export function ReadingGoalForm({
       )}
 
       <div className="space-y-4">
-        {/* Year Input */}
-        <div>
-          <label
-            htmlFor="goal-year"
-            className="block text-sm font-semibold text-[var(--foreground)]/70 mb-2"
-          >
-            Year
-          </label>
-          <input
-            id="goal-year"
-            type="number"
-            min="1900"
-            max="9999"
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value) || currentYear)}
-            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-            disabled={mode === "edit" || saving}
-          />
-          <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
-            {mode === "edit"
-              ? "Year cannot be changed"
-              : "Select the year for this goal"}
-          </p>
-        </div>
+        {/* Year Display (only for create mode) */}
+        {mode === "create" && (
+          <div>
+            <label
+              htmlFor="goal-year"
+              className="block text-sm font-semibold text-[var(--foreground)]/70 mb-2"
+            >
+              Year
+            </label>
+            <input
+              id="goal-year"
+              type="number"
+              min="1900"
+              max="9999"
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value) || currentYear)}
+              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              disabled={saving}
+            />
+            <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
+              Select the year for this goal
+            </p>
+          </div>
+        )}
 
         {/* Books Goal Input */}
         <div>
@@ -145,7 +145,7 @@ export function ReadingGoalForm({
             htmlFor="books-goal"
             className="block text-sm font-semibold text-[var(--foreground)]/70 mb-2"
           >
-            Books Goal
+            Books Goal {mode === "edit" && `for ${year}`}
           </label>
           <input
             id="books-goal"
