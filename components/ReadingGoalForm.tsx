@@ -143,7 +143,7 @@ export function ReadingGoalForm({
               id="goal-year"
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-full pl-4 pr-8 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full pl-4 pr-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
               disabled={saving}
             >
               {yearOptions.map((y) => (

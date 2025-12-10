@@ -153,7 +153,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       {/* Modal Overlay */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[100] p-4 animate-fade-in"
           onClick={handleCloseModal}
         >
           <div 
