@@ -3,7 +3,7 @@
 **Feature Branch**: `002-annual-reading-goals`
 **Created**: 2025-11-27
 **Status**: Draft
-**Input**: User description: "Build an Annual Reading Goals feature for Tome — a user-facing option allowing each user to set and track a book-reading goal for a given calendar year. This feature should support setting the goal, dynamically tracking reading progress, and provide a dashboard visualization comparing current progress to the goal, with pace feedback (on track / ahead / behind). It also enables filtering/composing library views by the year in which books were completed."
+**Input**: User description: "Build an Annual Reading Goals feature for Tome — a user-facing option allowing each user to set and track a book-reading goal for a given calendar year. This feature should support setting the goal, dynamically tracking reading progress, and provide a dedicated Goals page with visualizations comparing current progress to the goal, with pace feedback (on track / ahead / behind). Users can view the books they completed in a given year directly on the Goals page."
 
 ## Clarifications
 
@@ -22,6 +22,7 @@
 - Q: How should pace be displayed? → A: Show "X books ahead/behind" instead of days, since the goal is measured in books
 - Q: Where should goal management (create/edit/delete) live? → A: Move from Settings page to Goals page with modal interface
 - Q: How should users navigate between different years? → A: Year selector dropdown on Goals page showing only years with created goals
+- Q: Should year-based book browsing be added to the library page filters? → A: No. Instead, show completed books directly on the Goals page below the chart. This keeps all year-based retrospective functionality in one place and avoids adding complexity to the already-complex library filters.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -83,20 +84,21 @@ As a user marks books as read with completion dates, the system automatically co
 
 ---
 
-### User Story 4 - Filter Library by Completion Year (Priority: P3)
+### User Story 4 - View Completed Books on Goals Page (Priority: P2)
 
-A user wants to browse books they completed in a specific year. In the library view, they can filter by "Year Completed" to see only books finished during selected years. The filter shows available years with book counts (e.g., "2025 (12 books)", "2024 (48 books)").
+A user wants to see which specific books they completed in a given year while viewing their goal progress. On the Goals page, below the chart, they see an expandable "Books Completed in [Year]" section that displays all books they finished during the selected year using the existing book grid component.
 
-**Why this priority**: This is P3 because it's a convenience feature that enhances library browsing but isn't critical to the core goal-setting and tracking functionality. It provides additional value for users who want to reflect on past reading years.
+**Why this priority**: This is P2 because it completes the "annual retrospective" experience by showing not just how many books were read (chart) but which books were read. This keeps all year-based reflection in one place (the Goals page) rather than splitting it across multiple pages. It's simpler than adding another filter to the library page and provides better UX by co-locating related information.
 
-**Independent Test**: Can be tested by completing books across multiple years (2024, 2025, 2026), then using the year filter dropdown to view only 2025 books and verifying the correct subset appears. Delivers value by enabling yearly reading retrospectives.
+**Independent Test**: Can be tested by completing books in 2025, navigating to Goals page, selecting 2025 from the year selector, and verifying the "Books Completed in 2025" section shows all completed books from that year. Can expand/collapse the section. Delivers value by enabling yearly reading retrospectives in context.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user has completed 12 books in 2025 and 8 books in 2024, **When** they view the library page, **Then** the "Year Completed" filter dropdown shows "2025 (12 books)" and "2024 (8 books)" as options
-2. **Given** a user selects "2025" from the year filter, **When** the filter is applied, **Then** only the 12 books completed in 2025 are displayed in the library
-3. **Given** a user has books in their library but none are marked as completed, **When** they view the year filter dropdown, **Then** it displays a message "No completed books yet"
-4. **Given** a user has books completed in 2024, 2025, and 2026, **When** they view the filter dropdown, **Then** years are listed in descending order (2026, 2025, 2024)
+1. **Given** a user has completed 12 books in 2025 and is viewing the 2025 goal, **When** they scroll below the chart, **Then** they see an expandable section titled "Books Completed in 2025 (12 books)"
+2. **Given** the "Books Completed" section is collapsed by default, **When** a user clicks on it, **Then** it expands to show a grid of all 12 books completed in 2025 using the same book card layout as the library page
+3. **Given** a user selects "2024" from the year selector, **When** the page updates, **Then** the books section updates to "Books Completed in 2024 (X books)" showing only books completed in 2024
+4. **Given** a user has a goal for 2026 but hasn't completed any books yet, **When** they view the 2026 goal, **Then** the books section shows "Books Completed in 2026 (0 books)" with an empty state message "No books completed yet this year"
+5. **Given** a user clicks on a book in the "Books Completed" section, **When** they navigate to the book detail page and return, **Then** the Goals page retains the selected year and expansion state
 
 ---
 
@@ -104,7 +106,7 @@ A user wants to browse books they completed in a specific year. In the library v
 
 - What happens when a user sets multiple goals for the same year? The system enforces one goal per year per user through database constraints, showing an error "You already have a goal for 2026. Edit your existing goal instead."
 - How does the system handle books without completion dates? Books without completion dates are not counted toward any annual goal, as they are not considered "finished."
-- What if a user deletes their reading goal mid-year? The goal is removed from the database, the dashboard widget disappears, and library filtering by year still works (using completion dates, not goals).
+- What if a user deletes their reading goal mid-year? The goal is removed from the database. The year is no longer shown in the year selector on the Goals page (since only years with goals are shown). However, books remain in the library with their completion dates intact.
 - How is "on track / ahead / behind" calculated? Calculate expected pace as (goal / 365 days * days elapsed in year). Compare actual books completed to expected books. Ahead if actual > expected + 1, behind if actual < expected - 1, on track otherwise. The difference is displayed in books (e.g., "2.3 books ahead") rather than days.
 - What happens on January 1st when switching to a new year? The Goals page automatically displays the new year's goal (if set) with 0 books completed in the year selector. If no goal exists for the new year, the Goals page prompts the user to create one. Previous year's goal remains accessible via the year selector dropdown for historical reference.
 - How does the system handle leap years in pace calculations? Leap years use 366 days instead of 365 when calculating daily pace (goal / days in year).
@@ -127,8 +129,8 @@ A user wants to browse books they completed in a specific year. In the library v
 - **FR-009**: System MUST show a visual progress bar representing completion percentage (books completed / goal target * 100%)
 - **FR-010**: System MUST calculate projected finish date based on current reading pace (books per day) only when sufficient data exists (at least 14 days elapsed in the year OR at least 2 books completed, whichever comes first)
 - **FR-011**: System MUST indicate when a goal has been exceeded with a "Goal exceeded!" badge
-- **FR-012**: System MUST provide a year filter in the library view showing only years with completed books
-- **FR-013**: System MUST display book counts for each year in the filter dropdown (e.g., "2025 (12 books)")
+- **FR-012**: Goals page MUST display an expandable "Books Completed in [Year]" section below the chart showing all books completed during the selected year
+- **FR-013**: System MUST display book count in the completed books section header (e.g., "Books Completed in 2025 (12 books)")
 - **FR-014**: System MUST persist goal changes and immediately reflect updates in all progress calculations
 - **FR-015**: System MUST validate that year values are positive four-digit integers representing valid calendar years
 - **FR-016**: Goals page MUST display selected year's goal with year selector dropdown; only years with created goals are shown in the selector
@@ -140,6 +142,9 @@ A user wants to browse books they completed in a specific year. In the library v
 - **FR-022**: Year selector dropdown MUST be populated only with years where user has created a goal, ordered descending (most recent first)
 - **FR-023**: System MUST provide modal interface for creating and editing goals, accessible from Goals page via "Create Goal" or "Edit Goal" buttons
 - **FR-024**: Goals page MUST be accessible via dedicated "Goals" navigation item positioned after Library and before Streak in bottom navigation
+- **FR-025**: Completed books section MUST use the existing BookGrid component for consistent presentation with the library page
+- **FR-026**: Completed books section MUST support expand/collapse interaction to minimize page length when not needed
+- **FR-027**: System MUST fetch and display only books completed during the selected year (filtered by completion date year matching selected year)
 
 ### Key Entities
 
@@ -156,11 +161,12 @@ A user wants to browse books they completed in a specific year. In the library v
 - **SC-003**: Users can view detailed reading progress with month-by-month visualization on Goals page within one click from any page via bottom navigation
 - **SC-004**: 90% of users can correctly interpret their pace status (on track / ahead / behind) based on the visual indicators showing book counts
 - **SC-005**: The system accurately calculates progress across 1000+ completed books per user without performance degradation
-- **SC-006**: Year filter in library view displays results in under 1 second for users with up to 500 completed books
+- **SC-006**: Completed books section on Goals page displays results in under 1 second for users with up to 500 completed books
 - **SC-007**: Users can update their goal mid-year and see recalculated progress reflected immediately in the progress widget and chart
 - **SC-008**: Projected finish date calculations have a margin of error within ±3 days when tested against actual completion patterns
 - **SC-009**: Users can switch between different years' goals and see corresponding historical data within 1 second
 - **SC-010**: Monthly chart renders correctly for all screen sizes (320px to 2560px width) without horizontal scrolling or layout issues
+- **SC-011**: Users can expand the completed books section and see their books within 1 second on mobile and desktop devices
 
 ## Assumptions
 
@@ -170,7 +176,7 @@ A user wants to browse books they completed in a specific year. In the library v
 - A Settings page exists for application-wide configuration
 - A dashboard/home page exists focused on currently reading books
 - A bottom navigation system exists where new navigation items can be added
-- A library view exists that displays the user's book collection and supports filtering
+- A library view exists that displays the user's book collection with a BookGrid component that can be reused
 - Completion dates are stored in a format that allows year extraction (ISO date format or similar)
 - The system operates in a single timezone per user or uses UTC with proper date handling
 - "Books completed" means books with a recorded completion date, not partial progress
@@ -238,6 +244,18 @@ A user wants to browse books they completed in a specific year. In the library v
 - Viewing years without goals provides no actionable insights
 - Simplifies UI by reducing dropdown options
 - Encourages intentional goal-setting rather than passive historical viewing
+
+### Completed Books Display Location
+
+**Decision**: Show completed books directly on the Goals page in an expandable section, rather than adding a year filter to the library page.
+
+**Rationale**:
+- **Co-location**: All year-based retrospective functionality stays in one place (Goals page)
+- **Reduced complexity**: Library page already has 4 filters (search, status, tags, rating); adding a 5th increases cognitive load and maintenance burden
+- **Mental model alignment**: Goals page is for "looking back" at annual progress; viewing which books were completed is a natural part of that reflection
+- **Simpler implementation**: Reuses existing BookGrid component without touching the complex library filter state management
+- **Better UX flow**: User selects year → sees goal progress → sees chart → sees actual books, all in one scrollable page
+- **Separation of concerns**: Library is for "books to manage" (to-read, currently reading), Goals page is for "books completed" (retrospective)
 
 ## Future Enhancements (Not in Scope)
 

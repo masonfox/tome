@@ -16,7 +16,7 @@
 - Error handling and loading states
 - Comprehensive integration test suite
 
-**Deferred (P3 - Optional)**: Phase 12 Library Filter (13 tasks)
+**Deferred (P2 - Enhancement)**: Phase 12 Completed Books Display (13 tasks) - can be added after core feature is validated
 
 ---
 
@@ -303,29 +303,29 @@
 
 ---
 
-## Phase 12: User Story 4 - Filter Library by Completion Year (Priority: P3)
+## Phase 12: User Story 4 - Display Completed Books on Goals Page (Priority: P2)
 
-**Goal**: Users can filter library books by year completed for retrospective browsing
+**Goal**: Users can view completed books directly on the Goals page in an expandable section below the chart
 
-**Independent Test**: Complete books across multiple years (2024, 2025, 2026), use year filter dropdown to view only 2025 books, verify correct subset appears.
+**Independent Test**: Complete books in 2025, navigate to Goals page, verify "Books Completed in 2025" section shows all books completed that year. Section can be expanded/collapsed.
 
 ### Implementation for User Story 4
 
-- [ ] T118 [US4] Create GET /api/reading-goals/years route handler in app/api/reading-goals/years/route.ts
-- [ ] T119 [US4] Implement getYearsSummary() method in lib/services/reading-goals.service.ts using getYearsWithCompletedBooks()
-- [ ] T120 [P] [US4] Create YearCompletionFilter component in components/YearCompletionFilter.tsx
-- [ ] T121 [US4] Add year filter dropdown to app/library/page.tsx
-- [ ] T122 [US4] Implement year-based filtering logic in library view
-- [ ] T123 [US4] Display year with book count in dropdown (e.g., "2025 (12 books)")
-- [ ] T124 [US4] Order years descending (newest first) in filter dropdown
-- [ ] T125 [US4] Show "No completed books yet" message when no years exist
-- [ ] T126 [P] [US4] Write years API tests in __tests__/api/reading-goals-years.test.ts
-- [ ] T127 [P] [US4] Write filter component tests in __tests__/components/YearCompletionFilter.test.tsx
-- [ ] T128 [US4] Test library filtering returns correct books for selected year
-- [ ] T129 [US4] Test year filter dropdown shows correct counts
-- [ ] T130 [US4] Add logging for year filter queries in lib/services/reading-goals.service.ts
+- [ ] T118 [US4] Add GET /api/books/completed endpoint in app/api/books/completed/route.ts (or extend existing books API) to fetch books by completion year
+- [ ] T119 [US4] Add getBooksByCompletionYear() method in lib/repositories/reading-goals.repository.ts (queries books/sessions with strftime year filter)
+- [ ] T120 [P] [US4] Create CompletedBooksSection component in components/CompletedBooksSection.tsx with expand/collapse state
+- [ ] T121 [US4] Add CompletedBooksSection to app/goals/page.tsx below the chart
+- [ ] T122 [US4] Fetch completed books for selected year in goals/page.tsx
+- [ ] T123 [US4] Pass books data to CompletedBooksSection with count displayed in header (e.g., "Books Completed in 2025 (12 books)")
+- [ ] T124 [US4] Reuse BookGrid component inside CompletedBooksSection to display books
+- [ ] T125 [US4] Show "No books completed yet this year" empty state when count is 0
+- [ ] T126 [P] [US4] Write component tests in __tests__/components/CompletedBooksSection.test.tsx
+- [ ] T127 [US4] Test books section updates when year selector changes
+- [ ] T128 [US4] Test expand/collapse interaction works correctly
+- [ ] T129 [US4] Test performance with 100+ books in a single year (SC-006, SC-011)
+- [ ] T130 [US4] Add loading state for books fetch (skeleton or spinner)
 
-**Checkpoint**: All user stories should now be independently functional. Users can browse historical reading by year ✅
+**Checkpoint**: Goals page now provides complete annual retrospective - goal progress, monthly chart, and specific books completed ✅
 
 ---
 
@@ -414,7 +414,7 @@ Created comprehensive integration test suite in `__tests__/integration/api/readi
 - **Phase 9**: T085 (YearSelector component) independent work
 - **Phase 10**: T095-T098 (repository and service) can run in parallel with UI work
 - **Phase 11**: T104-T105 (chart components) can run in parallel
-- **Phase 12**: T120 and T126-T127 (filter component and tests) can run in parallel
+- **Phase 12**: T118-T119 (API/repository) can run in parallel with T120-T121 (component creation)
 - **Phase 13**: T131-T147 all marked [P] can run in parallel
 
 ### Critical Path for UX Redesign
@@ -425,7 +425,7 @@ Created comprehensive integration test suite in `__tests__/integration/api/readi
 4. Phase 9 (Year Selector) → requires Phase 6 complete
 5. Phase 10 (Monthly Data) can run parallel to Phases 8-9
 6. Phase 11 (Chart) → requires Phase 10 complete
-7. Phase 12 (Library Filter) can run parallel to Phases 6-11
+7. Phase 12 (Completed Books Section) → requires Phase 6 complete (page structure)
 8. Phase 13 (Polish) after all previous phases complete
 
 ---
@@ -545,7 +545,7 @@ Complete all phases 6-13 for the full redesigned experience with:
 - Phase 13 (Polish & Validation): 18 tasks ✅
 
 **Deferred Phase**:
-- Phase 12 (US4 - Library Filter): 13 tasks (P3 - nice-to-have, can be added later)
+- Phase 12 (US4 - Completed Books Display): 13 tasks (P2 - enhancement, can be added after core validation)
 
 **Parallel Opportunities**: Tasks marked [P] can execute concurrently within each phase
 
@@ -588,9 +588,11 @@ Complete all phases 6-13 for the full redesigned experience with:
 - **Breaking Changes**: Dashboard widget removed, Settings section removed
 - **Component Migration**: ReadingGoalWidget and CreateGoalPrompt move to Goals page
 - **API Addition**: New endpoint `/api/reading-goals/[year]/monthly` for chart data
-- **Testing Priority**: Focus on Goals page navigation, modal interactions, chart rendering
+- **Completed Books**: Display on Goals page using existing BookGrid component, NOT as library filter
+- **Design Rationale**: Co-locate all year-based retrospective in one place; avoid adding complexity to library filters
+- **Testing Priority**: Focus on Goals page navigation, modal interactions, chart rendering, books section
 - **Responsive Design**: Chart must work on mobile (320px) to desktop (2560px)
-- **Performance**: Year switching < 1s, chart rendering < 1s (SC-009, SC-010)
+- **Performance**: Year switching < 1s, chart rendering < 1s, books section < 1s (SC-006, SC-009, SC-010, SC-011)
 
 ### Future Enhancements (Not in Current Scope)
 

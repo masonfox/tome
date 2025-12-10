@@ -7,9 +7,9 @@
 
 ## Summary
 
-The Annual Reading Goals feature allows users to set yearly book reading targets, automatically tracks progress against those goals using existing book completion data, and displays progress with pace indicators on the dashboard. Users can create/edit goals for current and future years, view historical goals (read-only), and filter their library by completion year. The system calculates whether users are on track, ahead, or behind pace, and projects finish dates when sufficient data exists.
+The Annual Reading Goals feature allows users to set yearly book reading targets, automatically tracks progress against those goals using existing book completion data, and displays progress on a dedicated Goals page with visualizations. Users can create/edit goals for current and future years, view historical goals (read-only), see month-by-month charts, and browse completed books for each year. The system calculates whether users are on track, ahead, or behind pace measured in books.
 
-**Technical Approach**: Extend existing SQLite database with a new `reading_goals` table. Query `reading_sessions.completedDate` to calculate progress on-demand (no caching). Add dashboard widget for current year's goal, Settings UI for goal management, and library filter for year-based browsing. Follow existing layered architecture (Routes → Services → Repositories) with Pino logging and Bun test framework.
+**Technical Approach**: Extend existing SQLite database with a new `reading_goals` table. Query `reading_sessions.completedDate` to calculate progress on-demand (no caching). Add dedicated Goals page with year selector, progress widget, monthly chart, and completed books section. Implement modal-based goal management. Reuse existing BookGrid component for displaying completed books. Follow existing layered architecture (Routes → Services → Repositories) with Pino logging and Bun test framework.
 
 ## Technical Context
 
@@ -19,7 +19,7 @@ The Annual Reading Goals feature allows users to set yearly book reading targets
 **Testing**: Bun test framework with @testing-library/react
 **Target Platform**: Self-hosted web application (Node.js/Bun server + browser client)
 **Project Type**: Web application (Next.js App Router with frontend + API routes)
-**Performance Goals**: Dashboard loads in <2s, progress updates reflect within 2s, year filter returns results in <1s
+**Performance Goals**: Goals page loads in <2s, progress updates reflect within 2s, completed books section displays in <1s
 **Constraints**: Local-first (no cloud dependencies), must work with SQLite only, read-only access to existing reading_sessions data
 **Scale/Scope**: Single user or small household, up to 1000+ completed books per user, historical goals retained indefinitely
 
@@ -79,18 +79,17 @@ lib/
 
 # Frontend Layer
 app/
-├── settings/
-│   └── page.tsx                    # Add Reading Goals section
-├── dashboard/
-│   └── page.tsx                    # Update with ReadingGoalWidget
-└── library/
-    └── page.tsx                    # Add year filter
+└── goals/
+    └── page.tsx                    # Goals page with year selector, chart, and books
 
 components/
-├── ReadingGoalWidget.tsx           # Dashboard widget for current year goal
-├── ReadingGoalForm.tsx             # Create/edit goal form (Settings)
-├── ReadingGoalsList.tsx            # List of all goals (Settings)
-└── YearCompletionFilter.tsx        # Library filter dropdown
+├── ReadingGoalWidget.tsx           # Progress widget for goals page
+├── ReadingGoalForm.tsx             # Create/edit goal form (modal)
+├── ReadingGoalChart.tsx            # Month-by-month bar chart
+├── CompletedBooksSection.tsx       # Expandable section with BookGrid
+├── YearSelector.tsx                # Year dropdown for goals page
+├── GoalsPagePanel.tsx              # Main container for goals page
+└── CreateGoalPrompt.tsx            # Empty state prompt
 
 # Testing
 __tests__/
@@ -98,9 +97,13 @@ __tests__/
 │   └── reading-goals.service.test.ts
 ├── repositories/
 │   └── reading-goals.repository.test.ts
-└── components/
-    ├── ReadingGoalWidget.test.tsx
-    └── YearCompletionFilter.test.tsx
+├── components/
+│   ├── ReadingGoalWidget.test.tsx
+│   ├── ReadingGoalChart.test.tsx
+│   └── CompletedBooksSection.test.tsx
+└── integration/
+    └── api/
+        └── reading-goals.test.ts
 ```
 
 **Structure Decision**: Using Next.js App Router pattern with API routes for backend logic and React Server Components + Client Components for frontend. Follows existing monorepo structure with separate `lib/` (shared backend logic), `app/` (pages + API routes), and `components/` (UI). Testing mirrors source structure under `__tests__/`.

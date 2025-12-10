@@ -196,7 +196,102 @@ Listed 8 potential features for future iterations:
 
 ---
 
+---
+
+## 2025-12-10 (Afternoon) - Completed Books Display Decision
+
+### Overview
+Revised User Story 4 to show completed books directly on the Goals page instead of adding a year filter to the library page. This simplifies implementation and improves user experience by keeping all year-based retrospective functionality in one place.
+
+### Key Changes
+
+#### 1. **User Story 4 Revision**
+- **Old Approach**: Add "Year Completed" filter to library page filters (alongside search, status, tags, rating)
+- **New Approach**: Display completed books in expandable section on Goals page below the chart
+- **Priority Change**: Remains P2 (not P3) - enhances the Goals page experience
+
+#### 2. **Rationale for Change**
+- **Co-location**: All annual retrospective functionality stays on Goals page (goal → chart → books)
+- **Reduced complexity**: Library page already has 4 filters; avoiding a 5th reduces cognitive load and state management complexity
+- **Mental model**: Goals page is for "looking back"; library is for "managing books to read"
+- **Simpler implementation**: Reuse `BookGrid` component without touching complex library filter logic
+- **Better UX flow**: Year selector controls everything on one page - seamless experience
+
+#### 3. **Component Design**
+- **New Component**: `CompletedBooksSection.tsx`
+- **Features**: 
+  - Expandable/collapsible section
+  - Header shows "Books Completed in [Year] (X books)"
+  - Reuses existing `BookGrid` component for book display
+  - Empty state: "No books completed yet this year"
+- **Position**: Below monthly chart on Goals page
+
+#### 4. **Specification Updates**
+
+**Updated User Story 4**
+- Title: "Filter Library by Completion Year" → "View Completed Books on Goals Page"
+- Location: Library page → Goals page
+- Interaction: Filter dropdown → Expandable section
+- Acceptance scenarios updated (5 scenarios focused on Goals page experience)
+
+**Removed Requirements**
+- ~~FR-012: Library view year filter~~
+- ~~FR-013: Filter dropdown with year counts~~
+
+**New Requirements**
+- **FR-012**: Goals page displays expandable "Books Completed" section
+- **FR-013**: Section header shows year and book count
+- **FR-025**: Use existing BookGrid component for consistency
+- **FR-026**: Support expand/collapse interaction
+- **FR-027**: Fetch only books from selected year
+
+**Updated Success Criteria**
+- **SC-006**: "Library view displays results" → "Completed books section displays results"
+- **SC-011** (NEW): Expand section and see books < 1 second on all devices
+
+#### 5. **Implementation Changes**
+
+**Phase 12 Tasks Updated** (13 tasks revised)
+- Removed: Library filter component, library page integration, year filter API
+- Added: CompletedBooksSection component, books API endpoint (or extend existing), expand/collapse state
+
+**API Strategy**
+- Option A: New endpoint `GET /api/books/completed?year=2025`
+- Option B: Extend existing books API with year parameter
+- Repository: Reuse `getBooksCompletedInYear()` (already exists for progress calculation)
+
+**Estimated Effort Reduction**
+- Library filter approach: ~13 tasks involving complex state management, URL params, filter interactions
+- Goals page approach: ~13 tasks but simpler - mostly component rendering and single data fetch
+- Net benefit: Simpler code, better UX, no additional complexity to library page
+
+---
+
+### Edge Cases Updated
+
+- **Goal deletion**: Year no longer in selector, but completed books section would not be visible anyway (no goal = no page)
+- **Large book counts**: Performance tested with 100+ books per year (same as library grid)
+- **Navigation**: Clicking book navigates to detail; returning preserves year selection and expansion state
+
+---
+
+### Decision Impact
+
+#### Positive Outcomes
+1. **Cleaner library page**: No additional filter complexity
+2. **Better information architecture**: Related features grouped together
+3. **Simplified testing**: One page to test instead of coordinating two
+4. **Easier maintenance**: Fewer moving parts, clearer separation of concerns
+5. **Better user journey**: "I want to reflect on 2024" → everything in one place
+
+#### No Breaking Changes
+- This decision made during planning phase before Phase 12 implementation
+- No existing code affected
+- No user-facing features impacted
+
+---
+
 ## Status
 
-**Current Phase**: Specification complete, ready for tasks breakdown
-**Next Steps**: Update tasks.md with new implementation phases
+**Current Phase**: Specification updated and finalized
+**Next Steps**: Ready for Phase 12 implementation with new approach
