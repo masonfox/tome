@@ -1,4 +1,4 @@
-import { BookOpen, Library, BarChart3, Settings } from "lucide-react";
+import { BookOpen, Library, Target, Flame, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavLink {
@@ -11,7 +11,8 @@ export interface NavLink {
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Dashboard", icon: BookOpen },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/goals", label: "Goals", icon: Target },
+  { href: "/streak", label: "Streak", icon: Flame },
 ];
 
 // Additional link only shown in top navigation (not in bottom nav tabs)

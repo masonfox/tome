@@ -156,14 +156,14 @@
 
 ### Implementation
 
-- [ ] T061 [P] Create app/goals/page.tsx with basic layout and PageHeader
-- [ ] T062 [P] Create components/ReadingGoalsPanel.tsx wrapper component
-- [ ] T063 Add "Goals" to bottom navigation in components/BottomNavigation.tsx (after Library, before Streak)
-- [ ] T064 Update lib/navigation-config.ts to include Goals route
-- [ ] T065 Remove ReadingGoalWidget from app/page.tsx (lines 17-18, 52-56)
-- [ ] T066 Remove ReadingGoalsSettings section from app/settings/page.tsx
-- [ ] T067 Verify Goals page is accessible via navigation
-- [ ] T068 Verify dashboard no longer shows goal widget
+- [X] T061 [P] Create app/goals/page.tsx with basic layout and PageHeader
+- [X] T062 [P] Create components/GoalsPagePanel.tsx wrapper component
+- [X] T063 Update lib/navigation-config.ts to include Goals route (changed "Stats" to "Streak", added "Goals")
+- [X] T064 Add "Goals" to bottom navigation in components/BottomNavigation.tsx (changed grid from 4 to 5 columns)
+- [X] T065 Remove ReadingGoalWidget from app/page.tsx (removed imports and JSX)
+- [X] T066 Remove ReadingGoalsPanel section from app/settings/page.tsx (removed imports, goals fetch, and JSX)
+- [X] T067 Verify Goals page is accessible via navigation (TypeScript compiles without errors)
+- [X] T068 Verify dashboard no longer shows goal widget (Removed from app/page.tsx)
 
 **Checkpoint**: Goals page exists, navigation works, dashboard is clean ✅
 

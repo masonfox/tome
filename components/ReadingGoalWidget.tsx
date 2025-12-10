@@ -1,6 +1,7 @@
 "use client";
 
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
+import { Target, TrendingUp, TrendingDown } from "lucide-react";
 
 interface PaceIndicatorProps {
   paceStatus: "ahead" | "on-track" | "behind";
@@ -11,11 +12,11 @@ export function PaceIndicator({ paceStatus, daysAheadBehind }: PaceIndicatorProp
   const getStatusColor = () => {
     switch (paceStatus) {
       case "ahead":
-        return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20";
+        return "text-emerald-700 bg-emerald-50/50";
       case "on-track":
-        return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20";
+        return "text-[var(--accent)] bg-[var(--accent)]/10";
       case "behind":
-        return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20";
+        return "text-orange-700 bg-orange-50/50";
     }
   };
 
@@ -34,8 +35,20 @@ export function PaceIndicator({ paceStatus, daysAheadBehind }: PaceIndicatorProp
     }
   };
 
+  const getIcon = () => {
+    switch (paceStatus) {
+      case "ahead":
+        return <TrendingUp className="w-3 h-3" />;
+      case "on-track":
+        return <Target className="w-3 h-3" />;
+      case "behind":
+        return <TrendingDown className="w-3 h-3" />;
+    }
+  };
+
   return (
-    <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStatusColor()}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold ${getStatusColor()}`}>
+      {getIcon()}
       {getStatusText()}
     </span>
   );
@@ -60,62 +73,67 @@ export function ReadingGoalWidget({ goalData }: ReadingGoalWidgetProps) {
   const displayPercentage = Math.min(completionPercentage, 100);
 
   return (
-    <div className="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-6">
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow">
+      {/* Header Section */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
             {goal.year} Reading Goal
-          </h3>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-            {booksCompleted} of {goal.booksGoal} books
-            {isExceeded && " (Goal exceeded!)"}
+          </h2>
+          <p className="text-sm text-[var(--subheading-text)] mt-1 font-medium">
+            {booksCompleted} of {goal.booksGoal} books completed
           </p>
         </div>
         {!isExceeded && <PaceIndicator paceStatus={paceStatus} daysAheadBehind={daysAheadBehind} />}
         {isExceeded && (
-          <span className="px-2 py-1 rounded-md text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20">
-            Goal Exceeded! 🎉
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold text-emerald-700 bg-emerald-50/50">
+            <Target className="w-3 h-3" />
+            Goal Exceeded!
           </span>
         )}
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
             Progress
           </span>
-          <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+          <span className="text-sm font-bold text-[var(--heading-text)]">
             {displayPercentage}%
           </span>
         </div>
-        <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-3">
+        <div className="w-full bg-[var(--border-color)] rounded-sm h-4 overflow-hidden">
           <div
-            className={`h-3 rounded-full transition-all duration-300 ${
+            className={`h-4 transition-all duration-500 ease-out ${
               isExceeded
-                ? "bg-emerald-500 dark:bg-emerald-600"
+                ? "bg-gradient-to-r from-emerald-600 to-emerald-500"
                 : paceStatus === "ahead"
-                ? "bg-green-500 dark:bg-green-600"
+                ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
                 : paceStatus === "on-track"
-                ? "bg-blue-500 dark:bg-blue-600"
-                : "bg-amber-500 dark:bg-amber-600"
+                ? "bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)]"
+                : "bg-gradient-to-r from-orange-600 to-orange-500"
             }`}
             style={{ width: `${displayPercentage}%` }}
           />
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <p className="text-neutral-600 dark:text-neutral-400">Completed</p>
-          <p className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="border-l-2 border-[var(--accent)] pl-4">
+          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+            Completed
+          </p>
+          <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
             {booksCompleted}
           </p>
         </div>
-        <div>
-          <p className="text-neutral-600 dark:text-neutral-400">Remaining</p>
-          <p className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <div className="border-l-2 border-[var(--border-color)] pl-4">
+          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+            Remaining
+          </p>
+          <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
             {booksRemaining}
           </p>
         </div>
@@ -123,10 +141,12 @@ export function ReadingGoalWidget({ goalData }: ReadingGoalWidgetProps) {
 
       {/* Projected Finish Date */}
       {projectedFinishDate && !isExceeded && (
-        <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-          <p className="text-xs text-neutral-600 dark:text-neutral-400">
-            Projected finish:{" "}
-            <span className="font-medium text-neutral-900 dark:text-neutral-100">
+        <div className="mt-6 pt-6 border-t border-[var(--border-color)]">
+          <p className="text-sm text-[var(--foreground)]/80">
+            <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
+              Projected finish:
+            </span>{" "}
+            <span className="font-semibold text-[var(--heading-text)]">
               {new Date(projectedFinishDate).toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
