@@ -204,4 +204,34 @@ describe("ReadingGoalRepository", () => {
     // Note: Testing with actual book data would require setting up books and sessions
     // This would be done in integration tests
   });
+
+  describe("getBooksCompletedByMonth()", () => {
+    test("returns all 12 months with zero counts when no books completed", async () => {
+      const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
+      
+      expect(monthlyData).toHaveLength(12);
+      
+      // Verify all months 1-12 are present
+      for (let month = 1; month <= 12; month++) {
+        const monthData = monthlyData.find(m => m.month === month);
+        expect(monthData).toBeDefined();
+        expect(monthData?.count).toBe(0);
+      }
+    });
+
+    test("returns months in order (1-12)", async () => {
+      const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
+      
+      expect(monthlyData).toHaveLength(12);
+      
+      // Verify months are in ascending order
+      for (let i = 0; i < 12; i++) {
+        expect(monthlyData[i].month).toBe(i + 1);
+      }
+    });
+
+    // Note: Testing with actual book completion data would require setting up
+    // books and sessions with specific completion dates
+    // This would be done in integration tests
+  });
 });

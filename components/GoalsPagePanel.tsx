@@ -7,7 +7,8 @@ import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { CreateGoalPrompt } from "./CreateGoalPrompt";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
-import type { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
+import { ReadingGoalChart } from "./ReadingGoalChart";
+import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
 interface GoalsPagePanelProps {
@@ -20,6 +21,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
   const [currentGoalData, setCurrentGoalData] = useState<ReadingGoalWithProgress | null>(initialGoalData);
+  const [monthlyData, setMonthlyData] = useState<MonthlyBreakdown[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>(
     Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a)
   );
@@ -41,6 +43,11 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   useEffect(() => {
     setCurrentGoalData(initialGoalData);
   }, [initialGoalData]);
+
+  // Fetch monthly data when selected year changes
+  useEffect(() => {
+    fetchMonthlyData(selectedYear);
+  }, [selectedYear]);
 
   const handleOpenCreateModal = () => {
     setModalMode("create");
@@ -82,22 +89,51 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     }
   };
 
+  const fetchMonthlyData = async (year: number) => {
+    try {
+      const response = await fetch(`/api/reading-goals/monthly?year=${year}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setMonthlyData(data.data.monthlyData);
+      } else {
+        setMonthlyData([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch monthly data:", error);
+      setMonthlyData([]);
+    }
+  };
+
   const handleYearChange = async (year: number) => {
     setSelectedYear(year);
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/reading-goals?year=${year}`);
-      const data = await response.json();
+      // Fetch both goal data and monthly data
+      const [goalResponse, monthlyResponse] = await Promise.all([
+        fetch(`/api/reading-goals?year=${year}`),
+        fetch(`/api/reading-goals/monthly?year=${year}`)
+      ]);
 
-      if (data.success) {
-        setCurrentGoalData(data.data);
+      const goalData = await goalResponse.json();
+      const monthlyDataResponse = await monthlyResponse.json();
+
+      if (goalData.success) {
+        setCurrentGoalData(goalData.data);
       } else {
         setCurrentGoalData(null);
+      }
+
+      if (monthlyDataResponse.success) {
+        setMonthlyData(monthlyDataResponse.data.monthlyData);
+      } else {
+        setMonthlyData([]);
       }
     } catch (error) {
       console.error("Failed to fetch goal data:", error);
       setCurrentGoalData(null);
+      setMonthlyData([]);
     } finally {
       setLoading(false);
     }
@@ -178,8 +214,19 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         document.body
       )}
 
-      {/* TODO: Year selector will go here in Phase 9 */}
-      {/* TODO: Monthly chart will go here in Phase 11 */}
+      {/* Monthly Chart - Shows progress visualization */}
+      {currentGoalData && monthlyData.length > 0 && (
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6">
+          <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
+            Monthly Progress
+          </h3>
+          <ReadingGoalChart
+            monthlyData={monthlyData}
+            goal={currentGoalData.goal.booksGoal}
+            year={selectedYear}
+          />
+        </div>
+      )}
     </div>
   );
 }
