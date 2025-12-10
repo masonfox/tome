@@ -23,10 +23,10 @@ interface ReadingGoalChartProps {
   year: number;
 }
 
-export function ReadingGoalChart({ monthlyData, goal, year }: ReadingGoalChartProps) {
-  // Month names for X-axis
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// Month names for X-axis (defined outside component to avoid recreating)
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+export function ReadingGoalChart({ monthlyData, goal, year }: ReadingGoalChartProps) {
   // Prepare chart data - no pace calculation needed
   const chartData = useMemo(() => {
     return monthlyData.map((item) => ({

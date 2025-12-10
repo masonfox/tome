@@ -26,6 +26,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a)
   );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
@@ -68,8 +69,12 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     
     // Refresh both the current goal data and trigger server refresh
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch goal data: ${response.statusText}`);
+      }
       const data = await response.json();
 
       if (data.success) {
@@ -81,7 +86,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       // Refresh server component to update allGoals prop
       router.refresh();
     } catch (error) {
-      console.error("Failed to fetch updated goal data:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load goal data";
+      setError(errorMessage);
       // Still refresh to get server data
       router.refresh();
     } finally {
@@ -92,6 +98,9 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const fetchMonthlyData = async (year: number) => {
     try {
       const response = await fetch(`/api/reading-goals/monthly?year=${year}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch monthly data: ${response.statusText}`);
+      }
       const data = await response.json();
 
       if (data.success) {
@@ -100,7 +109,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         setMonthlyData([]);
       }
     } catch (error) {
-      console.error("Failed to fetch monthly data:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load monthly data";
+      setError(errorMessage);
       setMonthlyData([]);
     }
   };
@@ -108,6 +118,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const handleYearChange = async (year: number) => {
     setSelectedYear(year);
     setLoading(true);
+    setError(null);
 
     try {
       // Fetch both goal data and monthly data
@@ -115,6 +126,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         fetch(`/api/reading-goals?year=${year}`),
         fetch(`/api/reading-goals/monthly?year=${year}`)
       ]);
+
+      if (!goalResponse.ok) {
+        throw new Error(`Failed to fetch goal data: ${goalResponse.statusText}`);
+      }
+      if (!monthlyResponse.ok) {
+        throw new Error(`Failed to fetch monthly data: ${monthlyResponse.statusText}`);
+      }
 
       const goalData = await goalResponse.json();
       const monthlyDataResponse = await monthlyResponse.json();
@@ -131,7 +149,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         setMonthlyData([]);
       }
     } catch (error) {
-      console.error("Failed to fetch goal data:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load data";
+      setError(errorMessage);
       setCurrentGoalData(null);
       setMonthlyData([]);
     } finally {
@@ -164,6 +183,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             selectedYear={selectedYear}
             onYearChange={handleYearChange}
           />
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-sm p-4 mb-4">
+          <p className="text-sm text-red-800 dark:text-red-400 font-medium">{error}</p>
         </div>
       )}
 
