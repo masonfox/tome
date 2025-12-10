@@ -19,11 +19,21 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
   const [currentGoalData, setCurrentGoalData] = useState<ReadingGoalWithProgress | null>(initialGoalData);
+  const [availableYears, setAvailableYears] = useState<number[]>(
+    Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a)
+  );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Extract unique years from goals, sorted descending
-  const availableYears = Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a);
+  // Sync with props when they change (after server refresh)
+  useEffect(() => {
+    const years = Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a);
+    setAvailableYears(years);
+  }, [allGoals]);
+
+  useEffect(() => {
+    setCurrentGoalData(initialGoalData);
+  }, [initialGoalData]);
 
   const handleOpenCreateModal = () => {
     setModalMode("create");
@@ -39,9 +49,30 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     setIsModalOpen(false);
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = async () => {
     setIsModalOpen(false);
-    router.refresh(); // Refresh server component data
+    
+    // Refresh both the current goal data and trigger server refresh
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setCurrentGoalData(data.data);
+      } else {
+        setCurrentGoalData(null);
+      }
+      
+      // Refresh server component to update allGoals prop
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to fetch updated goal data:", error);
+      // Still refresh to get server data
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleYearChange = async (year: number) => {
