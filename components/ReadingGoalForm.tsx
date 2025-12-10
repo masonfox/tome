@@ -19,6 +19,14 @@ export function ReadingGoalForm({
   mode,
 }: ReadingGoalFormProps) {
   const currentYear = new Date().getFullYear();
+  // Generate year options: current year + next 3 years
+  const yearOptions = [
+    currentYear,
+    currentYear + 1,
+    currentYear + 2,
+    currentYear + 3,
+  ];
+  
   const [year, setYear] = useState(existingGoal?.year || currentYear);
   const [booksGoal, setBooksGoal] = useState<number | "">(
     existingGoal?.booksGoal ?? ""
@@ -54,8 +62,9 @@ export function ReadingGoalForm({
       return;
     }
 
-    if (year < 1900 || year > 9999) {
-      toast.error("Year must be between 1900 and 9999");
+    // Year validation (should always be valid since we use a select, but keep for safety)
+    if (!Number.isInteger(year) || year < currentYear) {
+      toast.error("Please select a valid year");
       return;
     }
 
@@ -121,7 +130,7 @@ export function ReadingGoalForm({
       )}
 
       <div className="space-y-4">
-        {/* Year Display (only for create mode) */}
+        {/* Year Selector (only for create mode) */}
         {mode === "create" && (
           <div>
             <label
@@ -130,16 +139,19 @@ export function ReadingGoalForm({
             >
               Year
             </label>
-            <input
+            <select
               id="goal-year"
-              type="number"
-              min="1900"
-              max="9999"
               value={year}
-              onChange={(e) => setYear(parseInt(e.target.value) || currentYear)}
+              onChange={(e) => setYear(parseInt(e.target.value))}
               className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
               disabled={saving}
-            />
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
               Select the year for this goal
             </p>
