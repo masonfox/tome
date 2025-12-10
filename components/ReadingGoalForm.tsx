@@ -145,7 +145,7 @@ export function ReadingGoalForm({
             htmlFor="books-goal"
             className="block text-sm font-semibold text-[var(--foreground)]/70 mb-2"
           >
-            Books Goal {mode === "edit" && `for ${year}`}
+            Goal {mode === "edit" && `for ${year}`}
           </label>
           <input
             id="books-goal"

@@ -16,7 +16,7 @@ export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorPro
       case "on-track":
         return "text-[var(--accent)]";
       case "behind":
-        return "text-orange-700";
+        return "text-orange-600";
     }
   };
 
@@ -79,7 +79,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       {onEditClick && (
         <button
           onClick={onEditClick}
-          className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]/70 hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
+          className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -118,9 +118,9 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             {displayPercentage}%
           </span>
         </div>
-        <div className="w-full bg-[var(--border-color)] rounded-sm h-4 overflow-hidden">
+        <div className="w-full bg-[var(--border-color)] rounded-sm h-5 overflow-hidden">
           <div
-            className={`h-4 transition-all duration-500 ease-out ${
+            className={`h-5 transition-all duration-500 ease-out ${
               isExceeded
                 ? "bg-gradient-to-r from-emerald-600 to-emerald-500"
                 : paceStatus === "ahead"
