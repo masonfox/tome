@@ -25,6 +25,11 @@ export interface YearSummary {
   booksCompleted: number;
 }
 
+export interface MonthlyBreakdown {
+  month: number;
+  count: number;
+}
+
 export class ReadingGoalsService {
   /**
    * Get goal with calculated progress
@@ -178,6 +183,22 @@ export class ReadingGoalsService {
       year,
       booksCompleted: count,
     }));
+  }
+
+  /**
+   * Get monthly breakdown of books completed for a specific year
+   * Returns all 12 months with counts (0 if no books completed)
+   */
+  async getMonthlyBreakdown(
+    userId: number | null,
+    year: number
+  ): Promise<MonthlyBreakdown[]> {
+    this.validateYear(year);
+    
+    logger.debug({ userId, year }, "Fetching monthly breakdown");
+    const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(userId, year);
+    
+    return monthlyData;
   }
 
   /**

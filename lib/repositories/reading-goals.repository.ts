@@ -110,6 +110,54 @@ export class ReadingGoalRepository extends BaseRepository<
 
     return results;
   }
+
+  /**
+   * Get books completed per month for a specific year
+   * Returns all 12 months (1-12) with count for each
+   * Months without completions return count: 0
+   */
+  async getBooksCompletedByMonth(
+    userId: number | null,
+    year: number
+  ): Promise<Array<{ month: number; count: number }>> {
+    const db = this.getDatabase();
+
+    // Query for books completed in each month
+    const results = db
+      .select({
+        month: sql<number>`CAST(strftime('%m', datetime(${readingSessions.completedDate}, 'unixepoch')) AS INTEGER)`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(readingSessions)
+      .where(
+        and(
+          userId === null
+            ? isNull(readingSessions.userId)
+            : eq(readingSessions.userId, userId),
+          isNotNull(readingSessions.completedDate),
+          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+        )
+      )
+      .groupBy(sql`strftime('%m', datetime(${readingSessions.completedDate}, 'unixepoch'))`)
+      .all();
+
+    // Create a map of month -> count from query results
+    const monthMap = new Map<number, number>();
+    results.forEach((r) => {
+      monthMap.set(r.month, r.count);
+    });
+
+    // Fill all 12 months (1-12) with count=0 for missing months
+    const allMonths: Array<{ month: number; count: number }> = [];
+    for (let month = 1; month <= 12; month++) {
+      allMonths.push({
+        month,
+        count: monthMap.get(month) ?? 0,
+      });
+    }
+
+    return allMonths;
+  }
 }
 
 export const readingGoalRepository = new ReadingGoalRepository();
