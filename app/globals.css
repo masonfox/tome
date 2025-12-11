@@ -266,8 +266,25 @@ html[data-bottom-nav="false"] #main-content {
   background-color: var(--background) !important;
 }
 
+/* Preview pane styling (if preview mode is enabled) */
+.w-md-editor-preview {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
 .wmde-markdown {
   background-color: transparent !important;
+  color: var(--foreground) !important;
+}
+
+.wmde-markdown p,
+.wmde-markdown li,
+.wmde-markdown span,
+.wmde-markdown div,
+.wmde-markdown blockquote,
+.wmde-markdown pre,
+.wmde-markdown code {
+  color: var(--foreground) !important;
 }
 
 .wmde-markdown a {
@@ -281,5 +298,14 @@ html[data-bottom-nav="false"] #main-content {
 .wmde-markdown h5,
 .wmde-markdown h6 {
   color: var(--heading-text) !important;
+}
+
+.wmde-markdown strong {
+  color: var(--foreground) !important;
+  font-weight: 600;
+}
+
+.wmde-markdown em {
+  color: var(--foreground) !important;
 }
 
