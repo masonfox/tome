@@ -16,6 +16,7 @@ export const NAV_LINKS: NavLink[] = [
 
 // Desktop-only top navigation links (not shown in bottom nav on mobile)
 export const DESKTOP_NAV_LINKS: NavLink[] = [
+  { href: "/streak", label: "Streak", icon: Flame },
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
