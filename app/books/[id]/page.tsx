@@ -261,6 +261,16 @@ export default function BookDetailPage() {
         <div className="space-y-6 min-w-0">
           {/* Title and Author */}
           <div className="mt-3 md:mt-0 text-center md:text-left">
+            {/* Series Information */}
+            {book.series && (
+              <Link
+                href={`/series/${encodeURIComponent(book.series)}`}
+                className="inline-block mb-1 font-serif text-base italic text-[var(--subheading-text)] hover:text-[var(--accent)] transition-colors"
+              >
+                {book.series}
+                {book.seriesIndex && ` #${book.seriesIndex}`}
+              </Link>
+            )}
             <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight">
               {book.title}
             </h1>
