@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, Target, TrendingUp, Calendar } from "lucide-react";
+import { Flame, Target, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface StreakOnboardingProps {
@@ -130,22 +130,6 @@ export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
             >
               {isEnabling ? "Enabling..." : "Enable Streak Tracking"}
             </button>
-          </div>
-        </div>
-
-        {/* Optional Info */}
-        <div className="bg-[var(--border-color)]/30 rounded-md p-4 space-y-2">
-          <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-[var(--accent)] mt-0.5 flex-shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                You&apos;re in control
-              </p>
-              <p className="text-xs text-[var(--subheading-text)]">
-                Streak tracking is entirely optional. You can disable it anytime from settings,
-                and your reading history will remain intact.
-              </p>
-            </div>
           </div>
         </div>
       </div>

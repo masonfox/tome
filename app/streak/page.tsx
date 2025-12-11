@@ -56,22 +56,15 @@ export default async function StreakPage() {
   const currentStreak = await streakService.getStreak(null);
   
   if (!currentStreak.streakEnabled) {
-    // Show onboarding
+    // Show onboarding without header
     return (
-      <div className="space-y-10">
-        <PageHeader
-          title="Streak Tracking"
-          subtitle="Build consistent reading habits"
-          icon={Flame}
-        />
-        <StreakOnboarding 
-          onEnable={async (dailyGoal: number) => {
-            "use server";
-            await streakService.setStreakEnabled(null, true, dailyGoal);
-            redirect("/streak");
-          }}
-        />
-      </div>
+      <StreakOnboarding 
+        onEnable={async (dailyGoal: number) => {
+          "use server";
+          await streakService.setStreakEnabled(null, true, dailyGoal);
+          redirect("/streak");
+        }}
+      />
     );
   }
 
