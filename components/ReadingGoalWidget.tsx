@@ -102,7 +102,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             Begins January {goal.year}
           </p>
           
-          <div className="inline-flex items-center gap-3 px-6 py-4 bg-[var(--accent)]/10 border border-[var(--accent)]/30 rounded-sm">
+          <div className="inline-flex items-center gap-3 px-6 py-4 bg-[var(--accent)]/10 border border-[var(--accent)] rounded-sm">
             <Target className="w-8 h-8 text-[var(--accent)]" />
             <div className="text-left">
               <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
