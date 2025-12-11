@@ -292,7 +292,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       {currentGoalData && monthlyData.length > 0 && (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6">
           <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
-            Monthly Progress
+            {selectedYear < new Date().getFullYear() ? "Monthly Breakdown" : "Monthly Progress"}
           </h3>
           <ReadingGoalChart
             monthlyData={monthlyData}
