@@ -76,7 +76,7 @@ export default async function StreakPage() {
     return (
       <div className="space-y-10">
       <PageHeader
-        title="Streak Analytics"
+        title="Streak"
         subtitle="Track your reading habits and progress over time"
         icon={Flame}
       />
@@ -94,7 +94,7 @@ export default async function StreakPage() {
   return (
     <div className="space-y-10">
       <PageHeader
-        title="Streak Analytics"
+        title="Streak"
         subtitle="Track your reading habits and progress over time"
         icon={Flame}
       />
