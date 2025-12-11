@@ -237,4 +237,205 @@ describe("SeriesRepository", () => {
       expect(series).toBeNull();
     });
   });
+
+  describe("Edge Cases", () => {
+    it("should handle series names with special characters", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+        series: "Harry Potter & the Philosopher's Stone",
+        seriesIndex: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/2",
+        series: 'Series with "Quotes"',
+        seriesIndex: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        title: "Book 3",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/3",
+        series: "Series: With Colon",
+        seriesIndex: 1,
+      });
+
+      const series = await seriesRepository.getAllSeries();
+      expect(series).toHaveLength(3);
+
+      const harryPotter = await seriesRepository.getBooksBySeries("Harry Potter & the Philosopher's Stone");
+      expect(harryPotter).toHaveLength(1);
+      expect(harryPotter[0].title).toBe("Book 1");
+
+      const withQuotes = await seriesRepository.getBooksBySeries('Series with "Quotes"');
+      expect(withQuotes).toHaveLength(1);
+      expect(withQuotes[0].title).toBe("Book 2");
+
+      const withColon = await seriesRepository.getBooksBySeries("Series: With Colon");
+      expect(withColon).toHaveLength(1);
+      expect(withColon[0].title).toBe("Book 3");
+    });
+
+    it("should handle fractional series indexes", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+        series: "Test Series",
+        seriesIndex: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book 1.5",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/2",
+        series: "Test Series",
+        seriesIndex: 1.5,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        title: "Book 2",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/3",
+        series: "Test Series",
+        seriesIndex: 2,
+      });
+
+      const books = await seriesRepository.getBooksBySeries("Test Series");
+      expect(books).toHaveLength(3);
+      expect(books[0].seriesIndex).toBe(1);
+      expect(books[0].title).toBe("Book 1");
+      expect(books[1].seriesIndex).toBe(1.5);
+      expect(books[1].title).toBe("Book 1.5");
+      expect(books[2].seriesIndex).toBe(2);
+      expect(books[2].title).toBe("Book 2");
+    });
+
+    it("should handle NULL series indexes", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book with Index",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+        series: "Test Series",
+        seriesIndex: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book without Index",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/2",
+        series: "Test Series",
+        seriesIndex: null,
+      });
+
+      const books = await seriesRepository.getBooksBySeries("Test Series");
+      expect(books).toHaveLength(2);
+      
+      // NULL indexes should be treated as 0 and sorted first
+      expect(books[0].seriesIndex).toBe(0);
+      expect(books[0].title).toBe("Book without Index");
+      expect(books[1].seriesIndex).toBe(1);
+      expect(books[1].title).toBe("Book with Index");
+    });
+
+    it("should handle duplicate series indexes with secondary sort by title", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book B",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+        series: "Test Series",
+        seriesIndex: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book A",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/2",
+        series: "Test Series",
+        seriesIndex: 1,
+      });
+
+      const books = await seriesRepository.getBooksBySeries("Test Series");
+      expect(books).toHaveLength(2);
+      expect(books[0].seriesIndex).toBe(1);
+      expect(books[0].title).toBe("Book A");
+      expect(books[1].seriesIndex).toBe(1);
+      expect(books[1].title).toBe("Book B");
+    });
+
+    it("should handle case-sensitive series names", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+        series: "The Foundation",
+        seriesIndex: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/2",
+        series: "the foundation",
+        seriesIndex: 1,
+      });
+
+      const series = await seriesRepository.getAllSeries();
+      expect(series).toHaveLength(2);
+
+      const upperBooks = await seriesRepository.getBooksBySeries("The Foundation");
+      expect(upperBooks).toHaveLength(1);
+      expect(upperBooks[0].title).toBe("Book 1");
+
+      const lowerBooks = await seriesRepository.getBooksBySeries("the foundation");
+      expect(lowerBooks).toHaveLength(1);
+      expect(lowerBooks[0].title).toBe("Book 2");
+    });
+
+    it("should handle very long series names", async () => {
+      const longName = "A".repeat(500);
+      
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+        series: longName,
+        seriesIndex: 1,
+      });
+
+      const books = await seriesRepository.getBooksBySeries(longName);
+      expect(books).toHaveLength(1);
+      expect(books[0].title).toBe("Book 1");
+    });
+  });
 });

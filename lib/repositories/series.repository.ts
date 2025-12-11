@@ -1,4 +1,4 @@
-import { sql, asc } from "drizzle-orm";
+import { sql, asc, eq, and, isNotNull } from "drizzle-orm";
 import { books } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { BaseRepository } from "./base.repository";
@@ -22,11 +22,20 @@ export interface SeriesBook {
   description?: string | null;
 }
 
+// Type definitions for repository
+export type SeriesRepositorySelect = SeriesInfo | SeriesBook;
+export type SeriesRepositoryInsert = never; // Read-only repository
+
 /**
  * Repository for series-related database operations
  * Handles queries for series and books within series
+ * This is a read-only repository - series data is managed through Calibre sync
  */
-export class SeriesRepository extends BaseRepository<any, any, typeof books> {
+export class SeriesRepository extends BaseRepository<
+  SeriesRepositorySelect,
+  SeriesRepositoryInsert,
+  typeof books
+> {
   constructor() {
     super(books);
   }
@@ -48,7 +57,12 @@ export class SeriesRepository extends BaseRepository<any, any, typeof books> {
         bookCount: sql<number>`COUNT(*)`.as('bookCount'),
       })
       .from(books)
-      .where(sql`${books.series} IS NOT NULL AND ${books.orphaned} = 0`)
+      .where(
+        and(
+          isNotNull(books.series),
+          eq(books.orphaned, false)
+        )
+      )
       .groupBy(books.series)
       .orderBy(asc(books.series));
 
@@ -84,17 +98,25 @@ export class SeriesRepository extends BaseRepository<any, any, typeof books> {
       .from(books)
       .leftJoin(
         readingSessions,
-        sql`${books.id} = ${readingSessions.bookId} AND ${readingSessions.isActive} = 1`
+        and(
+          eq(books.id, readingSessions.bookId),
+          eq(readingSessions.isActive, true)
+        )
       )
-      .where(sql`${books.series} = ${seriesName} AND ${books.orphaned} = 0`)
-      .orderBy(asc(books.seriesIndex));
+      .where(
+        and(
+          eq(books.series, seriesName),
+          eq(books.orphaned, false)
+        )
+      )
+      .orderBy(asc(books.seriesIndex), asc(books.title));
 
     return result.map(r => ({
       id: r.id,
       calibreId: r.calibreId,
       title: r.title,
       authors: r.authors,
-      seriesIndex: r.seriesIndex!,
+      seriesIndex: r.seriesIndex ?? 0,
       totalPages: r.totalPages ?? undefined,
       rating: r.rating,
       status: r.status,
@@ -117,7 +139,12 @@ export class SeriesRepository extends BaseRepository<any, any, typeof books> {
         bookCount: sql<number>`COUNT(*)`.as('bookCount'),
       })
       .from(books)
-      .where(sql`${books.series} = ${seriesName} AND ${books.orphaned} = 0`)
+      .where(
+        and(
+          eq(books.series, seriesName),
+          eq(books.orphaned, false)
+        )
+      )
       .groupBy(books.series)
       .limit(1);
 
