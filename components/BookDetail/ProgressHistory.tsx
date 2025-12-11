@@ -1,4 +1,4 @@
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2 } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import dynamic from "next/dynamic";
 import "@uiw/react-markdown-preview/markdown.css";
@@ -64,13 +64,6 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
                     title="Edit progress entry"
                   >
                     <Edit2 className="w-4 h-4 text-[var(--accent)]" />
-                  </button>
-                  <button
-                    onClick={() => onEdit(entry)}
-                    className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
-                    title="Delete progress entry"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
                   </button>
                 </div>
               </div>
