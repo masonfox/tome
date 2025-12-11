@@ -227,6 +227,10 @@ html[data-bottom-nav="false"] #main-content {
   border-bottom-color: var(--border-color) !important;
 }
 
+.w-md-editor-toolbar button {
+  color: var(--foreground) !important;
+}
+
 .w-md-editor-content {
   background-color: var(--background) !important;
 }
@@ -236,6 +240,7 @@ html[data-bottom-nav="false"] #main-content {
 .w-md-editor-text-pre,
 .w-md-editor-text-input {
   background-color: var(--background) !important;
+  color: var(--foreground) !important;
 }
 
 .wmde-markdown {
