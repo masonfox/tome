@@ -71,7 +71,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = CAST(${year} AS TEXT)`
         )
       )
       .get();
@@ -135,7 +135,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = CAST(${year} AS TEXT)`
         )
       )
       .groupBy(sql`strftime('%m', datetime(${readingSessions.completedDate}, 'unixepoch'))`)
@@ -203,7 +203,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = CAST(${year} AS TEXT)`
         )
       )
       .orderBy(desc(readingSessions.completedDate))

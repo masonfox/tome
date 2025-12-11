@@ -160,46 +160,59 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         fetch(`/api/reading-goals/books?year=${year}`)
       ]);
 
-      if (!goalResponse.ok) {
-        throw new Error(`Failed to fetch goal data: ${goalResponse.statusText}`);
-      }
-      if (!monthlyResponse.ok) {
-        throw new Error(`Failed to fetch monthly data: ${monthlyResponse.statusText}`);
-      }
-      if (!booksResponse.ok) {
-        throw new Error(`Failed to fetch completed books: ${booksResponse.statusText}`);
-      }
-
-      const goalData = await goalResponse.json();
-      const monthlyDataResponse = await monthlyResponse.json();
-      const booksData = await booksResponse.json();
-
-      if (goalData.success) {
-        setCurrentGoalData(goalData.data);
+      // Handle each response independently to avoid clearing all data on partial failure
+      let hasError = false;
+      
+      // Process goal data
+      if (goalResponse.ok) {
+        const goalData = await goalResponse.json();
+        if (goalData.success) {
+          setCurrentGoalData(goalData.data);
+        } else {
+          setCurrentGoalData(null);
+        }
       } else {
+        hasError = true;
         setCurrentGoalData(null);
       }
 
-      if (monthlyDataResponse.success) {
-        setMonthlyData(monthlyDataResponse.data.monthlyData);
+      // Process monthly data
+      if (monthlyResponse.ok) {
+        const monthlyDataResponse = await monthlyResponse.json();
+        if (monthlyDataResponse.success) {
+          setMonthlyData(monthlyDataResponse.data.monthlyData);
+        } else {
+          setMonthlyData([]);
+        }
       } else {
+        hasError = true;
         setMonthlyData([]);
       }
 
-      if (booksData.success) {
-        setCompletedBooks(booksData.data.books);
-        setBooksCount(booksData.data.count);
+      // Process books data
+      if (booksResponse.ok) {
+        const booksData = await booksResponse.json();
+        if (booksData.success) {
+          setCompletedBooks(booksData.data.books);
+          setBooksCount(booksData.data.count);
+        } else {
+          setCompletedBooks([]);
+          setBooksCount(0);
+        }
       } else {
+        hasError = true;
         setCompletedBooks([]);
         setBooksCount(0);
+      }
+
+      // Only set error message if there were failures
+      if (hasError) {
+        setError("Some data failed to load");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
       setError(errorMessage);
-      setCurrentGoalData(null);
-      setMonthlyData([]);
-      setCompletedBooks([]);
-      setBooksCount(0);
+      // Don't clear existing data on network errors
     } finally {
       setLoading(false);
       setBooksLoading(false);

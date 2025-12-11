@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { readingGoalsService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
 
@@ -106,6 +107,11 @@ export async function POST(request: NextRequest) {
 
     try {
       const goal = await readingGoalsService.createGoal(null, year, booksGoal);
+      
+      // Revalidate pages that display goal data
+      revalidatePath('/goals');
+      revalidatePath('/');
+      
       return NextResponse.json({ success: true, data: goal }, { status: 201 });
     } catch (error: any) {
       // Handle validation errors from service

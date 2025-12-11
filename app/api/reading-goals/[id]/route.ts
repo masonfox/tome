@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { readingGoalsService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
 
@@ -62,6 +63,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     try {
       const updated = await readingGoalsService.updateGoal(goalId, booksGoal);
+      
+      // Revalidate pages that display goal data
+      revalidatePath('/goals');
+      revalidatePath('/');
+      
       return NextResponse.json({ success: true, data: updated });
     } catch (error: any) {
       if (error.message.includes("not found")) {
@@ -144,6 +150,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     try {
       await readingGoalsService.deleteGoal(goalId);
+      
+      // Revalidate pages that display goal data
+      revalidatePath('/goals');
+      revalidatePath('/');
+      
       return NextResponse.json({ success: true });
     } catch (error: any) {
       if (error.message.includes("not found")) {
