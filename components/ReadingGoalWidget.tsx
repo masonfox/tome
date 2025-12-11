@@ -72,13 +72,154 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const currentYear = new Date().getFullYear();
   const isPastYear = goal.year < currentYear;
   const isFutureYear = goal.year > currentYear;
+  const isCurrentYear = goal.year === currentYear;
   const isExceeded = booksCompleted > goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
 
+  // FUTURE YEAR: Simplified aspirational view
+  if (isFutureYear) {
+    return (
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
+        {/* Edit Button */}
+        {onEditClick && (
+          <button
+            onClick={onEditClick}
+            className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              <path d="m15 5 4 4"/>
+            </svg>
+            Edit
+          </button>
+        )}
+
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-2">
+            {goal.year} Reading Goal
+          </h2>
+          <p className="text-sm text-[var(--subheading-text)] mb-8">
+            Begins January {goal.year}
+          </p>
+          
+          <div className="inline-flex items-center gap-3 px-6 py-4 bg-[var(--accent)]/10 border border-[var(--accent)]/30 rounded-sm">
+            <Target className="w-8 h-8 text-[var(--accent)]" />
+            <div className="text-left">
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+                Target
+              </p>
+              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
+                {goal.booksGoal} books
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PAST YEAR: Retrospective view
+  if (isPastYear) {
+    return (
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
+        {/* Header Section */}
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
+              {goal.year} Reading Goal Summary
+            </h2>
+            <p className="text-sm text-[var(--subheading-text)] mt-1 font-medium">
+              Read {booksCompleted} of {goal.booksGoal} books
+            </p>
+          </div>
+          {isExceeded && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Target className="w-3.5 h-3.5" />
+              Exceeded Goal!
+            </span>
+          )}
+          {!isExceeded && booksCompleted === goal.booksGoal && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Target className="w-3.5 h-3.5" />
+              Goal Achieved!
+            </span>
+          )}
+        </div>
+
+        {/* Achievement Bar */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
+              Achievement
+            </span>
+            <span className="text-sm font-bold text-[var(--heading-text)]">
+              {displayPercentage}%
+            </span>
+          </div>
+          <div className="w-full bg-[var(--border-color)] rounded-sm h-5 overflow-hidden">
+            <div
+              className={`h-5 transition-all duration-500 ease-out ${
+                isExceeded
+                  ? "bg-gradient-to-r from-emerald-600 to-emerald-500"
+                  : booksCompleted === goal.booksGoal
+                  ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
+                  : "bg-gradient-to-r from-orange-600 to-orange-500"
+              }`}
+              style={{ width: `${displayPercentage}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="border-l-2 border-[var(--accent)] pl-4">
+            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+              Books Read
+            </p>
+            <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
+              {booksCompleted}
+            </p>
+          </div>
+          {!isExceeded && booksRemaining > 0 && (
+            <div className="border-l-2 border-orange-300 pl-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+                Fell Short By
+              </p>
+              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
+                {booksRemaining}
+              </p>
+            </div>
+          )}
+          {isExceeded && (
+            <div className="border-l-2 border-emerald-300 pl-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+                Exceeded By
+              </p>
+              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
+                {booksCompleted - goal.booksGoal}
+              </p>
+            </div>
+          )}
+          {!isExceeded && booksRemaining === 0 && (
+            <div className="border-l-2 border-emerald-300 pl-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+                Goal
+              </p>
+              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
+                {goal.booksGoal}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // CURRENT YEAR: Active tracking view
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-      {/* Edit Button - Top Right - Only for current and future years */}
-      {onEditClick && !isPastYear && (
+      {/* Edit Button */}
+      {onEditClick && (
         <button
           onClick={onEditClick}
           className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
@@ -95,32 +236,17 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       <div className="flex items-start justify-between mb-6 pr-20">
         <div>
           <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
-            {goal.year} Reading Goal{isPastYear ? " Summary" : ""}
+            {goal.year} Reading Goal
           </h2>
           <p className="text-sm text-[var(--subheading-text)] mt-1 font-medium">
-            {isPastYear 
-              ? `Read ${booksCompleted} of ${goal.booksGoal} books` 
-              : `${booksCompleted} of ${goal.booksGoal} books completed`
-            }
+            {booksCompleted} of {goal.booksGoal} books completed
           </p>
         </div>
-        {!isPastYear && !isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
-        {!isPastYear && isExceeded && (
+        {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
+        {isExceeded && (
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
             <Target className="w-3.5 h-3.5" />
             Goal Exceeded!
-          </span>
-        )}
-        {isPastYear && isExceeded && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-            <Target className="w-3.5 h-3.5" />
-            Exceeded Goal!
-          </span>
-        )}
-        {isPastYear && !isExceeded && booksCompleted === goal.booksGoal && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-            <Target className="w-3.5 h-3.5" />
-            Goal Achieved!
           </span>
         )}
       </div>
@@ -129,7 +255,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
-            {isPastYear ? "Achievement" : "Progress"}
+            Progress
           </span>
           <span className="text-sm font-bold text-[var(--heading-text)]">
             {displayPercentage}%
@@ -155,42 +281,20 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       <div className="grid grid-cols-2 gap-6">
         <div className="border-l-2 border-[var(--accent)] pl-4">
           <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-            {isPastYear ? "Books Read" : "Completed"}
+            Completed
           </p>
           <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
             {booksCompleted}
           </p>
         </div>
-        {!isPastYear && (
-          <div className="border-l-2 border-[var(--border-color)] pl-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-              Remaining
-            </p>
-            <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-              {booksRemaining}
-            </p>
-          </div>
-        )}
-        {isPastYear && !isExceeded && booksRemaining > 0 && (
-          <div className="border-l-2 border-orange-300 pl-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-              Fell Short By
-            </p>
-            <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-              {booksRemaining}
-            </p>
-          </div>
-        )}
-        {isPastYear && isExceeded && (
-          <div className="border-l-2 border-emerald-300 pl-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-              Exceeded By
-            </p>
-            <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-              {booksCompleted - goal.booksGoal}
-            </p>
-          </div>
-        )}
+        <div className="border-l-2 border-[var(--border-color)] pl-4">
+          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
+            Remaining
+          </p>
+          <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
+            {booksRemaining}
+          </p>
+        </div>
       </div>
     </div>
   );
