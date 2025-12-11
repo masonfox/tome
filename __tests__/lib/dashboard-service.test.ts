@@ -425,7 +425,7 @@ describe("Dashboard Service", () => {
      */
 
     test("should return 0 pages read when no progress logged today", async () => {
-      // Create a streak but no progress today
+      // Create an enabled streak but no progress today
       await streakRepository.create({
         userId: null,
         currentStreak: 5,
@@ -434,6 +434,7 @@ describe("Dashboard Service", () => {
         streakStartDate: new Date(),
         totalDaysActive: 5,
         dailyThreshold: 30,
+        streakEnabled: true, // Must be enabled to show on dashboard
       });
 
       const result = await getDashboardData();
