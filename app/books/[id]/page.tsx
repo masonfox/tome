@@ -80,19 +80,23 @@ export default function BookDetailPage() {
 
   // Draft note management with localStorage autosave
   const { draftNote, saveDraft, clearDraft } = useDraftNote(parseInt(bookId));
+  const [isDraftInitialized, setIsDraftInitialized] = useState(false);
 
-  // Sync draft note with progress hook notes
+  // Restore draft note on mount (runs once)
   useEffect(() => {
     if (draftNote && bookProgressHook.notes === "") {
       bookProgressHook.setNotes(draftNote);
     }
+    setIsDraftInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftNote]);
 
-  // Save draft when notes change
+  // Save draft when notes change (only after initialization to prevent clearing on mount)
   useEffect(() => {
-    saveDraft(bookProgressHook.notes);
-  }, [bookProgressHook.notes, saveDraft]);
+    if (isDraftInitialized) {
+      saveDraft(bookProgressHook.notes);
+    }
+  }, [bookProgressHook.notes, saveDraft, isDraftInitialized]);
 
   // Local UI state
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
