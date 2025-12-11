@@ -6,6 +6,7 @@ export const streaks = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: integer("user_id"), // Nullable for single-user mode
+    streakEnabled: integer("streak_enabled", { mode: "boolean" }).notNull().default(false), // Opt-in streak tracking
     currentStreak: integer("current_streak").notNull().default(0),
     longestStreak: integer("longest_streak").notNull().default(0),
     lastActivityDate: integer("last_activity_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
