@@ -7,41 +7,13 @@ import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
 import dynamic from "next/dynamic";
-import { commands } from "@uiw/react-md-editor";
-import "@uiw/react-md-editor/markdown-editor.css";
+import MarkdownEditor from "@/components/MarkdownEditor";
 import "@uiw/react-markdown-preview/markdown.css";
-
-const MDEditor = dynamic(
-  () => import("@uiw/react-md-editor").then((mod) => mod.default),
-  { ssr: false }
-);
 
 const MarkdownPreview = dynamic(
   () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
   { ssr: false }
 );
-
-// Custom toolbar commands (excluding image, comment, code, codeBlock, checkedList)
-const customCommands = [
-  commands.bold,
-  commands.italic,
-  commands.strikethrough,
-  commands.hr,
-  commands.group([commands.title1, commands.title2, commands.title3, commands.title4, commands.title5, commands.title6], {
-    name: 'title',
-    groupName: 'title',
-    buttonProps: { 'aria-label': 'Insert title' }
-  }),
-  commands.divider,
-  commands.link,
-  commands.quote,
-  commands.table,
-  commands.divider,
-  commands.unorderedListCommand,
-  commands.orderedListCommand,
-  commands.divider,
-  commands.help,
-];
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -351,16 +323,11 @@ export default function ProgressEditModal({
             Notes (optional)
           </label>
           <div>
-            <MDEditor
+            <MarkdownEditor
               value={notes}
-              onChange={(value) => setNotes(value || "")}
-              preview="edit"
+              onChange={setNotes}
+              placeholder="Add notes about this reading session..."
               height={200}
-              visibleDragbar={false}
-              commands={customCommands}
-              textareaProps={{
-                placeholder: "Add notes about this reading session..."
-              }}
             />
           </div>
         </div>

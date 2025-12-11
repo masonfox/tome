@@ -3,37 +3,7 @@
 import { useState } from "react";
 import { Star, X } from "lucide-react";
 import { cn } from "@/utils/cn";
-import dynamic from "next/dynamic";
-import { commands } from "@uiw/react-md-editor";
-import "@uiw/react-md-editor/markdown-editor.css";
-import "@uiw/react-markdown-preview/markdown.css";
-
-const MDEditor = dynamic(
-  () => import("@uiw/react-md-editor").then((mod) => mod.default),
-  { ssr: false }
-);
-
-// Custom toolbar commands (excluding image, comment, code, codeBlock, checkedList)
-const customCommands = [
-  commands.bold,
-  commands.italic,
-  commands.strikethrough,
-  commands.hr,
-  commands.group([commands.title1, commands.title2, commands.title3, commands.title4, commands.title5, commands.title6], {
-    name: 'title',
-    groupName: 'title',
-    buttonProps: { 'aria-label': 'Insert title' }
-  }),
-  commands.divider,
-  commands.link,
-  commands.quote,
-  commands.table,
-  commands.divider,
-  commands.unorderedListCommand,
-  commands.orderedListCommand,
-  commands.divider,
-  commands.help,
-];
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 interface FinishBookModalProps {
   isOpen: boolean;
@@ -127,17 +97,12 @@ export default function FinishBookModal({
             <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
           </label>
           <div>
-            <MDEditor
+            <MarkdownEditor
               value={review}
-              onChange={(value) => setReview(value || "")}
-              preview="edit"
+              onChange={setReview}
+              placeholder="What did you think about this book?"
               height={150}
-              visibleDragbar={false}
-              commands={customCommands}
-              textareaProps={{
-                placeholder: "What did you think about this book?",
-                id: "review"
-              }}
+              id="review"
             />
           </div>
           <p className="text-xs italic text-[var(--subheading-text)] mt-1">
