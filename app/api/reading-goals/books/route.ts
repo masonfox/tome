@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readingGoalRepository } from "@/lib/repositories";
+import type { Book } from "@/lib/db/schema";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
+
+interface BooksResponse {
+  success: true;
+  data: {
+    year: number;
+    count: number;
+    books: Array<Book & { completedDate: Date }>;
+  };
+}
+
+interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    errorId?: string;
+  };
+}
 
 /**
  * GET /api/reading-goals/books
@@ -10,7 +29,9 @@ const logger = getLogger();
  * Query params:
  *  - year: (required) The year to fetch completed books for
  */
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<BooksResponse | ErrorResponse>> {
   try {
     const searchParams = request.nextUrl.searchParams;
     const yearParam = searchParams.get("year");
@@ -58,13 +79,17 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error({ error }, "Failed to get completed books");
+    const errorId = crypto.randomUUID();
+    logger.error({ error, errorId }, "Failed to get completed books");
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
+          message: process.env.NODE_ENV === 'development' 
+            ? (error as Error).message 
+            : "An unexpected error occurred",
+          errorId,
         },
       },
       { status: 500 }

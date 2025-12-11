@@ -53,13 +53,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: goals });
     }
   } catch (error) {
-    logger.error({ error }, "Failed to get reading goals");
+    const errorId = crypto.randomUUID();
+    logger.error({ error, errorId }, "Failed to get reading goals");
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
+          message: process.env.NODE_ENV === 'development' 
+            ? (error as Error).message 
+            : "An unexpected error occurred",
+          errorId,
         },
       },
       { status: 500 }
@@ -147,13 +151,17 @@ export async function POST(request: NextRequest) {
       throw error;
     }
   } catch (error) {
-    logger.error({ error }, "Failed to create reading goal");
+    const errorId = crypto.randomUUID();
+    logger.error({ error, errorId }, "Failed to create reading goal");
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
+          message: process.env.NODE_ENV === 'development' 
+            ? (error as Error).message 
+            : "An unexpected error occurred",
+          errorId,
         },
       },
       { status: 500 }
