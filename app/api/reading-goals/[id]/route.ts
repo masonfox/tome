@@ -19,13 +19,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const goalId = parseInt(id);
 
-    if (isNaN(goalId)) {
+    // Enhanced validation: reject negative, zero, and unsafe integers
+    if (isNaN(goalId) || goalId <= 0 || goalId > Number.MAX_SAFE_INTEGER) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "INVALID_ID",
-            message: "Goal ID must be a valid number",
+            message: "Goal ID must be a positive integer",
           },
         },
         { status: 400 }
@@ -112,13 +113,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       throw error;
     }
   } catch (error) {
-    logger.error({ error }, "Failed to update reading goal");
+    const errorId = crypto.randomUUID();
+    logger.error({ error, errorId }, "Failed to update reading goal");
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
+          message: process.env.NODE_ENV === 'development' 
+            ? (error as Error).message 
+            : "An unexpected error occurred",
+          errorId,
         },
       },
       { status: 500 }
@@ -135,13 +140,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const goalId = parseInt(id);
 
-    if (isNaN(goalId)) {
+    // Enhanced validation: reject negative, zero, and unsafe integers
+    if (isNaN(goalId) || goalId <= 0 || goalId > Number.MAX_SAFE_INTEGER) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "INVALID_ID",
-            message: "Goal ID must be a valid number",
+            message: "Goal ID must be a positive integer",
           },
         },
         { status: 400 }
@@ -186,13 +192,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       throw error;
     }
   } catch (error) {
-    logger.error({ error }, "Failed to delete reading goal");
+    const errorId = crypto.randomUUID();
+    logger.error({ error, errorId }, "Failed to delete reading goal");
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
+          message: process.env.NODE_ENV === 'development' 
+            ? (error as Error).message 
+            : "An unexpected error occurred",
+          errorId,
         },
       },
       { status: 500 }
