@@ -223,6 +223,10 @@ html[data-bottom-nav="false"] #main-content {
   color: var(--foreground) !important;
 }
 
+.w-md-editor * {
+  box-sizing: border-box;
+}
+
 .w-md-editor-toolbar {
   background-color: var(--card-bg) !important;
   border-bottom-color: var(--border-color) !important;
@@ -238,14 +242,31 @@ html[data-bottom-nav="false"] #main-content {
 }
 
 .w-md-editor-text-pre,
-.w-md-editor-text-input {
+.w-md-editor-text-input,
+.w-md-editor-text-pre > code,
+.w-md-editor-text-input textarea {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
 }
 
-.w-md-editor-text-input::placeholder {
+.w-md-editor-text-input::placeholder,
+.w-md-editor-text-input textarea::placeholder {
   color: var(--foreground) !important;
   opacity: 0.4;
+}
+
+/* Additional specificity for textarea */
+.w-md-editor-input textarea {
+  color: var(--foreground) !important;
+  background-color: var(--background) !important;
+}
+
+.w-md-editor-content {
+  background-color: var(--background) !important;
+}
+
+.w-md-editor-area {
+  background-color: var(--background) !important;
 }
 
 .wmde-markdown {
