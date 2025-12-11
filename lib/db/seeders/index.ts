@@ -287,16 +287,17 @@ export async function seedDatabase(): Promise<SeedResult> {
       }
     }
 
-    // Phase 5: Rebuild streak from progress logs
+    // Phase 5: Rebuild streak from progress logs and enable tracking
     logger.info("Phase 5: Rebuilding streak from progress logs...");
-    const rebuiltStreak = await rebuildStreak(null); // null for single-user mode
+    const rebuiltStreak = await rebuildStreak(null, undefined, true); // Enable streak tracking for seeded data
     
     logger.info({
       currentStreak: rebuiltStreak.currentStreak,
       longestStreak: rebuiltStreak.longestStreak,
       totalDaysActive: rebuiltStreak.totalDaysActive,
       lastActivityDate: rebuiltStreak.lastActivityDate,
-    }, "Streak rebuilt successfully");
+      streakEnabled: rebuiltStreak.streakEnabled,
+    }, "Streak rebuilt and enabled successfully");
 
     // Phase 6: Create reading goals for multiple years
     logger.info("Phase 6: Creating reading goals for multiple years...");
