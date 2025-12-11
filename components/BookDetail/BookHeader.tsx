@@ -1,11 +1,13 @@
 import Image from "next/image";
-import { BookOpen, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Star, Pencil } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Star, Pencil, BookMarked } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface BookHeaderProps {
   book: {
     calibreId: number;
     totalPages?: number;
+    series?: string;
   };
   selectedStatus: string;
   imageError: boolean;
@@ -172,6 +174,17 @@ export default function BookHeader({
             </p>
           </div>
         </div>
+      )}
+
+      {/* Series Link */}
+      {book.series && (
+        <Link
+          href={`/series/${encodeURIComponent(book.series)}`}
+          className="w-full px-4 py-2.5 bg-[var(--card-bg)] text-[var(--foreground)] font-semibold rounded border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors flex items-center justify-center gap-2"
+        >
+          <BookMarked className="w-4 h-4" />
+          <span className="truncate">{book.series}</span>
+        </Link>
       )}
 
       {/* Re-read Button */}

@@ -1,4 +1,4 @@
-import { BookOpen, Library, Target, Flame, Settings, BarChart3 } from "lucide-react";
+import { BookOpen, Library, Target, Flame, Settings, BarChart3, BookMarked } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavLink {
@@ -17,6 +17,7 @@ export const NAV_LINKS: NavLink[] = [
 // Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
 export const MORE_MENU_LINKS: NavLink[] = [
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/series", label: "Series", icon: BookMarked },
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
