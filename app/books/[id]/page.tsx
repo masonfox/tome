@@ -86,6 +86,7 @@ export default function BookDetailPage() {
     if (draftNote && bookProgressHook.notes === "") {
       bookProgressHook.setNotes(draftNote);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftNote]);
 
   // Save draft when notes change
