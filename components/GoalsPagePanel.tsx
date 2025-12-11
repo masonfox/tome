@@ -298,8 +298,6 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           </h3>
           <ReadingGoalChart
             monthlyData={monthlyData}
-            goal={currentGoalData.goal.booksGoal}
-            year={selectedYear}
           />
         </div>
       )}

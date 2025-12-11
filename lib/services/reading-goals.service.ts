@@ -37,7 +37,7 @@ export class ReadingGoalsService {
     const goal = await readingGoalRepository.findByUserAndYear(userId, year);
     if (!goal) return null;
 
-    const progress = await this.calculateProgress(userId, year, goal.booksGoal, goal.createdAt);
+    const progress = await this.calculateProgress(userId, year, goal.booksGoal);
     return { goal, progress };
   }
 
@@ -58,13 +58,11 @@ export class ReadingGoalsService {
 
   /**
    * Calculate progress for a goal
-   * Uses goal creation date as start point to avoid penalizing mid-year goal creation
    */
   async calculateProgress(
     userId: number | null,
     year: number,
-    booksGoal: number,
-    goalCreatedAt: Date
+    booksGoal: number
   ): Promise<ProgressCalculation> {
     const booksCompleted = await readingGoalRepository.getBooksCompletedInYear(userId, year);
 
@@ -72,15 +70,8 @@ export class ReadingGoalsService {
     const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     const daysInYear = isLeapYear(year) ? 366 : 365;
     const startOfYearDate = new Date(year, 0, 1);
-    
-    // Use the later of (goal creation date, Jan 1 of year) as the tracking start point
-    // This ensures users aren't penalized for creating goals mid-year
-    const trackingStartDate = goalCreatedAt > startOfYearDate ? goalCreatedAt : startOfYearDate;
-    const daysElapsed = Math.max(0, differenceInDays(now, trackingStartDate));
-    
-    // Calculate expected books based on tracking period, not full year
-    const daysRemainingInYear = Math.max(0, differenceInDays(new Date(year, 11, 31), trackingStartDate));
-    const expectedBooks = daysRemainingInYear > 0 ? (booksGoal / daysRemainingInYear) * daysElapsed : 0;
+    const daysElapsed = Math.max(0, differenceInDays(now, startOfYearDate));
+    const expectedBooks = (booksGoal / daysInYear) * daysElapsed;
 
     let paceStatus: "ahead" | "on-track" | "behind";
     let booksAheadBehind = 0;
@@ -96,7 +87,7 @@ export class ReadingGoalsService {
     }
 
     logger.debug(
-      { year, booksCompleted, booksGoal, daysElapsed, paceStatus, trackingStartDate },
+      { year, booksCompleted, booksGoal, daysElapsed, paceStatus },
       "Calculated reading goal progress"
     );
 

@@ -216,8 +216,7 @@ describe("ReadingGoalsService", () => {
   describe("calculateProgress()", () => {
     test("calculates progress correctly with zero books", async () => {
       const currentYear = new Date().getFullYear();
-      const goalCreatedAt = new Date(currentYear, 0, 1); // Jan 1
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40, goalCreatedAt);
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40);
 
       expect(progress.booksCompleted).toBe(0);
       expect(progress.booksRemaining).toBe(40);
@@ -227,29 +226,17 @@ describe("ReadingGoalsService", () => {
 
     test("caps completion percentage at 100", async () => {
       const currentYear = new Date().getFullYear();
-      const goalCreatedAt = new Date(currentYear, 0, 1); // Jan 1
       // Mock scenario: would need actual books to test realistically
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 1, goalCreatedAt);
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 1);
 
       expect(progress.completionPercentage).toBeLessThanOrEqual(100);
     });
 
     test("calculates pace status based on expected progress", async () => {
       const currentYear = new Date().getFullYear();
-      const goalCreatedAt = new Date(currentYear, 0, 1); // Jan 1
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40, goalCreatedAt);
+      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40);
 
       expect(["ahead", "on-track", "behind"]).toContain(progress.paceStatus);
-    });
-
-    test("shows on-track status for newly created mid-year goals", async () => {
-      const currentYear = new Date().getFullYear();
-      const goalCreatedAt = new Date(); // Today
-      const progress = await readingGoalsService.calculateProgress(null, currentYear, 40, goalCreatedAt);
-
-      // Should show on-track for brand new goals (0 days elapsed)
-      expect(progress.paceStatus).toBe("on-track");
-      expect(progress.booksAheadBehind).toBe(0);
     });
   });
 

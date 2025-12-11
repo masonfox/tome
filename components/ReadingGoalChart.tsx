@@ -9,7 +9,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ComposedChart,
-  ReferenceLine,
 } from "recharts";
 
 interface MonthlyData {
@@ -19,15 +18,13 @@ interface MonthlyData {
 
 interface ReadingGoalChartProps {
   monthlyData: MonthlyData[];
-  goal: number | null;
-  year: number;
 }
 
 // Month names for X-axis (defined outside component to avoid recreating)
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export function ReadingGoalChart({ monthlyData, goal, year }: ReadingGoalChartProps) {
-  // Prepare chart data - no pace calculation needed
+export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
+  // Prepare chart data
   const chartData = useMemo(() => {
     return monthlyData.map((item) => ({
       month: monthNames[item.month - 1],
@@ -35,10 +32,9 @@ export function ReadingGoalChart({ monthlyData, goal, year }: ReadingGoalChartPr
     }));
   }, [monthlyData]);
 
-  // Calculate Y-axis domain
+  // Calculate Y-axis domain based on actual data
   const maxCount = Math.max(...monthlyData.map(d => d.count), 0);
-  const maxExpected = goal ? goal : 0;
-  const yAxisMax = Math.ceil(Math.max(maxCount * 1.1, maxExpected * 1.1) / 10) * 10; // Round up to nearest 10
+  const yAxisMax = Math.ceil(maxCount * 1.2 / 10) * 10 || 10; // Round up to nearest 10, minimum 10
 
   // Full month names for tooltip
   const fullMonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -101,21 +97,6 @@ export function ReadingGoalChart({ monthlyData, goal, year }: ReadingGoalChartPr
             name="Books Completed"
             radius={[4, 4, 0, 0]}
           />
-          {goal && (
-            <ReferenceLine
-              y={goal}
-              stroke="#d97706"
-              strokeDasharray="5 5"
-              strokeWidth={2}
-              label={{
-                value: `Goal: ${goal} books`,
-                position: "insideTopRight",
-                fill: "#d97706",
-                fontSize: 11,
-                fontWeight: 600,
-              }}
-            />
-          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
