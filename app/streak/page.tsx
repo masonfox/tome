@@ -56,12 +56,11 @@ export default async function StreakPage() {
   if (!analyticsData) {
     return (
       <div className="space-y-10">
-        <PageHeader
-          title="Streak Analytics"
-          subtitle="Track your reading habits and progress over time"
-          icon={Flame}
-          backLink={{ href: "/", label: "Back to Dashboard" }}
-        />
+      <PageHeader
+        title="Streak Analytics"
+        subtitle="Track your reading habits and progress over time"
+        icon={Flame}
+      />
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center rounded-md">
           <p className="text-[var(--foreground)]/70 font-medium">
             Unable to load streak analytics. Please try again later.
@@ -79,7 +78,6 @@ export default async function StreakPage() {
         title="Streak Analytics"
         subtitle="Track your reading habits and progress over time"
         icon={Flame}
-        backLink={{ href: "/", label: "Back to Dashboard" }}
       />
 
       {/* Analytics Stats */}
