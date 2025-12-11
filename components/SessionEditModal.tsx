@@ -156,7 +156,7 @@ export default function SessionEditModal({
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
           >
-            Review - Markdown supported
+            Review
           </label>
           <div>
             <MDEditor

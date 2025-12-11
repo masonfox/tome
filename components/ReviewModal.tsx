@@ -83,7 +83,7 @@ export default function ReviewModal({
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)] mb-2"
           >
-            Your Review - Markdown supported
+            Your Review
           </label>
           <div>
             <MDEditor

@@ -82,8 +82,8 @@ describe("BookProgress", () => {
       />
     );
 
-    // Check for the Notes label with Markdown support indicator
-    expect(screen.getByText("Notes (Markdown supported)")).toBeInTheDocument();
+    // Check for the Notes label
+    expect(screen.getByText("Notes")).toBeInTheDocument();
   });
 
   test("should show mode toggle button", () => {

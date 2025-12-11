@@ -325,7 +325,7 @@ export default function ProgressEditModal({
             htmlFor="notes"
             className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
           >
-            Notes (optional) - Markdown supported
+            Notes (optional)
           </label>
           <div>
             <MDEditor

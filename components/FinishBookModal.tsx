@@ -100,7 +100,7 @@ export default function FinishBookModal({
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)] mb-2"
           >
-            <span>Review - Markdown supported</span>
+            <span>Review</span>
             <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
           </label>
           <div>

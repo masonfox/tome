@@ -167,7 +167,7 @@ export default function BookProgress({
 
             <div>
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
-                Notes (Markdown supported)
+                Notes
               </label>
               <div>
                 <MDEditor
