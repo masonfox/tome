@@ -1,6 +1,9 @@
+"use client";
+
 import { ChevronDown, Check, TrendingUp } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 interface BookProgressProps {
   book: {
@@ -150,7 +153,7 @@ export default function BookProgress({
                   value={progressDate}
                   onChange={(e) => onProgressDateChange(e.target.value)}
                   max={getTodayLocalDate()}
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent max-h-[42px] text-left"
+                  className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent max-h-[42px] text-left"
                 />
               </div>
             </div>
@@ -159,13 +162,14 @@ export default function BookProgress({
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                 Notes
               </label>
-              <textarea
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-y"
-                placeholder="Add notes about your reading session (optional)"
-              />
+              <div>
+                <MarkdownEditor
+                  value={notes}
+                  onChange={onNotesChange}
+                  placeholder="Add notes about your reading session..."
+                  height={200}
+                />
+              </div>
             </div>
 
             <button

@@ -40,7 +40,9 @@ export function Navigation() {
 
   const applyTheme = (isDark: boolean) => {
     const html = document.documentElement;
-    html.setAttribute("data-theme", isDark ? "dark" : "light");
+    const theme = isDark ? "dark" : "light";
+    html.setAttribute("data-theme", theme);
+    html.setAttribute("data-color-mode", theme);
   };
 
   const toggleDarkMode = () => {

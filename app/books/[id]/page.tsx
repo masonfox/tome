@@ -22,6 +22,7 @@ import { useBookStatus } from "@/hooks/useBookStatus";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
+import { useDraftNote } from "@/hooks/useDraftNote";
 import { toast } from "@/utils/toast";
 
 export default function BookDetailPage() {
@@ -58,6 +59,7 @@ export default function BookDetailPage() {
   async function handleConfirmRead(rating: number, review?: string) {
     await handleConfirmReadFromHook(rating, review);
     bookProgressHook.clearFormState();
+    clearDraft(); // Clear the draft note
     setHistoryRefreshKey(prev => prev + 1);
   }
 
@@ -76,6 +78,26 @@ export default function BookDetailPage() {
 
   const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, handleRefresh);
 
+  // Draft note management with localStorage autosave
+  const { draftNote, saveDraft, clearDraft } = useDraftNote(parseInt(bookId));
+  const [isDraftInitialized, setIsDraftInitialized] = useState(false);
+
+  // Restore draft note on mount (runs once)
+  useEffect(() => {
+    if (draftNote && bookProgressHook.notes === "") {
+      bookProgressHook.setNotes(draftNote);
+    }
+    setIsDraftInitialized(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftNote]);
+
+  // Save draft when notes change (only after initialization to prevent clearing on mount)
+  useEffect(() => {
+    if (isDraftInitialized) {
+      saveDraft(bookProgressHook.notes);
+    }
+  }, [bookProgressHook.notes, saveDraft, isDraftInitialized]);
+
   // Local UI state
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
@@ -93,6 +115,15 @@ export default function BookDetailPage() {
     refetchBook();
     bookProgressHook.refetchProgress();
     router.refresh(); // Refresh server components (dashboard, etc.)
+  }
+
+  // Wrapper for log progress that clears draft
+  async function handleLogProgress(e: React.FormEvent) {
+    await bookProgressHook.handleLogProgress(e);
+    // Check if submission was successful by checking if notes were cleared
+    if (bookProgressHook.notes === "") {
+      clearDraft();
+    }
   }
 
   // Wrapper for status updates with optimistic page count validation
@@ -340,7 +371,7 @@ export default function BookDetailPage() {
                   onNotesChange={bookProgressHook.setNotes}
                   onProgressDateChange={bookProgressHook.setProgressDate}
                   onProgressInputModeChange={bookProgressHook.setProgressInputMode}
-                  onSubmit={bookProgressHook.handleLogProgress}
+                  onSubmit={handleLogProgress}
                   showProgressModeDropdown={showProgressModeDropdown}
                   setShowProgressModeDropdown={setShowProgressModeDropdown}
                   progressModeDropdownRef={progressModeDropdownRef}
@@ -403,6 +434,7 @@ export default function BookDetailPage() {
         onClose={() => handleCancelStatusChange()}
         onConfirm={handleConfirmRead}
         bookTitle={book.title}
+        bookId={bookId}
       />
 
       <RatingModal
@@ -447,6 +479,7 @@ export default function BookDetailPage() {
           onDelete={bookProgressHook.handleDeleteProgress}
           currentProgress={bookProgressHook.selectedProgressEntry}
           bookTitle={book.title}
+          bookId={bookId}
           totalPages={book.totalPages}
         />
       )}
