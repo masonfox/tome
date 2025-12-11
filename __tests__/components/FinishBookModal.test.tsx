@@ -176,24 +176,31 @@ describe("FinishBookModal", () => {
       expect(localStorage.getItem("draft-finish-review-123")).toBe("Unsaved review");
     });
 
-    test("should not restore draft if review already has content", () => {
+    test("should not restore draft if review already has content", async () => {
       // This tests the condition: if (draftReview && !review && isOpen)
       localStorage.setItem("draft-finish-review-123", "Draft text");
 
       const { rerender } = render(<FinishBookModal {...defaultProps} />);
 
+      // Wait for draft to be restored initially
+      await waitFor(() => {
+        const textarea = screen.getByTestId("markdown-editor") as HTMLTextAreaElement;
+        expect(textarea.value).toBe("Draft text");
+      });
+
       // Simulate typing new content
       const textarea = screen.getByTestId("markdown-editor");
       fireEvent.change(textarea, { target: { value: "New text" } });
 
-      // Close and reopen
+      // Close and reopen (without calling handleClose, so state persists)
       rerender(<FinishBookModal {...defaultProps} isOpen={false} />);
       rerender(<FinishBookModal {...defaultProps} isOpen={true} />);
 
-      // Should keep "Draft text" from localStorage, not "New text"
-      // (because modal reset on reopen)
-      waitFor(() => {
-        expect((textarea as HTMLTextAreaElement).value).toBe("Draft text");
+      // Should keep "New text" because review already has content
+      // Draft is NOT restored when review field already has content
+      await waitFor(() => {
+        const updatedTextarea = screen.getByTestId("markdown-editor") as HTMLTextAreaElement;
+        expect(updatedTextarea.value).toBe("New text");
       });
     });
 
