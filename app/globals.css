@@ -216,7 +216,28 @@ html[data-bottom-nav="false"] #main-content {
   padding-bottom: 3rem; /* py-12 */
 }
 
-/* Markdown editor - minimal theme integration to match our colors */
+/* Markdown editor - theme integration to match our form inputs */
+.w-md-editor {
+  background-color: var(--background) !important;
+  border-color: var(--border-color) !important;
+}
+
+.w-md-editor-toolbar {
+  background-color: var(--background) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+.w-md-editor-content {
+  background-color: var(--background) !important;
+}
+
+.w-md-editor-input,
+.w-md-editor-text,
+.w-md-editor-text-pre,
+.w-md-editor-text-input {
+  background-color: var(--background) !important;
+}
+
 .wmde-markdown {
   background-color: transparent !important;
 }
