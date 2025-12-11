@@ -737,7 +737,7 @@ describe("Integration: Reading Goals API", () => {
           booksGoal: 50,
         });
         
-        const request = createMockRequest("PATCH", "/api/reading-goals/${goal.id}.5", {
+        const request = createMockRequest("PATCH", `/api/reading-goals/${goal.id}.5`, {
           booksGoal: 60,
         }) as any;
         

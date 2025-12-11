@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
-import { CreateGoalPrompt } from "./CreateGoalPrompt";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";

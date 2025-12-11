@@ -413,6 +413,11 @@ bun test __tests__/services/reading-goals.service.test.ts
 
 Create `app/api/reading-goals/route.ts`:
 
+> **Security Note**: This application uses `null` as the userId throughout because it's designed for single-user deployment with cookie-based authentication at the middleware level. The middleware (see `middleware.ts`) currently allows all `/api/*` routes to pass through, relying on the cookie check for page-level access control. For multi-user deployments, you would need to:
+> 1. Extract the authenticated user ID from the request (e.g., from a session or JWT)
+> 2. Pass the actual userId instead of `null` to all service methods
+> 3. Add per-user authorization checks in the API routes
+
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { readingGoalsService } from "@/lib/services";
@@ -434,6 +439,8 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // Note: userId is null for single-user deployments
+      // For multi-user, extract authenticated userId from request
       const goalData = await readingGoalsService.getGoal(null, year);
       if (!goalData) {
         return NextResponse.json(
@@ -469,6 +476,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Note: userId is null for single-user deployments
+    // For multi-user, extract authenticated userId from request
     const goal = await readingGoalsService.createGoal(null, year, booksGoal);
     return NextResponse.json({ success: true, data: goal }, { status: 201 });
   } catch (error: any) {

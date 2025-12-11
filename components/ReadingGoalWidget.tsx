@@ -72,7 +72,6 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const currentYear = new Date().getFullYear();
   const isPastYear = goal.year < currentYear;
   const isFutureYear = goal.year > currentYear;
-  const isCurrentYear = goal.year === currentYear;
   const isExceeded = booksCompleted > goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
 
