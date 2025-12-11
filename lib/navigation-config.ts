@@ -1,4 +1,4 @@
-import { BookOpen, Library, BarChart3, Settings } from "lucide-react";
+import { BookOpen, Library, BarChart3, Settings, BookMarked } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavLink {
@@ -11,6 +11,7 @@ export interface NavLink {
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Dashboard", icon: BookOpen },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/series", label: "Series", icon: BookMarked },
   { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
 

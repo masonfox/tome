@@ -8,3 +8,4 @@ export * from "./book.service";
 export * from "./session.service";
 export * from "./progress.service";
 export * from "./progress-validation";
+export * from "./series.service";
