@@ -61,7 +61,16 @@ export function getAllBooks(): CalibreBook[] {
   const columnNames = columns.map(c => c.name);
 
   const hasPublisher = columnNames.includes('publisher');
-  const hasSeries = columnNames.includes('series');
+
+  // Check for direct series column (test DB schema)
+  const hasSeriesColumn = columnNames.includes('series');
+
+  // Check for series link table (production Calibre schema)
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
+  const tableNames = tables.map(t => t.name);
+  const hasSeriesLinkTable = tableNames.includes('books_series_link');
+
+  const hasSeries = hasSeriesColumn || hasSeriesLinkTable;
 
   const query = `
     SELECT
@@ -82,7 +91,12 @@ export function getAllBooks(): CalibreBook[] {
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
     ${hasPublisher ? 'LEFT JOIN publishers p ON b.publisher = p.id' : ''}
-    ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
+    ${hasSeriesColumn
+      ? 'LEFT JOIN series s ON b.series = s.id'
+      : hasSeriesLinkTable
+        ? 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id'
+        : ''
+    }
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
@@ -108,7 +122,16 @@ export function getBookById(id: number): CalibreBook | undefined {
   const columnNames = columns.map(c => c.name);
 
   const hasPublisher = columnNames.includes('publisher');
-  const hasSeries = columnNames.includes('series');
+
+  // Check for direct series column (test DB schema)
+  const hasSeriesColumn = columnNames.includes('series');
+
+  // Check for series link table (production Calibre schema)
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
+  const tableNames = tables.map(t => t.name);
+  const hasSeriesLinkTable = tableNames.includes('books_series_link');
+
+  const hasSeries = hasSeriesColumn || hasSeriesLinkTable;
 
   const query = `
     SELECT
@@ -129,7 +152,12 @@ export function getBookById(id: number): CalibreBook | undefined {
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
     ${hasPublisher ? 'LEFT JOIN publishers p ON b.publisher = p.id' : ''}
-    ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
+    ${hasSeriesColumn
+      ? 'LEFT JOIN series s ON b.series = s.id'
+      : hasSeriesLinkTable
+        ? 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id'
+        : ''
+    }
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
@@ -159,7 +187,16 @@ export function searchBooks(query: string): CalibreBook[] {
   const columnNames = columns.map(c => c.name);
 
   const hasPublisher = columnNames.includes('publisher');
-  const hasSeries = columnNames.includes('series');
+
+  // Check for direct series column (test DB schema)
+  const hasSeriesColumn = columnNames.includes('series');
+
+  // Check for series link table (production Calibre schema)
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
+  const tableNames = tables.map(t => t.name);
+  const hasSeriesLinkTable = tableNames.includes('books_series_link');
+
+  const hasSeries = hasSeriesColumn || hasSeriesLinkTable;
 
   const searchQuery = `
     SELECT
@@ -180,7 +217,12 @@ export function searchBooks(query: string): CalibreBook[] {
     LEFT JOIN books_authors_link bal ON b.id = bal.book
     LEFT JOIN authors a ON bal.author = a.id
     ${hasPublisher ? 'LEFT JOIN publishers p ON b.publisher = p.id' : ''}
-    ${hasSeries ? 'LEFT JOIN series s ON b.series = s.id' : ''}
+    ${hasSeriesColumn
+      ? 'LEFT JOIN series s ON b.series = s.id'
+      : hasSeriesLinkTable
+        ? 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id'
+        : ''
+    }
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
