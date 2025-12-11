@@ -158,7 +158,7 @@ export default function ProgressEditModal({
             {currentProgress.notes && (
               <div className="mt-2">
                 <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
-                <div className="text-sm mt-1" data-color-mode="auto">
+                <div className="text-sm mt-1" data-color-mode="light">
                   <MarkdownPreview 
                     source={currentProgress.notes} 
                     style={{ 
@@ -327,7 +327,7 @@ export default function ProgressEditModal({
           >
             Notes (optional) - Markdown supported
           </label>
-          <div data-color-mode="auto">
+          <div data-color-mode="light">
             <MDEditor
               value={notes}
               onChange={(value) => setNotes(value || "")}

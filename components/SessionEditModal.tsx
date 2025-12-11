@@ -158,7 +158,7 @@ export default function SessionEditModal({
           >
             Review - Markdown supported
           </label>
-          <div data-color-mode="auto">
+          <div data-color-mode="light">
             <MDEditor
               value={review}
               onChange={(value) => setReview(value || "")}

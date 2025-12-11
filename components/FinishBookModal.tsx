@@ -103,7 +103,7 @@ export default function FinishBookModal({
             <span>Review - Markdown supported</span>
             <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
           </label>
-          <div data-color-mode="auto">
+          <div data-color-mode="light">
             <MDEditor
               value={review}
               onChange={(value) => setReview(value || "")}

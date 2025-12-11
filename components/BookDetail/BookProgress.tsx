@@ -169,7 +169,7 @@ export default function BookProgress({
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                 Notes (Markdown supported)
               </label>
-              <div data-color-mode="auto">
+              <div data-color-mode="light">
                 <MDEditor
                   value={notes}
                   onChange={(value) => onNotesChange(value || "")}

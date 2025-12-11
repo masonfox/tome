@@ -217,6 +217,12 @@ html[data-bottom-nav="false"] #main-content {
 }
 
 /* Markdown editor theme integration */
+/* Force light text on dark backgrounds */
+[data-theme="dark"] .w-md-editor,
+html[data-theme="dark"] .w-md-editor {
+  --md-editor-text-color: #e8dcc4 !important;
+}
+
 .w-md-editor {
   background-color: var(--background) !important;
   border-color: var(--border-color) !important;
@@ -241,12 +247,18 @@ html[data-bottom-nav="false"] #main-content {
   color: var(--accent) !important;
 }
 
+/* Ultra-specific selectors to override library defaults */
 .w-md-editor-text-pre,
 .w-md-editor-text-input,
 .w-md-editor-text-pre > code,
-.w-md-editor-text-input textarea {
+.w-md-editor-text-input textarea,
+.w-md-editor-input textarea,
+.w-md-editor .w-md-editor-text,
+.w-md-editor .w-md-editor-text-input,
+.w-md-editor-aree textarea {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
+  caret-color: var(--foreground) !important;
 }
 
 .w-md-editor-text-input::placeholder,
@@ -255,18 +267,17 @@ html[data-bottom-nav="false"] #main-content {
   opacity: 0.4;
 }
 
-/* Additional specificity for textarea */
-.w-md-editor-input textarea {
-  color: var(--foreground) !important;
-  background-color: var(--background) !important;
-}
-
 .w-md-editor-content {
   background-color: var(--background) !important;
 }
 
 .w-md-editor-area {
   background-color: var(--background) !important;
+}
+
+/* Ensure all text elements in the editor are visible */
+.w-md-editor-text-pre > code > * {
+  color: var(--foreground) !important;
 }
 
 .wmde-markdown {

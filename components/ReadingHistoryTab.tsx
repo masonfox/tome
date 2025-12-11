@@ -202,7 +202,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <p className="text-xs text-[var(--foreground)]/60 font-semibold uppercase tracking-wide mb-2">
                   Review
                 </p>
-                <div className="text-sm" data-color-mode="auto">
+                <div className="text-sm" data-color-mode="light">
                   <MarkdownPreview 
                     source={session.review} 
                     style={{ 

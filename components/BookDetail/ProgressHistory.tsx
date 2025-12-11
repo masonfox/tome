@@ -76,7 +76,7 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
               </div>
 
               {entry.notes && (
-                <div className="text-sm mt-2 border-l-2 border-[var(--accent)]/30 pl-3" data-color-mode="auto">
+                <div className="text-sm mt-2 border-l-2 border-[var(--accent)]/30 pl-3" data-color-mode="light">
                   <MarkdownPreview 
                     source={entry.notes} 
                     style={{ 
