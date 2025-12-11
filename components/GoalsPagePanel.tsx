@@ -288,14 +288,12 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         document.body
       )}
 
-      {/* Monthly Chart - Shows progress visualization */}
-      {currentGoalData && monthlyData.length > 0 && (
+      {/* Monthly Chart - Only show for past and current years */}
+      {currentGoalData && monthlyData.length > 0 && selectedYear <= new Date().getFullYear() && (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6">
           <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
             {selectedYear < new Date().getFullYear() 
               ? "Monthly Breakdown" 
-              : selectedYear > new Date().getFullYear()
-              ? "Monthly Target"
               : "Monthly Progress"}
           </h3>
           <ReadingGoalChart
@@ -306,8 +304,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         </div>
       )}
 
-      {/* Completed Books Section */}
-      {currentGoalData && (
+      {/* Completed Books Section - Only show for past and current years */}
+      {currentGoalData && selectedYear <= new Date().getFullYear() && (
         <CompletedBooksSection
           year={selectedYear}
           books={completedBooks}
