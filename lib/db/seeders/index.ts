@@ -4,7 +4,7 @@
  */
 
 import { syncCalibreLibrary } from "@/lib/sync-service";
-import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
 import { getLogger } from "@/lib/logger";
 import {
@@ -13,6 +13,11 @@ import {
   generateBookInProgress,
   generateCompletedBook,
 } from "./fixtures/progress";
+import {
+  generateMultiYearGoals,
+  calculateCompletedBooksForGoal,
+  generateCompletionDatesForYear,
+} from "./fixtures/goals";
 
 const logger = getLogger();
 
@@ -22,6 +27,8 @@ export interface SeedResult {
   sessionsSeeded: number;
   progressLogsSeeded: number;
   booksUsed: number;
+  goalsCreated?: number;
+  booksCompletedHistorically?: number;
   currentStreak?: number;
   longestStreak?: number;
   totalDaysActive?: number;
@@ -291,9 +298,144 @@ export async function seedDatabase(): Promise<SeedResult> {
       lastActivityDate: rebuiltStreak.lastActivityDate,
     }, "Streak rebuilt successfully");
 
+    // Phase 6: Create reading goals for multiple years
+    logger.info("Phase 6: Creating reading goals for multiple years...");
+    const currentYear = new Date().getFullYear();
+    const goalsToCreate = generateMultiYearGoals(currentYear, 2); // Current year + 2 past years + 1 future year
+    
+    let goalsCreated = 0;
+    const createdGoals = [];
+    
+    for (const goalData of goalsToCreate) {
+      // Check if goal already exists
+      const existing = await readingGoalRepository.findByUserAndYear(null, goalData.year);
+      
+      if (existing) {
+        logger.info({
+          year: goalData.year,
+          existingGoal: existing.booksGoal,
+        }, "Goal already exists for year");
+        createdGoals.push(existing);
+        continue;
+      }
+      
+      // Create the goal
+      const goal = await readingGoalRepository.create({
+        userId: null, // Single-user mode
+        year: goalData.year,
+        booksGoal: goalData.booksGoal,
+      });
+      
+      goalsCreated++;
+      createdGoals.push(goal);
+      logger.info({
+        year: goalData.year,
+        booksGoal: goalData.booksGoal,
+      }, "Created reading goal");
+    }
+
+    // Phase 7: Create historical completed books to match goals
+    logger.info("Phase 7: Creating historical completed book sessions...");
+    let booksCompletedHistorically = 0;
+    
+    // Get additional books from library for historical completions
+    // We need enough books to satisfy the past year goals
+    const additionalBooks = allBooks.slice(12); // Books not used in current sessions
+    
+    let bookIndex = 0;
+    
+    for (const goal of createdGoals) {
+      // Only create historical completions for past years
+      if (goal.year >= currentYear) {
+        logger.info({
+          year: goal.year,
+          reason: "current or future year",
+        }, "Skipping historical completions");
+        continue;
+      }
+      
+      const targetCompletions = calculateCompletedBooksForGoal(
+        { year: goal.year, booksGoal: goal.booksGoal },
+        currentYear
+      );
+      
+      logger.info({
+        year: goal.year,
+        targetCompletions,
+        booksGoal: goal.booksGoal,
+      }, "Generating historical completions");
+      
+      // Generate completion dates for this year
+      const completionDates = generateCompletionDatesForYear(goal.year, targetCompletions);
+      
+      // Create sessions with completion dates
+      for (const completionDate of completionDates) {
+        // Use next available book
+        if (bookIndex >= additionalBooks.length) {
+          logger.warn({
+            year: goal.year,
+            completed: booksCompletedHistorically,
+            target: targetCompletions,
+          }, "Ran out of books for historical completions");
+          break;
+        }
+        
+        const book = additionalBooks[bookIndex];
+        bookIndex++;
+        
+        // Assign page count if missing
+        let totalPages = book.totalPages;
+        if (!totalPages || totalPages === 0) {
+          totalPages = Math.floor(Math.random() * 450) + 150;
+          await bookRepository.update(book.id, { totalPages });
+        }
+        
+        // Check if book already has a session
+        const existingSession = await sessionRepository.findActiveByBookId(book.id);
+        
+        if (existingSession) {
+          // Update existing session with completion date
+          await sessionRepository.update(existingSession.id, {
+            status: "read",
+            completedDate: completionDate,
+            startedDate: existingSession.startedDate || new Date(completionDate.getTime() - (14 * 24 * 60 * 60 * 1000)), // 2 weeks before completion
+          });
+          
+          booksCompletedHistorically++;
+          logger.info({
+            bookId: book.id,
+            title: book.title,
+            year: goal.year,
+            completionDate,
+          }, "Updated existing session with historical completion date");
+        } else {
+          // Create new session with completion date
+          const sessionNumber = await sessionRepository.getNextSessionNumber(book.id);
+          
+          await sessionRepository.create({
+            bookId: book.id,
+            sessionNumber,
+            status: "read",
+            startedDate: new Date(completionDate.getTime() - (14 * 24 * 60 * 60 * 1000)), // Started 2 weeks before completion
+            completedDate: completionDate,
+          });
+          
+          booksCompletedHistorically++;
+          logger.info({
+            bookId: book.id,
+            title: book.title,
+            year: goal.year,
+            completionDate,
+          }, "Created historical completed book session");
+        }
+      }
+    }
+
     logger.info({
       sessionsCreated,
       progressLogsCreated,
+      goalsCreated,
+      booksCompletedHistorically,
       currentStreak: rebuiltStreak.currentStreak,
     }, "Seeding completed successfully");
 
@@ -303,6 +445,8 @@ export async function seedDatabase(): Promise<SeedResult> {
       sessionsSeeded: sessionsCreated,
       progressLogsSeeded: progressLogsCreated,
       booksUsed: booksToUse.length,
+      goalsCreated,
+      booksCompletedHistorically,
       currentStreak: rebuiltStreak.currentStreak,
       longestStreak: rebuiltStreak.longestStreak,
       totalDaysActive: rebuiltStreak.totalDaysActive,
