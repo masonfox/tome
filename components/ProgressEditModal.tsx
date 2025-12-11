@@ -6,6 +6,19 @@ import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
+import dynamic from "next/dynamic";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MDEditor = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default),
+  { ssr: false }
+);
+
+const MarkdownPreview = dynamic(
+  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -143,9 +156,19 @@ export default function ProgressEditModal({
                 : `${Math.round(currentProgress.currentPercentage)}%`}
             </p>
             {currentProgress.notes && (
-              <p className="text-sm text-[var(--foreground)]/70 font-medium mt-1">
-                <span className="font-semibold">Notes:</span> {currentProgress.notes}
-              </p>
+              <div className="mt-2">
+                <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
+                <div className="text-sm mt-1" data-color-mode="auto">
+                  <MarkdownPreview 
+                    source={currentProgress.notes} 
+                    style={{ 
+                      background: 'transparent',
+                      color: 'var(--foreground)',
+                      fontSize: '0.875rem'
+                    }}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -302,16 +325,20 @@ export default function ProgressEditModal({
             htmlFor="notes"
             className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
           >
-            Notes (optional)
+            Notes (optional) - Markdown supported
           </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this reading session..."
-            rows={4}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium placeholder:text-[var(--foreground)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-          />
+          <div data-color-mode="auto">
+            <MDEditor
+              value={notes}
+              onChange={(value) => setNotes(value || "")}
+              preview="edit"
+              height={200}
+              visibleDragbar={false}
+              textareaProps={{
+                placeholder: "Add notes about this reading session..."
+              }}
+            />
+          </div>
         </div>
       </div>
     </BaseModal>
