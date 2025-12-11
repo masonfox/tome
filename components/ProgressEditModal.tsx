@@ -217,7 +217,7 @@ export default function ProgressEditModal({
             value={progressDate}
             onChange={(e) => setProgressDate(e.target.value)}
             max={getTodayLocalDate()}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+            className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
           />
         </div>
 
