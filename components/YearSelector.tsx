@@ -14,9 +14,9 @@ export function YearSelector({ years, selectedYear, onYearChange }: YearSelector
   }
 
   return (
-    <div className="relative inline-block">
-      <label htmlFor="year-select" className="sr-only">
-        Select year
+    <div className="flex items-center gap-2">
+      <label htmlFor="year-select" className="text-sm font-semibold text-[var(--subheading-text)]">
+        Year
       </label>
       <div className="relative">
         <select
