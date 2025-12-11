@@ -62,7 +62,7 @@ describe("BookProgress", () => {
     expect(screen.getByPlaceholderText("Percentage")).toBeInTheDocument();
   });
 
-  test("should render notes textarea", () => {
+  test("should render notes section with markdown editor", () => {
     render(
       <BookProgress
         book={mockBook}
@@ -82,9 +82,8 @@ describe("BookProgress", () => {
       />
     );
 
-    const textarea = screen.getByPlaceholderText("Add notes about your reading session (optional)") as HTMLTextAreaElement;
-    expect(textarea).toBeInTheDocument();
-    expect(textarea.value).toBe("Great chapter!");
+    // Check for the Notes label with Markdown support indicator
+    expect(screen.getByText("Notes (Markdown supported)")).toBeInTheDocument();
   });
 
   test("should show mode toggle button", () => {
