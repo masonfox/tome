@@ -6,7 +6,7 @@ import { Sun, Moon, LogOut } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
-import { NAV_LINKS, TOP_NAV_EXTRA_LINK, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, DESKTOP_NAV_LINKS, isActiveRoute } from "@/lib/navigation-config";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -60,8 +60,8 @@ export function Navigation() {
     }
   };
 
-  // Combine primary nav links with settings link for top navigation
-  const topNavLinks = [...NAV_LINKS, TOP_NAV_EXTRA_LINK];
+  // Combine primary nav links with desktop-only links for top navigation
+  const topNavLinks = [...NAV_LINKS, ...DESKTOP_NAV_LINKS];
 
   return (
     <nav className="bg-[var(--card-bg)] border-b border-[var(--border-color)] sticky top-0 z-50">
