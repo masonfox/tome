@@ -13,3 +13,4 @@ global.document = document as any;
 global.navigator = window.navigator as any;
 global.HTMLElement = window.HTMLElement as any;
 global.Element = window.Element as any;
+global.localStorage = window.localStorage as any;

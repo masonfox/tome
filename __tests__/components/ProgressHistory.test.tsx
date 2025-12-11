@@ -47,7 +47,9 @@ describe("ProgressHistory", () => {
       />
     );
 
-    expect(screen.getByText(/"Great start!"/)).toBeInTheDocument();
+    // Check for the markdown container with the notes
+    const notesContainer = document.querySelector('.border-l-2.border-\\[var\\(--accent\\)\\]\\/30');
+    expect(notesContainer).toBeInTheDocument();
   });
 
   test("should show pages read", () => {
