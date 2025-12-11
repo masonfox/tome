@@ -1,6 +1,16 @@
+"use client";
+
 import { ChevronDown, Check, TrendingUp } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
+import dynamic from "next/dynamic";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MDEditor = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface BookProgressProps {
   book: {
@@ -157,15 +167,20 @@ export default function BookProgress({
 
             <div>
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
-                Notes
+                Notes (Markdown supported)
               </label>
-              <textarea
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent resize-y"
-                placeholder="Add notes about your reading session (optional)"
-              />
+              <div data-color-mode="auto">
+                <MDEditor
+                  value={notes}
+                  onChange={(value) => onNotesChange(value || "")}
+                  preview="edit"
+                  height={200}
+                  visibleDragbar={false}
+                  textareaProps={{
+                    placeholder: "Add notes about your reading session (optional)...\n\nMarkdown is supported:\n- **bold text**\n- *italic text*\n- [links](https://example.com)\n- Lists and more!"
+                  }}
+                />
+              </div>
             </div>
 
             <button

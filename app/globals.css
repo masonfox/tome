@@ -215,3 +215,68 @@ html[data-bottom-nav="false"] #main-content {
   padding-top: 3rem; /* py-12 */
   padding-bottom: 3rem; /* py-12 */
 }
+
+/* Markdown editor theme integration */
+.w-md-editor {
+  background-color: var(--background) !important;
+  border-color: var(--border-color) !important;
+  color: var(--foreground) !important;
+}
+
+.w-md-editor-toolbar {
+  background-color: var(--card-bg) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+.w-md-editor-toolbar button {
+  color: var(--foreground) !important;
+}
+
+.w-md-editor-toolbar button:hover {
+  background-color: var(--background) !important;
+  color: var(--accent) !important;
+}
+
+.w-md-editor-text-pre,
+.w-md-editor-text-input {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.w-md-editor-text-input::placeholder {
+  color: var(--foreground) !important;
+  opacity: 0.4;
+}
+
+.wmde-markdown {
+  background-color: transparent !important;
+  color: var(--foreground) !important;
+}
+
+.wmde-markdown a {
+  color: var(--accent) !important;
+}
+
+.wmde-markdown code {
+  background-color: var(--card-bg) !important;
+  color: var(--foreground) !important;
+}
+
+.wmde-markdown pre {
+  background-color: var(--card-bg) !important;
+}
+
+.wmde-markdown blockquote {
+  border-left-color: var(--accent) !important;
+  color: var(--subheading-text) !important;
+}
+
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  color: var(--heading-text) !important;
+}
+
