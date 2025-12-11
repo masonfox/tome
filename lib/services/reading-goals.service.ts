@@ -70,7 +70,8 @@ export class ReadingGoalsService {
     const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     const daysInYear = isLeapYear(year) ? 366 : 365;
     const startOfYearDate = new Date(year, 0, 1);
-    const daysElapsed = Math.max(0, differenceInDays(now, startOfYearDate));
+    // Ensure minimum of 1 day elapsed to avoid division edge cases on January 1st
+    const daysElapsed = Math.max(1, differenceInDays(now, startOfYearDate) + 1);
     const expectedBooks = (booksGoal / daysInYear) * daysElapsed;
 
     let paceStatus: "ahead" | "on-track" | "behind";
