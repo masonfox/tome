@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
+import dynamic from "next/dynamic";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MDEditor = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface SessionEditModalProps {
   isOpen: boolean;
@@ -148,16 +156,21 @@ export default function SessionEditModal({
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
           >
-            Review
+            Review - Markdown supported
           </label>
-          <textarea
-            id="review"
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            placeholder="Add your thoughts about this reading..."
-            rows={6}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium placeholder:text-[var(--foreground)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-          />
+          <div data-color-mode="auto">
+            <MDEditor
+              value={review}
+              onChange={(value) => setReview(value || "")}
+              preview="edit"
+              height={200}
+              visibleDragbar={false}
+              textareaProps={{
+                placeholder: "Add your thoughts about this reading...",
+                id: "review"
+              }}
+            />
+          </div>
           {review && (
             <button
               onClick={handleRemoveReview}
