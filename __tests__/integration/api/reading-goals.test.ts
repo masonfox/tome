@@ -130,6 +130,104 @@ describe("Integration: Reading Goals API", () => {
       const response = await UPDATE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
       expect(response.status).toBe(400);
     });
+
+    test("should reject invalid goal ID format (non-numeric strings)", async () => {
+      const request = createMockRequest("PATCH", "/api/reading-goals/abc", {
+        booksGoal: 60,
+      }) as any;
+      
+      const response = await UPDATE_GOAL(request, { params: Promise.resolve({ id: "abc" }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("INVALID_ID");
+      expect(data.error.message).toContain("must be a valid number");
+    });
+
+    test("should return 400 when booksGoal is missing", async () => {
+      const currentYear = new Date().getFullYear();
+      
+      const goal = await readingGoalRepository.create({
+        year: currentYear,
+        booksGoal: 50,
+      });
+      
+      const request = createMockRequest("PATCH", `/api/reading-goals/${goal.id}`, {
+        // Missing booksGoal
+      }) as any;
+      
+      const response = await UPDATE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("MISSING_FIELD");
+      expect(data.error.message).toContain("booksGoal is required");
+    });
+
+    test("should return 400 when booksGoal is not a number", async () => {
+      const currentYear = new Date().getFullYear();
+      
+      const goal = await readingGoalRepository.create({
+        year: currentYear,
+        booksGoal: 50,
+      });
+      
+      const request = createMockRequest("PATCH", `/api/reading-goals/${goal.id}`, {
+        booksGoal: "sixty",
+      }) as any;
+      
+      const response = await UPDATE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("INVALID_TYPE");
+      expect(data.error.message).toContain("must be a number");
+    });
+
+    test("should return 400 when trying to edit past year goal", async () => {
+      const pastYear = new Date().getFullYear() - 1;
+      
+      const goal = await readingGoalRepository.create({
+        year: pastYear,
+        booksGoal: 50,
+      });
+      
+      const request = createMockRequest("PATCH", `/api/reading-goals/${goal.id}`, {
+        booksGoal: 60,
+      }) as any;
+      
+      const response = await UPDATE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("PAST_YEAR_READONLY");
+      expect(data.error.message).toContain("past years");
+    });
+
+    test("should handle validation errors from service layer", async () => {
+      const currentYear = new Date().getFullYear();
+      
+      const goal = await readingGoalRepository.create({
+        year: currentYear,
+        booksGoal: 50,
+      });
+      
+      // Try to update with goal > 9999 (service layer constraint)
+      const request = createMockRequest("PATCH", `/api/reading-goals/${goal.id}`, {
+        booksGoal: 10000,
+      }) as any;
+      
+      const response = await UPDATE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("INVALID_INPUT");
+    });
   });
 
   describe("Goal Deletion Flow", () => {
@@ -159,6 +257,63 @@ describe("Integration: Reading Goals API", () => {
       const request = createMockRequest("DELETE", "/api/reading-goals/99999") as any;
       const response = await DELETE_GOAL(request, { params: Promise.resolve({ id: "99999" }) });
       expect(response.status).toBe(404);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("NOT_FOUND");
+    });
+
+    test("should reject deletion of past year goals", async () => {
+      const pastYear = new Date().getFullYear() - 1;
+      
+      const goal = await readingGoalRepository.create({
+        year: pastYear,
+        booksGoal: 50,
+      });
+      
+      const request = createMockRequest("DELETE", `/api/reading-goals/${goal.id}`) as any;
+      const response = await DELETE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("PAST_YEAR_READONLY");
+      expect(data.error.message).toContain("past years");
+      
+      // Verify goal was not deleted
+      const stillExists = await readingGoalRepository.findById(goal.id);
+      expect(stillExists).toBeDefined();
+    });
+
+    test("should handle invalid ID formats on delete", async () => {
+      const request = createMockRequest("DELETE", "/api/reading-goals/invalid-id") as any;
+      const response = await DELETE_GOAL(request, { params: Promise.resolve({ id: "invalid-id" }) });
+      expect(response.status).toBe(400);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe("INVALID_ID");
+      expect(data.error.message).toContain("must be a valid number");
+    });
+
+    test("should successfully delete future year goals", async () => {
+      const futureYear = new Date().getFullYear() + 1;
+      
+      const goal = await readingGoalRepository.create({
+        year: futureYear,
+        booksGoal: 50,
+      });
+      
+      const request = createMockRequest("DELETE", `/api/reading-goals/${goal.id}`) as any;
+      const response = await DELETE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
+      expect(response.status).toBe(200);
+      
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      
+      // Verify deletion
+      const deletedGoal = await readingGoalRepository.findById(goal.id);
+      expect(deletedGoal).toBeUndefined();
     });
   });
 
