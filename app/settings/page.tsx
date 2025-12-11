@@ -1,5 +1,5 @@
 import { Settings as SettingsIcon } from "lucide-react";
-import { StreakSettings } from "@/components/StreakSettings";
+import { TimezoneSettings } from "@/components/TimezoneSettings";
 import { NavigationSettings } from "@/components/NavigationSettings";
 import { PageHeader } from "@/components/PageHeader";
 import { streakService } from "@/lib/services/streak.service";
@@ -7,9 +7,8 @@ import { streakService } from "@/lib/services/streak.service";
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  // Get current streak to fetch threshold and timezone (auto-creates if doesn't exist)
+  // Get current streak to fetch timezone (auto-creates if doesn't exist)
   const streak = await streakService.getStreak(null);
-  const initialThreshold = streak.dailyThreshold;
   const initialTimezone = streak.userTimezone;
 
   return (
@@ -23,11 +22,8 @@ export default async function SettingsPage() {
       {/* Navigation Settings */}
       <NavigationSettings />
 
-      {/* Reading Streak Settings */}
-      <StreakSettings 
-        initialThreshold={initialThreshold}
-        initialTimezone={initialTimezone}
-      />
+      {/* Timezone Settings */}
+      <TimezoneSettings initialTimezone={initialTimezone} />
     </div>
   );
 }

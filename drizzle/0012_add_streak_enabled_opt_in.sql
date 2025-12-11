@@ -1,0 +1,1 @@
+ALTER TABLE `streaks` ADD `streak_enabled` integer DEFAULT 0 NOT NULL;

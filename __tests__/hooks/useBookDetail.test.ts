@@ -116,7 +116,7 @@ describe("useBookDetail", () => {
   });
 
   describe("updateTotalPages", () => {
-    test("should update book total pages and refetch", async () => {
+    test("should optimistically update book total pages", async () => {
       const mockBook = {
         id: 123,
         calibreId: 1,
@@ -125,24 +125,19 @@ describe("useBookDetail", () => {
         tags: [],
       };
 
-      const mockUpdatedBook = {
-        ...mockBook,
-        totalPages: 350,
-      };
-
-      let fetchCallCount = 0;
+      let patchCalled = false;
       global.fetch = mock((url: string, options?: any) => {
         if (options?.method === "PATCH") {
+          patchCalled = true;
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true }),
           } as Response);
         }
         // GET requests
-        fetchCallCount++;
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(fetchCallCount === 1 ? mockBook : mockUpdatedBook),
+          json: () => Promise.resolve(mockBook),
         } as Response);
       });
 
@@ -155,13 +150,15 @@ describe("useBookDetail", () => {
       expect(result.current.book?.totalPages).toBeUndefined();
 
       // Update total pages
-      await result.current.updateTotalPages(350);
-
-      await waitFor(() => {
-        expect(result.current.book?.totalPages).toBe(350);
+      await act(async () => {
+        await result.current.updateTotalPages(350);
       });
 
+      // Should optimistically update without refetch
+      expect(result.current.book?.totalPages).toBe(350);
+
       // Verify PATCH was called with correct payload
+      expect(patchCalled).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/books/123",
         expect.objectContaining({

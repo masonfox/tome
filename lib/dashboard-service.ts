@@ -150,6 +150,11 @@ async function getStreak(): Promise<DashboardStreak | null> {
     // Then, get the current streak data (read-only operation)
     const streak = await streakService.getStreak(null);
 
+    // Return null if streak tracking is disabled
+    if (!streak.streakEnabled) {
+      return null;
+    }
+
     // Get today's pages read (use user's timezone from streak record)
     const { toZonedTime, fromZonedTime } = require("date-fns-tz");
     const userTimezone = streak.userTimezone || 'America/New_York';

@@ -1,5 +1,12 @@
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2 } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
+import dynamic from "next/dynamic";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MarkdownPreview = dynamic(
+  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface ProgressEntry {
   id: number;
@@ -50,7 +57,7 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
                     {formatDateOnly(entry.progressDate)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => onEdit(entry)}
                     className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
@@ -58,20 +65,20 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
                   >
                     <Edit2 className="w-4 h-4 text-[var(--accent)]" />
                   </button>
-                  <button
-                    onClick={() => onEdit(entry)}
-                    className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
-                    title="Delete progress entry"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </button>
                 </div>
               </div>
 
               {entry.notes && (
-                <p className="text-sm text-[var(--foreground)]/70 mt-2 italic font-medium border-l-2 border-[var(--accent)]/30 pl-3">
-                  &quot;{entry.notes}&quot;
-                </p>
+                <div className="text-sm mt-2 border-l-2 border-[var(--accent)]/30 pl-3" data-color-mode="light">
+                  <MarkdownPreview 
+                    source={entry.notes} 
+                    style={{ 
+                      background: 'transparent',
+                      color: 'var(--foreground)',
+                      fontSize: '0.875rem'
+                    }}
+                  />
+                </div>
               )}
             </div>
           ))}

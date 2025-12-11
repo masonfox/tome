@@ -242,7 +242,7 @@ export async function getOrCreateStreak(userId?: number | null): Promise<Streak>
   return streak;
 }
 
-export async function rebuildStreak(userId?: number | null, currentDate?: Date): Promise<Streak> {
+export async function rebuildStreak(userId?: number | null, currentDate?: Date, enableStreak?: boolean): Promise<Streak> {
   logger.info("[Streak] Rebuilding streak from all progress data");
 
   // Get current streak to check the dailyThreshold and timezone
@@ -361,6 +361,7 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date):
     lastActivityDate: lastActivityDate,
     streakStartDate: streakStartDate,
     totalDaysActive,
+    ...(enableStreak !== undefined && { streakEnabled: enableStreak }),
   });
 
   logger.info("[Streak] Streak rebuilt and saved successfully");

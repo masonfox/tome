@@ -215,3 +215,97 @@ html[data-bottom-nav="false"] #main-content {
   padding-top: 3rem; /* py-12 */
   padding-bottom: 3rem; /* py-12 */
 }
+
+/* Markdown editor - theme integration to match our form inputs */
+/* Override library's color variables with our theme */
+[data-color-mode='light'] .w-md-editor,
+[data-color-mode='light'] .wmde-markdown {
+  --color-fg-default: var(--foreground);
+  --color-canvas-default: var(--background);
+  --color-border-default: var(--border-color);
+}
+
+[data-color-mode='dark'] .w-md-editor,
+[data-color-mode='dark'] .wmde-markdown {
+  --color-fg-default: var(--foreground);
+  --color-canvas-default: var(--background);
+  --color-border-default: var(--border-color);
+}
+
+.w-md-editor {
+  background-color: var(--background) !important;
+  border-color: var(--border-color) !important;
+}
+
+.w-md-editor-toolbar {
+  background-color: var(--background) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+.w-md-editor-toolbar button {
+  color: var(--foreground) !important;
+}
+
+.w-md-editor-content {
+  background-color: var(--background) !important;
+}
+
+/* The textarea is intentionally transparent - the visible text is in the pre element */
+.w-md-editor-text-pre {
+  color: var(--foreground) !important;
+}
+
+.w-md-editor-text-pre > code,
+.w-md-editor-text-pre .token {
+  color: var(--foreground) !important;
+}
+
+/* Also set background colors for the text area container */
+.w-md-editor-input,
+.w-md-editor-text {
+  background-color: var(--background) !important;
+}
+
+/* Preview pane styling (if preview mode is enabled) */
+.w-md-editor-preview {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.wmde-markdown {
+  background-color: transparent !important;
+  color: var(--foreground) !important;
+}
+
+.wmde-markdown p,
+.wmde-markdown li,
+.wmde-markdown span,
+.wmde-markdown div,
+.wmde-markdown blockquote,
+.wmde-markdown pre,
+.wmde-markdown code {
+  color: var(--foreground) !important;
+}
+
+.wmde-markdown a {
+  color: var(--accent) !important;
+}
+
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  color: var(--heading-text) !important;
+}
+
+.wmde-markdown strong {
+  color: var(--foreground) !important;
+  font-weight: 600;
+}
+
+.wmde-markdown em {
+  color: var(--foreground) !important;
+}
+
