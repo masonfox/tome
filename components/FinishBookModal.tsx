@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { Star, X } from "lucide-react";
 import { cn } from "@/utils/cn";
+import dynamic from "next/dynamic";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MDEditor = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface FinishBookModalProps {
   isOpen: boolean;
@@ -92,17 +100,22 @@ export default function FinishBookModal({
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)] mb-2"
           >
-            <span>Review</span>
+            <span>Review - Markdown supported</span>
             <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
           </label>
-          <textarea
-            id="review"
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            placeholder="What did you think about this book?"
-            rows={4}
-            className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm rounded focus:outline-none focus:border-[var(--accent)] transition-colors"
-          />
+          <div data-color-mode="auto">
+            <MDEditor
+              value={review}
+              onChange={(value) => setReview(value || "")}
+              preview="edit"
+              height={150}
+              visibleDragbar={false}
+              textareaProps={{
+                placeholder: "What did you think about this book?",
+                id: "review"
+              }}
+            />
+          </div>
           <p className="text-xs italic text-[var(--subheading-text)] mt-1">
             Personal notes just for you
           </p>

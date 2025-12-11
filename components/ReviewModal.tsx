@@ -1,6 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MDEditor = dynamic(
+  () => import("@uiw/react-md-editor").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -69,23 +77,28 @@ export default function ReviewModal({
           </button>
         </div>
 
-        {/* Review Textarea */}
+        {/* Review Editor */}
         <div className="mb-6">
           <label
             htmlFor="review"
             className="block text-sm font-semibold text-[var(--foreground)] mb-2"
           >
-            Your Review
+            Your Review - Markdown supported
           </label>
-          <textarea
-            id="review"
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            placeholder="What did you think about this book?"
-            rows={6}
-            className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm rounded focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
-            autoFocus
-          />
+          <div data-color-mode="auto">
+            <MDEditor
+              value={review}
+              onChange={(value) => setReview(value || "")}
+              preview="edit"
+              height={200}
+              visibleDragbar={false}
+              textareaProps={{
+                placeholder: "What did you think about this book?",
+                id: "review",
+                autoFocus: true
+              }}
+            />
+          </div>
           <p className="text-xs text-[var(--foreground)]/50 mt-1">
             Personal notes just for you
           </p>
