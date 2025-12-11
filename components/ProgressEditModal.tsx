@@ -6,6 +6,15 @@ import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
+import dynamic from "next/dynamic";
+import MarkdownEditor from "@/components/MarkdownEditor";
+import { useDraftField } from "@/hooks/useDraftField";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MarkdownPreview = dynamic(
+  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -18,6 +27,7 @@ interface ProgressEditModalProps {
   }) => void;
   onDelete: () => void;
   bookTitle: string;
+  bookId: string;
   totalPages?: number;
   currentProgress: {
     id: number;
@@ -34,6 +44,7 @@ export default function ProgressEditModal({
   onConfirm,
   onDelete,
   bookTitle,
+  bookId,
   totalPages,
   currentProgress,
 }: ProgressEditModalProps) {
@@ -45,12 +56,27 @@ export default function ProgressEditModal({
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Draft management for notes field
+  const {
+    draft: draftNotes,
+    saveDraft,
+    clearDraft,
+    isInitialized,
+  } = useDraftField(`draft-progress-edit-${bookId}-${currentProgress.id}`);
+
   // Reset form when modal opens with current values
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(currentProgress.currentPage.toString());
       setCurrentPercentage(currentProgress.currentPercentage.toString());
-      setNotes(currentProgress.notes || "");
+      
+      // Restore from draft if no current notes exist
+      if (!currentProgress.notes && draftNotes) {
+        setNotes(draftNotes);
+      } else {
+        setNotes(currentProgress.notes || "");
+      }
+      
       setProgressDate(currentProgress.progressDate.split("T")[0]);
       setShowDeleteConfirm(false);
       
@@ -62,7 +88,14 @@ export default function ProgressEditModal({
         }
       }
     }
-  }, [isOpen, currentProgress]);
+  }, [isOpen, currentProgress, draftNotes]);
+
+  // Auto-save draft (only after initialization to prevent race condition)
+  useEffect(() => {
+    if (isInitialized && notes && isOpen) {
+      saveDraft(notes);
+    }
+  }, [notes, isInitialized, saveDraft, isOpen]);
 
   function handleSave() {
     const data: any = {};
@@ -89,6 +122,9 @@ export default function ProgressEditModal({
     data.progressDate = localMidnight.toISOString();
 
     onConfirm(data);
+    
+    // Clear draft after successful save
+    clearDraft();
   }
 
   function handleDeleteClick() {
@@ -143,9 +179,19 @@ export default function ProgressEditModal({
                 : `${Math.round(currentProgress.currentPercentage)}%`}
             </p>
             {currentProgress.notes && (
-              <p className="text-sm text-[var(--foreground)]/70 font-medium mt-1">
-                <span className="font-semibold">Notes:</span> {currentProgress.notes}
-              </p>
+              <div className="mt-2">
+                <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
+                <div className="text-sm mt-1" data-color-mode="light">
+                  <MarkdownPreview 
+                    source={currentProgress.notes} 
+                    style={{ 
+                      background: 'transparent',
+                      color: 'var(--foreground)',
+                      fontSize: '0.875rem'
+                    }}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -199,7 +245,7 @@ export default function ProgressEditModal({
             value={progressDate}
             onChange={(e) => setProgressDate(e.target.value)}
             max={getTodayLocalDate()}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+            className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
           />
         </div>
 
@@ -304,14 +350,14 @@ export default function ProgressEditModal({
           >
             Notes (optional)
           </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this reading session..."
-            rows={4}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium placeholder:text-[var(--foreground)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-          />
+          <div>
+            <MarkdownEditor
+              value={notes}
+              onChange={setNotes}
+              placeholder="Add notes about this reading session..."
+              height={200}
+            />
+          </div>
         </div>
       </div>
     </BaseModal>
