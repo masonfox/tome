@@ -8,6 +8,7 @@ import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
 import dynamic from "next/dynamic";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import { useDraftField } from "@/hooks/useDraftField";
 import "@uiw/react-markdown-preview/markdown.css";
 
 const MarkdownPreview = dynamic(
@@ -26,6 +27,7 @@ interface ProgressEditModalProps {
   }) => void;
   onDelete: () => void;
   bookTitle: string;
+  bookId: string;
   totalPages?: number;
   currentProgress: {
     id: number;
@@ -42,6 +44,7 @@ export default function ProgressEditModal({
   onConfirm,
   onDelete,
   bookTitle,
+  bookId,
   totalPages,
   currentProgress,
 }: ProgressEditModalProps) {
@@ -53,12 +56,27 @@ export default function ProgressEditModal({
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Draft management for notes field
+  const {
+    draft: draftNotes,
+    saveDraft,
+    clearDraft,
+    isInitialized,
+  } = useDraftField(`draft-progress-edit-${bookId}-${currentProgress.id}`);
+
   // Reset form when modal opens with current values
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(currentProgress.currentPage.toString());
       setCurrentPercentage(currentProgress.currentPercentage.toString());
-      setNotes(currentProgress.notes || "");
+      
+      // Restore from draft if no current notes exist
+      if (!currentProgress.notes && draftNotes) {
+        setNotes(draftNotes);
+      } else {
+        setNotes(currentProgress.notes || "");
+      }
+      
       setProgressDate(currentProgress.progressDate.split("T")[0]);
       setShowDeleteConfirm(false);
       
@@ -70,7 +88,14 @@ export default function ProgressEditModal({
         }
       }
     }
-  }, [isOpen, currentProgress]);
+  }, [isOpen, currentProgress, draftNotes]);
+
+  // Auto-save draft (only after initialization to prevent race condition)
+  useEffect(() => {
+    if (isInitialized && notes && isOpen) {
+      saveDraft(notes);
+    }
+  }, [notes, isInitialized, saveDraft, isOpen]);
 
   function handleSave() {
     const data: any = {};
@@ -97,6 +122,9 @@ export default function ProgressEditModal({
     data.progressDate = localMidnight.toISOString();
 
     onConfirm(data);
+    
+    // Clear draft after successful save
+    clearDraft();
   }
 
   function handleDeleteClick() {

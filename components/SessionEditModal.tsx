@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import { useDraftField } from "@/hooks/useDraftField";
 
 interface SessionEditModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ interface SessionEditModalProps {
   }) => void;
   bookTitle: string;
   sessionNumber: number;
+  sessionId: number;
+  bookId: string;
   currentStartedDate?: string | null;
   currentCompletedDate?: string | null;
   currentReview?: string | null;
@@ -26,6 +29,8 @@ export default function SessionEditModal({
   onConfirm,
   bookTitle,
   sessionNumber,
+  sessionId,
+  bookId,
   currentStartedDate,
   currentCompletedDate,
   currentReview,
@@ -33,6 +38,14 @@ export default function SessionEditModal({
   const [startedDate, setStartedDate] = useState("");
   const [completedDate, setCompletedDate] = useState("");
   const [review, setReview] = useState("");
+
+  // Draft management for review field
+  const {
+    draft: draftReview,
+    saveDraft,
+    clearDraft,
+    isInitialized,
+  } = useDraftField(`draft-session-edit-${bookId}-${sessionId}`);
 
   // Reset form when modal opens with current values
   useEffect(() => {
@@ -44,9 +57,22 @@ export default function SessionEditModal({
       setCompletedDate(
         currentCompletedDate ? currentCompletedDate.split("T")[0] : ""
       );
-      setReview(currentReview || "");
+      
+      // Restore from draft if no current review exists
+      if (!currentReview && draftReview) {
+        setReview(draftReview);
+      } else {
+        setReview(currentReview || "");
+      }
     }
-  }, [isOpen, currentStartedDate, currentCompletedDate, currentReview]);
+  }, [isOpen, currentStartedDate, currentCompletedDate, currentReview, draftReview]);
+
+  // Auto-save draft (only after initialization to prevent race condition)
+  useEffect(() => {
+    if (isInitialized && review && isOpen) {
+      saveDraft(review);
+    }
+  }, [review, isInitialized, saveDraft, isOpen]);
 
   function handleSave() {
     // Convert date strings back to ISO format (with time set to midnight UTC)
@@ -63,6 +89,9 @@ export default function SessionEditModal({
       completedDate: completedISO,
       review: reviewValue,
     });
+    
+    // Clear draft after successful save
+    clearDraft();
   }
 
   function handleClearDates() {

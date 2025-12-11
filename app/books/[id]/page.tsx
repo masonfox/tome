@@ -434,6 +434,7 @@ export default function BookDetailPage() {
         onClose={() => handleCancelStatusChange()}
         onConfirm={handleConfirmRead}
         bookTitle={book.title}
+        bookId={bookId}
       />
 
       <RatingModal
@@ -478,6 +479,7 @@ export default function BookDetailPage() {
           onDelete={bookProgressHook.handleDeleteProgress}
           currentProgress={bookProgressHook.selectedProgressEntry}
           bookTitle={book.title}
+          bookId={bookId}
           totalPages={book.totalPages}
         />
       )}
