@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MoreHorizontal, Settings, LogOut, Sun, Moon } from "lucide-react";
+import { MoreHorizontal, LogOut, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
 import { useState, useEffect, useMemo } from "react";
 import { BottomSheet } from "./BottomSheet";
@@ -164,20 +164,6 @@ export function BottomNavigation() {
               </button>
             );
           })}
-
-          {/* Settings */}
-          <button
-            onClick={() => handleSheetItemClick("/settings")}
-            className={clsx(
-              "flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
-              pathname === "/settings"
-                ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                : "text-[var(--foreground)] hover:bg-[var(--border-color)]"
-            )}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
-          </button>
 
           {/* Dark Mode Toggle */}
           <button

@@ -1,7 +1,8 @@
 "use client";
 
-import { Flame, Calendar, Target, TrendingUp, TrendingDown, Settings } from "lucide-react";
-import Link from "next/link";
+import { useState } from "react";
+import { Flame, Calendar, Target, TrendingUp, TrendingDown, Pencil } from "lucide-react";
+import { StreakEditModal } from "./StreakEditModal";
 
 interface StreakAnalyticsProps {
   currentStreak: number;
@@ -20,8 +21,15 @@ export function StreakAnalytics({
   booksAheadOrBehind,
   daysOfData,
 }: StreakAnalyticsProps) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
   // Show encouraging message for new users with < 7 days of data
   const showEncouragingMessage = daysOfData < 7;
+
+  const handleEditSuccess = () => {
+    // Refresh the page to get updated data
+    window.location.reload();
+  };
 
   return (
     <div className="space-y-6">
@@ -96,14 +104,17 @@ export function StreakAnalytics({
           </div>
 
           {/* Daily Goal - Blue with hover effect */}
-          <Link href="/settings" className="block hover:scale-[1.02] transition-transform">
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="block hover:scale-[1.02] transition-transform w-full text-left"
+          >
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white cursor-pointer">
               <div className="flex items-center justify-between gap-2 mb-4">
                 <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
                   Daily Goal
                 </p>
                 <div className="opacity-80">
-                  <Settings className="w-5 h-5" />
+                  <Pencil className="w-5 h-5" />
                 </div>
               </div>
               <p className="text-4xl font-serif font-bold text-center">
@@ -113,7 +124,7 @@ export function StreakAnalytics({
                 pages per day • edit
               </p>
             </div>
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -168,6 +179,14 @@ export function StreakAnalytics({
           )}
         </div>
       )}
+
+      {/* Edit Modal */}
+      <StreakEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialThreshold={dailyThreshold}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }
