@@ -250,12 +250,20 @@ html[data-bottom-nav="false"] #main-content {
   background-color: var(--background) !important;
 }
 
-.w-md-editor-input,
-.w-md-editor-text,
-.w-md-editor-text-pre,
-.w-md-editor-text-input {
-  background-color: var(--background) !important;
+/* The textarea is intentionally transparent - the visible text is in the pre element */
+.w-md-editor-text-pre {
   color: var(--foreground) !important;
+}
+
+.w-md-editor-text-pre > code,
+.w-md-editor-text-pre .token {
+  color: var(--foreground) !important;
+}
+
+/* Also set background colors for the text area container */
+.w-md-editor-input,
+.w-md-editor-text {
+  background-color: var(--background) !important;
 }
 
 .wmde-markdown {
