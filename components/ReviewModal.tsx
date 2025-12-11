@@ -85,7 +85,7 @@ export default function ReviewModal({
           >
             Your Review - Markdown supported
           </label>
-          <div data-color-mode="light">
+          <div>
             <MDEditor
               value={review}
               onChange={(value) => setReview(value || "")}

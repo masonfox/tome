@@ -216,91 +216,13 @@ html[data-bottom-nav="false"] #main-content {
   padding-bottom: 3rem; /* py-12 */
 }
 
-/* Markdown editor theme integration */
-/* Force light text on dark backgrounds */
-[data-theme="dark"] .w-md-editor,
-html[data-theme="dark"] .w-md-editor {
-  --md-editor-text-color: #e8dcc4 !important;
-}
-
-.w-md-editor {
-  background-color: var(--background) !important;
-  border-color: var(--border-color) !important;
-  color: var(--foreground) !important;
-}
-
-.w-md-editor * {
-  box-sizing: border-box;
-}
-
-.w-md-editor-toolbar {
-  background-color: var(--card-bg) !important;
-  border-bottom-color: var(--border-color) !important;
-}
-
-.w-md-editor-toolbar button {
-  color: var(--foreground) !important;
-}
-
-.w-md-editor-toolbar button:hover {
-  background-color: var(--background) !important;
-  color: var(--accent) !important;
-}
-
-/* Ultra-specific selectors to override library defaults */
-.w-md-editor-text-pre,
-.w-md-editor-text-input,
-.w-md-editor-text-pre > code,
-.w-md-editor-text-input textarea,
-.w-md-editor-input textarea,
-.w-md-editor .w-md-editor-text,
-.w-md-editor .w-md-editor-text-input,
-.w-md-editor-aree textarea {
-  background-color: var(--background) !important;
-  color: var(--foreground) !important;
-  caret-color: var(--foreground) !important;
-}
-
-.w-md-editor-text-input::placeholder,
-.w-md-editor-text-input textarea::placeholder {
-  color: var(--foreground) !important;
-  opacity: 0.4;
-}
-
-.w-md-editor-content {
-  background-color: var(--background) !important;
-}
-
-.w-md-editor-area {
-  background-color: var(--background) !important;
-}
-
-/* Ensure all text elements in the editor are visible */
-.w-md-editor-text-pre > code > * {
-  color: var(--foreground) !important;
-}
-
+/* Markdown editor - minimal theme integration to match our colors */
 .wmde-markdown {
   background-color: transparent !important;
-  color: var(--foreground) !important;
 }
 
 .wmde-markdown a {
   color: var(--accent) !important;
-}
-
-.wmde-markdown code {
-  background-color: var(--card-bg) !important;
-  color: var(--foreground) !important;
-}
-
-.wmde-markdown pre {
-  background-color: var(--card-bg) !important;
-}
-
-.wmde-markdown blockquote {
-  border-left-color: var(--accent) !important;
-  color: var(--subheading-text) !important;
 }
 
 .wmde-markdown h1,

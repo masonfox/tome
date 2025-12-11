@@ -32,9 +32,11 @@ export function BottomNavigation() {
 
   const toggleDarkMode = () => {
     const newMode = !darkMode;
+    const theme = newMode ? "dark" : "light";
     setDarkMode(newMode);
     localStorage.setItem("darkMode", newMode.toString());
-    document.documentElement.setAttribute("data-theme", newMode ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-color-mode", theme);
   };
 
   const handleLogout = async () => {

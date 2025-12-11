@@ -327,7 +327,7 @@ export default function ProgressEditModal({
           >
             Notes (optional) - Markdown supported
           </label>
-          <div data-color-mode="light">
+          <div>
             <MDEditor
               value={notes}
               onChange={(value) => setNotes(value || "")}

@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" data-bottom-nav="false" suppressHydrationWarning>
+    <html lang="en" data-theme="light" data-color-mode="light" data-bottom-nav="false" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -38,13 +38,12 @@ export default function RootLayout({
               (function() {
                 // Set theme before page loads to prevent flicker
                 const savedMode = localStorage.getItem("darkMode");
-                if (savedMode !== null) {
-                  document.documentElement.setAttribute("data-theme", savedMode === "true" ? "dark" : "light");
-                } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-                  document.documentElement.setAttribute("data-theme", "dark");
-                } else {
-                  document.documentElement.setAttribute("data-theme", "light");
-                }
+                const theme = savedMode !== null 
+                  ? (savedMode === "true" ? "dark" : "light")
+                  : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+                
+                document.documentElement.setAttribute("data-theme", theme);
+                document.documentElement.setAttribute("data-color-mode", theme);
                 
                 // Set bottom navigation preference before page loads to prevent flicker
                 const bottomNavEnabled = localStorage.getItem("bottomNavigationEnabled");
