@@ -57,7 +57,7 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
                     {formatDateOnly(entry.progressDate)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => onEdit(entry)}
                     className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
