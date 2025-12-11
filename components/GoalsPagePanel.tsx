@@ -9,6 +9,7 @@ import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";
 import { CompletedBooksSection } from "./CompletedBooksSection";
+import { GoalsOnboarding } from "./GoalsOnboarding";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -98,6 +99,27 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreateFromOnboarding = async (year: number, booksGoal: number) => {
+    const response = await fetch("/api/reading-goals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ year, booksGoal }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error?.message || "Failed to create goal");
+    }
+
+    // Update state with new goal
+    setSelectedYear(year);
+    setCurrentGoalData(data.data);
+    
+    // Refresh server component to update allGoals prop
+    router.refresh();
   };
 
   const fetchMonthlyData = async (year: number) => {
@@ -265,7 +287,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           onEditClick={handleOpenEditModal}
         />
       ) : availableYears.length === 0 ? (
-        <CreateGoalPrompt onCreateClick={handleOpenCreateModal} />
+        <GoalsOnboarding onCreateGoal={handleCreateFromOnboarding} />
       ) : (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-12 text-center">
           <p className="text-[var(--subheading-text)] font-medium mb-4">

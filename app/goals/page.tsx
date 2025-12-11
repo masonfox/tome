@@ -13,13 +13,18 @@ export default async function GoalsPage() {
   // Get all goals for year selector
   const allGoals = await readingGoalsService.getAllGoals(null);
 
+  // Check if user has any goals at all
+  const hasNoGoals = allGoals.length === 0;
+
   return (
     <div className="space-y-10">
-      <PageHeader
-        title="Reading Goals"
-        subtitle="Track your annual reading targets and progress"
-        icon={Target}
-      />
+      {!hasNoGoals && (
+        <PageHeader
+          title="Reading Goals"
+          subtitle="Track your annual reading targets and progress"
+          icon={Target}
+        />
+      )}
 
       <GoalsPagePanel 
         initialGoalData={currentGoal}
