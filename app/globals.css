@@ -217,6 +217,21 @@ html[data-bottom-nav="false"] #main-content {
 }
 
 /* Markdown editor - theme integration to match our form inputs */
+/* Override library's color variables with our theme */
+[data-color-mode='light'] .w-md-editor,
+[data-color-mode='light'] .wmde-markdown {
+  --color-fg-default: var(--foreground);
+  --color-canvas-default: var(--background);
+  --color-border-default: var(--border-color);
+}
+
+[data-color-mode='dark'] .w-md-editor,
+[data-color-mode='dark'] .wmde-markdown {
+  --color-fg-default: var(--foreground);
+  --color-canvas-default: var(--background);
+  --color-border-default: var(--border-color);
+}
+
 .w-md-editor {
   background-color: var(--background) !important;
   border-color: var(--border-color) !important;
