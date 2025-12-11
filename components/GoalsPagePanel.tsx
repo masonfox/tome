@@ -279,7 +279,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           >
             <ReadingGoalForm
               mode={modalMode}
-              existingGoal={modalMode === "edit" ? initialGoalData?.goal : undefined}
+              existingGoal={modalMode === "edit" ? currentGoalData?.goal : undefined}
               onSuccess={handleSuccess}
               onCancel={handleCloseModal}
             />

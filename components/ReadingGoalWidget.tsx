@@ -77,8 +77,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-      {/* Edit Button - Top Right */}
-      {onEditClick && (
+      {/* Edit Button - Top Right - Only for current and future years */}
+      {onEditClick && !isPastYear && (
         <button
           onClick={onEditClick}
           className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
