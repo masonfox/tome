@@ -9,6 +9,7 @@ export interface Book {
   publisher?: string;
   pubDate?: string;
   series?: string;
+  seriesIndex?: number | null;
   description?: string;
   tags: string[];
   totalReads?: number;
