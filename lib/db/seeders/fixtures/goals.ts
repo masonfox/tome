@@ -47,6 +47,7 @@ export function generateMultiYearGoals(
 /**
  * Calculates how many books should be marked as completed for a given year
  * For past years: achieves 70-110% of goal (some years exceeded, some fell short)
+ * For 2023 specifically: exceeds goal by 20-30%
  * For current year: returns 13 books (130% of 10 book goal)
  * @param goal - Goal data with year and target
  * @param currentYear - Current calendar year
@@ -57,7 +58,13 @@ export function calculateCompletedBooksForGoal(
   currentYear: number
 ): number {
   if (goal.year < currentYear) {
-    // Past year: 70-110% completion (realistic variation)
+    // 2023: Specifically exceed goal by 20-30%
+    if (goal.year === 2023) {
+      const completionRate = 1.2 + Math.random() * 0.1; // 1.2-1.3 (120-130%)
+      return Math.floor(goal.booksGoal * completionRate);
+    }
+    
+    // Other past years: 70-110% completion (realistic variation)
     const completionRate = 0.7 + Math.random() * 0.4; // 0.7-1.1
     return Math.floor(goal.booksGoal * completionRate);
   } else if (goal.year === currentYear) {
