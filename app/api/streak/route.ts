@@ -35,65 +35,25 @@ export async function GET(request: NextRequest) {
 
 /**
  * PATCH /api/streak
- * Update daily threshold
+ * Update daily threshold or enable/disable streak tracking
  */
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { dailyThreshold } = body;
+    const { dailyThreshold, streakEnabled } = body;
 
-    // Validate required field
-    if (dailyThreshold === undefined) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "MISSING_FIELD",
-            message: "dailyThreshold is required",
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate type
-    if (typeof dailyThreshold !== "number") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "INVALID_TYPE",
-            message: "dailyThreshold must be a number",
-            details: {
-              provided: typeof dailyThreshold,
-              expected: "number",
-            },
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    // Update threshold (validation and auto-creation happens in service layer)
-    try {
-      const updated = await streakService.updateThreshold(null, dailyThreshold);
-      return NextResponse.json({ success: true, data: updated });
-    } catch (error: any) {
-      // Check for validation errors
-      if (
-        error.message.includes("must be between") ||
-        error.message.includes("must be an integer")
-      ) {
+    // Handle enable/disable
+    if (streakEnabled !== undefined) {
+      if (typeof streakEnabled !== "boolean") {
         return NextResponse.json(
           {
             success: false,
             error: {
-              code: "INVALID_THRESHOLD",
-              message: error.message,
+              code: "INVALID_TYPE",
+              message: "streakEnabled must be a boolean",
               details: {
-                provided: dailyThreshold,
-                min: 1,
-                max: 9999,
+                provided: typeof streakEnabled,
+                expected: "boolean",
               },
             },
           },
@@ -101,11 +61,75 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      // Re-throw other errors
-      throw error;
+      const updated = await streakService.setStreakEnabled(null, streakEnabled, dailyThreshold);
+      return NextResponse.json({ success: true, data: updated });
     }
+
+    // Handle threshold update
+    if (dailyThreshold !== undefined) {
+      // Validate type
+      if (typeof dailyThreshold !== "number") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "INVALID_TYPE",
+              message: "dailyThreshold must be a number",
+              details: {
+                provided: typeof dailyThreshold,
+                expected: "number",
+              },
+            },
+          },
+          { status: 400 }
+        );
+      }
+
+      // Update threshold (validation and auto-creation happens in service layer)
+      try {
+        const updated = await streakService.updateThreshold(null, dailyThreshold);
+        return NextResponse.json({ success: true, data: updated });
+      } catch (error: any) {
+        // Check for validation errors
+        if (
+          error.message.includes("must be between") ||
+          error.message.includes("must be an integer")
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: "INVALID_THRESHOLD",
+                message: error.message,
+                details: {
+                  provided: dailyThreshold,
+                  min: 1,
+                  max: 9999,
+                },
+              },
+            },
+            { status: 400 }
+          );
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
+    }
+
+    // No valid fields provided
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "MISSING_FIELD",
+          message: "dailyThreshold or streakEnabled is required",
+        },
+      },
+      { status: 400 }
+    );
   } catch (error) {
-    logger.error({ error }, "Failed to update threshold");
+    logger.error({ error }, "Failed to update streak");
     return NextResponse.json(
       {
         success: false,

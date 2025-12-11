@@ -140,11 +140,12 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
     const sessionsResult = rawDb.prepare("DELETE FROM reading_sessions").run();
     const booksResult = rawDb.prepare("DELETE FROM books").run();
     const streaksResult = rawDb.prepare("DELETE FROM streaks").run();
+    const goalsResult = rawDb.prepare("DELETE FROM reading_goals").run();
 
     console.log(
       `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
       `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
-      `${streaksResult.changes} streaks`
+      `${streaksResult.changes} streaks, ${goalsResult.changes} goals`
     );
 
     // Run VACUUM to completely reclaim space and reset internal structures

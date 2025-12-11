@@ -1,0 +1,547 @@
+openapi: 3.0.3
+info:
+  title: Reading Goals API
+  version: 1.0.0
+  description: |
+    API for managing annual reading goals in Tome. Allows users to set yearly
+    book reading targets, track progress, and filter books by completion year.
+
+servers:
+  - url: /api
+    description: Local development server
+
+paths:
+  /reading-goals:
+    get:
+      summary: List all reading goals or get goal for specific year
+      description: |
+        Returns all goals for the current user, or a single goal if year parameter is provided.
+        Goals are returned with calculated progress data.
+      operationId: getReadingGoals
+      parameters:
+        - name: year
+          in: query
+          description: Specific year to fetch goal for (optional)
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 9999
+            example: 2026
+      responses:
+        '200':
+          description: Successfully retrieved goal(s)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SingleGoalResponse'
+                  - $ref: '#/components/schemas/MultipleGoalsResponse'
+              examples:
+                singleGoal:
+                  summary: Goal for specific year
+                  value:
+                    success: true
+                    data:
+                      goal:
+                        id: 1
+                        userId: null
+                        year: 2026
+                        booksGoal: 40
+                        createdAt: "2026-01-01T00:00:00.000Z"
+                        updatedAt: "2026-01-01T00:00:00.000Z"
+                      progress:
+                        booksCompleted: 12
+                        booksRemaining: 28
+                        completionPercentage: 30
+                        paceStatus: "behind"
+                        daysElapsed: 60
+                        projectedFinishDate: "2026-11-15T00:00:00.000Z"
+                        daysAheadBehind: -3
+                allGoals:
+                  summary: All goals for user
+                  value:
+                    success: true
+                    data:
+                      - goal:
+                          id: 1
+                          userId: null
+                          year: 2026
+                          booksGoal: 40
+                          createdAt: "2026-01-01T00:00:00.000Z"
+                          updatedAt: "2026-01-01T00:00:00.000Z"
+                        progress:
+                          booksCompleted: 12
+                          booksRemaining: 28
+                          completionPercentage: 30
+                          paceStatus: "behind"
+                          daysElapsed: 60
+                          projectedFinishDate: "2026-11-15T00:00:00.000Z"
+                          daysAheadBehind: -3
+                      - goal:
+                          id: 2
+                          userId: null
+                          year: 2025
+                          booksGoal: 35
+                          createdAt: "2025-01-01T00:00:00.000Z"
+                          updatedAt: "2025-01-01T00:00:00.000Z"
+                        progress:
+                          booksCompleted: 35
+                          booksRemaining: 0
+                          completionPercentage: 100
+                          paceStatus: "ahead"
+                          daysElapsed: 365
+                          projectedFinishDate: null
+                          daysAheadBehind: 8
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Goal not found for specified year
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "NOT_FOUND"
+                  message: "No goal found for year 2026"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Create a new reading goal
+      description: |
+        Creates a new reading goal for the specified year. Returns error if a goal
+        already exists for that year.
+      operationId: createReadingGoal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGoalRequest'
+            examples:
+              validGoal:
+                summary: Create goal for 2026
+                value:
+                  year: 2026
+                  booksGoal: 40
+      responses:
+        '201':
+          description: Goal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateGoalResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  userId: null
+                  year: 2026
+                  booksGoal: 40
+                  createdAt: "2026-01-01T00:00:00.000Z"
+                  updatedAt: "2026-01-01T00:00:00.000Z"
+        '400':
+          description: Validation error or duplicate goal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidGoal:
+                  summary: Goal must be at least 1
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_GOAL"
+                      message: "Goal must be at least 1 book"
+                      details:
+                        provided: 0
+                        min: 1
+                duplicateGoal:
+                  summary: Goal already exists
+                  value:
+                    success: false
+                    error:
+                      code: "GOAL_EXISTS"
+                      message: "You already have a goal for 2026. Edit your existing goal instead."
+                      details:
+                        year: 2026
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reading-goals/{id}:
+    patch:
+      summary: Update an existing reading goal
+      description: |
+        Updates the booksGoal for an existing goal. Past year goals (years before current year)
+        cannot be edited and will return a 400 error.
+      operationId: updateReadingGoal
+      parameters:
+        - name: id
+          in: path
+          description: Goal ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGoalRequest'
+            example:
+              booksGoal: 45
+      responses:
+        '200':
+          description: Goal updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateGoalResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  userId: null
+                  year: 2026
+                  booksGoal: 45
+                  createdAt: "2026-01-01T00:00:00.000Z"
+                  updatedAt: "2026-06-15T12:30:00.000Z"
+        '400':
+          description: Validation error or past year edit attempt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                pastYear:
+                  summary: Cannot edit past year
+                  value:
+                    success: false
+                    error:
+                      code: "PAST_YEAR_READONLY"
+                      message: "Cannot edit goals for past years"
+                      details:
+                        goalYear: 2025
+                        currentYear: 2026
+                invalidGoal:
+                  summary: Invalid goal value
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_GOAL"
+                      message: "Goal must be at least 1 book"
+        '404':
+          description: Goal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "NOT_FOUND"
+                  message: "Goal not found"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      summary: Delete a reading goal
+      description: Deletes a reading goal. Can only delete current or future year goals.
+      operationId: deleteReadingGoal
+      parameters:
+        - name: id
+          in: path
+          description: Goal ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Goal deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Goal deleted successfully"
+        '400':
+          description: Cannot delete past year goal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "PAST_YEAR_READONLY"
+                  message: "Cannot delete goals for past years"
+        '404':
+          description: Goal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reading-goals/years:
+    get:
+      summary: Get years with completed books
+      description: |
+        Returns all years in which the user has completed at least one book,
+        along with the count of books completed each year. Used for the library
+        year filter dropdown.
+      operationId: getYearsWithBooks
+      responses:
+        '200':
+          description: Successfully retrieved years
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YearsResponse'
+              example:
+                success: true
+                data:
+                  - year: 2026
+                    count: 12
+                  - year: 2025
+                    count: 35
+                  - year: 2024
+                    count: 48
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    ReadingGoal:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier
+          example: 1
+        userId:
+          type: integer
+          nullable: true
+          description: User ID (null in single-user mode)
+          example: null
+        year:
+          type: integer
+          description: Calendar year
+          minimum: 1900
+          maximum: 9999
+          example: 2026
+        booksGoal:
+          type: integer
+          description: Target number of books to read
+          minimum: 1
+          example: 40
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2026-01-01T00:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2026-01-01T00:00:00.000Z"
+
+    ProgressCalculation:
+      type: object
+      properties:
+        booksCompleted:
+          type: integer
+          description: Books finished this year
+          minimum: 0
+          example: 12
+        booksRemaining:
+          type: integer
+          description: Books left to reach goal
+          minimum: 0
+          example: 28
+        completionPercentage:
+          type: integer
+          description: Completion percentage (rounded)
+          minimum: 0
+          maximum: 100
+          example: 30
+        paceStatus:
+          type: string
+          enum: [ahead, on-track, behind]
+          description: Whether user is ahead, on-track, or behind expected pace
+          example: "behind"
+        daysElapsed:
+          type: integer
+          description: Days since January 1st
+          minimum: 0
+          example: 60
+        projectedFinishDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Estimated completion date (null if insufficient data)
+          example: "2026-11-15T00:00:00.000Z"
+        daysAheadBehind:
+          type: integer
+          description: Days ahead (positive) or behind (negative) schedule
+          example: -3
+
+    ReadingGoalWithProgress:
+      type: object
+      properties:
+        goal:
+          $ref: '#/components/schemas/ReadingGoal'
+        progress:
+          $ref: '#/components/schemas/ProgressCalculation'
+
+    YearSummary:
+      type: object
+      properties:
+        year:
+          type: integer
+          description: Calendar year
+          example: 2026
+        count:
+          type: integer
+          description: Number of books completed this year
+          minimum: 0
+          example: 12
+
+    CreateGoalRequest:
+      type: object
+      required:
+        - year
+        - booksGoal
+      properties:
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 9999
+          description: Calendar year for the goal
+          example: 2026
+        booksGoal:
+          type: integer
+          minimum: 1
+          maximum: 9999
+          description: Target number of books
+          example: 40
+
+    UpdateGoalRequest:
+      type: object
+      required:
+        - booksGoal
+      properties:
+        booksGoal:
+          type: integer
+          minimum: 1
+          maximum: 9999
+          description: New target number of books
+          example: 45
+
+    SingleGoalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ReadingGoalWithProgress'
+
+    MultipleGoalsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadingGoalWithProgress'
+
+    CreateGoalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ReadingGoal'
+
+    UpdateGoalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ReadingGoal'
+
+    YearsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/YearSummary'
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: "INVALID_GOAL"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Goal must be at least 1 book"
+            details:
+              type: object
+              description: Additional error context (optional)
+              additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "INVALID_YEAR"
+              message: "Year must be between 1900 and 9999"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An unexpected error occurred"

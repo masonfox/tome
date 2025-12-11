@@ -71,6 +71,20 @@
       "when": 1764259258154,
       "tag": "0009_wild_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1764518112447,
+      "tag": "0010_organic_maginty",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1765477409781,
+      "tag": "0012_add_streak_enabled_opt_in",
+      "breakpoints": true
     }
   ]
 }
