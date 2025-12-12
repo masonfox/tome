@@ -203,12 +203,12 @@ export default function JournalPage() {
         icon={BookOpen}
       />
 
-      <div className="space-y-8 mt-6">
+      <div className="mt-6">
         {entries.map((dayEntry) => {
           const isCollapsed = collapsedDates.has(dayEntry.date);
           
           return (
-            <div key={dayEntry.date} className="space-y-4">
+            <div key={dayEntry.date} className={isCollapsed ? "mb-4" : "mb-8"}>
               {/* Date Header - Clickable */}
               <button
                 onClick={() => {
@@ -222,7 +222,7 @@ export default function JournalPage() {
                     return next;
                   });
                 }}
-                className="flex items-center gap-2 text-[var(--heading-text)] font-semibold text-lg hover:text-[var(--accent)] transition-colors cursor-pointer w-full text-left"
+                className="flex items-center gap-2 text-[var(--heading-text)] font-semibold text-lg hover:text-[var(--accent)] transition-colors cursor-pointer w-full text-left mb-4"
               >
                 <span className="transition-transform duration-200" style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}>
                   <ChevronRight className="w-5 h-5" />
@@ -280,13 +280,22 @@ export default function JournalPage() {
                       </Link>
 
                       {/* Progress Entries */}
-                      {bookGroup.entries.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="p-4 md:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
-                        >
-                          {/* Metadata grid */}
-                          <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
+                        {bookGroup.entries.map((entry, index) => (
+                          <div
+                            key={entry.id}
+                            className="relative p-4 md:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
+                          >
+                            {/* Entry number badge (only show if multiple entries) */}
+                            {bookGroup.entries.length > 1 && (
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                                <span className="text-xs font-bold text-[var(--subheading-text)]">
+                                  {index + 1}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Metadata grid */}
+                            <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
                             {/* Percentage */}
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
