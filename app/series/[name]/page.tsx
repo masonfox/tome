@@ -117,7 +117,7 @@ export default function SeriesDetailPage() {
             href={`/books/${book.id}`}
             className="block group"
           >
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg px-4 py-6 sm:p-4 hover:border-[var(--accent)] hover:shadow-xl transition-all duration-200">
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg px-6 py-8 sm:p-6 md:p-8 hover:border-[var(--accent)] hover:shadow-xl transition-all duration-200">
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Book Cover */}
                 <div className="flex-shrink-0 w-40 sm:w-32 md:w-40 mx-auto sm:mx-0">
