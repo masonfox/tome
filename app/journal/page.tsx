@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { BookOpen, Calendar, ChevronDown, ChevronRight } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, Clock } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
@@ -283,32 +283,71 @@ export default function JournalPage() {
                       {bookGroup.entries.map((entry) => (
                         <div
                           key={entry.id}
-                          className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded"
+                          className="p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm font-mono font-semibold text-[var(--accent)]">
-                                {Math.round(entry.currentPercentage)}%
-                              </span>
-                              <span className="text-sm text-[var(--foreground)]/60">
-                                Page {entry.currentPage}
-                              </span>
-                              {entry.pagesRead > 0 && (
-                                <span className="text-sm text-[var(--foreground)]/60">
-                                  +{entry.pagesRead} pages
-                                </span>
-                              )}
+                          {/* Metadata grid */}
+                          <div className={`grid grid-cols-4 gap-4 ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
+                            {/* Percentage */}
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-bold text-[var(--accent)]">%</span>
+                              </div>
+                              <div>
+                                <div className="text-xs text-[var(--foreground)]/50 font-medium">Progress</div>
+                                <div className="text-sm font-mono font-bold text-[var(--heading-text)]">
+                                  {Math.round(entry.currentPercentage)}%
+                                </div>
+                              </div>
                             </div>
-                            <span className="text-xs text-[var(--foreground)]/50">
-                              {new Date(entry.progressDate).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
+
+                            {/* Current Page */}
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-4 h-4 text-[var(--accent)]" />
+                              </div>
+                              <div>
+                                <div className="text-xs text-[var(--foreground)]/50 font-medium">Page</div>
+                                <div className="text-sm font-semibold text-[var(--heading-text)]">
+                                  {entry.currentPage}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Pages Read */}
+                            {entry.pagesRead > 0 && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                                  <Plus className="w-4 h-4 text-[var(--accent)]" />
+                                </div>
+                                <div>
+                                  <div className="text-xs text-[var(--foreground)]/50 font-medium">Read</div>
+                                  <div className="text-sm font-semibold text-[var(--heading-text)]">
+                                    {entry.pagesRead} pages
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Time */}
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                                <Clock className="w-4 h-4 text-[var(--accent)]" />
+                              </div>
+                              <div>
+                                <div className="text-xs text-[var(--foreground)]/50 font-medium">Time</div>
+                                <div className="text-sm font-semibold text-[var(--heading-text)]">
+                                  {new Date(entry.progressDate).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </div>
+                              </div>
+                            </div>
                           </div>
 
+                          {/* Notes section */}
                           {entry.notes && (
-                            <div className="mt-3 text-sm" data-color-mode="light">
+                            <div className="text-sm" data-color-mode="light">
                               <MarkdownPreview
                                 source={entry.notes}
                                 style={{
