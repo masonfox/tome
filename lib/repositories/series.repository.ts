@@ -6,6 +6,7 @@ import { BaseRepository } from "./base.repository";
 export interface SeriesInfo {
   name: string;
   bookCount: number;
+  bookCoverIds: number[]; // First 3 Calibre IDs for cover display
   totalBooks?: number;
 }
 
@@ -45,13 +46,14 @@ export class SeriesRepository extends BaseRepository<
   }
 
   /**
-   * Get all unique series with book counts
+   * Get all unique series with book counts and cover IDs
    * @returns Array of series info objects
    */
   async getAllSeries(): Promise<SeriesInfo[]> {
     const db = this.getDatabase();
 
-    const result = await db
+    // First, get all series with book counts
+    const seriesList = await db
       .select({
         name: books.series,
         bookCount: sql<number>`COUNT(*)`.as('bookCount'),
@@ -66,10 +68,32 @@ export class SeriesRepository extends BaseRepository<
       .groupBy(books.series)
       .orderBy(asc(books.series));
 
-    return result.map(r => ({
-      name: r.name!,
-      bookCount: r.bookCount,
-    }));
+    // For each series, get the first 3 calibre IDs
+    const seriesWithCovers = await Promise.all(
+      seriesList.map(async (series) => {
+        const covers = await db
+          .select({
+            calibreId: books.calibreId,
+          })
+          .from(books)
+          .where(
+            and(
+              eq(books.series, series.name!),
+              eq(books.orphaned, false)
+            )
+          )
+          .orderBy(asc(books.seriesIndex), asc(books.title))
+          .limit(3);
+
+        return {
+          name: series.name!,
+          bookCount: series.bookCount,
+          bookCoverIds: covers.map(c => c.calibreId),
+        };
+      })
+    );
+
+    return seriesWithCovers;
   }
 
   /**
@@ -152,9 +176,25 @@ export class SeriesRepository extends BaseRepository<
       return null;
     }
 
+    // Get the first 3 calibre IDs for cover display
+    const covers = await db
+      .select({
+        calibreId: books.calibreId,
+      })
+      .from(books)
+      .where(
+        and(
+          eq(books.series, seriesName),
+          eq(books.orphaned, false)
+        )
+      )
+      .orderBy(asc(books.seriesIndex), asc(books.title))
+      .limit(3);
+
     return {
       name: result[0].name!,
       bookCount: result[0].bookCount,
+      bookCoverIds: covers.map(c => c.calibreId),
     };
   }
 }
