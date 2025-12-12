@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, BookOpen, Star, BookMarked } from "lucide-react";
+import { BookOpen, Star, BookMarked } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { PageHeader } from "@/components/PageHeader";
 
 interface SeriesBook {
   id: number;
@@ -112,39 +113,30 @@ export default function SeriesDetailPage() {
   if (error || !data) {
     return (
       <div>
-        <Link
-          href="/series"
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-5 font-medium transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Series
-        </Link>
-        <div className="text-center py-12">
-          <p className="text-red-500 font-medium">{error || "Series not found"}</p>
-        </div>
+        <PageHeader
+          title="Series Not Found"
+          subtitle={error || "The requested series could not be found"}
+          icon={BookMarked}
+          backLink={{
+            href: "/series",
+            label: "Back to Series"
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <div className="border-b border-[var(--border-color)] pb-6">
-        <Link
-          href="/series"
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-5 font-medium transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Series
-        </Link>
-        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3 mb-2">
-          <BookMarked className="w-8 h-8" />
-          {data.series.name}
-        </h1>
-        <p className="text-[var(--subheading-text)] mt-2 font-medium">
-          {data.books.length} {data.books.length === 1 ? "book" : "books"} in this series
-        </p>
-      </div>
+      <PageHeader
+        title={data.series.name}
+        subtitle={`${data.books.length} ${data.books.length === 1 ? "book" : "books"} in this series`}
+        icon={BookMarked}
+        backLink={{
+          href: "/series",
+          label: "Back to Series"
+        }}
+      />
 
       {/* Books List */}
       <div className="space-y-6">
