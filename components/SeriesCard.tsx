@@ -28,21 +28,40 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
           <div className="absolute inset-0 flex items-center justify-center">
             {/* Stack of covers with rotation and offset */}
             {bookCoverIds.slice(0, 3).map((calibreId, index) => {
-              const rotations = ['-rotate-6', 'rotate-0', 'rotate-6'];
-              const leftPositions = ['left-[20px]', 'left-[60px]', 'left-[100px]'];
-              const zIndexes = ['z-10', 'z-20', 'z-30'];
+              // Define explicit positions and styles for each cover
+              const coverStyles = [
+                { 
+                  rotation: '-rotate-6',
+                  left: 20,
+                  zIndex: 10,
+                  hoverClass: 'group-hover:translate-x-0'
+                },
+                { 
+                  rotation: 'rotate-0',
+                  left: 60,
+                  zIndex: 20,
+                  hoverClass: 'group-hover:translate-x-4'
+                },
+                { 
+                  rotation: 'rotate-6',
+                  left: 100,
+                  zIndex: 30,
+                  hoverClass: 'group-hover:translate-x-8'
+                },
+              ];
+              
+              const style = coverStyles[index];
               
               return (
                 <div
                   key={calibreId}
-                  className={`absolute ${leftPositions[index]} ${zIndexes[index]} transition-all duration-300 group-hover:scale-105`}
+                  className="absolute transition-all duration-300 group-hover:scale-105"
                   style={{
-                    transform: `translateX(${index * 0}px)`,
+                    left: `${style.left}px`,
+                    zIndex: style.zIndex,
                   }}
                 >
-                  <div
-                    className={`${rotations[index]} transition-transform duration-300 group-hover:translate-x-${index * 4}`}
-                  >
+                  <div className={`${style.rotation} transition-transform duration-300 ${style.hoverClass}`}>
                     <Image
                       src={`/api/books/${calibreId}/cover`}
                       alt={`Cover ${index + 1}`}
