@@ -7,6 +7,7 @@ import Image from "next/image";
 import { BookOpen, Star, BookMarked } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusBadge, type BookStatus } from "@/components/StatusBadge";
 
 interface SeriesBook {
   id: number;
@@ -70,36 +71,6 @@ export default function SeriesDetailPage() {
 
   const handleImageError = (calibreId: number) => {
     setImageErrors(prev => ({ ...prev, [calibreId]: true }));
-  };
-
-  const getStatusColor = (status?: string | null) => {
-    switch (status) {
-      case "reading":
-        return "bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30";
-      case "read":
-        return "bg-[var(--light-accent)]/30 text-[var(--accent)] border border-[var(--light-accent)]/40";
-      case "to-read":
-        return "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25";
-      case "read-next":
-        return "bg-[var(--light-accent)]/20 text-[var(--light-accent)] border border-[var(--light-accent)]/30";
-      default:
-        return "bg-[var(--card-bg)] text-[var(--foreground)]/60 border border-[var(--border-color)]";
-    }
-  };
-
-  const getStatusLabel = (status?: string | null) => {
-    switch (status) {
-      case "reading":
-        return "Reading";
-      case "read":
-        return "Read";
-      case "to-read":
-        return "Want to Read";
-      case "read-next":
-        return "Read Next";
-      default:
-        return "Unread";
-    }
   };
 
   if (loading) {
@@ -192,12 +163,10 @@ export default function SeriesDetailPage() {
 
                     {/* Status Badge */}
                     {book.status && (
-                      <span className={cn(
-                        "px-3.5 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition-colors",
-                        getStatusColor(book.status)
-                      )}>
-                        {getStatusLabel(book.status)}
-                      </span>
+                      <StatusBadge 
+                        status={book.status as BookStatus} 
+                        size="md"
+                      />
                     )}
                   </div>
 
