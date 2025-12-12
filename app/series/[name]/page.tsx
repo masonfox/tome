@@ -124,7 +124,7 @@ export default function SeriesDetailPage() {
                   <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden">
                     {!imageErrors[book.calibreId] ? (
                       <Image
-                        src={`/api/covers/${book.calibreId}/cover.jpg`}
+                        src={`/api/books/${book.calibreId}/cover`}
                         alt={`Cover for ${book.title}`}
                         fill
                         sizes="(max-width: 768px) 160px, 128px"
