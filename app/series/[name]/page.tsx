@@ -170,20 +170,36 @@ export default function SeriesDetailPage() {
                     )}
                   </div>
 
-                  {/* Metadata Row */}
-                  {book.rating && (
+                  {/* Rating or rating prompt for read books */}
+                  {book.status === 'read' && (
                     <div className="flex items-center justify-center sm:justify-start gap-1 mb-3">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "w-4 h-4",
-                            i < book.rating!
-                              ? "fill-[var(--accent)] text-[var(--accent)]"
-                              : "text-[var(--foreground)]/20"
-                          )}
-                        />
-                      ))}
+                      {book.rating ? (
+                        // Show filled stars for rated books
+                        [...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={cn(
+                              "w-4 h-4",
+                              i < book.rating!
+                                ? "fill-[var(--accent)] text-[var(--accent)]"
+                                : "text-[var(--foreground)]/20"
+                            )}
+                          />
+                        ))
+                      ) : (
+                        // Show empty stars with prompt for unrated read books
+                        <>
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className="w-4 h-4 text-[var(--foreground)]/20"
+                            />
+                          ))}
+                          <span className="ml-2 text-xs text-[var(--accent)] italic font-medium">
+                            Not rated yet
+                          </span>
+                        </>
+                      )}
                     </div>
                   )}
 
