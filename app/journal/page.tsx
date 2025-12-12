@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, Clock } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, Clock, TrendingUp } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
@@ -290,10 +290,10 @@ export default function JournalPage() {
                             {/* Percentage */}
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm font-bold text-[var(--accent)]">%</span>
+                                <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
                               </div>
                               <div>
-                                <div className="text-xs text-[var(--foreground)]/50 font-medium">Progress</div>
+                                <div className="text-xs text-[var(--subheading-text)] font-medium">Progress</div>
                                 <div className="text-sm font-mono font-bold text-[var(--heading-text)]">
                                   {Math.round(entry.currentPercentage)}%
                                 </div>
@@ -306,7 +306,7 @@ export default function JournalPage() {
                                 <FileText className="w-4 h-4 text-[var(--accent)]" />
                               </div>
                               <div>
-                                <div className="text-xs text-[var(--foreground)]/50 font-medium">Page</div>
+                                <div className="text-xs text-[var(--subheading-text)] font-medium">Page</div>
                                 <div className="text-sm font-semibold text-[var(--heading-text)]">
                                   {entry.currentPage}
                                 </div>
@@ -320,7 +320,7 @@ export default function JournalPage() {
                                   <Plus className="w-4 h-4 text-[var(--accent)]" />
                                 </div>
                                 <div>
-                                  <div className="text-xs text-[var(--foreground)]/50 font-medium">Read</div>
+                                  <div className="text-xs text-[var(--subheading-text)] font-medium">Read</div>
                                   <div className="text-sm font-semibold text-[var(--heading-text)]">
                                     {entry.pagesRead} pages
                                   </div>
@@ -334,7 +334,7 @@ export default function JournalPage() {
                                 <Clock className="w-4 h-4 text-[var(--accent)]" />
                               </div>
                               <div>
-                                <div className="text-xs text-[var(--foreground)]/50 font-medium">Time</div>
+                                <div className="text-xs text-[var(--subheading-text)] font-medium">Time</div>
                                 <div className="text-sm font-semibold text-[var(--heading-text)]">
                                   {new Date(entry.progressDate).toLocaleTimeString([], {
                                     hour: "2-digit",
