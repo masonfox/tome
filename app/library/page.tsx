@@ -15,6 +15,7 @@ function LibraryPageContent() {
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [loadingTags, setLoadingTags] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -172,6 +173,8 @@ function LibraryPageContent() {
         setAvailableTags(tags);
       } catch (error) {
         // Suppress console; toast used for user feedback
+      } finally {
+        setLoadingTags(false);
       }
     }
     fetchTags();
@@ -225,12 +228,16 @@ function LibraryPageContent() {
     router.replace('/library');
   }
 
+  // During initial load, show skeleton UI with header and filters
+  const isInitialLoading = loading && books.length === 0;
+
   return (
     <div className="space-y-6">
       <LibraryHeader
         totalBooks={total}
         syncing={syncing}
         onSync={handleSync}
+        loading={isInitialLoading}
       />
 
       <LibraryFilters
@@ -245,7 +252,8 @@ function LibraryPageContent() {
         ratingFilter={filters.rating || "all"}
         onRatingFilterChange={(rating) => handleRatingChange(rating === "all" ? undefined : rating)}
         availableTags={availableTags}
-        loading={loading}
+        loading={isInitialLoading}
+        loadingTags={loadingTags}
         onClearAll={handleClearAll}
       />
 
@@ -257,7 +265,7 @@ function LibraryPageContent() {
 
       <BookGrid
         books={books}
-        loading={loading && books.length === 0}
+        loading={isInitialLoading}
         loadingMore={loadingMore}
       />
 
