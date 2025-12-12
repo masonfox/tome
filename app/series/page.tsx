@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { BookMarked, Library } from "lucide-react";
+import { Library } from "lucide-react";
+import SeriesCard from "@/components/SeriesCard";
 
 interface SeriesInfo {
   name: string;
   bookCount: number;
+  bookCoverIds: number[];
 }
 
 export default function SeriesPage() {
@@ -90,32 +91,14 @@ export default function SeriesPage() {
       </div>
 
       {/* Series Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {series.map((s) => (
-          <Link
+          <SeriesCard
             key={s.name}
-            href={`/series/${encodeURIComponent(s.name)}`}
-            className="group"
-          >
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6 hover:border-[var(--accent)] hover:shadow-lg transition-all duration-200">
-              {/* Icon */}
-              <div className="mb-4">
-                <div className="w-12 h-12 bg-[var(--accent)]/10 rounded-lg flex items-center justify-center group-hover:bg-[var(--accent)]/20 transition-colors">
-                  <BookMarked className="w-6 h-6 text-[var(--accent)]" />
-                </div>
-              </div>
-              
-              {/* Series Name */}
-              <h2 className="text-lg font-semibold text-[var(--heading-text)] mb-2 line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
-                {s.name}
-              </h2>
-              
-              {/* Book Count */}
-              <p className="text-sm text-[var(--foreground)]/60 font-medium">
-                {s.bookCount} {s.bookCount === 1 ? "book" : "books"}
-              </p>
-            </div>
-          </Link>
+            name={s.name}
+            bookCount={s.bookCount}
+            bookCoverIds={s.bookCoverIds}
+          />
         ))}
       </div>
     </div>
