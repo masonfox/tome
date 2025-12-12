@@ -1,7 +1,7 @@
 import { db } from "@/lib/db/sqlite";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { books } from "@/lib/db/schema/books";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface JournalEntry {
   id: number;
@@ -36,9 +36,26 @@ export class JournalService {
    * Note: Groups by the date portion of the ISO timestamp (YYYY-MM-DD),
    * matching the behavior of formatDateOnly() which extracts the date part
    * without timezone conversion.
+   * 
+   * @param timezone - Timezone identifier (currently unused, kept for future use)
+   * @param limit - Number of progress logs to fetch (default: 50)
+   * @param skip - Number of progress logs to skip for pagination (default: 0)
    */
-  async getJournalEntries(timezone: string = 'America/New_York'): Promise<GroupedJournalEntry[]> {
-    // Fetch all progress logs with book information
+  async getJournalEntries(
+    timezone: string = 'America/New_York',
+    limit: number = 50,
+    skip: number = 0
+  ): Promise<{ entries: GroupedJournalEntry[]; total: number; hasMore: boolean }> {
+    // Get total count first
+    const totalResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(progressLogs)
+      .innerJoin(books, eq(progressLogs.bookId, books.id))
+      .get();
+    
+    const total = totalResult?.count ?? 0;
+
+    // Fetch paginated progress logs with book information
     const entries = await db
       .select({
         id: progressLogs.id,
@@ -56,6 +73,8 @@ export class JournalService {
       .from(progressLogs)
       .innerJoin(books, eq(progressLogs.bookId, books.id))
       .orderBy(desc(progressLogs.progressDate))
+      .limit(limit)
+      .offset(skip)
       .all();
 
     // Group by date and book
@@ -103,13 +122,13 @@ export class JournalService {
 
     for (const date of sortedDates) {
       const dateGroup = grouped.get(date)!;
-      const books: GroupedJournalEntry['books'] = [];
+      const booksArray: GroupedJournalEntry['books'] = [];
 
       // Convert map to array for iteration
       const bookEntries = Array.from(dateGroup.entries());
       
       for (const [bookId, entries] of bookEntries) {
-        books.push({
+        booksArray.push({
           bookId,
           bookTitle: entries[0].bookTitle,
           bookAuthors: entries[0].bookAuthors,
@@ -120,11 +139,17 @@ export class JournalService {
 
       result.push({
         date,
-        books,
+        books: booksArray,
       });
     }
 
-    return result;
+    const hasMore = skip + limit < total;
+
+    return {
+      entries: result,
+      total,
+      hasMore,
+    };
   }
 }
 

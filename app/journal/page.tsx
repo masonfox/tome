@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { BookOpen, Calendar } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
@@ -43,30 +43,128 @@ interface GroupedJournalEntry {
 export default function JournalPage() {
   const [entries, setEntries] = useState<GroupedJournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const observerTarget = useRef<HTMLDivElement>(null);
+  
+  const LIMIT = 50;
+
+  const fetchJournalEntries = useCallback(async (skipCount: number, append = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      // TODO: Get timezone from user settings/detect from browser
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const response = await fetch(
+        `/api/journal?timezone=${encodeURIComponent(timezone)}&limit=${LIMIT}&skip=${skipCount}`
+      );
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch journal entries");
+      }
+
+      const data = await response.json();
+      
+      if (append) {
+        setEntries((prev) => [...prev, ...data.entries]);
+      } else {
+        setEntries(data.entries);
+      }
+      
+      setTotal(data.total);
+      setHasMore(data.hasMore);
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "Error fetching journal entries");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchJournalEntries() {
-      try {
-        setLoading(true);
-        // TODO: Get timezone from user settings/detect from browser
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const response = await fetch(`/api/journal?timezone=${encodeURIComponent(timezone)}`);
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch journal entries");
-        }
+    fetchJournalEntries(0);
+  }, [fetchJournalEntries]);
 
-        const data = await response.json();
-        setEntries(data);
-      } catch (error) {
-        console.error("Error fetching journal entries:", error);
-      } finally {
-        setLoading(false);
-      }
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    
+    const newSkip = skip + LIMIT;
+    setSkip(newSkip);
+    fetchJournalEntries(newSkip, true);
+  }, [skip, loadingMore, hasMore, fetchJournalEntries]);
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
     }
 
-    fetchJournalEntries();
-  }, []);
+    return () => observer.disconnect();
+  }, [loadMore, hasMore, loading, loadingMore]);
+
+  // Journal entry skeleton component
+  const JournalEntrySkeleton = () => (
+    <div className="space-y-8 mt-6 animate-pulse">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="space-y-4">
+          {/* Date Header Skeleton */}
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded" />
+            <div className="h-6 bg-[var(--foreground)]/10 rounded w-32" />
+          </div>
+
+          {/* Book Entry Skeleton */}
+          <div className="ml-6 space-y-6">
+            {Array.from({ length: 2 }).map((_, j) => (
+              <div
+                key={j}
+                className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-5"
+              >
+                {/* Book Header Skeleton */}
+                <div className="flex gap-4 mb-4">
+                  {/* Cover Skeleton */}
+                  <div className="flex-shrink-0 w-16 h-24 bg-[var(--foreground)]/10 rounded" />
+                  
+                  {/* Book Info Skeleton */}
+                  <div className="flex-1 space-y-2">
+                    <div className="h-6 bg-[var(--foreground)]/10 rounded w-3/4" />
+                    <div className="h-4 bg-[var(--foreground)]/10 rounded w-1/2" />
+                  </div>
+                </div>
+
+                {/* Progress Entry Skeleton */}
+                <div className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-12" />
+                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-16" />
+                    </div>
+                    <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -76,9 +174,7 @@ export default function JournalPage() {
           subtitle="Your reading progress across all books"
           icon={BookOpen}
         />
-        <div className="text-center py-12 text-[var(--foreground)]/60">
-          Loading journal entries...
-        </div>
+        <JournalEntrySkeleton />
       </div>
     );
   }
@@ -201,6 +297,23 @@ export default function JournalPage() {
           </div>
         ))}
       </div>
+
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <div className="text-center py-8">
+          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* Infinite scroll trigger */}
+      <div ref={observerTarget} className="py-8" />
+
+      {/* End of results message */}
+      {!hasMore && entries.length > 0 && (
+        <div className="text-center py-8 text-[var(--foreground)]/60">
+          You&apos;ve reached the end of your journal entries ({total} total)
+        </div>
+      )}
     </div>
   );
 }
