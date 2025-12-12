@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { BookOpen, Calendar } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
+import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
 import "@uiw/react-markdown-preview/markdown.css";
 import Link from "next/link";
@@ -111,7 +112,7 @@ export default function JournalPage() {
             {/* Date Header */}
             <div className="flex items-center gap-2 text-[var(--heading-text)] font-semibold text-lg">
               <Calendar className="w-5 h-5" />
-              <h2>{formatDateOnly(dayEntry.date)}</h2>
+              <h2>{format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}</h2>
             </div>
 
             {/* Books for this day */}
