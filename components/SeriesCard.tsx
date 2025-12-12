@@ -20,10 +20,10 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
   return (
     <Link
       href={`/series/${encodeURIComponent(name)}`}
-      className="group block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-md hover:shadow-xl hover:border-[var(--accent)] transition-all duration-300 overflow-hidden"
+      className="group block bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-md hover:shadow-xl hover:border-[var(--accent)] transition-all duration-300 overflow-hidden"
     >
       {/* Cover Collage Section */}
-      <div className="relative h-[180px] bg-gradient-to-br from-[var(--light-accent)]/30 to-[var(--light-accent)]/10 overflow-hidden">
+      <div className="relative h-[180px] overflow-hidden bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30">
         {hasCovers ? (
           <div className="absolute inset-0 flex items-center justify-center">
             {/* Stack of covers with rotation and offset */}
@@ -48,7 +48,7 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
                       alt={`Cover ${index + 1}`}
                       width={80}
                       height={120}
-                      className="rounded shadow-lg border-2 border-[var(--card-bg)]"
+                      className="rounded shadow-xl border-2 border-[var(--card-bg)]"
                       unoptimized
                     />
                   </div>
@@ -69,7 +69,7 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
         <h3 className="font-semibold text-lg text-[var(--heading-text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2 mb-2">
           {name}
         </h3>
-        <p className="text-sm text-[var(--foreground)]/60 font-medium">
+        <p className="text-sm text-[var(--subheading-text)] font-medium">
           {bookCount} {bookCount === 1 ? 'book' : 'books'}
         </p>
       </div>
