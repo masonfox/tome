@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, BookOpen, Star } from "lucide-react";
+import { ArrowLeft, BookOpen, Star, BookMarked } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface SeriesBook {
@@ -74,13 +74,13 @@ export default function SeriesDetailPage() {
   const getStatusColor = (status?: string | null) => {
     switch (status) {
       case "reading":
-        return "bg-blue-500/20 text-blue-600 border border-blue-500/30";
+        return "bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30";
       case "read":
-        return "bg-green-500/20 text-green-600 border border-green-500/30";
+        return "bg-[var(--light-accent)]/30 text-[var(--accent)] border border-[var(--light-accent)]/40";
       case "to-read":
-        return "bg-orange-500/20 text-orange-600 border border-orange-500/30";
+        return "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25";
       case "read-next":
-        return "bg-purple-500/20 text-purple-600 border border-purple-500/30";
+        return "bg-[var(--light-accent)]/20 text-[var(--light-accent)] border border-[var(--light-accent)]/30";
       default:
         return "bg-[var(--card-bg)] text-[var(--foreground)]/60 border border-[var(--border-color)]";
     }
@@ -103,20 +103,18 @@ export default function SeriesDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <div className="text-center py-12">
+        <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div>
         <Link
           href="/series"
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:underline mb-6 font-medium"
+          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-5 font-medium transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Series
@@ -129,46 +127,47 @@ export default function SeriesDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="space-y-10">
       {/* Back Button */}
       <Link
         href="/series"
-        className="inline-flex items-center gap-2 text-[var(--accent)] hover:underline mb-6 font-medium"
+        className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-5 font-medium transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Series
       </Link>
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)] mb-2">
+      <div className="border-b border-[var(--border-color)] pb-6">
+        <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3 mb-2">
+          <BookMarked className="w-8 h-8" />
           {data.series.name}
         </h1>
-        <p className="text-[var(--subheading-text)] font-medium">
+        <p className="text-[var(--subheading-text)] mt-2 font-medium">
           {data.books.length} {data.books.length === 1 ? "book" : "books"} in this series
         </p>
       </div>
 
       {/* Books List */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {data.books.map((book) => (
           <Link
             key={book.id}
             href={`/books/${book.id}`}
             className="block group"
           >
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg px-4 py-6 sm:p-4 hover:border-[var(--accent)] hover:shadow-lg transition-all duration-200">
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg px-4 py-6 sm:p-4 hover:border-[var(--accent)] hover:shadow-xl transition-all duration-200">
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Book Cover */}
-                <div className="flex-shrink-0 w-32 sm:w-24 md:w-32 mx-auto sm:mx-0">
+                <div className="flex-shrink-0 w-40 sm:w-32 md:w-40 mx-auto sm:mx-0">
                   <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden">
                     {!imageErrors[book.calibreId] ? (
                       <Image
                         src={`/api/covers/${book.calibreId}/cover.jpg`}
                         alt={`Cover for ${book.title}`}
                         fill
-                        sizes="(max-width: 768px) 96px, 128px"
-                        className="object-cover"
+                        sizes="(max-width: 768px) 160px, 128px"
+                        className="object-cover group-hover:opacity-95 transition-opacity"
                         onError={() => handleImageError(book.calibreId)}
                       />
                     ) : (
@@ -185,7 +184,7 @@ export default function SeriesDetailPage() {
                     <div className="flex-1 min-w-0 w-full">
                       {/* Series Index Circle */}
                       <div className="mb-3 flex justify-center sm:justify-start">
-                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent)] text-white text-sm font-bold">
+                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent)] text-white text-sm font-bold shadow-sm">
                           {book.seriesIndex}
                         </div>
                       </div>
@@ -204,7 +203,7 @@ export default function SeriesDetailPage() {
                     {/* Status Badge */}
                     {book.status && (
                       <span className={cn(
-                        "px-3.5 py-1.5 rounded text-xs font-semibold whitespace-nowrap",
+                        "px-3.5 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition-colors",
                         getStatusColor(book.status)
                       )}>
                         {getStatusLabel(book.status)}
