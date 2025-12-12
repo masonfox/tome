@@ -1,0 +1,125 @@
+import { progressRepository, bookRepository } from "@/lib/repositories";
+import { db } from "@/lib/db/sqlite";
+import { progressLogs } from "@/lib/db/schema/progress-logs";
+import { books } from "@/lib/db/schema/books";
+import { eq, desc } from "drizzle-orm";
+import { startOfDay, format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
+
+export interface JournalEntry {
+  id: number;
+  bookId: number;
+  bookTitle: string;
+  bookAuthors: string[];
+  sessionId: number | null;
+  currentPage: number;
+  currentPercentage: number;
+  progressDate: Date;
+  notes: string | null;
+  pagesRead: number;
+}
+
+export interface GroupedJournalEntry {
+  date: string; // YYYY-MM-DD
+  books: {
+    bookId: number;
+    bookTitle: string;
+    bookAuthors: string[];
+    entries: JournalEntry[];
+  }[];
+}
+
+export class JournalService {
+  /**
+   * Get all progress logs grouped by date and book
+   * Returns entries in descending date order (most recent first)
+   */
+  async getJournalEntries(timezone: string = 'America/New_York'): Promise<GroupedJournalEntry[]> {
+    // Fetch all progress logs with book information
+    const entries = await db
+      .select({
+        id: progressLogs.id,
+        bookId: progressLogs.bookId,
+        bookTitle: books.title,
+        bookAuthors: books.authors,
+        sessionId: progressLogs.sessionId,
+        currentPage: progressLogs.currentPage,
+        currentPercentage: progressLogs.currentPercentage,
+        progressDate: progressLogs.progressDate,
+        notes: progressLogs.notes,
+        pagesRead: progressLogs.pagesRead,
+      })
+      .from(progressLogs)
+      .innerJoin(books, eq(progressLogs.bookId, books.id))
+      .orderBy(desc(progressLogs.progressDate))
+      .all();
+
+    // Group by date and book
+    const grouped = new Map<string, Map<number, JournalEntry[]>>();
+
+    for (const entry of entries) {
+      // Convert to user's timezone and get date string
+      const dateInUserTz = toZonedTime(entry.progressDate, timezone);
+      const dayStart = startOfDay(dateInUserTz);
+      const dateKey = format(dayStart, 'yyyy-MM-dd');
+
+      // Get or create date group
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, new Map());
+      }
+      const dateGroup = grouped.get(dateKey)!;
+
+      // Get or create book group within date
+      if (!dateGroup.has(entry.bookId)) {
+        dateGroup.set(entry.bookId, []);
+      }
+      const bookGroup = dateGroup.get(entry.bookId)!;
+
+      // Add entry to book group
+      bookGroup.push({
+        id: entry.id,
+        bookId: entry.bookId,
+        bookTitle: entry.bookTitle,
+        bookAuthors: entry.bookAuthors as string[],
+        sessionId: entry.sessionId,
+        currentPage: entry.currentPage,
+        currentPercentage: entry.currentPercentage,
+        progressDate: entry.progressDate,
+        notes: entry.notes,
+        pagesRead: entry.pagesRead,
+      });
+    }
+
+    // Convert to array format
+    const result: GroupedJournalEntry[] = [];
+    
+    // Sort dates descending
+    const sortedDates = Array.from(grouped.keys()).sort((a, b) => b.localeCompare(a));
+
+    for (const date of sortedDates) {
+      const dateGroup = grouped.get(date)!;
+      const books: GroupedJournalEntry['books'] = [];
+
+      // Convert map to array for iteration
+      const bookEntries = Array.from(dateGroup.entries());
+      
+      for (const [bookId, entries] of bookEntries) {
+        books.push({
+          bookId,
+          bookTitle: entries[0].bookTitle,
+          bookAuthors: entries[0].bookAuthors,
+          entries: entries.sort((a: JournalEntry, b: JournalEntry) => b.progressDate.getTime() - a.progressDate.getTime()),
+        });
+      }
+
+      result.push({
+        date,
+        books,
+      });
+    }
+
+    return result;
+  }
+}
+
+export const journalService = new JournalService();

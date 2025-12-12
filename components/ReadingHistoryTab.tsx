@@ -113,7 +113,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
       <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-        Reading History
+        Journal
       </h2>
 
       <div className="space-y-6">
