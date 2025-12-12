@@ -20,10 +20,10 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
   return (
     <Link
       href={`/series/${encodeURIComponent(name)}`}
-      className="group block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+      className="group block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-md hover:shadow-xl hover:border-[var(--accent)] transition-all duration-300 overflow-hidden"
     >
       {/* Cover Collage Section */}
-      <div className="relative h-[180px] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 overflow-hidden">
+      <div className="relative h-[180px] bg-[var(--light-accent)]/20 overflow-hidden">
         {hasCovers ? (
           <div className="absolute inset-0 flex items-center justify-center">
             {/* Stack of covers with rotation and offset */}
@@ -48,7 +48,7 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
                       alt={`Cover ${index + 1}`}
                       width={80}
                       height={120}
-                      className="rounded shadow-lg border-2 border-white dark:border-gray-600"
+                      className="rounded shadow-lg border-2 border-[var(--card-bg)]"
                       unoptimized
                     />
                   </div>
@@ -59,17 +59,17 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
         ) : (
           // Fallback when no covers available
           <div className="flex items-center justify-center h-full">
-            <BookMarked className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+            <BookMarked className="w-16 h-16 text-[var(--foreground)]/30" />
           </div>
         )}
       </div>
 
       {/* Series Info Section */}
       <div className="p-4">
-        <h3 className="font-semibold text-lg text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 mb-2">
+        <h3 className="font-semibold text-lg text-[var(--heading-text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2 mb-2">
           {name}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-[var(--foreground)]/60 font-medium">
           {bookCount} {bookCount === 1 ? 'book' : 'books'}
         </p>
       </div>
