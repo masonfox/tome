@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Library } from "lucide-react";
+import { Library, BookMarked } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
+import { PageHeader } from "@/components/PageHeader";
 
 interface SeriesInfo {
   name: string;
@@ -59,14 +60,11 @@ export default function SeriesPage() {
   if (series.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)] mb-2">
-            Series
-          </h1>
-          <p className="text-[var(--subheading-text)] font-medium">
-            Browse books organized by series
-          </p>
-        </div>
+        <PageHeader
+          title="Series"
+          subtitle="Browse books organized by series"
+          icon={BookMarked}
+        />
         <div className="text-center py-16">
           <Library className="w-16 h-16 mx-auto text-[var(--foreground)]/40 mb-4" />
           <p className="text-[var(--foreground)]/60 font-medium text-lg">No series found in your library</p>
@@ -80,18 +78,14 @@ export default function SeriesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)] mb-2">
-          Series
-        </h1>
-        <p className="text-[var(--subheading-text)] font-medium">
-          {series.length} {series.length === 1 ? "series" : "series"} in your library
-        </p>
-      </div>
+      <PageHeader
+        title="Series"
+        subtitle={`${series.length} ${series.length === 1 ? "series" : "series"} in your library`}
+        icon={BookMarked}
+      />
 
       {/* Series Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
         {series.map((s) => (
           <SeriesCard
             key={s.name}
