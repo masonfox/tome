@@ -7,6 +7,7 @@ import { formatDateOnly } from "@/utils/dateFormatting";
 import dynamic from "next/dynamic";
 import "@uiw/react-markdown-preview/markdown.css";
 import Link from "next/link";
+import Image from "next/image";
 
 const MarkdownPreview = dynamic(
   () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
@@ -18,6 +19,7 @@ interface JournalEntry {
   bookId: number;
   bookTitle: string;
   bookAuthors: string[];
+  bookCalibreId: number;
   sessionId: number | null;
   currentPage: number;
   currentPercentage: number;
@@ -32,6 +34,7 @@ interface GroupedJournalEntry {
     bookId: number;
     bookTitle: string;
     bookAuthors: string[];
+    bookCalibreId: number;
     entries: JournalEntry[];
   }[];
 }
@@ -118,19 +121,33 @@ export default function JournalPage() {
                   key={bookGroup.bookId}
                   className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-5"
                 >
-                  {/* Book Title */}
+                  {/* Book Header with Cover */}
                   <Link
                     href={`/books/${bookGroup.bookId}`}
-                    className="block mb-4 hover:text-[var(--accent)] transition-colors"
+                    className="flex gap-4 mb-4 hover:text-[var(--accent)] transition-colors group"
                   >
-                    <h3 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
-                      {bookGroup.bookTitle}
-                    </h3>
-                    {bookGroup.bookAuthors.length > 0 && (
-                      <p className="text-sm text-[var(--foreground)]/70">
-                        by {bookGroup.bookAuthors.join(", ")}
-                      </p>
-                    )}
+                    {/* Book Cover */}
+                    <div className="flex-shrink-0 w-16 h-24 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
+                      <Image
+                        src={`/api/books/${bookGroup.bookCalibreId}/cover`}
+                        alt={bookGroup.bookTitle}
+                        fill
+                        className="object-cover group-hover:opacity-90 transition-opacity"
+                        sizes="64px"
+                      />
+                    </div>
+                    
+                    {/* Book Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1 truncate">
+                        {bookGroup.bookTitle}
+                      </h3>
+                      {bookGroup.bookAuthors.length > 0 && (
+                        <p className="text-sm text-[var(--foreground)]/70 truncate">
+                          by {bookGroup.bookAuthors.join(", ")}
+                        </p>
+                      )}
+                    </div>
                   </Link>
 
                   {/* Progress Entries */}

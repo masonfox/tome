@@ -11,6 +11,7 @@ export interface JournalEntry {
   bookId: number;
   bookTitle: string;
   bookAuthors: string[];
+  bookCalibreId: number;
   sessionId: number | null;
   currentPage: number;
   currentPercentage: number;
@@ -25,6 +26,7 @@ export interface GroupedJournalEntry {
     bookId: number;
     bookTitle: string;
     bookAuthors: string[];
+    bookCalibreId: number;
     entries: JournalEntry[];
   }[];
 }
@@ -42,6 +44,7 @@ export class JournalService {
         bookId: progressLogs.bookId,
         bookTitle: books.title,
         bookAuthors: books.authors,
+        bookCalibreId: books.calibreId,
         sessionId: progressLogs.sessionId,
         currentPage: progressLogs.currentPage,
         currentPercentage: progressLogs.currentPercentage,
@@ -81,6 +84,7 @@ export class JournalService {
         bookId: entry.bookId,
         bookTitle: entry.bookTitle,
         bookAuthors: entry.bookAuthors as string[],
+        bookCalibreId: entry.bookCalibreId,
         sessionId: entry.sessionId,
         currentPage: entry.currentPage,
         currentPercentage: entry.currentPercentage,
@@ -108,6 +112,7 @@ export class JournalService {
           bookId,
           bookTitle: entries[0].bookTitle,
           bookAuthors: entries[0].bookAuthors,
+          bookCalibreId: entries[0].bookCalibreId,
           entries: entries.sort((a: JournalEntry, b: JournalEntry) => b.progressDate.getTime() - a.progressDate.getTime()),
         });
       }
