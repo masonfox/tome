@@ -2,7 +2,7 @@
   "version": "6",
   "dialect": "sqlite",
   "id": "61f9d0e3-ce2c-44da-a1eb-117ce9081218",
-  "prevId": "1e608618-37c6-49c1-a096-03aa25507073",
+  "prevId": "add_series_indexes",
   "tables": {
     "books": {
       "name": "books",
