@@ -4,7 +4,7 @@
  * BookCardSkeleton - Loading skeleton for BookCard
  * Mimics the layout of BookCard with animated placeholders
  */
-export default function BookCardSkeleton() {
+export function BookCardSkeleton() {
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl rounded-md overflow-hidden animate-pulse">
       {/* Cover skeleton - maintains 2:3 aspect ratio */}

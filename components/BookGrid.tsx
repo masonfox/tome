@@ -1,7 +1,7 @@
 "use client";
 
 import { BookCard } from "@/components/BookCard";
-import BookCardSkeleton from "@/components/BookCardSkeleton";
+import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 
 interface BookGridProps {
   books: Array<{
