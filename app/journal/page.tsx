@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { BookOpen, Calendar } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
@@ -47,6 +47,7 @@ export default function JournalPage() {
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const observerTarget = useRef<HTMLDivElement>(null);
   
   const LIMIT = 50;
@@ -203,17 +204,43 @@ export default function JournalPage() {
       />
 
       <div className="space-y-8 mt-6">
-        {entries.map((dayEntry) => (
-          <div key={dayEntry.date} className="space-y-4">
-            {/* Date Header */}
-            <div className="flex items-center gap-2 text-[var(--heading-text)] font-semibold text-lg">
-              <Calendar className="w-5 h-5" />
-              <h2>{format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}</h2>
-            </div>
+        {entries.map((dayEntry) => {
+          const isCollapsed = collapsedDates.has(dayEntry.date);
+          
+          return (
+            <div key={dayEntry.date} className="space-y-4">
+              {/* Date Header - Clickable */}
+              <button
+                onClick={() => {
+                  setCollapsedDates(prev => {
+                    const next = new Set(prev);
+                    if (next.has(dayEntry.date)) {
+                      next.delete(dayEntry.date);
+                    } else {
+                      next.add(dayEntry.date);
+                    }
+                    return next;
+                  });
+                }}
+                className="flex items-center gap-2 text-[var(--heading-text)] font-semibold text-lg hover:text-[var(--accent)] transition-colors cursor-pointer w-full text-left"
+              >
+                <span className="transition-transform duration-200" style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}>
+                  <ChevronRight className="w-5 h-5" />
+                </span>
+                <Calendar className="w-5 h-5" />
+                <h2>{format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}</h2>
+              </button>
 
-            {/* Books for this day */}
-            <div className="space-y-6 ml-6">
-              {dayEntry.books.map((bookGroup) => (
+              {/* Books for this day */}
+              <div 
+                className="overflow-hidden transition-all duration-300 ease-in-out ml-6"
+                style={{
+                  maxHeight: isCollapsed ? '0px' : '10000px',
+                  opacity: isCollapsed ? 0 : 1,
+                }}
+              >
+                <div className="space-y-6">
+                  {dayEntry.books.map((bookGroup) => (
                 <div
                   key={bookGroup.bookId}
                   className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-5"
@@ -298,9 +325,11 @@ export default function JournalPage() {
                   </div>
                 </div>
               ))}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Loading more indicator */}
