@@ -233,7 +233,7 @@ export default function JournalPage() {
 
               {/* Books for this day */}
               <div 
-                className="overflow-hidden transition-all duration-300 ease-in-out ml-6"
+                className="overflow-hidden transition-all duration-300 ease-in-out ml-2 md:ml-6"
                 style={{
                   maxHeight: isCollapsed ? '0px' : '10000px',
                   opacity: isCollapsed ? 0 : 1,
