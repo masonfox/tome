@@ -243,13 +243,13 @@ export default function JournalPage() {
                   {dayEntry.books.map((bookGroup) => (
                 <div
                   key={bookGroup.bookId}
-                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-5"
+                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5"
                 >
-                  <div className="flex gap-6">
-                    {/* Left: Book Cover */}
+                  <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                    {/* Book Cover */}
                     <Link
                       href={`/books/${bookGroup.bookId}`}
-                      className="flex-shrink-0 hover:opacity-90 transition-opacity"
+                      className="flex-shrink-0 hover:opacity-90 transition-opacity mx-auto md:mx-0"
                     >
                       <div className="w-24 h-36 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
                         <Image
@@ -262,18 +262,18 @@ export default function JournalPage() {
                       </div>
                     </Link>
 
-                    {/* Right: Book Title/Author + Progress Entries */}
+                    {/* Book Title/Author + Progress Entries */}
                     <div className="flex-1 max-w-2xl space-y-4">
                       {/* Book Title/Author Header */}
                       <Link
                         href={`/books/${bookGroup.bookId}`}
-                        className="block hover:text-[var(--accent)] transition-colors"
+                        className="block hover:text-[var(--accent)] transition-colors text-center md:text-left"
                       >
-                        <h3 className="text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-1">
+                        <h3 className="text-lg md:text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-1">
                           {bookGroup.bookTitle}
                         </h3>
                         {bookGroup.bookAuthors.length > 0 && (
-                          <p className="text-base font-serif text-[var(--subheading-text)]">
+                          <p className="text-sm md:text-base font-serif text-[var(--subheading-text)]">
                             {bookGroup.bookAuthors.join(", ")}
                           </p>
                         )}
@@ -283,16 +283,16 @@ export default function JournalPage() {
                       {bookGroup.entries.map((entry) => (
                         <div
                           key={entry.id}
-                          className="p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
+                          className="p-4 md:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
                         >
                           {/* Metadata grid */}
-                          <div className={`grid grid-cols-4 gap-4 ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
+                          <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
                             {/* Percentage */}
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <div className="text-xs text-[var(--subheading-text)] font-medium">Progress</div>
                                 <div className="text-sm font-mono font-bold text-[var(--heading-text)]">
                                   {Math.round(entry.currentPercentage)}%
@@ -305,7 +305,7 @@ export default function JournalPage() {
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <FileText className="w-4 h-4 text-[var(--accent)]" />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <div className="text-xs text-[var(--subheading-text)] font-medium">Page</div>
                                 <div className="text-sm font-semibold text-[var(--heading-text)]">
                                   {entry.currentPage}
@@ -319,7 +319,7 @@ export default function JournalPage() {
                                 <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                   <Plus className="w-4 h-4 text-[var(--accent)]" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                   <div className="text-xs text-[var(--subheading-text)] font-medium">Read</div>
                                   <div className="text-sm font-semibold text-[var(--heading-text)]">
                                     {entry.pagesRead} pages
@@ -333,7 +333,7 @@ export default function JournalPage() {
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <Clock className="w-4 h-4 text-[var(--accent)]" />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <div className="text-xs text-[var(--subheading-text)] font-medium">Time</div>
                                 <div className="text-sm font-semibold text-[var(--heading-text)]">
                                   {new Date(entry.progressDate).toLocaleTimeString([], {
