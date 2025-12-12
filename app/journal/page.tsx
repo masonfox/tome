@@ -218,78 +218,83 @@ export default function JournalPage() {
                   key={bookGroup.bookId}
                   className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-5"
                 >
-                  {/* Book Header with Cover */}
-                  <Link
-                    href={`/books/${bookGroup.bookId}`}
-                    className="flex gap-4 mb-4 hover:text-[var(--accent)] transition-colors group"
-                  >
-                    {/* Book Cover */}
-                    <div className="flex-shrink-0 w-16 h-24 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
-                      <Image
-                        src={`/api/books/${bookGroup.bookCalibreId}/cover`}
-                        alt={bookGroup.bookTitle}
-                        fill
-                        className="object-cover group-hover:opacity-90 transition-opacity"
-                        sizes="64px"
-                      />
-                    </div>
-                    
-                    {/* Book Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1 truncate">
-                        {bookGroup.bookTitle}
-                      </h3>
-                      {bookGroup.bookAuthors.length > 0 && (
-                        <p className="text-sm text-[var(--foreground)]/70 truncate">
-                          by {bookGroup.bookAuthors.join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-
-                  {/* Progress Entries */}
-                  <div className="space-y-4">
-                    {bookGroup.entries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-mono font-semibold text-[var(--accent)]">
-                              {Math.round(entry.currentPercentage)}%
-                            </span>
-                            <span className="text-sm text-[var(--foreground)]/60">
-                              Page {entry.currentPage}
-                            </span>
-                            {entry.pagesRead > 0 && (
-                              <span className="text-sm text-[var(--foreground)]/60">
-                                +{entry.pagesRead} pages
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-[var(--foreground)]/50">
-                            {new Date(entry.progressDate).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-
-                        {entry.notes && (
-                          <div className="mt-3 text-sm" data-color-mode="light">
-                            <MarkdownPreview
-                              source={entry.notes}
-                              style={{
-                                background: "transparent",
-                                color: "var(--foreground)",
-                                fontSize: "0.875rem",
-                              }}
-                            />
-                          </div>
-                        )}
+                  <div className="flex gap-6">
+                    {/* Left: Book Cover */}
+                    <Link
+                      href={`/books/${bookGroup.bookId}`}
+                      className="flex-shrink-0 hover:opacity-90 transition-opacity"
+                    >
+                      <div className="w-24 h-36 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
+                        <Image
+                          src={`/api/books/${bookGroup.bookCalibreId}/cover`}
+                          alt={bookGroup.bookTitle}
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                        />
                       </div>
-                    ))}
+                    </Link>
+
+                    {/* Right: Book Title/Author + Progress Entries */}
+                    <div className="flex-1 max-w-2xl space-y-4">
+                      {/* Book Title/Author Header */}
+                      <Link
+                        href={`/books/${bookGroup.bookId}`}
+                        className="block hover:text-[var(--accent)] transition-colors"
+                      >
+                        <h3 className="text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-1">
+                          {bookGroup.bookTitle}
+                        </h3>
+                        {bookGroup.bookAuthors.length > 0 && (
+                          <p className="text-base font-serif text-[var(--subheading-text)]">
+                            {bookGroup.bookAuthors.join(", ")}
+                          </p>
+                        )}
+                      </Link>
+
+                      {/* Progress Entries */}
+                      {bookGroup.entries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-mono font-semibold text-[var(--accent)]">
+                                {Math.round(entry.currentPercentage)}%
+                              </span>
+                              <span className="text-sm text-[var(--foreground)]/60">
+                                Page {entry.currentPage}
+                              </span>
+                              {entry.pagesRead > 0 && (
+                                <span className="text-sm text-[var(--foreground)]/60">
+                                  +{entry.pagesRead} pages
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-[var(--foreground)]/50">
+                              {new Date(entry.progressDate).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+
+                          {entry.notes && (
+                            <div className="mt-3 text-sm" data-color-mode="light">
+                              <MarkdownPreview
+                                source={entry.notes}
+                                style={{
+                                  background: "transparent",
+                                  color: "var(--foreground)",
+                                  fontSize: "0.875rem",
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
