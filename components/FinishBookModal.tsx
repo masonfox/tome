@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Star, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import MarkdownEditor from "@/components/MarkdownEditor";
@@ -25,6 +25,9 @@ export default function FinishBookModal({
   const [hoverRating, setHoverRating] = useState(0);
   const [review, setReview] = useState("");
 
+  // Track whether we've already restored the draft for this modal session
+  const hasRestoredDraft = useRef(false);
+
   // Draft management for review field
   const {
     draft: draftReview,
@@ -33,12 +36,20 @@ export default function FinishBookModal({
     isInitialized,
   } = useDraftField(`draft-finish-review-${bookId}`);
 
-  // Restore draft on mount if no review content exists
+  // Reset the restoration flag when modal opens
   useEffect(() => {
-    if (draftReview && !review && isOpen) {
-      setReview(draftReview);
+    if (isOpen) {
+      hasRestoredDraft.current = false;
     }
-  }, [draftReview, review, isOpen]);
+  }, [isOpen]);
+
+  // Restore draft only once when modal opens (if no review content exists)
+  useEffect(() => {
+    if (isOpen && isInitialized && !review && draftReview && !hasRestoredDraft.current) {
+      setReview(draftReview);
+      hasRestoredDraft.current = true;
+    }
+  }, [isOpen, isInitialized, review, draftReview]);
 
   // Auto-save draft (only after initialization to prevent race condition)
   useEffect(() => {

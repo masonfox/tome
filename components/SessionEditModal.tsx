@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
 import MarkdownEditor from "@/components/MarkdownEditor";
@@ -39,6 +39,9 @@ export default function SessionEditModal({
   const [completedDate, setCompletedDate] = useState("");
   const [review, setReview] = useState("");
 
+  // Track whether we've already restored the draft for this modal session
+  const hasRestoredDraft = useRef(false);
+
   // Draft management for review field
   const {
     draft: draftReview,
@@ -57,15 +60,18 @@ export default function SessionEditModal({
       setCompletedDate(
         currentCompletedDate ? currentCompletedDate.split("T")[0] : ""
       );
-      
-      // Restore from draft if no current review exists
-      if (!currentReview && draftReview) {
-        setReview(draftReview);
-      } else {
-        setReview(currentReview || "");
-      }
+      setReview(currentReview || "");
+      hasRestoredDraft.current = false; // Reset draft restoration flag
     }
-  }, [isOpen, currentStartedDate, currentCompletedDate, currentReview, draftReview]);
+  }, [isOpen, currentStartedDate, currentCompletedDate, currentReview]);
+
+  // Restore draft only once when modal opens (if no existing review)
+  useEffect(() => {
+    if (isOpen && isInitialized && !currentReview && draftReview && !hasRestoredDraft.current) {
+      setReview(draftReview);
+      hasRestoredDraft.current = true;
+    }
+  }, [isOpen, isInitialized, currentReview, draftReview]);
 
   // Auto-save draft (only after initialization to prevent race condition)
   useEffect(() => {
