@@ -123,7 +123,7 @@ export default function BookHeader({
       <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center shadow-lg">
         {!imageError ? (
           <Image
-            src={`/api/covers/${book.calibreId}/cover.jpg`}
+              src={`/api/books/${book.calibreId}/cover`}
             alt="Book cover"
             fill
             sizes="(max-width: 768px) 220px, 250px"

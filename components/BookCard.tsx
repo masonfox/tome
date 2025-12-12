@@ -39,7 +39,7 @@ export const BookCard = memo(function BookCard({
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
           {!imageError ? (
             <Image
-              src={`/api/covers/${calibreId}/cover.jpg`}
+              src={`/api/books/${calibreId}/cover`}
               alt={title}
               fill
               loading="lazy"

@@ -52,11 +52,13 @@ export class SeriesRepository extends BaseRepository<
   async getAllSeries(): Promise<SeriesInfo[]> {
     const db = this.getDatabase();
 
-    // First, get all series with book counts
-    const seriesList = await db
+    // Fetch all books with series in a single query, ordered by series and seriesIndex
+    const allBooks = await db
       .select({
-        name: books.series,
-        bookCount: sql<number>`COUNT(*)`.as('bookCount'),
+        series: books.series,
+        calibreId: books.calibreId,
+        seriesIndex: books.seriesIndex,
+        title: books.title,
       })
       .from(books)
       .where(
@@ -65,35 +67,33 @@ export class SeriesRepository extends BaseRepository<
           eq(books.orphaned, false)
         )
       )
-      .groupBy(books.series)
-      .orderBy(asc(books.series));
+      .orderBy(asc(books.series), asc(books.seriesIndex), asc(books.title));
 
-    // For each series, get the first 3 calibre IDs
-    const seriesWithCovers = await Promise.all(
-      seriesList.map(async (series) => {
-        const covers = await db
-          .select({
-            calibreId: books.calibreId,
-          })
-          .from(books)
-          .where(
-            and(
-              eq(books.series, series.name!),
-              eq(books.orphaned, false)
-            )
-          )
-          .orderBy(asc(books.seriesIndex), asc(books.title))
-          .limit(3);
+    // Group books by series and extract first 3 covers in-memory (much faster than N queries)
+    const seriesMap = new Map<string, { bookCount: number; bookCoverIds: number[] }>();
+    
+    for (const book of allBooks) {
+      const seriesName = book.series!;
+      
+      if (!seriesMap.has(seriesName)) {
+        seriesMap.set(seriesName, { bookCount: 0, bookCoverIds: [] });
+      }
+      
+      const seriesData = seriesMap.get(seriesName)!;
+      seriesData.bookCount++;
+      
+      // Only keep first 3 cover IDs
+      if (seriesData.bookCoverIds.length < 3) {
+        seriesData.bookCoverIds.push(book.calibreId);
+      }
+    }
 
-        return {
-          name: series.name!,
-          bookCount: series.bookCount,
-          bookCoverIds: covers.map(c => c.calibreId),
-        };
-      })
-    );
-
-    return seriesWithCovers;
+    // Convert map to array format
+    return Array.from(seriesMap.entries()).map(([name, data]) => ({
+      name,
+      bookCount: data.bookCount,
+      bookCoverIds: data.bookCoverIds,
+    }));
   }
 
   /**
