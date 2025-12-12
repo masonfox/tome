@@ -1,6 +1,8 @@
 import Image from "next/image";
+import Link from "next/link";
 import { BookOpen, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Star, Pencil } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { STATUS_CONFIG, type BookStatus } from "@/components/StatusBadge";
 
 interface BookHeaderProps {
   book: {
@@ -43,6 +45,9 @@ export default function BookHeader({
     { value: "read", label: "Read", disabled: false, icon: BookCheck },
   ];
 
+  // Get the current status configuration for button styling
+  const currentStatusConfig = STATUS_CONFIG[selectedStatus as BookStatus];
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "to-read": return "Want to Read";
@@ -54,9 +59,12 @@ export default function BookHeader({
   };
 
   const StatusDropdownMenu = () => (
-    <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
+    <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md shadow-lg overflow-hidden">
       {statusOptions.map((option) => {
         const Icon = option.icon;
+        const optionConfig = STATUS_CONFIG[option.value as BookStatus];
+        const isSelected = selectedStatus === option.value;
+        
         return (
           <button
             key={option.value}
@@ -68,38 +76,39 @@ export default function BookHeader({
             }}
             disabled={option.disabled}
             className={cn(
-              "w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group",
+              "w-full px-4 py-3 text-left flex items-center justify-between transition-all group",
               option.disabled
-                ? "cursor-not-allowed bg-[var(--card-bg)]"
+                ? "cursor-not-allowed opacity-40"
                 : "cursor-pointer hover:bg-[var(--background)]",
-              selectedStatus === option.value && !option.disabled && "bg-[var(--accent)]/10"
+              isSelected && !option.disabled && "bg-[var(--background)]"
             )}
           >
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-3 flex-1">
               {option.disabled ? (
-                <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
-              ) : (
-                <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
-              )}
-              <div className="flex flex-col">
-                <span
-                  className={cn(
-                    "font-semibold",
-                    option.disabled
-                      ? "text-[var(--foreground)]/40"
-                      : "text-[var(--foreground)]"
-                  )}
-                >
-                  {option.label}
-                </span>
-                {option.disabled && (
-                  <span className="text-xs text-[var(--foreground)]/30 mt-0.5 font-medium">
-                    Set pages
+                <>
+                  <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
+                  <span className="font-semibold text-[var(--foreground)]/40">
+                    {option.label}
                   </span>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className={cn(
+                      "inline-flex items-center justify-center w-8 h-8 rounded-md shadow-sm transition-all",
+                      "bg-gradient-to-r",
+                      optionConfig.lightGradient
+                    )}
+                  >
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-[var(--foreground)]">
+                    {option.label}
+                  </span>
+                </>
+              )}
             </div>
-            {selectedStatus === option.value && !option.disabled && (
+            {isSelected && !option.disabled && (
               <Check className="w-5 h-5 text-[var(--accent)]" />
             )}
           </button>
@@ -114,7 +123,7 @@ export default function BookHeader({
       <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center shadow-lg">
         {!imageError ? (
           <Image
-            src={`/api/covers/${book.calibreId}/cover.jpg`}
+              src={`/api/books/${book.calibreId}/cover`}
             alt="Book cover"
             fill
             sizes="(max-width: 768px) 220px, 250px"
@@ -130,9 +139,18 @@ export default function BookHeader({
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-          className="w-full px-4 py-2.5 bg-[var(--accent)] text-white font-semibold rounded cursor-pointer hover:bg-[var(--light-accent)] transition-colors flex items-center justify-between"
+          className={cn(
+            "w-full px-4 py-3 font-semibold rounded-md cursor-pointer transition-all flex items-center justify-between shadow-sm hover:shadow-md",
+            "bg-gradient-to-r text-white",
+            currentStatusConfig?.lightGradient || "bg-[var(--accent)]"
+          )}
         >
-          <span>{getStatusLabel(selectedStatus)}</span>
+          <div className="flex items-center gap-2">
+            {currentStatusConfig && (
+              <currentStatusConfig.icon className="w-4 h-4" />
+            )}
+            <span>{getStatusLabel(selectedStatus)}</span>
+          </div>
           <ChevronDown
             className={cn(
               "w-5 h-5 transition-transform",
