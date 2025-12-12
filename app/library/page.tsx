@@ -15,6 +15,7 @@ function LibraryPageContent() {
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [loadingTags, setLoadingTags] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -172,6 +173,8 @@ function LibraryPageContent() {
         setAvailableTags(tags);
       } catch (error) {
         // Suppress console; toast used for user feedback
+      } finally {
+        setLoadingTags(false);
       }
     }
     fetchTags();
@@ -249,6 +252,7 @@ function LibraryPageContent() {
         onRatingFilterChange={(rating) => handleRatingChange(rating === "all" ? undefined : rating)}
         availableTags={availableTags}
         loading={isInitialLoading}
+        loadingTags={loadingTags}
         onClearAll={handleClearAll}
       />
 

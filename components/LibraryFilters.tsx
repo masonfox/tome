@@ -36,6 +36,7 @@ interface LibraryFiltersProps {
   onTagsChange: (tags: string[]) => void;
   availableTags: string[];
   loading?: boolean;
+  loadingTags?: boolean;
   onClearAll?: () => void;
 }
 
@@ -52,6 +53,7 @@ export function LibraryFilters({
   onTagsChange,
   availableTags,
   loading = false,
+  loadingTags = false,
   onClearAll,
 }: LibraryFiltersProps) {
   const [tagSearchInput, setTagSearchInput] = useState("");
@@ -306,7 +308,7 @@ export function LibraryFilters({
         </div>
 
         {/* Tag Filter Row */}
-        {availableTags.length > 0 && (
+        {(availableTags.length > 0 || loadingTags) && (
           <div className="flex gap-3 items-start">
             <div className="flex-1 min-w-0">
               {/* Tag search input */}
@@ -325,12 +327,12 @@ export function LibraryFilters({
                     // Delay to allow clicking on suggestions
                     setTimeout(() => setShowTagSuggestions(false), 200);
                   }}
-                  disabled={loading}
+                  disabled={loading || loadingTags}
                   className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50`}
                 />
 
                 {/* Tag suggestions dropdown */}
-                {showTagSuggestions && tagSearchInput.trim() && (
+                {showTagSuggestions && tagSearchInput.trim() && !loadingTags && (
                   <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-60 overflow-y-auto shadow-lg">
                     {filteredTagSuggestions.length > 0 ? (
                       filteredTagSuggestions.map((tag) => (
@@ -358,7 +360,7 @@ export function LibraryFilters({
               <button
                 type="button"
                 onClick={clearAllTags}
-                disabled={loading}
+                disabled={loading || loadingTags}
                 className={`px-3 py-2 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 Clear ({selectedTags.length})
