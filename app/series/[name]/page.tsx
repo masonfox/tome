@@ -74,15 +74,15 @@ export default function SeriesDetailPage() {
   const getStatusColor = (status?: string | null) => {
     switch (status) {
       case "reading":
-        return "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]";
+        return "bg-blue-500/20 text-blue-600 border border-blue-500/30";
       case "read":
-        return "bg-green-500/10 text-green-600 border-green-500";
+        return "bg-green-500/20 text-green-600 border border-green-500/30";
       case "to-read":
-        return "bg-blue-500/10 text-blue-600 border-blue-500";
+        return "bg-orange-500/20 text-orange-600 border border-orange-500/30";
       case "read-next":
-        return "bg-purple-500/10 text-purple-600 border-purple-500";
+        return "bg-purple-500/20 text-purple-600 border border-purple-500/30";
       default:
-        return "bg-[var(--card-bg)] text-[var(--foreground)]/60 border-[var(--border-color)]";
+        return "bg-[var(--card-bg)] text-[var(--foreground)]/60 border border-[var(--border-color)]";
     }
   };
 
@@ -157,10 +157,10 @@ export default function SeriesDetailPage() {
             href={`/books/${book.id}`}
             className="block group"
           >
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent)] hover:shadow-lg transition-all duration-200">
-              <div className="flex gap-4">
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg px-4 py-6 sm:p-4 hover:border-[var(--accent)] hover:shadow-lg transition-all duration-200">
+              <div className="flex flex-col sm:flex-row gap-4">
                 {/* Book Cover */}
-                <div className="flex-shrink-0 w-24 md:w-32">
+                <div className="flex-shrink-0 w-32 sm:w-24 md:w-32 mx-auto sm:mx-0">
                   <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden">
                     {!imageErrors[book.calibreId] ? (
                       <Image
@@ -180,23 +180,23 @@ export default function SeriesDetailPage() {
                 </div>
 
                 {/* Book Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1 min-w-0">
-                      {/* Series Index Badge */}
-                      <div className="mb-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
-                          Book {book.seriesIndex}
-                        </span>
+                <div className="flex-1 min-w-0 text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 mb-3">
+                    <div className="flex-1 min-w-0 w-full">
+                      {/* Series Index Circle */}
+                      <div className="mb-3 flex justify-center sm:justify-start">
+                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent)] text-white text-sm font-bold">
+                          {book.seriesIndex}
+                        </div>
                       </div>
-                      
+
                       {/* Title */}
-                      <h2 className="text-xl font-semibold text-[var(--heading-text)] mb-1 group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                      <h2 className="text-xl font-serif font-semibold text-[var(--heading-text)] mb-2 group-hover:text-[var(--accent)] transition-colors line-clamp-2">
                         {book.title}
                       </h2>
-                      
+
                       {/* Authors */}
-                      <p className="text-sm text-[var(--subheading-text)] mb-2 font-medium">
+                      <p className="text-sm text-[var(--subheading-text)] font-medium">
                         by {book.authors.join(", ")}
                       </p>
                     </div>
@@ -204,7 +204,7 @@ export default function SeriesDetailPage() {
                     {/* Status Badge */}
                     {book.status && (
                       <span className={cn(
-                        "px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap",
+                        "px-3.5 py-1.5 rounded text-xs font-semibold whitespace-nowrap",
                         getStatusColor(book.status)
                       )}>
                         {getStatusLabel(book.status)}
@@ -213,32 +213,25 @@ export default function SeriesDetailPage() {
                   </div>
 
                   {/* Metadata Row */}
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--foreground)]/60 mb-2">
-                    {book.totalPages && (
-                      <span className="font-medium">
-                        {book.totalPages.toLocaleString()} pages
-                      </span>
-                    )}
-                    {book.rating && (
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={cn(
-                              "w-4 h-4",
-                              i < book.rating! 
-                                ? "fill-[var(--accent)] text-[var(--accent)]" 
-                                : "text-[var(--foreground)]/20"
-                            )}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {book.rating && (
+                    <div className="flex items-center justify-center sm:justify-start gap-1 mb-3">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "w-4 h-4",
+                            i < book.rating!
+                              ? "fill-[var(--accent)] text-[var(--accent)]"
+                              : "text-[var(--foreground)]/20"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
 
                   {/* Description */}
                   {book.description && (
-                    <p className="text-sm text-[var(--foreground)]/70 line-clamp-2 font-medium">
+                    <p className="text-sm text-[var(--subheading-text)] line-clamp-3 font-medium">
                       {book.description.replace(/<[^>]*>/g, "")}
                     </p>
                   )}
