@@ -19,9 +19,9 @@ export function LibraryHeader({ totalBooks, syncing, onSync, loading = false }: 
           Library
         </h1>
         {loading ? (
-          <div className="mt-2 animate-pulse">
-            <div className="h-5 w-24 bg-[var(--foreground)]/10 rounded" />
-          </div>
+          <p className="text-[var(--subheading-text)] mt-2 font-medium">
+            <span className="inline-block h-[1.25rem] w-24 bg-[var(--foreground)]/10 rounded animate-pulse align-middle" />
+          </p>
         ) : (
           <p className="text-[var(--subheading-text)] mt-2 font-medium">
             {totalBooks} {totalBooks === 1 ? "book" : "books"}
