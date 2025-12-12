@@ -243,7 +243,7 @@ export default function JournalPage() {
                   {dayEntry.books.map((bookGroup) => (
                 <div
                   key={bookGroup.bookId}
-                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5"
+                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5 max-w-3xl"
                 >
                   <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                     {/* Book Cover */}
