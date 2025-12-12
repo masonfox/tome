@@ -56,6 +56,7 @@ export default function MarkdownEditor({
       preview="edit"
       height={height}
       visibleDragbar={false}
+      overflow={false}
       commands={customCommands}
       textareaProps={{
         placeholder,
