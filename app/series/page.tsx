@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Library, BookMarked, Search, X } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
+import SeriesCardSkeleton from "@/components/SeriesCardSkeleton";
 import { PageHeader } from "@/components/PageHeader";
 
 interface SeriesInfo {
@@ -53,8 +54,24 @@ export default function SeriesPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+        <PageHeader
+          title="Series"
+          subtitle="Browse books organized by series"
+          icon={BookMarked}
+        />
+        
+        {/* Search Bar Skeleton */}
+        <div className="mt-6 mb-8">
+          <div className="relative max-w-2xl animate-pulse">
+            <div className="w-full h-[52px] bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg"></div>
+          </div>
+        </div>
+        
+        {/* Skeleton Grid - Show 9 skeleton cards in the same grid layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 9 }).map((_, index) => (
+            <SeriesCardSkeleton key={index} />
+          ))}
         </div>
       </div>
     );
