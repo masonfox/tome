@@ -12,19 +12,14 @@ export default function BookCardSkeleton() {
 
       {/* Content section skeleton */}
       <div className="p-4 space-y-2">
-        {/* Title skeleton - 2 lines */}
-        <div className="space-y-2">
-          <div className="h-4 bg-[var(--foreground)]/10 rounded w-full" />
-          <div className="h-4 bg-[var(--foreground)]/10 rounded w-3/4" />
+        {/* Title skeleton - 1.5 lines */}
+        <div className="space-y-1.5">
+          <div className="h-3.5 bg-[var(--foreground)]/10 rounded w-full" />
+          <div className="h-3.5 bg-[var(--foreground)]/10 rounded w-2/3" />
         </div>
         
         {/* Author skeleton - 1 line */}
-        <div className="h-4 bg-[var(--foreground)]/10 rounded w-2/3" />
-        
-        {/* Status badge skeleton */}
-        <div className="pt-2">
-          <div className="inline-block h-7 w-24 bg-[var(--foreground)]/10 rounded-sm" />
-        </div>
+        <div className="h-3.5 bg-[var(--foreground)]/10 rounded w-1/2" />
       </div>
     </div>
   );
