@@ -23,7 +23,7 @@ export default function SeriesCard({ name, bookCount, bookCoverIds }: SeriesCard
       className="group block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-md hover:shadow-xl hover:border-[var(--accent)] transition-all duration-300 overflow-hidden"
     >
       {/* Cover Collage Section */}
-      <div className="relative h-[180px] bg-[var(--light-accent)]/20 overflow-hidden">
+      <div className="relative h-[180px] bg-gradient-to-br from-[var(--light-accent)]/30 to-[var(--light-accent)]/10 overflow-hidden">
         {hasCovers ? (
           <div className="absolute inset-0 flex items-center justify-center">
             {/* Stack of covers with rotation and offset */}
