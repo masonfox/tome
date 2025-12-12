@@ -1,7 +1,7 @@
 "use client";
 
 import { BookCard } from "@/components/BookCard";
-import { cn } from "@/utils/cn";
+import BookCardSkeleton from "@/components/BookCardSkeleton";
 
 interface BookGridProps {
   books: Array<{
@@ -22,11 +22,10 @@ export function BookGrid({ books, loading = false, loadingMore = false }: BookGr
   return (
     <>
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[var(--foreground)]/70 mt-4 font-medium">
-            Loading books...
-          </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 18 }).map((_, index) => (
+            <BookCardSkeleton key={index} />
+          ))}
         </div>
       ) : books.length > 0 ? (
         <>

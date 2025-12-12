@@ -225,10 +225,13 @@ function LibraryPageContent() {
     router.replace('/library');
   }
 
+  // During initial load, show skeleton UI with header and filters
+  const isInitialLoading = loading && books.length === 0;
+
   return (
     <div className="space-y-6">
       <LibraryHeader
-        totalBooks={total}
+        totalBooks={isInitialLoading ? 0 : total}
         syncing={syncing}
         onSync={handleSync}
       />
@@ -245,7 +248,7 @@ function LibraryPageContent() {
         ratingFilter={filters.rating || "all"}
         onRatingFilterChange={(rating) => handleRatingChange(rating === "all" ? undefined : rating)}
         availableTags={availableTags}
-        loading={loading}
+        loading={isInitialLoading}
         onClearAll={handleClearAll}
       />
 
@@ -257,7 +260,7 @@ function LibraryPageContent() {
 
       <BookGrid
         books={books}
-        loading={loading && books.length === 0}
+        loading={isInitialLoading}
         loadingMore={loadingMore}
       />
 
