@@ -7,9 +7,10 @@ interface LibraryHeaderProps {
   totalBooks: number;
   syncing: boolean;
   onSync: () => void;
+  loading?: boolean;
 }
 
-export function LibraryHeader({ totalBooks, syncing, onSync }: LibraryHeaderProps) {
+export function LibraryHeader({ totalBooks, syncing, onSync, loading = false }: LibraryHeaderProps) {
   return (
     <div className="flex items-start justify-between border-b border-[var(--border-color)] pb-6">
       <div>
@@ -17,9 +18,15 @@ export function LibraryHeader({ totalBooks, syncing, onSync }: LibraryHeaderProp
           <LibraryIcon className="w-8 h-8" />
           Library
         </h1>
-        <p className="text-[var(--subheading-text)] mt-2 font-medium">
-          {totalBooks} {totalBooks === 1 ? "book" : "books"}
-        </p>
+        {loading ? (
+          <div className="mt-2 animate-pulse">
+            <div className="h-5 w-24 bg-[var(--foreground)]/10 rounded" />
+          </div>
+        ) : (
+          <p className="text-[var(--subheading-text)] mt-2 font-medium">
+            {totalBooks} {totalBooks === 1 ? "book" : "books"}
+          </p>
+        )}
       </div>
 
       <button

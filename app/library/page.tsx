@@ -234,9 +234,10 @@ function LibraryPageContent() {
   return (
     <div className="space-y-6">
       <LibraryHeader
-        totalBooks={isInitialLoading ? 0 : total}
+        totalBooks={total}
         syncing={syncing}
         onSync={handleSync}
+        loading={isInitialLoading}
       />
 
       <LibraryFilters
