@@ -128,17 +128,15 @@ export default function SeriesDetailPage() {
 
   return (
     <div className="space-y-10">
-      {/* Back Button */}
-      <Link
-        href="/series"
-        className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-5 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Series
-      </Link>
-
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-6">
+        <Link
+          href="/series"
+          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-5 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Series
+        </Link>
         <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3 mb-2">
           <BookMarked className="w-8 h-8" />
           {data.series.name}
