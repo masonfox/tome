@@ -1,10 +1,7 @@
-import { progressRepository, bookRepository } from "@/lib/repositories";
 import { db } from "@/lib/db/sqlite";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { books } from "@/lib/db/schema/books";
 import { eq, desc } from "drizzle-orm";
-import { startOfDay, format } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
 
 export interface JournalEntry {
   id: number;
@@ -35,6 +32,10 @@ export class JournalService {
   /**
    * Get all progress logs grouped by date and book
    * Returns entries in descending date order (most recent first)
+   * 
+   * Note: Groups by the date portion of the ISO timestamp (YYYY-MM-DD),
+   * matching the behavior of formatDateOnly() which extracts the date part
+   * without timezone conversion.
    */
   async getJournalEntries(timezone: string = 'America/New_York'): Promise<GroupedJournalEntry[]> {
     // Fetch all progress logs with book information
@@ -61,10 +62,10 @@ export class JournalService {
     const grouped = new Map<string, Map<number, JournalEntry[]>>();
 
     for (const entry of entries) {
-      // Convert to user's timezone and get date string
-      const dateInUserTz = toZonedTime(entry.progressDate, timezone);
-      const dayStart = startOfDay(dateInUserTz);
-      const dateKey = format(dayStart, 'yyyy-MM-dd');
+      // Extract date portion from ISO string (YYYY-MM-DD)
+      // This matches formatDateOnly behavior which doesn't do timezone conversion
+      const isoString = entry.progressDate.toISOString();
+      const dateKey = isoString.split('T')[0];
 
       // Get or create date group
       if (!grouped.has(dateKey)) {
