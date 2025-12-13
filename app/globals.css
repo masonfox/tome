@@ -205,23 +205,27 @@ body.overflow-hidden {
     width: 13rem; /* 208px - expanded */
   }
 
-  /* Main content margin to account for sidebar */
+  /* Main content area - offset by sidebar width to center content in remaining viewport */
   #main-content {
     margin-left: 4rem; /* 64px - collapsed sidebar width (w-16) */
+    margin-right: 0;
+    /* Calculate width to exclude sidebar - content will center within this space */
+    width: calc(100% - 4rem);
   }
 
   /* Only enable transitions after initial load completes */
   html.transitions-enabled #main-content {
-    transition: margin-left 0.3s ease-in-out;
+    transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
   }
 
   html.transitions-enabled #desktop-sidebar {
     transition: all 0.3s ease-in-out;
   }
 
-  /* Adjust margin when sidebar is expanded */
+  /* Adjust when sidebar is expanded */
   html[data-sidebar-collapsed="false"] #main-content {
     margin-left: 13rem; /* 208px - expanded sidebar width (w-52) */
+    width: calc(100% - 13rem);
   }
 }
 
