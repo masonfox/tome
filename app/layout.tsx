@@ -30,21 +30,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" data-color-mode="light" data-bottom-nav="false" data-sidebar-collapsed="true" suppressHydrationWarning>
+    <html lang="en" data-theme="light" data-color-mode="light" data-bottom-nav="false" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Run IMMEDIATELY before anything else
+              const sidebarCollapsed = localStorage.getItem("sidebarCollapsed");
+              document.documentElement.setAttribute("data-sidebar-collapsed", sidebarCollapsed === "false" ? "false" : "true");
+            `,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 // Set theme before page loads to prevent flicker
                 const savedMode = localStorage.getItem("darkMode");
-                const theme = savedMode !== null 
+                const theme = savedMode !== null
                   ? (savedMode === "true" ? "dark" : "light")
                   : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-                
+
                 document.documentElement.setAttribute("data-theme", theme);
                 document.documentElement.setAttribute("data-color-mode", theme);
-                
+
                 // Set bottom navigation preference before page loads to prevent flicker
                 const bottomNavEnabled = localStorage.getItem("bottomNavigationEnabled");
                 if (bottomNavEnabled === "true") {
@@ -52,15 +61,14 @@ export default function RootLayout({
                 } else {
                   document.documentElement.setAttribute("data-bottom-nav", "false");
                 }
-
-                // Set sidebar collapsed preference before page loads to prevent flicker
-                const sidebarCollapsed = localStorage.getItem("sidebarCollapsed");
-                if (sidebarCollapsed === "false") {
-                  document.documentElement.setAttribute("data-sidebar-collapsed", "false");
-                } else {
-                  document.documentElement.setAttribute("data-sidebar-collapsed", "true");
-                }
               })();
+
+              // Enable transitions only after a delay
+              window.addEventListener('load', function() {
+                setTimeout(function() {
+                  document.documentElement.classList.add('transitions-enabled');
+                }, 50);
+              });
             `,
           }}
         />

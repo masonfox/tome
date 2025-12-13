@@ -218,12 +218,29 @@ html[data-bottom-nav="false"] #main-content {
 
 /* Desktop sidebar layout (>=768px) */
 @media (min-width: 768px) {
+  /* Sidebar skeleton - matches actual sidebar width based on state */
+  #desktop-sidebar-skeleton {
+    width: 4rem; /* 64px - collapsed by default */
+  }
+
+  html[data-sidebar-collapsed="false"] #desktop-sidebar-skeleton {
+    width: 13rem; /* 208px - expanded */
+  }
+
   /* Main content padding to account for sidebar, allowing content to center in remaining space */
   #main-content {
-    padding-left: 3.5rem; /* 56px - collapsed sidebar width (w-14) */
+    padding-left: 4rem; /* 64px - collapsed sidebar width (w-16) */
     padding-top: 3rem; /* py-12 */
     padding-bottom: 3rem; /* py-12 */
+  }
+
+  /* Only enable transitions after initial load completes */
+  html.transitions-enabled #main-content {
     transition: padding-left 0.3s ease-in-out;
+  }
+
+  html.transitions-enabled #desktop-sidebar {
+    transition: all 0.3s ease-in-out;
   }
 
   /* Adjust padding when sidebar is expanded */
