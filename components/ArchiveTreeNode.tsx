@@ -57,17 +57,24 @@ export function ArchiveTreeNode({
           {hasChildren ? (
             <span className="flex-shrink-0 text-[var(--subheading-text)]">
               {isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4 text-[var(--subheading-text)]" />
               ) : (
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-[var(--subheading-text)]" />
               )}
             </span>
           ) : (
             <span className="w-4 flex-shrink-0" />
           )}
 
-          {/* Label */}
-          <span className="truncate text-[var(--foreground)]">{node.label}</span>
+          {/* Label - style date ranges differently for weeks */}
+          {node.type === 'week' && node.label.includes('(') ? (
+            <span className="truncate">
+              <span className="text-[var(--foreground)]">{node.label.split('(')[0]}</span>
+              <span className="text-[var(--subheading-text)]">({node.label.split('(')[1]}</span>
+            </span>
+          ) : (
+            <span className="truncate text-[var(--foreground)]">{node.label}</span>
+          )}
         </div>
 
         {/* Entry count */}
