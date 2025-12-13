@@ -20,7 +20,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main
         id="main-content"
-        className="container mx-auto px-4 pt-8 pb-32 md:py-12"
+        className="container mx-auto px-6 py-8 pb-32 md:py-12 max-w-7xl"
       >
         {children}
       </main>

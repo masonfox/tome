@@ -205,25 +205,23 @@ body.overflow-hidden {
     width: 13rem; /* 208px - expanded */
   }
 
-  /* Main content padding to account for sidebar, allowing content to center in remaining space */
+  /* Main content margin to account for sidebar */
   #main-content {
-    padding-left: 4rem; /* 64px - collapsed sidebar width (w-16) */
-    padding-top: 3rem; /* py-12 */
-    padding-bottom: 3rem; /* py-12 */
+    margin-left: 4rem; /* 64px - collapsed sidebar width (w-16) */
   }
 
   /* Only enable transitions after initial load completes */
   html.transitions-enabled #main-content {
-    transition: padding-left 0.3s ease-in-out;
+    transition: margin-left 0.3s ease-in-out;
   }
 
   html.transitions-enabled #desktop-sidebar {
     transition: all 0.3s ease-in-out;
   }
 
-  /* Adjust padding when sidebar is expanded */
+  /* Adjust margin when sidebar is expanded */
   html[data-sidebar-collapsed="false"] #main-content {
-    padding-left: 13rem; /* 208px - expanded sidebar width (w-52) */
+    margin-left: 13rem; /* 208px - expanded sidebar width (w-52) */
   }
 }
 
