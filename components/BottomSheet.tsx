@@ -9,8 +9,6 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
-// Delay before focusing close button to allow animation to complete
-export const FOCUS_DELAY_MS = 100;
 // Animation duration for closing transition
 const CLOSE_ANIMATION_MS = 300;
 
@@ -22,10 +20,12 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setIsClosing(false);
-      // Focus the close button to prevent auto-focus on other elements
-      setTimeout(() => {
+      
+      // Immediately focus the close button before browser auto-focus kicks in
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
         closeButtonRef.current?.focus();
-      }, FOCUS_DELAY_MS);
+      });
     } else {
       document.body.style.overflow = "";
     }
@@ -66,6 +66,7 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
             onClick={handleClose}
             className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
             aria-label="Close"
+            autoFocus
           >
             <X className="w-5 h-5" />
           </button>
