@@ -2,6 +2,7 @@ import { db } from "@/lib/db/sqlite";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { books } from "@/lib/db/schema/books";
 import { eq, desc, sql } from "drizzle-orm";
+import { buildArchiveHierarchy, type ArchiveNode } from "@/lib/utils/archive-builder";
 
 export interface JournalEntry {
   id: number;
@@ -150,6 +151,57 @@ export class JournalService {
       total,
       hasMore,
     };
+  }
+
+  /**
+   * Get archive metadata (Year → Month → Week hierarchy with counts)
+   * Used for archive navigation tree
+   *
+   * @returns Array of year nodes with nested month and week children
+   */
+  async getArchiveMetadata(): Promise<ArchiveNode[]> {
+    // Fetch all progress log dates
+    // We only need the dates, not the full entry details
+    const entries = await db
+      .select({
+        progressDate: progressLogs.progressDate,
+      })
+      .from(progressLogs)
+      .innerJoin(books, eq(progressLogs.bookId, books.id))
+      .orderBy(desc(progressLogs.progressDate))
+      .all();
+
+    // Extract dates as Date objects
+    const dates = entries.map((entry: { progressDate: Date }) => entry.progressDate);
+
+    // Debug: Log date range and sample dates
+    const { getLogger } = require("@/lib/logger");
+    if (dates.length > 0) {
+      const dateStrings = dates.map(d => d.toISOString().split('T')[0]);
+      const uniqueMonths = [...new Set(dateStrings.map(d => d.substring(0, 7)))].sort();
+      getLogger().debug({
+        totalDates: dates.length,
+        firstDate: dateStrings[0],
+        lastDate: dateStrings[dateStrings.length - 1],
+        uniqueMonths,
+        sampleDates: dateStrings.slice(0, 10)
+      }, "Archive metadata - fetched dates");
+    }
+
+    // Build and return hierarchy
+    const hierarchy = buildArchiveHierarchy(dates);
+
+    // Debug: Log built hierarchy
+    getLogger().debug({
+      yearCount: hierarchy.length,
+      years: hierarchy.map(y => ({
+        year: y.label,
+        count: y.count,
+        months: y.children?.length || 0
+      }))
+    }, "Archive metadata - built hierarchy");
+
+    return hierarchy;
   }
 }
 

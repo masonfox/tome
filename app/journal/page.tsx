@@ -2,13 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, Clock, TrendingUp } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, Clock, TrendingUp, Archive } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
 import "@uiw/react-markdown-preview/markdown.css";
 import Link from "next/link";
 import Image from "next/image";
+import { JournalArchiveTree } from "@/components/JournalArchiveTree";
+import { JournalArchiveDrawer } from "@/components/JournalArchiveDrawer";
+import type { ArchiveNode } from "@/lib/utils/archive-builder";
+import { matchesDateKey, getDateKeys } from "@/lib/utils/archive-builder";
 
 const MarkdownPreview = dynamic(
   () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
@@ -49,7 +53,16 @@ export default function JournalPage() {
   const [skip, setSkip] = useState(0);
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const observerTarget = useRef<HTMLDivElement>(null);
-  
+
+  // Archive-related state
+  const [archiveData, setArchiveData] = useState<ArchiveNode[]>([]);
+  const [archiveLoading, setArchiveLoading] = useState(true);
+  const [currentVisibleDate, setCurrentVisibleDate] = useState<string | null>(null);
+  const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
+
+  // Ref to track current entries for archive navigation
+  const entriesRef = useRef<GroupedJournalEntry[]>([]);
+
   const LIMIT = 50;
 
   const fetchJournalEntries = useCallback(async (skipCount: number, append = false) => {
@@ -89,9 +102,34 @@ export default function JournalPage() {
     }
   }, []);
 
+  const fetchArchiveData = useCallback(async () => {
+    try {
+      setArchiveLoading(true);
+      const response = await fetch('/api/journal/archive');
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch archive data");
+      }
+
+      const data = await response.json();
+      setArchiveData(data);
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "Error fetching archive data");
+    } finally {
+      setArchiveLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchJournalEntries(0);
-  }, [fetchJournalEntries]);
+    fetchArchiveData();
+  }, [fetchJournalEntries, fetchArchiveData]);
+
+  // Keep entriesRef in sync with entries state
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -118,6 +156,79 @@ export default function JournalPage() {
 
     return () => observer.disconnect();
   }, [loadMore, hasMore, loading, loadingMore]);
+
+  // Archive navigation handler
+  const handleArchiveNavigate = useCallback(async (dateKey: string) => {
+    const { getLogger } = require("@/lib/logger");
+
+    // Check if we need to load more entries (use ref for current value)
+    let matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
+
+    // If not found and we have more entries, keep loading
+    if (!matchingEntry && hasMore) {
+      getLogger().debug({ dateKey, currentEntries: entriesRef.current.length }, "Date not loaded, fetching more entries");
+
+      // Keep loading until we find the date or run out of entries
+      let attempts = 0;
+      const maxAttempts = 20; // Prevent infinite loops
+      let currentSkip = skip;
+
+      while (!matchingEntry && attempts < maxAttempts) {
+        attempts++;
+
+        // Load next batch
+        const newSkip = currentSkip + LIMIT;
+        await fetchJournalEntries(newSkip, true);
+        currentSkip = newSkip;
+
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Check again with updated entries (from ref)
+        matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
+
+        getLogger().debug({
+          dateKey,
+          attempt: attempts,
+          totalEntries: entriesRef.current.length,
+          found: !!matchingEntry
+        }, "Loading more entries");
+
+        // Check if we've loaded everything
+        if (entriesRef.current.length >= total || !hasMore) {
+          break;
+        }
+      }
+    }
+
+    if (!matchingEntry) {
+      getLogger().warn({ dateKey, totalEntries: entriesRef.current.length }, "Date not found after loading all entries");
+      return;
+    }
+
+    getLogger().debug({ dateKey, matchedDate: matchingEntry.date }, "Found matching entry");
+
+    // Auto-expand the section if it's collapsed BEFORE scrolling
+    if (collapsedDates.has(matchingEntry.date)) {
+      setCollapsedDates(prev => {
+        const next = new Set(prev);
+        next.delete(matchingEntry.date);
+        return next;
+      });
+
+      // Wait a bit for the expand animation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Find the date section to scroll to using the actual date from the matching entry
+    const element = document.querySelector(`[data-date-key="${matchingEntry.date}"]`);
+    if (element) {
+      getLogger().debug({ matchedDate: matchingEntry.date }, "Scrolling to element");
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      getLogger().warn({ dateKey, matchedDate: matchingEntry.date }, "Element not found in DOM");
+    }
+  }, [collapsedDates, hasMore, skip, total, LIMIT, fetchJournalEntries]);
 
   // Journal entry skeleton component
   const JournalEntrySkeleton = () => (
@@ -203,14 +314,22 @@ export default function JournalPage() {
         icon={BookOpen}
       />
 
-      <div>
-        {entries.map((dayEntry) => {
-          const isCollapsed = collapsedDates.has(dayEntry.date);
-          
-          return (
-            <div key={dayEntry.date} className={isCollapsed ? "mb-4" : "mb-8"}>
-              {/* Date Header - Clickable */}
-              <button
+      <div className="md:grid md:grid-cols-[1fr_320px] md:gap-8">
+        {/* Main Journal Content */}
+        <div className="max-w-3xl">
+          {entries.map((dayEntry) => {
+            const isCollapsed = collapsedDates.has(dayEntry.date);
+            const dateKeys = getDateKeys(dayEntry.date);
+
+            return (
+              <div
+                key={dayEntry.date}
+                className={isCollapsed ? "mb-4" : "mb-8"}
+                data-date-key={dayEntry.date}
+                data-date-section
+              >
+                {/* Date Header - Clickable */}
+                <button
                 onClick={() => {
                   setCollapsedDates(prev => {
                     const next = new Set(prev);
@@ -376,26 +495,56 @@ export default function JournalPage() {
                 </div>
               </div>
             </div>
-          );
-        })}
+            );
+          })}
+
+          {/* Loading more indicator */}
+          {loadingMore && (
+            <div className="text-center py-8">
+              <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+
+          {/* Infinite scroll trigger */}
+          <div ref={observerTarget} className="py-8" />
+
+          {/* End of results message */}
+          {!hasMore && entries.length > 0 && (
+            <div className="text-center py-8 text-[var(--foreground)]/60">
+              You&apos;ve reached the end of your journal entries ({total} total)
+            </div>
+          )}
+        </div>
+
+        {/* Archive Tree - Desktop Only */}
+        <div className="hidden md:block">
+          <JournalArchiveTree
+            archiveData={archiveData}
+            currentDateRange={currentVisibleDate}
+            onNavigate={handleArchiveNavigate}
+            loading={archiveLoading}
+          />
+        </div>
       </div>
 
-      {/* Loading more indicator */}
-      {loadingMore && (
-        <div className="text-center py-8">
-          <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
+      {/* Mobile Archive Button - Floating Action Button */}
+      <button
+        onClick={() => setArchiveDrawerOpen(true)}
+        className="md:hidden fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        aria-label="Open archive navigation"
+      >
+        <Archive className="w-6 h-6" />
+      </button>
 
-      {/* Infinite scroll trigger */}
-      <div ref={observerTarget} className="py-8" />
-
-      {/* End of results message */}
-      {!hasMore && entries.length > 0 && (
-        <div className="text-center py-8 text-[var(--foreground)]/60">
-          You&apos;ve reached the end of your journal entries ({total} total)
-        </div>
-      )}
+      {/* Mobile Archive Drawer */}
+      <JournalArchiveDrawer
+        isOpen={archiveDrawerOpen}
+        onClose={() => setArchiveDrawerOpen(false)}
+        archiveData={archiveData}
+        currentDateRange={currentVisibleDate}
+        onNavigate={handleArchiveNavigate}
+        loading={archiveLoading}
+      />
     </div>
   );
 }
