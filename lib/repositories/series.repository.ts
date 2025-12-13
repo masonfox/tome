@@ -50,7 +50,11 @@ export class SeriesRepository extends BaseRepository<
    * @returns Array of series info objects
    */
   async getAllSeries(): Promise<SeriesInfo[]> {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
     const db = this.getDatabase();
+
+    logger.debug("[SeriesRepository.getAllSeries] Starting query");
 
     // Fetch all books with series in a single query, ordered by series and seriesIndex
     const allBooks = await db
@@ -64,10 +68,16 @@ export class SeriesRepository extends BaseRepository<
       .where(
         and(
           isNotNull(books.series),
+          sql`${books.series} != ''`,  // Exclude empty strings (Calibre may use '' instead of NULL)
           eq(books.orphaned, false)
         )
       )
       .orderBy(asc(books.series), asc(books.seriesIndex), asc(books.title));
+
+    logger.info({ bookCount: allBooks.length }, `[SeriesRepository.getAllSeries] Found ${allBooks.length} books with series`);
+    if (allBooks.length > 0) {
+      logger.debug({ firstBook: allBooks[0] }, "[SeriesRepository.getAllSeries] First book");
+    }
 
     // Group books by series and extract first 3 covers in-memory (much faster than N queries)
     const seriesMap = new Map<string, { bookCount: number; bookCoverIds: number[] }>();
@@ -89,11 +99,18 @@ export class SeriesRepository extends BaseRepository<
     }
 
     // Convert map to array format
-    return Array.from(seriesMap.entries()).map(([name, data]) => ({
+    const result = Array.from(seriesMap.entries()).map(([name, data]) => ({
       name,
       bookCount: data.bookCount,
       bookCoverIds: data.bookCoverIds,
     }));
+
+    logger.info({ seriesCount: result.length }, `[SeriesRepository.getAllSeries] Returning ${result.length} series`);
+    if (result.length > 0) {
+      logger.debug({ firstSeries: result[0] }, "[SeriesRepository.getAllSeries] First series");
+    }
+
+    return result;
   }
 
   /**
