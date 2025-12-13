@@ -11,13 +11,13 @@ export interface NavLink {
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Dashboard", icon: BookOpen },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/series", label: "Series", icon: BookMarked },
   { href: "/streak", label: "Streak", icon: Flame },
 ];
 
 // Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
 export const MORE_MENU_LINKS: NavLink[] = [
   { href: "/goals", label: "Goals", icon: Target },
-  { href: "/series", label: "Series", icon: BookMarked },
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
