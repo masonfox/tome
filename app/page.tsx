@@ -64,7 +64,7 @@ export default async function Dashboard() {
         </div>
 
         {currentlyReading.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {currentlyReading.map((book: any) => (
               <BookCard
                 key={book.id}
@@ -115,7 +115,7 @@ export default async function Dashboard() {
         </div>
 
         {readNext.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {readNext.map((book: any) => (
               <BookCard
                 key={book.id}
