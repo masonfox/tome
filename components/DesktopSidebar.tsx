@@ -1,0 +1,218 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Sun, Moon, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { clsx } from "clsx";
+import { useEffect, useState } from "react";
+import { NAV_LINKS, MORE_MENU_LINKS, isActiveRoute } from "@/lib/navigation-config";
+import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
+
+export function DesktopSidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [darkMode, setDarkMode] = useState(false);
+  const [authEnabled, setAuthEnabled] = useState(false);
+  const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
+
+  // Combine all navigation links into one flat list
+  const allNavLinks = [...NAV_LINKS, ...MORE_MENU_LINKS];
+
+  useEffect(() => {
+    // Get current theme from DOM (already set by layout script)
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    setDarkMode(currentTheme === "dark");
+
+    // Defer auth check to reduce initial load blocking
+    const authCheckTimer = setTimeout(() => {
+      fetch("/api/auth/status")
+        .then((res) => res.json())
+        .then((data) => setAuthEnabled(data.enabled))
+        .catch(() => setAuthEnabled(false));
+    }, 100);
+
+    return () => clearTimeout(authCheckTimer);
+  }, []);
+
+  const applyTheme = (isDark: boolean) => {
+    const html = document.documentElement;
+    const theme = isDark ? "dark" : "light";
+    html.setAttribute("data-theme", theme);
+    html.setAttribute("data-color-mode", theme);
+  };
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("darkMode", newMode.toString());
+    applyTheme(newMode);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      // Suppress console; optional user feedback could be added
+    }
+  };
+
+  // Show skeleton while mounting to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <aside className="hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40 w-16">
+        <div className="animate-pulse h-full flex flex-col">
+          <div className="h-20 border-b border-[var(--border-color)] flex items-center justify-center">
+            <div className="w-10 h-10 bg-[var(--border-color)] rounded-md" />
+          </div>
+          <div className="flex-1 p-2 space-y-2">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="h-12 bg-[var(--border-color)] rounded-md" />
+            ))}
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside
+      id="desktop-sidebar"
+      role="navigation"
+      aria-label="Main navigation"
+      className={clsx(
+        "hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40 transition-all duration-300 ease-in-out",
+        collapsed ? "w-16" : "w-60"
+      )}
+    >
+      <div className="h-full flex flex-col">
+        {/* Logo Section */}
+        <div className="h-20 border-b border-[var(--border-color)] flex items-center px-3">
+          <Link href="/" className="flex items-center gap-3 group overflow-hidden">
+            <div className="w-10 h-10 bg-[var(--border-color)] rounded-md flex items-center justify-center p-1.5 flex-shrink-0">
+              <Image
+                src="/logo-small.webp"
+                alt="Tome Logo"
+                width={28}
+                height={28}
+                className="rounded-sm"
+              />
+            </div>
+            <span
+              className={clsx(
+                "text-2xl font-serif font-bold text-[var(--heading-text)] group-hover:text-[var(--accent)] transition-all whitespace-nowrap",
+                collapsed ? "opacity-0 w-0" : "opacity-100"
+              )}
+            >
+              Tome
+            </span>
+          </Link>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          <div className="space-y-1 px-2">
+            {allNavLinks.map((link) => {
+              const active = isActiveRoute(pathname, link.href);
+              const Icon = link.icon;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={clsx(
+                    "flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all",
+                    active
+                      ? "text-[var(--accent)] bg-[var(--accent)]/10"
+                      : "text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)]"
+                  )}
+                  title={collapsed ? link.label : undefined}
+                  aria-label={link.label}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span
+                    className={clsx(
+                      "transition-all whitespace-nowrap overflow-hidden",
+                      collapsed ? "opacity-0 w-0" : "opacity-100"
+                    )}
+                  >
+                    {link.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Bottom Utilities */}
+        <div className="border-t border-[var(--border-color)] p-2 space-y-1">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)] w-full"
+            title={collapsed ? (darkMode ? "Light mode" : "Dark mode") : undefined}
+            aria-label="Toggle dark mode"
+          >
+            {darkMode ? (
+              <Sun className="w-5 h-5 flex-shrink-0" />
+            ) : (
+              <Moon className="w-5 h-5 flex-shrink-0" />
+            )}
+            <span
+              className={clsx(
+                "transition-all whitespace-nowrap overflow-hidden",
+                collapsed ? "opacity-0 w-0" : "opacity-100"
+              )}
+            >
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </span>
+          </button>
+
+          {/* Collapse Toggle */}
+          <button
+            onClick={() => toggleCollapsed(!collapsed)}
+            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)] w-full"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-5 h-5 flex-shrink-0" />
+            ) : (
+              <ChevronLeft className="w-5 h-5 flex-shrink-0" />
+            )}
+            <span
+              className={clsx(
+                "transition-all whitespace-nowrap overflow-hidden",
+                collapsed ? "opacity-0 w-0" : "opacity-100"
+              )}
+            >
+              Collapse
+            </span>
+          </button>
+
+          {/* Logout */}
+          {authEnabled && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)] w-full"
+              title={collapsed ? "Logout" : undefined}
+              aria-label="Logout"
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              <span
+                className={clsx(
+                  "transition-all whitespace-nowrap overflow-hidden",
+                  collapsed ? "opacity-0 w-0" : "opacity-100"
+                )}
+              >
+                Logout
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}

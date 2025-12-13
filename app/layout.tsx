@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" data-color-mode="light" data-bottom-nav="false" suppressHydrationWarning>
+    <html lang="en" data-theme="light" data-color-mode="light" data-bottom-nav="false" data-sidebar-collapsed="true" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -51,6 +51,14 @@ export default function RootLayout({
                   document.documentElement.setAttribute("data-bottom-nav", "true");
                 } else {
                   document.documentElement.setAttribute("data-bottom-nav", "false");
+                }
+
+                // Set sidebar collapsed preference before page loads to prevent flicker
+                const sidebarCollapsed = localStorage.getItem("sidebarCollapsed");
+                if (sidebarCollapsed === "false") {
+                  document.documentElement.setAttribute("data-sidebar-collapsed", "false");
+                } else {
+                  document.documentElement.setAttribute("data-sidebar-collapsed", "true");
                 }
               })();
             `,
