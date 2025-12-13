@@ -58,6 +58,14 @@ html[data-theme="light"] {
   }
 }
 
+/* Disable pinch-to-zoom in PWA mode for native app feel */
+@media (display-mode: standalone) {
+  html,
+  body {
+    touch-action: pan-x pan-y;
+  }
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
