@@ -218,17 +218,17 @@ html[data-bottom-nav="false"] #main-content {
 
 /* Desktop sidebar layout (>=768px) */
 @media (min-width: 768px) {
-  /* Main content margin to account for sidebar */
+  /* Main content padding to account for sidebar, allowing content to center in remaining space */
   #main-content {
-    margin-left: 4rem; /* 64px - collapsed sidebar width */
+    padding-left: 3.5rem; /* 56px - collapsed sidebar width (w-14) */
     padding-top: 3rem; /* py-12 */
     padding-bottom: 3rem; /* py-12 */
-    transition: margin-left 0.3s ease-in-out;
+    transition: padding-left 0.3s ease-in-out;
   }
 
-  /* Adjust margin when sidebar is expanded */
+  /* Adjust padding when sidebar is expanded */
   html[data-sidebar-collapsed="false"] #main-content {
-    margin-left: 15rem; /* 240px - expanded sidebar width */
+    padding-left: 13rem; /* 208px - expanded sidebar width (w-52) */
   }
 
   /* Hide bottom navigation on desktop */

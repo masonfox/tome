@@ -62,7 +62,7 @@ export function DesktopSidebar() {
   // Show skeleton while mounting to prevent hydration mismatch
   if (!mounted) {
     return (
-      <aside className="hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40 w-16">
+      <aside className="hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40 w-14">
         <div className="animate-pulse h-full flex flex-col">
           <div className="h-20 border-b border-[var(--border-color)] flex items-center justify-center">
             <div className="w-10 h-10 bg-[var(--border-color)] rounded-md" />
@@ -84,7 +84,7 @@ export function DesktopSidebar() {
       aria-label="Main navigation"
       className={clsx(
         "hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40 transition-all duration-300 ease-in-out",
-        collapsed ? "w-16" : "w-60"
+        collapsed ? "w-14" : "w-52"
       )}
     >
       <div className="h-full flex flex-col">

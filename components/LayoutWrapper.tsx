@@ -28,7 +28,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       {/* Main Content - CSS handles margin based on sidebar state */}
       <main
         id="main-content"
-        className="container mx-auto px-4 max-w-7xl"
+        className="container mx-auto px-4"
       >
         {children}
       </main>
