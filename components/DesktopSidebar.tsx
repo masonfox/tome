@@ -64,7 +64,7 @@ export function DesktopSidebar() {
     return (
       <aside
         id="desktop-sidebar-skeleton"
-        className="hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40"
+        className="hidden md:block fixed left-0 top-0 bottom-0 h-full bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40"
       >
         <div className="animate-pulse h-full flex flex-col">
           <div className="h-20 border-b border-[var(--border-color)] flex items-center px-3">
@@ -86,7 +86,7 @@ export function DesktopSidebar() {
       role="navigation"
       aria-label="Main navigation"
       className={clsx(
-        "hidden md:block fixed left-0 top-0 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40",
+        "hidden md:block fixed left-0 top-0 bottom-0 h-full bg-[var(--card-bg)] border-r border-[var(--border-color)] z-40",
         collapsed ? "w-16" : "w-52"
       )}
     >
