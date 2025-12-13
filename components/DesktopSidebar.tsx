@@ -6,7 +6,7 @@ import { Sun, Moon, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
-import { NAV_LINKS, MORE_MENU_LINKS, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, SERIES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 export function DesktopSidebar() {
@@ -17,7 +17,7 @@ export function DesktopSidebar() {
   const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
 
   // Combine all navigation links into one flat list
-  const allNavLinks = [...NAV_LINKS, ...MORE_MENU_LINKS];
+  const allNavLinks = [...NAV_LINKS, SERIES_LINK, ...MORE_MENU_LINKS];
 
   useEffect(() => {
     // Get current theme from DOM (already set by layout script)
@@ -194,6 +194,29 @@ export function DesktopSidebar() {
               {darkMode ? "Light Mode" : "Dark Mode"}
             </span>
           </button>
+
+          {/* Settings */}
+          <Link
+            href={SETTINGS_LINK.href}
+            className={clsx(
+              "flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all",
+              isActiveRoute(pathname, SETTINGS_LINK.href)
+                ? "text-[var(--accent)] bg-[var(--accent)]/10"
+                : "text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)]"
+            )}
+            title={collapsed ? SETTINGS_LINK.label : undefined}
+            aria-label={SETTINGS_LINK.label}
+          >
+            <SETTINGS_LINK.icon className="w-5 h-5 flex-shrink-0" />
+            <span
+              className={clsx(
+                "transition-all whitespace-nowrap overflow-hidden",
+                collapsed ? "opacity-0 w-0" : "opacity-100"
+              )}
+            >
+              {SETTINGS_LINK.label}
+            </span>
+          </Link>
 
           {/* Logout */}
           {authEnabled && (

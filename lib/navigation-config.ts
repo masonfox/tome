@@ -7,23 +7,31 @@ export interface NavLink {
   icon: LucideIcon;
 }
 
-// Primary navigation links (shown in both mobile bottom nav and desktop top nav)
+// Primary navigation links (shown in mobile bottom nav - 3 items only)
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Dashboard", icon: BookOpen },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/series", label: "Series", icon: BookMarked },
   { href: "/streak", label: "Streak", icon: Flame },
 ];
+
+// Series link (shown in desktop sidebar and bottom sheet menu)
+export const SERIES_LINK: NavLink = { href: "/series", label: "Series", icon: BookMarked };
 
 // Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
 export const MORE_MENU_LINKS: NavLink[] = [
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/stats", label: "Stats", icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-// Additional links shown in bottom sheet "More" menu on mobile (kept for backwards compatibility)
-export const BOTTOM_SHEET_LINKS: NavLink[] = MORE_MENU_LINKS;
+// Bottom utility link (shown in bottom section of desktop sidebar)
+export const SETTINGS_LINK: NavLink = { href: "/settings", label: "Settings", icon: Settings };
+
+// Additional links shown in bottom sheet "More" menu on mobile (includes series and settings)
+export const BOTTOM_SHEET_LINKS: NavLink[] = [
+  SERIES_LINK,
+  ...MORE_MENU_LINKS,
+  SETTINGS_LINK,
+];
 
 // Helper function to check if a route is active
 export function isActiveRoute(pathname: string | null, href: string): boolean {

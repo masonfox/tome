@@ -6,7 +6,7 @@ import { Sun, Moon, LogOut, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
 import { useEffect, useState, useRef } from "react";
-import { NAV_LINKS, MORE_MENU_LINKS, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -79,8 +79,8 @@ export function Navigation() {
     }
   };
 
-  // Check if any "More" menu item is active
-  const isMoreMenuActive = MORE_MENU_LINKS.some(link => isActiveRoute(pathname, link.href));
+  // Check if any "More" menu item is active (including Settings)
+  const isMoreMenuActive = [...MORE_MENU_LINKS, SETTINGS_LINK].some(link => isActiveRoute(pathname, link.href));
 
   return (
     <nav className="md:hidden bg-[var(--card-bg)] border-b border-[var(--border-color)] sticky top-0 z-50">
@@ -184,6 +184,20 @@ export function Navigation() {
                     );
                   })}
                   
+                  {/* Settings Link */}
+                  <Link
+                    href={SETTINGS_LINK.href}
+                    className={clsx(
+                      "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                      isActiveRoute(pathname, SETTINGS_LINK.href)
+                        ? "text-[var(--accent)] bg-[var(--accent)]/10"
+                        : "text-[var(--foreground)] hover:bg-[var(--border-color)]"
+                    )}
+                  >
+                    <SETTINGS_LINK.icon className="w-4 h-4" />
+                    {SETTINGS_LINK.label}
+                  </Link>
+                  
                   {/* Logout in Dropdown */}
                   {authEnabled && mounted && (
                     <>
@@ -272,6 +286,20 @@ export function Navigation() {
                 </Link>
               );
             })}
+            
+            {/* Settings Link */}
+            <Link
+              href={SETTINGS_LINK.href}
+              className={clsx(
+                "flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wider uppercase transition-colors",
+                isActiveRoute(pathname, SETTINGS_LINK.href)
+                  ? "text-[var(--accent)] bg-[var(--accent)]/10"
+                  : "text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--accent)]/5"
+              )}
+            >
+              <SETTINGS_LINK.icon className="w-4 h-4" />
+              {SETTINGS_LINK.label.toUpperCase()}
+            </Link>
 
             {/* Logout */}
             {authEnabled && (
