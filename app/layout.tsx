@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" data-color-mode="light" data-bottom-nav="false" suppressHydrationWarning>
+    <html lang="en" data-theme="light" data-color-mode="light" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -53,14 +53,6 @@ export default function RootLayout({
 
                 document.documentElement.setAttribute("data-theme", theme);
                 document.documentElement.setAttribute("data-color-mode", theme);
-
-                // Set bottom navigation preference before page loads to prevent flicker
-                const bottomNavEnabled = localStorage.getItem("bottomNavigationEnabled");
-                if (bottomNavEnabled === "true") {
-                  document.documentElement.setAttribute("data-bottom-nav", "true");
-                } else {
-                  document.documentElement.setAttribute("data-bottom-nav", "false");
-                }
               })();
 
               // Enable transitions only after a delay

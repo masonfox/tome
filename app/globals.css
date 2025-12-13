@@ -194,28 +194,6 @@ body.overflow-hidden {
   overflow: hidden;
 }
 
-/* Navigation visibility based on bottom-nav preference */
-/* Hide top nav when bottom nav is enabled (before React hydrates) */
-html[data-bottom-nav="true"] #top-navigation {
-  display: none;
-}
-
-/* Hide bottom nav when bottom nav is disabled (before React hydrates) */
-html[data-bottom-nav="false"] #bottom-navigation {
-  display: none;
-}
-
-/* Main content padding based on navigation type */
-html[data-bottom-nav="true"] #main-content {
-  padding-bottom: 8rem; /* pb-32 - increased for taller nav */
-  padding-top: 2rem; /* pt-8 */
-}
-
-html[data-bottom-nav="false"] #main-content {
-  padding-top: 3rem; /* py-12 */
-  padding-bottom: 3rem; /* py-12 */
-}
-
 /* Desktop sidebar layout (>=768px) */
 @media (min-width: 768px) {
   /* Sidebar skeleton - matches actual sidebar width based on state */
@@ -247,6 +225,7 @@ html[data-bottom-nav="false"] #main-content {
   html[data-sidebar-collapsed="false"] #main-content {
     padding-left: 13rem; /* 208px - expanded sidebar width (w-52) */
   }
+}
 
   /* Hide bottom navigation on desktop */
   #bottom-navigation {
