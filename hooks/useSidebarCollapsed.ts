@@ -20,11 +20,14 @@ export function useSidebarCollapsed() {
     }
   }, []);
 
-  const toggleCollapsed = (value: boolean) => {
-    setCollapsed(value);
-    localStorage.setItem(STORAGE_KEY, value.toString());
-    // Also update the data attribute for consistency
-    document.documentElement.setAttribute('data-sidebar-collapsed', value.toString());
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem(STORAGE_KEY, newValue.toString());
+      // Also update the data attribute for consistency
+      document.documentElement.setAttribute('data-sidebar-collapsed', newValue.toString());
+      return newValue;
+    });
   };
 
   return {
