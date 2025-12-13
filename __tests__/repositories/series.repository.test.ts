@@ -100,6 +100,37 @@ describe("SeriesRepository", () => {
       const series = await seriesRepository.getAllSeries();
       expect(series).toHaveLength(0);
     });
+
+    it("should exclude books with empty string series", async () => {
+      // Create books with valid series
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+        series: "Series A",
+        seriesIndex: 1,
+      });
+
+      // Create book with empty string series (as Calibre might export)
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+        series: "",
+        seriesIndex: null,
+      });
+
+      const series = await seriesRepository.getAllSeries();
+
+      // Should only return Series A, not the empty string
+      expect(series).toHaveLength(1);
+      expect(series[0].name).toBe("Series A");
+      expect(series[0].bookCount).toBe(1);
+    });
   });
 
   describe("getBooksBySeries", () => {

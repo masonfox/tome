@@ -64,6 +64,7 @@ export class SeriesRepository extends BaseRepository<
       .where(
         and(
           isNotNull(books.series),
+          sql`${books.series} != ''`,  // Exclude empty strings (Calibre may use '' instead of NULL)
           eq(books.orphaned, false)
         )
       )
