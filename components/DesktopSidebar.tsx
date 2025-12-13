@@ -5,49 +5,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { Sun, Moon, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
-import { useEffect, useState } from "react";
 import { NAV_LINKS, SERIES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
+import { useDarkMode } from "@/hooks/useDarkMode";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export function DesktopSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [darkMode, setDarkMode] = useState(false);
-  const [authEnabled, setAuthEnabled] = useState(false);
+  const { darkMode, toggleDarkMode } = useDarkMode();
+  const { authEnabled } = useAuth();
   const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
 
   // Combine all navigation links into one flat list
   const allNavLinks = [...NAV_LINKS, SERIES_LINK, ...MORE_MENU_LINKS];
-
-  useEffect(() => {
-    // Get current theme from DOM (already set by layout script)
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    setDarkMode(currentTheme === "dark");
-
-    // Defer auth check to reduce initial load blocking
-    const authCheckTimer = setTimeout(() => {
-      fetch("/api/auth/status")
-        .then((res) => res.json())
-        .then((data) => setAuthEnabled(data.enabled))
-        .catch(() => setAuthEnabled(false));
-    }, 100);
-
-    return () => clearTimeout(authCheckTimer);
-  }, []);
-
-  const applyTheme = (isDark: boolean) => {
-    const html = document.documentElement;
-    const theme = isDark ? "dark" : "light";
-    html.setAttribute("data-theme", theme);
-    html.setAttribute("data-color-mode", theme);
-  };
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("darkMode", newMode.toString());
-    applyTheme(newMode);
-  };
 
   const handleLogout = async () => {
     try {
@@ -153,7 +124,7 @@ export function DesktopSidebar() {
         <div className="border-t border-[var(--border-color)] p-2 space-y-1">
           {/* Collapse Toggle */}
           <button
-            onClick={() => toggleCollapsed(!collapsed)}
+            onClick={toggleCollapsed}
             className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)] w-full"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

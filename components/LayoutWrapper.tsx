@@ -2,6 +2,7 @@
 
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { usePathname } from "next/navigation";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <AuthProvider>
       {/* Desktop Sidebar - visible on md+ screens */}
       <DesktopSidebar />
 
@@ -29,6 +30,6 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <div className="md:hidden">
         <BottomNavigation />
       </div>
-    </>
+    </AuthProvider>
   );
 }
