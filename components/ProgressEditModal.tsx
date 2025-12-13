@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -56,6 +56,9 @@ export default function ProgressEditModal({
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Track whether we've already restored the draft for this modal session
+  const hasRestoredDraft = useRef(false);
+
   // Draft management for notes field
   const {
     draft: draftNotes,
@@ -69,16 +72,10 @@ export default function ProgressEditModal({
     if (isOpen) {
       setCurrentPage(currentProgress.currentPage.toString());
       setCurrentPercentage(currentProgress.currentPercentage.toString());
-      
-      // Restore from draft if no current notes exist
-      if (!currentProgress.notes && draftNotes) {
-        setNotes(draftNotes);
-      } else {
-        setNotes(currentProgress.notes || "");
-      }
-      
+      setNotes(currentProgress.notes || "");
       setProgressDate(currentProgress.progressDate.split("T")[0]);
       setShowDeleteConfirm(false);
+      hasRestoredDraft.current = false; // Reset draft restoration flag
       
       // Load saved progress input mode preference
       if (typeof window !== "undefined") {
@@ -88,7 +85,15 @@ export default function ProgressEditModal({
         }
       }
     }
-  }, [isOpen, currentProgress, draftNotes]);
+  }, [isOpen, currentProgress]);
+
+  // Restore draft only once when modal opens (if no existing notes)
+  useEffect(() => {
+    if (isOpen && isInitialized && !currentProgress.notes && draftNotes && !hasRestoredDraft.current) {
+      setNotes(draftNotes);
+      hasRestoredDraft.current = true;
+    }
+  }, [isOpen, isInitialized, currentProgress.notes, draftNotes]);
 
   // Auto-save draft (only after initialization to prevent race condition)
   useEffect(() => {
