@@ -169,7 +169,7 @@ export default function JournalPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="space-y-6">
         <PageHeader
           title="Journal"
           subtitle="Your reading progress across all books"
@@ -182,7 +182,7 @@ export default function JournalPage() {
 
   if (entries.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="space-y-6">
         <PageHeader
           title="Journal"
           subtitle="Your reading progress across all books"
@@ -196,14 +196,14 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="space-y-6">
       <PageHeader
         title="Journal"
         subtitle="Your reading progress across all books"
         icon={BookOpen}
       />
 
-      <div className="mt-6">
+      <div>
         {entries.map((dayEntry) => {
           const isCollapsed = collapsedDates.has(dayEntry.date);
           
