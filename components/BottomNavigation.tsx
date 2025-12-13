@@ -4,40 +4,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MoreHorizontal, LogOut, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { BottomSheet } from "./BottomSheet";
 import { NAV_LINKS, BOTTOM_SHEET_LINKS, isActiveRoute } from "@/lib/navigation-config";
+import { useDarkMode } from "@/hooks/useDarkMode";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export function BottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [authEnabled, setAuthEnabled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    
-    // Get current theme from DOM (already set by layout script)
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    setDarkMode(currentTheme === "dark");
-    
-    // Check auth status
-    fetch("/api/auth/status")
-      .then((res) => res.json())
-      .then((data) => setAuthEnabled(data.enabled))
-      .catch(() => setAuthEnabled(false));
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    const theme = newMode ? "dark" : "light";
-    setDarkMode(newMode);
-    localStorage.setItem("darkMode", newMode.toString());
-    document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.setAttribute("data-color-mode", theme);
-  };
+  const { darkMode, toggleDarkMode, mounted } = useDarkMode();
+  const { authEnabled } = useAuth();
 
   const handleLogout = async () => {
     try {
