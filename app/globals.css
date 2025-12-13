@@ -13,6 +13,11 @@
   --light-accent: #c9a876;
   --card-bg: #f5f1e8;
   --border-color: #d4cbbe;
+
+  /* Sidebar dimensions */
+  --sidebar-width-collapsed: 4rem; /* 64px */
+  --sidebar-width-expanded: 13rem; /* 208px */
+  --main-content-padding: 3rem; /* 48px */
 }
 
 /* Dark mode via data attribute */
@@ -198,18 +203,18 @@ body.overflow-hidden {
 @media (min-width: 768px) {
   /* Sidebar skeleton - matches actual sidebar width based on state */
   #desktop-sidebar-skeleton {
-    width: 4rem; /* 64px - collapsed by default */
+    width: var(--sidebar-width-collapsed);
   }
 
   html[data-sidebar-collapsed="false"] #desktop-sidebar-skeleton {
-    width: 13rem; /* 208px - expanded */
+    width: var(--sidebar-width-expanded);
   }
 
   /* Main content area - offset for sidebar, with equal horizontal spacing */
   #main-content {
-    margin-left: 4rem; /* 64px - collapsed sidebar width */
-    padding-left: 3rem; /* 48px - left content spacing */
-    padding-right: 3rem; /* 48px - right content spacing */
+    margin-left: var(--sidebar-width-collapsed);
+    padding-left: var(--main-content-padding);
+    padding-right: var(--main-content-padding);
   }
 
   /* Only enable transitions after initial load completes */
@@ -223,7 +228,7 @@ body.overflow-hidden {
 
   /* Adjust when sidebar is expanded */
   html[data-sidebar-collapsed="false"] #main-content {
-    margin-left: 13rem; /* 208px - expanded sidebar width */
+    margin-left: var(--sidebar-width-expanded);
   }
 }
 
