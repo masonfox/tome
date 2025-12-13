@@ -227,14 +227,6 @@ body.overflow-hidden {
   }
 }
 
-  /* Hide bottom navigation on desktop */
-  #bottom-navigation {
-    display: none;
-  }
-
-  /* Top navigation already hidden by md:hidden class in component */
-}
-
 /* Mobile sidebar (hide on mobile) */
 @media (max-width: 767px) {
   #desktop-sidebar {
