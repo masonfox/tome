@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { seriesService } from "@/lib/services/series.service";
 
+// Force dynamic rendering to prevent caching
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/series
  * Get all series in the library
