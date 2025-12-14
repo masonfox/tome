@@ -29,6 +29,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   /**
    * Helper method to build rating filter condition
+   * @param rating - The rating filter value ("5" | "4" | "3" | "2" | "1" | "rated" | "unrated")
+   * @returns SQL condition for filtering by rating, or undefined for invalid inputs
    */
   private buildRatingCondition(rating: string): SQL | undefined {
     switch (rating) {
