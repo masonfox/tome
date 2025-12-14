@@ -64,6 +64,7 @@ export function LibraryFilters({
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const ratingDropdownRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -84,6 +85,10 @@ export function LibraryFilters({
     e.preventDefault();
     if (onSearchSubmit) {
       onSearchSubmit();
+    }
+    // Blur the search input to dismiss the keyboard on mobile
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
     }
   };
 
@@ -175,6 +180,7 @@ export function LibraryFilters({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 disabled={loading}
+                ref={searchInputRef}
                 className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 ${
                   search ? "pr-10" : "pr-4"
                 }`}
