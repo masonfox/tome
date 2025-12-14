@@ -313,6 +313,7 @@ body:has(.w-md-editor-fullscreen) {
 /* The textarea is intentionally transparent - the visible text is in the pre element */
 .w-md-editor-text-pre {
   color: var(--foreground) !important;
+  font-size: 16px !important;
 }
 
 .w-md-editor-text-pre > code,
@@ -324,6 +325,13 @@ body:has(.w-md-editor-fullscreen) {
 .w-md-editor-input,
 .w-md-editor-text {
   background-color: var(--background) !important;
+}
+
+/* Prevent auto-zoom on focus in mobile browsers (especially iOS Safari)
+   Mobile browsers auto-zoom when focusing on input/textarea with font-size < 16px
+   Setting font-size to 16px prevents this behavior */
+.w-md-editor-text-input {
+  font-size: 16px !important;
 }
 
 /* Preview pane styling (if preview mode is enabled) */
