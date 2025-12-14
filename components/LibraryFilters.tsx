@@ -15,6 +15,7 @@ const statusOptions = [
 
 const ratingOptions = [
   { value: "all", label: "All Ratings" },
+  { value: "rated", label: "Rated" },
   { value: "5", label: "5 Stars" },
   { value: "4", label: "4 Stars" },
   { value: "3", label: "3 Stars" },

@@ -9,7 +9,7 @@ export interface BookFilter {
   status?: string;
   search?: string;
   tags?: string[];
-  rating?: string; // "all" | "5" | "4" | "3" | "2" | "1" | "unrated"
+  rating?: string; // "all" | "rated" | "5" | "4" | "3" | "2" | "1" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
 }
@@ -295,6 +295,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         case "1":
           conditions.push(eq(books.rating, 1));
           break;
+        case "rated":
+          conditions.push(sql`${books.rating} IS NOT NULL`);
+          break;
         case "unrated":
           conditions.push(sql`${books.rating} IS NULL`);
           break;
@@ -546,6 +549,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           break;
         case "1":
           conditions.push(eq(books.rating, 1));
+          break;
+        case "rated":
+          conditions.push(sql`${books.rating} IS NOT NULL`);
           break;
         case "unrated":
           conditions.push(sql`${books.rating} IS NULL`);
