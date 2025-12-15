@@ -9,7 +9,7 @@ export interface BookFilter {
   status?: string;
   search?: string;
   tags?: string[];
-  rating?: string; // "all" | "5" | "4" | "3" | "2" | "1" | "unrated"
+  rating?: string; // "all" | "rated" | "5" | "4" | "3" | "2" | "1" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
 }
@@ -25,6 +25,32 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   protected getTable() {
     return books;
+  }
+
+  /**
+   * Helper method to build rating filter condition
+   * @param rating - The rating filter value ("5" | "4" | "3" | "2" | "1" | "rated" | "unrated")
+   * @returns SQL condition for filtering by rating, or undefined for invalid inputs
+   */
+  private buildRatingCondition(rating: string): SQL | undefined {
+    switch (rating) {
+      case "5":
+        return eq(books.rating, 5);
+      case "4":
+        return eq(books.rating, 4);
+      case "3":
+        return eq(books.rating, 3);
+      case "2":
+        return eq(books.rating, 2);
+      case "1":
+        return eq(books.rating, 1);
+      case "rated":
+        return sql`${books.rating} IS NOT NULL`;
+      case "unrated":
+        return sql`${books.rating} IS NULL`;
+      default:
+        return undefined;
+    }
   }
 
   /**
@@ -279,25 +305,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Rating filter
     if (filters.rating && filters.rating !== "all") {
-      switch (filters.rating) {
-        case "5":
-          conditions.push(eq(books.rating, 5));
-          break;
-        case "4":
-          conditions.push(eq(books.rating, 4));
-          break;
-        case "3":
-          conditions.push(eq(books.rating, 3));
-          break;
-        case "2":
-          conditions.push(eq(books.rating, 2));
-          break;
-        case "1":
-          conditions.push(eq(books.rating, 1));
-          break;
-        case "unrated":
-          conditions.push(sql`${books.rating} IS NULL`);
-          break;
+      const ratingCondition = this.buildRatingCondition(filters.rating);
+      if (ratingCondition) {
+        conditions.push(ratingCondition);
       }
     }
 
@@ -531,25 +541,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Rating filter
     if (filters.rating && filters.rating !== "all") {
-      switch (filters.rating) {
-        case "5":
-          conditions.push(eq(books.rating, 5));
-          break;
-        case "4":
-          conditions.push(eq(books.rating, 4));
-          break;
-        case "3":
-          conditions.push(eq(books.rating, 3));
-          break;
-        case "2":
-          conditions.push(eq(books.rating, 2));
-          break;
-        case "1":
-          conditions.push(eq(books.rating, 1));
-          break;
-        case "unrated":
-          conditions.push(sql`${books.rating} IS NULL`);
-          break;
+      const ratingCondition = this.buildRatingCondition(filters.rating);
+      if (ratingCondition) {
+        conditions.push(ratingCondition);
       }
     }
 
