@@ -311,9 +311,14 @@ body:has(.w-md-editor-fullscreen) {
 }
 
 /* The textarea is intentionally transparent - the visible text is in the pre element */
+/* Set parent container to 16px to prevent mobile zoom and maintain proper cursor alignment */
+.w-md-editor-text {
+  font-size: 16px !important;
+  line-height: 20.5714px !important; /* Maintain library's 1.286 ratio (18/14) */
+}
+
 .w-md-editor-text-pre {
   color: var(--foreground) !important;
-  font-size: 16px !important;
 }
 
 .w-md-editor-text-pre > code,
@@ -329,10 +334,7 @@ body:has(.w-md-editor-fullscreen) {
 
 /* Prevent auto-zoom on focus in mobile browsers (especially iOS Safari)
    Mobile browsers auto-zoom when focusing on input/textarea with font-size < 16px
-   Setting font-size to 16px prevents this behavior */
-.w-md-editor-text-input {
-  font-size: 16px !important;
-}
+   This is now handled by setting parent container font-size above */
 
 /* Preview pane styling (if preview mode is enabled) */
 .w-md-editor-preview {
