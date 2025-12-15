@@ -277,6 +277,11 @@ body.overflow-hidden {
   overflow: hidden !important;
 }
 
+/* Prevent scrolling on fullscreen editor content area */
+.w-md-editor-fullscreen .w-md-editor-content {
+  overflow: hidden !important;
+}
+
 /* Prevent background scrolling when editor is fullscreen on iOS */
 body:has(.w-md-editor-fullscreen) {
   position: fixed !important;
