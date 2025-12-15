@@ -2,22 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, TrendingUp, Archive } from "lucide-react";
-import { formatDateOnly } from "@/utils/dateFormatting";
+import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { format, parse } from "date-fns";
-import dynamic from "next/dynamic";
-import "@uiw/react-markdown-preview/markdown.css";
 import Link from "next/link";
 import Image from "next/image";
 import { JournalArchiveTree } from "@/components/JournalArchiveTree";
 import { JournalArchiveDrawer } from "@/components/JournalArchiveDrawer";
+import { JournalEntryCard } from "@/components/JournalEntryList";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
-import { matchesDateKey, getDateKeys } from "@/lib/utils/archive-builder";
-
-const MarkdownPreview = dynamic(
-  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
-  { ssr: false }
-);
+import { matchesDateKey } from "@/lib/utils/archive-builder";
 
 interface JournalEntry {
   id: number;
@@ -363,7 +356,6 @@ export default function JournalPage() {
         <div className="w-full">
           {entries.map((dayEntry) => {
             const isCollapsed = collapsedDates.has(dayEntry.date);
-            const dateKeys = getDateKeys(dayEntry.date);
 
             return (
               <div
@@ -444,77 +436,21 @@ export default function JournalPage() {
 
                       {/* Progress Entries */}
                         {bookGroup.entries.map((entry, index) => (
-                          <div
+                          <JournalEntryCard
                             key={entry.id}
-                            className="relative p-4 xl:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
-                          >
-                            {/* Entry number badge (only show if multiple entries) */}
-                            {bookGroup.entries.length > 1 && (
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                                <span className="text-xs font-bold text-[var(--subheading-text)]">
-                                  {index + 1}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Metadata grid */}
-                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)] ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
-                            {/* Percentage */}
-                            <div className="flex items-center gap-2 md:justify-center md:pr-4">
-                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
-                                <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs text-[var(--subheading-text)] font-medium">Progress</div>
-                                <div className="text-sm font-mono font-bold text-[var(--heading-text)]">
-                                  {Math.round(entry.currentPercentage)}%
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Current Page */}
-                            <div className="flex items-center gap-2 md:justify-center md:px-4">
-                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
-                                <FileText className="w-4 h-4 text-[var(--accent)]" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs text-[var(--subheading-text)] font-medium">Page</div>
-                                <div className="text-sm font-semibold text-[var(--heading-text)]">
-                                  {entry.currentPage}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Pages Read */}
-                            {entry.pagesRead > 0 && (
-                              <div className="flex items-center gap-2 md:justify-center md:pl-4">
-                                <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
-                                  <Plus className="w-4 h-4 text-[var(--accent)]" />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs text-[var(--subheading-text)] font-medium">Read</div>
-                                  <div className="text-sm font-semibold text-[var(--heading-text)]">
-                                    {entry.pagesRead} pages
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Notes section */}
-                          {entry.notes && (
-                            <div className="text-sm" data-color-mode="light">
-                              <MarkdownPreview
-                                source={entry.notes}
-                                style={{
-                                  background: "transparent",
-                                  color: "var(--foreground)",
-                                  fontSize: "0.875rem",
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
+                            entry={{
+                              id: entry.id,
+                              currentPage: entry.currentPage,
+                              currentPercentage: entry.currentPercentage,
+                              progressDate: entry.progressDate instanceof Date 
+                                ? entry.progressDate.toISOString() 
+                                : entry.progressDate,
+                              notes: entry.notes ?? undefined,
+                              pagesRead: entry.pagesRead,
+                            }}
+                            index={index}
+                            totalEntries={bookGroup.entries.length}
+                          />
                       ))}
                     </div>
                   </div>
