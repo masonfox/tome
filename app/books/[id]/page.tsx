@@ -15,7 +15,7 @@ import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 
 import BookProgress from "@/components/BookDetail/BookProgress";
-import ProgressHistory from "@/components/BookDetail/ProgressHistory";
+import Journal from "@/components/BookDetail/Journal";
 import SessionDetails from "@/components/BookDetail/SessionDetails";
 import { useBookDetail } from "@/hooks/useBookDetail";
 import { useBookStatus } from "@/hooks/useBookStatus";
@@ -422,7 +422,7 @@ export default function BookDetailPage() {
           {/* Current Reading Progress History */}
           {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
-              <ProgressHistory
+              <Journal
                 key={bookProgressHook.progress.map(p => `${p.id}-${p.progressDate}`).join(',')}
                 progress={bookProgressHook.progress}
                 onEdit={bookProgressHook.handleEditProgress}

@@ -1,13 +1,13 @@
 import { test, expect, describe, afterEach } from "bun:test";
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ProgressHistory from "@/components/BookDetail/ProgressHistory";
+import Journal from "@/components/BookDetail/Journal";
 
 afterEach(() => {
   cleanup();
 });
 
-describe("ProgressHistory", () => {
+describe("Journal", () => {
   const mockProgressEntries = [
     {
       id: 1,
@@ -29,55 +29,55 @@ describe("ProgressHistory", () => {
 
   test("should render progress entries", () => {
     render(
-      <ProgressHistory
+      <Journal
         progress={mockProgressEntries}
         onEdit={() => {}}
       />
     );
 
-    expect(screen.getByText("Page 50")).toBeInTheDocument();
-    expect(screen.getByText("Page 100")).toBeInTheDocument();
+    expect(screen.getByText("50")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
   });
 
   test("should display notes when present", () => {
     render(
-      <ProgressHistory
+      <Journal
         progress={mockProgressEntries}
         onEdit={() => {}}
       />
     );
 
-    // Check for the markdown container with the notes
-    const notesContainer = document.querySelector('.border-l-2.border-\\[var\\(--accent\\)\\]\\/30');
-    expect(notesContainer).toBeInTheDocument();
+    // Check for the markdown preview with notes
+    expect(screen.getByText("Great start!")).toBeInTheDocument();
   });
 
   test("should show pages read", () => {
     render(
-      <ProgressHistory
+      <Journal
         progress={mockProgressEntries}
         onEdit={() => {}}
       />
     );
 
-    const pagesReadElements = screen.getAllByText(/\+50 pages/);
+    const pagesReadElements = screen.getAllByText(/50 pages/);
     expect(pagesReadElements.length).toBe(2);
   });
 
   test("should render empty state when no progress", () => {
     render(
-      <ProgressHistory
+      <Journal
         progress={[]}
         onEdit={() => {}}
       />
     );
 
-    expect(screen.getByText("Current Progress History")).toBeInTheDocument();
+    expect(screen.getByText("Journal")).toBeInTheDocument();
+    expect(screen.getByText("No progress logged yet")).toBeInTheDocument();
   });
 
   test("should format dates correctly", () => {
     render(
-      <ProgressHistory
+      <Journal
         progress={mockProgressEntries}
         onEdit={() => {}}
       />
