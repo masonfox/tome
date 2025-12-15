@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, Clock, TrendingUp, Archive } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ChevronRight, FileText, Plus, TrendingUp, Archive } from "lucide-react";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
@@ -414,9 +414,9 @@ export default function JournalPage() {
                             )}
 
                             {/* Metadata grid */}
-                            <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
+                            <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)] ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
                             {/* Percentage */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center gap-2 md:pr-4">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
                               </div>
@@ -429,7 +429,7 @@ export default function JournalPage() {
                             </div>
 
                             {/* Current Page */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center gap-2 md:px-4">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <FileText className="w-4 h-4 text-[var(--accent)]" />
                               </div>
@@ -443,7 +443,7 @@ export default function JournalPage() {
 
                             {/* Pages Read */}
                             {entry.pagesRead > 0 && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-center gap-2 md:pl-4">
                                 <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                   <Plus className="w-4 h-4 text-[var(--accent)]" />
                                 </div>
@@ -455,22 +455,6 @@ export default function JournalPage() {
                                 </div>
                               </div>
                             )}
-
-                            {/* Time */}
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
-                                <Clock className="w-4 h-4 text-[var(--accent)]" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs text-[var(--subheading-text)] font-medium">Time</div>
-                                <div className="text-sm font-semibold text-[var(--heading-text)]">
-                                  {new Date(entry.progressDate).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </div>
-                              </div>
-                            </div>
                           </div>
 
                           {/* Notes section */}
