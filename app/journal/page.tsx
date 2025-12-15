@@ -232,49 +232,93 @@ export default function JournalPage() {
 
   // Journal entry skeleton component
   const JournalEntrySkeleton = () => (
-    <div className="space-y-8 mt-6 animate-pulse">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="space-y-4">
-          {/* Date Header Skeleton */}
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded" />
-            <div className="h-6 bg-[var(--foreground)]/10 rounded w-32" />
-          </div>
+    <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
+      {/* Main Content Skeleton */}
+      <div className="space-y-8 mt-1 animate-pulse">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="space-y-4">
+            {/* Date Header Skeleton */}
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded" />
+              <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded" />
+              <div className="h-6 bg-[var(--foreground)]/10 rounded w-32" />
+            </div>
 
-          {/* Book Entry Skeleton */}
-          <div className="ml-6 space-y-6">
-            {Array.from({ length: 2 }).map((_, j) => (
-              <div
-                key={j}
-                className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-5"
-              >
-                {/* Book Header Skeleton */}
-                <div className="flex gap-4 mb-4">
-                  {/* Cover Skeleton */}
-                  <div className="flex-shrink-0 w-16 h-24 bg-[var(--foreground)]/10 rounded" />
-                  
-                  {/* Book Info Skeleton */}
-                  <div className="flex-1 space-y-2">
-                    <div className="h-6 bg-[var(--foreground)]/10 rounded w-3/4" />
-                    <div className="h-4 bg-[var(--foreground)]/10 rounded w-1/2" />
+            {/* Book Entry Skeleton */}
+            <div className="ml-2 md:ml-6 space-y-6">
+              {Array.from({ length: 2 }).map((_, j) => (
+                <div
+                  key={j}
+                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5"
+                >
+                  {/* Book Header Skeleton */}
+                  <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-4">
+                    {/* Cover Skeleton */}
+                    <div className="flex-shrink-0 w-24 h-36 bg-[var(--foreground)]/10 rounded mx-auto md:mx-0" />
+                    
+                    {/* Book Info Skeleton */}
+                    <div className="flex-1 space-y-2 text-center md:text-left">
+                      <div className="h-6 bg-[var(--foreground)]/10 rounded w-3/4 mx-auto md:mx-0" />
+                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-1/2 mx-auto md:mx-0" />
+                    </div>
+                  </div>
+
+                  {/* Progress Entry Skeleton - 3 columns with dividers */}
+                  <div className="p-4 md:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)]">
+                      {/* Column 1 */}
+                      <div className="flex items-center justify-center gap-2 md:pr-4">
+                        <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
+                        <div className="space-y-1">
+                          <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
+                          <div className="h-4 bg-[var(--foreground)]/10 rounded w-10" />
+                        </div>
+                      </div>
+                      {/* Column 2 */}
+                      <div className="flex items-center justify-center gap-2 md:px-4">
+                        <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
+                        <div className="space-y-1">
+                          <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
+                          <div className="h-4 bg-[var(--foreground)]/10 rounded w-10" />
+                        </div>
+                      </div>
+                      {/* Column 3 */}
+                      <div className="flex items-center justify-center gap-2 md:pl-4">
+                        <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
+                        <div className="space-y-1">
+                          <div className="h-3 bg-[var(--foreground)]/10 rounded w-16" />
+                          <div className="h-4 bg-[var(--foreground)]/10 rounded w-12" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
 
-                {/* Progress Entry Skeleton */}
-                <div className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-12" />
-                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-16" />
-                    </div>
-                    <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
-                  </div>
+      {/* Archive Panel Skeleton - Desktop Only */}
+      <div className="hidden lg:block">
+        <div className="sticky top-5 mt-11 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 animate-pulse">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded" />
+            <div className="h-6 bg-[var(--foreground)]/10 rounded w-20" />
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-5 bg-[var(--foreground)]/10 rounded w-16" />
+                <div className="ml-4 space-y-1">
+                  <div className="h-4 bg-[var(--foreground)]/10 rounded w-20" />
+                  <div className="h-4 bg-[var(--foreground)]/10 rounded w-20" />
                 </div>
               </div>
             ))}
           </div>
         </div>
-      ))}
+      </div>
     </div>
   );
 
