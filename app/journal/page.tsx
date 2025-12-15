@@ -314,9 +314,9 @@ export default function JournalPage() {
         icon={BookOpen}
       />
 
-      <div className="md:grid md:grid-cols-[1fr_320px] md:gap-8">
+      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
         {/* Main Journal Content */}
-        <div className="max-w-3xl">
+        <div className="w-full">
           {entries.map((dayEntry) => {
             const isCollapsed = collapsedDates.has(dayEntry.date);
             const dateKeys = getDateKeys(dayEntry.date);
@@ -362,7 +362,7 @@ export default function JournalPage() {
                   {dayEntry.books.map((bookGroup) => (
                 <div
                   key={bookGroup.bookId}
-                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5 max-w-3xl"
+                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5"
                 >
                   <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                     {/* Book Cover */}
@@ -382,7 +382,7 @@ export default function JournalPage() {
                     </Link>
 
                     {/* Book Title/Author + Progress Entries */}
-                    <div className="flex-1 max-w-2xl space-y-4">
+                    <div className="flex-1 space-y-4">
                       {/* Book Title/Author Header */}
                       <Link
                         href={`/books/${bookGroup.bookId}`}
@@ -517,7 +517,7 @@ export default function JournalPage() {
         </div>
 
         {/* Archive Tree - Desktop Only */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <JournalArchiveTree
             archiveData={archiveData}
             currentDateRange={currentVisibleDate}
@@ -530,7 +530,7 @@ export default function JournalPage() {
       {/* Mobile Archive Button - Floating Action Button */}
       <button
         onClick={() => setArchiveDrawerOpen(true)}
-        className="md:hidden fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        className="lg:hidden fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
         aria-label="Open archive navigation"
       >
         <Archive className="w-6 h-6" />
