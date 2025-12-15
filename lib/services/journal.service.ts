@@ -177,8 +177,8 @@ export class JournalService {
     // Debug: Log date range and sample dates
     const { getLogger } = require("@/lib/logger");
     if (dates.length > 0) {
-      const dateStrings = dates.map(d => d.toISOString().split('T')[0]);
-      const uniqueMonths = [...new Set(dateStrings.map(d => d.substring(0, 7)))].sort();
+      const dateStrings = dates.map((d: Date) => d.toISOString().split('T')[0]);
+      const uniqueMonths = Array.from(new Set(dateStrings.map((d: string) => d.substring(0, 7)))).sort();
       getLogger().debug({
         totalDates: dates.length,
         firstDate: dateStrings[0],

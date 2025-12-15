@@ -26,7 +26,8 @@ export function JournalArchiveTree({
     return new Set([currentYear]);
   });
 
-  const toggleNode = (nodeId: string) => {
+  const toggleNode = (nodeId?: string) => {
+    if (!nodeId) return;
     setExpandedNodes((prev) => {
       const next = new Set(prev);
       if (next.has(nodeId)) {
@@ -96,7 +97,7 @@ interface YearNodeWrapperProps {
   node: ArchiveNode;
   currentDateRange: string | null;
   expandedNodes: Set<string>;
-  onToggle: (nodeId: string) => void;
+  onToggle: (nodeId?: string) => void;
   onNavigate: (dateKey: string) => void;
 }
 
