@@ -232,7 +232,7 @@ export default function JournalPage() {
 
   // Journal entry skeleton component
   const JournalEntrySkeleton = () => (
-    <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
+    <div className="xl:grid xl:grid-cols-[1fr_280px] xl:gap-6">
       {/* Main Content Skeleton */}
       <div className="space-y-8 mt-1 animate-pulse">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -249,25 +249,25 @@ export default function JournalPage() {
               {Array.from({ length: 2 }).map((_, j) => (
                 <div
                   key={j}
-                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5"
+                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 xl:p-5"
                 >
                   {/* Book Header Skeleton */}
-                  <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-4">
+                  <div className="flex flex-col xl:flex-row gap-4 xl:gap-6 mb-4">
                     {/* Cover Skeleton */}
-                    <div className="flex-shrink-0 w-24 h-36 bg-[var(--foreground)]/10 rounded mx-auto md:mx-0" />
+                    <div className="flex-shrink-0 w-24 h-36 bg-[var(--foreground)]/10 rounded mx-auto xl:mx-0" />
                     
                     {/* Book Info Skeleton */}
-                    <div className="flex-1 space-y-2 text-center md:text-left">
-                      <div className="h-6 bg-[var(--foreground)]/10 rounded w-3/4 mx-auto md:mx-0" />
-                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-1/2 mx-auto md:mx-0" />
+                    <div className="flex-1 space-y-2 text-center xl:text-left">
+                      <div className="h-6 bg-[var(--foreground)]/10 rounded w-3/4 mx-auto xl:mx-0" />
+                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-1/2 mx-auto xl:mx-0" />
                     </div>
                   </div>
 
                   {/* Progress Entry Skeleton - 3 columns with dividers */}
-                  <div className="p-4 md:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)]">
+                  <div className="p-4 xl:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)]">
                       {/* Column 1 */}
-                      <div className="flex items-center justify-center gap-2 md:pr-4">
+                      <div className="flex items-center gap-2 md:justify-center md:pr-4">
                         <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
                         <div className="space-y-1">
                           <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
@@ -275,7 +275,7 @@ export default function JournalPage() {
                         </div>
                       </div>
                       {/* Column 2 */}
-                      <div className="flex items-center justify-center gap-2 md:px-4">
+                      <div className="flex items-center gap-2 md:justify-center md:px-4">
                         <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
                         <div className="space-y-1">
                           <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
@@ -283,7 +283,7 @@ export default function JournalPage() {
                         </div>
                       </div>
                       {/* Column 3 */}
-                      <div className="flex items-center justify-center gap-2 md:pl-4">
+                      <div className="flex items-center gap-2 md:justify-center md:pl-4">
                         <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
                         <div className="space-y-1">
                           <div className="h-3 bg-[var(--foreground)]/10 rounded w-16" />
@@ -300,7 +300,7 @@ export default function JournalPage() {
       </div>
 
       {/* Archive Panel Skeleton - Desktop Only */}
-      <div className="hidden lg:block">
+      <div className="hidden xl:block">
         <div className="sticky top-5 mt-11 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 animate-pulse">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded" />
@@ -358,7 +358,7 @@ export default function JournalPage() {
         icon={BookOpen}
       />
 
-      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
+      <div className="xl:grid xl:grid-cols-[1fr_280px] xl:gap-6">
         {/* Main Journal Content */}
         <div className="w-full">
           {entries.map((dayEntry) => {
@@ -406,13 +406,13 @@ export default function JournalPage() {
                   {dayEntry.books.map((bookGroup) => (
                 <div
                   key={bookGroup.bookId}
-                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 md:p-5"
+                  className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 xl:p-5"
                 >
-                  <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                  <div className="flex flex-col xl:flex-row gap-4 xl:gap-6">
                     {/* Book Cover */}
                     <Link
                       href={`/books/${bookGroup.bookId}`}
-                      className="flex-shrink-0 hover:opacity-90 transition-opacity mx-auto md:mx-0"
+                      className="flex-shrink-0 hover:opacity-90 transition-opacity mx-auto xl:mx-0"
                     >
                       <div className="w-24 h-36 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
                         <Image
@@ -430,13 +430,13 @@ export default function JournalPage() {
                       {/* Book Title/Author Header */}
                       <Link
                         href={`/books/${bookGroup.bookId}`}
-                        className="block hover:text-[var(--accent)] transition-colors text-center md:text-left"
+                        className="block hover:text-[var(--accent)] transition-colors text-center xl:text-left"
                       >
-                        <h3 className="text-lg md:text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-1">
+                        <h3 className="text-lg xl:text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-1">
                           {bookGroup.bookTitle}
                         </h3>
                         {bookGroup.bookAuthors.length > 0 && (
-                          <p className="text-sm md:text-base font-serif text-[var(--subheading-text)]">
+                          <p className="text-sm xl:text-base font-serif text-[var(--subheading-text)]">
                             {bookGroup.bookAuthors.join(", ")}
                           </p>
                         )}
@@ -446,7 +446,7 @@ export default function JournalPage() {
                         {bookGroup.entries.map((entry, index) => (
                           <div
                             key={entry.id}
-                            className="relative p-4 md:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
+                            className="relative p-4 xl:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
                           >
                             {/* Entry number badge (only show if multiple entries) */}
                             {bookGroup.entries.length > 1 && (
@@ -458,9 +458,9 @@ export default function JournalPage() {
                             )}
 
                             {/* Metadata grid */}
-                            <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)] ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
+                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)] ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
                             {/* Percentage */}
-                            <div className="flex items-center justify-center gap-2 md:pr-4">
+                            <div className="flex items-center gap-2 md:justify-center md:pr-4">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
                               </div>
@@ -473,7 +473,7 @@ export default function JournalPage() {
                             </div>
 
                             {/* Current Page */}
-                            <div className="flex items-center justify-center gap-2 md:px-4">
+                            <div className="flex items-center gap-2 md:justify-center md:px-4">
                               <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                 <FileText className="w-4 h-4 text-[var(--accent)]" />
                               </div>
@@ -487,7 +487,7 @@ export default function JournalPage() {
 
                             {/* Pages Read */}
                             {entry.pagesRead > 0 && (
-                              <div className="flex items-center justify-center gap-2 md:pl-4">
+                              <div className="flex items-center gap-2 md:justify-center md:pl-4">
                                 <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
                                   <Plus className="w-4 h-4 text-[var(--accent)]" />
                                 </div>
@@ -545,7 +545,7 @@ export default function JournalPage() {
         </div>
 
         {/* Archive Tree - Desktop Only */}
-        <div className="hidden lg:block">
+        <div className="hidden xl:block">
           <JournalArchiveTree
             archiveData={archiveData}
             currentDateRange={currentVisibleDate}
@@ -555,10 +555,10 @@ export default function JournalPage() {
         </div>
       </div>
 
-      {/* Mobile Archive Button - Floating Action Button */}
+      {/* Mobile/Tablet Archive Button - Floating Action Button */}
       <button
         onClick={() => setArchiveDrawerOpen(true)}
-        className="lg:hidden fixed bottom-28 md:bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        className="xl:hidden fixed bottom-32 md:bottom-6 right-4 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
         aria-label="Open archive navigation"
       >
         <Archive className="w-6 h-6" />
