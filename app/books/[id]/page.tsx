@@ -423,6 +423,7 @@ export default function BookDetailPage() {
           {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
               <ProgressHistory
+                key={bookProgressHook.progress.map(p => `${p.id}-${p.progressDate}`).join(',')}
                 progress={bookProgressHook.progress}
                 onEdit={bookProgressHook.handleEditProgress}
               />

@@ -1,5 +1,6 @@
-import { Edit2 } from "lucide-react";
-import { formatDateOnly } from "@/utils/dateFormatting";
+import { useState } from "react";
+import { Calendar, ChevronRight, Pencil, FileText, Plus, TrendingUp } from "lucide-react";
+import { format } from "date-fns";
 import dynamic from "next/dynamic";
 import "@uiw/react-markdown-preview/markdown.css";
 
@@ -23,10 +24,24 @@ interface ProgressHistoryProps {
 }
 
 export default function ProgressHistory({ progress, onEdit }: ProgressHistoryProps) {
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+
+  // Group progress entries by date
+  const groupedByDate = progress.reduce((acc, entry) => {
+    const dateKey = entry.progressDate.split('T')[0]; // Extract YYYY-MM-DD
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(entry);
+    return acc;
+  }, {} as Record<string, ProgressEntry[]>);
+
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a)); // Most recent first
+
   return (
     <div>
       <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-        Current Progress History
+        Journal
       </h3>
 
       {progress.length === 0 ? (
@@ -34,54 +49,131 @@ export default function ProgressHistory({ progress, onEdit }: ProgressHistoryPro
           No progress logged yet
         </p>
       ) : (
-        <div className="space-y-3">
-          {progress.map((entry) => (
-            <div
-              key={entry.id}
-              className="bg-[var(--background)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent)]/50 transition-colors group"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-base font-bold text-[var(--foreground)]">
-                      Page {entry.currentPage}
-                    </span>
-                    <span className="text-sm text-[var(--subheading-text)] font-medium">
-                      ({entry.currentPercentage}%)
-                    </span>
-                    <span className="text-xs text-[var(--accent)] font-semibold">
-                      +{entry.pagesRead} pages
-                    </span>
+        <div className="space-y-8">
+          {sortedDates.map((dateKey) => {
+            const entries = groupedByDate[dateKey];
+            const isCollapsed = collapsedDates.has(dateKey);
+
+            return (
+              <div key={dateKey} className={isCollapsed ? "mb-4" : "mb-8"}>
+                {/* Date Header - Clickable */}
+                <button
+                  onClick={() => {
+                    setCollapsedDates(prev => {
+                      const next = new Set(prev);
+                      if (next.has(dateKey)) {
+                        next.delete(dateKey);
+                      } else {
+                        next.add(dateKey);
+                      }
+                      return next;
+                    });
+                  }}
+                  className="flex items-center gap-2 text-[var(--heading-text)] font-semibold text-lg hover:text-[var(--accent)] transition-colors cursor-pointer w-full text-left mb-4"
+                >
+                  <span className="transition-transform duration-200" style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}>
+                    <ChevronRight className="w-5 h-5" />
+                  </span>
+                  <Calendar className="w-5 h-5" />
+                  <h4>{format(new Date(dateKey), 'MMM d, yyyy')}</h4>
+                </button>
+
+                {/* Entries for this date */}
+                <div 
+                  className="overflow-hidden transition-all duration-300 ease-in-out ml-2 md:ml-6"
+                  style={{
+                    maxHeight: isCollapsed ? '0px' : '10000px',
+                    opacity: isCollapsed ? 0 : 1,
+                  }}
+                >
+                  <div className="space-y-6">
+                    {entries.map((entry, index) => (
+                      <div
+                        key={entry.id}
+                        className="relative p-4 xl:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--accent)]/30"
+                      >
+                        {/* Entry number badge (only show if multiple entries on same day) */}
+                        {entries.length > 1 && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                            <span className="text-xs font-bold text-[var(--subheading-text)]">
+                              {index + 1}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Edit button */}
+                        <button
+                          onClick={() => onEdit(entry)}
+                          className={`absolute top-2 ${entries.length > 1 ? 'right-10' : 'right-2'} p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/5 rounded transition-colors`}
+                          title="Edit progress entry"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
+                        {/* Metadata grid */}
+                        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)] ${entry.notes ? 'mb-4 pb-4 border-b border-[var(--border-color)]' : ''}`}>
+                          {/* Percentage */}
+                          <div className="flex items-center gap-2 md:justify-center md:pr-4">
+                            <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                              <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs text-[var(--subheading-text)] font-medium">Progress</div>
+                              <div className="text-sm font-mono font-bold text-[var(--heading-text)]">
+                                {Math.round(entry.currentPercentage)}%
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Current Page */}
+                          <div className="flex items-center gap-2 md:justify-center md:px-4">
+                            <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                              <FileText className="w-4 h-4 text-[var(--accent)]" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs text-[var(--subheading-text)] font-medium">Page</div>
+                              <div className="text-sm font-semibold text-[var(--heading-text)]">
+                                {entry.currentPage}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Pages Read */}
+                          {entry.pagesRead > 0 && (
+                            <div className="flex items-center gap-2 md:justify-center md:pl-4">
+                              <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0">
+                                <Plus className="w-4 h-4 text-[var(--accent)]" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs text-[var(--subheading-text)] font-medium">Read</div>
+                                <div className="text-sm font-semibold text-[var(--heading-text)]">
+                                  {entry.pagesRead} pages
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Notes section */}
+                        {entry.notes && (
+                          <div className="text-sm" data-color-mode="light">
+                            <MarkdownPreview
+                              source={entry.notes}
+                              style={{
+                                background: "transparent",
+                                color: "var(--foreground)",
+                                fontSize: "0.875rem",
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-sm text-[var(--subheading-text)] font-mono font-semibold">
-                    {formatDateOnly(entry.progressDate)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onEdit(entry)}
-                    className="p-1 hover:bg-[var(--card-bg)] rounded transition-colors"
-                    title="Edit progress entry"
-                  >
-                    <Edit2 className="w-4 h-4 text-[var(--accent)]" />
-                  </button>
                 </div>
               </div>
-
-              {entry.notes && (
-                <div className="text-sm mt-2 border-l-2 border-[var(--accent)]/30 pl-3" data-color-mode="light">
-                  <MarkdownPreview 
-                    source={entry.notes} 
-                    style={{ 
-                      background: 'transparent',
-                      color: 'var(--foreground)',
-                      fontSize: '0.875rem'
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

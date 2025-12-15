@@ -68,7 +68,12 @@ export function useBookProgress(
   // Fetch progress entries
   const fetchProgress = useCallback(async () => {
     try {
-      const response = await fetch(`/api/books/${bookId}/progress`);
+      const response = await fetch(`/api/books/${bookId}/progress`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       const data = await response.json();
       setProgress(data);
     } catch (error) {
