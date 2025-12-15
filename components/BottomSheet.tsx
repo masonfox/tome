@@ -7,12 +7,14 @@ interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  title?: string;
+  icon?: React.ReactNode;
 }
 
 // Animation duration for closing transition
 const CLOSE_ANIMATION_MS = 300;
 
-export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
+export function BottomSheet({ isOpen, onClose, children, title = "More", icon }: BottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -60,7 +62,10 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
         isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
       }`}>
         <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[var(--heading-text)]">More</h3>
+          <div className="flex items-center gap-2">
+            {icon && <span className="text-[var(--accent)]">{icon}</span>}
+            <h3 className="text-lg font-semibold text-[var(--heading-text)]">{title}</h3>
+          </div>
           <button
             ref={closeButtonRef}
             onClick={handleClose}

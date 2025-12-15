@@ -2,6 +2,7 @@
 
 import { BottomSheet } from "./BottomSheet";
 import { JournalArchiveTree } from "./JournalArchiveTree";
+import { Archive } from "lucide-react";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
 
 interface JournalArchiveDrawerProps {
@@ -28,13 +29,19 @@ export function JournalArchiveDrawer({
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose}>
+    <BottomSheet 
+      isOpen={isOpen} 
+      onClose={onClose}
+      title="Archive"
+      icon={<Archive className="w-5 h-5" />}
+    >
       <div className="max-h-[calc(80vh-8rem)] overflow-y-auto">
         <JournalArchiveTree
           archiveData={archiveData}
           currentDateRange={currentDateRange}
           onNavigate={handleNavigate}
           loading={loading}
+          showHeader={false}
         />
       </div>
     </BottomSheet>

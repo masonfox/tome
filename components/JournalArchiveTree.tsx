@@ -10,6 +10,7 @@ interface JournalArchiveTreeProps {
   currentDateRange: string | null;
   onNavigate: (dateKey: string) => void;
   loading: boolean;
+  showHeader?: boolean;
 }
 
 export function JournalArchiveTree({
@@ -17,6 +18,7 @@ export function JournalArchiveTree({
   currentDateRange,
   onNavigate,
   loading,
+  showHeader = true,
 }: JournalArchiveTreeProps) {
   // Initialize with current year expanded
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
@@ -39,10 +41,12 @@ export function JournalArchiveTree({
   if (loading) {
     return (
       <div className="sticky top-4 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Archive className="w-5 h-5 text-[var(--accent)]" />
-          <h2 className="text-lg font-semibold text-[var(--heading-text)]">Archive</h2>
-        </div>
+        {showHeader && (
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="w-5 h-5 text-[var(--accent)]" />
+            <h2 className="text-lg font-semibold text-[var(--heading-text)]">Archive</h2>
+          </div>
+        )}
         <div className="text-sm text-[var(--subheading-text)]">Loading archive...</div>
       </div>
     );
@@ -51,10 +55,12 @@ export function JournalArchiveTree({
   if (!archiveData || archiveData.length === 0) {
     return (
       <div className="sticky top-4 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Archive className="w-5 h-5 text-[var(--accent)]" />
-          <h2 className="text-lg font-semibold text-[var(--heading-text)]">Archive</h2>
-        </div>
+        {showHeader && (
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="w-5 h-5 text-[var(--accent)]" />
+            <h2 className="text-lg font-semibold text-[var(--heading-text)]">Archive</h2>
+          </div>
+        )}
         <div className="text-sm text-[var(--subheading-text)]">No entries yet</div>
       </div>
     );
@@ -62,10 +68,12 @@ export function JournalArchiveTree({
 
   return (
     <div className="sticky top-5 mt-11 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-      <div className="flex items-center gap-2 mb-4">
-        <Archive className="w-5 h-5 text-[var(--accent)]" />
-        <h2 className="text-lg font-semibold text-[var(--heading-text)]">Archive</h2>
-      </div>
+      {showHeader && (
+        <div className="flex items-center gap-2 mb-4">
+          <Archive className="w-5 h-5 text-[var(--accent)]" />
+          <h2 className="text-lg font-semibold text-[var(--heading-text)]">Archive</h2>
+        </div>
+      )}
 
       <div role="tree" className="space-y-1">
         {archiveData.map((yearNode) => (
