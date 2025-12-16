@@ -556,20 +556,31 @@ html[data-theme="dark"] .mdxeditor-toolbar button[data-state="open"] {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #F0EAE3;
-  color: #3a3a3a;
+  background-color: #F0EAE3 !important;
+  color: #3a3a3a !important;
 }
 
 html[data-theme="dark"] .mdxeditor-root-contenteditable {
-  background-color: #1f1c19;
-  color: #e8dcc4;
+  background-color: #1f1c19 !important;
+  color: #e8dcc4 !important;
 }
 
-/* Ensure all content wraps properly */
+/* Ensure all content wraps properly and inherits text color */
 .mdxeditor-root-contenteditable * {
   max-width: 100%;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  color: inherit !important;
+}
+
+/* Placeholder text */
+.mdxeditor-root-contenteditable[data-placeholder]::before {
+  color: #5F5F5F !important;
+  opacity: 0.6;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable[data-placeholder]::before {
+  color: #bdb4a1 !important;
 }
 
 
