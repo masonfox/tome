@@ -93,7 +93,10 @@ export function JournalEntryList({
                     <ChevronRight className="w-5 h-5" />
                   </span>
                   <Calendar className="w-5 h-5" />
-                  <h4>{format(parse(dateKey, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}</h4>
+                  <h4>
+                    {format(parse(dateKey, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}
+                    <span className="text-[var(--subheading-text)]"> ({format(parse(dateKey, 'yyyy-MM-dd', new Date()), 'EEE')})</span>
+                  </h4>
                 </button>
 
                 {/* Entries for this date */}
