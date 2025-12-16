@@ -7,6 +7,8 @@ import { toast } from "@/utils/toast";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 
 interface ReadingSession {
   id: number;
@@ -198,7 +200,12 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   Review
                 </p>
                 <div className="text-sm prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{session.review}</ReactMarkdown>
+                  <ReactMarkdown 
+                    rehypePlugins={[rehypeRaw]}
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {session.review}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}

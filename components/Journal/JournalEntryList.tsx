@@ -5,6 +5,8 @@ import { Calendar, ChevronRight, Pencil, FileText, Plus, TrendingUp } from "luci
 import { format, parse } from "date-fns";
 import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 
 export interface JournalEntry {
   id: number;
@@ -196,7 +198,12 @@ export function JournalEntryCard({ entry, index, totalEntries, onEdit }: Journal
       {/* Notes section */}
       {entry.notes && (
         <div className="text-sm prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown>{entry.notes}</ReactMarkdown>
+          <ReactMarkdown 
+            rehypePlugins={[rehypeRaw]}
+            remarkPlugins={[remarkGfm]}
+          >
+            {entry.notes}
+          </ReactMarkdown>
         </div>
       )}
     </div>

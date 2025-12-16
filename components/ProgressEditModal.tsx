@@ -10,6 +10,8 @@ import dynamic from "next/dynamic";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 
 interface ProgressEditModalProps {
@@ -193,7 +195,12 @@ export default function ProgressEditModal({
               <div className="mt-2">
                 <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
                 <div className="text-sm mt-1 prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{currentProgress.notes}</ReactMarkdown>
+                  <ReactMarkdown 
+                    rehypePlugins={[rehypeRaw]}
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {currentProgress.notes}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}

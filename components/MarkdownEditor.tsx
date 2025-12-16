@@ -19,7 +19,6 @@ import {
   CreateLink,
   InsertThematicBreak,
   ListsToggle,
-  HighlightToggle,
   Separator,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
@@ -77,8 +76,6 @@ function InitializedMDXEditor({
                 <UndoRedo />
                 <Separator />
                 <BoldItalicUnderlineToggles />
-                <Separator />
-                <HighlightToggle />
                 <Separator />
                 <BlockTypeSelect />
                 <Separator />
