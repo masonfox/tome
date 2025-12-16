@@ -6,9 +6,9 @@ import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { format, parse } from "date-fns";
 import Link from "next/link";
 import Image from "next/image";
-import { JournalArchiveTree } from "@/components/JournalArchiveTree";
-import { JournalArchiveDrawer } from "@/components/JournalArchiveDrawer";
-import { JournalEntryCard } from "@/components/JournalEntryList";
+import { JournalArchiveTree } from "@/components/Journal/JournalArchiveTree";
+import { JournalArchiveDrawer } from "@/components/Journal/JournalArchiveDrawer";
+import { JournalEntryCard } from "@/components/Journal/JournalEntryList";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
 import { matchesDateKey } from "@/lib/utils/archive-builder";
 

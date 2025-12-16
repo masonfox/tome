@@ -1,4 +1,4 @@
-import { JournalEntryList, type JournalEntry } from "@/components/JournalEntryList";
+import { JournalEntryList, type JournalEntry } from "@/components/Journal/JournalEntryList";
 
 interface JournalProps {
   progress: JournalEntry[];
