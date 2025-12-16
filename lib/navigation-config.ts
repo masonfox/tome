@@ -14,12 +14,14 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/streak", label: "Streak", icon: Flame },
 ];
 
+// Journal link (shown after Library on desktop, first in bottom sheet)
+export const JOURNAL_LINK: NavLink = { href: "/journal", label: "Journal", icon: ScrollText };
+
 // Series link (shown in desktop sidebar and bottom sheet menu)
 export const SERIES_LINK: NavLink = { href: "/series", label: "Series", icon: BookMarked };
 
 // Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
 export const MORE_MENU_LINKS: NavLink[] = [
-  { href: "/journal", label: "Journal", icon: ScrollText },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
@@ -27,8 +29,9 @@ export const MORE_MENU_LINKS: NavLink[] = [
 // Bottom utility link (shown in bottom section of desktop sidebar)
 export const SETTINGS_LINK: NavLink = { href: "/settings", label: "Settings", icon: Settings };
 
-// Additional links shown in bottom sheet "More" menu on mobile (includes series and settings)
+// Additional links shown in bottom sheet "More" menu on mobile (includes journal, series and settings)
 export const BOTTOM_SHEET_LINKS: NavLink[] = [
+  JOURNAL_LINK,
   SERIES_LINK,
   ...MORE_MENU_LINKS,
   SETTINGS_LINK,
