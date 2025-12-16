@@ -619,6 +619,28 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable {
   color: inherit !important;
 }
 
+/* Fix list item text and bullet contrast in light mode */
+.mdxeditor-root-contenteditable ul li,
+.mdxeditor-root-contenteditable ol li {
+  color: #3a3a3a !important;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable ul li,
+html[data-theme="dark"] .mdxeditor-root-contenteditable ol li {
+  color: #e8dcc4 !important;
+}
+
+/* Ensure bullet markers and list numbers are visible */
+.mdxeditor-root-contenteditable ul li::marker,
+.mdxeditor-root-contenteditable ol li::marker {
+  color: #3a3a3a !important;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable ul li::marker,
+html[data-theme="dark"] .mdxeditor-root-contenteditable ol li::marker {
+  color: #e8dcc4 !important;
+}
+
 /* Remove top margin from first element to close gap between toolbar and content */
 .mdxeditor-root-contenteditable > :first-child {
   margin-top: 0 !important;
