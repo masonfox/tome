@@ -384,3 +384,65 @@ body:has(.w-md-editor-fullscreen) {
   color: var(--foreground) !important;
 }
 
+/* MDXEditor theming using official CSS variables */
+.mdxeditor {
+  /* Base color palette - integrated with our theme */
+  --baseBase: var(--background);
+  --baseBgSubtle: var(--background);
+  --baseBg: var(--card-bg);
+  --baseBgHover: var(--card-bg);
+  --baseBgActive: var(--card-bg);
+  --baseLine: var(--border-color);
+  --baseBorder: var(--border-color);
+  --baseBorderHover: var(--border-color);
+  --baseSolid: var(--accent);
+  --baseSolidHover: var(--light-accent);
+  --baseText: var(--foreground);
+  --baseTextContrast: var(--heading-text);
+
+  /* Accent colors */
+  --accentBase: var(--card-bg);
+  --accentBgSubtle: var(--card-bg);
+  --accentBg: var(--card-bg);
+  --accentBgHover: var(--card-bg);
+  --accentBgActive: var(--card-bg);
+  --accentLine: var(--accent);
+  --accentBorder: var(--accent);
+  --accentBorderHover: var(--light-accent);
+  --accentSolid: var(--accent);
+  --accentSolidHover: var(--light-accent);
+  --accentText: var(--accent);
+  --accentTextContrast: var(--heading-text);
+
+  /* Typography */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+
+  /* Background */
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Toolbar specific styling */
+.mdxeditor-toolbar {
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Content area styling */
+.mdxeditor-root-contenteditable {
+  padding: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Ensure all content wraps properly */
+.mdxeditor-root-contenteditable * {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+

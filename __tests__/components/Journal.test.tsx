@@ -4,8 +4,8 @@ import "@testing-library/jest-dom";
 import Journal from "@/components/BookDetail/Journal";
 
 // Mock the markdown preview component
-mock.module("@uiw/react-markdown-preview", () => ({
-  default: ({ source }: { source: string }) => <div>{source}</div>,
+mock.module("react-markdown", () => ({
+  default: ({ children }: { children: string }) => <div>{children}</div>,
 }));
 
 afterEach(() => {
