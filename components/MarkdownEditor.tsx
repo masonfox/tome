@@ -114,6 +114,11 @@ function InitializedMDXEditor({
           toolbarPlugin({
             toolbarContents: () => (
               <>
+                <FullscreenButton
+                  isFullscreen={isFullscreen}
+                  onToggle={() => setIsFullscreen(!isFullscreen)}
+                />
+                <Separator />
                 <UndoRedo />
                 <Separator />
                 <BoldItalicUnderlineToggles />
@@ -123,11 +128,6 @@ function InitializedMDXEditor({
                 <CreateLink />
                 <Separator />
                 <ListsToggle options={['bullet', 'number']} />
-                <Separator />
-                <FullscreenButton 
-                  isFullscreen={isFullscreen} 
-                  onToggle={() => setIsFullscreen(!isFullscreen)} 
-                />
               </>
             ),
           }),
