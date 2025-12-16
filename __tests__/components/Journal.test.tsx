@@ -1,7 +1,12 @@
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach, mock } from "bun:test";
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Journal from "@/components/BookDetail/Journal";
+
+// Mock the markdown preview component
+mock.module("@uiw/react-markdown-preview", () => ({
+  default: ({ source }: { source: string }) => <div>{source}</div>,
+}));
 
 afterEach(() => {
   cleanup();
