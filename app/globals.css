@@ -597,4 +597,42 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable[data-placeholder]::befor
   color: #bdb4a1 !important;
 }
 
+/* Prose (ReactMarkdown) styling for rendered notes */
+.prose {
+  color: var(--foreground) !important;
+}
+
+.prose strong {
+  color: var(--foreground) !important;
+}
+
+.prose em {
+  color: var(--foreground) !important;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: var(--heading-text) !important;
+}
+
+.prose a {
+  color: var(--accent) !important;
+}
+
+.prose code {
+  color: var(--foreground) !important;
+}
+
+.prose blockquote {
+  color: var(--foreground) !important;
+  border-left-color: var(--border-color) !important;
+}
+
+.prose ul, .prose ol, .prose li {
+  color: var(--foreground) !important;
+}
+
+.prose p {
+  color: var(--foreground) !important;
+}
+
 
