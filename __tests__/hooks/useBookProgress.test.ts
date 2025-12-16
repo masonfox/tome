@@ -66,7 +66,12 @@ describe("useBookProgress", () => {
         expect(result.current.progress.length).toBe(2);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/books/123/progress");
+      expect(global.fetch).toHaveBeenCalledWith("/api/books/123/progress", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
     });
 
     test("should initialize with latest progress values", async () => {
