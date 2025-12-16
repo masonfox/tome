@@ -17,7 +17,6 @@ import {
   BoldItalicUnderlineToggles,
   BlockTypeSelect,
   CreateLink,
-  InsertThematicBreak,
   ListsToggle,
   Separator,
   ButtonWithTooltip,
@@ -124,8 +123,6 @@ function InitializedMDXEditor({
                 <CreateLink />
                 <Separator />
                 <ListsToggle options={['bullet', 'number']} />
-                <Separator />
-                <InsertThematicBreak />
                 <Separator />
                 <FullscreenButton 
                   isFullscreen={isFullscreen} 
