@@ -590,7 +590,7 @@ html[data-theme="dark"] .tome-editor .mdxeditor-toolbar button[data-state="open"
 
 /* Content area styling */
 .mdxeditor-root-contenteditable {
-  padding: 1rem;
+  padding: 0.5rem 1rem 1rem 1rem;
   font-size: 0.875rem;
   line-height: 1.5;
   overflow-wrap: break-word;
