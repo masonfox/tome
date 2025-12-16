@@ -2,6 +2,7 @@ import { eq, and, desc, asc, sql, gte, lte, lt, gt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
+import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
 
 export class ProgressRepository extends BaseRepository<
@@ -419,6 +420,37 @@ export class ProgressRepository extends BaseRepository<
       .select()
       .from(progressLogs)
       .orderBy(asc(progressLogs.progressDate))
+      .all();
+  }
+
+  /**
+   * Get all progress logs with book information for journal view
+   * Ordered by date descending (most recent first)
+   */
+  async getAllProgressWithBooks(): Promise<Array<ProgressLog & { book: { id: number; title: string; authors: string[] } }>> {
+    const { books } = require("@/lib/db/schema/books");
+    
+    return this.getDatabase()
+      .select({
+        id: progressLogs.id,
+        userId: progressLogs.userId,
+        bookId: progressLogs.bookId,
+        sessionId: progressLogs.sessionId,
+        currentPage: progressLogs.currentPage,
+        currentPercentage: progressLogs.currentPercentage,
+        progressDate: progressLogs.progressDate,
+        notes: progressLogs.notes,
+        pagesRead: progressLogs.pagesRead,
+        createdAt: progressLogs.createdAt,
+        book: {
+          id: books.id,
+          title: books.title,
+          authors: books.authors,
+        },
+      })
+      .from(progressLogs)
+      .innerJoin(books, eq(progressLogs.bookId, books.id))
+      .orderBy(desc(progressLogs.progressDate))
       .all();
   }
 

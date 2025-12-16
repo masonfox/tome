@@ -172,12 +172,20 @@ export class ProgressService {
     }
 
     // Calculate new metrics
+    // Only pass the value that was actually updated to calculateProgressMetrics
+    // If both are undefined, use existing values
     const progressData: ProgressLogData = {
-      currentPage: updateData.currentPage ?? (existingProgress.currentPage || undefined),
-      currentPercentage: updateData.currentPercentage ?? (existingProgress.currentPercentage || undefined),
+      currentPage: updateData.currentPage,
+      currentPercentage: updateData.currentPercentage,
       progressDate: updateData.progressDate ?? existingProgress.progressDate,
       notes: updateData.notes ?? (existingProgress.notes || undefined),
     };
+
+    // If neither was provided in the update, use existing values
+    if (progressData.currentPage === undefined && progressData.currentPercentage === undefined) {
+      progressData.currentPage = existingProgress.currentPage || undefined;
+      progressData.currentPercentage = existingProgress.currentPercentage || undefined;
+    }
 
     const metrics = await this.calculateProgressMetrics(book, progressData);
 
