@@ -245,42 +245,54 @@ export default function JournalPage() {
                   className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 xl:p-5"
                 >
                   {/* Book Header Skeleton */}
-                  <div className="flex flex-col xl:flex-row gap-4 xl:gap-6 mb-4">
-                    {/* Cover Skeleton */}
-                    <div className="flex-shrink-0 w-24 h-36 bg-[var(--foreground)]/10 rounded mx-auto xl:mx-0" />
+                  <div className="flex flex-col xl:flex-row gap-4 xl:gap-6">
+                    {/* Cover Skeleton - with book-like appearance */}
+                    <div className="flex-shrink-0 mx-auto xl:mx-0">
+                      <div className="w-24 h-36 bg-[var(--background)] border border-[var(--border-color)] rounded overflow-hidden relative">
+                        {/* Book spine effect */}
+                        <div className="absolute left-1 top-1 bottom-1 w-2 bg-gray-500 rounded" />
+                      </div>
+                    </div>
                     
                     {/* Book Info Skeleton */}
-                    <div className="flex-1 space-y-2 text-center xl:text-left">
-                      <div className="h-6 bg-[var(--foreground)]/10 rounded w-3/4 mx-auto xl:mx-0" />
-                      <div className="h-4 bg-[var(--foreground)]/10 rounded w-1/2 mx-auto xl:mx-0" />
-                    </div>
-                  </div>
+                    <div className="flex-1 space-y-4">
+                      {/* Title skeleton - with actual text for exact height matching */}
+                      <div className="text-center xl:text-left leading-tight">
+                        <h3 className="text-lg xl:text-xl font-serif font-bold mb-0.5 leading-tight">
+                          <span className="inline-block bg-[var(--background)] border border-[var(--border-color)] rounded h-6 w-48 align-middle"></span>
+                        </h3>
+                        <p className="text-sm xl:text-base font-serif leading-tight">
+                          <span className="inline-block bg-[var(--background)] border border-[var(--border-color)] rounded h-4 w-32 align-middle"></span>
+                        </p>
+                      </div>
 
-                  {/* Progress Entry Skeleton - 3 columns with dividers */}
-                  <div className="p-4 xl:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)]">
-                      {/* Column 1 */}
-                      <div className="flex items-center gap-2 md:justify-center md:pr-4">
-                        <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
-                        <div className="space-y-1">
-                          <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
-                          <div className="h-4 bg-[var(--foreground)]/10 rounded w-10" />
-                        </div>
-                      </div>
-                      {/* Column 2 */}
-                      <div className="flex items-center gap-2 md:justify-center md:px-4">
-                        <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
-                        <div className="space-y-1">
-                          <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
-                          <div className="h-4 bg-[var(--foreground)]/10 rounded w-10" />
-                        </div>
-                      </div>
-                      {/* Column 3 */}
-                      <div className="flex items-center gap-2 md:justify-center md:pl-4">
-                        <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
-                        <div className="space-y-1">
-                          <div className="h-3 bg-[var(--foreground)]/10 rounded w-16" />
-                          <div className="h-4 bg-[var(--foreground)]/10 rounded w-12" />
+                      {/* Progress Entry Skeleton - 3 columns with dividers */}
+                      <div className="p-4 xl:p-5 bg-[var(--background)] border border-[var(--border-color)] rounded">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:divide-x divide-[var(--border-color)]">
+                          {/* Column 1 */}
+                          <div className="flex items-center gap-2 md:justify-center md:pr-4">
+                            <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
+                              <div className="h-4 bg-[var(--foreground)]/10 rounded w-10" />
+                            </div>
+                          </div>
+                          {/* Column 2 */}
+                          <div className="flex items-center gap-2 md:justify-center md:px-4">
+                            <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-3 bg-[var(--foreground)]/10 rounded w-12" />
+                              <div className="h-4 bg-[var(--foreground)]/10 rounded w-10" />
+                            </div>
+                          </div>
+                          {/* Column 3 */}
+                          <div className="flex items-center gap-2 md:justify-center md:pl-4">
+                            <div className="w-8 h-8 bg-[var(--foreground)]/10 rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-3 bg-[var(--foreground)]/10 rounded w-16" />
+                              <div className="h-4 bg-[var(--foreground)]/10 rounded w-12" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -422,13 +434,13 @@ export default function JournalPage() {
                       {/* Book Title/Author Header */}
                       <Link
                         href={`/books/${bookGroup.bookId}`}
-                        className="block hover:text-[var(--accent)] transition-colors text-center xl:text-left"
+                        className="block hover:text-[var(--accent)] transition-colors text-center xl:text-left leading-tight"
                       >
-                        <h3 className="text-lg xl:text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-1">
+                        <h3 className="text-lg xl:text-xl font-serif font-bold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors mb-0.5 leading-tight">
                           {bookGroup.bookTitle}
                         </h3>
                         {bookGroup.bookAuthors.length > 0 && (
-                          <p className="text-sm xl:text-base font-serif text-[var(--subheading-text)]">
+                          <p className="text-sm xl:text-base font-serif text-[var(--subheading-text)] leading-tight">
                             {bookGroup.bookAuthors.join(", ")}
                           </p>
                         )}
