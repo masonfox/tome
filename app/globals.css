@@ -390,7 +390,7 @@ body:has(.w-md-editor-fullscreen) {
   /* Base colors - neutral grays and backgrounds (light mode) */
   --baseBase: #F0EAE3;           /* Step 1: App background */
   --baseBgSubtle: #F0EAE3;       /* Step 2: Subtle background */
-  --baseBg: #f5f1e8;             /* Step 3: UI element background (toolbar) */
+  --baseBg: #F0EAE3;             /* Step 3: UI element background (toolbar) */
   --baseBgHover: #d4cbbe;        /* Step 4: Hovered UI element background */
   --baseBgActive: #d4cbbe;       /* Step 5: Active / Selected UI element background */
   --baseLine: #d4cbbe;           /* Step 6: Subtle borders and separators */
@@ -433,7 +433,7 @@ html[data-theme="dark"] .tome-editor {
   /* Base colors - neutral grays and backgrounds (dark mode) */
   --baseBase: #1f1c19;
   --baseBgSubtle: #1f1c19;
-  --baseBg: #3d3935;
+  --baseBg: #1f1c19;
   --baseBgHover: #4a4640;
   --baseBgActive: #4a4640;
   --baseLine: #4a4640;
