@@ -385,47 +385,83 @@ body:has(.w-md-editor-fullscreen) {
 }
 
 /* MDXEditor theming - custom theme using our color palette */
-/* Do NOT use dark-theme class - define our own complete theme instead */
+/* Define light mode theme */
 .tome-editor {
-  /* Base colors - neutral grays and backgrounds */
-  --baseBase: var(--background);           /* Step 1: App background */
-  --baseBgSubtle: var(--background);       /* Step 2: Subtle background */
-  --baseBg: var(--card-bg);                /* Step 3: UI element background (toolbar) */
-  --baseBgHover: var(--border-color);      /* Step 4: Hovered UI element background */
-  --baseBgActive: var(--border-color);     /* Step 5: Active / Selected UI element background */
-  --baseLine: var(--border-color);         /* Step 6: Subtle borders and separators */
-  --baseBorder: var(--border-color);       /* Step 7: UI element border */
-  --baseBorderHover: var(--foreground);    /* Step 8: Hovered UI element border */
-  --baseSolid: var(--foreground);          /* Step 9: Solid backgrounds */
-  --baseSolidHover: var(--heading-text);   /* Step 10: Hovered solid backgrounds */
-  --baseText: var(--foreground);           /* Step 11: Low-contrast text */
-  --baseTextContrast: var(--heading-text); /* Step 12: High-contrast text */
+  /* Base colors - neutral grays and backgrounds (light mode) */
+  --baseBase: #F0EAE3;           /* Step 1: App background */
+  --baseBgSubtle: #F0EAE3;       /* Step 2: Subtle background */
+  --baseBg: #f5f1e8;             /* Step 3: UI element background (toolbar) */
+  --baseBgHover: #d4cbbe;        /* Step 4: Hovered UI element background */
+  --baseBgActive: #d4cbbe;       /* Step 5: Active / Selected UI element background */
+  --baseLine: #d4cbbe;           /* Step 6: Subtle borders and separators */
+  --baseBorder: #d4cbbe;         /* Step 7: UI element border */
+  --baseBorderHover: #3a3a3a;    /* Step 8: Hovered UI element border */
+  --baseSolid: #3a3a3a;          /* Step 9: Solid backgrounds */
+  --baseSolidHover: #4F4739;     /* Step 10: Hovered solid backgrounds */
+  --baseText: #3a3a3a;           /* Step 11: Low-contrast text */
+  --baseTextContrast: #4F4739;   /* Step 12: High-contrast text */
 
-  /* Accent colors - for interactive and active states */
-  --accentBase: var(--background);                                      /* Step 1: Subtle accent background */
-  --accentBgSubtle: color-mix(in srgb, var(--accent) 5%, var(--background));  /* Step 2: Subtle accent bg */
-  --accentBg: color-mix(in srgb, var(--accent) 10%, var(--background));       /* Step 3: Accent bg for components */
-  --accentBgHover: color-mix(in srgb, var(--accent) 15%, var(--background));  /* Step 4: Hovered accent bg */
-  --accentBgActive: color-mix(in srgb, var(--accent) 20%, var(--background)); /* Step 5: Active accent bg */
-  --accentLine: color-mix(in srgb, var(--accent) 40%, var(--background));     /* Step 6: Subtle accent borders */
-  --accentBorder: var(--accent);                                        /* Step 7: Accent borders */
-  --accentBorderHover: var(--light-accent);                             /* Step 8: Hovered accent borders */
-  --accentSolid: var(--accent);                                         /* Step 9: Solid accent backgrounds */
-  --accentSolidHover: var(--light-accent);                              /* Step 10: Hovered solid accent */
-  --accentText: var(--accent);                                          /* Step 11: Accent text */
-  --accentTextContrast: var(--light-accent);                            /* Step 12: High-contrast accent text */
+  /* Accent colors - for interactive and active states (light mode) */
+  --accentBase: #F0EAE3;
+  --accentBgSubtle: color-mix(in srgb, #8b6f47 5%, #F0EAE3);
+  --accentBg: color-mix(in srgb, #8b6f47 10%, #F0EAE3);
+  --accentBgHover: color-mix(in srgb, #8b6f47 15%, #F0EAE3);
+  --accentBgActive: color-mix(in srgb, #8b6f47 20%, #F0EAE3);
+  --accentLine: color-mix(in srgb, #8b6f47 40%, #F0EAE3);
+  --accentBorder: #8b6f47;
+  --accentBorderHover: #c9a876;
+  --accentSolid: #8b6f47;
+  --accentSolidHover: #c9a876;
+  --accentText: #8b6f47;
+  --accentTextContrast: #c9a876;
 
   /* Typography */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   --font-mono: 'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
 
   /* Page background and text */
-  --basePageBg: var(--background);
-  background-color: var(--background);
-  color: var(--foreground);
+  --basePageBg: #F0EAE3;
+  background-color: #F0EAE3;
+  color: #3a3a3a;
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* Dark mode theme override */
+html[data-theme="dark"] .tome-editor {
+  /* Base colors - neutral grays and backgrounds (dark mode) */
+  --baseBase: #1f1c19;
+  --baseBgSubtle: #1f1c19;
+  --baseBg: #3d3935;
+  --baseBgHover: #4a4640;
+  --baseBgActive: #4a4640;
+  --baseLine: #4a4640;
+  --baseBorder: #4a4640;
+  --baseBorderHover: #e8dcc4;
+  --baseSolid: #e8dcc4;
+  --baseSolidHover: #e8dcc4;
+  --baseText: #e8dcc4;
+  --baseTextContrast: #e8dcc4;
+
+  /* Accent colors - for interactive and active states (dark mode) */
+  --accentBase: #1f1c19;
+  --accentBgSubtle: color-mix(in srgb, #a89968 5%, #1f1c19);
+  --accentBg: color-mix(in srgb, #a89968 10%, #1f1c19);
+  --accentBgHover: color-mix(in srgb, #a89968 15%, #1f1c19);
+  --accentBgActive: color-mix(in srgb, #a89968 20%, #1f1c19);
+  --accentLine: color-mix(in srgb, #a89968 40%, #1f1c19);
+  --accentBorder: #a89968;
+  --accentBorderHover: #c9a876;
+  --accentSolid: #a89968;
+  --accentSolidHover: #c9a876;
+  --accentText: #a89968;
+  --accentTextContrast: #c9a876;
+
+  /* Page background and text */
+  --basePageBg: #1f1c19;
+  background-color: #1f1c19;
+  color: #e8dcc4;
 }
 
 /* Additional toolbar fine-tuning for app aesthetic */
@@ -454,35 +490,60 @@ body:has(.w-md-editor-fullscreen) {
 
 /* Fix Radix Select dropdown (BlockTypeSelect "Paragraph" dropdown) */
 .mdxeditor-select-content {
-  background-color: var(--card-bg) !important;
-  border: 1px solid var(--border-color) !important;
+  background-color: #f5f1e8 !important;
+  border: 1px solid #d4cbbe !important;
   border-radius: 0.375rem;
   padding: 0.25rem;
 }
 
+html[data-theme="dark"] .mdxeditor-select-content {
+  background-color: #3d3935 !important;
+  border: 1px solid #4a4640 !important;
+}
+
 .mdxeditor-select-content [role="option"] {
-  color: var(--foreground) !important;
+  color: #3a3a3a !important;
   background-color: transparent !important;
   padding: 0.5rem 0.75rem;
   border-radius: 0.25rem;
   cursor: pointer;
 }
 
+html[data-theme="dark"] .mdxeditor-select-content [role="option"] {
+  color: #e8dcc4 !important;
+}
+
 .mdxeditor-select-content [role="option"]:hover,
 .mdxeditor-select-content [role="option"][data-highlighted] {
-  background-color: var(--border-color) !important;
-  color: var(--accent) !important;
+  background-color: #d4cbbe !important;
+  color: #8b6f47 !important;
+}
+
+html[data-theme="dark"] .mdxeditor-select-content [role="option"]:hover,
+html[data-theme="dark"] .mdxeditor-select-content [role="option"][data-highlighted] {
+  background-color: #4a4640 !important;
+  color: #a89968 !important;
 }
 
 .mdxeditor-select-content [role="option"][data-state="checked"] {
-  background-color: color-mix(in srgb, var(--accent) 10%, transparent) !important;
-  color: var(--accent) !important;
+  background-color: color-mix(in srgb, #8b6f47 10%, #F0EAE3) !important;
+  color: #8b6f47 !important;
+}
+
+html[data-theme="dark"] .mdxeditor-select-content [role="option"][data-state="checked"] {
+  background-color: color-mix(in srgb, #a89968 10%, #1f1c19) !important;
+  color: #a89968 !important;
 }
 
 /* Fix the dropdown trigger button */
 .mdxeditor-toolbar button[data-state="open"] {
-  background-color: var(--border-color) !important;
-  color: var(--accent) !important;
+  background-color: #d4cbbe !important;
+  color: #8b6f47 !important;
+}
+
+html[data-theme="dark"] .mdxeditor-toolbar button[data-state="open"] {
+  background-color: #4a4640 !important;
+  color: #a89968 !important;
 }
 
 /* Content area styling */
