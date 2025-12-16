@@ -469,10 +469,46 @@ html[data-theme="dark"] .tome-editor {
   padding: 0.5rem;
   gap: 0.25rem;
   background-color: #F0EAE3 !important;
+
+  /* Custom scrollbar styling for Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #d4cbbe #F0EAE3;
 }
 
 html[data-theme="dark"] .tome-editor .mdxeditor-toolbar {
   background-color: #1f1c19 !important;
+  scrollbar-color: #4a4640 #1f1c19;
+}
+
+/* Custom scrollbar styling for WebKit browsers (Chrome, Safari, Edge) */
+.tome-editor .mdxeditor-toolbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tome-editor .mdxeditor-toolbar::-webkit-scrollbar-track {
+  background: #F0EAE3;
+  border-radius: 4px;
+}
+
+.tome-editor .mdxeditor-toolbar::-webkit-scrollbar-thumb {
+  background: #d4cbbe;
+  border-radius: 4px;
+}
+
+.tome-editor .mdxeditor-toolbar::-webkit-scrollbar-thumb:hover {
+  background: #c9a876;
+}
+
+html[data-theme="dark"] .tome-editor .mdxeditor-toolbar::-webkit-scrollbar-track {
+  background: #1f1c19;
+}
+
+html[data-theme="dark"] .tome-editor .mdxeditor-toolbar::-webkit-scrollbar-thumb {
+  background: #4a4640;
+}
+
+html[data-theme="dark"] .tome-editor .mdxeditor-toolbar::-webkit-scrollbar-thumb:hover {
+  background: #a89968;
 }
 
 .tome-editor .mdxeditor-toolbar button {
@@ -592,7 +628,7 @@ html[data-theme="dark"] .tome-editor .mdxeditor-toolbar button[data-state="open"
 .mdxeditor-root-contenteditable {
   padding: 0 0.25rem !important;
   /* Set to 16px (1rem) to prevent mobile browser auto-zoom on focus
-     Mobile browsers (especially Safari) auto-zoom when focusing on 
+     Mobile browsers (especially Safari) auto-zoom when focusing on
      contenteditable/input elements with font-size < 16px */
   font-size: 1rem;
   line-height: 1.5;
@@ -604,11 +640,47 @@ html[data-theme="dark"] .tome-editor .mdxeditor-toolbar button[data-state="open"
   background-color: #F0EAE3 !important;
   color: #3a3a3a !important;
   position: relative !important;
+
+  /* Custom scrollbar styling for Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #d4cbbe #F0EAE3;
 }
 
 html[data-theme="dark"] .mdxeditor-root-contenteditable {
   background-color: #1f1c19 !important;
   color: #e8dcc4 !important;
+  scrollbar-color: #4a4640 #1f1c19;
+}
+
+/* Custom scrollbar styling for WebKit browsers (Chrome, Safari, Edge) */
+.mdxeditor-root-contenteditable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mdxeditor-root-contenteditable::-webkit-scrollbar-track {
+  background: #F0EAE3;
+  border-radius: 4px;
+}
+
+.mdxeditor-root-contenteditable::-webkit-scrollbar-thumb {
+  background: #d4cbbe;
+  border-radius: 4px;
+}
+
+.mdxeditor-root-contenteditable::-webkit-scrollbar-thumb:hover {
+  background: #c9a876;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable::-webkit-scrollbar-track {
+  background: #1f1c19;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable::-webkit-scrollbar-thumb {
+  background: #4a4640;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable::-webkit-scrollbar-thumb:hover {
+  background: #a89968;
 }
 
 /* Ensure all content wraps properly and inherits text color */
