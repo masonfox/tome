@@ -58,7 +58,7 @@ describe("GET /api/journal", () => {
 
       // Act: No query params
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should use defaults (timezone=America/New_York, limit=50, skip=0)
@@ -98,7 +98,7 @@ describe("GET /api/journal", () => {
 
       // Act: Request with limit=3
       const request = createMockRequest("GET", "/api/journal?limit=3");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should return limited results
@@ -137,7 +137,7 @@ describe("GET /api/journal", () => {
 
       // Act: Skip first 2
       const request = createMockRequest("GET", "/api/journal?skip=2&limit=2");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should skip first 2 and return next 2
@@ -174,7 +174,7 @@ describe("GET /api/journal", () => {
 
       // Act: Request with timezone
       const request = createMockRequest("GET", "/api/journal?timezone=America/Los_Angeles");
-      const response = await GET(request);
+      const response = await GET(request as any);
 
       // Assert: Should accept timezone parameter (currently unused but stored for future)
       expect(response.status).toBe(200);
@@ -183,7 +183,7 @@ describe("GET /api/journal", () => {
     test("should handle invalid limit gracefully", async () => {
       // Act: Invalid limit (negative)
       const request = createMockRequest("GET", "/api/journal?limit=-5");
-      const response = await GET(request);
+      const response = await GET(request as any);
 
       // Assert: Should still work (parseInt handles this)
       expect(response.status).toBe(200);
@@ -219,7 +219,7 @@ describe("GET /api/journal", () => {
 
       // Act
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should have correct structure
@@ -259,7 +259,7 @@ describe("GET /api/journal", () => {
 
       // Act
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: progressDate should be serialized as string
@@ -297,7 +297,7 @@ describe("GET /api/journal", () => {
 
       // Act
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Entry should have all required fields
@@ -367,7 +367,7 @@ describe("GET /api/journal", () => {
 
       // Act
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should have nested structure
@@ -385,7 +385,7 @@ describe("GET /api/journal", () => {
     test("should return empty array when no progress logs exist", async () => {
       // Act: No data in database
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert
@@ -425,7 +425,7 @@ describe("GET /api/journal", () => {
 
       // Act: Skip beyond total
       const request = createMockRequest("GET", "/api/journal?skip=10");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should return empty with correct metadata
@@ -440,7 +440,7 @@ describe("GET /api/journal", () => {
     test("should return 200 for successful request", async () => {
       // Act
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
 
       // Assert
       expect(response.status).toBe(200);
@@ -449,7 +449,7 @@ describe("GET /api/journal", () => {
     test("should return 200 even with no data", async () => {
       // Act: Empty database
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
 
       // Assert: Empty results are not an error
       expect(response.status).toBe(200);
@@ -485,7 +485,7 @@ describe("GET /api/journal", () => {
 
       // Act: limit=0 (should default to 50)
       const request = createMockRequest("GET", "/api/journal?limit=0");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should default to limit=50 (invalid limit should be corrected)
@@ -524,7 +524,7 @@ describe("GET /api/journal", () => {
 
       // Act: limit=1
       const request = createMockRequest("GET", "/api/journal?limit=1");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should return 1 entry
@@ -563,7 +563,7 @@ describe("GET /api/journal", () => {
 
       // Act: limit=100 (more than total)
       const request = createMockRequest("GET", "/api/journal?limit=100");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should return all entries
@@ -591,29 +591,29 @@ describe("GET /api/journal", () => {
         isActive: true,
       });
 
-      // 23:59:59 on Nov 15
+      // 23:59:59 on Nov 15 EST = Nov 16 04:59:59 UTC
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T23:59:59.000Z"),
+        progressDate: new Date("2024-11-16T04:59:59.000Z"),
       });
 
-      // 00:00:01 on Nov 16
+      // 00:00:01 on Nov 16 EST = Nov 16 05:00:01 UTC
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
         currentPage: 75,
         currentPercentage: 75,
         pagesRead: 25,
-        progressDate: new Date("2024-11-16T00:00:01.000Z"),
+        progressDate: new Date("2024-11-16T05:00:01.000Z"),
       });
 
       // Act
       const request = createMockRequest("GET", "/api/journal");
-      const response = await GET(request);
+      const response = await GET(request as any);
       const data = await response.json();
 
       // Assert: Should be grouped into separate dates

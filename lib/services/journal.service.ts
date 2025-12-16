@@ -3,6 +3,8 @@ import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { books } from "@/lib/db/schema/books";
 import { eq, desc, sql } from "drizzle-orm";
 import { buildArchiveHierarchy, type ArchiveNode } from "@/lib/utils/archive-builder";
+import { toZonedTime } from "date-fns-tz";
+import { format } from "date-fns";
 
 export interface JournalEntry {
   id: number;
@@ -34,11 +36,13 @@ export class JournalService {
    * Get all progress logs grouped by date and book
    * Returns entries in descending date order (most recent first)
    * 
-   * Note: Groups by the date portion of the ISO timestamp (YYYY-MM-DD),
-   * matching the behavior of formatDateOnly() which extracts the date part
-   * without timezone conversion.
+   * Date grouping respects the user's timezone:
+   * - Dates are stored in UTC in the database
+   * - Converted to user's timezone for grouping
+   * - Entry logged at 2024-12-16 23:30 JST → grouped as 2024-12-16
+   * - Same UTC time for NYC user → grouped as 2024-12-16 09:30 EST → 2024-12-16
    * 
-   * @param timezone - Timezone identifier (currently unused, kept for future use)
+   * @param timezone - IANA timezone identifier (e.g., "America/New_York", "Asia/Tokyo")
    * @param limit - Number of progress logs to fetch (default: 50)
    * @param skip - Number of progress logs to skip for pagination (default: 0)
    */
@@ -80,14 +84,14 @@ export class JournalService {
       .offset(skip)
       .all();
 
-    // Group by date and book
+    // Group by date and book (respecting user's timezone)
     const grouped = new Map<string, Map<number, JournalEntry[]>>();
 
     for (const entry of entries) {
-      // Extract date portion from ISO string (YYYY-MM-DD)
-      // This matches formatDateOnly behavior which doesn't do timezone conversion
-      const isoString = entry.progressDate.toISOString();
-      const dateKey = isoString.split('T')[0];
+      // Convert UTC date to user's timezone, then extract date portion
+      // This ensures entries are grouped by the user's local date
+      const dateInUserTz = toZonedTime(entry.progressDate, timezone);
+      const dateKey = format(dateInUserTz, 'yyyy-MM-dd');
 
       // Get or create date group
       if (!grouped.has(dateKey)) {
@@ -159,9 +163,10 @@ export class JournalService {
    * Get archive metadata (Year → Month → Week hierarchy with counts)
    * Used for archive navigation tree
    *
+   * @param timezone - IANA timezone identifier (e.g., "America/New_York", "Asia/Tokyo")
    * @returns Array of year nodes with nested month and week children
    */
-  async getArchiveMetadata(): Promise<ArchiveNode[]> {
+  async getArchiveMetadata(timezone: string = 'America/New_York'): Promise<ArchiveNode[]> {
     const db = getDatabase();
     
     // Fetch all progress log dates
@@ -193,7 +198,7 @@ export class JournalService {
     }
 
     // Build and return hierarchy
-    const hierarchy = buildArchiveHierarchy(dates);
+    const hierarchy = buildArchiveHierarchy(dates, timezone);
 
     // Debug: Log built hierarchy
     getLogger().debug({

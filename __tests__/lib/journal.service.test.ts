@@ -144,7 +144,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-01-31T23:00:00.000Z"),
+          progressDate: new Date("2024-01-31T22:00:00.000Z"), // Jan 31, 5pm EST
         });
 
         await progressRepository.create({
@@ -153,7 +153,7 @@ describe("JournalService", () => {
           currentPage: 100,
           currentPercentage: 100,
           pagesRead: 50,
-          progressDate: new Date("2024-02-01T01:00:00.000Z"),
+          progressDate: new Date("2024-02-01T06:00:00.000Z"), // Feb 1, 1am EST
         });
 
         // Act
@@ -188,7 +188,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2023-12-31T23:00:00.000Z"),
+          progressDate: new Date("2023-12-31T22:00:00.000Z"), // Dec 31, 5pm EST
         });
 
         await progressRepository.create({
@@ -197,7 +197,7 @@ describe("JournalService", () => {
           currentPage: 100,
           currentPercentage: 100,
           pagesRead: 50,
-          progressDate: new Date("2024-01-01T01:00:00.000Z"),
+          progressDate: new Date("2024-01-01T06:00:00.000Z"), // Jan 1, 1am EST
         });
 
         // Act
@@ -760,24 +760,24 @@ describe("JournalService", () => {
           isActive: true,
         });
 
-        // 23:59:59 on Nov 15
+        // 23:59:59 on Nov 15 EST = Nov 16 04:59:59 UTC
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-11-15T23:59:59.000Z"),
+          progressDate: new Date("2024-11-16T04:59:59.000Z"), // Nov 15, 11:59:59pm EST
         });
 
-        // 00:01:00 on Nov 16
+        // 00:01:00 on Nov 16 EST = Nov 16 05:01:00 UTC
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 25,
-          progressDate: new Date("2024-11-16T00:01:00.000Z"),
+          progressDate: new Date("2024-11-16T05:01:00.000Z"), // Nov 16, 12:01am EST
         });
 
         // Act

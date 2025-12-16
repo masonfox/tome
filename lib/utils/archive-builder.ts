@@ -1,4 +1,5 @@
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export interface ArchiveNode {
   id: string; // Unique identifier (e.g., "2024", "2024-11", "2024-11-W3")
@@ -14,16 +15,17 @@ export interface ArchiveNode {
 /**
  * Builds a hierarchical Year → Month → Week archive structure from an array of dates
  * @param dates Array of Date objects from progress logs
+ * @param timezone IANA timezone identifier (e.g., "America/New_York", "Asia/Tokyo")
  * @returns Array of year nodes with nested month and week children
  */
-export function buildArchiveHierarchy(dates: Date[]): ArchiveNode[] {
+export function buildArchiveHierarchy(dates: Date[], timezone: string = 'America/New_York'): ArchiveNode[] {
   const yearMap = new Map<string, Map<string, Date[]>>();
 
-  // Group dates by year → month using UTC to match journal grouping
+  // Group dates by year → month using user's timezone to match journal grouping
   for (const date of dates) {
-    // Extract date from ISO string to avoid timezone issues (same as journal.service.ts)
-    const isoString = date.toISOString();
-    const dateStr = isoString.split('T')[0]; // YYYY-MM-DD in UTC
+    // Convert UTC date to user's timezone, then extract date portion
+    const dateInUserTz = toZonedTime(date, timezone);
+    const dateStr = format(dateInUserTz, 'yyyy-MM-dd');
     const year = dateStr.substring(0, 4);
     const month = dateStr.substring(0, 7); // YYYY-MM
 
@@ -47,7 +49,7 @@ export function buildArchiveHierarchy(dates: Date[]): ArchiveNode[] {
 
     for (const [monthKey, monthDates] of Array.from(months.entries())) {
       // Group dates into weeks of month
-      const weekNodes = buildWeekNodes(monthDates, monthKey);
+      const weekNodes = buildWeekNodes(monthDates, monthKey, timezone);
 
       // Extract month number and create label directly to avoid timezone issues
       const monthNum = parseInt(monthKey.split("-")[1]);
@@ -93,9 +95,10 @@ export function buildArchiveHierarchy(dates: Date[]): ArchiveNode[] {
  * Week calculation: Week 1 = days 1-7, Week 2 = days 8-14, etc.
  * @param dates Array of dates within a single month
  * @param monthKey Month identifier (YYYY-MM)
+ * @param timezone IANA timezone identifier
  * @returns Array of week nodes sorted by week number
  */
-function buildWeekNodes(dates: Date[], monthKey: string): ArchiveNode[] {
+function buildWeekNodes(dates: Date[], monthKey: string, timezone: string): ArchiveNode[] {
   // Group by week of month (1-5)
   const weekMap = new Map<number, Date[]>();
 
@@ -106,9 +109,9 @@ function buildWeekNodes(dates: Date[], monthKey: string): ArchiveNode[] {
   const monthAbbr = monthAbbrs[monthNum - 1];
 
   for (const date of dates) {
-    // Extract date from ISO string to avoid timezone issues (same as journal.service.ts)
-    const isoString = date.toISOString();
-    const dateStr = isoString.split('T')[0]; // YYYY-MM-DD in UTC
+    // Convert UTC date to user's timezone, then extract date portion
+    const dateInUserTz = toZonedTime(date, timezone);
+    const dateStr = format(dateInUserTz, 'yyyy-MM-dd');
     const [year, month, dayStr] = dateStr.split("-");
     const day = parseInt(dayStr);
 
@@ -131,9 +134,11 @@ function buildWeekNodes(dates: Date[], monthKey: string): ArchiveNode[] {
   for (const [weekNum, weekDates] of Array.from(weekMap.entries())) {
     const sortedDates = weekDates.sort((a, b) => a.getTime() - b.getTime());
 
-    // Get actual first and last day from the data using UTC
-    const firstDateStr = sortedDates[0].toISOString().split('T')[0];
-    const lastDateStr = sortedDates[sortedDates.length - 1].toISOString().split('T')[0];
+    // Get actual first and last day from the data using user's timezone
+    const firstDateInUserTz = toZonedTime(sortedDates[0], timezone);
+    const lastDateInUserTz = toZonedTime(sortedDates[sortedDates.length - 1], timezone);
+    const firstDateStr = format(firstDateInUserTz, 'yyyy-MM-dd');
+    const lastDateStr = format(lastDateInUserTz, 'yyyy-MM-dd');
     const firstDay = parseInt(firstDateStr.split("-")[2]);
     const lastDay = parseInt(lastDateStr.split("-")[2]);
 

@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:tes
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET } from "@/app/api/journal/archive/route";
+import { createMockRequest } from "../../fixtures/test-data";
 
 /**
  * Journal Archive API Route Tests
@@ -55,7 +56,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Should have hierarchy structure
@@ -97,7 +98,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Year node should have all properties
@@ -164,7 +165,7 @@ describe("GET /api/journal/archive", () => {
       }
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Year count should be 5
@@ -213,7 +214,7 @@ describe("GET /api/journal/archive", () => {
       }
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Year should have 5, months should have 3 and 2
@@ -260,7 +261,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: 2024 should come before 2023
@@ -313,7 +314,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Nov, Mar, Jan
@@ -368,7 +369,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: W5, W3, W1
@@ -382,7 +383,7 @@ describe("GET /api/journal/archive", () => {
   describe("empty results", () => {
     test("should return empty array when no progress logs exist", async () => {
       // Act: No data in database
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert
@@ -420,7 +421,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
 
       // Assert
       expect(response.status).toBe(200);
@@ -428,7 +429,7 @@ describe("GET /api/journal/archive", () => {
 
     test("should return 200 even with no data", async () => {
       // Act: Empty database
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
 
       // Assert: Empty results are not an error
       expect(response.status).toBe(200);
@@ -472,7 +473,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Should create 2 separate years
@@ -508,7 +509,7 @@ describe("GET /api/journal/archive", () => {
       });
 
       // Act
-      const response = await GET();
+      const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
       const data = await response.json();
 
       // Assert: Should handle correctly
