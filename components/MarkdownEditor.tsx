@@ -10,7 +10,6 @@ import {
   markdownShortcutPlugin,
   linkPlugin,
   linkDialogPlugin,
-  tablePlugin,
   toolbarPlugin,
   MDXEditor,
   type MDXEditorMethods,
@@ -18,9 +17,9 @@ import {
   BoldItalicUnderlineToggles,
   BlockTypeSelect,
   CreateLink,
-  InsertTable,
   InsertThematicBreak,
   ListsToggle,
+  HighlightToggle,
   Separator,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
@@ -70,7 +69,6 @@ function InitializedMDXEditor({
           thematicBreakPlugin(),
           linkPlugin(),
           linkDialogPlugin(),
-          tablePlugin(),
           markdownShortcutPlugin(),
           // Toolbar with rich text controls
           toolbarPlugin({
@@ -80,13 +78,13 @@ function InitializedMDXEditor({
                 <Separator />
                 <BoldItalicUnderlineToggles />
                 <Separator />
+                <HighlightToggle />
+                <Separator />
                 <BlockTypeSelect />
                 <Separator />
                 <CreateLink />
                 <Separator />
-                <ListsToggle />
-                <Separator />
-                <InsertTable />
+                <ListsToggle options={['bullet', 'number']} />
                 <Separator />
                 <InsertThematicBreak />
               </>
