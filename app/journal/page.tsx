@@ -250,7 +250,7 @@ export default function JournalPage() {
                     <div className="flex-shrink-0 mx-auto xl:mx-0">
                       <div className="w-24 h-36 bg-[var(--background)] border border-[var(--border-color)] rounded overflow-hidden relative">
                         {/* Book spine effect */}
-                        <div className="absolute left-1 top-1 bottom-1 w-2 bg-gray-500 rounded" />
+                        <div className="absolute left-2 top-2 bottom-2 w-2 bg-[var(--border-color)] rounded" />
                       </div>
                     </div>
                     
