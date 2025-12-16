@@ -176,13 +176,18 @@ export default function BookDetailPage() {
 
     // Modal already handled the update, now refresh UI components
     // Await all refreshes to ensure state is fully synchronized before user can interact
-    await Promise.all([
-      refetchBook(),
-      bookProgressHook.refetchProgress(),
-    ]);
-    
-    // Force router refresh to update any server components
-    router.refresh();
+    try {
+      await Promise.all([
+        refetchBook(),
+        bookProgressHook.refetchProgress(),
+      ]);
+      
+      // Force router refresh to update any server components
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to refresh after page count update:", error);
+      toast.error("Failed to refresh data. Please reload the page.");
+    }
   }
   
   function handlePageCountModalClose() {
