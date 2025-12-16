@@ -556,8 +556,13 @@ html[data-theme="dark"] .mdxeditor-toolbar button[data-state="open"] {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: #F0EAE3;
+  color: #3a3a3a;
+}
+
+html[data-theme="dark"] .mdxeditor-root-contenteditable {
+  background-color: #1f1c19;
+  color: #e8dcc4;
 }
 
 /* Ensure all content wraps properly */
