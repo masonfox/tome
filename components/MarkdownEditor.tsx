@@ -1,7 +1,7 @@
 "use client";
 
 import type { ForwardedRef } from "react";
-import { forwardRef } from "react";
+import { forwardRef, useState, useEffect } from "react";
 import {
   headingsPlugin,
   listsPlugin,
@@ -20,9 +20,11 @@ import {
   InsertThematicBreak,
   ListsToggle,
   Separator,
+  ButtonWithTooltip,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 import dynamic from "next/dynamic";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 interface MarkdownEditorComponentProps {
   value: string;
@@ -34,6 +36,18 @@ interface MarkdownEditorComponentProps {
   editorRef?: ForwardedRef<MDXEditorMethods> | null;
 }
 
+// Fullscreen toggle button component
+function FullscreenButton({ isFullscreen, onToggle }: { isFullscreen: boolean; onToggle: () => void }) {
+  return (
+    <ButtonWithTooltip
+      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      onClick={onToggle}
+    >
+      {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+    </ButtonWithTooltip>
+  );
+}
+
 // Internal component with all plugins initialized
 function InitializedMDXEditor({
   value,
@@ -43,13 +57,42 @@ function InitializedMDXEditor({
   autoFocus = false,
   editorRef,
 }: MarkdownEditorComponentProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    if (isFullscreen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isFullscreen]);
+
   return (
     <div
+      className={isFullscreen ? 'tome-editor-fullscreen' : ''}
       style={{
-        height: `${height}px`,
+        height: isFullscreen ? '100vh' : `${height}px`,
         border: '1px solid var(--border-color)',
-        borderRadius: '0.5rem',
+        borderRadius: isFullscreen ? 0 : '0.5rem',
         overflow: 'hidden',
+        ...(isFullscreen && {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          backgroundColor: 'var(--background)',
+        }),
       }}
     >
       <MDXEditor
@@ -83,6 +126,11 @@ function InitializedMDXEditor({
                 <ListsToggle options={['bullet', 'number']} />
                 <Separator />
                 <InsertThematicBreak />
+                <Separator />
+                <FullscreenButton 
+                  isFullscreen={isFullscreen} 
+                  onToggle={() => setIsFullscreen(!isFullscreen)} 
+                />
               </>
             ),
           }),
