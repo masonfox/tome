@@ -590,7 +590,7 @@ html[data-theme="dark"] .tome-editor .mdxeditor-toolbar button[data-state="open"
 
 /* Content area styling */
 .mdxeditor-root-contenteditable {
-  padding: 0.5rem 1rem 1rem 1rem;
+  padding: 0 0.25rem !important;
   font-size: 0.875rem;
   line-height: 1.5;
   overflow-wrap: break-word;
@@ -614,6 +614,11 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable {
   overflow-wrap: break-word;
   word-wrap: break-word;
   color: inherit !important;
+}
+
+/* Remove top margin from first element to close gap between toolbar and content */
+.mdxeditor-root-contenteditable > :first-child {
+  margin-top: 0 !important;
 }
 
 /* Prose (ReactMarkdown) styling for rendered notes */
