@@ -389,7 +389,7 @@ body:has(.w-md-editor-fullscreen) {
   /* Base color palette - integrated with our theme */
   --baseBase: var(--background);
   --baseBgSubtle: var(--background);
-  --baseBg: var(--card-bg);
+  --baseBg: var(--background);
   --baseBgHover: var(--card-bg);
   --baseBgActive: var(--card-bg);
   --baseLine: var(--border-color);
@@ -401,8 +401,8 @@ body:has(.w-md-editor-fullscreen) {
   --baseTextContrast: var(--heading-text);
 
   /* Accent colors */
-  --accentBase: var(--card-bg);
-  --accentBgSubtle: var(--card-bg);
+  --accentBase: var(--background);
+  --accentBgSubtle: var(--background);
   --accentBg: var(--card-bg);
   --accentBgHover: var(--card-bg);
   --accentBgActive: var(--card-bg);
@@ -421,12 +421,16 @@ body:has(.w-md-editor-fullscreen) {
   /* Background */
   background-color: var(--background);
   color: var(--foreground);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Toolbar specific styling */
 .mdxeditor-toolbar {
   background-color: var(--background);
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 /* Content area styling */
@@ -436,6 +440,10 @@ body:has(.w-md-editor-fullscreen) {
   line-height: 1.5;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* Ensure all content wraps properly */

@@ -52,10 +52,7 @@ function InitializedMDXEditor({
         border: '1px solid var(--border-color)',
         borderRadius: '0.5rem',
         overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
       }}
-      className="mdx-editor-wrapper"
     >
       <MDXEditor
         markdown={value}
@@ -64,7 +61,6 @@ function InitializedMDXEditor({
         autoFocus={autoFocus}
         ref={editorRef}
         contentEditableClassName="prose prose-sm max-w-none"
-        className="mdx-editor-custom"
         plugins={[
           // Core formatting plugins for rich text experience
           headingsPlugin(),
