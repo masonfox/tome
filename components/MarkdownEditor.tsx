@@ -1,6 +1,7 @@
 "use client";
 
 import type { ForwardedRef } from "react";
+import { useState, useEffect } from "react";
 import {
   headingsPlugin,
   listsPlugin,
@@ -45,9 +46,30 @@ function InitializedMDXEditor({
   autoFocus = false,
   editorRef,
 }: MarkdownEditorComponentProps) {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    // Check initial theme
+    const theme = document.documentElement.getAttribute("data-theme");
+    setIsDark(theme === "dark");
+
+    // Listen for theme changes
+    const observer = new MutationObserver(() => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      setIsDark(theme === "dark");
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         height: `${height}px`,
         border: '1px solid var(--border-color)',
         borderRadius: '0.5rem',
@@ -60,6 +82,7 @@ function InitializedMDXEditor({
         placeholder={placeholder}
         autoFocus={autoFocus}
         ref={editorRef}
+        className={isDark ? "dark-theme" : ""}
         contentEditableClassName="prose prose-sm max-w-none"
         plugins={[
           // Core formatting plugins for rich text experience
