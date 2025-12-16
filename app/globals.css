@@ -591,7 +591,10 @@ html[data-theme="dark"] .tome-editor .mdxeditor-toolbar button[data-state="open"
 /* Content area styling */
 .mdxeditor-root-contenteditable {
   padding: 0 0.25rem !important;
-  font-size: 0.875rem;
+  /* Set to 16px (1rem) to prevent mobile browser auto-zoom on focus
+     Mobile browsers (especially Safari) auto-zoom when focusing on 
+     contenteditable/input elements with font-size < 16px */
+  font-size: 1rem;
   line-height: 1.5;
   overflow-wrap: break-word;
   word-wrap: break-word;
