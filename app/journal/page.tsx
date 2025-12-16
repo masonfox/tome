@@ -52,9 +52,13 @@ export default function JournalPage() {
   const [archiveLoading, setArchiveLoading] = useState(true);
   const [currentVisibleDate, setCurrentVisibleDate] = useState<string | null>(null);
   const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [navigating, setNavigating] = useState(false);
 
   // Ref to track current entries for archive navigation
   const entriesRef = useRef<GroupedJournalEntry[]>([]);
+  // Ref to prevent concurrent loadMore calls (race condition fix)
+  const isLoadingRef = useRef(false);
 
   const LIMIT = 50;
 
@@ -66,7 +70,9 @@ export default function JournalPage() {
         setLoading(true);
       }
       
-      // TODO: Get timezone from user settings/detect from browser
+      setError(null); // Clear previous errors
+      
+      // Get timezone from browser (TODO: allow user to override in settings)
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const response = await fetch(
         `/api/journal?timezone=${encodeURIComponent(timezone)}&limit=${LIMIT}&skip=${skipCount}`
@@ -106,6 +112,9 @@ export default function JournalPage() {
     } catch (error) {
       const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error fetching journal entries");
+      
+      // User-facing error message
+      setError("Failed to load journal entries. Please try again.");
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -142,15 +151,23 @@ export default function JournalPage() {
   }, [entries]);
 
   const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore) return;
+    // Race condition fix: use ref to prevent concurrent calls
+    if (isLoadingRef.current || loadingMore || !hasMore) return;
     
+    isLoadingRef.current = true; // Immediate lock
     const newSkip = skip + LIMIT;
     setSkip(newSkip);
-    fetchJournalEntries(newSkip, true);
+    
+    fetchJournalEntries(newSkip, true).finally(() => {
+      isLoadingRef.current = false; // Release lock
+    });
   }, [skip, loadingMore, hasMore, fetchJournalEntries]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
+    const currentTarget = observerTarget.current;
+    if (!currentTarget) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
@@ -160,83 +177,92 @@ export default function JournalPage() {
       { threshold: 0.1 }
     );
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
+    observer.observe(currentTarget);
 
-    return () => observer.disconnect();
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget); // Explicitly unobserve (memory leak fix)
+      }
+      observer.disconnect();
+    };
   }, [loadMore, hasMore, loading, loadingMore]);
 
   // Archive navigation handler
   const handleArchiveNavigate = useCallback(async (dateKey: string) => {
     const { getLogger } = require("@/lib/logger");
 
-    // Check if we need to load more entries (use ref for current value)
-    let matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
+    try {
+      setNavigating(true); // Show loading indicator
 
-    // If not found and we have more entries, keep loading
-    if (!matchingEntry && hasMore) {
-      getLogger().debug({ dateKey, currentEntries: entriesRef.current.length }, "Date not loaded, fetching more entries");
+      // Check if we need to load more entries (use ref for current value)
+      let matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
 
-      // Keep loading until we find the date or run out of entries
-      let attempts = 0;
-      const maxAttempts = 20; // Prevent infinite loops
-      let currentSkip = skip;
+      // If not found and we have more entries, keep loading
+      if (!matchingEntry && hasMore) {
+        getLogger().debug({ dateKey, currentEntries: entriesRef.current.length }, "Date not loaded, fetching more entries");
 
-      while (!matchingEntry && attempts < maxAttempts) {
-        attempts++;
+        // Keep loading until we find the date or run out of entries
+        let attempts = 0;
+        const maxAttempts = 20; // Prevent infinite loops
+        let currentSkip = skip;
 
-        // Load next batch
-        const newSkip = currentSkip + LIMIT;
-        await fetchJournalEntries(newSkip, true);
-        currentSkip = newSkip;
+        while (!matchingEntry && attempts < maxAttempts) {
+          attempts++;
 
-        // Wait for state to update
-        await new Promise(resolve => setTimeout(resolve, 200));
+          // Load next batch
+          const newSkip = currentSkip + LIMIT;
+          await fetchJournalEntries(newSkip, true);
+          currentSkip = newSkip;
 
-        // Check again with updated entries (from ref)
-        matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
+          // Wait for state to update
+          await new Promise(resolve => setTimeout(resolve, 200));
 
-        getLogger().debug({
-          dateKey,
-          attempt: attempts,
-          totalEntries: entriesRef.current.length,
-          found: !!matchingEntry
-        }, "Loading more entries");
+          // Check again with updated entries (from ref)
+          matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
 
-        // Check if we've loaded everything
-        if (entriesRef.current.length >= total || !hasMore) {
-          break;
+          getLogger().debug({
+            dateKey,
+            attempt: attempts,
+            totalEntries: entriesRef.current.length,
+            found: !!matchingEntry
+          }, "Loading more entries");
+
+          // Check if we've loaded everything
+          if (entriesRef.current.length >= total || !hasMore) {
+            break;
+          }
         }
       }
-    }
 
-    if (!matchingEntry) {
-      getLogger().warn({ dateKey, totalEntries: entriesRef.current.length }, "Date not found after loading all entries");
-      return;
-    }
+      if (!matchingEntry) {
+        getLogger().warn({ dateKey, totalEntries: entriesRef.current.length }, "Date not found after loading all entries");
+        return;
+      }
 
-    getLogger().debug({ dateKey, matchedDate: matchingEntry.date }, "Found matching entry");
+      getLogger().debug({ dateKey, matchedDate: matchingEntry.date }, "Found matching entry");
 
-    // Auto-expand the section if it's collapsed BEFORE scrolling
-    if (collapsedDates.has(matchingEntry.date)) {
-      setCollapsedDates(prev => {
-        const next = new Set(prev);
-        next.delete(matchingEntry.date);
-        return next;
-      });
+      // Auto-expand the section if it's collapsed BEFORE scrolling
+      if (collapsedDates.has(matchingEntry.date)) {
+        setCollapsedDates(prev => {
+          const next = new Set(prev);
+          next.delete(matchingEntry.date);
+          return next;
+        });
 
-      // Wait a bit for the expand animation to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+        // Wait a bit for the expand animation to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
-    // Find the date section to scroll to using the actual date from the matching entry
-    const element = document.querySelector(`[data-date-key="${matchingEntry.date}"]`);
-    if (element) {
-      getLogger().debug({ matchedDate: matchingEntry.date }, "Scrolling to element");
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      getLogger().warn({ dateKey, matchedDate: matchingEntry.date }, "Element not found in DOM");
+      // Find the date section to scroll to using the actual date from the matching entry
+      const element = document.querySelector(`[data-date-key="${matchingEntry.date}"]`);
+      if (element) {
+        getLogger().debug({ matchedDate: matchingEntry.date }, "Scrolling to element");
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        getLogger().warn({ dateKey, matchedDate: matchingEntry.date }, "Element not found in DOM");
+      }
+    } finally {
+      setNavigating(false); // Hide loading indicator
     }
   }, [collapsedDates, hasMore, skip, total, LIMIT, fetchJournalEntries]);
 
@@ -379,6 +405,31 @@ export default function JournalPage() {
         subtitle="Your reading progress across all books"
         icon={BookOpen}
       />
+
+      {/* Error message with retry */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800">{error}</p>
+          <button 
+            onClick={() => fetchJournalEntries(skip, entries.length > 0)}
+            className="mt-2 text-red-600 underline hover:text-red-800"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Archive navigation loading overlay */}
+      {navigating && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[var(--foreground)]">Loading journal entries...</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="xl:grid xl:grid-cols-[1fr_280px] xl:gap-6">
         {/* Main Journal Content */}
