@@ -55,7 +55,6 @@ function InitializedMDXEditor({
       <MDXEditor
         markdown={value}
         onChange={onChange}
-        placeholder={placeholder}
         autoFocus={autoFocus}
         ref={editorRef}
         className="tome-editor"
