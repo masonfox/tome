@@ -164,6 +164,7 @@ export default function BookProgress({
               </label>
               <div>
                 <MarkdownEditor
+                  key={notes || 'empty'}
                   value={notes}
                   onChange={onNotesChange}
                   placeholder="Add notes about your reading session..."
