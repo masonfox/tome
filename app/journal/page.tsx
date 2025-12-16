@@ -412,7 +412,10 @@ export default function JournalPage() {
                   <ChevronRight className="w-5 h-5" />
                 </span>
                 <Calendar className="w-5 h-5" />
-                <h2>{format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}</h2>
+                <h2>
+                  {format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}
+                  <span className="text-[var(--subheading-text)]"> ({format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'EEE')})</span>
+                </h2>
               </button>
 
               {/* Books for this day */}
