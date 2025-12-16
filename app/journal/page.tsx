@@ -79,7 +79,24 @@ export default function JournalPage() {
       const data = await response.json();
       
       if (append) {
-        setEntries((prev) => [...prev, ...data.entries]);
+        setEntries((prev) => {
+          // Create a map to deduplicate entries by date
+          const entriesMap = new Map<string, GroupedJournalEntry>();
+          
+          // Add existing entries
+          prev.forEach(entry => {
+            entriesMap.set(entry.date, entry);
+          });
+          
+          // Add new entries (will overwrite if date already exists, but shouldn't in normal operation)
+          data.entries.forEach((entry: GroupedJournalEntry) => {
+            if (!entriesMap.has(entry.date)) {
+              entriesMap.set(entry.date, entry);
+            }
+          });
+          
+          return Array.from(entriesMap.values());
+        });
       } else {
         setEntries(data.entries);
       }
