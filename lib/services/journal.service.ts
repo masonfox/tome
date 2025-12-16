@@ -1,4 +1,4 @@
-import { db } from "@/lib/db/sqlite";
+import { getDatabase } from "@/lib/db/context";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { books } from "@/lib/db/schema/books";
 import { eq, desc, sql } from "drizzle-orm";
@@ -47,6 +47,8 @@ export class JournalService {
     limit: number = 50,
     skip: number = 0
   ): Promise<{ entries: GroupedJournalEntry[]; total: number; hasMore: boolean }> {
+    const db = getDatabase();
+    
     // Get total count first
     const totalResult = await db
       .select({ count: sql<number>`count(*)` })
@@ -160,6 +162,8 @@ export class JournalService {
    * @returns Array of year nodes with nested month and week children
    */
   async getArchiveMetadata(): Promise<ArchiveNode[]> {
+    const db = getDatabase();
+    
     // Fetch all progress log dates
     // We only need the dates, not the full entry details
     const entries = await db
