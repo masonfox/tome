@@ -174,9 +174,14 @@ export default function BookDetailPage() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
 
-    // Modal already handled the update, just refresh UI
-    await refetchBook();
-    bookProgressHook.refetchProgress();
+    // Modal already handled the update, now refresh UI components
+    // Await all refreshes to ensure state is fully synchronized before user can interact
+    await Promise.all([
+      refetchBook(),
+      bookProgressHook.refetchProgress(),
+    ]);
+    
+    // Force router refresh to update any server components
     router.refresh();
   }
   
