@@ -74,13 +74,13 @@ export function JournalEntryList({
           {emptyMessage}
         </p>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {sortedDates.map((dateKey) => {
             const dateEntries = groupedByDate[dateKey];
             const isCollapsed = collapsedDates.has(dateKey);
 
             return (
-              <div key={dateKey} className={isCollapsed ? "mb-4" : "mb-8"}>
+              <div key={dateKey}>
                 {/* Date Header - Clickable */}
                 <button
                   onClick={() => toggleDate(dateKey)}
@@ -97,14 +97,8 @@ export function JournalEntryList({
                 </button>
 
                 {/* Entries for this date */}
-                <div 
-                  className="overflow-hidden transition-all duration-300 ease-in-out ml-2 md:ml-6"
-                  style={{
-                    maxHeight: isCollapsed ? '0px' : '10000px',
-                    opacity: isCollapsed ? 0 : 1,
-                  }}
-                >
-                  <div className="space-y-6">
+                {!isCollapsed && (
+                  <div className="ml-2 md:ml-6 space-y-6">
                     {dateEntries.map((entry, index) => (
                       <JournalEntryCard
                         key={entry.id}
@@ -115,7 +109,7 @@ export function JournalEntryList({
                       />
                     ))}
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
