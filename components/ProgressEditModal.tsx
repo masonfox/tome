@@ -10,6 +10,7 @@ import dynamic from "next/dynamic";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import ReactMarkdown from "react-markdown";
+import type { MDXEditorMethods } from "@mdxeditor/editor";
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -53,6 +54,9 @@ export default function ProgressEditModal({
 
   // Track whether we've already restored the draft for this modal session
   const hasRestoredDraft = useRef(false);
+  
+  // Ref for MDXEditor to programmatically update content
+  const editorRef = useRef<MDXEditorMethods>(null);
 
   // Draft management for notes field
   const {
@@ -67,10 +71,17 @@ export default function ProgressEditModal({
     if (isOpen) {
       setCurrentPage(currentProgress.currentPage.toString());
       setCurrentPercentage(currentProgress.currentPercentage.toString());
-      setNotes(currentProgress.notes || "");
+      const notesValue = currentProgress.notes || "";
+      setNotes(notesValue);
       setProgressDate(currentProgress.progressDate.split("T")[0]);
       setShowDeleteConfirm(false);
       hasRestoredDraft.current = false; // Reset draft restoration flag
+      
+      // Programmatically set the editor content using setMarkdown
+      // This is necessary because MDXEditor's markdown prop only sets initial value
+      if (editorRef.current) {
+        editorRef.current.setMarkdown(notesValue);
+      }
       
       // Load saved progress input mode preference
       if (typeof window !== "undefined") {
@@ -345,6 +356,7 @@ export default function ProgressEditModal({
           </label>
           <div>
             <MarkdownEditor
+              ref={editorRef}
               value={notes}
               onChange={setNotes}
               placeholder="Add notes about this reading session..."
