@@ -131,16 +131,48 @@ mock.module("lucide-react", () => ({
   Minimize2: MockMinimize2,
 }));
 
-// Mock next/dynamic - just pass through the component
+// Mock next/dynamic - return the mock component directly
 mock.module("next/dynamic", () => ({
-  default: (importFn: any) => {
-    // For testing, resolve the import immediately and return the component
-    return forwardRef((props: any, ref: any) => {
-      // Use the mock MarkdownEditor directly
-      const module = require("../../__mocks__/components/MarkdownEditor");
-      const Component = module.default;
-      return <Component {...props} ref={ref} />;
-    });
+  default: () => {
+    // Import the mock at the top level
+    const MockMarkdownEditor = forwardRef<any, any>(
+      ({ value, onChange, placeholder, height, id, autoFocus, editorRef }: any, ref: any) => {
+        const [internalValue, setInternalValue] = useState(value);
+
+        // Forward the ref or editorRef (the component uses editorRef)
+        const actualRef = editorRef || ref;
+
+        useImperativeHandle(actualRef, () => ({
+          setMarkdown: (markdown: string) => {
+            setInternalValue(markdown);
+            onChange(markdown);
+          },
+          getMarkdown: () => internalValue,
+          focus: () => {},
+          insertMarkdown: () => {},
+          getContentEditableHTML: () => internalValue,
+          getSelectionMarkdown: () => "",
+        }));
+
+        return (
+          <div data-testid="markdown-editor-mock">
+            <textarea
+              value={internalValue}
+              onChange={(e) => {
+                setInternalValue(e.target.value);
+                onChange(e.target.value);
+              }}
+              placeholder={placeholder}
+              id={id}
+              autoFocus={autoFocus}
+              style={height !== undefined ? { height: `${height}px` } : undefined}
+            />
+          </div>
+        );
+      }
+    );
+
+    return MockMarkdownEditor;
   },
 }));
 
