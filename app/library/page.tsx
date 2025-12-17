@@ -116,10 +116,10 @@ function LibraryPageContent() {
     sessionStorage.removeItem('library-filters');
   }, []);
 
-  // Helper function to compare arrays for equality
+  // Helper function to compare arrays for equality (order-independent for tags)
   const arraysEqual = useCallback((a: string[] | undefined, b: string[] | undefined): boolean => {
-    const arrA = a || [];
-    const arrB = b || [];
+    const arrA = (a || []).sort();
+    const arrB = (b || []).sort();
     if (arrA.length !== arrB.length) return false;
     return arrA.every((val, index) => val === arrB[index]);
   }, []);
@@ -201,8 +201,7 @@ function LibraryPageContent() {
 
   // Load more books if we need to restore scroll position
   useEffect(() => {
-    if (!restoringScrollState || !targetBooksCount) return;
-    if (loading || loadingMore) return;
+    if (!restoringScrollState || !targetBooksCount || loading || loadingMore) return;
     
     // If we have fewer books than target and can load more, do it
     if (books.length < targetBooksCount && hasMore) {
@@ -228,7 +227,7 @@ function LibraryPageContent() {
       setTimeout(() => {
         window.scrollTo({
           top: targetScrollPosition,
-          behavior: 'instant' as ScrollBehavior,
+          behavior: 'instant',
         });
       }, SCROLL_RESTORE_DELAY_MS);
       
