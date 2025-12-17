@@ -14,6 +14,7 @@ import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
+import { getLogger } from "@/lib/logger";
 
 import BookProgress from "@/components/BookDetail/BookProgress";
 import Journal from "@/components/BookDetail/Journal";
@@ -25,6 +26,8 @@ import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
 import { toast } from "@/utils/toast";
+
+const logger = getLogger().child({ component: "BookDetailPage" });
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -110,7 +113,7 @@ export default function BookDetailPage() {
   // Refs for dropdowns and MDXEditor
   const dropdownRef = useRef<HTMLDivElement>(null);
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<MDXEditorMethods>(null);
+  const editorRef = useRef<MDXEditorMethods | null>(null);
 
   // Centralized refresh handler
   function handleRefresh() {
@@ -126,7 +129,12 @@ export default function BookDetailPage() {
     if (success) {
       clearDraft();
       // Reset MDXEditor using the documented setMarkdown method
-      editorRef.current?.setMarkdown("");
+      try {
+        editorRef.current?.setMarkdown("");
+      } catch (error) {
+        logger.error({ error }, "Failed to reset editor");
+        // Editor reset failed but form submission succeeded, so just log the error
+      }
     }
   }
 
@@ -390,7 +398,6 @@ export default function BookDetailPage() {
                   setShowProgressModeDropdown={setShowProgressModeDropdown}
                   progressModeDropdownRef={progressModeDropdownRef}
                   onEditorReady={(methods) => {
-                    // @ts-ignore - editorRef.current is readonly but we need to set it
                     if (methods) editorRef.current = methods;
                   }}
                 />

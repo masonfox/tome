@@ -756,4 +756,9 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable ol li::marker {
   color: var(--foreground) !important;
 }
 
+.prose u {
+  color: var(--foreground) !important;
+  text-decoration: underline;
+  text-decoration-color: var(--foreground);
+}
 

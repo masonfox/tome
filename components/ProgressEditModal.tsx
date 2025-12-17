@@ -6,13 +6,17 @@ import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
-import dynamic from "next/dynamic";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
+import { getLogger } from "@/lib/logger";
+import { markdownSanitizeSchema } from "@/lib/utils/markdown-sanitize-schema";
+
+const logger = getLogger().child({ component: "ProgressEditModal" });
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -82,7 +86,13 @@ export default function ProgressEditModal({
       // Programmatically set the editor content using setMarkdown
       // This is necessary because MDXEditor's markdown prop only sets initial value
       if (editorRef.current) {
-        editorRef.current.setMarkdown(notesValue);
+        try {
+          editorRef.current.setMarkdown(notesValue);
+        } catch (error) {
+          logger.error({ error }, "Failed to set editor content");
+          // Fall back to state update if setMarkdown fails
+          setNotes(notesValue);
+        }
       }
       
       // Load saved progress input mode preference
@@ -196,7 +206,7 @@ export default function ProgressEditModal({
                 <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
                 <div className="text-sm mt-1 prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown 
-                    rehypePlugins={[rehypeRaw]}
+                    rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
                     remarkPlugins={[remarkGfm]}
                   >
                     {currentProgress.notes}

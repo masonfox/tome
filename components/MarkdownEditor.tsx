@@ -10,6 +10,7 @@ import {
   markdownShortcutPlugin,
   linkPlugin,
   linkDialogPlugin,
+  directivesPlugin,
   toolbarPlugin,
   MDXEditor,
   type MDXEditorMethods,
@@ -110,6 +111,7 @@ function InitializedMDXEditor({
           linkPlugin(),
           linkDialogPlugin(),
           markdownShortcutPlugin(),
+          directivesPlugin(),
           // Toolbar with rich text controls
           toolbarPlugin({
             toolbarContents: () => (

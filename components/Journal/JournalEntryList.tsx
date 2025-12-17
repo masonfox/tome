@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Calendar, ChevronRight, Pencil, FileText, Plus, TrendingUp } from "lucide-react";
 import { format, parse } from "date-fns";
-import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
+import { markdownSanitizeSchema } from "@/lib/utils/markdown-sanitize-schema";
 
 export interface JournalEntry {
   id: number;
@@ -199,7 +200,7 @@ export function JournalEntryCard({ entry, index, totalEntries, onEdit }: Journal
       {entry.notes && (
         <div className="text-sm prose prose-sm dark:prose-invert max-w-none">
           <ReactMarkdown 
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
             remarkPlugins={[remarkGfm]}
           >
             {entry.notes}

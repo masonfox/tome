@@ -5,10 +5,11 @@ import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import { toast } from "@/utils/toast";
 import { formatDateOnly } from "@/utils/dateFormatting";
-import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
+import { markdownSanitizeSchema } from "@/lib/utils/markdown-sanitize-schema";
 
 interface ReadingSession {
   id: number;
@@ -201,7 +202,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 </p>
                 <div className="text-sm prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown 
-                    rehypePlugins={[rehypeRaw]}
+                    rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
                     remarkPlugins={[remarkGfm]}
                   >
                     {session.review}
