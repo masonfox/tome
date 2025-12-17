@@ -18,6 +18,16 @@ function LibraryPageContent() {
   const [loadingTags, setLoadingTags] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const observerTarget = useRef<HTMLDivElement>(null);
+  const [restoringScrollState, setRestoringScrollState] = useState(false);
+  const [targetBooksCount, setTargetBooksCount] = useState<number | null>(null);
+  const [targetScrollPosition, setTargetScrollPosition] = useState<number | null>(null);
+
+  // Disable browser's automatic scroll restoration
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
 
   // Parse initial filters from URL params
   useEffect(() => {
@@ -106,6 +116,168 @@ function LibraryPageContent() {
     };
   }, [books.length, filters, total]);
 
+  // Helper function to clear saved scroll state from sessionStorage
+  const clearSavedScrollState = useCallback(() => {
+    sessionStorage.removeItem('library-scroll-position');
+    sessionStorage.removeItem('library-books-count');
+    sessionStorage.removeItem('library-filters');
+    sessionStorage.removeItem('library-last-visit');
+    sessionStorage.removeItem('library-scroll-restored');
+  }, []);
+
+  // Helper function to compare arrays for equality (order-independent for tags)
+  const arraysEqual = useCallback((a: string[] | undefined, b: string[] | undefined): boolean => {
+    const arrA = (a || []).sort();
+    const arrB = (b || []).sort();
+    if (arrA.length !== arrB.length) return false;
+    return arrA.every((val, index) => val === arrB[index]);
+  }, []);
+
+  // Check for saved scroll state on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const savedScrollPosition = sessionStorage.getItem('library-scroll-position');
+    const savedBooksCount = sessionStorage.getItem('library-books-count');
+    const savedFilters = sessionStorage.getItem('library-filters');
+    const savedTimestamp = sessionStorage.getItem('library-last-visit');
+    const restoredFlag = sessionStorage.getItem('library-scroll-restored');
+
+    // If there's no saved state, nothing to restore
+    if (!savedScrollPosition || !savedBooksCount || !savedFilters) {
+      return;
+    }
+
+    // If we've already restored once, this is a reload - clear everything
+    if (restoredFlag === 'true') {
+      clearSavedScrollState();
+      sessionStorage.removeItem('library-scroll-restored');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
+
+    // Validate timestamp - only restore if navigation happened recently
+    if (savedScrollPosition && savedBooksCount && savedFilters) {
+      // Validate timestamp - only restore if navigation happened within 5 minutes
+      const MAX_RESTORE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+      if (savedTimestamp) {
+        const timeSinceLastVisit = Date.now() - parseInt(savedTimestamp, 10);
+        if (timeSinceLastVisit > MAX_RESTORE_TIME_MS) {
+          clearSavedScrollState();
+          return;
+        }
+      }
+      try {
+        const parsedSavedFilters = JSON.parse(savedFilters);
+        
+        // Check if filters match current filters
+        const currentTags = searchParams?.get("tags")?.split(",").filter(Boolean) || [];
+        const savedTags = parsedSavedFilters.tags || [];
+        
+        const filtersMatch = 
+          parsedSavedFilters.search === (searchParams?.get("search") || undefined) &&
+          parsedSavedFilters.status === (searchParams?.get("status") || undefined) &&
+          arraysEqual(currentTags, savedTags) &&
+          parsedSavedFilters.rating === (searchParams?.get("rating") || undefined);
+        
+        if (filtersMatch) {
+          setTargetBooksCount(parseInt(savedBooksCount, 10));
+          setTargetScrollPosition(parseInt(savedScrollPosition, 10));
+          setRestoringScrollState(true);
+        } else {
+          // Filters don't match, clear saved state
+          clearSavedScrollState();
+        }
+      } catch (e) {
+        // Invalid saved data, clear it
+        clearSavedScrollState();
+      }
+    }
+  }, [searchParams, arraysEqual, clearSavedScrollState]);
+
+  // Save scroll position and books count when navigating away
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const saveScrollState = () => {
+      const scrollY = window.scrollY;
+      const booksCount = books.length;
+      
+      sessionStorage.setItem('library-scroll-position', scrollY.toString());
+      sessionStorage.setItem('library-books-count', booksCount.toString());
+      
+      // Save current filters to ensure we restore in the same context
+      sessionStorage.setItem('library-filters', JSON.stringify({
+        search: filters.search,
+        status: filters.status,
+        tags: filters.tags,
+        rating: filters.rating,
+      }));
+    };
+
+    // Save state on clicks within the book grid
+    const handleClick = (e: MouseEvent) => {
+      // Check if we're clicking on a link to a book detail page
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href^="/books/"]');
+
+      if (link) {
+        saveScrollState();
+        // Save timestamp for navigation type validation
+        sessionStorage.setItem('library-last-visit', Date.now().toString());
+        // Clear restored flag so the next back navigation can restore
+        sessionStorage.removeItem('library-scroll-restored');
+      }
+    };
+
+    document.addEventListener('click', handleClick);
+    
+    return () => {
+      document.removeEventListener('click', handleClick);
+    };
+  }, [books.length, filters]);
+
+  // Load more books if we need to restore scroll position
+  useEffect(() => {
+    if (!restoringScrollState || !targetBooksCount || loading || loadingMore) return;
+    
+    // If we have fewer books than target and can load more, do it
+    if (books.length < targetBooksCount && hasMore) {
+      loadMore();
+    }
+  }, [restoringScrollState, targetBooksCount, books.length, hasMore, loading, loadingMore, loadMore]);
+
+  // Restore scroll position when we have enough books
+  useEffect(() => {
+    if (!restoringScrollState || !targetScrollPosition) return;
+    if (!targetBooksCount) return;
+    if (loading) return;
+    
+    // Check if we have enough books or can't load more
+    const hasEnoughBooks = books.length >= targetBooksCount;
+    const cantLoadMore = !hasMore;
+    
+    if (hasEnoughBooks || cantLoadMore) {
+      // Use double requestAnimationFrame to ensure DOM is fully painted before scrolling
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: targetScrollPosition,
+            behavior: 'instant',
+          });
+
+          // Mark as restored so subsequent page loads don't restore again
+          sessionStorage.setItem('library-scroll-restored', 'true');
+
+          // Clean up restoration state
+          setRestoringScrollState(false);
+          setTargetBooksCount(null);
+          setTargetScrollPosition(null);
+        });
+      });
+    }
+  }, [restoringScrollState, targetScrollPosition, targetBooksCount, books.length, hasMore, loading, clearSavedScrollState]);
+
   // Create wrapped setters that also update URL
   const handleStatusChange = useCallback((status: string | undefined) => {
     setStatus(status);
@@ -184,6 +356,9 @@ function LibraryPageContent() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        // Skip if we're restoring scroll position to avoid interference
+        if (restoringScrollState) return;
+
         if (entries[0].isIntersecting && hasMore && !loading) {
           loadMore();
         }
@@ -196,7 +371,7 @@ function LibraryPageContent() {
     }
 
     return () => observer.disconnect();
-  }, [loadMore, hasMore, loading]);
+  }, [loadMore, hasMore, loading, restoringScrollState]);
 
   async function handleSync() {
     setSyncing(true);
