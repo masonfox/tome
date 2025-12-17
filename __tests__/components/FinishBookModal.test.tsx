@@ -3,17 +3,11 @@ import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/re
 import "@testing-library/jest-dom";
 import FinishBookModal from "@/components/FinishBookModal";
 
-// Mock MarkdownEditor component
+// Use shared mock to avoid conflicts with other test files
+import { MarkdownEditorMock } from "../mocks/createMarkdownEditorMock";
+
 mock.module("@/components/MarkdownEditor", () => ({
-  default: ({ value, onChange, placeholder, id }: any) => (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      id={id}
-      data-testid="markdown-editor"
-    />
-  ),
+  default: MarkdownEditorMock
 }));
 
 // Mock lucide-react icons
