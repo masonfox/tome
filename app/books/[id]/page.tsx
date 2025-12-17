@@ -13,6 +13,7 @@ import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
+import { getLogger } from "@/lib/logger";
 
 import BookProgress from "@/components/BookDetail/BookProgress";
 import Journal from "@/components/BookDetail/Journal";
@@ -24,6 +25,8 @@ import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
 import { toast } from "@/utils/toast";
+
+const logger = getLogger();
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -174,10 +177,20 @@ export default function BookDetailPage() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
 
-    // Modal already handled the update, just refresh UI
-    await refetchBook();
-    bookProgressHook.refetchProgress();
-    router.refresh();
+    // Modal already handled the update, now refresh UI components
+    // Await all refreshes to ensure state is fully synchronized before user can interact
+    try {
+      await Promise.all([
+        refetchBook(),
+        bookProgressHook.refetchProgress(),
+      ]);
+      
+      // Force router refresh to update any server components
+      router.refresh();
+    } catch (error) {
+      logger.error({ error }, "Failed to refresh after page count update");
+      toast.error("Failed to refresh data. Please reload the page.");
+    }
   }
   
   function handlePageCountModalClose() {
