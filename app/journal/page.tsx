@@ -422,7 +422,7 @@ export default function JournalPage() {
       {/* Archive navigation loading overlay */}
       {navigating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+          <div className="bg-[var(--card-bg)] rounded-lg p-6 shadow-xl">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-[var(--foreground)]">Loading journal entries...</p>
