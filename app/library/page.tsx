@@ -7,6 +7,7 @@ import { libraryService } from "@/lib/library-service";
 import { LibraryHeader } from "@/components/LibraryHeader";
 import { LibraryFilters } from "@/components/LibraryFilters";
 import { BookGrid } from "@/components/BookGrid";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
@@ -271,6 +272,9 @@ function LibraryPageContent() {
 
       {/* Infinite scroll trigger */}
       <div ref={observerTarget} className="py-8" />
+
+      {/* Scroll to top button */}
+      <ScrollToTopButton />
     </div>
   );
 }
