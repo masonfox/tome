@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Sun, Moon, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
-import { NAV_LINKS, SERIES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, JOURNAL_LINK, SERIES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -18,7 +18,15 @@ export function DesktopSidebar() {
   const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
 
   // Combine all navigation links into one flat list
-  const allNavLinks = [...NAV_LINKS, SERIES_LINK, ...MORE_MENU_LINKS];
+  // Order: Dashboard, Library, Journal, Series, Streak, Goals, Stats
+  const allNavLinks = [
+    NAV_LINKS[0], // Dashboard
+    NAV_LINKS[1], // Library
+    JOURNAL_LINK, // Journal (after Library)
+    SERIES_LINK,  // Series (after Journal)
+    NAV_LINKS[2], // Streak
+    ...MORE_MENU_LINKS,
+  ];
 
   const handleLogout = async () => {
     try {
