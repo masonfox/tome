@@ -18,8 +18,6 @@ function LibraryPageContent() {
   const [loadingTags, setLoadingTags] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const observerTarget = useRef<HTMLDivElement>(null);
-  const scrollRestorationAttempted = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [restoringScrollState, setRestoringScrollState] = useState(false);
   const [targetBooksCount, setTargetBooksCount] = useState<number | null>(null);
   const [targetScrollPosition, setTargetScrollPosition] = useState<number | null>(null);
@@ -124,10 +122,13 @@ function LibraryPageContent() {
         const parsedSavedFilters = JSON.parse(savedFilters);
         
         // Check if filters match current filters
+        const currentTags = searchParams?.get("tags")?.split(",").filter(Boolean) || [];
+        const savedTags = parsedSavedFilters.tags || [];
+        
         const filtersMatch = 
           parsedSavedFilters.search === (searchParams?.get("search") || undefined) &&
           parsedSavedFilters.status === (searchParams?.get("status") || undefined) &&
-          JSON.stringify(parsedSavedFilters.tags) === JSON.stringify(searchParams?.get("tags")?.split(",").filter(Boolean) || undefined) &&
+          JSON.stringify(currentTags) === JSON.stringify(savedTags) &&
           parsedSavedFilters.rating === (searchParams?.get("rating") || undefined);
         
         if (filtersMatch) {
@@ -206,16 +207,19 @@ function LibraryPageContent() {
     
     // Check if we have enough books or can't load more
     const hasEnoughBooks = books.length >= targetBooksCount;
-    const cantLoadMore = !hasMore || books.length >= targetBooksCount;
+    const cantLoadMore = !hasMore;
     
     if (hasEnoughBooks || cantLoadMore) {
-      // Restore scroll position
+      // Restore scroll position after a brief delay to ensure DOM is updated
+      // This delay allows the browser to render all book cards before scrolling
+      const SCROLL_RESTORE_DELAY_MS = 100;
+      
       setTimeout(() => {
         window.scrollTo({
           top: targetScrollPosition,
           behavior: 'instant' as ScrollBehavior,
         });
-      }, 100);
+      }, SCROLL_RESTORE_DELAY_MS);
       
       // Clean up
       setRestoringScrollState(false);
