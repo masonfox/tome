@@ -109,6 +109,21 @@ function LibraryPageContent() {
     };
   }, [books.length, filters, total]);
 
+  // Helper function to clear saved scroll state from sessionStorage
+  const clearSavedScrollState = useCallback(() => {
+    sessionStorage.removeItem('library-scroll-position');
+    sessionStorage.removeItem('library-books-count');
+    sessionStorage.removeItem('library-filters');
+  }, []);
+
+  // Helper function to compare arrays for equality
+  const arraysEqual = useCallback((a: string[] | undefined, b: string[] | undefined): boolean => {
+    const arrA = a || [];
+    const arrB = b || [];
+    if (arrA.length !== arrB.length) return false;
+    return arrA.every((val, index) => val === arrB[index]);
+  }, []);
+
   // Check for saved scroll state on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -128,7 +143,7 @@ function LibraryPageContent() {
         const filtersMatch = 
           parsedSavedFilters.search === (searchParams?.get("search") || undefined) &&
           parsedSavedFilters.status === (searchParams?.get("status") || undefined) &&
-          JSON.stringify(currentTags) === JSON.stringify(savedTags) &&
+          arraysEqual(currentTags, savedTags) &&
           parsedSavedFilters.rating === (searchParams?.get("rating") || undefined);
         
         if (filtersMatch) {
@@ -137,18 +152,14 @@ function LibraryPageContent() {
           setRestoringScrollState(true);
         } else {
           // Filters don't match, clear saved state
-          sessionStorage.removeItem('library-scroll-position');
-          sessionStorage.removeItem('library-books-count');
-          sessionStorage.removeItem('library-filters');
+          clearSavedScrollState();
         }
       } catch (e) {
         // Invalid saved data, clear it
-        sessionStorage.removeItem('library-scroll-position');
-        sessionStorage.removeItem('library-books-count');
-        sessionStorage.removeItem('library-filters');
+        clearSavedScrollState();
       }
     }
-  }, [searchParams]);
+  }, [searchParams, arraysEqual, clearSavedScrollState]);
 
   // Save scroll position and books count when navigating away
   useEffect(() => {
@@ -225,11 +236,9 @@ function LibraryPageContent() {
       setRestoringScrollState(false);
       setTargetBooksCount(null);
       setTargetScrollPosition(null);
-      sessionStorage.removeItem('library-scroll-position');
-      sessionStorage.removeItem('library-books-count');
-      sessionStorage.removeItem('library-filters');
+      clearSavedScrollState();
     }
-  }, [restoringScrollState, targetScrollPosition, targetBooksCount, books.length, hasMore, loading]);
+  }, [restoringScrollState, targetScrollPosition, targetBooksCount, books.length, hasMore, loading, clearSavedScrollState]);
 
   // Create wrapped setters that also update URL
   const handleStatusChange = useCallback((status: string | undefined) => {
