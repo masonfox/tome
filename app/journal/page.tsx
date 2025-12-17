@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { format, parse } from "date-fns";
@@ -54,6 +55,7 @@ export default function JournalPage() {
   const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Ref to track current entries for archive navigation
   const entriesRef = useRef<GroupedJournalEntry[]>([]);
@@ -61,6 +63,11 @@ export default function JournalPage() {
   const isLoadingRef = useRef(false);
 
   const LIMIT = 50;
+
+  // Track if component is mounted for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchJournalEntries = useCallback(async (skipCount: number, append = false) => {
     try {
@@ -419,16 +426,17 @@ export default function JournalPage() {
         </div>
       )}
 
-      {/* Archive navigation loading overlay */}
-      {navigating && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      {/* Archive navigation loading overlay - Rendered via Portal to document.body */}
+      {mounted && navigating && createPortal(
+        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[100]">
           <div className="bg-[var(--card-bg)] rounded-lg p-6 shadow-xl">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-[var(--foreground)]">Loading journal entries...</p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="xl:grid xl:grid-cols-[1fr_280px] xl:gap-6">
