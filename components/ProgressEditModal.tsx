@@ -7,14 +7,10 @@ import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { useDraftField } from "@/hooks/useDraftField";
-import ReactMarkdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
-import remarkGfm from "remark-gfm";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
-import { markdownSanitizeSchema } from "@/lib/utils/markdown-sanitize-schema";
 
 const logger = getLogger().child({ component: "ProgressEditModal" });
 
@@ -204,13 +200,8 @@ export default function ProgressEditModal({
             {currentProgress.notes && (
               <div className="mt-2">
                 <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
-                <div className="text-sm mt-1 prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown 
-                    rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
-                    remarkPlugins={[remarkGfm]}
-                  >
-                    {currentProgress.notes}
-                  </ReactMarkdown>
+                <div className="mt-1">
+                  <MarkdownRenderer content={currentProgress.notes} />
                 </div>
               </div>
             )}
