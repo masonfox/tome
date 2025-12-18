@@ -424,6 +424,7 @@ body:has(.w-md-editor-fullscreen) {
   background-color: #F0EAE3;
   color: #3a3a3a;
   height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
