@@ -84,6 +84,8 @@ function InitializedMDXEditor({
         border: '1px solid var(--border-color)',
         borderRadius: isFullscreen ? 0 : '0.5rem',
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         ...(isFullscreen && {
           position: 'fixed',
           top: 0,
