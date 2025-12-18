@@ -46,9 +46,12 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
       const response = await fetch(`/api/books/${bookId}/sessions`);
       const data = await response.json();
 
-      // Filter to show only archived sessions (isActive = false)
-      const archivedSessions = data.filter((session: ReadingSession) => !session.isActive);
-      setSessions(archivedSessions);
+      // Filter to show completed sessions (archived OR status='read')
+      // This ensures single-read books display their completed session even when isActive=true
+      const completedSessions = data.filter((session: ReadingSession) => 
+        !session.isActive || session.status === 'read'
+      );
+      setSessions(completedSessions);
     } catch (error) {
       // Suppress console; reading sessions fetch failure ignored
     } finally {
@@ -99,7 +102,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     }
   }
 
-  // Don't show anything while loading or if there are no archived sessions
+  // Don't show anything while loading or if there are no completed sessions
   if (loading || sessions.length === 0) {
     return null;
   }
