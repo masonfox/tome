@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 
 /**
@@ -32,6 +32,13 @@ export const MarkdownEditorMock = forwardRef<MDXEditorMethods, MarkdownEditorMoc
 
     // Forward the ref or editorRef (the actual component uses editorRef when loaded via next/dynamic)
     const actualRef = editorRef || ref;
+
+    // Sync internal value with prop value (for controlled component behavior)
+    useEffect(() => {
+      if (value !== internalValue) {
+        setInternalValue(value);
+      }
+    }, [value]);
 
     useImperativeHandle(actualRef, () => ({
       setMarkdown: (markdown: string) => {
