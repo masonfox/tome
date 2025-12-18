@@ -4,6 +4,8 @@ import { ChevronDown, Check, TrendingUp } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import type { MDXEditorMethods } from "@mdxeditor/editor";
+import { useRef, useEffect } from "react";
 
 interface BookProgressProps {
   book: {
@@ -24,6 +26,7 @@ interface BookProgressProps {
   onProgressDateChange: (value: string) => void;
   onProgressInputModeChange: (mode: "page" | "percentage") => void;
   onSubmit: (e: React.FormEvent) => void;
+  onEditorReady?: (methods: MDXEditorMethods) => void;
   showProgressModeDropdown: boolean;
   setShowProgressModeDropdown: (show: boolean) => void;
   progressModeDropdownRef?: React.RefObject<HTMLDivElement>;
@@ -42,11 +45,20 @@ export default function BookProgress({
   onProgressDateChange,
   onProgressInputModeChange,
   onSubmit,
+  onEditorReady,
   showProgressModeDropdown,
   setShowProgressModeDropdown,
   progressModeDropdownRef,
 }: BookProgressProps) {
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
+  const editorRef = useRef<MDXEditorMethods>(null);
+
+  // Notify parent when editor ref is ready
+  useEffect(() => {
+    if (editorRef.current && onEditorReady) {
+      onEditorReady(editorRef.current);
+    }
+  }, [onEditorReady]);
 
   return (
     <div>
@@ -158,12 +170,13 @@ export default function BookProgress({
               </div>
             </div>
 
-            <div>
+              <div>
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                 Notes
               </label>
               <div>
                 <MarkdownEditor
+                  ref={editorRef}
                   value={notes}
                   onChange={onNotesChange}
                   placeholder="Add notes about your reading session..."

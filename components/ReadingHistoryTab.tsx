@@ -5,13 +5,7 @@ import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import { toast } from "@/utils/toast";
 import { formatDateOnly } from "@/utils/dateFormatting";
-import dynamic from "next/dynamic";
-import "@uiw/react-markdown-preview/markdown.css";
-
-const MarkdownPreview = dynamic(
-  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
-  { ssr: false }
-);
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface ReadingSession {
   id: number;
@@ -202,16 +196,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <p className="text-xs text-[var(--foreground)]/60 font-semibold uppercase tracking-wide mb-2">
                   Review
                 </p>
-                <div className="text-sm" data-color-mode="light">
-                  <MarkdownPreview 
-                    source={session.review} 
-                    style={{ 
-                      background: 'transparent',
-                      color: 'var(--foreground)',
-                      fontSize: '0.875rem'
-                    }}
-                  />
-                </div>
+                <MarkdownRenderer content={session.review} />
               </div>
             )}
           </div>

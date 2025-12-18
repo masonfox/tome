@@ -6,15 +6,13 @@ import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
-import dynamic from "next/dynamic";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { useDraftField } from "@/hooks/useDraftField";
-import "@uiw/react-markdown-preview/markdown.css";
+import type { MDXEditorMethods } from "@mdxeditor/editor";
+import { getLogger } from "@/lib/logger";
 
-const MarkdownPreview = dynamic(
-  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
-  { ssr: false }
-);
+const logger = getLogger().child({ component: "ProgressEditModal" });
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -58,6 +56,9 @@ export default function ProgressEditModal({
 
   // Track whether we've already restored the draft for this modal session
   const hasRestoredDraft = useRef(false);
+  
+  // Ref for MDXEditor to programmatically update content
+  const editorRef = useRef<MDXEditorMethods>(null);
 
   // Draft management for notes field
   const {
@@ -72,10 +73,23 @@ export default function ProgressEditModal({
     if (isOpen) {
       setCurrentPage(currentProgress.currentPage.toString());
       setCurrentPercentage(currentProgress.currentPercentage.toString());
-      setNotes(currentProgress.notes || "");
+      const notesValue = currentProgress.notes || "";
+      setNotes(notesValue);
       setProgressDate(currentProgress.progressDate.split("T")[0]);
       setShowDeleteConfirm(false);
       hasRestoredDraft.current = false; // Reset draft restoration flag
+      
+      // Programmatically set the editor content using setMarkdown
+      // This is necessary because MDXEditor's markdown prop only sets initial value
+      if (editorRef.current) {
+        try {
+          editorRef.current.setMarkdown(notesValue);
+        } catch (error) {
+          logger.error({ error }, "Failed to set editor content");
+          // Fall back to state update if setMarkdown fails
+          setNotes(notesValue);
+        }
+      }
       
       // Load saved progress input mode preference
       if (typeof window !== "undefined") {
@@ -186,15 +200,8 @@ export default function ProgressEditModal({
             {currentProgress.notes && (
               <div className="mt-2">
                 <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
-                <div className="text-sm mt-1" data-color-mode="light">
-                  <MarkdownPreview 
-                    source={currentProgress.notes} 
-                    style={{ 
-                      background: 'transparent',
-                      color: 'var(--foreground)',
-                      fontSize: '0.875rem'
-                    }}
-                  />
+                <div className="mt-1">
+                  <MarkdownRenderer content={currentProgress.notes} />
                 </div>
               </div>
             )}
@@ -357,6 +364,7 @@ export default function ProgressEditModal({
           </label>
           <div>
             <MarkdownEditor
+              ref={editorRef}
               value={notes}
               onChange={setNotes}
               placeholder="Add notes about this reading session..."

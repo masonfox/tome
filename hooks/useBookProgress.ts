@@ -28,7 +28,7 @@ export interface UseBookProgressReturn {
   setProgressInputMode: (mode: "page" | "percentage") => void;
   setNotes: (value: string) => void;
   setProgressDate: (value: string) => void;
-  handleLogProgress: (e: React.FormEvent) => Promise<void>;
+  handleLogProgress: (e: React.FormEvent) => Promise<boolean>;
   handleEditProgress: (entry: ProgressEntry) => void;
   handleConfirmEditProgress: (updatedData: {
     currentPage?: number;
@@ -155,27 +155,27 @@ export function useBookProgress(
     }
   }, [book?.latestProgress]);
 
-  const handleLogProgress = useCallback(async (e: React.FormEvent) => {
+  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
 
     const payload: any = {};
 
     if (progressInputMode === "page") {
-      if (!currentPage) return;
+      if (!currentPage) return false;
       const pageValue = parseInt(currentPage);
       // Validate that the new page is greater than the latest progress
       if (book?.latestProgress && pageValue <= book.latestProgress.currentPage) {
         toast.error("Please enter a page number greater than the current page.");
-        return;
+        return false;
       }
       payload.currentPage = pageValue;
     } else {
-      if (!currentPercentage) return;
+      if (!currentPercentage) return false;
       const percentValue = parseFloat(currentPercentage);
       // Validate that the new percentage is greater than the latest progress
       if (book?.latestProgress && percentValue <= book.latestProgress.currentPercentage) {
         toast.error("Please enter a percentage greater than the current progress.");
-        return;
+        return false;
       }
       payload.currentPercentage = percentValue;
     }
@@ -208,14 +208,17 @@ export function useBookProgress(
         fetchProgress();
         onRefresh?.();
         toast.success("Progress logged!");
+        return true;
       } else {
         const errorData = await response.json();
         // Display validation error from the API (temporal validation)
         toast.error(errorData.error || "Failed to log progress");
+        return false;
       }
     } catch (error) {
       console.error("Failed to log progress:", error);
       toast.error("Failed to log progress");
+      return false;
     }
   }, [progressInputMode, currentPage, currentPercentage, notes, progressDate, book, bookId, fetchProgress, onRefresh]);
 

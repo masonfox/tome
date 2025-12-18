@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { Calendar, ChevronRight, Pencil, FileText, Plus, TrendingUp } from "lucide-react";
 import { format, parse } from "date-fns";
-import dynamic from "next/dynamic";
-import "@uiw/react-markdown-preview/markdown.css";
-
-const MarkdownPreview = dynamic(
-  () => import("@uiw/react-markdown-preview").then((mod) => mod.default),
-  { ssr: false }
-);
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export interface JournalEntry {
   id: number;
@@ -200,16 +194,7 @@ export function JournalEntryCard({ entry, index, totalEntries, onEdit }: Journal
 
       {/* Notes section */}
       {entry.notes && (
-        <div className="text-sm" data-color-mode="light">
-          <MarkdownPreview
-            source={entry.notes}
-            style={{
-              background: "transparent",
-              color: "var(--foreground)",
-              fontSize: "0.875rem",
-            }}
-          />
-        </div>
+        <MarkdownRenderer content={entry.notes} />
       )}
     </div>
   );

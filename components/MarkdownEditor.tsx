@@ -1,37 +1,152 @@
 "use client";
 
+import type { ForwardedRef } from "react";
+import { forwardRef, useState, useEffect } from "react";
+import {
+  headingsPlugin,
+  listsPlugin,
+  quotePlugin,
+  thematicBreakPlugin,
+  markdownShortcutPlugin,
+  linkPlugin,
+  linkDialogPlugin,
+  directivesPlugin,
+  toolbarPlugin,
+  MDXEditor,
+  type MDXEditorMethods,
+  UndoRedo,
+  BoldItalicUnderlineToggles,
+  BlockTypeSelect,
+  CreateLink,
+  ListsToggle,
+  Separator,
+  ButtonWithTooltip,
+} from "@mdxeditor/editor";
+import "@mdxeditor/editor/style.css";
 import dynamic from "next/dynamic";
-import { commands } from "@uiw/react-md-editor";
-import "@uiw/react-md-editor/markdown-editor.css";
-import "@uiw/react-markdown-preview/markdown.css";
+import { Maximize2, Minimize2 } from "lucide-react";
 
-const MDEditor = dynamic(
-  () => import("@uiw/react-md-editor").then((mod) => mod.default),
-  { ssr: false }
-);
+interface MarkdownEditorComponentProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  height?: number;
+  id?: string;
+  autoFocus?: boolean;
+  editorRef?: ForwardedRef<MDXEditorMethods> | null;
+}
 
-// Custom toolbar commands (excluding image, comment, code, codeBlock, checkedList)
-const customCommands = [
-  commands.bold,
-  commands.italic,
-  commands.strikethrough,
-  commands.hr,
-  commands.group([commands.title1, commands.title2, commands.title3, commands.title4, commands.title5, commands.title6], {
-    name: 'title',
-    groupName: 'title',
-    buttonProps: { 'aria-label': 'Insert title' }
-  }),
-  commands.divider,
-  commands.link,
-  commands.quote,
-  commands.table,
-  commands.divider,
-  commands.unorderedListCommand,
-  commands.orderedListCommand,
-  commands.divider,
-  commands.help,
-];
+// Fullscreen toggle button component
+function FullscreenButton({ isFullscreen, onToggle }: { isFullscreen: boolean; onToggle: () => void }) {
+  return (
+    <ButtonWithTooltip
+      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      onClick={onToggle}
+    >
+      {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+    </ButtonWithTooltip>
+  );
+}
 
+// Internal component with all plugins initialized
+function InitializedMDXEditor({
+  value,
+  onChange,
+  placeholder = "Start typing...",
+  height = 200,
+  autoFocus = false,
+  editorRef,
+}: MarkdownEditorComponentProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    if (isFullscreen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isFullscreen]);
+
+  return (
+    <div
+      className={isFullscreen ? 'tome-editor-fullscreen' : ''}
+      style={{
+        height: isFullscreen ? '100vh' : `${height}px`,
+        border: '1px solid var(--border-color)',
+        borderRadius: isFullscreen ? 0 : '0.5rem',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        ...(isFullscreen && {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          backgroundColor: 'var(--background)',
+        }),
+      }}
+    >
+      <MDXEditor
+        markdown={value}
+        onChange={onChange}
+        autoFocus={autoFocus}
+        ref={editorRef}
+        className="tome-editor"
+        contentEditableClassName="prose prose-sm max-w-none"
+        plugins={[
+          // Core formatting plugins for rich text experience
+          headingsPlugin(),
+          listsPlugin(),
+          quotePlugin(),
+          thematicBreakPlugin(),
+          linkPlugin(),
+          linkDialogPlugin(),
+          markdownShortcutPlugin(),
+          directivesPlugin(),
+          // Toolbar with rich text controls
+          toolbarPlugin({
+            toolbarContents: () => (
+              <>
+                <FullscreenButton
+                  isFullscreen={isFullscreen}
+                  onToggle={() => setIsFullscreen(!isFullscreen)}
+                />
+                <Separator />
+                <UndoRedo />
+                <Separator />
+                <BoldItalicUnderlineToggles />
+                <Separator />
+                <BlockTypeSelect />
+                <Separator />
+                <CreateLink />
+                <Separator />
+                <ListsToggle options={['bullet', 'number']} />
+              </>
+            ),
+          }),
+        ]}
+      />
+    </div>
+  );
+}
+
+// Dynamic import with SSR disabled for Next.js
+const DynamicEditor = dynamic(() => Promise.resolve(InitializedMDXEditor), {
+  ssr: false,
+});
+
+// Main export component
 interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -41,27 +156,10 @@ interface MarkdownEditorProps {
   autoFocus?: boolean;
 }
 
-export default function MarkdownEditor({
-  value,
-  onChange,
-  placeholder = "Start typing...",
-  height = 200,
-  id,
-  autoFocus = false,
-}: MarkdownEditorProps) {
-  return (
-    <MDEditor
-      value={value}
-      onChange={(val) => onChange(val || "")}
-      preview="edit"
-      height={height}
-      visibleDragbar={false}
-      commands={customCommands}
-      textareaProps={{
-        placeholder,
-        id,
-        autoFocus,
-      }}
-    />
-  );
-}
+const MarkdownEditor = forwardRef<MDXEditorMethods, MarkdownEditorProps>(
+  (props, ref) => <DynamicEditor {...props} editorRef={ref} />
+);
+
+MarkdownEditor.displayName = "MarkdownEditor";
+
+export default MarkdownEditor;
