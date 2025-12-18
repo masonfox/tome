@@ -5,6 +5,7 @@ import { Library, BookMarked, Search, X } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
 import SeriesCardSkeleton from "@/components/SeriesCardSkeleton";
 import { PageHeader } from "@/components/PageHeader";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 interface SeriesInfo {
   name: string;
@@ -166,6 +167,9 @@ export default function SeriesPage() {
           ))}
         </div>
       )}
+
+      {/* Scroll to top button */}
+      <ScrollToTopButton />
     </>
   );
 }

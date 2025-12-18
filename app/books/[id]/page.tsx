@@ -186,10 +186,20 @@ export default function BookDetailPage() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
 
-    // Modal already handled the update, just refresh UI
-    await refetchBook();
-    bookProgressHook.refetchProgress();
-    router.refresh();
+    // Modal already handled the update, now refresh UI components
+    // Await all refreshes to ensure state is fully synchronized before user can interact
+    try {
+      await Promise.all([
+        refetchBook(),
+        bookProgressHook.refetchProgress(),
+      ]);
+      
+      // Force router refresh to update any server components
+      router.refresh();
+    } catch (error) {
+      logger.error({ error }, "Failed to refresh after page count update");
+      toast.error("Failed to refresh data. Please reload the page.");
+    }
   }
   
   function handlePageCountModalClose() {
