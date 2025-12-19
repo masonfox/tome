@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor, act } from "../test-utils";
 import { useBookDetail } from "@/hooks/useBookDetail";
 
 // Mock fetch globally
