@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
@@ -31,6 +32,7 @@ const logger = getLogger().child({ component: "BookDetailPage" });
 export default function BookDetailPage() {
   const params = useParams();
   const bookId = params?.id as string;
+  const queryClient = useQueryClient();
 
   // Custom hooks encapsulate all business logic
   const {
@@ -164,6 +166,11 @@ export default function BookDetailPage() {
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
+    
+    // Invalidate relevant queries to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+    await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
   }
   
   function handlePageCountModalClose() {
