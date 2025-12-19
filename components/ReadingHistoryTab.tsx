@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import { toast } from "@/utils/toast";
@@ -35,14 +36,13 @@ interface ReadingHistoryTabProps {
 }
 
 export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: ReadingHistoryTabProps) {
-  const [sessions, setSessions] = useState<ReadingSession[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSession, setEditingSession] = useState<ReadingSession | null>(null);
 
-  const fetchSessions = useCallback(async () => {
-    try {
-      setLoading(true);
+  // Fetch sessions using TanStack Query - automatic caching and background refetching
+  const { data: allSessions = [], isLoading: loading } = useQuery<ReadingSession[]>({
+    queryKey: ['sessions', bookId],
+    queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}/sessions`, {
         cache: 'no-store',
         headers: {
@@ -50,24 +50,21 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
           'Pragma': 'no-cache',
         },
       });
-      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      
+      return response.json();
+    },
+    staleTime: 5000, // Data is fresh for 5 seconds
+  });
 
-      // Filter to show completed sessions (archived OR status='read')
-      // This ensures single-read books display their completed session even when isActive=true
-      const completedSessions = data.filter((session: ReadingSession) => 
-        !session.isActive || session.status === 'read'
-      );
-      setSessions(completedSessions);
-    } catch (error) {
-      // Suppress console; reading sessions fetch failure ignored
-    } finally {
-      setLoading(false);
-    }
-  }, [bookId]);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+  // Filter to show completed sessions (archived OR status='read')
+  // This ensures single-read books display their completed session even when isActive=true
+  const sessions = allSessions.filter((session: ReadingSession) => 
+    !session.isActive || session.status === 'read'
+  );
 
   function handleOpenEditModal(session: ReadingSession) {
     setEditingSession(session);
@@ -97,9 +94,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         throw new Error("Failed to update session");
       }
 
-      // Refresh sessions to show updates
-      await fetchSessions();
-      
+      // No need to manually refetch - TanStack Query will handle it via invalidation
       handleCloseEditModal();
       toast.success("Session updated successfully");
     } catch (error) {
