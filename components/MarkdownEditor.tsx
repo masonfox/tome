@@ -76,9 +76,27 @@ function InitializedMDXEditor({
     };
   }, [isFullscreen]);
 
+  // Handle clicks on the wrapper to focus the editor
+  const handleWrapperClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    
+    // Don't interfere with toolbar clicks
+    if (target.closest('.mdxeditor-toolbar')) {
+      return;
+    }
+    
+    const contentEditable = e.currentTarget.querySelector('[contenteditable="true"]') as HTMLElement;
+    
+    // Focus the editor if clicking in the editor area
+    if (contentEditable) {
+      contentEditable.focus();
+    }
+  };
+
   return (
     <div
       className={isFullscreen ? 'tome-editor-fullscreen' : ''}
+      onClick={handleWrapperClick}
       style={{
         height: isFullscreen ? '100vh' : `${height}px`,
         border: '1px solid var(--border-color)',
