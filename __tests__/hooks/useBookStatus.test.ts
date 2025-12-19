@@ -317,9 +317,6 @@ describe("useBookStatus", () => {
     });
 
     test("should handle reread errors", async () => {
-      const consoleErrorSpy = mock(console.error);
-      console.error = consoleErrorSpy;
-
       global.fetch = mock(() => Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: "Cannot reread" }),
@@ -329,15 +326,10 @@ describe("useBookStatus", () => {
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
 
+      // Expect the mutation to throw
       await act(async () => {
-        await result.current.handleStartReread();
+        await expect(result.current.handleStartReread()).rejects.toThrow("Cannot reread");
       });
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).not.toHaveBeenCalled(); // No throw, just toast
-      });
-
-      console.error = console.error;
     });
   });
 

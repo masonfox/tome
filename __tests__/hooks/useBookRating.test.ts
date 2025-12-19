@@ -139,9 +139,6 @@ describe("useBookRating", () => {
     });
 
     test("should handle API errors", async () => {
-      const consoleErrorSpy = mock(console.error);
-      console.error = consoleErrorSpy;
-
       global.fetch = mock(() => Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: "Failed to update rating" }),
@@ -149,37 +146,24 @@ describe("useBookRating", () => {
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
+      // Expect the mutation to throw
       await act(async () => {
-        await result.current.handleUpdateRating(5);
+        await expect(result.current.handleUpdateRating(5)).rejects.toThrow("Failed to update rating");
       });
 
-      await waitFor(() => {
-        expect(consoleErrorSpy).not.toHaveBeenCalled(); // Error shown via toast
-      });
-
-      // Modal should remain open on error
+      // Modal should remain open on error (mutation sets it to false in onSuccess only)
       expect(result.current.showRatingModal).toBe(false);
-
-      console.error = console.error;
     });
 
     test("should handle network errors", async () => {
-      const consoleErrorSpy = mock(console.error);
-      console.error = consoleErrorSpy;
-
       global.fetch = mock(() => Promise.reject(new Error("Network error")));
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
+      // Expect the mutation to throw
       await act(async () => {
-        await result.current.handleUpdateRating(5);
+        await expect(result.current.handleUpdateRating(5)).rejects.toThrow("Network error");
       });
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalled();
-      });
-
-      console.error = console.error;
     });
   });
 
