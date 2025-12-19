@@ -647,6 +647,23 @@ html[data-theme="dark"] .tome-editor .mdxeditor-toolbar button[data-state="open"
   scrollbar-color: #d4cbbe #F0EAE3;
 }
 
+/* Ensure font-size stays at 16px to prevent mobile browser auto-zoom.
+   Override any Tailwind prose classes that might set smaller font sizes. */
+.prose.mdxeditor-root-contenteditable,
+.prose .mdxeditor-root-contenteditable,
+.prose-sm.mdxeditor-root-contenteditable,
+.prose-sm .mdxeditor-root-contenteditable {
+  font-size: 1rem !important; /* 16px - prevents mobile zoom */
+}
+
+/* Ensure all child elements in the editor also maintain proper font size */
+.mdxeditor-root-contenteditable p,
+.mdxeditor-root-contenteditable div,
+.mdxeditor-root-contenteditable span,
+.mdxeditor-root-contenteditable li {
+  font-size: 1rem !important;
+}
+
 html[data-theme="dark"] .mdxeditor-root-contenteditable {
   background-color: #1f1c19 !important;
   color: #e8dcc4 !important;

@@ -103,7 +103,7 @@ function InitializedMDXEditor({
         autoFocus={autoFocus}
         ref={editorRef}
         className="tome-editor"
-        contentEditableClassName="prose prose-sm max-w-none"
+        contentEditableClassName="prose max-w-none"
         plugins={[
           // Core formatting plugins for rich text experience
           headingsPlugin(),
