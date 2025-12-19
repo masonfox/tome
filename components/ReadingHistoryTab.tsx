@@ -43,7 +43,13 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
   const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/books/${bookId}/sessions`);
+      const response = await fetch(`/api/books/${bookId}/sessions`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
       const data = await response.json();
 
       // Filter to show completed sessions (archived OR status='read')

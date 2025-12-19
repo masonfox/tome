@@ -64,12 +64,26 @@ export default function BookDetailPage() {
     await handleConfirmReadFromHook(rating, review);
     bookProgressHook.clearFormState();
     clearDraft(); // Clear the draft note
+    
+    // Wait for all data to refresh before triggering history remount
+    await Promise.all([
+      refetchBook(),
+      bookProgressHook.refetchProgress(),
+    ]);
+    
     setHistoryRefreshKey(prev => prev + 1);
   }
 
   // Wrap handleConfirmStatusChange to refresh history after archiving session
   async function handleConfirmStatusChange() {
     await handleConfirmStatusChangeFromHook();
+    
+    // Wait for all data to refresh before triggering history remount
+    await Promise.all([
+      refetchBook(),
+      bookProgressHook.refetchProgress(),
+    ]);
+    
     setHistoryRefreshKey(prev => prev + 1);
   }
 
