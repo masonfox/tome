@@ -363,10 +363,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.authors);
         break;
       case "created":
-        orderBy = desc(books.createdAt);
+        // Sort by when the book was added to Calibre library (not tome database)
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created_desc":
-        orderBy = asc(books.createdAt);
+        // Oldest books first by Calibre library date
+        orderBy = asc(books.addedToLibrary);
         break;
       case "rating":
         // Rating high to low (nulls last)
@@ -377,7 +379,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = sql`${books.rating} ASC NULLS LAST`;
         break;
       default:
-        orderBy = asc(books.createdAt);
+        orderBy = desc(books.addedToLibrary);
     }
 
     // Get paginated results
@@ -599,10 +601,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.authors);
         break;
       case "created":
-        orderBy = desc(books.createdAt);
+        // Sort by when the book was added to Calibre library (not tome database)
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created_desc":
-        orderBy = asc(books.createdAt);
+        // Oldest books first by Calibre library date
+        orderBy = asc(books.addedToLibrary);
         break;
       case "rating":
         orderBy = sql`${books.rating} DESC NULLS LAST`;
@@ -611,7 +615,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = sql`${books.rating} ASC NULLS LAST`;
         break;
       default:
-        orderBy = asc(books.createdAt);
+        orderBy = desc(books.addedToLibrary);
     }
 
     // Build the main query with JOINs
