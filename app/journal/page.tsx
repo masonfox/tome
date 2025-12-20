@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { format, parse } from "date-fns";
@@ -39,28 +40,14 @@ interface GroupedJournalEntry {
 }
 
 export default function JournalPage() {
-  const [entries, setEntries] = useState<GroupedJournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [skip, setSkip] = useState(0);
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // Archive-related state
-  const [archiveData, setArchiveData] = useState<ArchiveNode[]>([]);
-  const [archiveLoading, setArchiveLoading] = useState(true);
   const [currentVisibleDate, setCurrentVisibleDate] = useState<string | null>(null);
   const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  // Ref to track current entries for archive navigation
-  const entriesRef = useRef<GroupedJournalEntry[]>([]);
-  // Ref to prevent concurrent loadMore calls (race condition fix)
-  const isLoadingRef = useRef(false);
 
   const LIMIT = 50;
 
@@ -69,106 +56,86 @@ export default function JournalPage() {
     setMounted(true);
   }, []);
 
-  const fetchJournalEntries = useCallback(async (skipCount: number, append = false) => {
-    try {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-      
-      setError(null); // Clear previous errors
-      
-      // Get timezone from browser (TODO: allow user to override in settings)
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Get timezone from browser
+  const timezone = typeof window !== 'undefined' 
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone 
+    : 'UTC';
+
+  // Fetch journal entries with infinite query
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['journal-entries', timezone],
+    queryFn: async ({ pageParam = 0 }) => {
       const response = await fetch(
-        `/api/journal?timezone=${encodeURIComponent(timezone)}&limit=${LIMIT}&skip=${skipCount}`
+        `/api/journal?timezone=${encodeURIComponent(timezone)}&limit=${LIMIT}&skip=${pageParam}`
       );
       
       if (!response.ok) {
         throw new Error("Failed to fetch journal entries");
       }
 
-      const data = await response.json();
-      
-      if (append) {
-        setEntries((prev) => {
-          // Create a map to deduplicate entries by date
-          const entriesMap = new Map<string, GroupedJournalEntry>();
-          
-          // Add existing entries
-          prev.forEach(entry => {
-            entriesMap.set(entry.date, entry);
-          });
-          
-          // Add new entries (will overwrite if date already exists, but shouldn't in normal operation)
-          data.entries.forEach((entry: GroupedJournalEntry) => {
-            if (!entriesMap.has(entry.date)) {
-              entriesMap.set(entry.date, entry);
-            }
-          });
-          
-          return Array.from(entriesMap.values());
-        });
-      } else {
-        setEntries(data.entries);
-      }
-      
-      setTotal(data.total);
-      setHasMore(data.hasMore);
-    } catch (error) {
-      const { getLogger } = require("@/lib/logger");
-      getLogger().error({ err: error }, "Error fetching journal entries");
-      
-      // User-facing error message
-      setError("Failed to load journal entries. Please try again.");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
+      return response.json();
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage.hasMore) return undefined;
+      const totalLoaded = allPages.reduce((sum, page) => sum + page.entries.length, 0);
+      return totalLoaded;
+    },
+    initialPageParam: 0,
+    staleTime: 30000, // 30 seconds
+  });
 
-  const fetchArchiveData = useCallback(async () => {
-    try {
-      setArchiveLoading(true);
+  // Fetch archive data
+  const { data: archiveData = [], isLoading: archiveLoading } = useQuery({
+    queryKey: ['journal-archive'],
+    queryFn: async () => {
       const response = await fetch('/api/journal/archive');
-
       if (!response.ok) {
         throw new Error("Failed to fetch archive data");
       }
+      return response.json() as Promise<ArchiveNode[]>;
+    },
+    staleTime: 60000, // 1 minute
+  });
 
-      const data = await response.json();
-      setArchiveData(data);
-    } catch (error) {
-      const { getLogger } = require("@/lib/logger");
-      getLogger().error({ err: error }, "Error fetching archive data");
-    } finally {
-      setArchiveLoading(false);
-    }
-  }, []);
+  // Flatten entries from pages and deduplicate
+  const entries = useMemo(() => {
+    if (!data) return [];
+    
+    const entriesMap = new Map<string, GroupedJournalEntry>();
+    data.pages.forEach(page => {
+      page.entries.forEach((entry: GroupedJournalEntry) => {
+        if (!entriesMap.has(entry.date)) {
+          entriesMap.set(entry.date, entry);
+        }
+      });
+    });
+    
+    return Array.from(entriesMap.values());
+  }, [data]);
 
-  useEffect(() => {
-    fetchJournalEntries(0);
-    fetchArchiveData();
-  }, [fetchJournalEntries, fetchArchiveData]);
+  const total = data?.pages[0]?.total || 0;
+  const loading = isLoading;
+  const loadingMore = isFetchingNextPage;
 
-  // Keep entriesRef in sync with entries state
+  // Ref to track current entries for archive navigation
+  const entriesRef = useRef<GroupedJournalEntry[]>([]);
+
+  // Keep entriesRef in sync with entries
   useEffect(() => {
     entriesRef.current = entries;
   }, [entries]);
 
   const loadMore = useCallback(() => {
-    // Race condition fix: use ref to prevent concurrent calls
-    if (isLoadingRef.current || loadingMore || !hasMore) return;
-    
-    isLoadingRef.current = true; // Immediate lock
-    const newSkip = skip + LIMIT;
-    setSkip(newSkip);
-    
-    fetchJournalEntries(newSkip, true).finally(() => {
-      isLoadingRef.current = false; // Release lock
-    });
-  }, [skip, loadingMore, hasMore, fetchJournalEntries]);
+    if (isFetchingNextPage || !hasNextPage) return;
+    fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -177,7 +144,7 @@ export default function JournalPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+        if (entries[0].isIntersecting && hasNextPage && !loading && !loadingMore) {
           loadMore();
         }
       },
@@ -188,43 +155,40 @@ export default function JournalPage() {
 
     return () => {
       if (currentTarget) {
-        observer.unobserve(currentTarget); // Explicitly unobserve (memory leak fix)
+        observer.unobserve(currentTarget);
       }
       observer.disconnect();
     };
-  }, [loadMore, hasMore, loading, loadingMore]);
+  }, [loadMore, hasNextPage, loading, loadingMore]);
 
   // Archive navigation handler
   const handleArchiveNavigate = useCallback(async (dateKey: string) => {
     const { getLogger } = require("@/lib/logger");
 
     try {
-      setNavigating(true); // Show loading indicator
+      setNavigating(true);
 
-      // Check if we need to load more entries (use ref for current value)
+      // Check if we need to load more entries
       let matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
 
       // If not found and we have more entries, keep loading
-      if (!matchingEntry && hasMore) {
+      if (!matchingEntry && hasNextPage) {
         getLogger().debug({ dateKey, currentEntries: entriesRef.current.length }, "Date not loaded, fetching more entries");
 
         // Keep loading until we find the date or run out of entries
         let attempts = 0;
-        const maxAttempts = 20; // Prevent infinite loops
-        let currentSkip = skip;
+        const maxAttempts = 20;
 
         while (!matchingEntry && attempts < maxAttempts) {
           attempts++;
 
           // Load next batch
-          const newSkip = currentSkip + LIMIT;
-          await fetchJournalEntries(newSkip, true);
-          currentSkip = newSkip;
+          await fetchNextPage();
 
           // Wait for state to update
           await new Promise(resolve => setTimeout(resolve, 200));
 
-          // Check again with updated entries (from ref)
+          // Check again with updated entries
           matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
 
           getLogger().debug({
@@ -235,7 +199,7 @@ export default function JournalPage() {
           }, "Loading more entries");
 
           // Check if we've loaded everything
-          if (entriesRef.current.length >= total || !hasMore) {
+          if (entriesRef.current.length >= total || !hasNextPage) {
             break;
           }
         }
@@ -260,7 +224,7 @@ export default function JournalPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Find the date section to scroll to using the actual date from the matching entry
+      // Find the date section to scroll to
       const element = document.querySelector(`[data-date-key="${matchingEntry.date}"]`);
       if (element) {
         getLogger().debug({ matchedDate: matchingEntry.date }, "Scrolling to element");
@@ -269,9 +233,9 @@ export default function JournalPage() {
         getLogger().warn({ dateKey, matchedDate: matchingEntry.date }, "Element not found in DOM");
       }
     } finally {
-      setNavigating(false); // Hide loading indicator
+      setNavigating(false);
     }
-  }, [collapsedDates, hasMore, skip, total, LIMIT, fetchJournalEntries]);
+  }, [collapsedDates, hasNextPage, total, fetchNextPage]);
 
   // Journal entry skeleton component
   const JournalEntrySkeleton = () => (
@@ -416,9 +380,9 @@ export default function JournalPage() {
       {/* Error message with retry */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <p className="text-red-800">{error}</p>
+          <p className="text-red-800">{error instanceof Error ? error.message : "Failed to load journal entries"}</p>
           <button 
-            onClick={() => fetchJournalEntries(skip, entries.length > 0)}
+            onClick={() => fetchNextPage()}
             className="mt-2 text-red-600 underline hover:text-red-800"
           >
             Retry
@@ -564,7 +528,7 @@ export default function JournalPage() {
           <div ref={observerTarget} className="py-8" />
 
           {/* End of results message */}
-          {!hasMore && entries.length > 0 && (
+          {!hasNextPage && entries.length > 0 && (
             <div className="text-center py-8 text-[var(--foreground)]/60">
               You&apos;ve reached the end of your journal entries ({total} total)
             </div>

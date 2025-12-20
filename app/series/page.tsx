@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Library, BookMarked, Search, X } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
 import SeriesCardSkeleton from "@/components/SeriesCardSkeleton";
@@ -14,10 +15,21 @@ interface SeriesInfo {
 }
 
 export default function SeriesPage() {
-  const [series, setSeries] = useState<SeriesInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: series = [], isLoading, error } = useQuery({
+    queryKey: ['series'],
+    queryFn: async () => {
+      const response = await fetch("/api/series");
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch series");
+      }
+      
+      return response.json() as Promise<SeriesInfo[]>;
+    },
+    staleTime: 60000, // 1 minute
+  });
 
   // Filter series based on search query
   const filteredSeries = useMemo(() => {
@@ -31,28 +43,7 @@ export default function SeriesPage() {
     );
   }, [series, searchQuery]);
 
-  useEffect(() => {
-    async function fetchSeries() {
-      try {
-        const response = await fetch("/api/series");
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch series");
-        }
-        
-        const data = await response.json();
-        setSeries(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load series");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchSeries();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <>
         <PageHeader
@@ -81,7 +72,7 @@ export default function SeriesPage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500 font-medium">{error}</p>
+        <p className="text-red-500 font-medium">{error instanceof Error ? error.message : "Failed to load series"}</p>
       </div>
     );
   }

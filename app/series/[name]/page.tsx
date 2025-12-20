@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -35,45 +36,31 @@ interface SeriesData {
 export default function SeriesDetailPage() {
   const params = useParams();
   const seriesName = params?.name ? decodeURIComponent(params.name as string) : "";
-  
-  const [data, setData] = useState<SeriesData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
-  useEffect(() => {
-    if (!seriesName) return;
-
-    async function fetchSeriesBooks() {
-      try {
-        const response = await fetch(`/api/series/${encodeURIComponent(seriesName)}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError("Series not found");
-          } else {
-            throw new Error("Failed to fetch series");
-          }
-          return;
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['series', seriesName],
+    queryFn: async () => {
+      const response = await fetch(`/api/series/${encodeURIComponent(seriesName)}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Series not found");
         }
-        
-        const seriesData = await response.json();
-        setData(seriesData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load series");
-      } finally {
-        setLoading(false);
+        throw new Error("Failed to fetch series");
       }
-    }
-
-    fetchSeriesBooks();
-  }, [seriesName]);
+      
+      return response.json() as Promise<SeriesData>;
+    },
+    staleTime: 30000, // 30 seconds
+    enabled: !!seriesName,
+  });
 
   const handleImageError = (calibreId: number) => {
     setImageErrors(prev => ({ ...prev, [calibreId]: true }));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="text-center py-12">
         <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
@@ -86,7 +73,7 @@ export default function SeriesDetailPage() {
       <div>
         <PageHeader
           title="Series Not Found"
-          subtitle={error || "The requested series could not be found"}
+          subtitle={error instanceof Error ? error.message : "The requested series could not be found"}
           icon={BookMarked}
           backLink={{
             href: "/series",

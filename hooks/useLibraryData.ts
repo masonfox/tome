@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { libraryService, LibraryFilters, PaginatedBooks, BookWithStatus } from "@/lib/library-service";
+import { useState, useCallback, useMemo } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { libraryService, LibraryFilters } from "@/lib/library-service";
 
 const BOOKS_PER_PAGE = 50;
 
 export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<LibraryFilters>({
     pagination: {
       limit: BOOKS_PER_PAGE,
@@ -13,45 +15,64 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     ...initialFilters,
   });
 
-  const [data, setData] = useState<PaginatedBooks | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   // Memoize service instance to prevent recreation
   const service = useMemo(() => libraryService, []);
 
-  // Fetch books when filters change (but NOT pagination)
-  useEffect(() => {
-    let isCancelled = false;
+  // Create a stable query key based on filter values (excluding pagination.skip)
+  const queryKey = useMemo(() => [
+    'library-books',
+    filters.status,
+    filters.search,
+    filters.tags,
+    filters.rating,
+    filters.sortBy,
+    filters.showOrphaned,
+    filters.pagination.limit,
+  ], [
+    filters.status,
+    filters.search,
+    filters.tags,
+    filters.rating,
+    filters.sortBy,
+    filters.showOrphaned,
+    filters.pagination.limit,
+  ]);
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const result = await service.getBooks(filters);
-        
-        if (!isCancelled) {
-          setData(result);
-        }
-      } catch (err) {
-        if (!isCancelled) {
-          setError(err instanceof Error ? err.message : "Failed to fetch books");
-        }
-      } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
-      }
-    };
+  // Use TanStack Query's infinite query
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey,
+    queryFn: async ({ pageParam = 0 }) => {
+      const result = await service.getBooks({
+        ...filters,
+        pagination: {
+          ...filters.pagination,
+          skip: pageParam,
+        },
+      });
+      return result;
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.hasMore) return undefined;
+      return lastPage.skip + lastPage.limit;
+    },
+    initialPageParam: 0,
+    staleTime: 30000, // 30 seconds
+  });
 
-    fetchData();
+  // Flatten pages into a single books array
+  const books = useMemo(() => {
+    if (!data) return [];
+    return data.pages.flatMap(page => page.books);
+  }, [data]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [filters.status, filters.search, filters.tags, filters.rating, filters.sortBy, filters.showOrphaned, filters.pagination.limit, service]);
+  const total = data?.pages[0]?.total || 0;
 
   // Update filters function
   const updateFilters = useCallback((newFilters: Partial<LibraryFilters>) => {
@@ -82,44 +103,11 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
 
   // Load more function for infinite scroll
   const loadMore = useCallback(async () => {
-    if (!data || loading || loadingMore || !data.hasMore) {
+    if (isFetchingNextPage || !hasNextPage) {
       return;
     }
-
-    setLoadingMore(true);
-    setError(null);
-
-    try {
-      const nextSkip = filters.pagination.skip + filters.pagination.limit;
-      const nextFilters = {
-        ...filters,
-        pagination: {
-          ...filters.pagination,
-          skip: nextSkip,
-        },
-      };
-
-      const result = await service.getBooks(nextFilters);
-      
-      setData(prev => prev ? {
-        ...result,
-        books: [...prev.books, ...result.books],
-      } : result);
-
-      // Update pagination without triggering full re-fetch
-      setFilters(prev => ({
-        ...prev,
-        pagination: {
-          ...prev.pagination,
-          skip: nextSkip,
-        },
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load more books");
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [data, loading, loadingMore, filters, service]);
+    await fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   // Reset pagination (useful for filter changes)
   const resetPagination = useCallback(() => {
@@ -135,8 +123,8 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
   // Clear cache and refresh
   const refresh = useCallback(async () => {
     service.clearCache();
-    setFilters(prev => ({ ...prev })); // Trigger re-fetch
-  }, [service]);
+    queryClient.invalidateQueries({ queryKey: ['library-books'] });
+  }, [service, queryClient]);
 
   // Search function with debouncing logic
   const setSearch = useCallback((search: string) => {
@@ -174,12 +162,12 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
 
   return {
     // Data
-    books: data?.books || [],
-    total: data?.total || 0,
-    hasMore: data?.hasMore || false,
-    loading,
-    loadingMore,
-    error,
+    books,
+    total,
+    hasMore: hasNextPage || false,
+    loading: isLoading,
+    loadingMore: isFetchingNextPage,
+    error: error ? (error instanceof Error ? error.message : "Failed to fetch books") : null,
     
     // Actions
     updateFilters,
