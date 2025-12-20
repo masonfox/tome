@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 // Move static options outside component to avoid recreation
@@ -24,6 +24,39 @@ const ratingOptions = [
   { value: "unrated", label: "Unrated" },
 ];
 
+// Grouped sort options for better organization
+const sortOptionGroups = [
+  {
+    label: "By Date",
+    options: [
+      { value: "created", label: "Recently Added", icon: CalendarPlus },
+      { value: "recently_read", label: "Recently Read", icon: BookCheck },
+      { value: "created_desc", label: "Oldest First", icon: CalendarPlus },
+    ],
+  },
+  {
+    label: "By Title & Author",
+    options: [
+      { value: "title", label: "Title A-Z", icon: ArrowDownAZ },
+      { value: "title_desc", label: "Title Z-A", icon: ArrowUpAZ },
+      { value: "author", label: "Author A-Z", icon: ArrowDownAZ },
+      { value: "author_desc", label: "Author Z-A", icon: ArrowUpAZ },
+    ],
+  },
+  {
+    label: "By Rating & Length",
+    options: [
+      { value: "rating", label: "Highest Rated", icon: TrendingUp },
+      { value: "rating_asc", label: "Lowest Rated", icon: TrendingDown },
+      { value: "pages", label: "Shortest First", icon: FileText },
+      { value: "pages_desc", label: "Longest First", icon: FileText },
+    ],
+  },
+];
+
+// Flatten for easy lookup
+const sortOptions = sortOptionGroups.flatMap(group => group.options);
+
 interface LibraryFiltersProps {
   search: string;
   onSearchChange: (search: string) => void;
@@ -36,6 +69,8 @@ interface LibraryFiltersProps {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   availableTags: string[];
+  sortBy: string;
+  onSortChange: (sort: string) => void;
   loading?: boolean;
   loadingTags?: boolean;
   onClearAll?: () => void;
@@ -53,6 +88,8 @@ export function LibraryFilters({
   selectedTags,
   onTagsChange,
   availableTags,
+  sortBy,
+  onSortChange,
   loading = false,
   loadingTags = false,
   onClearAll,
@@ -61,9 +98,11 @@ export function LibraryFilters({
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const ratingDropdownRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +114,9 @@ export function LibraryFilters({
       }
       if (ratingDropdownRef.current && !ratingDropdownRef.current.contains(event.target as Node)) {
         setShowRatingDropdown(false);
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
       }
     }
 
@@ -149,24 +191,95 @@ export function LibraryFilters({
 
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
-      {/* Header with Clear All button */}
+      {/* Header with Filters label, Clear All, and Sort */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-[var(--foreground)]/40" />
-          <span className="text-sm font-medium text-[var(--foreground)]/70">Filters</span>
+          <span className="text-sm font-medium text-[var(--foreground)]/70">Filters & Sort</span>
         </div>
-        {onClearAll && (
-          <button
-            type="button"
-            onClick={onClearAll}
-            disabled={loading || !hasActiveFilters}
-            className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              !hasActiveFilters ? 'invisible' : ''
-            }`}
-          >
-            Clear All
-          </button>
-        )}
+        
+        <div className="flex items-center gap-2">
+          {/* Clear All Button */}
+          {onClearAll && (
+            <button
+              type="button"
+              onClick={onClearAll}
+              disabled={loading || !hasActiveFilters}
+              className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                !hasActiveFilters ? 'invisible' : ''
+              }`}
+            >
+              Clear All
+            </button>
+          )}
+          
+          {/* Sort Dropdown */}
+          <div className="relative" ref={sortDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              disabled={loading}
+              className="px-3 py-1 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-sm text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <ArrowUpDown className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">
+                {sortOptions.find(option => option.value === sortBy)?.label || "Recently Added"}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 transition-transform shrink-0",
+                  showSortDropdown && "rotate-180"
+                )}
+              />
+            </button>
+
+            {showSortDropdown && (
+              <div className="absolute z-10 right-0 mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden min-w-[200px] max-h-[70vh] overflow-y-auto">
+                {sortOptionGroups.map((group, groupIndex) => (
+                  <div key={group.label}>
+                    {/* Group Header */}
+                    <div className="px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]/50 uppercase tracking-wide bg-[var(--card-bg)] sticky top-0 z-10">
+                      {group.label}
+                    </div>
+                    
+                    {/* Group Options */}
+                    {group.options.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            onSortChange(option.value);
+                            setShowSortDropdown(false);
+                          }}
+                          disabled={loading}
+                          className={cn(
+                            "w-full px-4 py-2 text-left flex items-center gap-2 transition-colors text-sm",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            sortBy === option.value && "bg-[var(--accent)]/10",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Icon className="w-4 h-4 text-[var(--foreground)]/60 shrink-0" />
+                          <span className="flex-1">{option.label}</span>
+                          {sortBy === option.value && (
+                            <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                    
+                    {/* Divider between groups (except last) */}
+                    {groupIndex < sortOptionGroups.length - 1 && (
+                      <div className="h-px bg-[var(--border-color)] my-1" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSearchSubmit} className="space-y-3">
