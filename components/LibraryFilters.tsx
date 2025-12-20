@@ -226,7 +226,7 @@ export function LibraryFilters({
                 {sortOptionGroups.map((group, groupIndex) => (
                   <div key={group.label}>
                     {/* Group Header */}
-                    <div className="px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]/50 uppercase tracking-wide bg-[var(--background)]/50 sticky top-0 z-10">
+                    <div className="px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]/50 uppercase tracking-wide bg-[var(--card-bg)] sticky top-0 z-10">
                       {group.label}
                     </div>
                     
