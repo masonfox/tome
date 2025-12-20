@@ -116,12 +116,28 @@ export class SeriesRepository extends BaseRepository<
   /**
    * Get all books in a series, ordered by series index
    * @param seriesName - Name of the series
-   * @returns Array of books in the series with their active session status
+   * @returns Array of books in the series with their session status
+   * 
+   * Session selection logic:
+   * - Prefers active session if exists
+   * - Falls back to most recent archived session (for completed reads)
+   * - Returns null status if no sessions exist
    */
   async getBooksBySeries(seriesName: string): Promise<SeriesBook[]> {
     const db = this.getDatabase();
 
-    // Query books with their active session status
+    // Subquery to get the most relevant session ID for each book
+    // Priority: active session > most recent archived session
+    const sessionIdSubquery = sql`(
+      SELECT rs.id FROM ${readingSessions} rs
+      WHERE rs.book_id = ${books.id}
+      ORDER BY 
+        CASE WHEN rs.is_active = 1 THEN 0 ELSE 1 END,
+        rs.session_number DESC
+      LIMIT 1
+    )`;
+
+    // Query books with their session status
     const result = await db
       .select({
         id: books.id,
@@ -133,16 +149,13 @@ export class SeriesRepository extends BaseRepository<
         rating: books.rating,
         tags: books.tags,
         description: books.description,
-        // Get status from active session
+        // Get status from the selected session (active or most recent)
         status: readingSessions.status,
       })
       .from(books)
       .leftJoin(
         readingSessions,
-        and(
-          eq(books.id, readingSessions.bookId),
-          eq(readingSessions.isActive, true)
-        )
+        sql`${readingSessions.id} = ${sessionIdSubquery}`
       )
       .where(
         and(

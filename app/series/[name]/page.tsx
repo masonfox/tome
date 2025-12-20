@@ -127,7 +127,7 @@ export default function SeriesDetailPage() {
                 </div>
 
                 {/* Book Info */}
-                <div className="flex-1 min-w-0 text-center sm:text-left">
+                <div className="flex-1 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 mb-3">
                     <div className="flex-1 min-w-0 w-full">
                       {/* Series Index Circle */}
@@ -150,10 +150,12 @@ export default function SeriesDetailPage() {
 
                     {/* Status Badge */}
                     {book.status && (
-                      <StatusBadge 
-                        status={book.status as BookStatus} 
-                        size="md"
-                      />
+                      <div className="flex-shrink-0">
+                        <StatusBadge 
+                          status={book.status as BookStatus} 
+                          size="md"
+                        />
+                      </div>
                     )}
                   </div>
 
