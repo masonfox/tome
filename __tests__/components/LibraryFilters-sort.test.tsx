@@ -170,7 +170,7 @@ describe("LibraryFilters - Sort Functionality", () => {
       });
     });
 
-    test("should display all 13 sort options when dropdown is open", () => {
+    test("should display all 11 sort options when dropdown is open", () => {
       render(<LibraryFilters {...defaultProps} />);
       
       // Open dropdown
@@ -182,6 +182,7 @@ describe("LibraryFilters - Sort Functionality", () => {
       const expectedLabels = [
         "Recently Added",
         "Recently Read",
+        "Oldest First",
         "Title A-Z",
         "Title Z-A",
         "Author A-Z",
@@ -190,9 +191,6 @@ describe("LibraryFilters - Sort Functionality", () => {
         "Lowest Rated",
         "Shortest First",
         "Longest First",
-        "Newest Published",
-        "Oldest Published",
-        "Oldest First",
       ];
       
       expectedLabels.forEach(label => {
@@ -282,6 +280,7 @@ describe("LibraryFilters - Sort Functionality", () => {
       const sortOptions = [
         { value: "created", label: "Recently Added" },
         { value: "recently_read", label: "Recently Read" },
+        { value: "created_desc", label: "Oldest First" },
         { value: "title", label: "Title A-Z" },
         { value: "title_desc", label: "Title Z-A" },
         { value: "author", label: "Author A-Z" },
@@ -290,9 +289,6 @@ describe("LibraryFilters - Sort Functionality", () => {
         { value: "rating_asc", label: "Lowest Rated" },
         { value: "pages", label: "Shortest First" },
         { value: "pages_desc", label: "Longest First" },
-        { value: "pub_date", label: "Newest Published" },
-        { value: "pub_date_asc", label: "Oldest Published" },
-        { value: "created_desc", label: "Oldest First" },
       ];
 
       sortOptions.forEach(({ value, label }) => {
@@ -324,8 +320,6 @@ describe("LibraryFilters - Sort Functionality", () => {
         { label: "Recently Read", value: "recently_read" },
         { label: "Shortest First", value: "pages" },
         { label: "Longest First", value: "pages_desc" },
-        { label: "Newest Published", value: "pub_date" },
-        { label: "Oldest Published", value: "pub_date_asc" },
       ];
 
       newSortTests.forEach(({ label, value }) => {
@@ -362,14 +356,6 @@ describe("LibraryFilters - Sort Functionality", () => {
       
       rerender(<LibraryFilters {...defaultProps} sortBy="pages_desc" />);
       elements = screen.getAllByText("Longest First");
-      expect(elements.length).toBeGreaterThan(0);
-      
-      rerender(<LibraryFilters {...defaultProps} sortBy="pub_date" />);
-      elements = screen.getAllByText("Newest Published");
-      expect(elements.length).toBeGreaterThan(0);
-      
-      rerender(<LibraryFilters {...defaultProps} sortBy="pub_date_asc" />);
-      elements = screen.getAllByText("Oldest Published");
       expect(elements.length).toBeGreaterThan(0);
     });
   });

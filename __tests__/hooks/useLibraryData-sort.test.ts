@@ -158,8 +158,6 @@ describe("useLibraryData - Sort Functionality", () => {
         "rating_asc",
         "pages",
         "pages_desc",
-        "pub_date",
-        "pub_date_asc",
         "created_desc",
       ];
 
@@ -311,76 +309,6 @@ describe("useLibraryData - Sort Functionality", () => {
       await waitFor(() => {
         expect(result.current.filters.pagination.skip).toBe(0);
         expect(result.current.filters.sortBy).toBe("pages_desc");
-      });
-    });
-  });
-
-  describe("New Sort Options - pub_date", () => {
-    test("should update sortBy to pub_date (newest published)", async () => {
-      const { result } = renderHook(() => useLibraryData());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        result.current.setSortBy("pub_date");
-      });
-
-      await waitFor(() => {
-        expect(result.current.filters.sortBy).toBe("pub_date");
-      });
-    });
-
-    test("should reset pagination when switching to pub_date sort", async () => {
-      const { result } = renderHook(() => useLibraryData());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        result.current.setSortBy("pub_date");
-      });
-
-      await waitFor(() => {
-        expect(result.current.filters.pagination.skip).toBe(0);
-        expect(result.current.filters.sortBy).toBe("pub_date");
-      });
-    });
-  });
-
-  describe("New Sort Options - pub_date_asc", () => {
-    test("should update sortBy to pub_date_asc (oldest published)", async () => {
-      const { result } = renderHook(() => useLibraryData());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        result.current.setSortBy("pub_date_asc");
-      });
-
-      await waitFor(() => {
-        expect(result.current.filters.sortBy).toBe("pub_date_asc");
-      });
-    });
-
-    test("should reset pagination when switching to pub_date_asc sort", async () => {
-      const { result } = renderHook(() => useLibraryData());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        result.current.setSortBy("pub_date_asc");
-      });
-
-      await waitFor(() => {
-        expect(result.current.filters.pagination.skip).toBe(0);
-        expect(result.current.filters.sortBy).toBe("pub_date_asc");
       });
     });
   });
@@ -737,8 +665,6 @@ describe("useLibraryData - Sort Functionality", () => {
         "recently_read",
         "pages",
         "pages_desc",
-        "pub_date",
-        "pub_date_asc",
       ];
 
       for (const sortValue of newSortOptions) {

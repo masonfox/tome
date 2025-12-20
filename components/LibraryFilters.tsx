@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, Calendar } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 // Move static options outside component to avoid recreation
@@ -31,8 +31,6 @@ const sortOptionGroups = [
     options: [
       { value: "created", label: "Recently Added", icon: CalendarPlus },
       { value: "recently_read", label: "Recently Read", icon: BookCheck },
-      { value: "pub_date", label: "Newest Published", icon: Calendar },
-      { value: "pub_date_asc", label: "Oldest Published", icon: Calendar },
       { value: "created_desc", label: "Oldest First", icon: CalendarPlus },
     ],
   },

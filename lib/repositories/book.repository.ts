@@ -386,14 +386,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Longest books first (nulls last)
         orderBy = sql`${books.totalPages} DESC NULLS LAST`;
         break;
-      case "pub_date":
-        // Newest publications first (nulls last)
-        orderBy = sql`${books.pubDate} DESC NULLS LAST`;
-        break;
-      case "pub_date_asc":
-        // Oldest publications first (nulls last)
-        orderBy = sql`${books.pubDate} ASC NULLS LAST`;
-        break;
       case "recently_read":
         // Most recently finished books first
         // Uses subquery to get latest completed session date
@@ -648,14 +640,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       case "pages_desc":
         // Longest books first (nulls last)
         orderBy = sql`${books.totalPages} DESC NULLS LAST`;
-        break;
-      case "pub_date":
-        // Newest publications first (nulls last)
-        orderBy = sql`${books.pubDate} DESC NULLS LAST`;
-        break;
-      case "pub_date_asc":
-        // Oldest publications first (nulls last)
-        orderBy = sql`${books.pubDate} ASC NULLS LAST`;
         break;
       case "recently_read":
         // Most recently finished books first
