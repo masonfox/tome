@@ -3,6 +3,7 @@ import "./globals.css";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/components/ToastProvider";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Tome",
@@ -72,9 +73,11 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[var(--background)] text-[var(--foreground)]">
-        <ToastProvider />
-        <TimezoneDetector />
-        <LayoutWrapper>{children}</LayoutWrapper>
+        <Providers>
+          <ToastProvider />
+          <TimezoneDetector />
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </Providers>
       </body>
     </html>
   );

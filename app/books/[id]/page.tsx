@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
@@ -25,14 +26,13 @@ import { useBookProgress } from "@/hooks/useBookProgress";
 import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
-import { toast } from "@/utils/toast";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
 export default function BookDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const bookId = params?.id as string;
+  const queryClient = useQueryClient();
 
   // Custom hooks encapsulate all business logic
   const {
@@ -40,12 +40,9 @@ export default function BookDetailPage() {
     loading,
     imageError,
     setImageError,
-    refetchBook,
-    updateTotalPages,
-    updateBookPartial,
   } = useBookDetail(bookId);
 
-  const bookProgressHook = useBookProgress(bookId, book, handleRefresh);
+  const bookProgressHook = useBookProgress(bookId, book);
 
   const {
     selectedStatus,
@@ -53,38 +50,17 @@ export default function BookDetailPage() {
     showStatusChangeConfirmation,
     pendingStatusChange,
     handleUpdateStatus: handleUpdateStatusFromHook,
-    handleConfirmStatusChange: handleConfirmStatusChangeFromHook,
+    handleConfirmStatusChange,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
     handleStartReread,
-  } = useBookStatus(book, bookProgressHook.progress, bookId, handleRefresh, handleRefresh);
+  } = useBookStatus(book, bookProgressHook.progress, bookId);
 
   // Wrap handleConfirmRead to clear form state after marking as read
   async function handleConfirmRead(rating: number, review?: string) {
     await handleConfirmReadFromHook(rating, review);
     bookProgressHook.clearFormState();
     clearDraft(); // Clear the draft note
-    
-    // Wait for all data to refresh before triggering history remount
-    await Promise.all([
-      refetchBook(),
-      bookProgressHook.refetchProgress(),
-    ]);
-    
-    setHistoryRefreshKey(prev => prev + 1);
-  }
-
-  // Wrap handleConfirmStatusChange to refresh history after archiving session
-  async function handleConfirmStatusChange() {
-    await handleConfirmStatusChangeFromHook();
-    
-    // Wait for all data to refresh before triggering history remount
-    await Promise.all([
-      refetchBook(),
-      bookProgressHook.refetchProgress(),
-    ]);
-    
-    setHistoryRefreshKey(prev => prev + 1);
   }
 
   const {
@@ -92,9 +68,9 @@ export default function BookDetailPage() {
     openRatingModal,
     closeRatingModal,
     handleUpdateRating,
-  } = useBookRating(book, bookId, handleRefresh, updateBookPartial);
+  } = useBookRating(book, bookId);
 
-  const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, handleRefresh);
+  const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, () => {});
 
   // Draft note management with localStorage autosave
   const { draftNote, saveDraft, clearDraft } = useDraftNote(parseInt(bookId));
@@ -119,7 +95,6 @@ export default function BookDetailPage() {
   // Local UI state
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
-  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
@@ -128,13 +103,6 @@ export default function BookDetailPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MDXEditorMethods | null>(null);
-
-  // Centralized refresh handler
-  function handleRefresh() {
-    refetchBook();
-    bookProgressHook.refetchProgress();
-    router.refresh(); // Refresh server components (dashboard, etc.)
-  }
 
   // Wrapper for log progress that clears draft and resets editor
   async function handleLogProgress(e: React.FormEvent) {
@@ -176,7 +144,7 @@ export default function BookDetailPage() {
     }
   }
 
-  // Handle re-read with history refresh
+  // Handle re-read
   function handleRereadClick() {
     setShowRereadConfirmation(true);
   }
@@ -184,7 +152,6 @@ export default function BookDetailPage() {
   async function handleConfirmReread() {
     setShowRereadConfirmation(false);
     await handleStartReread();
-    setHistoryRefreshKey(prev => prev + 1);
   }
 
   function handleCancelReread() {
@@ -199,21 +166,11 @@ export default function BookDetailPage() {
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
-
-    // Modal already handled the update, now refresh UI components
-    // Await all refreshes to ensure state is fully synchronized before user can interact
-    try {
-      await Promise.all([
-        refetchBook(),
-        bookProgressHook.refetchProgress(),
-      ]);
-      
-      // Force router refresh to update any server components
-      router.refresh();
-    } catch (error) {
-      logger.error({ error }, "Failed to refresh after page count update");
-      toast.error("Failed to refresh data. Please reload the page.");
-    }
+    
+    // Invalidate relevant queries to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+    await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
   }
   
   function handlePageCountModalClose() {
@@ -471,7 +428,6 @@ export default function BookDetailPage() {
 
           {/* Reading History */}
           <ReadingHistoryTab
-            key={historyRefreshKey}
             bookId={bookId}
             bookTitle={book.title}
           />
