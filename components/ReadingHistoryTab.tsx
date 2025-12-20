@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import { toast } from "@/utils/toast";
@@ -36,6 +36,7 @@ interface ReadingHistoryTabProps {
 }
 
 export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: ReadingHistoryTabProps) {
+  const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSession, setEditingSession] = useState<ReadingSession | null>(null);
 
@@ -94,7 +95,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         throw new Error("Failed to update session");
       }
 
-      // No need to manually refetch - TanStack Query will handle it via invalidation
+      // Invalidate queries to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      
       handleCloseEditModal();
       toast.success("Session updated successfully");
     } catch (error) {
