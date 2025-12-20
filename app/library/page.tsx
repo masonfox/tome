@@ -41,6 +41,7 @@ function LibraryPageContent() {
     const statusParam = searchParams.get("status");
     const tagsParam = searchParams.get("tags");
     const ratingParam = searchParams.get("rating");
+    const sortParam = searchParams.get("sort");
 
     if (searchParam) setSearchInput(searchParam);
 
@@ -63,6 +64,9 @@ function LibraryPageContent() {
     if (currentFilters.rating && currentFilters.rating !== 'all') {
       params.set('rating', currentFilters.rating);
     }
+    if (currentFilters.sort && currentFilters.sort !== 'created') {
+      params.set('sort', currentFilters.sort);
+    }
     
     const queryString = params.toString();
     const newPath = queryString ? `/library?${queryString}` : '/library';
@@ -83,6 +87,7 @@ function LibraryPageContent() {
     setStatus,
     setTags,
     setRating,
+    setSortBy,
     filters,
     refresh,
   } = useLibraryData({
@@ -90,6 +95,7 @@ function LibraryPageContent() {
     status: searchParams?.get("status") || undefined,
     tags: searchParams?.get("tags")?.split(",").filter(Boolean) || undefined,
     rating: searchParams?.get("rating") || undefined,
+    sortBy: searchParams?.get("sort") || undefined,
   });
 
   // Performance monitoring - track page load times
@@ -286,9 +292,10 @@ function LibraryPageContent() {
       search: filters.search,
       status: status || 'all',
       tags: filters.tags || [],
-      rating: filters.rating || 'all'
+      rating: filters.rating || 'all',
+      sort: filters.sortBy || 'created'
     });
-  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating]);
+  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating, filters.sortBy]);
 
   const handleTagsChange = useCallback((tags: string[] | undefined) => {
     setTags(tags);
@@ -296,9 +303,10 @@ function LibraryPageContent() {
       search: filters.search,
       status: filters.status || 'all',
       tags: tags || [],
-      rating: filters.rating || 'all'
+      rating: filters.rating || 'all',
+      sort: filters.sortBy || 'created'
     });
-  }, [setTags, updateURL, filters.search, filters.status, filters.rating]);
+  }, [setTags, updateURL, filters.search, filters.status, filters.rating, filters.sortBy]);
 
   const handleRatingChange = useCallback((rating: string | undefined) => {
     setRating(rating);
@@ -306,9 +314,10 @@ function LibraryPageContent() {
       search: filters.search,
       status: filters.status || 'all',
       tags: filters.tags || [],
-      rating: rating || 'all'
+      rating: rating || 'all',
+      sort: filters.sortBy || 'created'
     });
-  }, [setRating, updateURL, filters.search, filters.status, filters.tags]);
+  }, [setRating, updateURL, filters.search, filters.status, filters.tags, filters.sortBy]);
 
   // Handle search submission
   const handleSearchSubmit = useCallback(() => {
@@ -320,9 +329,10 @@ function LibraryPageContent() {
       search: searchInput,
       status: filters.status || 'all',
       tags: filters.tags || [],
-      rating: filters.rating || 'all'
+      rating: filters.rating || 'all',
+      sort: filters.sortBy || 'created'
     });
-  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
+  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, updateURL]);
 
   // Handle search clear (X button)
   const handleSearchClear = useCallback(() => {
@@ -334,9 +344,10 @@ function LibraryPageContent() {
       search: "",
       status: filters.status || 'all',
       tags: filters.tags || [],
-      rating: filters.rating || 'all'
+      rating: filters.rating || 'all',
+      sort: filters.sortBy || 'created'
     });
-  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
+  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -393,12 +404,24 @@ function LibraryPageContent() {
     }
   }
 
+  const handleSortChange = useCallback((sort: string) => {
+    setSortBy(sort);
+    updateURL({
+      search: filters.search,
+      status: filters.status || 'all',
+      tags: filters.tags || [],
+      rating: filters.rating || 'all',
+      sort: sort
+    });
+  }, [setSortBy, updateURL, filters.search, filters.status, filters.tags, filters.rating]);
+
   function handleClearAll() {
     setSearchInput("");
     setSearch("");
     setStatus(undefined);
     setTags(undefined);
     setRating(undefined);
+    setSortBy(undefined);
     
     // Update URL to remove all filter parameters
     router.replace('/library');
@@ -427,6 +450,8 @@ function LibraryPageContent() {
         onTagsChange={(tags) => handleTagsChange(tags.length > 0 ? tags : undefined)}
         ratingFilter={filters.rating || "all"}
         onRatingFilterChange={(rating) => handleRatingChange(rating === "all" ? undefined : rating)}
+        sortBy={filters.sortBy || "created"}
+        onSortChange={handleSortChange}
         availableTags={availableTags}
         loading={isInitialLoading}
         loadingTags={loadingTags}

@@ -9,7 +9,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
       limit: BOOKS_PER_PAGE,
       skip: 0,
     },
-    sortBy: 'createdAt', // Use createdAt sorting for consistent pagination
+    sortBy: 'created', // Default to 'created' (newest first based on repository implementation)
     ...initialFilters,
   });
 
