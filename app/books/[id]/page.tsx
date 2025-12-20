@@ -70,7 +70,10 @@ export default function BookDetailPage() {
     handleUpdateRating,
   } = useBookRating(book, bookId);
 
-  const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, () => {});
+  const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, async () => {
+    // Invalidate relevant queries to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+  });
 
   // Draft note management with localStorage autosave
   const { draftNote, saveDraft, clearDraft } = useDraftNote(parseInt(bookId));
