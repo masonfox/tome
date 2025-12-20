@@ -42,7 +42,10 @@ export default function BookDetailPage() {
     setImageError,
   } = useBookDetail(bookId);
 
-  const bookProgressHook = useBookProgress(bookId, book);
+  const bookProgressHook = useBookProgress(bookId, book, async () => {
+    // Invalidate relevant queries to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+  });
 
   const {
     selectedStatus,
