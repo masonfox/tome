@@ -76,12 +76,17 @@ describe("LibraryFilters - Sort Functionality", () => {
     test("should render with all sort option values", () => {
       const sortValues = [
         "created",
+        "recently_read",
         "title",
         "title_desc",
         "author",
         "author_desc",
         "rating",
         "rating_asc",
+        "pages",
+        "pages_desc",
+        "pub_date",
+        "pub_date_asc",
         "created_desc",
       ];
 
@@ -165,7 +170,7 @@ describe("LibraryFilters - Sort Functionality", () => {
       });
     });
 
-    test("should display all 8 sort options when dropdown is open", () => {
+    test("should display all 13 sort options when dropdown is open", () => {
       render(<LibraryFilters {...defaultProps} />);
       
       // Open dropdown
@@ -176,12 +181,17 @@ describe("LibraryFilters - Sort Functionality", () => {
       // Check for all sort option labels
       const expectedLabels = [
         "Recently Added",
+        "Recently Read",
         "Title A-Z",
         "Title Z-A",
         "Author A-Z",
         "Author Z-A",
         "Highest Rated",
         "Lowest Rated",
+        "Shortest First",
+        "Longest First",
+        "Newest Published",
+        "Oldest Published",
         "Oldest First",
       ];
       
@@ -271,12 +281,17 @@ describe("LibraryFilters - Sort Functionality", () => {
     test("should handle all sort option values", () => {
       const sortOptions = [
         { value: "created", label: "Recently Added" },
+        { value: "recently_read", label: "Recently Read" },
         { value: "title", label: "Title A-Z" },
         { value: "title_desc", label: "Title Z-A" },
         { value: "author", label: "Author A-Z" },
         { value: "author_desc", label: "Author Z-A" },
         { value: "rating", label: "Highest Rated" },
         { value: "rating_asc", label: "Lowest Rated" },
+        { value: "pages", label: "Shortest First" },
+        { value: "pages_desc", label: "Longest First" },
+        { value: "pub_date", label: "Newest Published" },
+        { value: "pub_date_asc", label: "Oldest Published" },
         { value: "created_desc", label: "Oldest First" },
       ];
 
@@ -301,6 +316,60 @@ describe("LibraryFilters - Sort Functionality", () => {
       
       rerender(<LibraryFilters {...defaultProps} sortBy="rating" />);
       elements = screen.getAllByText("Highest Rated");
+      expect(elements.length).toBeGreaterThan(0);
+    });
+
+    test("should call onSortChange for new sort options", () => {
+      const newSortTests = [
+        { label: "Recently Read", value: "recently_read" },
+        { label: "Shortest First", value: "pages" },
+        { label: "Longest First", value: "pages_desc" },
+        { label: "Newest Published", value: "pub_date" },
+        { label: "Oldest Published", value: "pub_date_asc" },
+      ];
+
+      newSortTests.forEach(({ label, value }) => {
+        cleanup();
+        const onSortChange = mock(() => {});
+        
+        render(<LibraryFilters {...defaultProps} onSortChange={onSortChange} />);
+        
+        // Open dropdown
+        const buttons = screen.getAllByRole("button");
+        const sortButton = buttons.find(btn => btn.textContent?.includes("Recently Added"));
+        fireEvent.click(sortButton!);
+        
+        // Click the specific option
+        const options = screen.getAllByText(label);
+        const optionButton = options.find(el => el.closest("button")?.type === "button");
+        
+        if (optionButton) {
+          fireEvent.click(optionButton);
+          expect(onSortChange).toHaveBeenCalledWith(value);
+        }
+      });
+    });
+
+    test("should display correct labels for new sort options", () => {
+      const { rerender } = render(<LibraryFilters {...defaultProps} sortBy="recently_read" />);
+      
+      let elements = screen.getAllByText("Recently Read");
+      expect(elements.length).toBeGreaterThan(0);
+      
+      rerender(<LibraryFilters {...defaultProps} sortBy="pages" />);
+      elements = screen.getAllByText("Shortest First");
+      expect(elements.length).toBeGreaterThan(0);
+      
+      rerender(<LibraryFilters {...defaultProps} sortBy="pages_desc" />);
+      elements = screen.getAllByText("Longest First");
+      expect(elements.length).toBeGreaterThan(0);
+      
+      rerender(<LibraryFilters {...defaultProps} sortBy="pub_date" />);
+      elements = screen.getAllByText("Newest Published");
+      expect(elements.length).toBeGreaterThan(0);
+      
+      rerender(<LibraryFilters {...defaultProps} sortBy="pub_date_asc" />);
+      elements = screen.getAllByText("Oldest Published");
       expect(elements.length).toBeGreaterThan(0);
     });
   });

@@ -378,6 +378,33 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Rating low to high (nulls last)
         orderBy = sql`${books.rating} ASC NULLS LAST`;
         break;
+      case "pages":
+        // Shortest books first (nulls last)
+        orderBy = sql`${books.totalPages} ASC NULLS LAST`;
+        break;
+      case "pages_desc":
+        // Longest books first (nulls last)
+        orderBy = sql`${books.totalPages} DESC NULLS LAST`;
+        break;
+      case "pub_date":
+        // Newest publications first (nulls last)
+        orderBy = sql`${books.pubDate} DESC NULLS LAST`;
+        break;
+      case "pub_date_asc":
+        // Oldest publications first (nulls last)
+        orderBy = sql`${books.pubDate} ASC NULLS LAST`;
+        break;
+      case "recently_read":
+        // Most recently finished books first
+        // Uses subquery to get latest completed session date
+        orderBy = sql`(
+          SELECT MAX(rs.completed_date) 
+          FROM ${readingSessions} rs 
+          WHERE rs.book_id = ${books.id} 
+            AND rs.status = 'read'
+            AND rs.completed_date IS NOT NULL
+        ) DESC NULLS LAST`;
+        break;
       default:
         orderBy = desc(books.addedToLibrary);
     }
@@ -613,6 +640,33 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         break;
       case "rating_asc":
         orderBy = sql`${books.rating} ASC NULLS LAST`;
+        break;
+      case "pages":
+        // Shortest books first (nulls last)
+        orderBy = sql`${books.totalPages} ASC NULLS LAST`;
+        break;
+      case "pages_desc":
+        // Longest books first (nulls last)
+        orderBy = sql`${books.totalPages} DESC NULLS LAST`;
+        break;
+      case "pub_date":
+        // Newest publications first (nulls last)
+        orderBy = sql`${books.pubDate} DESC NULLS LAST`;
+        break;
+      case "pub_date_asc":
+        // Oldest publications first (nulls last)
+        orderBy = sql`${books.pubDate} ASC NULLS LAST`;
+        break;
+      case "recently_read":
+        // Most recently finished books first
+        // Uses subquery to get latest completed session date
+        orderBy = sql`(
+          SELECT MAX(rs.completed_date) 
+          FROM ${readingSessions} rs 
+          WHERE rs.book_id = ${books.id} 
+            AND rs.status = 'read'
+            AND rs.completed_date IS NOT NULL
+        ) DESC NULLS LAST`;
         break;
       default:
         orderBy = desc(books.addedToLibrary);

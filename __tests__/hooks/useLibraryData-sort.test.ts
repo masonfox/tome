@@ -149,12 +149,17 @@ describe("useLibraryData - Sort Functionality", () => {
     test("should support all tier 1 & tier 2 sort options", async () => {
       const sortOptions = [
         "created",
+        "recently_read",
         "title",
         "title_desc",
         "author",
         "author_desc",
         "rating",
         "rating_asc",
+        "pages",
+        "pages_desc",
+        "pub_date",
+        "pub_date_asc",
         "created_desc",
       ];
 
@@ -195,6 +200,187 @@ describe("useLibraryData - Sort Functionality", () => {
       await waitFor(() => {
         // Setting to undefined removes the sortBy filter
         expect(result.current.filters.sortBy).toBe(undefined);
+      });
+    });
+  });
+
+  describe("New Sort Options - recently_read", () => {
+    test("should update sortBy to recently_read", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("recently_read");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.sortBy).toBe("recently_read");
+      });
+    });
+
+    test("should reset pagination when switching to recently_read", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Load more to increase skip
+      await act(async () => {
+        await result.current.loadMore();
+      });
+
+      // Change to recently_read sort
+      await act(async () => {
+        result.current.setSortBy("recently_read");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.pagination.skip).toBe(0);
+        expect(result.current.filters.sortBy).toBe("recently_read");
+      });
+    });
+  });
+
+  describe("New Sort Options - pages", () => {
+    test("should update sortBy to pages (shortest first)", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pages");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.sortBy).toBe("pages");
+      });
+    });
+
+    test("should reset pagination when switching to pages sort", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pages");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.pagination.skip).toBe(0);
+        expect(result.current.filters.sortBy).toBe("pages");
+      });
+    });
+  });
+
+  describe("New Sort Options - pages_desc", () => {
+    test("should update sortBy to pages_desc (longest first)", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pages_desc");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.sortBy).toBe("pages_desc");
+      });
+    });
+
+    test("should reset pagination when switching to pages_desc sort", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pages_desc");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.pagination.skip).toBe(0);
+        expect(result.current.filters.sortBy).toBe("pages_desc");
+      });
+    });
+  });
+
+  describe("New Sort Options - pub_date", () => {
+    test("should update sortBy to pub_date (newest published)", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pub_date");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.sortBy).toBe("pub_date");
+      });
+    });
+
+    test("should reset pagination when switching to pub_date sort", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pub_date");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.pagination.skip).toBe(0);
+        expect(result.current.filters.sortBy).toBe("pub_date");
+      });
+    });
+  });
+
+  describe("New Sort Options - pub_date_asc", () => {
+    test("should update sortBy to pub_date_asc (oldest published)", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pub_date_asc");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.sortBy).toBe("pub_date_asc");
+      });
+    });
+
+    test("should reset pagination when switching to pub_date_asc sort", async () => {
+      const { result } = renderHook(() => useLibraryData());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        result.current.setSortBy("pub_date_asc");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filters.pagination.skip).toBe(0);
+        expect(result.current.filters.sortBy).toBe("pub_date_asc");
       });
     });
   });
@@ -544,6 +730,34 @@ describe("useLibraryData - Sort Functionality", () => {
         expect(result.current.filters.pagination.skip).toBe(0);
         expect(result.current.filters.sortBy).toBe("author_desc");
       });
+    });
+
+    test("should support updating to new sort options via updateFilters", async () => {
+      const newSortOptions = [
+        "recently_read",
+        "pages",
+        "pages_desc",
+        "pub_date",
+        "pub_date_asc",
+      ];
+
+      for (const sortValue of newSortOptions) {
+        const { result, unmount } = renderHook(() => useLibraryData());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        await act(async () => {
+          result.current.updateFilters({ sortBy: sortValue });
+        });
+
+        await waitFor(() => {
+          expect(result.current.filters.sortBy).toBe(sortValue);
+        });
+
+        unmount();
+      }
     });
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, Calendar } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 // Move static options outside component to avoid recreation
@@ -24,16 +24,40 @@ const ratingOptions = [
   { value: "unrated", label: "Unrated" },
 ];
 
-const sortOptions = [
-  { value: "created", label: "Recently Added", icon: CalendarPlus },
-  { value: "title", label: "Title A-Z", icon: ArrowDownAZ },
-  { value: "title_desc", label: "Title Z-A", icon: ArrowUpAZ },
-  { value: "author", label: "Author A-Z", icon: ArrowDownAZ },
-  { value: "author_desc", label: "Author Z-A", icon: ArrowUpAZ },
-  { value: "rating", label: "Highest Rated", icon: TrendingUp },
-  { value: "rating_asc", label: "Lowest Rated", icon: TrendingDown },
-  { value: "created_desc", label: "Oldest First", icon: CalendarPlus },
+// Grouped sort options for better organization
+const sortOptionGroups = [
+  {
+    label: "By Date",
+    options: [
+      { value: "created", label: "Recently Added", icon: CalendarPlus },
+      { value: "recently_read", label: "Recently Read", icon: BookCheck },
+      { value: "pub_date", label: "Newest Published", icon: Calendar },
+      { value: "pub_date_asc", label: "Oldest Published", icon: Calendar },
+      { value: "created_desc", label: "Oldest First", icon: CalendarPlus },
+    ],
+  },
+  {
+    label: "By Title & Author",
+    options: [
+      { value: "title", label: "Title A-Z", icon: ArrowDownAZ },
+      { value: "title_desc", label: "Title Z-A", icon: ArrowUpAZ },
+      { value: "author", label: "Author A-Z", icon: ArrowDownAZ },
+      { value: "author_desc", label: "Author Z-A", icon: ArrowUpAZ },
+    ],
+  },
+  {
+    label: "By Rating & Length",
+    options: [
+      { value: "rating", label: "Highest Rated", icon: TrendingUp },
+      { value: "rating_asc", label: "Lowest Rated", icon: TrendingDown },
+      { value: "pages", label: "Shortest First", icon: FileText },
+      { value: "pages_desc", label: "Longest First", icon: FileText },
+    ],
+  },
 ];
+
+// Flatten for easy lookup
+const sortOptions = sortOptionGroups.flatMap(group => group.options);
 
 interface LibraryFiltersProps {
   search: string;
@@ -198,33 +222,48 @@ export function LibraryFilters({
             </button>
 
             {showSortDropdown && (
-              <div className="absolute z-10 left-0 mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden min-w-[200px]">
-                {sortOptions.map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        onSortChange(option.value);
-                        setShowSortDropdown(false);
-                      }}
-                      disabled={loading}
-                      className={cn(
-                        "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                        "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                        sortBy === option.value && "bg-[var(--accent)]/10",
-                        loading && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
-                      <span className="font-medium flex-1">{option.label}</span>
-                      {sortBy === option.value && (
-                        <Check className="w-5 h-5 text-[var(--accent)]" />
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="absolute z-10 left-0 mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden min-w-[200px] max-h-[70vh] overflow-y-auto">
+                {sortOptionGroups.map((group, groupIndex) => (
+                  <div key={group.label}>
+                    {/* Group Header */}
+                    <div className="px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]/50 uppercase tracking-wide bg-[var(--background)]/50 sticky top-0 z-10">
+                      {group.label}
+                    </div>
+                    
+                    {/* Group Options */}
+                    {group.options.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            onSortChange(option.value);
+                            setShowSortDropdown(false);
+                          }}
+                          disabled={loading}
+                          className={cn(
+                            "w-full px-4 py-2 text-left flex items-center gap-2 transition-colors text-sm",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            sortBy === option.value && "bg-[var(--accent)]/10",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Icon className="w-4 h-4 text-[var(--foreground)]/60 shrink-0" />
+                          <span className="flex-1">{option.label}</span>
+                          {sortBy === option.value && (
+                            <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                    
+                    {/* Divider between groups (except last) */}
+                    {groupIndex < sortOptionGroups.length - 1 && (
+                      <div className="h-px bg-[var(--border-color)] my-1" />
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
