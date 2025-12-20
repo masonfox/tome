@@ -375,7 +375,10 @@ function LibraryPageContent() {
           loadMore();
         }
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0.1,
+        rootMargin: '400px' // Start loading 400px before the trigger element comes into view
+      }
     );
 
     if (observerTarget.current) {
