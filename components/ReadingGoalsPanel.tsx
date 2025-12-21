@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Target, Plus, Loader2 } from "lucide-react";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { ReadingGoalsList } from "./ReadingGoalsList";
+import { useReadingGoals } from "@/hooks/useReadingGoals";
+import { useStreak } from "@/hooks/useStreak";
 import type { ReadingGoal } from "@/lib/db/schema";
 
 interface ReadingGoalsPanelProps {
@@ -13,8 +15,14 @@ interface ReadingGoalsPanelProps {
 }
 
 export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoalsPanelProps) {
+  // Use TanStack Query hooks
+  const { goals: fetchedGoals, isLoading: goalsLoading } = useReadingGoals();
+  const { updateThreshold } = useStreak();
+
+  // Use fetched goals if available, otherwise use initial goals
+  const goals = goalsLoading ? initialGoals : (fetchedGoals.length > 0 ? fetchedGoals : initialGoals);
+
   // Annual goals state
-  const [goals, setGoals] = useState<ReadingGoal[]>(initialGoals);
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<ReadingGoal | undefined>();
 
@@ -23,14 +31,6 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   const [saving, setSaving] = useState(false);
 
   // Annual goals handlers
-  async function refreshGoals() {
-    const res = await fetch("/api/reading-goals");
-    const data = await res.json();
-    if (data.success) {
-      setGoals(data.data);
-    }
-  }
-
   function handleCreateNew() {
     setEditingGoal(undefined);
     setShowForm(true);
@@ -44,7 +44,7 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   function handleFormSuccess() {
     setShowForm(false);
     setEditingGoal(undefined);
-    refreshGoals();
+    // Goals will auto-refresh via TanStack Query
   }
 
   function handleFormCancel() {
@@ -53,7 +53,7 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   }
 
   function handleDelete() {
-    refreshGoals();
+    // Goals will auto-refresh via TanStack Query
   }
 
   // Daily goal handlers
@@ -71,21 +71,7 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
 
     setSaving(true);
     try {
-      const res = await fetch("/api/streak", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dailyThreshold: threshold }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        toast.success("Daily reading goal updated!");
-      } else {
-        toast.error(data.error?.message || "Failed to update goal");
-      }
-    } catch (error) {
-      toast.error("Failed to update daily reading goal");
+      await updateThreshold(threshold);
     } finally {
       setSaving(false);
     }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Target, Loader2, X } from "lucide-react";
+import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoal } from "@/lib/db/schema";
 
 interface ReadingGoalFormProps {
@@ -18,6 +19,8 @@ export function ReadingGoalForm({
   existingGoal,
   mode,
 }: ReadingGoalFormProps) {
+  const { createGoalAsync, updateGoalAsync } = useReadingGoals();
+  
   const currentYear = new Date().getFullYear();
   // Generate year options: current year + next year
   const yearOptions = [
@@ -68,33 +71,15 @@ export function ReadingGoalForm({
 
     setSaving(true);
     try {
-      let res;
       if (mode === "create") {
-        res = await fetch("/api/reading-goals", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ year, booksGoal }),
-        });
-      } else {
-        res = await fetch(`/api/reading-goals/${existingGoal?.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ booksGoal }),
-        });
+        await createGoalAsync({ year, targetBooks: booksGoal });
+      } else if (existingGoal) {
+        await updateGoalAsync({ id: existingGoal.id, data: { targetBooks: booksGoal } });
       }
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        toast.success(
-          mode === "create" ? "Reading goal created!" : "Reading goal updated!"
-        );
-        onSuccess();
-      } else {
-        toast.error(data.error?.message || "Failed to save goal");
-      }
+      onSuccess();
     } catch (error) {
-      toast.error("Failed to save reading goal");
+      // Error already handled by mutation
+      console.error("Failed to save goal:", error);
     } finally {
       setSaving(false);
     }
