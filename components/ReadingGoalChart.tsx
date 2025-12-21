@@ -32,9 +32,21 @@ export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
     }));
   }, [monthlyData]);
 
-  // Calculate Y-axis domain based on actual data
+  // Calculate Y-axis domain based on actual data with dynamic rounding
   const maxCount = Math.max(...monthlyData.map(d => d.count), 0);
-  const yAxisMax = Math.ceil(maxCount * 1.2 / 10) * 10 || 10; // Round up to nearest 10, minimum 10
+  const paddedMax = maxCount * 1.2; // Add 20% padding
+  
+  let yAxisMax: number;
+  if (paddedMax <= 15) {
+    // For small values (0-15): round to nearest 2, minimum 5
+    yAxisMax = Math.max(Math.ceil(paddedMax / 2) * 2, 5);
+  } else if (paddedMax <= 50) {
+    // For medium values (16-50): round to nearest 5
+    yAxisMax = Math.ceil(paddedMax / 5) * 5;
+  } else {
+    // For large values (51+): round to nearest 20
+    yAxisMax = Math.ceil(paddedMax / 20) * 20;
+  }
 
   // Full month names for tooltip
   const fullMonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
