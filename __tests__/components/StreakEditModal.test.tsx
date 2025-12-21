@@ -382,19 +382,12 @@ describe("StreakEditModal", () => {
 
   describe("Loading States", () => {
     test("should disable save button while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -412,24 +405,25 @@ describe("StreakEditModal", () => {
       const saveButton = screen.getByRole("button", { name: /^save$/i });
       fireEvent.click(saveButton);
 
-      // Button should be disabled while saving
-      expect(saveButton).toBeDisabled();
+      // Button should be disabled while saving (check immediately after click)
+      await waitFor(() => {
+        expect(saveButton).toBeDisabled();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
 
     test("should show saving text while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -448,23 +442,24 @@ describe("StreakEditModal", () => {
       fireEvent.click(saveButton);
 
       // Should show "Saving..." text
-      expect(screen.getByText("Saving...")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Saving...")).toBeInTheDocument();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
 
     test("should disable cancel button while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -482,24 +477,25 @@ describe("StreakEditModal", () => {
       const saveButton = screen.getByRole("button", { name: /^save$/i });
       fireEvent.click(saveButton);
 
-      const cancelButton = screen.getByRole("button", { name: /cancel/i });
-      expect(cancelButton).toBeDisabled();
+      await waitFor(() => {
+        const cancelButton = screen.getByRole("button", { name: /cancel/i });
+        expect(cancelButton).toBeDisabled();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
 
     test("should disable input while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -507,7 +503,7 @@ describe("StreakEditModal", () => {
           isOpen={true}
           onClose={mockOnClose}
           initialThreshold={10}
-          onSuccess={mockOnSuccess}
+          onSuccess=  {mockOnSuccess}
         />
       );
 
@@ -517,7 +513,15 @@ describe("StreakEditModal", () => {
       const saveButton = screen.getByRole("button", { name: /^save$/i });
       fireEvent.click(saveButton);
 
-      expect(input).toBeDisabled();
+      await waitFor(() => {
+        expect(input).toBeDisabled();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
   });
 });
