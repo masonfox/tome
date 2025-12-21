@@ -107,6 +107,8 @@ export function useBookStatus(
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }); // Invalidate dashboard when book status changes
+      queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
 
       // Call legacy callbacks for compatibility (will be removed later)
       onStatusChange?.();
@@ -195,6 +197,8 @@ export function useBookStatus(
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }); // Invalidate dashboard when marked as read
+      queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
       
       onRefresh?.();
       toast.success("Marked as read!");
@@ -220,6 +224,8 @@ export function useBookStatus(
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }); // Invalidate dashboard when reread starts
+      queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
       
       toast.success("Started re-reading! Your previous read has been archived.");
       onRefresh?.();

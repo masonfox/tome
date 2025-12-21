@@ -1,15 +1,15 @@
+"use client";
+
 import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { BookCard } from "@/components/BookCard";
+import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import Link from "next/link";
-import { getDashboardData } from "@/lib/dashboard-service";
+import { useDashboard } from "@/hooks/useDashboard";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Disable all caching including router cache
-
-export default async function Dashboard() {
-  const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal } = await getDashboardData();
+export default function Dashboard() {
+  const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal, isLoading } = useDashboard();
 
   return (
     <div className="space-y-10">
@@ -47,9 +47,11 @@ export default async function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Currently Reading</span>
-            <span className="ml-2 text-[var(--accent)]">
-              ({currentlyReadingTotal})
-            </span>
+            {!isLoading && (
+              <span className="ml-2 text-[var(--accent)]">
+                ({currentlyReadingTotal})
+              </span>
+            )}
           </h2>
           {currentlyReadingTotal > 6 && (
             <Link
@@ -63,7 +65,13 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {currentlyReading.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <BookCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : currentlyReading.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {currentlyReading.map((book: any) => (
               <BookCard
@@ -98,9 +106,11 @@ export default async function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Read Next</span>
-            <span className="ml-2 text-[var(--accent)]">
-              ({readNextTotal})
-            </span>
+            {!isLoading && (
+              <span className="ml-2 text-[var(--accent)]">
+                ({readNextTotal})
+              </span>
+            )}
           </h2>
           {readNextTotal > 6 && (
             <Link
@@ -114,7 +124,13 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {readNext.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <BookCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : readNext.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {readNext.map((book: any) => (
               <BookCard

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import BaseModal from "./BaseModal";
+import { useStreak } from "@/hooks/useStreak";
 
 interface StreakEditModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export function StreakEditModal({
   onSuccess,
 }: StreakEditModalProps) {
   const [threshold, setThreshold] = useState(initialThreshold);
-  const [saving, setSaving] = useState(false);
+  const { updateThresholdAsync, isUpdatingThreshold } = useStreak();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,27 +36,12 @@ export function StreakEditModal({
       return;
     }
 
-    setSaving(true);
     try {
-      const res = await fetch("/api/streak", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dailyThreshold: threshold }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        toast.success("Daily reading goal updated!");
-        onSuccess();
-        onClose();
-      } else {
-        toast.error(data.error?.message || "Failed to update goal");
-      }
+      await updateThresholdAsync(threshold);
+      onSuccess();
+      onClose();
     } catch (error) {
-      toast.error("Failed to update daily reading goal");
-    } finally {
-      setSaving(false);
+      // Error handling is done in the hook
     }
   }
 
@@ -71,18 +57,18 @@ export function StreakEditModal({
             type="button"
             onClick={onClose}
             className="flex-1 px-6 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded-sm hover:bg-[var(--border-color)]/50 transition-colors font-semibold"
-            disabled={saving}
+            disabled={isUpdatingThreshold}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={saving || threshold === initialThreshold}
+            disabled={isUpdatingThreshold || threshold === initialThreshold}
             className="flex-1 px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
           >
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            {saving ? "Saving..." : "Save"}
+            {isUpdatingThreshold && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isUpdatingThreshold ? "Saving..." : "Save"}
           </button>
         </div>
       }
@@ -106,7 +92,7 @@ export function StreakEditModal({
               setThreshold(isNaN(val) ? 1 : val);
             }}
             className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-            disabled={saving}
+            disabled={isUpdatingThreshold}
             autoFocus
           />
           <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">

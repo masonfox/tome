@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
 import { Globe } from "lucide-react";
+import { useStreak } from "@/hooks/useStreak";
 
 interface TimezoneSettingsProps {
   initialTimezone: string;
@@ -10,29 +10,15 @@ interface TimezoneSettingsProps {
 
 export function TimezoneSettings({ initialTimezone }: TimezoneSettingsProps) {
   const [timezone, setTimezone] = useState(initialTimezone);
-  const [savingTimezone, setSavingTimezone] = useState(false);
+  const { updateTimezone, isUpdatingTimezone } = useStreak();
 
   async function handleTimezoneChange(newTimezone: string) {
-    setSavingTimezone(true);
     try {
-      const res = await fetch("/api/streak/timezone", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timezone: newTimezone }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        setTimezone(newTimezone);
-        toast.success("Timezone updated! Streak recalculated with new day boundaries.");
-      } else {
-        toast.error(data.error?.message || "Failed to update timezone");
-      }
+      await updateTimezone(newTimezone);
+      setTimezone(newTimezone);
     } catch (error) {
-      toast.error("Failed to update timezone");
-    } finally {
-      setSavingTimezone(false);
+      // Error handling is done in the hook, reset timezone on failure
+      setTimezone(timezone);
     }
   }
 
@@ -62,7 +48,7 @@ export function TimezoneSettings({ initialTimezone }: TimezoneSettingsProps) {
             value={timezone}
             onChange={(e) => handleTimezoneChange(e.target.value)}
             className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-            disabled={savingTimezone}
+            disabled={isUpdatingTimezone}
           >
             <optgroup label="Common Timezones">
               <option value="America/New_York">Eastern Time (America/New_York)</option>
@@ -112,7 +98,7 @@ export function TimezoneSettings({ initialTimezone }: TimezoneSettingsProps) {
             </optgroup>
           </select>
           <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
-            {savingTimezone ? "Updating and recalculating streak..." : `Current time: ${new Date().toLocaleString('en-US', { timeZone: timezone, timeStyle: 'short' })}`}
+            {isUpdatingTimezone ? "Updating and recalculating streak..." : `Current time: ${new Date().toLocaleString('en-US', { timeZone: timezone, timeStyle: 'short' })}`}
           </p>
         </div>
       </div>
