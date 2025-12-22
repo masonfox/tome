@@ -97,7 +97,8 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
     const progressResponse = await POST_PROGRESS(progressRequest, { params: { id: book.id.toString() } });
     expect(progressResponse.status).toBe(200);
 
-    const progressData = await progressResponse.json();
+    const result = await progressResponse.json();
+    const progressData = result.progressLog;
 
     // ========================================================================
     // ASSERTIONS: Verify correct calculations
@@ -183,7 +184,8 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
     const progressResponse = await POST_PROGRESS(progressRequest, { params: { id: book.id.toString() } });
     expect(progressResponse.status).toBe(200);
 
-    const progressData = await progressResponse.json();
+    const result = await progressResponse.json();
+    const progressData = result.progressLog;
 
     // ========================================================================
     // ASSERTIONS: Verify correct calculations
@@ -263,7 +265,8 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
       { params: { id: book.id.toString() } }
     );
 
-    const finalProgressData = await finalProgressResponse.json();
+    const finalResult = await finalProgressResponse.json();
+    const finalProgressData = finalResult.progressLog;
 
     // ========================================================================
     // ASSERTIONS: Final progress should use current totalPages (350)

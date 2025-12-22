@@ -38,6 +38,14 @@ interface ProgressMetrics {
 }
 
 /**
+ * Progress log result with completion flag
+ */
+export interface ProgressLogResult {
+  progressLog: ProgressLog;
+  shouldShowCompletionModal: boolean;
+}
+
+/**
  * ProgressService - Handles progress logging, validation, and calculations
  * 
  * Responsibilities:
@@ -71,7 +79,7 @@ export class ProgressService {
   /**
    * Log new progress entry
    */
-  async logProgress(bookId: number, progressData: ProgressLogData): Promise<ProgressLog> {
+  async logProgress(bookId: number, progressData: ProgressLogData): Promise<ProgressLogResult> {
     const { currentPage, currentPercentage, notes, progressDate } = progressData;
 
     // Validate input
@@ -137,13 +145,16 @@ export class ProgressService {
     // Update streak system
     await this.updateStreakSystem();
 
-    // Check for auto-completion
-    await this.checkForCompletion(activeSession.id, metrics.currentPercentage);
+    // Check if book is completed (100% progress) but DON'T auto-complete
+    const shouldShowCompletionModal = this.shouldShowCompletionModal(activeSession.status, metrics.currentPercentage);
 
     // Invalidate cache
     await this.invalidateCache(bookId);
 
-    return progressLog;
+    return {
+      progressLog,
+      shouldShowCompletionModal,
+    };
   }
 
   /**
@@ -302,25 +313,14 @@ export class ProgressService {
   }
 
   /**
-   * Check if book is completed and auto-update session status
+   * Check if completion modal should be shown
+   * Returns true if book just reached 100% progress while in "reading" status
    */
-  private async checkForCompletion(sessionId: number, percentage: number): Promise<void> {
-    // If book is completed (100%), update session status to "read"
+  private shouldShowCompletionModal(sessionStatus: string, percentage: number): boolean {
+    // Show modal if book reached 100% and is currently being read
     // Note: We use >= 100 here because percentage is already calculated with Math.floor,
     // and only reaching the last page will result in exactly 100%
-    if (percentage >= 100) {
-      const session = await sessionRepository.findById(sessionId);
-      
-      if (session && session.status === "reading") {
-        await sessionRepository.update(sessionId, {
-          status: "read",
-          completedDate: new Date(),
-        } as any);
-        
-        const { getLogger } = require("@/lib/logger");
-        getLogger().info(`[ProgressService] Book completed, session status updated to 'read'`);
-      }
-    }
+    return percentage >= 100 && sessionStatus === "reading";
   }
 
   /**

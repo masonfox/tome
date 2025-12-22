@@ -134,7 +134,8 @@ describe("Page Edit pagesRead Bug Investigation", () => {
     );
 
     expect(progressResponse.status).toBe(200);
-    const newProgress = await progressResponse.json();
+    const result = await progressResponse.json();
+    const newProgress = result.progressLog;
 
     // The NEW progress should have correct calculations
     expect(newProgress.currentPage).toBe(120);
@@ -190,7 +191,8 @@ describe("Page Edit pagesRead Bug Investigation", () => {
     );
 
     expect(progressResponse.status).toBe(200);
-    const newProgress = await progressResponse.json();
+    const result = await progressResponse.json();
+    const newProgress = result.progressLog;
 
     // Verify calculations use NEW totalPages (400)
     expect(newProgress.currentPage).toBe(150);
@@ -256,7 +258,8 @@ describe("Page Edit pagesRead Bug Investigation", () => {
       { params: { id: book.id.toString() } }
     );
 
-    const newProgressData = await newProgressResponse.json();
+    const result = await newProgressResponse.json();
+    const newProgressData = result.progressLog;
 
     // The new progress should calculate pagesRead from currentPage difference
     expect(newProgressData.currentPage).toBe(150);

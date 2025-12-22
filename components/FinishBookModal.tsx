@@ -5,6 +5,9 @@ import { Star, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger().child({ component: "FinishBookModal" });
 
 interface FinishBookModalProps {
   isOpen: boolean;
@@ -58,6 +61,11 @@ export default function FinishBookModal({
     }
   }, [review, isInitialized, saveDraft]);
 
+  // Debug logging
+  useEffect(() => {
+    logger.debug({ isOpen, bookId }, 'FinishBookModal state changed');
+  }, [isOpen, bookId]);
+
   if (!isOpen) return null;
 
   const handleSubmit = () => {
@@ -73,7 +81,7 @@ export default function FinishBookModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
       <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-md w-full">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">

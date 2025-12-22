@@ -449,6 +449,15 @@ export default function BookDetailPage() {
         bookId={bookId}
       />
 
+      {/* Completion Modal (shown when progress reaches 100%) */}
+      <FinishBookModal
+        isOpen={bookProgressHook.showCompletionModal}
+        onClose={bookProgressHook.closeCompletionModal}
+        onConfirm={handleConfirmRead}
+        bookTitle={book.title}
+        bookId={bookId}
+      />
+
       <RatingModal
         isOpen={showRatingModal}
         onClose={closeRatingModal}
