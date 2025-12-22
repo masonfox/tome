@@ -3,6 +3,9 @@ import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { parseISO, startOfDay } from "date-fns";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger().child({ hook: "useBookProgress" });
 
 export interface ProgressEntry {
   id: number;
@@ -23,12 +26,13 @@ export interface UseBookProgressReturn {
   hasUnsavedProgress: boolean;
   showEditProgressModal: boolean;
   selectedProgressEntry: ProgressEntry | null;
+  showCompletionModal: boolean;
   setCurrentPage: (value: string) => void;
   setCurrentPercentage: (value: string) => void;
   setProgressInputMode: (mode: "page" | "percentage") => void;
   setNotes: (value: string) => void;
   setProgressDate: (value: string) => void;
-  handleLogProgress: (e: React.FormEvent) => Promise<boolean>;
+  handleLogProgress: (e: React.FormEvent) => Promise<{ success: boolean; shouldShowCompletionModal?: boolean }>;
   handleEditProgress: (entry: ProgressEntry) => void;
   handleConfirmEditProgress: (updatedData: {
     currentPage?: number;
@@ -39,6 +43,7 @@ export interface UseBookProgressReturn {
   handleDeleteProgress: () => Promise<void>;
   refetchProgress: () => Promise<void>;
   closeEditModal: () => void;
+  closeCompletionModal: () => void;
   clearFormState: () => void;
 }
 
@@ -60,10 +65,11 @@ export function useBookProgress(
   const [currentPercentage, setCurrentPercentage] = useState("");
   const [progressInputMode, setProgressInputModeState] = useState<"page" | "percentage">("page");
   const [notes, setNotes] = useState("");
-  const [progressDate, setProgressDate] = useState("");
+  const [progressDate, setProgressDate] = useState(getTodayLocalDate());
   const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [selectedProgressEntry, setSelectedProgressEntry] = useState<ProgressEntry | null>(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   // Fetch progress entries
   const fetchProgress = useCallback(async () => {
@@ -155,27 +161,27 @@ export function useBookProgress(
     }
   }, [book?.latestProgress]);
 
-  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<boolean> => {
+  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<{ success: boolean; shouldShowCompletionModal?: boolean }> => {
     e.preventDefault();
 
     const payload: any = {};
 
     if (progressInputMode === "page") {
-      if (!currentPage) return false;
+      if (!currentPage) return { success: false };
       const pageValue = parseInt(currentPage);
       // Validate that the new page is greater than the latest progress
       if (book?.latestProgress && pageValue <= book.latestProgress.currentPage) {
         toast.error("Please enter a page number greater than the current page.");
-        return false;
+        return { success: false };
       }
       payload.currentPage = pageValue;
     } else {
-      if (!currentPercentage) return false;
+      if (!currentPercentage) return { success: false };
       const percentValue = parseFloat(currentPercentage);
       // Validate that the new percentage is greater than the latest progress
       if (book?.latestProgress && percentValue <= book.latestProgress.currentPercentage) {
         toast.error("Please enter a percentage greater than the current progress.");
-        return false;
+        return { success: false };
       }
       payload.currentPercentage = percentValue;
     }
@@ -200,7 +206,8 @@ export function useBookProgress(
       });
 
       if (response.ok) {
-        const newProgressEntry = await response.json();
+        const result = await response.json();
+        logger.info({ bookId, result }, 'Progress log result');
         setNotes("");
         setProgressDate(getTodayLocalDate()); // Reset to today
         setHasUnsavedProgress(false); // Clear unsaved flag after successful submission
@@ -208,17 +215,27 @@ export function useBookProgress(
         fetchProgress();
         onRefresh?.();
         toast.success("Progress logged!");
-        return true;
+        
+        // Check if completion modal should be shown
+        if (result.shouldShowCompletionModal) {
+          logger.info({ bookId }, 'Setting showCompletionModal to true');
+          setShowCompletionModal(true);
+        }
+        
+        return { 
+          success: true, 
+          shouldShowCompletionModal: result.shouldShowCompletionModal 
+        };
       } else {
         const errorData = await response.json();
         // Display validation error from the API (temporal validation)
         toast.error(errorData.error || "Failed to log progress");
-        return false;
+        return { success: false };
       }
     } catch (error) {
       console.error("Failed to log progress:", error);
       toast.error("Failed to log progress");
-      return false;
+      return { success: false };
     }
   }, [progressInputMode, currentPage, currentPercentage, notes, progressDate, book, bookId, fetchProgress, onRefresh]);
 
@@ -286,6 +303,10 @@ export function useBookProgress(
     setSelectedProgressEntry(null);
   }, []);
 
+  const closeCompletionModal = useCallback(() => {
+    setShowCompletionModal(false);
+  }, []);
+
   const refetchProgress = useCallback(async () => {
     await fetchProgress();
   }, [fetchProgress]);
@@ -308,6 +329,7 @@ export function useBookProgress(
     hasUnsavedProgress,
     showEditProgressModal,
     selectedProgressEntry,
+    showCompletionModal,
     setCurrentPage,
     setCurrentPercentage,
     setProgressInputMode,
@@ -319,6 +341,7 @@ export function useBookProgress(
     handleDeleteProgress,
     refetchProgress,
     closeEditModal,
+    closeCompletionModal,
     clearFormState,
   };
 }
