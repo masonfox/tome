@@ -290,10 +290,11 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     // Don't create a streak - this might cause rebuildStreak to fail
 
     // Log progress - should succeed even if streak rebuild encounters issues
-    const progress = await progressService.logProgress(book.id, {
+    const result = await progressService.logProgress(book.id, {
       currentPage: 50,
       progressDate: day2Ago,
     });
+    const progress = result.progressLog;
 
     expect(progress).not.toBeNull();
     expect(progress.currentPage).toBe(50);
@@ -337,19 +338,21 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Create progress 3 days ago
-    const progress1 = await progressService.logProgress(book.id, {
+    const result1 = await progressService.logProgress(book.id, {
       currentPage: 50,
       progressDate: day3Ago,
     });
+    const progress1 = result1.progressLog;
 
     let streak = await streakRepository.findByUserId(null);
     expect(streak!.totalDaysActive).toBe(1);
 
     // Create progress 2 days ago
-    const progress2 = await progressService.logProgress(book.id, {
+    const result2 = await progressService.logProgress(book.id, {
       currentPage: 100,
       progressDate: day2Ago,
     });
+    const progress2 = result2.progressLog;
 
     streak = await streakRepository.findByUserId(null);
     expect(streak!.totalDaysActive).toBe(2);
@@ -401,10 +404,11 @@ describe("Progress Mutations - Data Integrity", () => {
     const day1Ago = getDaysAgo(1);
 
     // Log progress
-    const progress = await progressService.logProgress(book.id, {
+    const result = await progressService.logProgress(book.id, {
       currentPage: 75,
       progressDate: day1Ago,
     });
+    const progress = result.progressLog;
 
     // Verify progress was saved correctly
     expect(progress.currentPage).toBe(75);
