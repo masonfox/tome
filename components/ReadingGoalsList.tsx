@@ -27,7 +27,6 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
       onDelete();
     } catch (error) {
       // Error already handled by mutation
-      console.error("Failed to delete goal:", error);
     } finally {
       setDeletingId(null);
     }

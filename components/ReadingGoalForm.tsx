@@ -79,7 +79,6 @@ export function ReadingGoalForm({
       onSuccess();
     } catch (error) {
       // Error already handled by mutation
-      console.error("Failed to save goal:", error);
     } finally {
       setSaving(false);
     }
