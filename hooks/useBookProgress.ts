@@ -60,7 +60,7 @@ export function useBookProgress(
   const [currentPercentage, setCurrentPercentage] = useState("");
   const [progressInputMode, setProgressInputModeState] = useState<"page" | "percentage">("page");
   const [notes, setNotes] = useState("");
-  const [progressDate, setProgressDate] = useState("");
+  const [progressDate, setProgressDate] = useState(getTodayLocalDate());
   const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [selectedProgressEntry, setSelectedProgressEntry] = useState<ProgressEntry | null>(null);
