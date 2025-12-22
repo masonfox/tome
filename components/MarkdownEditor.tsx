@@ -2,6 +2,7 @@
 
 import type { ForwardedRef } from "react";
 import { forwardRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   headingsPlugin,
   listsPlugin,
@@ -58,6 +59,14 @@ function InitializedMDXEditor({
   editorRef,
 }: MarkdownEditorComponentProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  // Create portal container on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPortalContainer(document.body);
+    }
+  }, []);
 
   // Handle ESC key to exit fullscreen
   useEffect(() => {
@@ -69,10 +78,15 @@ function InitializedMDXEditor({
 
     if (isFullscreen) {
       document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when fullscreen
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
     };
   }, [isFullscreen]);
 
@@ -93,7 +107,8 @@ function InitializedMDXEditor({
     }
   };
 
-  return (
+  // Shared editor component
+  const editorComponent = (
     <div
       className={isFullscreen ? 'tome-editor-fullscreen' : ''}
       onClick={handleWrapperClick}
@@ -157,6 +172,13 @@ function InitializedMDXEditor({
       />
     </div>
   );
+
+  // Use portal for fullscreen mode to escape parent stacking contexts
+  if (isFullscreen && portalContainer) {
+    return createPortal(editorComponent, portalContainer);
+  }
+
+  return editorComponent;
 }
 
 // Dynamic import with SSR disabled for Next.js
