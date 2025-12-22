@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, TrendingUp } from "lucide-react";
+import { BookOpen, Pencil } from "lucide-react";
 import LogProgressModal from "./LogProgressModal";
 
 interface Book {
@@ -60,7 +60,7 @@ export default function CurrentlyReadingList({
               key={book.id}
               className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:shadow-md transition-shadow"
             >
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
                 {/* Book Cover Thumbnail */}
                 <Link href={`/books/${book.id}`} className="flex-shrink-0">
                   <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
@@ -86,32 +86,28 @@ export default function CurrentlyReadingList({
                       {book.title}
                     </h3>
                   </Link>
-                  <p className="text-sm text-[var(--subheading-text)] line-clamp-1 font-medium">
+                  <p className="text-sm text-[var(--subheading-text)] line-clamp-1 font-serif font-medium">
                     {book.authors.join(", ")}
                   </p>
 
                   {/* Progress Bar */}
                   <div className="mt-2 flex items-center gap-3">
+                    <span className="text-sm font-mono font-bold text-[var(--accent)]">
+                      {Math.round(progressPercentage)}%
+                    </span>
                     <div className="flex-1 bg-[var(--background)] rounded-full h-2 shadow-inner">
                       <div
                         className="bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)] h-2 rounded-full transition-all duration-300 ease-out"
                         style={{ width: `${Math.min(100, progressPercentage)}%` }}
                       />
                     </div>
-                    <span className="text-sm font-mono font-bold text-[var(--accent)] min-w-[3rem] text-right">
-                      {Math.round(progressPercentage)}%
-                    </span>
-                  </div>
-
-                  {/* Update Button */}
-                  <div className="mt-2">
+                    {/* Update Button - Icon Only */}
                     <button
                       onClick={() => handleLogProgress(book)}
-                      className="px-3 py-1.5 bg-[var(--accent)] text-white rounded-md text-sm font-medium hover:bg-[var(--light-accent)] transition-colors flex items-center gap-1.5"
+                      className="p-1.5 text-[var(--accent)] hover:text-[var(--light-accent)] hover:bg-[var(--background)] rounded transition-colors"
                       title="Update progress"
                     >
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>Update</span>
+                      <Pencil className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
