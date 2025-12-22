@@ -2,6 +2,7 @@ import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react
 import { StatsCard } from "@/components/ui/StatsCard";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { BookCard } from "@/components/BookCard";
+import CurrentlyReadingSection from "@/components/CurrentlyReadingSection";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard-service";
 
@@ -63,34 +64,7 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {currentlyReading.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {currentlyReading.map((book: any) => (
-              <BookCard
-                key={book.id}
-                id={book.id.toString()}
-                title={book.title}
-                authors={book.authors}
-                calibreId={book.calibreId}
-                currentProgress={book.latestProgress?.currentPercentage}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
-            <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-            <p className="text-[var(--foreground)]/70 font-medium">
-              No books in progress. Start reading from your{" "}
-              <Link
-                href="/library"
-                className="text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold"
-              >
-                library
-              </Link>
-              !
-            </p>
-          </div>
-        )}
+        <CurrentlyReadingSection books={currentlyReading} />
       </div>
 
       {/* Read Next */}
