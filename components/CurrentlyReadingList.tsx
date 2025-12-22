@@ -102,18 +102,18 @@ export default function CurrentlyReadingList({
                       {Math.round(progressPercentage)}%
                     </span>
                   </div>
-                </div>
 
-                {/* Log Progress Button */}
-                <div className="flex-shrink-0 flex items-center">
-                  <button
-                    onClick={() => handleLogProgress(book)}
-                    className="px-3 py-1.5 border border-[var(--border-color)] text-[var(--foreground)] bg-transparent rounded-md text-sm font-medium hover:bg-[var(--background)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5"
-                    title="Log progress"
-                  >
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Log</span>
-                  </button>
+                  {/* Log Progress Button */}
+                  <div className="mt-2">
+                    <button
+                      onClick={() => handleLogProgress(book)}
+                      className="px-3 py-1.5 border border-[var(--border-color)] text-[var(--foreground)] bg-transparent rounded-md text-sm font-medium hover:bg-[var(--background)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5"
+                      title="Log progress"
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>Log Progress</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
