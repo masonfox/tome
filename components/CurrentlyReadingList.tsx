@@ -108,11 +108,11 @@ export default function CurrentlyReadingList({
                 <div className="flex-shrink-0 flex items-center">
                   <button
                     onClick={() => handleLogProgress(book)}
-                    className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-semibold hover:bg-[var(--light-accent)] transition-colors flex items-center gap-2"
+                    className="px-3 py-1.5 border border-[var(--border-color)] text-[var(--foreground)] bg-transparent rounded-md text-sm font-medium hover:bg-[var(--background)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5"
                     title="Log progress"
                   >
-                    <TrendingUp className="w-4 h-4" />
-                    <span className="hidden sm:inline">Log Progress</span>
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Log</span>
                   </button>
                 </div>
               </div>
