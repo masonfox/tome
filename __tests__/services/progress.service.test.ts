@@ -124,9 +124,10 @@ describe("ProgressService", () => {
         currentPage: 100,
       });
 
-      expect(result.currentPage).toBe(100);
-      expect(result.currentPercentage).toBe(9); // Math.floor(100/1040 * 100) = 9
-      expect(result.pagesRead).toBe(100); // First entry, so pagesRead = currentPage
+      expect(result.progressLog.currentPage).toBe(100);
+      expect(result.progressLog.currentPercentage).toBe(9); // Math.floor(100/1040 * 100) = 9
+      expect(result.progressLog.pagesRead).toBe(100); // First entry, so pagesRead = currentPage
+      expect(result.shouldShowCompletionModal).toBe(false);
     });
 
     test("should calculate percentage from page number", async () => {
@@ -134,7 +135,8 @@ describe("ProgressService", () => {
         currentPage: 520, // Halfway through 1040-page book
       });
 
-      expect(result.currentPercentage).toBe(50);
+      expect(result.progressLog.currentPercentage).toBe(50);
+      expect(result.shouldShowCompletionModal).toBe(false);
     });
 
     test("should calculate page from percentage", async () => {
@@ -142,7 +144,8 @@ describe("ProgressService", () => {
         currentPercentage: 50,
       });
 
-      expect(result.currentPage).toBe(520); // 50% of 1040
+      expect(result.progressLog.currentPage).toBe(520); // 50% of 1040
+      expect(result.shouldShowCompletionModal).toBe(false);
     });
 
     test("should calculate pages read from last progress", async () => {
@@ -161,7 +164,8 @@ describe("ProgressService", () => {
         currentPage: 250,
       });
 
-      expect(result.pagesRead).toBe(150); // 250 - 100
+      expect(result.progressLog.pagesRead).toBe(150); // 250 - 100
+      expect(result.shouldShowCompletionModal).toBe(false);
     });
 
     test("should handle backdated progress entries", async () => {
@@ -172,7 +176,8 @@ describe("ProgressService", () => {
         progressDate: backdatedDate,
       });
 
-      expect(result.progressDate).toEqual(backdatedDate);
+      expect(result.progressLog.progressDate).toEqual(backdatedDate);
+      expect(result.shouldShowCompletionModal).toBe(false);
     });
 
     test("should save notes", async () => {
@@ -181,7 +186,8 @@ describe("ProgressService", () => {
         notes: "Great chapter!",
       });
 
-      expect(result.notes).toBe("Great chapter!");
+      expect(result.progressLog.notes).toBe("Great chapter!");
+      expect(result.shouldShowCompletionModal).toBe(false);
     });
   });
 
@@ -252,22 +258,26 @@ describe("ProgressService", () => {
   });
 
   describe("logProgress - auto-completion", () => {
-    test("should auto-complete session at 100% progress", async () => {
-      await progressService.logProgress(book1.id, {
+    test("should return completion flag at 100% progress", async () => {
+      const result = await progressService.logProgress(book1.id, {
         currentPercentage: 100,
       });
 
-      // Check session was updated to 'read' status
+      // Check that completion flag is returned
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      // Session should NOT be auto-completed
       const updatedSession = await sessionRepository.findById(session.id);
-      expect(updatedSession?.status).toBe("read");
-      expect(updatedSession?.completedDate).toBeDefined();
+      expect(updatedSession?.status).toBe("reading");
+      expect(updatedSession?.completedDate).toBeNull();
     });
 
-    test("should not auto-complete below 100%", async () => {
-      await progressService.logProgress(book1.id, {
+    test("should not return completion flag below 100%", async () => {
+      const result = await progressService.logProgress(book1.id, {
         currentPercentage: 99.9,
       });
 
+      expect(result.shouldShowCompletionModal).toBe(false);
       const updatedSession = await sessionRepository.findById(session.id);
       expect(updatedSession?.status).toBe("reading");
     });
