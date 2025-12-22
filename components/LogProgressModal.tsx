@@ -54,14 +54,24 @@ export default function LogProgressModal({
   const { draftNote, saveDraft, clearDraft } = useDraftNote(book.id);
   const [isDraftInitialized, setIsDraftInitialized] = useState(false);
 
-  // Restore draft note on mount
+  // Restore draft note on mount and when modal opens
   useEffect(() => {
-    if (draftNote && bookProgressHook.notes === "") {
+    if (isOpen && draftNote && bookProgressHook.notes === "") {
       bookProgressHook.setNotes(draftNote);
+      // Also update the editor directly if it's ready
+      if (editorRef.current) {
+        try {
+          editorRef.current.setMarkdown(draftNote);
+        } catch (error) {
+          logger.error({ error }, "Failed to restore draft in editor");
+        }
+      }
     }
-    setIsDraftInitialized(true);
+    if (isOpen) {
+      setIsDraftInitialized(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftNote]);
+  }, [isOpen, draftNote]);
 
   // Save draft when notes change
   useEffect(() => {
@@ -102,6 +112,14 @@ export default function LogProgressModal({
         onSubmit={handleLogProgress}
         onEditorReady={(methods) => {
           editorRef.current = methods;
+          // Restore draft when editor is ready (in case it wasn't ready during mount)
+          if (draftNote && bookProgressHook.notes === draftNote) {
+            try {
+              methods.setMarkdown(draftNote);
+            } catch (error) {
+              logger.error({ error }, "Failed to restore draft in editor on ready");
+            }
+          }
         }}
         showProgressModeDropdown={showProgressModeDropdown}
         setShowProgressModeDropdown={setShowProgressModeDropdown}
