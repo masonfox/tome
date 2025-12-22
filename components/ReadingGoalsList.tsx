@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
 import { BookOpen, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoal } from "@/lib/db/schema";
 
 interface ReadingGoalsListProps {
@@ -12,6 +12,7 @@ interface ReadingGoalsListProps {
 }
 
 export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListProps) {
+  const { deleteGoalAsync } = useReadingGoals();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const currentYear = new Date().getFullYear();
 
@@ -22,20 +23,10 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
 
     setDeletingId(goal.id);
     try {
-      const res = await fetch(`/api/reading-goals/${goal.id}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        toast.success("Reading goal deleted");
-        onDelete();
-      } else {
-        toast.error(data.error?.message || "Failed to delete goal");
-      }
+      await deleteGoalAsync(goal.id);
+      onDelete();
     } catch (error) {
-      toast.error("Failed to delete reading goal");
+      // Error already handled by mutation
     } finally {
       setDeletingId(null);
     }

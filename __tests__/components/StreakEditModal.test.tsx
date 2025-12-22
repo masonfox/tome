@@ -2,6 +2,8 @@ import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { StreakEditModal } from "@/components/StreakEditModal";
+import { createTestQueryClient } from "../test-utils";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 afterEach(() => {
   cleanup();
@@ -23,10 +25,23 @@ beforeEach(() => {
 describe("StreakEditModal", () => {
   const mockOnClose = mock(() => {});
   const mockOnSuccess = mock(() => {});
+  let queryClient: ReturnType<typeof createTestQueryClient>;
+
+  beforeEach(() => {
+    queryClient = createTestQueryClient();
+  });
+
+  const renderModal = (ui: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    );
+  };
 
   describe("Component Rendering", () => {
     test("should not render when isOpen is false", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={false}
           onClose={mockOnClose}
@@ -39,7 +54,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should render when isOpen is true", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -53,7 +68,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should render with initial threshold value", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -66,7 +81,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should show subtitle text", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -81,7 +96,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should disable save button when threshold equals initial value", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -95,7 +110,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should show validation hint text", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -111,7 +126,7 @@ describe("StreakEditModal", () => {
   describe("User Interaction", () => {
     test("should call onClose when close button is clicked", () => {
       const onClose = mock(() => {});
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={onClose}
@@ -128,7 +143,7 @@ describe("StreakEditModal", () => {
 
     test("should call onClose when cancel button is clicked", () => {
       const onClose = mock(() => {});
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={onClose}
@@ -144,7 +159,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should enable save button when threshold changes", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -161,7 +176,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should update input value when changed", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -179,7 +194,7 @@ describe("StreakEditModal", () => {
 
   describe("API Integration", () => {
     test("should call API when save is clicked", async () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -200,7 +215,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should send correct data to API", async () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -231,7 +246,7 @@ describe("StreakEditModal", () => {
       const onClose = mock(() => {});
       const onSuccess = mock(() => {});
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={onClose}
@@ -261,7 +276,7 @@ describe("StreakEditModal", () => {
       );
       global.fetch = mockFetch as any;
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -298,7 +313,7 @@ describe("StreakEditModal", () => {
       });
       global.fetch = fetchSpy as any;
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -327,7 +342,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should not allow threshold greater than 9999", async () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -349,7 +364,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should enforce min and max attributes on input", () => {
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -367,22 +382,15 @@ describe("StreakEditModal", () => {
 
   describe("Loading States", () => {
     test("should disable save button while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -397,27 +405,28 @@ describe("StreakEditModal", () => {
       const saveButton = screen.getByRole("button", { name: /^save$/i });
       fireEvent.click(saveButton);
 
-      // Button should be disabled while saving
-      expect(saveButton).toBeDisabled();
+      // Button should be disabled while saving (check immediately after click)
+      await waitFor(() => {
+        expect(saveButton).toBeDisabled();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
 
     test("should show saving text while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -433,26 +442,27 @@ describe("StreakEditModal", () => {
       fireEvent.click(saveButton);
 
       // Should show "Saving..." text
-      expect(screen.getByText("Saving...")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Saving...")).toBeInTheDocument();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
 
     test("should disable cancel button while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
@@ -467,32 +477,33 @@ describe("StreakEditModal", () => {
       const saveButton = screen.getByRole("button", { name: /^save$/i });
       fireEvent.click(saveButton);
 
-      const cancelButton = screen.getByRole("button", { name: /cancel/i });
-      expect(cancelButton).toBeDisabled();
+      await waitFor(() => {
+        const cancelButton = screen.getByRole("button", { name: /cancel/i });
+        expect(cancelButton).toBeDisabled();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
 
     test("should disable input while saving", async () => {
-      mockFetch = mock(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                } as Response),
-              100
-            )
-          )
-      );
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch = mock(() => fetchPromise);
       global.fetch = mockFetch as any;
 
-      render(
+      renderModal(
         <StreakEditModal
           isOpen={true}
           onClose={mockOnClose}
           initialThreshold={10}
-          onSuccess={mockOnSuccess}
+          onSuccess=  {mockOnSuccess}
         />
       );
 
@@ -502,7 +513,15 @@ describe("StreakEditModal", () => {
       const saveButton = screen.getByRole("button", { name: /^save$/i });
       fireEvent.click(saveButton);
 
-      expect(input).toBeDisabled();
+      await waitFor(() => {
+        expect(input).toBeDisabled();
+      });
+
+      // Resolve the fetch to clean up
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
     });
   });
 });

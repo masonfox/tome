@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { parseISO, startOfDay } from "date-fns";
@@ -18,6 +19,7 @@ export interface ProgressEntry {
 
 export interface UseBookProgressReturn {
   progress: ProgressEntry[];
+  isLoading: boolean;
   currentPage: string;
   currentPercentage: string;
   progressInputMode: "page" | "percentage";
@@ -52,7 +54,7 @@ export interface UseBookProgressReturn {
  *
  * @param bookId - The ID of the book
  * @param book - The current book data
- * @param onRefresh - Callback to refresh book data
+ * @param onRefresh - Callback to refresh book data (deprecated, use TanStack Query invalidation)
  * @returns Progress management state and functions
  */
 export function useBookProgress(
@@ -60,7 +62,9 @@ export function useBookProgress(
   book: Book | null,
   onRefresh?: () => void
 ): UseBookProgressReturn {
-  const [progress, setProgress] = useState<ProgressEntry[]>([]);
+  const queryClient = useQueryClient();
+  
+  // Form state
   const [currentPage, setCurrentPage] = useState("");
   const [currentPercentage, setCurrentPercentage] = useState("");
   const [progressInputMode, setProgressInputModeState] = useState<"page" | "percentage">("page");
@@ -71,26 +75,148 @@ export function useBookProgress(
   const [selectedProgressEntry, setSelectedProgressEntry] = useState<ProgressEntry | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
-  // Fetch progress entries
-  const fetchProgress = useCallback(async () => {
-    try {
+  // Fetch progress entries with TanStack Query
+  const { data: progress = [], isLoading } = useQuery({
+    queryKey: ['progress', bookId],
+    queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}/progress`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
         },
       });
-      const data = await response.json();
-      setProgress(data);
-    } catch (error) {
-      console.error("Failed to fetch progress:", error);
-    }
-  }, [bookId]);
+      if (!response.ok) {
+        throw new Error('Failed to fetch progress');
+      }
+      return response.json() as Promise<ProgressEntry[]>;
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
-  // Initialize progress on mount
-  useEffect(() => {
-    fetchProgress();
-  }, [fetchProgress]);
+  // Mutation for logging new progress
+  const logProgressMutation = useMutation({
+    mutationFn: async (payload: {
+      currentPage?: number;
+      currentPercentage?: number;
+      notes: string;
+      progressDate?: string;
+    }) => {
+      const response = await fetch(`/api/books/${bookId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to log progress");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      
+      // Clear form state
+      setNotes("");
+      setProgressDate(getTodayLocalDate());
+      setHasUnsavedProgress(false);
+      
+      // Call deprecated onRefresh if provided
+      onRefresh?.();
+      
+      toast.success("Progress logged!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Mutation for editing progress
+  const editProgressMutation = useMutation({
+    mutationFn: async (params: {
+      progressId: number;
+      data: {
+        currentPage?: number;
+        currentPercentage?: number;
+        progressDate?: string;
+        notes?: string;
+      };
+    }) => {
+      const response = await fetch(`/api/books/${bookId}/progress/${params.progressId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params.data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update progress");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      
+      // Close modal
+      setShowEditProgressModal(false);
+      setSelectedProgressEntry(null);
+      
+      // Call deprecated onRefresh if provided
+      onRefresh?.();
+      
+      toast.success("Progress updated");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Mutation for deleting progress
+  const deleteProgressMutation = useMutation({
+    mutationFn: async (progressId: number) => {
+      const response = await fetch(`/api/books/${bookId}/progress/${progressId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete progress entry");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      
+      // Close modal
+      setShowEditProgressModal(false);
+      setSelectedProgressEntry(null);
+      
+      // Call deprecated onRefresh if provided
+      onRefresh?.();
+      
+      toast.success("Progress entry deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   // Load saved progress input mode preference
   useEffect(() => {
@@ -199,45 +325,23 @@ export function useBookProgress(
     }
 
     try {
-      const response = await fetch(`/api/books/${bookId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        logger.info({ bookId, result }, 'Progress log result');
-        setNotes("");
-        setProgressDate(getTodayLocalDate()); // Reset to today
-        setHasUnsavedProgress(false); // Clear unsaved flag after successful submission
-
-        fetchProgress();
-        onRefresh?.();
-        toast.success("Progress logged!");
-        
-        // Check if completion modal should be shown
-        if (result.shouldShowCompletionModal) {
-          logger.info({ bookId }, 'Setting showCompletionModal to true');
-          setShowCompletionModal(true);
-        }
-        
-        return { 
-          success: true, 
-          shouldShowCompletionModal: result.shouldShowCompletionModal 
-        };
-      } else {
-        const errorData = await response.json();
-        // Display validation error from the API (temporal validation)
-        toast.error(errorData.error || "Failed to log progress");
-        return { success: false };
+      const result = await logProgressMutation.mutateAsync(payload);
+      logger.info({ bookId, result }, 'Progress log result');
+      
+      // Check if completion modal should be shown
+      if (result.shouldShowCompletionModal) {
+        logger.info({ bookId }, 'Setting showCompletionModal to true');
+        setShowCompletionModal(true);
       }
+      
+      return { 
+        success: true, 
+        shouldShowCompletionModal: result.shouldShowCompletionModal 
+      };
     } catch (error) {
-      console.error("Failed to log progress:", error);
-      toast.error("Failed to log progress");
       return { success: false };
     }
-  }, [progressInputMode, currentPage, currentPercentage, notes, progressDate, book, bookId, fetchProgress, onRefresh]);
+  }, [progressInputMode, currentPage, currentPercentage, notes, progressDate, book, logProgressMutation]);
 
   const handleEditProgress = useCallback((entry: ProgressEntry) => {
     setSelectedProgressEntry(entry);
@@ -253,50 +357,26 @@ export function useBookProgress(
     if (!selectedProgressEntry) return;
 
     try {
-      const response = await fetch(`/api/books/${bookId}/progress/${selectedProgressEntry.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedData),
+      await editProgressMutation.mutateAsync({
+        progressId: selectedProgressEntry.id,
+        data: updatedData,
       });
-
-      if (response.ok) {
-        setShowEditProgressModal(false);
-        setSelectedProgressEntry(null);
-        fetchProgress();
-        onRefresh?.();
-        toast.success("Progress updated");
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to update progress");
-      }
     } catch (error) {
-      console.error("Failed to update progress:", error);
-      toast.error("Failed to update progress");
+      // Error is already handled by mutation
+      console.error("Failed to edit progress:", error);
     }
-  }, [selectedProgressEntry, bookId, fetchProgress, onRefresh]);
+  }, [selectedProgressEntry, editProgressMutation]);
 
   const handleDeleteProgress = useCallback(async () => {
     if (!selectedProgressEntry) return;
 
     try {
-      const response = await fetch(`/api/books/${bookId}/progress/${selectedProgressEntry.id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setShowEditProgressModal(false);
-        setSelectedProgressEntry(null);
-        fetchProgress();
-        onRefresh?.();
-        toast.success("Progress entry deleted");
-      } else {
-        toast.error("Failed to delete progress entry");
-      }
+      await deleteProgressMutation.mutateAsync(selectedProgressEntry.id);
     } catch (error) {
+      // Error is already handled by mutation
       console.error("Failed to delete progress:", error);
-      toast.error("Failed to delete progress");
     }
-  }, [selectedProgressEntry, bookId, fetchProgress, onRefresh]);
+  }, [selectedProgressEntry, deleteProgressMutation]);
 
   const closeEditModal = useCallback(() => {
     setShowEditProgressModal(false);
@@ -308,8 +388,8 @@ export function useBookProgress(
   }, []);
 
   const refetchProgress = useCallback(async () => {
-    await fetchProgress();
-  }, [fetchProgress]);
+    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+  }, [queryClient, bookId]);
 
   const clearFormState = useCallback(() => {
     setCurrentPage("");
@@ -321,6 +401,7 @@ export function useBookProgress(
 
   return {
     progress,
+    isLoading,
     currentPage,
     currentPercentage,
     progressInputMode,

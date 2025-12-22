@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
@@ -18,42 +18,95 @@ interface GoalsPagePanelProps {
 }
 
 export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProps) {
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
-  const [currentGoalData, setCurrentGoalData] = useState<ReadingGoalWithProgress | null>(initialGoalData);
-  const [monthlyData, setMonthlyData] = useState<MonthlyBreakdown[]>([]);
-  const [completedBooks, setCompletedBooks] = useState<any[]>([]);
-  const [booksCount, setBooksCount] = useState(0);
-  const [availableYears, setAvailableYears] = useState<number[]>(
-    Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a)
-  );
-  const [loading, setLoading] = useState(false);
-  const [booksLoading, setBooksLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
+
+  const availableYears = useMemo(() => 
+    Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a),
+    [allGoals]
+  );
 
   // Track if component is mounted for portal
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Sync with props when they change (after server refresh)
-  useEffect(() => {
-    const years = Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a);
-    setAvailableYears(years);
-  }, [allGoals]);
+  // Goal data query
+  const { data: currentGoalData, isLoading: goalLoading, error: goalError } = useQuery({
+    queryKey: ['reading-goal', selectedYear],
+    queryFn: async () => {
+      const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch goal data: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data.success ? data.data as ReadingGoalWithProgress : null;
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
-  useEffect(() => {
-    setCurrentGoalData(initialGoalData);
-  }, [initialGoalData]);
+  // Monthly breakdown query
+  const { data: monthlyData = [] } = useQuery({
+    queryKey: ['monthly-breakdown', selectedYear],
+    queryFn: async () => {
+      const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch monthly data: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data.success ? data.data.monthlyData as MonthlyBreakdown[] : [];
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
-  // Fetch monthly data and books when selected year changes
-  useEffect(() => {
-    fetchMonthlyData(selectedYear);
-    fetchCompletedBooks(selectedYear);
-  }, [selectedYear]);
+  // Completed books query
+  const { 
+    data: booksData, 
+    isLoading: booksLoading 
+  } = useQuery({
+    queryKey: ['completed-books', selectedYear],
+    queryFn: async () => {
+      const response = await fetch(`/api/reading-goals/books?year=${selectedYear}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch completed books: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data.success ? { books: data.data.books, count: data.data.count } : { books: [], count: 0 };
+    },
+    staleTime: 30000, // 30 seconds
+    enabled: selectedYear <= new Date().getFullYear(),
+  });
+
+  const completedBooks = booksData?.books || [];
+  const booksCount = booksData?.count || 0;
+
+  // Create goal mutation
+  const createGoalMutation = useMutation({
+    mutationFn: async ({ year, booksGoal }: { year: number; booksGoal: number }) => {
+      const response = await fetch("/api/reading-goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ year, booksGoal }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to create goal");
+      }
+
+      return data.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['reading-goal', variables.year] });
+      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', variables.year] });
+      queryClient.invalidateQueries({ queryKey: ['completed-books', variables.year] });
+      setSelectedYear(variables.year);
+    },
+  });
 
   const handleOpenCreateModal = () => {
     setModalMode("create");
@@ -71,173 +124,18 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
   const handleSuccess = async () => {
     setIsModalOpen(false);
-    
-    // Refresh both the current goal data and trigger server refresh
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch goal data: ${response.statusText}`);
-      }
-      const data = await response.json();
-
-      if (data.success) {
-        setCurrentGoalData(data.data);
-      } else {
-        setCurrentGoalData(null);
-      }
-      
-      // Refresh server component to update allGoals prop
-      router.refresh();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load goal data";
-      setError(errorMessage);
-      // Still refresh to get server data
-      router.refresh();
-    } finally {
-      setLoading(false);
-    }
+    // Invalidate all queries for the current year
+    queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
+    queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
+    queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
   };
 
   const handleCreateFromOnboarding = async (year: number, booksGoal: number) => {
-    const response = await fetch("/api/reading-goals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ year, booksGoal }),
-    });
+    await createGoalMutation.mutateAsync({ year, booksGoal });
+  };
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.error?.message || "Failed to create goal");
-    }
-
-    // Update state with new goal
+  const handleYearChange = (year: number) => {
     setSelectedYear(year);
-    setCurrentGoalData(data.data);
-    
-    // Refresh server component to update allGoals prop
-    router.refresh();
-  };
-
-  const fetchMonthlyData = async (year: number) => {
-    try {
-      const response = await fetch(`/api/reading-goals/monthly?year=${year}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch monthly data: ${response.statusText}`);
-      }
-      const data = await response.json();
-
-      if (data.success) {
-        setMonthlyData(data.data.monthlyData);
-      } else {
-        setMonthlyData([]);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load monthly data";
-      setError(errorMessage);
-      setMonthlyData([]);
-    }
-  };
-
-  const fetchCompletedBooks = async (year: number) => {
-    setBooksLoading(true);
-    try {
-      const response = await fetch(`/api/reading-goals/books?year=${year}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch completed books: ${response.statusText}`);
-      }
-      const data = await response.json();
-
-      if (data.success) {
-        setCompletedBooks(data.data.books);
-        setBooksCount(data.data.count);
-      } else {
-        setCompletedBooks([]);
-        setBooksCount(0);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load completed books";
-      setError(errorMessage);
-      setCompletedBooks([]);
-      setBooksCount(0);
-    } finally {
-      setBooksLoading(false);
-    }
-  };
-
-  const handleYearChange = async (year: number) => {
-    setSelectedYear(year);
-    setLoading(true);
-    setBooksLoading(true);
-    setError(null);
-
-    try {
-      // Fetch goal data, monthly data, and completed books
-      const [goalResponse, monthlyResponse, booksResponse] = await Promise.all([
-        fetch(`/api/reading-goals?year=${year}`),
-        fetch(`/api/reading-goals/monthly?year=${year}`),
-        fetch(`/api/reading-goals/books?year=${year}`)
-      ]);
-
-      // Handle each response independently to avoid clearing all data on partial failure
-      let hasError = false;
-      
-      // Process goal data
-      if (goalResponse.ok) {
-        const goalData = await goalResponse.json();
-        if (goalData.success) {
-          setCurrentGoalData(goalData.data);
-        } else {
-          setCurrentGoalData(null);
-        }
-      } else {
-        hasError = true;
-        setCurrentGoalData(null);
-      }
-
-      // Process monthly data
-      if (monthlyResponse.ok) {
-        const monthlyDataResponse = await monthlyResponse.json();
-        if (monthlyDataResponse.success) {
-          setMonthlyData(monthlyDataResponse.data.monthlyData);
-        } else {
-          setMonthlyData([]);
-        }
-      } else {
-        hasError = true;
-        setMonthlyData([]);
-      }
-
-      // Process books data
-      if (booksResponse.ok) {
-        const booksData = await booksResponse.json();
-        if (booksData.success) {
-          setCompletedBooks(booksData.data.books);
-          setBooksCount(booksData.data.count);
-        } else {
-          setCompletedBooks([]);
-          setBooksCount(0);
-        }
-      } else {
-        hasError = true;
-        setCompletedBooks([]);
-        setBooksCount(0);
-      }
-
-      // Only set error message if there were failures
-      if (hasError) {
-        setError("Some data failed to load");
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load data";
-      setError(errorMessage);
-      // Don't clear existing data on network errors
-    } finally {
-      setLoading(false);
-      setBooksLoading(false);
-    }
   };
 
   // ESC key handler
@@ -251,6 +149,9 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isModalOpen]);
+
+  const error = goalError ? (goalError instanceof Error ? goalError.message : "Failed to load data") : null;
+  const loading = goalLoading;
 
   return (
     <div className="space-y-8 rounded-md">
