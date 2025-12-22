@@ -13,11 +13,11 @@ export default async function Dashboard() {
   const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal } = await getDashboardData();
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 md:space-y-10">
       {/* Header */}
-      <div className="border-b border-[var(--border-color)] pb-6">
+      <div className="border-b border-[var(--border-color)] pb-3 md:pb-6">
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-          <div>
+          <div className="hidden md:block">
             <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
               <BookOpen className="w-8 h-8" />
               Dashboard
