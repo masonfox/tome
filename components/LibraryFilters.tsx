@@ -367,13 +367,11 @@ export function LibraryFilters({
               type="button"
               onClick={() => setShowStatusDropdown(!showStatusDropdown)}
               disabled={loading}
-              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 h-[42px]`}
+              className={`w-full px-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 h-[42px]`}
             >
               <LibraryIcon className="w-4 h-4 shrink-0" />
-              <span className="flex-1 text-left flex items-center min-w-0">
-                <span className="truncate">
-                  {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
-                </span>
+              <span className="flex-1 text-left min-w-0 truncate">
+                {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
               </span>
               <ChevronDown
                 className={cn(
@@ -431,7 +429,7 @@ export function LibraryFilters({
               type="button"
               onClick={() => setShowRatingDropdown(!showRatingDropdown)}
               disabled={loading}
-              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center disabled:opacity-50 h-[42px]`}
+              className={`w-full px-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center disabled:opacity-50 h-[42px]`}
             >
               <Star className="w-4 h-4 shrink-0 mr-2" />
               <div className="flex-1 min-w-0 overflow-hidden flex items-center">
