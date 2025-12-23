@@ -66,7 +66,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <CurrentlyReadingSection books={currentlyReading} />
+        <CurrentlyReadingSection books={currentlyReading} isLoading={isLoading} />
       </div>
 
       {/* Read Next */}

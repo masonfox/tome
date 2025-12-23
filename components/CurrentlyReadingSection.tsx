@@ -3,6 +3,7 @@
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import CurrentlyReadingList from "./CurrentlyReadingList";
+import { CurrentlyReadingCardSkeleton } from "./CurrentlyReadingCardSkeleton";
 import { useEffect, useState } from "react";
 
 interface Book {
@@ -22,10 +23,12 @@ interface Book {
 
 interface CurrentlyReadingSectionProps {
   books: Book[];
+  isLoading?: boolean;
 }
 
 export default function CurrentlyReadingSection({
   books,
+  isLoading = false,
 }: CurrentlyReadingSectionProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -40,6 +43,16 @@ export default function CurrentlyReadingSection({
     
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+        {[...Array(3)].map((_, i) => (
+          <CurrentlyReadingCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
 
   if (books.length === 0) {
     return (
