@@ -1,54 +1,9 @@
 "use client";
 
-import { BookOpen, BookCheck, Bookmark, Clock, LucideIcon } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { STATUS_CONFIG, type BookStatus } from "@/utils/statusConfig";
 
-type BookStatus = "reading" | "read" | "to-read" | "read-next";
 type BadgeSize = "sm" | "md" | "lg";
-
-interface StatusConfig {
-  label: string;
-  icon: LucideIcon;
-  lightGradient: string;
-  darkGradient: string;
-  textColor: string;
-  borderColor: string;
-}
-
-const STATUS_CONFIG: Record<BookStatus, StatusConfig> = {
-  reading: {
-    label: "Reading",
-    icon: BookOpen,
-    lightGradient: "from-blue-500 to-blue-600",
-    darkGradient: "from-blue-500 to-blue-600",
-    textColor: "text-white",
-    borderColor: "border-transparent",
-  },
-  read: {
-    label: "Read",
-    icon: BookCheck,
-    lightGradient: "from-emerald-500 to-emerald-600",
-    darkGradient: "from-emerald-500 to-emerald-600",
-    textColor: "text-white",
-    borderColor: "border-transparent",
-  },
-  "to-read": {
-    label: "Want to Read",
-    icon: Bookmark,
-    lightGradient: "from-amber-500 to-orange-500",
-    darkGradient: "from-amber-500 to-orange-500",
-    textColor: "text-white",
-    borderColor: "border-transparent",
-  },
-  "read-next": {
-    label: "Read Next",
-    icon: Clock,
-    lightGradient: "from-purple-500 to-purple-600",
-    darkGradient: "from-purple-500 to-purple-600",
-    textColor: "text-white",
-    borderColor: "border-transparent",
-  },
-};
 
 const SIZE_CONFIG = {
   sm: {
@@ -98,10 +53,7 @@ export function StatusBadge({
       )}
     >
       {showIcon && <Icon className={sizeConfig.icon} />}
-      <span>{config.label}</span>
+      <span>{config.labels.short}</span>
     </div>
   );
 }
-
-// Export the status config for use in other components
-export { STATUS_CONFIG, type BookStatus };
