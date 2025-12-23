@@ -370,8 +370,10 @@ export function LibraryFilters({
               className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 h-[42px]`}
             >
               <LibraryIcon className="w-4 h-4 shrink-0" />
-              <span className="truncate flex-1 text-left flex items-center">
-                {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
+              <span className="flex-1 text-left flex items-center min-w-0">
+                <span className="truncate">
+                  {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
+                </span>
               </span>
               <ChevronDown
                 className={cn(
