@@ -369,6 +369,7 @@ export function LibraryFilters({
               disabled={loading}
               className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50`}
             >
+              <LibraryIcon className="w-4 h-4 shrink-0" />
               <span className="truncate flex-1 text-left">
                 {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
               </span>
