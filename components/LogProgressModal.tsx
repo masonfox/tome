@@ -139,6 +139,7 @@ export default function LogProgressModal({
       // Refresh data
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       await queryClient.invalidateQueries({ queryKey: ['book', book.id] });
+      await queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
       router.refresh(); // Refresh server components
       
       toast.success("Marked as read!");
