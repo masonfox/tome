@@ -165,6 +165,7 @@ export default function ProgressEditModal({
         isOpen={isOpen}
         onClose={onClose}
         title="Delete Progress Entry?"
+        size="2xl"
         actions={
           <div className="flex justify-end gap-4">
             <button
@@ -216,6 +217,7 @@ export default function ProgressEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Edit Progress - ${bookTitle}`}
+      size="2xl"
       actions={
         <div className="flex justify-between w-full">
           <button
@@ -368,7 +370,7 @@ export default function ProgressEditModal({
               value={notes}
               onChange={setNotes}
               placeholder="Add notes about this reading session..."
-              height={200}
+              height={280}
             />
           </div>
         </div>

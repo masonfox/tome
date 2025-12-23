@@ -114,6 +114,7 @@ export default function SessionEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Edit Session - ${bookTitle} (Read #${sessionNumber})`}
+      size="2xl"
       actions={
         <div className="flex justify-end gap-4">
           <button
@@ -191,7 +192,7 @@ export default function SessionEditModal({
               value={review}
               onChange={setReview}
               placeholder="Add your thoughts about this reading..."
-              height={200}
+              height={280}
               id="review"
             />
           </div>
