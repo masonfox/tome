@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { STATUS_CONFIG } from "@/components/StatusBadge";
 
 // Move static options outside component to avoid recreation
 const statusOptions = [
@@ -350,6 +351,7 @@ export function LibraryFilters({
                 <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
                   {statusOptions.map((option) => {
                     const Icon = option.icon;
+                    const statusConfig = option.value !== "all" ? STATUS_CONFIG[option.value as keyof typeof STATUS_CONFIG] : null;
                     return (
                       <button
                         key={option.value}
@@ -366,7 +368,16 @@ export function LibraryFilters({
                           loading && "opacity-50 cursor-not-allowed"
                         )}
                       >
-                        <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
+                        {statusConfig ? (
+                          <div className={cn(
+                            "w-7 h-7 rounded-md flex items-center justify-center bg-gradient-to-r shadow-sm",
+                            statusConfig.lightGradient
+                          )}>
+                            <Icon className="w-4 h-4 text-white" />
+                          </div>
+                        ) : (
+                          <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
+                        )}
                         <span className="font-medium flex-1">{option.label}</span>
                         {statusFilter === option.value && (
                           <Check className="w-5 h-5 text-[var(--accent)]" />
