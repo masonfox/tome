@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { useEffect, useState } from "react";
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -30,11 +31,37 @@ export default function BaseModal({
   actions,
   size = "md",
 }: BaseModalProps) {
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to trigger animation
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+      });
+    } else {
+      setIsAnimating(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className={cn("bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 w-full", sizeClasses[size])}>
+    <div 
+      className={cn(
+        "fixed inset-0 bg-black flex items-center justify-center z-50 p-4 transition-opacity duration-200",
+        isAnimating ? "bg-opacity-50" : "bg-opacity-0"
+      )}
+      onClick={onClose}
+    >
+      <div 
+        className={cn(
+          "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 w-full transition-all duration-200",
+          sizeClasses[size],
+          isAnimating ? "opacity-100 scale-100" : "opacity-0 scale-95"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
