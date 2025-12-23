@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { BookOpen, ChevronDown, Check, Lock, Pencil, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG, type BookStatus } from "@/utils/statusConfig";
@@ -39,10 +38,10 @@ export default function BookHeader({
   hasActiveSession,
 }: BookHeaderProps) {
   const statusOptions = [
-    { value: "to-read", label: "Want to Read", disabled: false, icon: Bookmark },
-    { value: "read-next", label: "Read Next", disabled: false, icon: Clock },
-    { value: "reading", label: "Reading", disabled: false, icon: BookOpen },
-    { value: "read", label: "Read", disabled: false, icon: BookCheck },
+    { value: "to-read", label: "Want to Read", disabled: false },
+    { value: "read-next", label: "Read Next", disabled: false },
+    { value: "reading", label: "Reading", disabled: false },
+    { value: "read", label: "Read", disabled: false },
   ];
 
   // Get the current status configuration for button styling

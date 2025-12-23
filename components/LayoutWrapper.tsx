@@ -1,34 +1,35 @@
 "use client";
 
-import { Navigation } from "@/components/Navigation";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { usePathname } from "next/navigation";
-import { useBottomNavigation } from "@/hooks/useBottomNavigation";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
-  const { enabled: bottomNavEnabled } = useBottomNavigation();
 
   if (isLoginPage) {
     return <>{children}</>;
   }
 
   return (
-    <>
-      {/* Always render both navs - CSS handles visibility based on data-bottom-nav attribute */}
-      <div id="top-navigation">
-        <Navigation />
-      </div>
-      <main 
+    <AuthProvider>
+      {/* Desktop Sidebar - visible on md+ screens */}
+      <DesktopSidebar />
+
+      {/* Main Content */}
+      <main
         id="main-content"
-        className="container mx-auto px-4 max-w-7xl"
+        className="px-6 py-8 pb-32 md:px-0 md:py-12"
       >
         {children}
       </main>
-      <div id="bottom-navigation">
+
+      {/* Bottom Navigation - visible on mobile only (<md) */}
+      <div className="md:hidden">
         <BottomNavigation />
       </div>
-    </>
+    </AuthProvider>
   );
 }
