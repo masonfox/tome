@@ -180,7 +180,7 @@ export default function BookProgress({
                   value={notes}
                   onChange={onNotesChange}
                   placeholder="Add notes about your reading session..."
-                  height={200}
+                  height={280}
                 />
               </div>
             </div>

@@ -218,6 +218,7 @@ export default function LogProgressModal({
         onClose={onClose}
         title={`Log Progress - ${book.title}`}
         actions={<></>}
+        size="2xl"
       >
         {progressForm}
       </BaseModal>

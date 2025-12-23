@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { cn } from "@/utils/cn";
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -9,7 +10,16 @@ interface BaseModalProps {
   subtitle?: string;
   children: React.ReactNode;
   actions: React.ReactNode;
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
+
+const sizeClasses = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+};
 
 export default function BaseModal({
   isOpen,
@@ -18,12 +28,13 @@ export default function BaseModal({
   subtitle,
   children,
   actions,
+  size = "md",
 }: BaseModalProps) {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-md w-full">
+      <div className={cn("bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 w-full", sizeClasses[size])}>
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
