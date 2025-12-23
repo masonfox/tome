@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, ChevronDown, Check, Lock, Bookmark, Clock, BookCheck, Star, Pencil } from "lucide-react";
+import { BookOpen, ChevronDown, Check, Lock, Pencil, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { STATUS_CONFIG, type BookStatus } from "@/components/StatusBadge";
+import { STATUS_CONFIG, type BookStatus } from "@/utils/statusConfig";
 
 interface BookHeaderProps {
   book: {
@@ -39,30 +39,20 @@ export default function BookHeader({
   hasActiveSession,
 }: BookHeaderProps) {
   const statusOptions = [
-    { value: "to-read", label: "Want to Read", disabled: false, icon: Bookmark },
-    { value: "read-next", label: "Read Next", disabled: false, icon: Clock },
-    { value: "reading", label: "Reading", disabled: false, icon: BookOpen },
-    { value: "read", label: "Read", disabled: false, icon: BookCheck },
-  ];
+    { value: "to-read", disabled: false },
+    { value: "read-next", disabled: false },
+    { value: "reading", disabled: false },
+    { value: "read", disabled: false },
+  ] as const;
 
   // Get the current status configuration for button styling
   const currentStatusConfig = STATUS_CONFIG[selectedStatus as BookStatus];
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "to-read": return "Want to Read";
-      case "read-next": return "Read Next";
-      case "reading": return "Reading";
-      case "read": return "Read";
-      default: return status;
-    }
-  };
-
   const StatusDropdownMenu = () => (
     <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md shadow-lg overflow-hidden">
       {statusOptions.map((option) => {
-        const Icon = option.icon;
         const optionConfig = STATUS_CONFIG[option.value as BookStatus];
+        const Icon = optionConfig.icon;
         const isSelected = selectedStatus === option.value;
         
         return (
@@ -88,7 +78,7 @@ export default function BookHeader({
                 <>
                   <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
                   <span className="font-semibold text-[var(--foreground)]/40">
-                    {option.label}
+                    {optionConfig.labels.long}
                   </span>
                 </>
               ) : (
@@ -103,7 +93,7 @@ export default function BookHeader({
                     <Icon className="w-4 h-4 text-white" />
                   </div>
                   <span className="font-semibold text-[var(--foreground)]">
-                    {option.label}
+                    {optionConfig.labels.long}
                   </span>
                 </>
               )}
@@ -149,7 +139,7 @@ export default function BookHeader({
             {currentStatusConfig && (
               <currentStatusConfig.icon className="w-4 h-4" />
             )}
-            <span>{getStatusLabel(selectedStatus)}</span>
+            <span>{currentStatusConfig?.labels.long || selectedStatus}</span>
           </div>
           <ChevronDown
             className={cn(
