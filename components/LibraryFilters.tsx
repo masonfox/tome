@@ -370,7 +370,7 @@ export function LibraryFilters({
               className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 h-[42px]`}
             >
               <LibraryIcon className="w-4 h-4 shrink-0" />
-              <span className="flex-1 truncate text-left" style={{ lineHeight: '1rem' }}>
+              <span className="flex-1 truncate text-left leading-none">
                 {statusOptions.find(option => option.value === statusFilter)?.label || "All Books"}
               </span>
               <ChevronDown
@@ -432,7 +432,7 @@ export function LibraryFilters({
               className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center disabled:opacity-50 h-[42px]`}
             >
               <Star className="w-4 h-4 shrink-0 mr-2" />
-              <div className="flex-1 min-w-0 overflow-hidden flex items-center" style={{ lineHeight: '1rem' }}>
+              <div className="flex-1 min-w-0 overflow-hidden flex items-center leading-none">
                 {(() => {
                   const selected = ratingOptions.find(option => option.value === ratingFilter);
                   if (selected?.stars) {
