@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { STATUS_CONFIG } from "@/components/StatusBadge";
+import { STATUS_CONFIG } from "@/utils/statusConfig";
 
 // Move static options outside component to avoid recreation
 const statusOptions = [

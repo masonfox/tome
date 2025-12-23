@@ -8,7 +8,8 @@ import Image from "next/image";
 import { BookOpen, Star, BookMarked } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { PageHeader } from "@/components/PageHeader";
-import { StatusBadge, type BookStatus } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { type BookStatus } from "@/utils/statusConfig";
 
 interface SeriesBook {
   id: number;
