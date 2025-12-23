@@ -24,3 +24,12 @@ global.MutationObserver = class MutationObserver {
     return [];
   }
 } as any;
+
+// Mock requestAnimationFrame for BaseModal animations
+global.requestAnimationFrame = ((callback: FrameRequestCallback) => {
+  return setTimeout(callback, 0);
+}) as any;
+
+global.cancelAnimationFrame = ((id: number) => {
+  clearTimeout(id);
+}) as any;
