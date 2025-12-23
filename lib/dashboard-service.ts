@@ -56,7 +56,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     );
 
     // Get read next books with total count
-    const { books: readNext, total: readNextTotal } = await getBooksByStatus("read-next", 6);
+    const { books: readNext, total: readNextTotal } = await getBooksByStatus("read-next", 8);
 
     return {
       stats,

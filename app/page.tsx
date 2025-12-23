@@ -80,7 +80,7 @@ export default function Dashboard() {
               </span>
             )}
           </h2>
-          {readNextTotal > 6 && (
+          {readNextTotal > 8 && (
             <Link
               href="/library?status=read-next"
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
@@ -93,13 +93,13 @@ export default function Dashboard() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+            {[...Array(8)].map((_, i) => (
               <BookCardSkeleton key={i} />
             ))}
           </div>
         ) : readNext.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
             {readNext.map((book: any) => (
               <BookCard
                 key={book.id}
