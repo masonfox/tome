@@ -79,26 +79,9 @@ export function useBookStatus(
         const error = await response.json();
         throw new Error(error.error || "Failed to update status");
       }
-
-      return response.json();
-    },
-    onMutate: async ({ status }) => {
-      // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
-
-      // Snapshot previous value
-      const previousStatus = selectedStatus;
-      
-      // Optimistic update
-      setSelectedStatus(status);
-
-      return { previousStatus };
-    },
-    onError: (error, _variables, context) => {
-      // Rollback on error
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
-      }
+    } catch (error) {
+      // Rollback optimistic update on error
+      setSelectedStatus(previousStatus);
       getLogger().error({ err: error }, "Failed to update status");
       toast.error("Failed to update status");
     },
@@ -275,8 +258,71 @@ export function useBookStatus(
 
   const handleConfirmRead = useCallback(async (rating: number, review?: string) => {
     setShowReadConfirmation(false);
-    await markAsReadMutation.mutateAsync({ rating, review });
-  }, [markAsReadMutation]);
+
+    // OPTIMISTIC UPDATE: Set status immediately
+    const previousStatus = selectedStatus;
+    setSelectedStatus("read");
+
+    try {
+      // First, set the progress to 100% if book has total pages
+      if (book?.totalPages) {
+        const progressPayload = {
+          currentPage: book.totalPages,
+          currentPercentage: 100,
+          notes: "Marked as read",
+        };
+
+        const progressResponse = await fetch(`/api/books/${bookId}/progress`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(progressPayload),
+        });
+
+        if (!progressResponse.ok) {
+          const errorDetails: any = {
+            status: progressResponse.status,
+            statusText: progressResponse.statusText,
+          };
+          try {
+            const data = await progressResponse.json();
+            errorDetails.body = data;
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+          getLogger().error({ err: errorDetails }, "Failed to update progress to 100%");
+        }
+      }
+
+      // Then, update the status to "read"
+      const statusBody: any = { status: "read" };
+      if (rating > 0) {
+        statusBody.rating = rating;
+      }
+      if (review) {
+        statusBody.review = review;
+      }
+
+      const statusResponse = await fetch(`/api/books/${bookId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(statusBody),
+      });
+
+      if (statusResponse.ok) {
+        onRefresh?.();
+        toast.success("Marked as read!");
+      } else {
+        // Rollback on error
+        setSelectedStatus(previousStatus);
+        toast.error("Failed to mark book as read");
+      }
+    } catch (error) {
+      // Rollback on error
+      setSelectedStatus(previousStatus);
+      getLogger().error({ err: error }, "Failed to mark book as read");
+      toast.error("Failed to mark book as read");
+    }
+  }, [book, bookId, selectedStatus, onRefresh]);
 
   const handleStartReread = useCallback(async () => {
     await rereadMutation.mutateAsync();

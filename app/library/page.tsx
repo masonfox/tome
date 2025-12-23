@@ -329,10 +329,9 @@ function LibraryPageContent() {
       search: searchInput,
       status: filters.status || 'all',
       tags: filters.tags || [],
-      rating: filters.rating || 'all',
-      sort: filters.sortBy || 'created'
+      rating: filters.rating || 'all'
     });
-  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, updateURL]);
+  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
 
   // Handle search clear (X button)
   const handleSearchClear = useCallback(() => {
@@ -344,10 +343,9 @@ function LibraryPageContent() {
       search: "",
       status: filters.status || 'all',
       tags: filters.tags || [],
-      rating: filters.rating || 'all',
-      sort: filters.sortBy || 'created'
+      rating: filters.rating || 'all'
     });
-  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, updateURL]);
+  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {

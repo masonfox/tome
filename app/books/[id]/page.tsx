@@ -14,8 +14,6 @@ import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import PageCountEditModal from "@/components/PageCountEditModal";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
-import type { MDXEditorMethods } from "@mdxeditor/editor";
-import { getLogger } from "@/lib/logger";
 
 import BookProgress from "@/components/BookDetail/BookProgress";
 import Journal from "@/components/BookDetail/Journal";
@@ -53,7 +51,7 @@ export default function BookDetailPage() {
     showStatusChangeConfirmation,
     pendingStatusChange,
     handleUpdateStatus: handleUpdateStatusFromHook,
-    handleConfirmStatusChange,
+    handleConfirmStatusChange: handleConfirmStatusChangeFromHook,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
     handleStartReread,
@@ -101,6 +99,7 @@ export default function BookDetailPage() {
   // Local UI state
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
@@ -150,7 +149,7 @@ export default function BookDetailPage() {
     }
   }
 
-  // Handle re-read
+  // Handle re-read with history refresh
   function handleRereadClick() {
     setShowRereadConfirmation(true);
   }
@@ -172,11 +171,11 @@ export default function BookDetailPage() {
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
-    
-    // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-    await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+
+    // Modal already handled the update, just refresh UI
+    await refetchBook();
+    bookProgressHook.refetchProgress();
+    router.refresh();
   }
   
   function handlePageCountModalClose() {

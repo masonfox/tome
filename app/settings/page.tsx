@@ -1,5 +1,6 @@
 import { Settings as SettingsIcon } from "lucide-react";
-import { TimezoneSettings } from "@/components/TimezoneSettings";
+import { StreakSettings } from "@/components/StreakSettings";
+import { NavigationSettings } from "@/components/NavigationSettings";
 import { PageHeader } from "@/components/PageHeader";
 import { streakService } from "@/lib/services/streak.service";
 
@@ -18,8 +19,14 @@ export default async function SettingsPage() {
         icon={SettingsIcon}
       />
 
-      {/* Timezone Settings */}
-      <TimezoneSettings initialTimezone={initialTimezone} />
+      {/* Navigation Settings */}
+      <NavigationSettings />
+
+      {/* Reading Streak Settings */}
+      <StreakSettings 
+        initialThreshold={initialThreshold}
+        initialTimezone={initialTimezone}
+      />
     </div>
   );
 }

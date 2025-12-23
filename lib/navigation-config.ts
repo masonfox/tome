@@ -1,4 +1,4 @@
-import { BookOpen, Library, Target, Flame, Settings, BarChart3, BookMarked, ScrollText } from "lucide-react";
+import { BookOpen, Library, BarChart3, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavLink {
@@ -7,35 +7,19 @@ export interface NavLink {
   icon: LucideIcon;
 }
 
-// Primary navigation links (shown in mobile bottom nav - 3 items only)
+// Primary navigation links (shown in both top and bottom navigation)
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Dashboard", icon: BookOpen },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/streak", label: "Streak", icon: Flame },
-];
-
-// Journal link (shown after Library on desktop, first in bottom sheet)
-export const JOURNAL_LINK: NavLink = { href: "/journal", label: "Journal", icon: ScrollText };
-
-// Series link (shown in desktop sidebar and bottom sheet menu)
-export const SERIES_LINK: NavLink = { href: "/series", label: "Series", icon: BookMarked };
-
-// Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
-export const MORE_MENU_LINKS: NavLink[] = [
-  { href: "/goals", label: "Goals", icon: Target },
   { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
 
-// Bottom utility link (shown in bottom section of desktop sidebar)
-export const SETTINGS_LINK: NavLink = { href: "/settings", label: "Settings", icon: Settings };
-
-// Additional links shown in bottom sheet "More" menu on mobile (includes journal, series and settings)
-export const BOTTOM_SHEET_LINKS: NavLink[] = [
-  JOURNAL_LINK,
-  SERIES_LINK,
-  ...MORE_MENU_LINKS,
-  SETTINGS_LINK,
-];
+// Additional link only shown in top navigation (not in bottom nav tabs)
+export const TOP_NAV_EXTRA_LINK: NavLink = {
+  href: "/settings",
+  label: "Settings",
+  icon: Settings,
+};
 
 // Helper function to check if a route is active
 export function isActiveRoute(pathname: string | null, href: string): boolean {

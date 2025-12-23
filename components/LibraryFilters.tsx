@@ -163,10 +163,6 @@ export function LibraryFilters({
     if (onSearchSubmit) {
       onSearchSubmit();
     }
-    // Blur the search input to dismiss the keyboard on mobile
-    if (searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
   };
 
   const handleTagSelect = (tag: string) => {
@@ -314,6 +310,18 @@ export function LibraryFilters({
             )}
           </div>
         </div>
+        {onClearAll && (
+          <button
+            type="button"
+            onClick={onClearAll}
+            disabled={loading || !hasActiveFilters}
+            className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              !hasActiveFilters ? 'invisible' : ''
+            }`}
+          >
+            Clear All
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSearchSubmit} className="space-y-3">
@@ -328,7 +336,6 @@ export function LibraryFilters({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 disabled={loading}
-                ref={searchInputRef}
                 className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 ${
                   search ? "pr-10" : "pr-4"
                 }`}

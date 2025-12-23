@@ -2,7 +2,6 @@ import { eq, and, desc, asc, sql, gte, lte, lt, gt, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { progressLogs, ProgressLog, NewProgressLog } from "@/lib/db/schema/progress-logs";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
-import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
 
 export class ProgressRepository extends BaseRepository<

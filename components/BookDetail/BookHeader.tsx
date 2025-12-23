@@ -39,11 +39,11 @@ export default function BookHeader({
   hasActiveSession,
 }: BookHeaderProps) {
   const statusOptions = [
-    { value: "to-read", disabled: false },
-    { value: "read-next", disabled: false },
-    { value: "reading", disabled: false },
-    { value: "read", disabled: false },
-  ] as const;
+    { value: "to-read", label: "Want to Read", disabled: false, icon: Bookmark },
+    { value: "read-next", label: "Read Next", disabled: false, icon: Clock },
+    { value: "reading", label: "Reading", disabled: false, icon: BookOpen },
+    { value: "read", label: "Read", disabled: false, icon: BookCheck },
+  ];
 
   // Get the current status configuration for button styling
   const currentStatusConfig = STATUS_CONFIG[selectedStatus as BookStatus];
