@@ -37,7 +37,20 @@ export interface StatusUpdateResult {
  */
 export class SessionService {
   /**
-   * Get active reading session for a book
+   * Get the active reading session for a book
+   * 
+   * Returns the currently active session (isActive = true) for the book.
+   * Each book can have only one active session at a time.
+   * 
+   * @param bookId - The ID of the book
+   * @returns Promise resolving to the active session, or null if no active session exists
+   * @throws {Error} If database query fails
+   * 
+   * @example
+   * const session = await sessionService.getActiveSession(123);
+   * if (session) {
+   *   console.log(`Status: ${session.status}, Session #${session.sessionNumber}`);
+   * }
    */
   async getActiveSession(bookId: number): Promise<ReadingSession | null> {
     const session = await sessionRepository.findActiveByBookId(bookId);
@@ -45,15 +58,89 @@ export class SessionService {
   }
 
   /**
-   * Get all sessions for a book (ordered by session number descending)
+   * Get all reading sessions for a book
+   * 
+   * Returns all sessions (both active and archived) for the book,
+   * ordered by session number descending (newest first).
+   * 
+   * Use Cases:
+   * - Display reading history
+   * - Show re-read statistics
+   * - Calculate total reads
+   * 
+   * @param bookId - The ID of the book
+   * @returns Promise resolving to array of sessions (empty if book has no sessions)
+   * @throws {Error} If database query fails
+   * 
+   * @example
+   * const sessions = await sessionService.getAllSessionsForBook(123);
+   * console.log(`Total reads: ${sessions.filter(s => s.status === 'read').length}`);
    */
   async getAllSessionsForBook(bookId: number): Promise<ReadingSession[]> {
     return sessionRepository.findAllByBookId(bookId);
   }
 
   /**
-   * Update book reading status (main workflow)
-   * Handles: status transitions, backward movement, session archival, rating updates
+   * Update book reading status (primary workflow for status changes)
+   * 
+   * Handles complex status transitions with validation, backward movement detection,
+   * session archival, and rating updates. This is the main entry point for changing
+   * a book's reading status from the UI.
+   * 
+   * Status Transitions:
+   * - `to-read` → `read-next`: Queueing a book
+   * - `read-next` → `reading`: Starting to read
+   * - `reading` → `read`: Finishing a book
+   * - `reading` → `to-read`/`read-next`: Backward movement (archives session if progress exists)
+   * 
+   * Backward Movement:
+   * When moving from "reading" back to "to-read" or "read-next" with logged progress:
+   * 1. Current session is archived (marked as inactive with completedDate)
+   * 2. New session is created with new status
+   * 3. Progress history is preserved in the archived session
+   * 4. Streak system is updated
+   * 
+   * Validation:
+   * - Status must be one of: 'to-read', 'read-next', 'reading', 'read'
+   * - Book must exist
+   * - 'reading' and 'read' statuses require totalPages to be set
+   * - Dates are auto-assigned if not provided
+   * 
+   * Side Effects:
+   * - Updates streak system (when completing books)
+   * - Syncs rating to Calibre (if rating provided)
+   * - Invalidates relevant caches
+   * - Revalidates UI paths
+   * 
+   * @param bookId - The ID of the book to update
+   * @param statusData - Status update data (status, optional rating/review/dates)
+   * @returns Promise resolving to update result with session and archival info
+   * @throws {Error} If validation fails, book not found, or page count missing
+   * 
+   * @example
+   * // Start reading a book
+   * const result = await sessionService.updateStatus(123, {
+   *   status: 'reading',
+   *   startedDate: new Date()
+   * });
+   * 
+   * @example
+   * // Finish a book with rating
+   * const result = await sessionService.updateStatus(123, {
+   *   status: 'read',
+   *   rating: 5,
+   *   review: 'Amazing book!',
+   *   completedDate: new Date()
+   * });
+   * 
+   * @example
+   * // Backward movement (creates new session)
+   * const result = await sessionService.updateStatus(123, {
+   *   status: 'to-read' // was 'reading' with progress
+   * });
+   * if (result.sessionArchived) {
+   *   console.log(`Session #${result.archivedSessionNumber} archived`);
+   * }
    */
   async updateStatus(bookId: number, statusData: StatusUpdateData): Promise<StatusUpdateResult> {
     const { status, rating, review, startedDate, completedDate } = statusData;

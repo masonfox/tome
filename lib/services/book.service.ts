@@ -28,7 +28,18 @@ export interface BookWithDetails extends Book {
 export class BookService {
   /**
    * Get a book by ID with enriched details (session, progress, read count)
+   * 
    * OPTIMIZED: Uses single query instead of 3 separate queries
+   * 
+   * @param bookId - The ID of the book to retrieve
+   * @returns Promise resolving to the book with enriched details, or null if not found
+   * @throws {Error} If database query fails
+   * 
+   * @example
+   * const book = await bookService.getBookById(123);
+   * if (book) {
+   *   console.log(`Book: ${book.title}, Active session: ${book.activeSession !== null}`);
+   * }
    */
   async getBookById(bookId: number): Promise<BookWithDetails | null> {
     const result = await bookRepository.findByIdWithDetails(bookId);
@@ -48,6 +59,20 @@ export class BookService {
 
   /**
    * Get books with filters and pagination
+   * 
+   * @param filters - Filter criteria for books (status, tags, search, rating, series)
+   * @param limit - Maximum number of books to return (default: 50)
+   * @param skip - Number of books to skip for pagination (default: 0)
+   * @param sortBy - Sort criteria (optional)
+   * @returns Promise resolving to object with filtered books array and total count
+   * 
+   * @example
+   * const { books, total } = await bookService.getBooksByFilters(
+   *   { status: 'reading', tags: ['fiction'] },
+   *   20,
+   *   0,
+   *   'title'
+   * );
    */
   async getBooksByFilters(
     filters: BookFilter,
@@ -59,7 +84,16 @@ export class BookService {
   }
 
   /**
-   * Get all unique tags from all books
+   * Get all unique tags from all books in the library
+   * 
+   * Tags are extracted from the books.tags array field and deduplicated.
+   * Useful for filter dropdowns and tag clouds.
+   * 
+   * @returns Promise resolving to array of unique tag strings, sorted alphabetically
+   * 
+   * @example
+   * const tags = await bookService.getAllTags();
+   * // returns: ['fiction', 'non-fiction', 'sci-fi', ...]
    */
   async getAllTags(): Promise<string[]> {
     return bookRepository.getAllTags();
