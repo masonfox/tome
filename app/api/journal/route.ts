@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { journalService } from "@/lib/services/journal.service";
+import { API_LIMITS } from "@/lib/constants";
 
 export const dynamic = 'force-dynamic';
 
@@ -9,9 +10,9 @@ export async function GET(request: NextRequest) {
     const timezone = request.nextUrl.searchParams.get("timezone") || "America/New_York";
     
     // Validate and sanitize limit
-    let limit = parseInt(request.nextUrl.searchParams.get("limit") || "50");
-    if (isNaN(limit) || limit < 1) limit = 50;
-    if (limit > 200) limit = 200; // Max 200 entries per request to prevent DoS
+    let limit = parseInt(request.nextUrl.searchParams.get("limit") || API_LIMITS.DEFAULT_PAGE_SIZE.toString());
+    if (isNaN(limit) || limit < 1) limit = API_LIMITS.DEFAULT_PAGE_SIZE;
+    if (limit > API_LIMITS.MAX_JOURNAL_ENTRIES_PER_REQUEST) limit = API_LIMITS.MAX_JOURNAL_ENTRIES_PER_REQUEST;
     
     // Validate and sanitize skip
     let skip = parseInt(request.nextUrl.searchParams.get("skip") || "0");

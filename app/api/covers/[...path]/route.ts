@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById } from "@/lib/db/calibre";
+import { CACHE_CONFIG } from "@/lib/constants";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,8 @@ interface CoverCacheEntry {
 
 class CoverCache {
   private cache = new Map<number, CoverCacheEntry>();
-  private maxSize = 500; // Cache up to 500 covers
-  private maxAge = 1000 * 60 * 60 * 24; // 24 hours
+  private maxSize = CACHE_CONFIG.COVER_CACHE.MAX_SIZE;
+  private maxAge = CACHE_CONFIG.COVER_CACHE.MAX_AGE_MS;
 
   get(bookId: number): CoverCacheEntry | null {
     const entry = this.cache.get(bookId);
@@ -68,8 +69,8 @@ interface BookPathCacheEntry {
 
 class BookPathCache {
   private cache = new Map<number, BookPathCacheEntry>();
-  private maxSize = 1000;
-  private maxAge = 1000 * 60 * 60; // 1 hour
+  private maxSize = CACHE_CONFIG.BOOK_PATH_CACHE.MAX_SIZE;
+  private maxAge = CACHE_CONFIG.BOOK_PATH_CACHE.MAX_AGE_MS;
 
   get(bookId: number): BookPathCacheEntry | null {
     const entry = this.cache.get(bookId);

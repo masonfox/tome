@@ -2,6 +2,7 @@ import { readingGoalRepository } from "@/lib/repositories";
 import type { ReadingGoal } from "@/lib/db/schema";
 import { differenceInDays } from "date-fns";
 import { getLogger } from "@/lib/logger";
+import { DATABASE_LIMITS } from "@/lib/constants";
 
 const logger = getLogger();
 
@@ -194,8 +195,8 @@ export class ReadingGoalsService {
    * Validate year is within acceptable range
    */
   private validateYear(year: number): void {
-    if (!Number.isInteger(year) || year < 1900 || year > 9999) {
-      throw new Error("Year must be between 1900 and 9999");
+    if (!Number.isInteger(year) || year < DATABASE_LIMITS.MIN_YEAR || year > DATABASE_LIMITS.MAX_YEAR) {
+      throw new Error(`Year must be between ${DATABASE_LIMITS.MIN_YEAR} and ${DATABASE_LIMITS.MAX_YEAR}`);
     }
   }
 
@@ -203,11 +204,11 @@ export class ReadingGoalsService {
    * Validate goal is a positive integer
    */
   private validateGoal(booksGoal: number): void {
-    if (!Number.isInteger(booksGoal) || booksGoal < 1) {
-      throw new Error("Goal must be at least 1 book");
+    if (!Number.isInteger(booksGoal) || booksGoal < DATABASE_LIMITS.MIN_BOOKS_GOAL) {
+      throw new Error(`Goal must be at least ${DATABASE_LIMITS.MIN_BOOKS_GOAL} book`);
     }
-    if (booksGoal > 9999) {
-      throw new Error("Goal must be less than 10,000 books");
+    if (booksGoal > DATABASE_LIMITS.MAX_BOOKS_GOAL) {
+      throw new Error(`Goal must be less than ${DATABASE_LIMITS.MAX_BOOKS_GOAL.toLocaleString()} books`);
     }
   }
 
