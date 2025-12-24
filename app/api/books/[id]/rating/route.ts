@@ -67,8 +67,13 @@ export async function POST(
     
     const updatedBook = await bookService.updateRating(bookId, rating ?? null);
     
-    // Revalidate the dashboard to update book rating display
-    revalidatePath('/');
+    // Revalidate the dashboard to update book rating display (safe in test environments)
+    try {
+      revalidatePath('/');
+    } catch (error) {
+      // Ignore revalidation errors in test environments
+      // where Next.js static generation store is not available
+    }
     
     return NextResponse.json(updatedBook);
   } catch (error) {

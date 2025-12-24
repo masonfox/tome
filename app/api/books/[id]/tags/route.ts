@@ -58,13 +58,18 @@ export async function PATCH(
     
     const updatedBook = await bookService.updateTags(bookId, tags);
     
-    // Revalidate relevant pages
-    revalidatePath('/'); // Dashboard
-    revalidatePath('/library'); // Library
-    revalidatePath(`/books/${bookId}`); // Book detail page
+    // Revalidate relevant pages (safe in test environments)
+    try {
+      revalidatePath('/'); // Dashboard
+      revalidatePath('/library'); // Library
+      revalidatePath(`/books/${bookId}`); // Book detail page
+    } catch (error) {
+      // Ignore revalidation errors in test environments
+      // where Next.js static generation store is not available
+    }
     
     return NextResponse.json(updatedBook);
-  } catch (error) {
+   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "[Tags API] Error");
     
