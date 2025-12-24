@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Tag as TagIcon } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { getLogger } from "@/lib/logger";
 
 interface TagEditorProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ export default function TagEditor({
       onClose();
     } catch (error) {
       // Error is handled by the parent component with toast
-      console.error("Failed to save tags:", error);
+      getLogger().error({ err: error }, "Failed to save tags");
     } finally {
       setSaving(false);
     }
