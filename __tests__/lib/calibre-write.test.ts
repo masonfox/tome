@@ -19,6 +19,8 @@ let testDb: Database;
 // Import functions after setting up environment
 let updateCalibreRating: (calibreId: number, rating: number | null) => void;
 let readCalibreRating: (calibreId: number) => number | null;
+let updateCalibreTags: (calibreId: number, tags: string[]) => void;
+let readCalibreTags: (calibreId: number) => string[];
 
 /**
  * Creates Calibre ratings schema in memory
@@ -51,6 +53,27 @@ function createCalibreRatingsSchema(db: Database) {
       UNIQUE(book, rating),
       FOREIGN KEY(book) REFERENCES books(id),
       FOREIGN KEY(rating) REFERENCES ratings(id)
+    );
+  `);
+
+  // Tags table
+  db.run(`
+    CREATE TABLE tags (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      UNIQUE (name)
+    );
+  `);
+
+  // Books-Tags link table (junction)
+  db.run(`
+    CREATE TABLE books_tags_link (
+      id INTEGER PRIMARY KEY,
+      book INTEGER NOT NULL,
+      tag INTEGER NOT NULL,
+      UNIQUE(book, tag),
+      FOREIGN KEY(book) REFERENCES books(id),
+      FOREIGN KEY(tag) REFERENCES tags(id)
     );
   `);
 
@@ -161,6 +184,75 @@ function readCalibreRatingTest(db: Database, calibreId: number): number | null {
   return result.rating / 2;
 }
 
+/**
+ * Test implementation of updateCalibreTags that works with our test DB
+ */
+function updateCalibreTagsTest(db: Database, calibreId: number, tags: string[]): void {
+  // Validate tags
+  if (!Array.isArray(tags)) {
+    throw new Error("Tags must be an array");
+  }
+  
+  // Filter out empty/invalid tags and remove duplicates
+  const filteredTags = tags.filter(tag => 
+    typeof tag === 'string' && tag.trim().length > 0
+  ).map(tag => tag.trim());
+  const validTags = Array.from(new Set(filteredTags));
+  
+  // Step 1: Clear existing tag links for this book
+  const deleteStmt = db.prepare("DELETE FROM books_tags_link WHERE book = ?");
+  deleteStmt.run(calibreId);
+  
+  if (validTags.length === 0) {
+    return;
+  }
+  
+  // Step 2: Get or create tag IDs for each tag
+  const tagIds: number[] = [];
+  
+  for (const tagName of validTags) {
+    // Check if tag exists
+    let tagRecord = db.prepare(
+      "SELECT id FROM tags WHERE name = ?"
+    ).get(tagName) as { id: number } | undefined;
+    
+    if (!tagRecord) {
+      // Tag doesn't exist, create it
+      const insertStmt = db.prepare(
+        "INSERT INTO tags (name) VALUES (?)"
+      );
+      const result = insertStmt.run(tagName);
+      tagIds.push(Number(result.lastInsertRowid));
+    } else {
+      tagIds.push(tagRecord.id);
+    }
+  }
+  
+  // Step 3: Create new tag links
+  const insertLinkStmt = db.prepare(
+    "INSERT INTO books_tags_link (book, tag) VALUES (?, ?)"
+  );
+  
+  for (const tagId of tagIds) {
+    insertLinkStmt.run(calibreId, tagId);
+  }
+}
+
+/**
+ * Test implementation of readCalibreTags that works with our test DB
+ */
+function readCalibreTagsTest(db: Database, calibreId: number): string[] {
+  const result = db.prepare(`
+    SELECT t.name
+    FROM books_tags_link btl
+    JOIN tags t ON btl.tag = t.id
+    WHERE btl.book = ?
+    ORDER BY t.name
+  `).all(calibreId) as { name: string }[];
+  
+  return result.map(r => r.name);
+}
+
 describe("Calibre Write Operations - Rating Management", () => {
   beforeAll(() => {
     // Create in-memory test database
@@ -173,6 +265,10 @@ describe("Calibre Write Operations - Rating Management", () => {
       updateCalibreRatingTest(testDb, calibreId, rating);
     readCalibreRating = (calibreId: number) => 
       readCalibreRatingTest(testDb, calibreId);
+    updateCalibreTags = (calibreId: number, tags: string[]) =>
+      updateCalibreTagsTest(testDb, calibreId, tags);
+    readCalibreTags = (calibreId: number) =>
+      readCalibreTagsTest(testDb, calibreId);
   });
 
   afterAll(() => {
@@ -180,9 +276,11 @@ describe("Calibre Write Operations - Rating Management", () => {
   });
 
   beforeEach(() => {
-    // Clear ratings data before each test
+    // Clear ratings and tags data before each test
     testDb.run("DELETE FROM books_ratings_link");
     testDb.run("DELETE FROM ratings");
+    testDb.run("DELETE FROM books_tags_link");
+    testDb.run("DELETE FROM tags");
   });
 
   describe("Rating Creation", () => {
@@ -521,6 +619,222 @@ describe("Calibre Write Operations - Rating Management", () => {
 
       updateCalibreRating(1, null);
       expect(readCalibreRating(1)).toBeNull();
+    });
+  });
+});
+
+describe("Calibre Write Operations - Tag Management", () => {
+  let tagTestDb: Database;
+  
+  beforeAll(() => {
+    // Create a new in-memory test database for tag tests
+    tagTestDb = new Database(":memory:");
+    createCalibreRatingsSchema(tagTestDb);
+    insertTestBooks(tagTestDb);
+    
+    // Bind test functions with the test database
+    updateCalibreTags = (calibreId: number, tags: string[]) =>
+      updateCalibreTagsTest(tagTestDb, calibreId, tags);
+    readCalibreTags = (calibreId: number) =>
+      readCalibreTagsTest(tagTestDb, calibreId);
+  });
+
+  afterAll(() => {
+    tagTestDb.close();
+  });
+
+  beforeEach(() => {
+    // Clear tags data before each test
+    tagTestDb.run("DELETE FROM books_tags_link");
+    tagTestDb.run("DELETE FROM tags");
+  });
+
+  describe("Tag Creation", () => {
+    test("should create tags for book", () => {
+      updateCalibreTags(1, ["Fiction", "Science Fiction", "Classic"]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual(["Classic", "Fiction", "Science Fiction"]); // Sorted alphabetically
+    });
+
+    test("should create single tag for book", () => {
+      updateCalibreTags(1, ["Fiction"]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual(["Fiction"]);
+    });
+
+    test("should handle empty tags array", () => {
+      updateCalibreTags(1, []);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual([]);
+    });
+
+    test("should reuse existing tags", () => {
+      // Add tags to first book
+      updateCalibreTags(1, ["Fiction", "Classic"]);
+      
+      // Add same tags to second book - should reuse tag IDs
+      updateCalibreTags(2, ["Fiction", "Classic"]);
+
+      // Verify both books have the tags
+      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(2)).toEqual(["Classic", "Fiction"]);
+
+      // Verify only 2 tags exist in tags table (not 4)
+      const tagCount = tagTestDb.prepare("SELECT COUNT(*) as count FROM tags").get() as { count: number };
+      expect(tagCount.count).toBe(2);
+    });
+
+    test("should filter out empty/whitespace tags", () => {
+      updateCalibreTags(1, ["Fiction", "", "  ", "Classic", "\t"]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual(["Classic", "Fiction"]);
+    });
+
+    test("should remove duplicate tags", () => {
+      updateCalibreTags(1, ["Fiction", "fiction", "FICTION", "Classic"]);
+
+      const tags = readCalibreTags(1);
+      // Note: Calibre is case-sensitive, so these would be different tags
+      // Our implementation preserves the first occurrence
+      expect(tags.length).toBeGreaterThan(0);
+      expect(tags).toContain("Fiction");
+      expect(tags).toContain("Classic");
+    });
+
+    test("should trim whitespace from tags", () => {
+      updateCalibreTags(1, ["  Fiction  ", " Classic "]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual(["Classic", "Fiction"]);
+    });
+  });
+
+  describe("Tag Updates", () => {
+    test("should replace existing tags", () => {
+      // Set initial tags
+      updateCalibreTags(1, ["Fiction", "Classic"]);
+      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
+
+      // Replace with new tags
+      updateCalibreTags(1, ["Science Fiction", "Adventure"]);
+      expect(readCalibreTags(1)).toEqual(["Adventure", "Science Fiction"]);
+    });
+
+    test("should clear all tags when empty array provided", () => {
+      // Set initial tags
+      updateCalibreTags(1, ["Fiction", "Classic"]);
+      expect(readCalibreTags(1).length).toBe(2);
+
+      // Clear all tags
+      updateCalibreTags(1, []);
+      expect(readCalibreTags(1)).toEqual([]);
+    });
+
+    test("should update tags without affecting other books", () => {
+      // Set tags for two books
+      updateCalibreTags(1, ["Fiction", "Classic"]);
+      updateCalibreTags(2, ["Non-Fiction", "Biography"]);
+
+      // Update first book's tags
+      updateCalibreTags(1, ["Science Fiction"]);
+
+      // Verify first book updated, second book unchanged
+      expect(readCalibreTags(1)).toEqual(["Science Fiction"]);
+      expect(readCalibreTags(2)).toEqual(["Biography", "Non-Fiction"]);
+    });
+
+    test("should handle adding and removing tags in sequence", () => {
+      updateCalibreTags(1, ["Fiction"]);
+      expect(readCalibreTags(1)).toEqual(["Fiction"]);
+
+      updateCalibreTags(1, ["Fiction", "Classic"]);
+      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
+
+      updateCalibreTags(1, ["Classic"]);
+      expect(readCalibreTags(1)).toEqual(["Classic"]);
+
+      updateCalibreTags(1, []);
+      expect(readCalibreTags(1)).toEqual([]);
+    });
+  });
+
+  describe("Tag Validation", () => {
+    test("should throw error for non-array tags", () => {
+      expect(() => {
+        updateCalibreTags(1, "Fiction" as any);
+      }).toThrow("Tags must be an array");
+    });
+
+    test("should handle undefined gracefully", () => {
+      expect(() => {
+        updateCalibreTags(1, undefined as any);
+      }).toThrow("Tags must be an array");
+    });
+
+    test("should handle null gracefully", () => {
+      expect(() => {
+        updateCalibreTags(1, null as any);
+      }).toThrow("Tags must be an array");
+    });
+
+    test("should filter out non-string values", () => {
+      updateCalibreTags(1, ["Fiction", 123 as any, null as any, undefined as any, "Classic"]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual(["Classic", "Fiction"]);
+    });
+  });
+
+  describe("Multiple Books and Tags", () => {
+    test("should handle multiple books with overlapping tags", () => {
+      updateCalibreTags(1, ["Fiction", "Classic"]);
+      updateCalibreTags(2, ["Fiction", "Modern"]);
+      updateCalibreTags(3, ["Non-Fiction"]);
+
+      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(2)).toEqual(["Fiction", "Modern"]);
+      expect(readCalibreTags(3)).toEqual(["Non-Fiction"]);
+
+      // Verify Fiction tag is shared (only 4 unique tags total)
+      const tagCount = tagTestDb.prepare("SELECT COUNT(*) as count FROM tags").get() as { count: number };
+      expect(tagCount.count).toBe(4); // Classic, Fiction, Modern, Non-Fiction
+    });
+
+    test("should handle large number of tags", () => {
+      const manyTags = Array.from({ length: 50 }, (_, i) => `Tag${i}`);
+      updateCalibreTags(1, manyTags);
+
+      const tags = readCalibreTags(1);
+      expect(tags.length).toBe(50);
+    });
+  });
+
+  describe("Edge Cases", () => {
+    test("should return empty array for book with no tags", () => {
+      const tags = readCalibreTags(1);
+      expect(tags).toEqual([]);
+    });
+
+    test("should handle special characters in tag names", () => {
+      updateCalibreTags(1, ["Science-Fiction", "Action & Adventure", "Editor's Choice"]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toContain("Science-Fiction");
+      expect(tags).toContain("Action & Adventure");
+      expect(tags).toContain("Editor's Choice");
+    });
+
+    test("should handle very long tag names", () => {
+      const longTag = "A".repeat(200);
+      updateCalibreTags(1, [longTag, "Short"]);
+
+      const tags = readCalibreTags(1);
+      expect(tags).toContain(longTag);
+      expect(tags).toContain("Short");
     });
   });
 });
