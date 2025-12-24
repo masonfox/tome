@@ -39,6 +39,7 @@ export interface UseBookDetailReturn {
   setImageError: (error: boolean) => void;
   refetchBook: () => Promise<void>;
   updateTotalPages: (totalPages: number) => Promise<void>;
+  updateTags: (tags: string[]) => Promise<void>;
   updateBookPartial: (updates: Partial<Book>) => void;
 }
 
@@ -115,6 +116,50 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     },
   });
 
+  // Mutation for updating tags
+  const updateTagsMutation = useMutation({
+    mutationFn: async (tags: string[]) => {
+      const response = await fetch(`/api/books/${bookId}/tags`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update tags');
+      }
+
+      return response.json();
+    },
+    onMutate: async (tags) => {
+      // Cancel outgoing queries to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+
+      // Snapshot the previous value
+      const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Book>(['book', bookId], (old) => 
+        old ? { ...old, tags } : old
+      );
+
+      // Return context with previous value for rollback
+      return { previousBook };
+    },
+    onError: (_err, _tags, context) => {
+      // Rollback on error
+      if (context?.previousBook) {
+        queryClient.setQueryData(['book', bookId], context.previousBook);
+      }
+      toast.error('Failed to update tags');
+    },
+    onSuccess: () => {
+      // Invalidate and refetch book data
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      toast.success('Tags updated');
+    },
+  });
+
   // Wrapper functions to maintain compatibility with existing code
   const refetchBook = async () => {
     await refetch();
@@ -122,6 +167,10 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
 
   const updateTotalPages = async (totalPages: number) => {
     await updateTotalPagesMutation.mutateAsync(totalPages);
+  };
+
+  const updateTags = async (tags: string[]) => {
+    await updateTagsMutation.mutateAsync(tags);
   };
 
   // Partial update method for optimistic updates from other hooks
@@ -139,6 +188,7 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     setImageError,
     refetchBook,
     updateTotalPages,
+    updateTags,
     updateBookPartial,
   };
 }
