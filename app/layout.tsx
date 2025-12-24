@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/components/ToastProvider";
@@ -9,12 +9,6 @@ export const metadata: Metadata = {
   title: "Tome",
   description: "Track your reading progress with Calibre integration",
   manifest: "/site.webmanifest",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -29,6 +23,13 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Tome",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
