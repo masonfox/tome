@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { BookOpen, BookCheck, Pencil, Tag } from "lucide-react";
+import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
@@ -426,10 +426,10 @@ export default function BookDetailPage() {
               </label>
               <button
                 onClick={() => setShowTagEditor(true)}
-                className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold"
+                className="text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors"
+                aria-label="Edit tags"
               >
-                <Tag className="w-3 h-3" />
-                Edit
+                <Pencil className="w-3 h-3" />
               </button>
             </div>
             {book.tags.length > 0 ? (
@@ -446,7 +446,7 @@ export default function BookDetailPage() {
               </div>
             ) : (
               <p className="text-sm text-[var(--foreground)]/50">
-                No tags yet. Click Edit to add some!
+                No tags yet. Click the pencil icon to add some!
               </p>
             )}
           </div>
