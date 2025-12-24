@@ -1,4 +1,5 @@
 import { seriesRepository, SeriesInfo, SeriesBook } from "@/lib/repositories/series.repository";
+import { VALIDATION_LIMITS } from "@/lib/constants";
 
 /**
  * Custom error class for series-related operations
@@ -64,9 +65,9 @@ export class SeriesService {
       throw new SeriesError('Series name cannot be empty', 'INVALID_INPUT');
     }
 
-    if (trimmedName.length > 500) {
+    if (trimmedName.length > VALIDATION_LIMITS.MAX_SERIES_NAME_LENGTH) {
       logger.warn({ length: trimmedName.length }, "[SeriesService] Series name too long");
-      throw new SeriesError('Series name is too long (max 500 characters)', 'INVALID_INPUT');
+      throw new SeriesError(`Series name is too long (max ${VALIDATION_LIMITS.MAX_SERIES_NAME_LENGTH} characters)`, 'INVALID_INPUT');
     }
 
     try {
@@ -109,9 +110,9 @@ export class SeriesService {
       throw new SeriesError('Series name cannot be empty', 'INVALID_INPUT');
     }
 
-    if (trimmedName.length > 500) {
+    if (trimmedName.length > VALIDATION_LIMITS.MAX_SERIES_NAME_LENGTH) {
       logger.warn({ length: trimmedName.length }, "[SeriesService] Series name too long");
-      throw new SeriesError('Series name is too long (max 500 characters)', 'INVALID_INPUT');
+      throw new SeriesError(`Series name is too long (max ${VALIDATION_LIMITS.MAX_SERIES_NAME_LENGTH} characters)`, 'INVALID_INPUT');
     }
 
     try {

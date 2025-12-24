@@ -45,7 +45,7 @@ describe("ReadingGoalsService", () => {
     test("rejects goal greater than 9999", async () => {
       expect(
         readingGoalsService.createGoal(null, 2026, 10000)
-      ).rejects.toThrow("less than 10,000 books");
+      ).rejects.toThrow("less than 9,999 books");
     });
 
     test("rejects year less than 1900", async () => {
