@@ -107,40 +107,40 @@ export default function TagEditor({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
       onClick={handleClose}
     >
       <div 
-        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-4xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header - Fixed at top */}
         <div className="flex items-start justify-between mb-6">
-          <div>
+          <div className="flex-1 min-w-0 pr-4">
             <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
               Edit Tags
             </h2>
-            <p className="text-sm text-[var(--foreground)]/70 font-medium">
+            <p className="text-sm text-[var(--foreground)]/70 font-medium truncate">
               {bookTitle}
             </p>
           </div>
           <button
             onClick={handleClose}
             disabled={saving}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors disabled:opacity-50 flex-shrink-0"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tag Input */}
+        {/* Tag Input - No nested scrolling */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
             Add Tags
           </label>
           <div className="relative">
-            <TagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+            <TagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 pointer-events-none z-10" />
             <input
               ref={inputRef}
               type="text"
@@ -157,12 +157,18 @@ export default function TagEditor({
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
               disabled={saving}
-              className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+              className="w-full pl-10 pr-4 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
             />
 
-            {/* Tag suggestions dropdown */}
+            {/* Tag suggestions dropdown - Uses fixed positioning to avoid modal scroll interference */}
             {showSuggestions && tagInput.trim() && (
-              <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-60 overflow-y-auto shadow-lg rounded-md">
+              <div className="fixed z-[60] mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-[40vh] overflow-y-auto shadow-xl rounded-md"
+                style={{
+                  width: inputRef.current?.offsetWidth || 'auto',
+                  top: inputRef.current ? inputRef.current.getBoundingClientRect().bottom + 4 : 0,
+                  left: inputRef.current?.getBoundingClientRect().left || 0,
+                }}
+              >
                 {filteredSuggestions.length > 0 ? (
                   filteredSuggestions.map((tag) => (
                     <button
@@ -170,13 +176,13 @@ export default function TagEditor({
                       type="button"
                       onClick={() => handleAddTag(tag)}
                       disabled={saving}
-                      className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-b border-[var(--border-color)] last:border-b-0"
                     >
                       {tag}
                     </button>
                   ))
                 ) : (
-                  <div className="px-4 py-2 text-sm text-[var(--foreground)]/70">
+                  <div className="px-4 py-3 text-sm text-[var(--foreground)]/70">
                     Press Enter to create &quot;{tagInput.trim()}&quot;
                   </div>
                 )}
@@ -188,23 +194,23 @@ export default function TagEditor({
           </p>
         </div>
 
-        {/* Current Tags */}
+        {/* Current Tags - Scrollable if many tags */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
             Current Tags {tags.length > 0 && `(${tags.length})`}
           </label>
           {tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 max-h-[40vh] overflow-y-auto pr-2 -mr-2">
               {tags.map((tag) => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
                   disabled={saving}
-                  className="px-3 py-1 text-sm bg-[var(--accent)] text-white rounded flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm bg-[var(--accent)] text-white rounded flex items-center gap-2 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {tag}
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               ))}
             </div>
@@ -215,12 +221,12 @@ export default function TagEditor({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 justify-end">
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="flex gap-3 justify-end pt-4 border-t border-[var(--border-color)]">
           <button
             onClick={handleClose}
             disabled={saving}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
+            className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
           >
             Cancel
           </button>
@@ -228,7 +234,7 @@ export default function TagEditor({
             onClick={handleSave}
             disabled={saving}
             className={cn(
-              "px-4 py-2 rounded-lg transition-colors font-semibold",
+              "px-5 py-2.5 rounded-lg transition-colors font-semibold",
               saving
                 ? "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"
                 : "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
