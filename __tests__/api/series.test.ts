@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { seriesService } from "@/lib/services/series.service";
 import { GET as getSeriesList } from "@/app/api/series/route";
 import { GET as getSeriesDetail } from "@/app/api/series/[name]/route";
 
@@ -256,15 +257,22 @@ describe("GET /api/series", () => {
   });
 
   describe("Error Handling", () => {
-    test("should handle database errors gracefully", async () => {
-      // Note: This is a basic test. In a real scenario, you'd mock the service
-      // to throw an error. For now, we're verifying the endpoint doesn't crash.
-      
-      // Act
-      const response = await getSeriesList();
+    test("should return 500 on internal error", async () => {
+      // Mock seriesService to throw an error
+      const originalGetAllSeries = seriesService.getAllSeries;
+      seriesService.getAllSeries = (() => {
+        throw new Error("Database connection failed");
+      }) as any;
 
-      // Assert
-      expect(response.status).toBeLessThanOrEqual(500); // Should return valid HTTP status
+      const response = await getSeriesList();
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toHaveProperty("error");
+      expect(data.error).toBe("Failed to fetch series");
+
+      // Restore original function
+      seriesService.getAllSeries = originalGetAllSeries;
     });
   });
 });
@@ -635,16 +643,23 @@ describe("GET /api/series/:name", () => {
       expect(data.error).toBe("Series not found");
     });
 
-    test("should handle database errors gracefully", async () => {
-      // Note: This is a basic test. In a real scenario, you'd mock the service
-      // to throw an error. For now, we're verifying the endpoint doesn't crash.
-      
-      // Act
+    test("should return 500 on internal error", async () => {
+      // Mock seriesService to throw an error
+      const originalGetSeriesByName = seriesService.getSeriesByName;
+      seriesService.getSeriesByName = (() => {
+        throw new Error("Database connection failed");
+      }) as any;
+
       const request = new Request("http://localhost:3000/api/series/Test");
       const response = await getSeriesDetail(request, { params: { name: "Test" } });
+      const data = await response.json();
 
-      // Assert
-      expect(response.status).toBeLessThanOrEqual(500); // Should return valid HTTP status
+      expect(response.status).toBe(500);
+      expect(data).toHaveProperty("error");
+      expect(data.error).toBe("Failed to fetch series books");
+
+      // Restore original function
+      seriesService.getSeriesByName = originalGetSeriesByName;
     });
   });
 

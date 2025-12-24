@@ -225,14 +225,28 @@ describe("Dashboard API - GET /api/dashboard", () => {
     }
   });
 
-  test("handles database errors gracefully", async () => {
-    // This test verifies the error handling structure exists
-    // In a real scenario, we'd need to force a database error
-    const response = await GET();
+  test("handles errors in dashboard service gracefully", async () => {
+    // Note: The route's catch block is unreachable because getDashboardData
+    // handles all errors internally and returns a safe fallback structure
+    // This test verifies the service returns the safe fallback
     
-    // Should return a response even if there are issues
-    expect(response).toBeDefined();
-    expect(response.status).toBeGreaterThanOrEqual(200);
+    // Mock a repository method to throw an error
+    const originalFindAll = bookRepository.findAll;
+    bookRepository.findAll = (() => {
+      throw new Error("Database connection failed");
+    }) as any;
+
+    const response = await GET();
+    const data = await response.json();
+    
+    // getDashboardData catches the error and returns safe defaults
+    expect(response.status).toBe(200);
+    expect(data).toHaveProperty("stats");
+    expect(data).toHaveProperty("streak");
+    expect(data).toHaveProperty("currentlyReading");
+
+    // Restore original function
+    bookRepository.findAll = originalFindAll;
   });
 
   test("book data includes necessary fields", async () => {
