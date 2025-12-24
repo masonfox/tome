@@ -420,8 +420,8 @@ export default function BookDetailPage() {
 
           {/* Tags */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
+            <div className="flex items-center gap-1.5 mb-3">
+              <label className="text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
                 Tags
               </label>
               <button
