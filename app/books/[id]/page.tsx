@@ -428,8 +428,8 @@ export default function BookDetailPage() {
                 onClick={() => setShowTagEditor(true)}
                 className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold"
               >
-                <Pencil className="w-3 h-3" />
                 Edit
+                <Pencil className="w-3 h-3" />
               </button>
             </div>
             {book.tags.length > 0 ? (
