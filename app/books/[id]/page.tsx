@@ -420,16 +420,16 @@ export default function BookDetailPage() {
 
           {/* Tags */}
           <div>
-            <div className="flex items-center gap-1.5 mb-3">
-              <label className="text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
                 Tags
               </label>
               <button
                 onClick={() => setShowTagEditor(true)}
-                className="text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors"
-                aria-label="Edit tags"
+                className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold"
               >
                 <Pencil className="w-3 h-3" />
+                Edit
               </button>
             </div>
             {book.tags.length > 0 ? (
@@ -446,7 +446,7 @@ export default function BookDetailPage() {
               </div>
             ) : (
               <p className="text-sm text-[var(--foreground)]/50">
-                No tags yet. Click the pencil icon to add some!
+                No tags yet. Click Edit to add some!
               </p>
             )}
           </div>
