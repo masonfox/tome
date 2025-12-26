@@ -72,6 +72,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const currentYear = new Date().getFullYear();
   const isPastYear = goal.year < currentYear;
   const isExceeded = booksCompleted > goal.booksGoal;
+  const isGoalMet = booksCompleted === goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
 
   // PAST YEAR: Retrospective view
@@ -183,7 +184,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
         <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${
-          isExceeded
+          isExceeded || isGoalMet
             ? "border-2 border-emerald-600"
             : paceStatus === "ahead"
             ? "border-2 border-emerald-600"
@@ -191,7 +192,13 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             ? "border-2 border-[var(--accent)]"
             : "border-2 border-orange-600"
         }`}>
-          {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
+          {!isExceeded && !isGoalMet && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
+          {isGoalMet && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Target className="w-3.5 h-3.5" />
+              Goal Met!
+            </span>
+          )}
           {isExceeded && (
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
               <Target className="w-3.5 h-3.5" />
@@ -229,6 +236,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             className={`h-5 transition-all duration-500 ease-out ${
               isExceeded
                 ? "bg-gradient-to-r from-emerald-600 to-emerald-500"
+                : isGoalMet
+                ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
                 : paceStatus === "ahead"
                 ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
                 : paceStatus === "on-track"
