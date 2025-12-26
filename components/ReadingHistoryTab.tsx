@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, BookOpen, Pencil } from "lucide-react";
+import { Calendar, BookOpen, Pencil, ChevronRight } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
+import SessionProgressModal from "./SessionProgressModal";
 import { toast } from "@/utils/toast";
 import { formatDateOnly } from "@/utils/dateFormatting";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
@@ -39,6 +40,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
   const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSession, setEditingSession] = useState<ReadingSession | null>(null);
+  const [viewProgressModal, setViewProgressModal] = useState<{
+    sessionId: number;
+    sessionNumber: number;
+  } | null>(null);
 
   // Fetch sessions using TanStack Query - automatic caching and background refetching
   const { data: allSessions = [], isLoading: loading } = useQuery<ReadingSession[]>({
@@ -169,8 +174,15 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
 
             {/* Progress Summary */}
             {session.progressSummary.totalEntries > 0 && (
-              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-[var(--card-bg)] rounded border border-[var(--border-color)]">
-                <div>
+              <button
+                onClick={() => setViewProgressModal({
+                  sessionId: session.id,
+                  sessionNumber: session.sessionNumber,
+                })}
+                className="w-full grid grid-cols-2 gap-4 mb-4 p-3 bg-[var(--card-bg)] rounded border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors duration-200 cursor-pointer group"
+                aria-label={`View progress logs for Read #${session.sessionNumber}`}
+              >
+                <div className="text-left">
                   <p className="text-xs text-[var(--foreground)]/60 font-semibold uppercase tracking-wide mb-1">
                     Progress Logs
                   </p>
@@ -178,7 +190,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                     {session.progressSummary.totalEntries}
                   </p>
                 </div>
-                <div>
+                <div className="text-left">
                   <p className="text-xs text-[var(--foreground)]/60 font-semibold uppercase tracking-wide mb-1">
                     Pages Read
                   </p>
@@ -186,7 +198,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                     {session.progressSummary.totalPagesRead}
                   </p>
                 </div>
-              </div>
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ChevronRight className="w-5 h-5 text-[var(--accent)]" />
+                </div>
+              </button>
             )}
 
             {/* Final Progress */}
@@ -223,6 +238,17 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         currentCompletedDate={editingSession?.completedDate ?? null}
         currentReview={editingSession?.review ?? null}
       />
+
+      {viewProgressModal && (
+        <SessionProgressModal
+          isOpen={!!viewProgressModal}
+          onClose={() => setViewProgressModal(null)}
+          sessionId={viewProgressModal.sessionId}
+          bookId={bookId}
+          bookTitle={bookTitle}
+          sessionNumber={viewProgressModal.sessionNumber}
+        />
+      )}
     </div>
   );
 }
