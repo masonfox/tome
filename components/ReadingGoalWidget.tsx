@@ -176,20 +176,13 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   // CURRENT YEAR: Active tracking view
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-      {/* Header Section - Subtitle, Pace, and Edit Button */}
-      <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-[var(--subheading-text)] font-medium">
-          {booksCompleted} of {goal.booksGoal} books completed
-        </p>
-        
-        <div className="flex items-center gap-3">
-          {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
-          {isExceeded && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <Target className="w-3.5 h-3.5" />
-              Goal Exceeded!
-            </span>
-          )}
+      {/* Header Section */}
+      <div className="mb-6">
+        {/* Subtitle and Edit Button Row */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-[var(--subheading-text)] font-medium">
+            {booksCompleted} of {goal.booksGoal} books completed
+          </p>
           
           {onEditClick && (
             <button
@@ -202,6 +195,17 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               </svg>
               Edit
             </button>
+          )}
+        </div>
+        
+        {/* Pacing Indicator Row */}
+        <div>
+          {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
+          {isExceeded && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Target className="w-3.5 h-3.5" />
+              Goal Exceeded!
+            </span>
           )}
         </div>
       </div>
