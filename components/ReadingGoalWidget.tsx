@@ -112,7 +112,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
-              Achievement
+              <span className="font-bold">Goal:</span> {goal.booksGoal}
             </span>
             <span className="text-sm font-bold text-[var(--heading-text)]">
               {displayPercentage}%
@@ -218,7 +218,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
-            Progress
+            <span className="font-bold">Goal:</span> {goal.booksGoal}
           </span>
           <span className="text-sm font-bold text-[var(--heading-text)]">
             {displayPercentage}%
