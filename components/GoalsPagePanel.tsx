@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
+import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";
+import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "./CompletedBooksSection";
 import { GoalsOnboarding } from "./GoalsOnboarding";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
@@ -53,7 +55,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   });
 
   // Monthly breakdown query
-  const { data: monthlyData = [] } = useQuery({
+  const { data: monthlyData = [], isLoading: monthlyLoading } = useQuery({
     queryKey: ['monthly-breakdown', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
@@ -182,9 +184,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
       {/* Current Goal Display */}
       {loading ? (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-16 text-center">
-          <p className="text-[var(--subheading-text)] font-medium">Loading...</p>
-        </div>
+        <ReadingGoalWidgetSkeleton />
       ) : currentGoalData ? (
         <ReadingGoalWidget 
           goalData={currentGoalData}
@@ -228,17 +228,21 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       )}
 
       {/* Monthly Chart - Only show for past and current years */}
-      {currentGoalData && monthlyData.length > 0 && selectedYear <= new Date().getFullYear() && (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6">
-          <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
-            {selectedYear < new Date().getFullYear() 
-              ? "Monthly Breakdown" 
-              : "Monthly Progress"}
-          </h3>
-          <ReadingGoalChart
-            monthlyData={monthlyData}
-          />
-        </div>
+      {currentGoalData && selectedYear <= new Date().getFullYear() && (
+        monthlyLoading ? (
+          <ReadingGoalChartSkeleton />
+        ) : monthlyData.length > 0 ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6">
+            <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
+              {selectedYear < new Date().getFullYear() 
+                ? "Monthly Breakdown" 
+                : "Monthly Progress"}
+            </h3>
+            <ReadingGoalChart
+              monthlyData={monthlyData}
+            />
+          </div>
+        ) : null
       )}
 
       {/* Completed Books Section - Only show for past and current years */}
