@@ -828,18 +828,24 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
    */
   async getTagStats(): Promise<Array<{ name: string; bookCount: number }>> {
     try {
+      // Query to get all unique tags with their book counts
+      // Uses json_each to extract individual tag values from JSON arrays
       const results = this.getDatabase()
-        .select({
-          name: sql<string>`json_each.value`,
-          bookCount: sql<number>`COUNT(DISTINCT ${books.id})`,
-        })
-        .from(sql`${books}, json_each(${books.tags})`)
-        .where(sql`json_array_length(${books.tags}) > 0`)
-        .groupBy(sql`json_each.value`)
-        .orderBy(sql`json_each.value ASC`)
-        .all();
+        .all(sql`
+          SELECT 
+            json_each.value as name,
+            COUNT(DISTINCT books.id) as bookCount
+          FROM books, json_each(books.tags)
+          WHERE json_array_length(books.tags) > 0
+          GROUP BY json_each.value
+          ORDER BY json_each.value ASC
+        `);
 
-      return results;
+      // Map the raw results to the expected type
+      return results.map((row: any) => ({
+        name: row.name,
+        bookCount: Number(row.bookCount),
+      }));
     } catch (error) {
       const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error fetching tag statistics");
