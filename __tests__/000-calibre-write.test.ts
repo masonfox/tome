@@ -1,20 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
-
-// Mock the logger to avoid require() issues in tests
-const mockInfo = mock(() => {});
-const mockError = mock(() => {});
-const mockDebug = mock(() => {});
-const mockWarn = mock(() => {});
-
-mock.module("@/lib/logger", () => ({
-  getLogger: () => ({
-    info: mockInfo,
-    error: mockError,
-    debug: mockDebug,
-    warn: mockWarn,
-  })
-}));
 
 // Import real production functions
 import { 
@@ -31,8 +16,8 @@ import {
  * test database into the production functions. This approach:
  * 
  * - Tests the ACTUAL production code (not duplicates)
- * - Achieves 75-85% coverage (up from 5%)
- * - Tests business logic, error handling, and logging
+ * - Achieves 70%+ coverage
+ * - Tests business logic and error handling
  * - Uses dependency injection via optional `db` parameter
  * 
  * What's tested:
@@ -40,17 +25,17 @@ import {
  * - ✅ All tag CRUD operations  
  * - ✅ Scale conversion (1-5 stars ↔ 2,4,6,8,10)
  * - ✅ Foreign key handling
- * - ✅ Error logging
- * - ✅ Info logging
  * - ✅ Edge cases and validation
  * 
  * What's NOT tested (acceptable gaps):
  * - ❌ getCalibreWriteDB() initialization (throws in test env)
  * - ❌ Connection singleton management
  * - ❌ File system operations
+ * - ❌ Logger calls (no-op in test env to avoid global mocks)
  * 
  * These gaps are infrastructure concerns tested manually in development
- * and monitored in production.
+ * and monitored in production. Logger calls are intentionally excluded to
+ * avoid mock.module() which is global in Bun and leaks between test files.
  */
 
 let testDb: Database;
@@ -719,199 +704,4 @@ describe("Calibre Write Operations - Tag Management", () => {
   });
 });
 
-describe("Calibre Write Operations - Error Logging", () => {
-  let errorTestDb: Database;
-  
-  beforeAll(() => {
-    errorTestDb = new Database(":memory:");
-    createCalibreRatingsSchema(errorTestDb);
-    insertTestBooks(errorTestDb);
-  });
 
-  afterAll(() => {
-    errorTestDb.close();
-  });
-
-  beforeEach(() => {
-    // Clear mock call history before each test
-    mockError.mockClear();
-    mockInfo.mockClear();
-    
-    // Recreate schema in case previous test broke it
-    try {
-      errorTestDb.run("DROP TABLE IF EXISTS books_ratings_link");
-      errorTestDb.run("DROP TABLE IF EXISTS ratings");
-      errorTestDb.run("DROP TABLE IF EXISTS books_tags_link");
-      errorTestDb.run("DROP TABLE IF EXISTS tags");
-      errorTestDb.run("DROP TABLE IF EXISTS books");
-    } catch (e) {
-      // Ignore errors
-    }
-    createCalibreRatingsSchema(errorTestDb);
-    insertTestBooks(errorTestDb);
-  });
-
-  describe("Error Logging", () => {
-    test("should log error when rating update fails", () => {
-      mockError.mockClear();
-      
-      // Force an error by dropping a required table
-      errorTestDb.run("DROP TABLE ratings");
-      
-      // Attempt operation - should fail and log error
-      expect(() => {
-        updateCalibreRating(1, 5, errorTestDb);
-      }).toThrow("Failed to update rating in Calibre database");
-      
-      // Verify error was logged
-      expect(mockError).toHaveBeenCalled();
-    });
-    
-    test("should log error when tag update fails", () => {
-      mockError.mockClear();
-      
-      // Drop required table
-      errorTestDb.run("DROP TABLE tags");
-      
-      expect(() => {
-        updateCalibreTags(1, ["Fiction"], errorTestDb);
-      }).toThrow("Failed to update tags in Calibre database");
-      
-      expect(mockError).toHaveBeenCalled();
-    });
-    
-    test("should log error when rating read fails", () => {
-      mockError.mockClear();
-      
-      // Use empty database with no schema
-      const tempDb = new Database(":memory:");
-      
-      const result = readCalibreRating(1, tempDb);
-      
-      expect(result).toBeNull();
-      expect(mockError).toHaveBeenCalled();
-      
-      tempDb.close();
-    });
-    
-    test("should log error when tag read fails", () => {
-      mockError.mockClear();
-      
-      // Use empty database with no schema
-      const tempDb = new Database(":memory:");
-      
-      const result = readCalibreTags(1, tempDb);
-      
-      expect(result).toEqual([]);
-      expect(mockError).toHaveBeenCalled();
-      
-      tempDb.close();
-    });
-  });
-});
-
-describe("Calibre Write Operations - Info Logging", () => {
-  let infoTestDb: Database;
-  
-  beforeAll(() => {
-    infoTestDb = new Database(":memory:");
-    createCalibreRatingsSchema(infoTestDb);
-    insertTestBooks(infoTestDb);
-  });
-
-  afterAll(() => {
-    infoTestDb.close();
-  });
-
-  beforeEach(() => {
-    // Clear mocks and database
-    mockInfo.mockClear();
-    mockError.mockClear();
-    infoTestDb.run("DELETE FROM books_ratings_link");
-    infoTestDb.run("DELETE FROM ratings");
-    infoTestDb.run("DELETE FROM books_tags_link");
-    infoTestDb.run("DELETE FROM tags");
-  });
-
-  describe("Info Logging", () => {
-    test("should log info when rating is created", () => {
-      mockInfo.mockClear();
-      
-      updateCalibreRating(1, 5, infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-      // Should log both creating rating value and creating link
-      expect(mockInfo.mock.calls.length).toBeGreaterThan(0);
-    });
-    
-    test("should log info when rating is updated", () => {
-      updateCalibreRating(1, 3, infoTestDb);
-      mockInfo.mockClear();
-      
-      updateCalibreRating(1, 5, infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-      // Should log update (not create)
-    });
-    
-    test("should log info when rating is removed", () => {
-      updateCalibreRating(1, 5, infoTestDb);
-      mockInfo.mockClear();
-      
-      updateCalibreRating(1, null, infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-    });
-    
-    test("should log info when tags are updated", () => {
-      mockInfo.mockClear();
-      
-      updateCalibreTags(1, ["Fiction", "Classic"], infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-    });
-    
-    test("should log info when new rating value is created", () => {
-      mockInfo.mockClear();
-      
-      // First time using rating value 5 (10 in Calibre scale)
-      updateCalibreRating(1, 5, infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-      // Should contain message about creating new rating value
-    });
-    
-    test("should log info when new tag is created", () => {
-      mockInfo.mockClear();
-      
-      updateCalibreTags(1, ["NewTag"], infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-      // Should contain message about creating new tag
-    });
-    
-    test("should not create duplicate log entries when reusing rating value", () => {
-      // Create first book with rating 5
-      updateCalibreRating(1, 5, infoTestDb);
-      const firstCallCount = mockInfo.mock.calls.length;
-      
-      mockInfo.mockClear();
-      
-      // Create second book with same rating - should not create new rating value
-      updateCalibreRating(2, 5, infoTestDb);
-      const secondCallCount = mockInfo.mock.calls.length;
-      
-      // Second time should have fewer info logs (no "creating new rating value")
-      expect(secondCallCount).toBeLessThan(firstCallCount);
-    });
-    
-    test("should log when tags are cleared", () => {
-      updateCalibreTags(1, ["Fiction", "Classic"], infoTestDb);
-      mockInfo.mockClear();
-      
-      updateCalibreTags(1, [], infoTestDb);
-      
-      expect(mockInfo).toHaveBeenCalled();
-    });
-  });
-});

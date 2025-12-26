@@ -964,9 +964,19 @@ import { bookRepository } from "@/lib/repositories";
 **Cause**: Using `mock.module()` which is global in Bun
 
 **Solution**:
-1. Avoid `mock.module()` when possible
-2. If necessary, document that cleanup isn't automatic
-3. Run tests serially (`concurrency = 1` in bunfig.toml)
+1. **Preferred**: Avoid `mock.module()` entirely
+   - Use dependency injection in production code
+   - Add test-specific behavior in production code (e.g., `if (process.env.NODE_ENV === 'test')`)
+   - Example: `lib/db/calibre-write.ts` uses `getLoggerSafe()` to return no-op logger in tests
+
+2. **If unavoidable**: Control test execution order
+   - Tests that DON'T mock should run first (prefix with `000-`)
+   - Tests that DO mock run later (their mocks won't affect earlier tests)
+   - Example: `__tests__/000-calibre-write.test.ts` runs before API tests that mock calibre-write
+
+3. **Always**: Run tests serially (`concurrency = 1` in bunfig.toml)
+
+**Reference**: See `docs/CALIBRE_WRITE_TEST_FIX.md` for detailed case study
 
 ### Problem: Component tests fail with "ReferenceError: document is not defined"
 
