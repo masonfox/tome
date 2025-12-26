@@ -293,6 +293,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
+    // Multiple tags use AND logic - book must have ALL selected tags
     if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
@@ -300,7 +301,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           WHERE json_each.value = ${tag}
         )`
       );
-      conditions.push(or(...tagConditions)!);
+      conditions.push(and(...tagConditions)!);
     }
 
     // Rating filter
@@ -550,6 +551,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
+    // Multiple tags use AND logic - book must have ALL selected tags
     if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
@@ -557,7 +559,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           WHERE json_each.value = ${tag}
         )`
       );
-      conditions.push(or(...tagConditions)!);
+      conditions.push(and(...tagConditions)!);
     }
 
     // Rating filter

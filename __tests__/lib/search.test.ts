@@ -241,7 +241,8 @@ describe("Book Search Functionality", () => {
       expect(result.books[0].title).toBe("Fantasy Book");
     });
 
-    test("should filter by multiple tags (OR logic)", async () => {
+    test("should filter by multiple tags (AND logic)", async () => {
+      // Book with Fantasy only
       await bookRepository.create({
         calibreId: 1,
         title: "Fantasy Book",
@@ -250,6 +251,7 @@ describe("Book Search Functionality", () => {
         path: "/path1",
       });
 
+      // Book with Sci-Fi only
       await bookRepository.create({
         calibreId: 2,
         title: "Sci-Fi Book",
@@ -258,15 +260,132 @@ describe("Book Search Functionality", () => {
         path: "/path2",
       });
 
+      // Book with both Fantasy AND Sci-Fi
       await bookRepository.create({
         calibreId: 3,
-        title: "Romance Book",
+        title: "Fantasy Sci-Fi Hybrid",
         authors: ["Author"],
-        tags: ["Romance"],
+        tags: ["Fantasy", "Sci-Fi"],
         path: "/path3",
       });
 
+      // Book with Romance only
+      await bookRepository.create({
+        calibreId: 4,
+        title: "Romance Book",
+        authors: ["Author"],
+        tags: ["Romance"],
+        path: "/path4",
+      });
+
+      // When filtering by multiple tags, only books with ALL tags should be returned
       const result = await bookRepository.findWithFilters({ tags: ["Fantasy", "Sci-Fi"] });
+      expect(result.books).toHaveLength(1);
+      expect(result.books[0].title).toBe("Fantasy Sci-Fi Hybrid");
+    });
+
+    test("should return book with superset of tags when filtering by multiple tags", async () => {
+      // Book A: has fantasy, magic, adventure (superset)
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Epic Fantasy",
+        authors: ["Author"],
+        tags: ["fantasy", "magic", "adventure", "dragons"],
+        path: "/path1",
+      });
+
+      // Book B: has fantasy, adventure (exact match)
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Simple Fantasy",
+        authors: ["Author"],
+        tags: ["fantasy", "adventure"],
+        path: "/path2",
+      });
+
+      // Book C: has only fantasy (subset)
+      await bookRepository.create({
+        calibreId: 3,
+        title: "Pure Fantasy",
+        authors: ["Author"],
+        tags: ["fantasy"],
+        path: "/path3",
+      });
+
+      // Query for fantasy AND adventure - should return Books A and B
+      const result = await bookRepository.findWithFilters({ tags: ["fantasy", "adventure"] });
+      expect(result.books).toHaveLength(2);
+      expect(result.books.map((b) => b.title).sort()).toEqual(["Epic Fantasy", "Simple Fantasy"]);
+    });
+
+    test("should handle three-tag AND filter correctly", async () => {
+      // Book with all three tags
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Complete Book",
+        authors: ["Author"],
+        tags: ["fantasy", "magic", "adventure"],
+        path: "/path1",
+      });
+
+      // Book with only two tags
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Incomplete Book",
+        authors: ["Author"],
+        tags: ["fantasy", "magic"],
+        path: "/path2",
+      });
+
+      const result = await bookRepository.findWithFilters({
+        tags: ["fantasy", "magic", "adventure"],
+      });
+      expect(result.books).toHaveLength(1);
+      expect(result.books[0].title).toBe("Complete Book");
+    });
+
+    test("should return empty array when no books match all tags", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Fantasy Book",
+        authors: ["Author"],
+        tags: ["fantasy"],
+        path: "/path1",
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Sci-Fi Book",
+        authors: ["Author"],
+        tags: ["sci-fi"],
+        path: "/path2",
+      });
+
+      // Query for tags that no book has together
+      const result = await bookRepository.findWithFilters({ tags: ["fantasy", "sci-fi"] });
+      expect(result.books).toHaveLength(0);
+      expect(result.total).toBe(0);
+    });
+
+    test("should handle empty tags array", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        tags: ["fantasy"],
+        path: "/path1",
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author"],
+        tags: ["sci-fi"],
+        path: "/path2",
+      });
+
+      // Empty tags array should return all books
+      const result = await bookRepository.findWithFilters({ tags: [] });
       expect(result.books).toHaveLength(2);
     });
   });
