@@ -614,12 +614,15 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
      * our code correctly attempts to sync ratings, without actually writing to disk.
      */
     mock.module("@/lib/services/calibre.service", () => ({
-      updateCalibreRating: (calibreId: number, rating: number | null) => {
-        calibreRatingCalls.push({ calibreId, rating });
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: () => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: (calibreId: number) => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
   });
   
@@ -800,12 +803,15 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   test("should continue status update even if Calibre sync fails", async () => {
     // Arrange - Mock Calibre to throw error
     mock.module("@/lib/services/calibre.service", () => ({
-      updateCalibreRating: () => {
-        throw new Error("Calibre database unavailable");
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: (calibreId: number) => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: (calibreId: number) => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
 
     const book = await bookRepository.create(mockBook1);
@@ -837,12 +843,15 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
     // Restore normal mock
     mock.module("@/lib/services/calibre.service", () => ({
-      updateCalibreRating: (calibreId: number, rating: number | null) => {
-        calibreRatingCalls.push({ calibreId, rating });
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: (calibreId: number) => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: (calibreId: number) => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
   });
 

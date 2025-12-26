@@ -3,7 +3,7 @@ import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
-import { calibreService, type ICalibreService } from "@/lib/services/calibre.service";
+import type { ICalibreService } from "@/lib/services/calibre.service";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -26,9 +26,25 @@ export interface BookWithDetails extends Book {
  * - Calibre rating sync
  */
 export class BookService {
-  constructor(
-    private calibre: ICalibreService = calibreService
-  ) {}
+  private calibre?: ICalibreService;
+  
+  constructor(calibre?: ICalibreService) {
+    this.calibre = calibre;
+  }
+  
+  /**
+   * Get the Calibre service instance (lazy loaded to support test mocking)
+   * Always re-imports to ensure test mocks are applied correctly
+   */
+  private getCalibreService(): ICalibreService {
+    if (this.calibre) {
+      return this.calibre;
+    }
+    // Lazy import to ensure mocks are applied before the module is loaded
+    // Don't cache the result - always get fresh reference to support test mocking
+    const { calibreService } = require("@/lib/services/calibre.service");
+    return calibreService;
+  }
   /**
    * Get a book by ID with enriched details (session, progress, read count)
    * 
@@ -251,7 +267,7 @@ export class BookService {
    */
   private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
     try {
-      this.calibre.updateRating(calibreId, rating);
+      this.getCalibreService().updateRating(calibreId, rating);
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
@@ -309,7 +325,7 @@ export class BookService {
    */
   private async syncTagsToCalibre(calibreId: number, tags: string[]): Promise<void> {
     try {
-      this.calibre.updateTags(calibreId, tags);
+      this.getCalibreService().updateTags(calibreId, tags);
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced tags to Calibre (calibreId: ${calibreId}): ${tags.join(', ')}`);
     } catch (error) {
