@@ -45,7 +45,7 @@ function getLoggerSafe() {
 
 This pattern matches the existing `getCalibreWriteDB()` which also has test-specific behavior.
 
-### 2. Other Tests Mocking calibre-write (Solved with Test Ordering)
+### 2. Other Tests Mocking calibre-write (No Longer an Issue)
 Five other test files were mocking `@/lib/db/calibre-write` at module scope:
 - `__tests__/api/rating.test.ts`
 - `__tests__/api/status-rating-sync.test.ts`
@@ -53,9 +53,9 @@ Five other test files were mocking `@/lib/db/calibre-write` at module scope:
 - `__tests__/api/tags.test.ts`
 - `__tests__/integration/page-count-status-change.test.ts`
 
-When these ran **before** `calibre-write.test.ts`, their mocks leaked into the calibre-write tests, causing all database operations to fail.
+Initially, when these ran **before** `calibre-write.test.ts`, their mocks leaked into the calibre-write tests, causing all database operations to fail.
 
-**Solution**: Renamed `__tests__/lib/calibre-write.test.ts` to `__tests__/000-calibre-write.test.ts` so it runs alphabetically **before** the API tests that mock it.
+**Solution**: By removing `mock.module()` from calibre-write tests (via the `getLoggerSafe()` fix above), the test file no longer has global mock conflicts and can run in any order. The file remains in its natural location at `__tests__/lib/calibre-write.test.ts`.
 
 ## Changes Made
 
@@ -70,7 +70,7 @@ When these ran **before** `calibre-write.test.ts`, their mocks leaked into the c
 
 This eliminated the need for `mock.module("@/lib/logger")` in tests.
 
-### 2. Test File: `__tests__/000-calibre-write.test.ts` (renamed)
+### 2. Test File: `__tests__/lib/calibre-write.test.ts`
 
 **Removed**:
 - `mock.module("@/lib/logger")` block (lines 4-17)
@@ -83,10 +83,7 @@ This eliminated the need for `mock.module("@/lib/logger")` in tests.
 - Test documentation to note that logger calls are not tested
 - Coverage expectations (70%+ instead of 75-85%)
 
-**Renamed**:
-- From: `__tests__/lib/calibre-write.test.ts`
-- To: `__tests__/000-calibre-write.test.ts`
-- Reason: Ensures it runs before API tests that mock calibre-write
+**Location**: Remains in `__tests__/lib/` (proper organizational location for lib tests)
 
 ## Test Results
 
@@ -164,7 +161,7 @@ If we want to test logging in the future:
    ```
 
 2. **Option 2**: Refactor all 5 API tests to use `spyOn` instead of `mock.module`
-   - This would allow us to remove the `000-` prefix
+   - Would provide better test isolation
    - More work but cleaner long-term solution
 
 3. **Option 3**: Use a test logger implementation
