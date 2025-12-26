@@ -7,55 +7,45 @@
 export function ReadingGoalWidgetSkeleton() {
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative animate-pulse">
-      {/* Header Section */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex-1">
-          {/* Title skeleton */}
-          <div className="h-7 bg-[var(--foreground)]/10 rounded w-48 mb-2" />
-          
-          {/* Stats row skeleton */}
-          <div className="flex items-center gap-4">
-            <div className="h-5 bg-[var(--foreground)]/10 rounded w-32" />
-            <div className="h-5 bg-[var(--foreground)]/10 rounded w-24" />
-          </div>
-        </div>
-
-        {/* Edit button skeleton */}
-        <div className="h-8 w-16 bg-[var(--foreground)]/10 rounded" />
-      </div>
-
-      {/* Progress Bar Section */}
-      <div className="space-y-3 mb-6">
-        {/* Progress bar */}
-        <div className="relative w-full h-6 bg-[var(--foreground)]/5 rounded-sm overflow-hidden">
-          <div className="absolute inset-0 bg-[var(--foreground)]/10 w-2/3" />
-        </div>
+      {/* Header Section - Subtitle, Pace, and Edit Button */}
+      <div className="flex items-center justify-between mb-6">
+        {/* Subtitle skeleton (e.g., "10 of 12 books completed") */}
+        <div className="h-5 bg-[var(--foreground)]/10 rounded w-40" />
         
-        {/* Percentage text */}
-        <div className="flex justify-between items-center">
-          <div className="h-4 bg-[var(--foreground)]/10 rounded w-16" />
-          <div className="h-4 bg-[var(--foreground)]/10 rounded w-24" />
+        <div className="flex items-center gap-3">
+          {/* Pace indicator skeleton */}
+          <div className="h-5 bg-[var(--foreground)]/10 rounded w-24" />
+          
+          {/* Edit button skeleton */}
+          <div className="h-7 w-14 bg-[var(--foreground)]/10 rounded" />
         </div>
       </div>
 
-      {/* Stats Grid Section */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--border-color)]">
+      {/* Progress Bar */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          {/* "PROGRESS" label skeleton */}
+          <div className="h-3 bg-[var(--foreground)]/10 rounded w-16" />
+          {/* Percentage skeleton */}
+          <div className="h-4 bg-[var(--foreground)]/10 rounded w-12" />
+        </div>
+        <div className="w-full bg-[var(--border-color)] rounded-sm h-5 overflow-hidden">
+          <div className="h-5 bg-[var(--foreground)]/10 w-2/3" />
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-6">
         {/* Stat 1 */}
-        <div>
-          <div className="h-3 bg-[var(--foreground)]/10 rounded w-20 mb-2" />
-          <div className="h-6 bg-[var(--foreground)]/10 rounded w-16" />
+        <div className="border-l-2 border-[var(--accent)] pl-4">
+          <div className="h-3 bg-[var(--foreground)]/10 rounded w-20 mb-1" />
+          <div className="h-9 bg-[var(--foreground)]/10 rounded w-16" />
         </div>
         
         {/* Stat 2 */}
-        <div>
-          <div className="h-3 bg-[var(--foreground)]/10 rounded w-20 mb-2" />
-          <div className="h-6 bg-[var(--foreground)]/10 rounded w-16" />
-        </div>
-        
-        {/* Stat 3 */}
-        <div>
-          <div className="h-3 bg-[var(--foreground)]/10 rounded w-20 mb-2" />
-          <div className="h-6 bg-[var(--foreground)]/10 rounded w-16" />
+        <div className="border-l-2 border-[var(--border-color)] pl-4">
+          <div className="h-3 bg-[var(--foreground)]/10 rounded w-20 mb-1" />
+          <div className="h-9 bg-[var(--foreground)]/10 rounded w-16" />
         </div>
       </div>
     </div>

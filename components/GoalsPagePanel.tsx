@@ -163,10 +163,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     <div className="space-y-8 rounded-md">
       {/* Year Selector */}
       {availableYears.length > 0 && (
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-serif font-bold text-[var(--heading-text)]">
-            Reading Goals
-          </h2>
+        <div className="flex items-center justify-end">
           <YearSelector
             years={availableYears}
             selectedYear={selectedYear}
