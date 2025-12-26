@@ -71,51 +71,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
   const currentYear = new Date().getFullYear();
   const isPastYear = goal.year < currentYear;
-  const isFutureYear = goal.year > currentYear;
   const isExceeded = booksCompleted > goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
-
-  // FUTURE YEAR: Simplified aspirational view
-  if (isFutureYear) {
-    return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-        {/* Edit Button */}
-        {onEditClick && (
-          <button
-            onClick={onEditClick}
-            className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-              <path d="m15 5 4 4"/>
-            </svg>
-            Edit
-          </button>
-        )}
-
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-2">
-            {goal.year} Reading Goal
-          </h2>
-          <p className="text-sm text-[var(--subheading-text)] mb-8">
-            Begins January {goal.year}
-          </p>
-          
-          <div className="inline-flex items-center gap-3 px-6 py-4 bg-[var(--accent)]/10 border border-[var(--accent)] rounded-sm">
-            <Target className="w-8 h-8 text-[var(--accent)]" />
-            <div className="text-left">
-              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-                Target
-              </p>
-              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-                {goal.booksGoal} books
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // PAST YEAR: Retrospective view
   if (isPastYear) {

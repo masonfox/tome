@@ -47,7 +47,6 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
       {goals.map((goal) => {
         const isPastYear = goal.year < currentYear;
         const isCurrentYear = goal.year === currentYear;
-        const isFutureYear = goal.year > currentYear;
 
         return (
           <div
@@ -67,11 +66,6 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
                 {isPastYear && (
                   <span className="px-2 py-0.5 text-xs font-semibold bg-[var(--foreground)]/10 text-[var(--foreground)]/60 rounded">
                     Completed
-                  </span>
-                )}
-                {isFutureYear && (
-                  <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded">
-                    Upcoming
                   </span>
                 )}
               </div>

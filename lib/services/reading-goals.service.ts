@@ -213,10 +213,10 @@ export class ReadingGoalsService {
   }
 
   /**
-   * Check if a goal can be edited (current or future year only)
+   * Check if a goal can be edited (current year only)
    */
   private canEditGoal(year: number): boolean {
-    return year >= new Date().getFullYear();
+    return year === new Date().getFullYear();
   }
 }
 

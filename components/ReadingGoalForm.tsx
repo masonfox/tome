@@ -22,13 +22,8 @@ export function ReadingGoalForm({
   const { createGoalAsync, updateGoalAsync } = useReadingGoals();
   
   const currentYear = new Date().getFullYear();
-  // Generate year options: current year + next year
-  const yearOptions = [
-    currentYear,
-    currentYear + 1
-  ];
   
-  const [year, setYear] = useState(existingGoal?.year || currentYear);
+  const year = existingGoal?.year || currentYear;
   const [booksGoal, setBooksGoal] = useState<number | "">(
     existingGoal?.booksGoal ?? ""
   );
@@ -39,7 +34,6 @@ export function ReadingGoalForm({
 
   useEffect(() => {
     if (existingGoal) {
-      setYear(existingGoal.year);
       setBooksGoal(existingGoal.booksGoal);
     }
   }, [existingGoal]);
@@ -63,9 +57,9 @@ export function ReadingGoalForm({
       return;
     }
 
-    // Year validation (should always be valid since we use a select, but keep for safety)
-    if (!Number.isInteger(year) || year < currentYear) {
-      toast.error("Please select a valid year");
+    // Year validation - only allow current year for new goals
+    if (!Number.isInteger(year) || year !== currentYear) {
+      toast.error("Goals can only be created for the current year");
       return;
     }
 
@@ -112,34 +106,6 @@ export function ReadingGoalForm({
       )}
 
       <div className="space-y-4">
-        {/* Year Selector (only for create mode) */}
-        {mode === "create" && (
-          <div>
-            <label
-              htmlFor="goal-year"
-              className="block text-sm font-semibold text-[var(--foreground)]/70 mb-2"
-            >
-              Year
-            </label>
-            <select
-              id="goal-year"
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-full pl-4 pr-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-              disabled={saving}
-            >
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
-              Select the year for this goal
-            </p>
-          </div>
-        )}
-
         {/* Books Goal Input */}
         <div>
           <label

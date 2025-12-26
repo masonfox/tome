@@ -335,18 +335,6 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
       expect(data.data.monthlyData).toHaveLength(12);
     });
 
-    test("handles future year", async () => {
-      const futureYear = new Date().getFullYear() + 5;
-      const request = createMockRequest("GET", `/api/reading-goals/monthly?year=${futureYear}`);
-      const response = await GET(request as NextRequest);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.data.year).toBe(futureYear);
-      expect(data.data.goal).toBeNull(); // No goal for future year
-      expect(data.data.monthlyData).toHaveLength(12);
-    });
-
     test("handles current year", async () => {
       const currentYear = new Date().getFullYear();
       const request = createMockRequest("GET", `/api/reading-goals/monthly?year=${currentYear}`);

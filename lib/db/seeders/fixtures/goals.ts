@@ -10,7 +10,7 @@ export interface GoalData {
 
 /**
  * Generates reading goals for multiple years
- * Creates goals for past years (with varying targets), current year, and next year
+ * Creates goals for past years (with varying targets) and current year
  * @param currentYear - Current calendar year
  * @param yearsBack - Number of past years to generate goals for (default 2)
  * @returns Array of goal data objects
@@ -33,12 +33,6 @@ export function generateMultiYearGoals(
   goals.push({
     year: currentYear,
     booksGoal: 10,
-  });
-
-  // Next year goal (even more ambitious)
-  goals.push({
-    year: currentYear + 1,
-    booksGoal: 50 + Math.floor(Math.random() * 11), // 50-60 books
   });
 
   return goals;
@@ -67,12 +61,9 @@ export function calculateCompletedBooksForGoal(
     // Other past years: 70-110% completion (realistic variation)
     const completionRate = 0.7 + Math.random() * 0.4; // 0.7-1.1
     return Math.floor(goal.booksGoal * completionRate);
-  } else if (goal.year === currentYear) {
+  } else {
     // Current year: fixed at 13 books for 130% completion
     return 13;
-  } else {
-    // Future year: no books completed yet
-    return 0;
   }
 }
 

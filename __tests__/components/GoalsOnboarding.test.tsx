@@ -30,7 +30,7 @@ describe("GoalsOnboarding", () => {
 
       expect(screen.getByText("Annual Targets")).toBeInTheDocument();
       expect(screen.getByText("Progress Tracking")).toBeInTheDocument();
-      expect(screen.getByText("Multi-Year History")).toBeInTheDocument();
+      expect(screen.getByText("Year History")).toBeInTheDocument();
     });
 
     test("should render books goal input with default value of 12", () => {
