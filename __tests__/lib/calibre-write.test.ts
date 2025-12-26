@@ -1,5 +1,20 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { Database } from "bun:sqlite";
+
+// Mock the logger to avoid require() issues in tests
+const mockInfo = mock(() => {});
+const mockError = mock(() => {});
+const mockDebug = mock(() => {});
+const mockWarn = mock(() => {});
+
+mock.module("@/lib/logger", () => ({
+  getLogger: () => ({
+    info: mockInfo,
+    error: mockError,
+    debug: mockDebug,
+    warn: mockWarn,
+  })
+}));
 
 /**
  * Calibre Write Operations Tests
