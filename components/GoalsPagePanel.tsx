@@ -39,6 +39,10 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     queryKey: ['reading-goal', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
+      // 404 is expected when no goal exists for the year - return null instead of throwing
+      if (response.status === 404) {
+        return null;
+      }
       if (!response.ok) {
         throw new Error(`Failed to fetch goal data: ${response.statusText}`);
       }
