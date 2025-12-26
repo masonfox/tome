@@ -16,6 +16,14 @@ mock.module("@/lib/logger", () => ({
   })
 }));
 
+// Import real production functions
+import { 
+  updateCalibreRating, 
+  readCalibreRating,
+  updateCalibreTags,
+  readCalibreTags 
+} from "@/lib/db/calibre-write";
+
 /**
  * Calibre Write Operations Tests
  * 
@@ -30,12 +38,6 @@ mock.module("@/lib/logger", () => ({
  */
 
 let testDb: Database;
-
-// Import functions after setting up environment
-let updateCalibreRating: (calibreId: number, rating: number | null) => void;
-let readCalibreRating: (calibreId: number) => number | null;
-let updateCalibreTags: (calibreId: number, tags: string[]) => void;
-let readCalibreTags: (calibreId: number) => string[];
 
 /**
  * Creates Calibre ratings schema in memory
@@ -131,159 +133,12 @@ function insertTestBooks(db: Database) {
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(5, "Test Book 5");
 }
 
-/**
- * Test implementation of updateCalibreRating that works with our test DB
- */
-function updateCalibreRatingTest(db: Database, calibreId: number, rating: number | null): void {
-  // Validate rating (1-5 stars or null)
-  if (rating !== null && (rating < 1 || rating > 5)) {
-    throw new Error("Rating must be between 1 and 5");
-  }
-  
-  // Convert to Calibre scale (1-5 stars → 2,4,6,8,10)
-  const calibreRating = rating ? rating * 2 : null;
-  
-  if (calibreRating === null) {
-    // Remove rating: delete from junction table
-    const stmt = db.prepare("DELETE FROM books_ratings_link WHERE book = ?");
-    stmt.run(calibreId);
-  } else {
-    // Step 1: Get or create rating value in ratings table
-    let ratingRecord = db.prepare(
-      "SELECT id FROM ratings WHERE rating = ?"
-    ).get(calibreRating) as { id: number } | undefined;
-    
-    if (!ratingRecord) {
-      const insertStmt = db.prepare(
-        "INSERT INTO ratings (rating, link) VALUES (?, '')"
-      );
-      const result = insertStmt.run(calibreRating);
-      ratingRecord = { id: Number(result.lastInsertRowid) };
-    }
-    
-    // Step 2: Update or insert into books_ratings_link
-    const existingLink = db.prepare(
-      "SELECT id FROM books_ratings_link WHERE book = ?"
-    ).get(calibreId) as { id: number } | undefined;
-    
-    if (existingLink) {
-      const updateStmt = db.prepare(
-        "UPDATE books_ratings_link SET rating = ? WHERE book = ?"
-      );
-      updateStmt.run(ratingRecord.id, calibreId);
-    } else {
-      const insertStmt = db.prepare(
-        "INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)"
-      );
-      insertStmt.run(calibreId, ratingRecord.id);
-    }
-  }
-}
-
-/**
- * Test implementation of readCalibreRating that works with our test DB
- */
-function readCalibreRatingTest(db: Database, calibreId: number): number | null {
-  const result = db.prepare(`
-    SELECT r.rating
-    FROM books_ratings_link brl
-    JOIN ratings r ON brl.rating = r.id
-    WHERE brl.book = ?
-  `).get(calibreId) as { rating: number } | undefined;
-  
-  if (!result || !result.rating) {
-    return null;
-  }
-  
-  // Convert from Calibre scale (0-10) to stars (1-5)
-  return result.rating / 2;
-}
-
-/**
- * Test implementation of updateCalibreTags that works with our test DB
- */
-function updateCalibreTagsTest(db: Database, calibreId: number, tags: string[]): void {
-  // Validate tags
-  if (!Array.isArray(tags)) {
-    throw new Error("Tags must be an array");
-  }
-  
-  // Filter out empty/invalid tags and remove duplicates
-  const filteredTags = tags.filter(tag => 
-    typeof tag === 'string' && tag.trim().length > 0
-  ).map(tag => tag.trim());
-  const validTags = Array.from(new Set(filteredTags));
-  
-  // Step 1: Clear existing tag links for this book
-  const deleteStmt = db.prepare("DELETE FROM books_tags_link WHERE book = ?");
-  deleteStmt.run(calibreId);
-  
-  if (validTags.length === 0) {
-    return;
-  }
-  
-  // Step 2: Get or create tag IDs for each tag
-  const tagIds: number[] = [];
-  
-  for (const tagName of validTags) {
-    // Check if tag exists
-    let tagRecord = db.prepare(
-      "SELECT id FROM tags WHERE name = ?"
-    ).get(tagName) as { id: number } | undefined;
-    
-    if (!tagRecord) {
-      // Tag doesn't exist, create it
-      const insertStmt = db.prepare(
-        "INSERT INTO tags (name) VALUES (?)"
-      );
-      const result = insertStmt.run(tagName);
-      tagIds.push(Number(result.lastInsertRowid));
-    } else {
-      tagIds.push(tagRecord.id);
-    }
-  }
-  
-  // Step 3: Create new tag links
-  const insertLinkStmt = db.prepare(
-    "INSERT INTO books_tags_link (book, tag) VALUES (?, ?)"
-  );
-  
-  for (const tagId of tagIds) {
-    insertLinkStmt.run(calibreId, tagId);
-  }
-}
-
-/**
- * Test implementation of readCalibreTags that works with our test DB
- */
-function readCalibreTagsTest(db: Database, calibreId: number): string[] {
-  const result = db.prepare(`
-    SELECT t.name
-    FROM books_tags_link btl
-    JOIN tags t ON btl.tag = t.id
-    WHERE btl.book = ?
-    ORDER BY t.name
-  `).all(calibreId) as { name: string }[];
-  
-  return result.map(r => r.name);
-}
-
 describe("Calibre Write Operations - Rating Management", () => {
   beforeAll(() => {
     // Create in-memory test database
     testDb = new Database(":memory:");
     createCalibreRatingsSchema(testDb);
     insertTestBooks(testDb);
-    
-    // Bind test functions with the test database
-    updateCalibreRating = (calibreId: number, rating: number | null) => 
-      updateCalibreRatingTest(testDb, calibreId, rating);
-    readCalibreRating = (calibreId: number) => 
-      readCalibreRatingTest(testDb, calibreId);
-    updateCalibreTags = (calibreId: number, tags: string[]) =>
-      updateCalibreTagsTest(testDb, calibreId, tags);
-    readCalibreTags = (calibreId: number) =>
-      readCalibreTagsTest(testDb, calibreId);
   });
 
   afterAll(() => {
@@ -646,12 +501,6 @@ describe("Calibre Write Operations - Tag Management", () => {
     tagTestDb = new Database(":memory:");
     createCalibreRatingsSchema(tagTestDb);
     insertTestBooks(tagTestDb);
-    
-    // Bind test functions with the test database
-    updateCalibreTags = (calibreId: number, tags: string[]) =>
-      updateCalibreTagsTest(tagTestDb, calibreId, tags);
-    readCalibreTags = (calibreId: number) =>
-      readCalibreTagsTest(tagTestDb, calibreId);
   });
 
   afterAll(() => {
