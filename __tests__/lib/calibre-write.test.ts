@@ -155,7 +155,7 @@ describe("Calibre Write Operations - Rating Management", () => {
 
   describe("Rating Creation", () => {
     test("should create rating for book (5 stars)", () => {
-      updateCalibreRating(1, 5);
+      updateCalibreRating(1, 5, testDb);
 
       // Verify rating value exists in ratings table
       const ratingRecord = testDb.prepare(
@@ -173,7 +173,7 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should create rating for book (4 stars)", () => {
-      updateCalibreRating(1, 4);
+      updateCalibreRating(1, 4, testDb);
 
       const ratingRecord = testDb.prepare(
         "SELECT * FROM ratings WHERE rating = ?"
@@ -183,7 +183,7 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should create rating for book (3 stars)", () => {
-      updateCalibreRating(1, 3);
+      updateCalibreRating(1, 3, testDb);
 
       const ratingRecord = testDb.prepare(
         "SELECT * FROM ratings WHERE rating = ?"
@@ -192,7 +192,7 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should create rating for book (2 stars)", () => {
-      updateCalibreRating(1, 2);
+      updateCalibreRating(1, 2, testDb);
 
       const ratingRecord = testDb.prepare(
         "SELECT * FROM ratings WHERE rating = ?"
@@ -201,7 +201,7 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should create rating for book (1 star)", () => {
-      updateCalibreRating(1, 1);
+      updateCalibreRating(1, 1, testDb);
 
       const ratingRecord = testDb.prepare(
         "SELECT * FROM ratings WHERE rating = ?"
@@ -211,10 +211,10 @@ describe("Calibre Write Operations - Rating Management", () => {
 
     test("should reuse existing rating value when available", () => {
       // Create first book with 5 stars
-      updateCalibreRating(1, 5);
+      updateCalibreRating(1, 5, testDb);
 
       // Create second book with same rating
-      updateCalibreRating(2, 5);
+      updateCalibreRating(2, 5, testDb);
 
       // Should only have ONE rating record (reused)
       const ratingRecords = testDb.prepare(
@@ -233,17 +233,17 @@ describe("Calibre Write Operations - Rating Management", () => {
   describe("Rating Updates", () => {
     test("should update existing rating to new value", () => {
       // Create initial rating
-      updateCalibreRating(1, 3);
+      updateCalibreRating(1, 3, testDb);
       
       // Verify initial
-      let rating = readCalibreRating(1);
+      let rating = readCalibreRating(1, testDb);
       expect(rating).toBe(3);
 
       // Update to different rating
-      updateCalibreRating(1, 5);
+      updateCalibreRating(1, 5, testDb);
 
       // Verify updated
-      rating = readCalibreRating(1);
+      rating = readCalibreRating(1, testDb);
       expect(rating).toBe(5);
 
       // Verify only one link exists for this book
@@ -254,34 +254,34 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should handle multiple updates correctly", () => {
-      updateCalibreRating(1, 1);
-      expect(readCalibreRating(1)).toBe(1);
+      updateCalibreRating(1, 1, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(1);
 
-      updateCalibreRating(1, 2);
-      expect(readCalibreRating(1)).toBe(2);
+      updateCalibreRating(1, 2, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(2);
 
-      updateCalibreRating(1, 3);
-      expect(readCalibreRating(1)).toBe(3);
+      updateCalibreRating(1, 3, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(3);
 
-      updateCalibreRating(1, 4);
-      expect(readCalibreRating(1)).toBe(4);
+      updateCalibreRating(1, 4, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(4);
 
-      updateCalibreRating(1, 5);
-      expect(readCalibreRating(1)).toBe(5);
+      updateCalibreRating(1, 5, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(5);
     });
   });
 
   describe("Rating Removal", () => {
     test("should remove rating when set to null", () => {
       // Create rating
-      updateCalibreRating(1, 5);
-      expect(readCalibreRating(1)).toBe(5);
+      updateCalibreRating(1, 5, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(5);
 
       // Remove rating
-      updateCalibreRating(1, null);
+      updateCalibreRating(1, null, testDb);
 
       // Verify removed
-      const rating = readCalibreRating(1);
+      const rating = readCalibreRating(1, testDb);
       expect(rating).toBeNull();
 
       // Verify link is deleted (SQLite returns null, not undefined)
@@ -293,11 +293,11 @@ describe("Calibre Write Operations - Rating Management", () => {
 
     test("should not delete rating value from ratings table when removing link", () => {
       // Create two books with same rating
-      updateCalibreRating(1, 5);
-      updateCalibreRating(2, 5);
+      updateCalibreRating(1, 5, testDb);
+      updateCalibreRating(2, 5, testDb);
 
       // Remove rating from first book
-      updateCalibreRating(1, null);
+      updateCalibreRating(1, null, testDb);
 
       // Rating value should still exist (for book 2)
       const ratingRecord = testDb.prepare(
@@ -306,20 +306,20 @@ describe("Calibre Write Operations - Rating Management", () => {
       expect(ratingRecord).toBeDefined();
 
       // But link for book 1 should be gone
-      expect(readCalibreRating(1)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeNull();
       
       // And link for book 2 should remain
-      expect(readCalibreRating(2)).toBe(5);
+      expect(readCalibreRating(2, testDb)).toBe(5);
     });
 
     test("should handle removing non-existent rating gracefully", () => {
       // Book has no rating, try to remove it
       expect(() => {
-        updateCalibreRating(1, null);
+        updateCalibreRating(1, null, testDb);
       }).not.toThrow();
 
       // Verify still no rating
-      expect(readCalibreRating(1)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeNull();
     });
   });
 
@@ -336,7 +336,7 @@ describe("Calibre Write Operations - Rating Management", () => {
       testCases.forEach(({ stars, calibreValue }) => {
         // Use books 1-5 for the test cases
         const bookId = stars; // stars 1-5 map to book IDs 1-5
-        updateCalibreRating(bookId, stars);
+        updateCalibreRating(bookId, stars, testDb);
 
         // Check actual Calibre DB value
         const ratingRecord = testDb.prepare(
@@ -355,33 +355,33 @@ describe("Calibre Write Operations - Rating Management", () => {
       testDb.prepare("INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)").run(2, 2);
 
       // Read should convert back to stars
-      expect(readCalibreRating(1)).toBe(1); // 2 / 2 = 1 star
-      expect(readCalibreRating(2)).toBe(5); // 10 / 2 = 5 stars
+      expect(readCalibreRating(1, testDb)).toBe(1); // 2 / 2 = 1 star
+      expect(readCalibreRating(2, testDb)).toBe(5); // 10 / 2 = 5 stars
     });
   });
 
   describe("Validation", () => {
     test("should reject rating less than 1", () => {
       expect(() => {
-        updateCalibreRating(1, 0);
+        updateCalibreRating(1, 0, testDb);
       }).toThrow("Rating must be between 1 and 5");
     });
 
     test("should reject rating greater than 5", () => {
       expect(() => {
-        updateCalibreRating(1, 6);
+        updateCalibreRating(1, 6, testDb);
       }).toThrow("Rating must be between 1 and 5");
     });
 
     test("should reject negative ratings", () => {
       expect(() => {
-        updateCalibreRating(1, -1);
+        updateCalibreRating(1, -1, testDb);
       }).toThrow("Rating must be between 1 and 5");
     });
 
     test("should accept null rating", () => {
       expect(() => {
-        updateCalibreRating(1, null);
+        updateCalibreRating(1, null, testDb);
       }).not.toThrow();
     });
   });
@@ -430,45 +430,45 @@ describe("Calibre Write Operations - Rating Management", () => {
 
   describe("readCalibreRating", () => {
     test("should read existing rating correctly", () => {
-      updateCalibreRating(1, 5);
-      expect(readCalibreRating(1)).toBe(5);
+      updateCalibreRating(1, 5, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(5);
     });
 
     test("should return null for book with no rating", () => {
-      expect(readCalibreRating(1)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeNull();
     });
 
     test("should return null for non-existent book", () => {
-      expect(readCalibreRating(999)).toBeNull();
+      expect(readCalibreRating(999, testDb)).toBeNull();
     });
 
     test("should read different ratings for different books", () => {
-      updateCalibreRating(1, 5);
-      updateCalibreRating(2, 3);
-      updateCalibreRating(3, 1);
+      updateCalibreRating(1, 5, testDb);
+      updateCalibreRating(2, 3, testDb);
+      updateCalibreRating(3, 1, testDb);
 
-      expect(readCalibreRating(1)).toBe(5);
-      expect(readCalibreRating(2)).toBe(3);
-      expect(readCalibreRating(3)).toBe(1);
+      expect(readCalibreRating(1, testDb)).toBe(5);
+      expect(readCalibreRating(2, testDb)).toBe(3);
+      expect(readCalibreRating(3, testDb)).toBe(1);
     });
   });
 
   describe("Edge Cases", () => {
     test("should handle rapid updates to same book", () => {
       for (let i = 1; i <= 5; i++) {
-        updateCalibreRating(1, i);
-        expect(readCalibreRating(1)).toBe(i);
+        updateCalibreRating(1, i, testDb);
+        expect(readCalibreRating(1, testDb)).toBe(i);
       }
     });
 
     test("should handle same rating for multiple books", () => {
-      updateCalibreRating(1, 5);
-      updateCalibreRating(2, 5);
-      updateCalibreRating(3, 5);
+      updateCalibreRating(1, 5, testDb);
+      updateCalibreRating(2, 5, testDb);
+      updateCalibreRating(3, 5, testDb);
 
-      expect(readCalibreRating(1)).toBe(5);
-      expect(readCalibreRating(2)).toBe(5);
-      expect(readCalibreRating(3)).toBe(5);
+      expect(readCalibreRating(1, testDb)).toBe(5);
+      expect(readCalibreRating(2, testDb)).toBe(5);
+      expect(readCalibreRating(3, testDb)).toBe(5);
 
       // Should only have one rating record
       const ratingRecords = testDb.prepare(
@@ -478,17 +478,17 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should handle alternating between rating and null", () => {
-      updateCalibreRating(1, 5);
-      expect(readCalibreRating(1)).toBe(5);
+      updateCalibreRating(1, 5, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(5);
 
-      updateCalibreRating(1, null);
-      expect(readCalibreRating(1)).toBeNull();
+      updateCalibreRating(1, null, testDb);
+      expect(readCalibreRating(1, testDb)).toBeNull();
 
-      updateCalibreRating(1, 3);
-      expect(readCalibreRating(1)).toBe(3);
+      updateCalibreRating(1, 3, testDb);
+      expect(readCalibreRating(1, testDb)).toBe(3);
 
-      updateCalibreRating(1, null);
-      expect(readCalibreRating(1)).toBeNull();
+      updateCalibreRating(1, null, testDb);
+      expect(readCalibreRating(1, testDb)).toBeNull();
     });
   });
 });
