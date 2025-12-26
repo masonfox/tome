@@ -5,6 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { TagManagementHeader } from "@/components/TagManagement/TagManagementHeader";
 import { TagList } from "@/components/TagManagement/TagList";
 import { TagDetailPanel } from "@/components/TagManagement/TagDetailPanel";
+import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
+import { DeleteTagModal } from "@/components/TagManagement/DeleteTagModal";
+import { MergeTagsModal } from "@/components/TagManagement/MergeTagsModal";
 import { useTagManagement } from "@/hooks/useTagManagement";
 import { useTagBooks } from "@/hooks/useTagBooks";
 import { toast } from "@/utils/toast";
@@ -17,6 +20,14 @@ function TagsPageContent() {
   const [selectedTag, setSelectedTag] = useState<string | null>(
     selectedTagFromURL
   );
+
+  // Modal states
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [tagToRename, setTagToRename] = useState<string>("");
+  const [tagToDelete, setTagToDelete] = useState<{ name: string; bookCount: number } | null>(null);
+  const [tagsToMerge, setTagsToMerge] = useState<string[]>([]);
 
   // Sync selected tag with URL
   useEffect(() => {
@@ -53,16 +64,18 @@ function TagsPageContent() {
   };
 
   // Handle rename tag
-  const handleRenameTag = async (oldName: string) => {
-    const newName = prompt(`Rename tag "${oldName}" to:`, oldName);
-    if (!newName || newName === oldName) return;
+  const handleRenameTag = async (tagName: string) => {
+    setTagToRename(tagName);
+    setRenameModalOpen(true);
+  };
 
+  const confirmRenameTag = async (newName: string) => {
     try {
-      await renameTag(oldName, newName);
+      await renameTag(tagToRename, newName);
       toast.success(`Tag renamed to "${newName}"`);
       
       // Update selected tag if it was the renamed one
-      if (selectedTag === oldName) {
+      if (selectedTag === tagToRename) {
         setSelectedTag(newName);
         router.push(`/tags?tag=${encodeURIComponent(newName)}`);
       }
@@ -73,20 +86,22 @@ function TagsPageContent() {
 
   // Handle delete tag
   const handleDeleteTag = async (tagName: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete the tag "${tagName}"? This will remove it from all books.`
-      )
-    ) {
-      return;
-    }
+    const tag = tags.find(t => t.name === tagName);
+    if (!tag) return;
+    
+    setTagToDelete({ name: tagName, bookCount: tag.bookCount });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteTag = async () => {
+    if (!tagToDelete) return;
 
     try {
-      await deleteTag(tagName);
-      toast.success(`Tag "${tagName}" deleted`);
+      await deleteTag(tagToDelete.name);
+      toast.success(`Tag "${tagToDelete.name}" deleted`);
       
       // Clear selection if deleted tag was selected
-      if (selectedTag === tagName) {
+      if (selectedTag === tagToDelete.name) {
         setSelectedTag(null);
         router.push("/tags");
       }
@@ -97,18 +112,17 @@ function TagsPageContent() {
 
   // Handle merge tags
   const handleMergeTags = async (sourceTags: string[]) => {
-    const targetTag = prompt(
-      `Merge ${sourceTags.length} tags into:`,
-      sourceTags[0]
-    );
-    if (!targetTag) return;
+    setTagsToMerge(sourceTags);
+    setMergeModalOpen(true);
+  };
 
+  const confirmMergeTags = async (targetTag: string) => {
     try {
-      await mergeTags(sourceTags, targetTag);
-      toast.success(`Merged ${sourceTags.length} tags into "${targetTag}"`);
+      await mergeTags(tagsToMerge, targetTag);
+      toast.success(`Merged ${tagsToMerge.length} tags into "${targetTag}"`);
       
       // Update selection if one of the source tags was selected
-      if (selectedTag && sourceTags.includes(selectedTag)) {
+      if (selectedTag && tagsToMerge.includes(selectedTag)) {
         setSelectedTag(targetTag);
         router.push(`/tags?tag=${encodeURIComponent(targetTag)}`);
       }
@@ -192,6 +206,29 @@ function TagsPageContent() {
             />
           </div>
         </div>
+
+        {/* Modals */}
+        <RenameTagModal
+          isOpen={renameModalOpen}
+          onClose={() => setRenameModalOpen(false)}
+          tagName={tagToRename}
+          onConfirm={confirmRenameTag}
+        />
+
+        <DeleteTagModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          tagName={tagToDelete?.name || ""}
+          bookCount={tagToDelete?.bookCount || 0}
+          onConfirm={confirmDeleteTag}
+        />
+
+        <MergeTagsModal
+          isOpen={mergeModalOpen}
+          onClose={() => setMergeModalOpen(false)}
+          sourceTags={tagsToMerge}
+          onConfirm={confirmMergeTags}
+        />
       </div>
     </div>
   );
