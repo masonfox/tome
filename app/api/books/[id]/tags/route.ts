@@ -7,21 +7,21 @@ export const dynamic = 'force-dynamic';
 const bookService = new BookService();
 
 /**
- * POST /api/books/:id/rating
- * Update book rating in both Tome DB and Calibre DB
+ * PATCH /api/books/:id/tags
+ * Update book tags in both Tome DB and Calibre DB
  * 
  * Request Body:
  * {
- *   "rating": number | null  // 1-5 stars or null to remove
+ *   "tags": string[]  // Array of tag names
  * }
  * 
  * Responses:
- * - 200: Rating updated successfully (returns updated book)
- * - 400: Invalid rating value
+ * - 200: Tags updated successfully (returns updated book)
+ * - 400: Invalid tags value or format
  * - 404: Book not found
  * - 500: Update failed
  */
-export async function POST(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -36,49 +36,42 @@ export async function POST(
     }
     
     const body = await request.json();
-    const { rating } = body;
+    const { tags } = body;
     
-    // Validate rating type and value
-    if (rating !== null && rating !== undefined) {
-      // Check if rating is a number
-      if (typeof rating !== 'number') {
+    // Validate tags
+    if (!Array.isArray(tags)) {
+      return NextResponse.json(
+        { error: "Tags must be an array" },
+        { status: 400 }
+      );
+    }
+    
+    // Validate each tag is a string
+    for (const tag of tags) {
+      if (typeof tag !== 'string') {
         return NextResponse.json(
-          { error: "Rating must be a number between 1 and 5" },
-          { status: 400 }
-        );
-      }
-      
-      // Check if rating is an integer
-      if (!Number.isInteger(rating)) {
-        return NextResponse.json(
-          { error: "Rating must be a whole number between 1 and 5" },
-          { status: 400 }
-        );
-      }
-      
-      // Check range (will be checked again in service, but fail fast here)
-      if (rating < 1 || rating > 5) {
-        return NextResponse.json(
-          { error: "Rating must be between 1 and 5" },
+          { error: "Each tag must be a string" },
           { status: 400 }
         );
       }
     }
     
-    const updatedBook = await bookService.updateRating(bookId, rating ?? null);
+    const updatedBook = await bookService.updateTags(bookId, tags);
     
-    // Revalidate the dashboard to update book rating display (safe in test environments)
+    // Revalidate relevant pages (safe in test environments)
     try {
-      revalidatePath('/');
+      revalidatePath('/'); // Dashboard
+      revalidatePath('/library'); // Library
+      revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
       // Ignore revalidation errors in test environments
       // where Next.js static generation store is not available
     }
     
     return NextResponse.json(updatedBook);
-  } catch (error) {
+   } catch (error) {
     const { getLogger } = require("@/lib/logger");
-    getLogger().error({ err: error }, "[Rating API] Error");
+    getLogger().error({ err: error }, "[Tags API] Error");
     
     // Handle specific errors
     if (error instanceof Error) {
@@ -92,7 +85,7 @@ export async function POST(
     
     return NextResponse.json(
       { 
-        error: "Failed to update rating",
+        error: "Failed to update tags",
         details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }

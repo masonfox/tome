@@ -3,7 +3,7 @@ import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
-import { updateCalibreRating } from "@/lib/db/calibre-write";
+import { updateCalibreRating, updateCalibreTags } from "@/lib/db/calibre-write";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -254,6 +254,64 @@ export class BookService {
     } catch (error) {
       const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, calibreId }, `[BookService] Failed to sync rating to Calibre`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update tags for a book
+   * Syncs to Calibre first, then updates Tome database
+   * 
+   * @param bookId - The Tome book ID
+   * @param tags - Array of tag names to set for the book
+   * @returns Promise resolving to the updated book
+   * @throws {Error} If book not found or sync fails
+   * 
+   * @example
+   * const book = await bookService.updateTags(123, ["Fiction", "Fantasy"]);
+   */
+  async updateTags(bookId: number, tags: string[]): Promise<Book> {
+    // Validate tags
+    if (!Array.isArray(tags)) {
+      throw new Error("Tags must be an array");
+    }
+
+    // Get book to find calibreId
+    const book = await bookRepository.findById(bookId);
+    if (!book) {
+      throw new Error("Book not found");
+    }
+
+    // Sync to Calibre first (fail fast if this fails)
+    try {
+      await this.syncTagsToCalibre(book.calibreId, tags);
+    } catch (error) {
+      // Log error but continue - tags will be out of sync until next Calibre sync
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, `[BookService] Failed to sync tags to Calibre for book ${bookId}`);
+    }
+
+    // Update in Tome database
+    const updated = await bookRepository.update(bookId, { tags });
+    
+    if (!updated) {
+      throw new Error("Failed to update tags");
+    }
+
+    return updated;
+  }
+
+  /**
+   * Sync tags to Calibre (best effort)
+   */
+  private async syncTagsToCalibre(calibreId: number, tags: string[]): Promise<void> {
+    try {
+      updateCalibreTags(calibreId, tags);
+      const { getLogger } = require("@/lib/logger");
+      getLogger().info(`[BookService] Synced tags to Calibre (calibreId: ${calibreId}): ${tags.join(', ')}`);
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, calibreId }, `[BookService] Failed to sync tags to Calibre`);
       throw error;
     }
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
@@ -12,6 +12,7 @@ import ProgressEditModal from "@/components/ProgressEditModal";
 import RereadConfirmModal from "@/components/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import PageCountEditModal from "@/components/PageCountEditModal";
+import TagEditor from "@/components/BookDetail/TagEditor";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
@@ -40,6 +41,7 @@ export default function BookDetailPage() {
     loading,
     imageError,
     setImageError,
+    updateTags,
   } = useBookDetail(bookId);
 
   const bookProgressHook = useBookProgress(bookId, book, async () => {
@@ -103,7 +105,22 @@ export default function BookDetailPage() {
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
+  const [showTagEditor, setShowTagEditor] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
+
+  // Fetch available tags for the tag editor
+  const { data: availableTagsData } = useQuery<{ tags: string[] }>({
+    queryKey: ['availableTags'],
+    queryFn: async () => {
+      const response = await fetch('/api/tags');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tags');
+      }
+      return response.json();
+    },
+    staleTime: 60000, // Cache for 1 minute
+  });
+  const availableTags = availableTagsData?.tags || [];
 
   // Refs for dropdowns and MDXEditor
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -402,11 +419,20 @@ export default function BookDetailPage() {
           )}
 
           {/* Tags */}
-          {book.tags.length > 0 && (
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-3 font-semibold">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
                 Tags
               </label>
+              <button
+                onClick={() => setShowTagEditor(true)}
+                className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold"
+              >
+                Edit
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+            {book.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {book.tags.map((tag) => (
                   <Link
@@ -418,8 +444,12 @@ export default function BookDetailPage() {
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-[var(--foreground)]/50">
+                No tags yet. Click Edit to add some!
+              </p>
+            )}
+          </div>
 
           {/* Current Reading Progress History */}
           {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
@@ -504,6 +534,15 @@ export default function BookDetailPage() {
           totalPages={book.totalPages}
         />
       )}
+
+      <TagEditor
+        isOpen={showTagEditor}
+        onClose={() => setShowTagEditor(false)}
+        onSave={updateTags}
+        bookTitle={book.title}
+        currentTags={book.tags}
+        availableTags={availableTags}
+      />
     </div>
   );
 }

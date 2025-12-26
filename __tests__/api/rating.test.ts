@@ -255,11 +255,9 @@ describe("POST /api/books/[id]/rating", () => {
       const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
       const data = await response.json();
 
-      // Could be accepted or rejected depending on implementation
-      // Current implementation doesn't explicitly check for integers
-      // If accepted, value should be 3.5
-      // If rejected, should be 400 error
-      expect([200, 400]).toContain(response.status);
+      // Should reject decimal ratings - ratings must be whole numbers
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("whole number");
     });
 
     test("should reject missing rating field", async () => {

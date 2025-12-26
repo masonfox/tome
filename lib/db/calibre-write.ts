@@ -192,6 +192,119 @@ export function readCalibreRating(
 }
 
 /**
+ * Update tags for a book in Calibre database
+ *
+ * This function:
+ * 1. Validates the tags array
+ * 2. Gets or creates tag IDs in the tags table
+ * 3. Clears existing links in books_tags_link table
+ * 4. Creates new links for all provided tags
+ *
+ * @param calibreId - The Calibre book ID
+ * @param tags - Array of tag names to set for the book
+ * @param db - (Optional) Database instance to use. Defaults to production Calibre DB. Tests can inject mock database.
+ * @throws Error if tags are invalid or database operation fails
+ */
+export function updateCalibreTags(
+  calibreId: number,
+  tags: string[],
+  db: SQLiteDatabase = getCalibreWriteDB()
+): void {
+  
+  // Validate tags
+  if (!Array.isArray(tags)) {
+    throw new Error("Tags must be an array");
+  }
+  
+  // Filter out empty/invalid tags and remove duplicates
+  const filteredTags = tags.filter(tag => 
+    typeof tag === 'string' && tag.trim().length > 0
+  ).map(tag => tag.trim());
+  const validTags = Array.from(new Set(filteredTags));
+  
+  try {
+    const { getLogger } = require("../logger");
+    
+    // Step 1: Clear existing tag links for this book
+    const deleteStmt = db.prepare("DELETE FROM books_tags_link WHERE book = ?");
+    deleteStmt.run(calibreId);
+    
+    if (validTags.length === 0) {
+      getLogger().info(`[Calibre] Removed all tags for book ${calibreId}`);
+      return;
+    }
+    
+    // Step 2: Get or create tag IDs for each tag
+    const tagIds: number[] = [];
+    
+    for (const tagName of validTags) {
+      // Check if tag exists
+      let tagRecord = db.prepare(
+        "SELECT id FROM tags WHERE name = ?"
+      ).get(tagName) as { id: number } | undefined;
+      
+      if (!tagRecord) {
+        // Tag doesn't exist, create it
+        getLogger().info(`[Calibre] Creating new tag: ${tagName}`);
+        const insertStmt = db.prepare(
+          "INSERT INTO tags (name) VALUES (?)"
+        );
+        const result = insertStmt.run(tagName);
+        tagIds.push(Number(result.lastInsertRowid));
+      } else {
+        tagIds.push(tagRecord.id);
+      }
+    }
+    
+    // Step 3: Create new tag links
+    const insertLinkStmt = db.prepare(
+      "INSERT INTO books_tags_link (book, tag) VALUES (?, ?)"
+    );
+    
+    for (const tagId of tagIds) {
+      insertLinkStmt.run(calibreId, tagId);
+    }
+    
+    getLogger().info(`[Calibre] Updated tags for book ${calibreId}: ${validTags.join(', ')}`);
+    
+  } catch (error) {
+    const { getLogger } = require("../logger");
+    getLogger().error({ err: error }, `[Calibre] Failed to update tags for book ${calibreId}`);
+    throw new Error(`Failed to update tags in Calibre database: ${error}`);
+  }
+}
+
+/**
+ * Read current tags from Calibre database
+ * (For verification purposes)
+ *
+ * @param calibreId - The Calibre book ID
+ * @param db - (Optional) Database instance to use. Defaults to production Calibre DB. Tests can inject mock database.
+ * @returns Array of tag names
+ */
+export function readCalibreTags(
+  calibreId: number,
+  db: SQLiteDatabase = getCalibreWriteDB()
+): string[] {
+  
+  try {
+    const result = db.prepare(`
+      SELECT t.name
+      FROM books_tags_link btl
+      JOIN tags t ON btl.tag = t.id
+      WHERE btl.book = ?
+      ORDER BY t.name
+    `).all(calibreId) as { name: string }[];
+    
+    return result.map(r => r.name);
+  } catch (error) {
+    const { getLogger } = require("../logger");
+    getLogger().error({ err: error }, `[Calibre] Failed to read tags for book ${calibreId}`);
+    return [];
+  }
+}
+
+/**
  * Close the write database connection
  * Should be called when shutting down
  */
