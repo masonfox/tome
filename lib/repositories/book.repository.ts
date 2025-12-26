@@ -854,6 +854,25 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Get count of unique books that have at least one tag
+   */
+  async countBooksWithTags(): Promise<number> {
+    try {
+      const result = this.getDatabase()
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(books)
+        .where(sql`json_array_length(${books.tags}) > 0`)
+        .get();
+      
+      return result?.count || 0;
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "Error counting books with tags");
+      return 0;
+    }
+  }
+
+  /**
    * Find books by a specific tag with pagination
    */
   async findByTag(

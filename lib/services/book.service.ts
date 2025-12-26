@@ -329,6 +329,18 @@ export class BookService {
   }
 
   /**
+   * Get count of unique books that have at least one tag
+   * 
+   * @returns Promise resolving to count of books with tags
+   * @example
+   * const count = await bookService.countBooksWithTags();
+   * // returns: 245
+   */
+  async countBooksWithTags(): Promise<number> {
+    return bookRepository.countBooksWithTags();
+  }
+
+  /**
    * Get all books with a specific tag
    * 
    * @param tagName - The tag name to filter by

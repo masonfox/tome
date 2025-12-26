@@ -7,8 +7,11 @@ export async function GET() {
   try {
     // Get tag statistics with book counts
     const tags = await bookService.getTagStats();
+    
+    // Get total count of unique books with tags
+    const totalBooks = await bookService.countBooksWithTags();
 
-    return NextResponse.json({ tags });
+    return NextResponse.json({ tags, totalBooks });
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching tag statistics");

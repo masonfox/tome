@@ -7,6 +7,7 @@ export interface TagWithStats {
 
 export function useTagManagement() {
   const [tags, setTags] = useState<TagWithStats[]>([]);
+  const [totalBooks, setTotalBooks] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +23,7 @@ export function useTagManagement() {
 
       const data = await response.json();
       setTags(data.tags || []);
+      setTotalBooks(data.totalBooks || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch tags");
     } finally {
@@ -102,6 +104,7 @@ export function useTagManagement() {
 
   return {
     tags,
+    totalBooks,
     loading,
     error,
     refetch: fetchTags,

@@ -26,12 +26,12 @@ function TagsPageContent() {
   }, [selectedTagFromURL]);
 
   // Tag management hook
-  const { tags, loading: tagsLoading, error: tagsError, refetch: refetchTags, renameTag, deleteTag, mergeTags } = useTagManagement();
+  const { tags, totalBooks, loading: tagsLoading, error: tagsError, refetch: refetchTags, renameTag, deleteTag, mergeTags } = useTagManagement();
 
   // Books for selected tag hook
   const {
     books,
-    total: totalBooks,
+    total: totalBooksInTag,
     loading: booksLoading,
     error: booksError,
     refetch: refetchBooks,
@@ -135,16 +135,13 @@ function TagsPageContent() {
     router.push("/tags");
   };
 
-  // Calculate total unique books across all tags
-  const totalUniqueBooks = tags.reduce((sum, tag) => sum + tag.bookCount, 0);
-
   return (
     <div className="max-w-[1400px] mx-auto">
       <div className="px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <TagManagementHeader
           totalTags={tags.length}
-          totalBooks={totalUniqueBooks}
+          totalBooks={totalBooks}
           loading={tagsLoading}
           onRefresh={handleRefresh}
         />
@@ -189,7 +186,7 @@ function TagsPageContent() {
               tagName={selectedTag}
               books={books}
               loading={booksLoading}
-              totalBooks={totalBooks}
+              totalBooks={totalBooksInTag}
               onRemoveTag={handleRemoveTagFromBook}
               onClose={handleCloseDetail}
             />
