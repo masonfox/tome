@@ -793,3 +793,109 @@ describe("Calibre Write Operations - Error Logging", () => {
     });
   });
 });
+
+describe("Calibre Write Operations - Info Logging", () => {
+  let infoTestDb: Database;
+  
+  beforeAll(() => {
+    infoTestDb = new Database(":memory:");
+    createCalibreRatingsSchema(infoTestDb);
+    insertTestBooks(infoTestDb);
+  });
+
+  afterAll(() => {
+    infoTestDb.close();
+  });
+
+  beforeEach(() => {
+    // Clear mocks and database
+    mockInfo.mockClear();
+    mockError.mockClear();
+    infoTestDb.run("DELETE FROM books_ratings_link");
+    infoTestDb.run("DELETE FROM ratings");
+    infoTestDb.run("DELETE FROM books_tags_link");
+    infoTestDb.run("DELETE FROM tags");
+  });
+
+  describe("Info Logging", () => {
+    test("should log info when rating is created", () => {
+      mockInfo.mockClear();
+      
+      updateCalibreRating(1, 5, infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+      // Should log both creating rating value and creating link
+      expect(mockInfo.mock.calls.length).toBeGreaterThan(0);
+    });
+    
+    test("should log info when rating is updated", () => {
+      updateCalibreRating(1, 3, infoTestDb);
+      mockInfo.mockClear();
+      
+      updateCalibreRating(1, 5, infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+      // Should log update (not create)
+    });
+    
+    test("should log info when rating is removed", () => {
+      updateCalibreRating(1, 5, infoTestDb);
+      mockInfo.mockClear();
+      
+      updateCalibreRating(1, null, infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+    });
+    
+    test("should log info when tags are updated", () => {
+      mockInfo.mockClear();
+      
+      updateCalibreTags(1, ["Fiction", "Classic"], infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+    });
+    
+    test("should log info when new rating value is created", () => {
+      mockInfo.mockClear();
+      
+      // First time using rating value 5 (10 in Calibre scale)
+      updateCalibreRating(1, 5, infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+      // Should contain message about creating new rating value
+    });
+    
+    test("should log info when new tag is created", () => {
+      mockInfo.mockClear();
+      
+      updateCalibreTags(1, ["NewTag"], infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+      // Should contain message about creating new tag
+    });
+    
+    test("should not create duplicate log entries when reusing rating value", () => {
+      // Create first book with rating 5
+      updateCalibreRating(1, 5, infoTestDb);
+      const firstCallCount = mockInfo.mock.calls.length;
+      
+      mockInfo.mockClear();
+      
+      // Create second book with same rating - should not create new rating value
+      updateCalibreRating(2, 5, infoTestDb);
+      const secondCallCount = mockInfo.mock.calls.length;
+      
+      // Second time should have fewer info logs (no "creating new rating value")
+      expect(secondCallCount).toBeLessThan(firstCallCount);
+    });
+    
+    test("should log when tags are cleared", () => {
+      updateCalibreTags(1, ["Fiction", "Classic"], infoTestDb);
+      mockInfo.mockClear();
+      
+      updateCalibreTags(1, [], infoTestDb);
+      
+      expect(mockInfo).toHaveBeenCalled();
+    });
+  });
+});
