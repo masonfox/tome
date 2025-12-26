@@ -33,7 +33,7 @@ mock.module("next/cache", () => ({
 let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
 
 // Mock Calibre database writes
-mock.module("@/lib/db/calibre-write", () => ({
+mock.module("@/lib/services/calibre.service", () => ({
   updateCalibreRating: (calibreId: number, rating: number | null) => {
     calibreRatingCalls.push({ calibreId, rating });
   },

@@ -613,7 +613,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
      * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
      * our code correctly attempts to sync ratings, without actually writing to disk.
      */
-    mock.module("@/lib/db/calibre-write", () => ({
+    mock.module("@/lib/services/calibre.service", () => ({
       updateCalibreRating: (calibreId: number, rating: number | null) => {
         calibreRatingCalls.push({ calibreId, rating });
       },
@@ -799,7 +799,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should continue status update even if Calibre sync fails", async () => {
     // Arrange - Mock Calibre to throw error
-    mock.module("@/lib/db/calibre-write", () => ({
+    mock.module("@/lib/services/calibre.service", () => ({
       updateCalibreRating: () => {
         throw new Error("Calibre database unavailable");
       },
@@ -836,7 +836,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(updatedBook?.rating).toBe(5);
 
     // Restore normal mock
-    mock.module("@/lib/db/calibre-write", () => ({
+    mock.module("@/lib/services/calibre.service", () => ({
       updateCalibreRating: (calibreId: number, rating: number | null) => {
         calibreRatingCalls.push({ calibreId, rating });
       },

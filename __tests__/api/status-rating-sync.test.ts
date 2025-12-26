@@ -22,7 +22,7 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
  * our code correctly attempts to sync ratings, without actually writing to disk.
  */
-mock.module("@/lib/db/calibre-write", () => ({
+mock.module("@/lib/services/calibre.service", () => ({
   updateCalibreRating: (calibreId: number, rating: number | null) => {
     calibreRatingCalls.push({ calibreId, rating });
   },
@@ -226,7 +226,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
     // Mock Calibre write to throw error
     let calibreSyncAttempted = false;
-    mock.module("@/lib/db/calibre-write", () => ({
+    mock.module("@/lib/services/calibre.service", () => ({
       updateCalibreRating: (calibreId: number, rating: number | null) => {
         calibreSyncAttempted = true;
         throw new Error("Calibre database unavailable");
@@ -259,7 +259,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(calibreSyncAttempted).toBe(true);
 
     // Restore normal mock
-    mock.module("@/lib/db/calibre-write", () => ({
+    mock.module("@/lib/services/calibre.service", () => ({
       updateCalibreRating: (calibreId: number, rating: number | null) => {
         calibreRatingCalls.push({ calibreId, rating });
       },

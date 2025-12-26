@@ -3,7 +3,7 @@ import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
-import { updateCalibreRating, updateCalibreTags } from "@/lib/db/calibre-write";
+import { calibreService, type ICalibreService } from "@/lib/services/calibre.service";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -26,6 +26,9 @@ export interface BookWithDetails extends Book {
  * - Calibre rating sync
  */
 export class BookService {
+  constructor(
+    private calibre: ICalibreService = calibreService
+  ) {}
   /**
    * Get a book by ID with enriched details (session, progress, read count)
    * 
@@ -248,7 +251,7 @@ export class BookService {
    */
   private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
     try {
-      updateCalibreRating(calibreId, rating);
+      this.calibre.updateRating(calibreId, rating);
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
@@ -306,7 +309,7 @@ export class BookService {
    */
   private async syncTagsToCalibre(calibreId: number, tags: string[]): Promise<void> {
     try {
-      updateCalibreTags(calibreId, tags);
+      this.calibre.updateTags(calibreId, tags);
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced tags to Calibre (calibreId: ${calibreId}): ${tags.join(', ')}`);
     } catch (error) {
@@ -316,3 +319,9 @@ export class BookService {
     }
   }
 }
+
+/**
+ * Default BookService instance
+ * Use this in API routes and other application code
+ */
+export const bookService = new BookService();

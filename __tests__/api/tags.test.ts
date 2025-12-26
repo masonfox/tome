@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
-import { PATCH } from "@/app/api/books/[id]/tags/route";
 import { bookRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { mockBook1, mockBook2, createMockRequest } from "../fixtures/test-data";
@@ -24,23 +23,30 @@ import type { NextRequest } from "next/server";
  * We mock Calibre write operations to: (1) verify our code attempts to sync tags,
  * and (2) simulate error conditions (e.g., Calibre database unavailable) to test
  * our error handling without requiring actual file system failures.
+ * 
+ * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
+ * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
 let mockUpdateCalibreTags = mock(() => {});
 let mockCalibreShouldFail = false;
 
-mock.module("@/lib/db/calibre-write", () => ({
-  updateCalibreTags: (calibreId: number, tags: string[]) => {
-    if (mockCalibreShouldFail) {
-      throw new Error("Calibre database is unavailable");
-    }
-    mockUpdateCalibreTags(calibreId, tags);
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateTags: (calibreId: number, tags: string[]) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      mockUpdateCalibreTags(calibreId, tags);
+    },
+    updateRating: mock(() => {}),
+    readTags: mock(() => []),
+    readRating: mock(() => null),
   },
-  readCalibreTags: mock(() => []),
-  getCalibreWriteDB: mock(() => ({})),
-  updateCalibreRating: mock(() => {}),
-  readCalibreRating: mock(() => null),
-  closeCalibreWriteDB: mock(() => {}),
+  CalibreService: class {},
 }));
+
+// Import after mock is set up
+import { PATCH } from "@/app/api/books/[id]/tags/route";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
