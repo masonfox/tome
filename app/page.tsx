@@ -1,22 +1,23 @@
+"use client";
+
 import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { BookCard } from "@/components/BookCard";
+import { BookCardSkeleton } from "@/components/BookCardSkeleton";
+import CurrentlyReadingSection from "@/components/CurrentlyReadingSection";
 import Link from "next/link";
-import { getDashboardData } from "@/lib/dashboard-service";
+import { useDashboard } from "@/hooks/useDashboard";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Disable all caching including router cache
-
-export default async function Dashboard() {
-  const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal } = await getDashboardData();
+export default function Dashboard() {
+  const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal, isLoading } = useDashboard();
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 md:space-y-10">
       {/* Header */}
-      <div className="border-b border-[var(--border-color)] pb-6">
+      <div className="border-b border-[var(--border-color)] pb-3 md:pb-6">
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-          <div>
+          <div className="hidden md:block">
             <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
               <BookOpen className="w-8 h-8" />
               Dashboard
@@ -47,9 +48,11 @@ export default async function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Currently Reading</span>
-            <span className="ml-2 text-[var(--accent)]">
-              ({currentlyReadingTotal})
-            </span>
+            {!isLoading && (
+              <span className="ml-2 text-[var(--accent)]">
+                ({currentlyReadingTotal})
+              </span>
+            )}
           </h2>
           {currentlyReadingTotal > 6 && (
             <Link
@@ -63,34 +66,7 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {currentlyReading.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {currentlyReading.map((book: any) => (
-              <BookCard
-                key={book.id}
-                id={book.id.toString()}
-                title={book.title}
-                authors={book.authors}
-                calibreId={book.calibreId}
-                currentProgress={book.latestProgress?.currentPercentage}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
-            <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-            <p className="text-[var(--foreground)]/70 font-medium">
-              No books in progress. Start reading from your{" "}
-              <Link
-                href="/library"
-                className="text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold"
-              >
-                library
-              </Link>
-              !
-            </p>
-          </div>
-        )}
+        <CurrentlyReadingSection books={currentlyReading} isLoading={isLoading} />
       </div>
 
       {/* Read Next */}
@@ -98,11 +74,13 @@ export default async function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold">
             <span className="text-[var(--heading-text)]">Read Next</span>
-            <span className="ml-2 text-[var(--accent)]">
-              ({readNextTotal})
-            </span>
+            {!isLoading && (
+              <span className="ml-2 text-[var(--accent)]">
+                ({readNextTotal})
+              </span>
+            )}
           </h2>
-          {readNextTotal > 6 && (
+          {readNextTotal > 8 && (
             <Link
               href="/library?status=read-next"
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
@@ -114,8 +92,14 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {readNext.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <BookCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : readNext.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
             {readNext.map((book: any) => (
               <BookCard
                 key={book.id}

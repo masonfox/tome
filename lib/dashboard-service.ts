@@ -56,7 +56,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     );
 
     // Get read next books with total count
-    const { books: readNext, total: readNextTotal } = await getBooksByStatus("read-next", 6);
+    const { books: readNext, total: readNextTotal } = await getBooksByStatus("read-next", 8);
 
     return {
       stats,
@@ -149,6 +149,11 @@ async function getStreak(): Promise<DashboardStreak | null> {
 
     // Then, get the current streak data (read-only operation)
     const streak = await streakService.getStreak(null);
+
+    // Return null if streak tracking is disabled
+    if (!streak.streakEnabled) {
+      return null;
+    }
 
     // Get today's pages read (use user's timezone from streak record)
     const { toZonedTime, fromZonedTime } = require("date-fns-tz");

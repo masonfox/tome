@@ -1,9 +1,12 @@
 import { StreakAnalytics } from "@/components/StreakAnalytics";
 import { StreakChartSection } from "@/components/StreakChartSection";
 import { StreakRebuildSection } from "@/components/StreakRebuildSection";
+import { StreakOnboarding } from "@/components/StreakOnboarding";
 import { PageHeader } from "@/components/PageHeader";
 import { getLogger } from "@/lib/logger";
 import { Flame } from "lucide-react";
+import { streakService } from "@/lib/services/streak.service";
+import { redirect } from "next/navigation";
 
 const logger = getLogger();
 
@@ -49,6 +52,22 @@ async function fetchAnalytics(days: number = 365): Promise<AnalyticsData | null>
 }
 
 export default async function StreakPage() {
+  // Check if streak tracking is enabled
+  const currentStreak = await streakService.getStreak(null);
+  
+  if (!currentStreak.streakEnabled) {
+    // Show onboarding without header
+    return (
+      <StreakOnboarding 
+        onEnable={async (dailyGoal: number) => {
+          "use server";
+          await streakService.setStreakEnabled(null, true, dailyGoal);
+          redirect("/streak");
+        }}
+      />
+    );
+  }
+
   // Fetch 7 days by default to match initial client state (StreakChartSection)
   // This avoids wasting bandwidth and server resources on 365 days that get immediately discarded
   const analyticsData = await fetchAnalytics(7);
@@ -56,12 +75,11 @@ export default async function StreakPage() {
   if (!analyticsData) {
     return (
       <div className="space-y-10">
-        <PageHeader
-          title="Streak Analytics"
-          subtitle="Track your reading habits and progress over time"
-          icon={Flame}
-          backLink={{ href: "/", label: "Back to Dashboard" }}
-        />
+      <PageHeader
+        title="Streak"
+        subtitle="Track your reading habits and progress over time"
+        icon={Flame}
+      />
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center rounded-md">
           <p className="text-[var(--foreground)]/70 font-medium">
             Unable to load streak analytics. Please try again later.
@@ -76,10 +94,9 @@ export default async function StreakPage() {
   return (
     <div className="space-y-10">
       <PageHeader
-        title="Streak Analytics"
+        title="Streak"
         subtitle="Track your reading habits and progress over time"
         icon={Flame}
-        backLink={{ href: "/", label: "Back to Dashboard" }}
       />
 
       {/* Analytics Stats */}

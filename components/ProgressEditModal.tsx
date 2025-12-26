@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import { parseISO, startOfDay } from "date-fns";
+import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
+import { useDraftField } from "@/hooks/useDraftField";
+import type { MDXEditorMethods } from "@mdxeditor/editor";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger().child({ component: "ProgressEditModal" });
 
 interface ProgressEditModalProps {
   isOpen: boolean;
@@ -18,6 +25,7 @@ interface ProgressEditModalProps {
   }) => void;
   onDelete: () => void;
   bookTitle: string;
+  bookId: string;
   totalPages?: number;
   currentProgress: {
     id: number;
@@ -34,6 +42,7 @@ export default function ProgressEditModal({
   onConfirm,
   onDelete,
   bookTitle,
+  bookId,
   totalPages,
   currentProgress,
 }: ProgressEditModalProps) {
@@ -45,14 +54,42 @@ export default function ProgressEditModal({
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Track whether we've already restored the draft for this modal session
+  const hasRestoredDraft = useRef(false);
+  
+  // Ref for MDXEditor to programmatically update content
+  const editorRef = useRef<MDXEditorMethods>(null);
+
+  // Draft management for notes field
+  const {
+    draft: draftNotes,
+    saveDraft,
+    clearDraft,
+    isInitialized,
+  } = useDraftField(`draft-progress-edit-${bookId}-${currentProgress.id}`);
+
   // Reset form when modal opens with current values
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(currentProgress.currentPage.toString());
       setCurrentPercentage(currentProgress.currentPercentage.toString());
-      setNotes(currentProgress.notes || "");
+      const notesValue = currentProgress.notes || "";
+      setNotes(notesValue);
       setProgressDate(currentProgress.progressDate.split("T")[0]);
       setShowDeleteConfirm(false);
+      hasRestoredDraft.current = false; // Reset draft restoration flag
+      
+      // Programmatically set the editor content using setMarkdown
+      // This is necessary because MDXEditor's markdown prop only sets initial value
+      if (editorRef.current) {
+        try {
+          editorRef.current.setMarkdown(notesValue);
+        } catch (error) {
+          logger.error({ error }, "Failed to set editor content");
+          // Fall back to state update if setMarkdown fails
+          setNotes(notesValue);
+        }
+      }
       
       // Load saved progress input mode preference
       if (typeof window !== "undefined") {
@@ -63,6 +100,21 @@ export default function ProgressEditModal({
       }
     }
   }, [isOpen, currentProgress]);
+
+  // Restore draft only once when modal opens (if no existing notes)
+  useEffect(() => {
+    if (isOpen && isInitialized && !currentProgress.notes && draftNotes && !hasRestoredDraft.current) {
+      setNotes(draftNotes);
+      hasRestoredDraft.current = true;
+    }
+  }, [isOpen, isInitialized, currentProgress.notes, draftNotes]);
+
+  // Auto-save draft (only after initialization to prevent race condition)
+  useEffect(() => {
+    if (isInitialized && notes && isOpen) {
+      saveDraft(notes);
+    }
+  }, [notes, isInitialized, saveDraft, isOpen]);
 
   function handleSave() {
     const data: any = {};
@@ -89,6 +141,9 @@ export default function ProgressEditModal({
     data.progressDate = localMidnight.toISOString();
 
     onConfirm(data);
+    
+    // Clear draft after successful save
+    clearDraft();
   }
 
   function handleDeleteClick() {
@@ -110,6 +165,7 @@ export default function ProgressEditModal({
         isOpen={isOpen}
         onClose={onClose}
         title="Delete Progress Entry?"
+        size="2xl"
         actions={
           <div className="flex justify-end gap-4">
             <button
@@ -143,9 +199,12 @@ export default function ProgressEditModal({
                 : `${Math.round(currentProgress.currentPercentage)}%`}
             </p>
             {currentProgress.notes && (
-              <p className="text-sm text-[var(--foreground)]/70 font-medium mt-1">
-                <span className="font-semibold">Notes:</span> {currentProgress.notes}
-              </p>
+              <div className="mt-2">
+                <span className="text-sm font-semibold text-[var(--foreground)]/70">Notes:</span>
+                <div className="mt-1">
+                  <MarkdownRenderer content={currentProgress.notes} />
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -158,6 +217,7 @@ export default function ProgressEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Edit Progress - ${bookTitle}`}
+      size="2xl"
       actions={
         <div className="flex justify-between w-full">
           <button
@@ -199,7 +259,7 @@ export default function ProgressEditModal({
             value={progressDate}
             onChange={(e) => setProgressDate(e.target.value)}
             max={getTodayLocalDate()}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+            className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
           />
         </div>
 
@@ -304,14 +364,15 @@ export default function ProgressEditModal({
           >
             Notes (optional)
           </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this reading session..."
-            rows={4}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium placeholder:text-[var(--foreground)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-          />
+          <div>
+            <MarkdownEditor
+              ref={editorRef}
+              value={notes}
+              onChange={setNotes}
+              placeholder="Add notes about this reading session..."
+              height={280}
+            />
+          </div>
         </div>
       </div>
     </BaseModal>

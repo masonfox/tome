@@ -38,6 +38,14 @@ interface ProgressMetrics {
 }
 
 /**
+ * Progress log result with completion flag
+ */
+export interface ProgressLogResult {
+  progressLog: ProgressLog;
+  shouldShowCompletionModal: boolean;
+}
+
+/**
  * ProgressService - Handles progress logging, validation, and calculations
  * 
  * Responsibilities:
@@ -49,14 +57,35 @@ interface ProgressMetrics {
  */
 export class ProgressService {
   /**
-   * Get progress for a specific session
+   * Get progress logs for a specific reading session
+   * 
+   * Returns all progress entries for the session, ordered by progress date (most recent first).
+   * 
+   * @param sessionId - The ID of the reading session
+   * @returns Promise resolving to array of progress logs
+   * @throws {Error} If database query fails
+   * 
+   * @example
+   * const progress = await progressService.getProgressForSession(42);
+   * // returns: [{ id: 1, currentPage: 100, progressDate: ..., }, ...]
    */
   async getProgressForSession(sessionId: number): Promise<ProgressLog[]> {
     return progressRepository.findBySessionId(sessionId);
   }
 
   /**
-   * Get progress for the active session of a book
+   * Get progress logs for the active reading session of a book
+   * 
+   * Finds the active session for the book and returns all its progress entries.
+   * Returns empty array if the book has no active session.
+   * 
+   * @param bookId - The ID of the book
+   * @returns Promise resolving to array of progress logs (empty if no active session)
+   * @throws {Error} If database query fails
+   * 
+   * @example
+   * const progress = await progressService.getProgressForActiveSession(123);
+   * // returns: [{ currentPage: 50, progressDate: ..., }, ...]
    */
   async getProgressForActiveSession(bookId: number): Promise<ProgressLog[]> {
     const activeSession = await sessionRepository.findActiveByBookId(bookId);
@@ -69,9 +98,46 @@ export class ProgressService {
   }
 
   /**
-   * Log new progress entry
+   * Log new progress entry for a book
+   * 
+   * Creates a new progress log entry for the book's active reading session.
+   * Automatically calculates pages read, validates timeline consistency,
+   * updates streak system, and detects completion (100% progress).
+   * 
+   * Timeline Validation:
+   * - Progress date must not create chronological conflicts
+   * - Progress value must be consistent with surrounding entries
+   * - See `validateProgressTimeline` for detailed rules
+   * 
+   * Completion Detection:
+   * - When progress reaches 100%, returns `shouldShowCompletionModal: true`
+   * - Does NOT auto-complete the book (requires explicit user action)
+   * - Modal allows user to mark book as finished or continue reading
+   * 
+   * @param bookId - The ID of the book to log progress for
+   * @param progressData - Progress data (page or percentage, optional notes and date)
+   * @returns Promise resolving to progress log result with completion flag
+   * @throws {Error} If book not found, no active session, invalid status, or timeline validation fails
+   * 
+   * @example
+   * // Log progress by page number
+   * const result = await progressService.logProgress(123, {
+   *   currentPage: 150,
+   *   notes: "Great chapter!",
+   *   progressDate: new Date()
+   * });
+   * 
+   * if (result.shouldShowCompletionModal) {
+   *   // Show "You've finished the book!" modal
+   * }
+   * 
+   * @example
+   * // Log progress by percentage
+   * const result = await progressService.logProgress(123, {
+   *   currentPercentage: 75
+   * });
    */
-  async logProgress(bookId: number, progressData: ProgressLogData): Promise<ProgressLog> {
+  async logProgress(bookId: number, progressData: ProgressLogData): Promise<ProgressLogResult> {
     const { currentPage, currentPercentage, notes, progressDate } = progressData;
 
     // Validate input
@@ -137,17 +203,45 @@ export class ProgressService {
     // Update streak system
     await this.updateStreakSystem();
 
-    // Check for auto-completion
-    await this.checkForCompletion(activeSession.id, metrics.currentPercentage);
+    // Check if book is completed (100% progress) but DON'T auto-complete
+    const shouldShowCompletionModal = this.shouldShowCompletionModal(activeSession.status, metrics.currentPercentage);
 
     // Invalidate cache
     await this.invalidateCache(bookId);
 
-    return progressLog;
+    return {
+      progressLog,
+      shouldShowCompletionModal,
+    };
   }
 
   /**
-   * Update existing progress entry
+   * Update an existing progress entry
+   * 
+   * Allows editing of progress logs to correct mistakes or adjust historical data.
+   * Recalculates metrics and validates timeline consistency after the update.
+   * 
+   * Timeline Validation:
+   * - Updated entry must not create chronological conflicts with neighbors
+   * - Progress value must be consistent with surrounding entries
+   * - Date changes are validated to ensure logical progression
+   * 
+   * @param progressId - The ID of the progress entry to update
+   * @param updateData - Updated progress data (page, percentage, notes, or date)
+   * @returns Promise resolving to the updated progress log
+   * @throws {Error} If progress not found, book/session missing, or validation fails
+   * 
+   * @example
+   * // Correct a typo in page number
+   * const updated = await progressService.updateProgress(42, {
+   *   currentPage: 151 // was 150
+   * });
+   * 
+   * @example
+   * // Add retroactive notes
+   * const updated = await progressService.updateProgress(42, {
+   *   notes: "Added notes later"
+   * });
    */
   async updateProgress(progressId: number, updateData: ProgressUpdateData): Promise<ProgressLog> {
     // Get existing progress entry
@@ -172,12 +266,20 @@ export class ProgressService {
     }
 
     // Calculate new metrics
+    // Only pass the value that was actually updated to calculateProgressMetrics
+    // If both are undefined, use existing values
     const progressData: ProgressLogData = {
-      currentPage: updateData.currentPage ?? (existingProgress.currentPage || undefined),
-      currentPercentage: updateData.currentPercentage ?? (existingProgress.currentPercentage || undefined),
+      currentPage: updateData.currentPage,
+      currentPercentage: updateData.currentPercentage,
       progressDate: updateData.progressDate ?? existingProgress.progressDate,
       notes: updateData.notes ?? (existingProgress.notes || undefined),
     };
+
+    // If neither was provided in the update, use existing values
+    if (progressData.currentPage === undefined && progressData.currentPercentage === undefined) {
+      progressData.currentPage = existingProgress.currentPage || undefined;
+      progressData.currentPercentage = existingProgress.currentPercentage || undefined;
+    }
 
     const metrics = await this.calculateProgressMetrics(book, progressData);
 
@@ -239,7 +341,25 @@ export class ProgressService {
   }
 
   /**
-   * Delete progress entry
+   * Delete a progress entry
+   * 
+   * Removes a progress log entry and updates the streak system accordingly.
+   * Invalidates relevant caches to ensure UI reflects the deletion.
+   * 
+   * Use Cases:
+   * - Remove accidental/duplicate progress logs
+   * - Delete invalid entries
+   * - Bulk cleanup of incorrect data
+   * 
+   * @param progressId - The ID of the progress entry to delete
+   * @returns Promise resolving to true if deleted, false if not found
+   * @throws {Error} If database operation fails
+   * 
+   * @example
+   * const deleted = await progressService.deleteProgress(42);
+   * if (deleted) {
+   *   console.log('Progress entry removed');
+   * }
    */
   async deleteProgress(progressId: number): Promise<boolean> {
     // Get the progress entry first to obtain bookId for cache invalidation
@@ -294,25 +414,14 @@ export class ProgressService {
   }
 
   /**
-   * Check if book is completed and auto-update session status
+   * Check if completion modal should be shown
+   * Returns true if book just reached 100% progress while in "reading" status
    */
-  private async checkForCompletion(sessionId: number, percentage: number): Promise<void> {
-    // If book is completed (100%), update session status to "read"
+  private shouldShowCompletionModal(sessionStatus: string, percentage: number): boolean {
+    // Show modal if book reached 100% and is currently being read
     // Note: We use >= 100 here because percentage is already calculated with Math.floor,
     // and only reaching the last page will result in exactly 100%
-    if (percentage >= 100) {
-      const session = await sessionRepository.findById(sessionId);
-      
-      if (session && session.status === "reading") {
-        await sessionRepository.update(sessionId, {
-          status: "read",
-          completedDate: new Date(),
-        } as any);
-        
-        const { getLogger } = require("@/lib/logger");
-        getLogger().info(`[ProgressService] Book completed, session status updated to 'read'`);
-      }
-    }
+    return percentage >= 100 && sessionStatus === "reading";
   }
 
   /**

@@ -23,7 +23,13 @@ export async function GET(
     // OPTIMIZED: Get all reading sessions with progress summaries in a single query
     const sessionsWithProgress = await sessionRepository.findAllByBookIdWithProgress(bookId);
 
-    return NextResponse.json(sessionsWithProgress);
+    return NextResponse.json(sessionsWithProgress, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching reading sessions");

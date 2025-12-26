@@ -208,10 +208,11 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.currentPage).toBe(250);
-    expect(data.currentPercentage).toBe(50);
-    expect(data.notes).toBe("Halfway there!");
-    expect(data.pagesRead).toBe(250); // First entry, so all pages are "read"
+    expect(data.progressLog.currentPage).toBe(250);
+    expect(data.progressLog.currentPercentage).toBe(50);
+    expect(data.progressLog.notes).toBe("Halfway there!");
+    expect(data.progressLog.pagesRead).toBe(250); // First entry, so all pages are "read"
+    expect(data.shouldShowCompletionModal).toBe(false);
   });
 
   test("creates progress log with percentage and calculates page number", async () => {
@@ -224,9 +225,10 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.currentPage).toBe(375); // 75% of 500
-    expect(data.currentPercentage).toBe(75);
-    expect(data.pagesRead).toBe(375);
+    expect(data.progressLog.currentPage).toBe(375); // 75% of 500
+    expect(data.progressLog.currentPercentage).toBe(75);
+    expect(data.progressLog.pagesRead).toBe(375);
+    expect(data.shouldShowCompletionModal).toBe(false);
   });
 
   test("calculates pagesRead based on last progress", async () => {
@@ -252,8 +254,9 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.currentPage).toBe(250);
-    expect(data.pagesRead).toBe(150); // 250 - 100 = 150 pages read
+    expect(data.progressLog.currentPage).toBe(250);
+    expect(data.progressLog.pagesRead).toBe(150); // 250 - 100 = 150 pages read
+    expect(data.shouldShowCompletionModal).toBe(false);
   });
 
   test("rejects backward progress without backdating", async () => {
@@ -284,36 +287,41 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(data.error).toContain("Progress must be at least page 300");
   });
 
-  test("marks book as completed when progress reaches 100%", async () => {
+  test("returns completion flag when progress reaches 100%", async () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 500, // 100%
     });
     const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
     expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(true);
 
-    // Check session status was updated
+    // Check session status was NOT auto-updated (requires user confirmation now)
     const session = await sessionRepository.findActiveByBookId(testBook.id);
-    expect(session!.status).toBe("read");
-    expect(session!.completedDate).toBeDefined();
+    expect(session!.status).toBe("reading"); // Still reading, not auto-completed
+    expect(session!.completedDate).toBeNull();
   });
 
-  test("creates completed status if none exists when book reaches 100%", async () => {
+  test("returns completion flag when percentage reaches 100%", async () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPercentage: 100,
     });
     const params = { id: testBook.id.toString() };
 
     const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
     expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(true);
 
-    // Check session status was updated
+    // Check session status was NOT auto-updated
     const session = await sessionRepository.findActiveByBookId(testBook.id);
     expect(session).toBeDefined();
-    expect(session!.status).toBe("read");
-    expect(session!.completedDate).toBeDefined();
-    expect(session!.startedDate).toBeDefined();
+    expect(session!.status).toBe("reading"); // Still reading, not auto-completed
+    expect(session!.completedDate).toBeNull();
   });
 
   test("doesn't mark as complete for progress below 100%", async () => {
@@ -385,8 +393,9 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.currentPage).toBe(100);
-    expect(data.currentPercentage).toBe(0); // Can't calculate without total pages
+    expect(data.progressLog.currentPage).toBe(100);
+    expect(data.progressLog.currentPercentage).toBe(0); // Can't calculate without total pages
+    expect(data.shouldShowCompletionModal).toBe(false);
   });
 
   test("accepts percentage input for book without totalPages", async () => {
@@ -418,8 +427,9 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
 
     // Service layer accepts percentage-only progress (calculates currentPage as 0)
     expect(response.status).toBe(200);
-    expect(data.currentPercentage).toBe(50);
-    expect(data.currentPage).toBe(0); // Without totalPages, page is 0
+    expect(data.progressLog.currentPercentage).toBe(50);
+    expect(data.progressLog.currentPage).toBe(0); // Without totalPages, page is 0
+    expect(data.shouldShowCompletionModal).toBe(false);
   });
 
   test("stores progress date correctly", async () => {
@@ -452,7 +462,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const response = await POST(request as NextRequest, { params });
     const data = await response.json();
 
-    expect(data.notes).toBe("This is a great book!");
+    expect(data.progressLog.notes).toBe("This is a great book!");
 
     const logs = await progressRepository.findByBookId(testBook.id);
     const log = logs.find(l => l.notes === "This is a great book!");

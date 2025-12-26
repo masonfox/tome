@@ -9,7 +9,7 @@ export interface BookFilter {
   status?: string;
   search?: string;
   tags?: string[];
-  rating?: string; // "all" | "5" | "4" | "3" | "2" | "1" | "unrated"
+  rating?: string; // "all" | "rated" | "5" | "4" | "3" | "2" | "1" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
 }
@@ -25,6 +25,32 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   protected getTable() {
     return books;
+  }
+
+  /**
+   * Helper method to build rating filter condition
+   * @param rating - The rating filter value ("5" | "4" | "3" | "2" | "1" | "rated" | "unrated")
+   * @returns SQL condition for filtering by rating, or undefined for invalid inputs
+   */
+  private buildRatingCondition(rating: string): SQL | undefined {
+    switch (rating) {
+      case "5":
+        return eq(books.rating, 5);
+      case "4":
+        return eq(books.rating, 4);
+      case "3":
+        return eq(books.rating, 3);
+      case "2":
+        return eq(books.rating, 2);
+      case "1":
+        return eq(books.rating, 1);
+      case "rated":
+        return sql`${books.rating} IS NOT NULL`;
+      case "unrated":
+        return sql`${books.rating} IS NULL`;
+      default:
+        return undefined;
+    }
   }
 
   /**
@@ -279,25 +305,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Rating filter
     if (filters.rating && filters.rating !== "all") {
-      switch (filters.rating) {
-        case "5":
-          conditions.push(eq(books.rating, 5));
-          break;
-        case "4":
-          conditions.push(eq(books.rating, 4));
-          break;
-        case "3":
-          conditions.push(eq(books.rating, 3));
-          break;
-        case "2":
-          conditions.push(eq(books.rating, 2));
-          break;
-        case "1":
-          conditions.push(eq(books.rating, 1));
-          break;
-        case "unrated":
-          conditions.push(sql`${books.rating} IS NULL`);
-          break;
+      const ratingCondition = this.buildRatingCondition(filters.rating);
+      if (ratingCondition) {
+        conditions.push(ratingCondition);
       }
     }
 
@@ -353,10 +363,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.authors);
         break;
       case "created":
-        orderBy = desc(books.createdAt);
+        // Sort by when the book was added to Calibre library (not tome database)
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created_desc":
-        orderBy = asc(books.createdAt);
+        // Oldest books first by Calibre library date
+        orderBy = asc(books.addedToLibrary);
         break;
       case "rating":
         // Rating high to low (nulls last)
@@ -366,8 +378,27 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Rating low to high (nulls last)
         orderBy = sql`${books.rating} ASC NULLS LAST`;
         break;
+      case "pages":
+        // Shortest books first (nulls last)
+        orderBy = sql`${books.totalPages} ASC NULLS LAST`;
+        break;
+      case "pages_desc":
+        // Longest books first (nulls last)
+        orderBy = sql`${books.totalPages} DESC NULLS LAST`;
+        break;
+      case "recently_read":
+        // Most recently finished books first
+        // Uses subquery to get latest completed session date
+        orderBy = sql`(
+          SELECT MAX(rs.completed_date) 
+          FROM ${readingSessions} rs 
+          WHERE rs.book_id = ${books.id} 
+            AND rs.status = 'read'
+            AND rs.completed_date IS NOT NULL
+        ) DESC NULLS LAST`;
+        break;
       default:
-        orderBy = asc(books.createdAt);
+        orderBy = desc(books.addedToLibrary);
     }
 
     // Get paginated results
@@ -531,25 +562,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Rating filter
     if (filters.rating && filters.rating !== "all") {
-      switch (filters.rating) {
-        case "5":
-          conditions.push(eq(books.rating, 5));
-          break;
-        case "4":
-          conditions.push(eq(books.rating, 4));
-          break;
-        case "3":
-          conditions.push(eq(books.rating, 3));
-          break;
-        case "2":
-          conditions.push(eq(books.rating, 2));
-          break;
-        case "1":
-          conditions.push(eq(books.rating, 1));
-          break;
-        case "unrated":
-          conditions.push(sql`${books.rating} IS NULL`);
-          break;
+      const ratingCondition = this.buildRatingCondition(filters.rating);
+      if (ratingCondition) {
+        conditions.push(ratingCondition);
       }
     }
 
@@ -605,10 +620,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.authors);
         break;
       case "created":
-        orderBy = desc(books.createdAt);
+        // Sort by when the book was added to Calibre library (not tome database)
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created_desc":
-        orderBy = asc(books.createdAt);
+        // Oldest books first by Calibre library date
+        orderBy = asc(books.addedToLibrary);
         break;
       case "rating":
         orderBy = sql`${books.rating} DESC NULLS LAST`;
@@ -616,8 +633,27 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       case "rating_asc":
         orderBy = sql`${books.rating} ASC NULLS LAST`;
         break;
+      case "pages":
+        // Shortest books first (nulls last)
+        orderBy = sql`${books.totalPages} ASC NULLS LAST`;
+        break;
+      case "pages_desc":
+        // Longest books first (nulls last)
+        orderBy = sql`${books.totalPages} DESC NULLS LAST`;
+        break;
+      case "recently_read":
+        // Most recently finished books first
+        // Uses subquery to get latest completed session date
+        orderBy = sql`(
+          SELECT MAX(rs.completed_date) 
+          FROM ${readingSessions} rs 
+          WHERE rs.book_id = ${books.id} 
+            AND rs.status = 'read'
+            AND rs.completed_date IS NOT NULL
+        ) DESC NULLS LAST`;
+        break;
       default:
-        orderBy = asc(books.createdAt);
+        orderBy = desc(books.addedToLibrary);
     }
 
     // Build the main query with JOINs

@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor, act } from "../test-utils";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import type { Book } from "@/hooks/useBookDetail";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
@@ -66,7 +66,12 @@ describe("useBookProgress", () => {
         expect(result.current.progress.length).toBe(2);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/books/123/progress");
+      expect(global.fetch).toHaveBeenCalledWith("/api/books/123/progress", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
     });
 
     test("should initialize with latest progress values", async () => {

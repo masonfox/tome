@@ -87,9 +87,9 @@ describe("Dashboard Service", () => {
 
       const result = await getDashboardData();
 
-      // Should show 10 total, but only return 6 books in array
+      // Should show 10 total, but only return 8 books in array
       expect(result.readNextTotal).toBe(10);
-      expect(result.readNext.length).toBe(6);
+      expect(result.readNext.length).toBe(8);
     });
 
     test("should return books sorted by most recently updated first", async () => {
@@ -425,7 +425,7 @@ describe("Dashboard Service", () => {
      */
 
     test("should return 0 pages read when no progress logged today", async () => {
-      // Create a streak but no progress today
+      // Create an enabled streak but no progress today
       await streakRepository.create({
         userId: null,
         currentStreak: 5,
@@ -434,6 +434,7 @@ describe("Dashboard Service", () => {
         streakStartDate: new Date(),
         totalDaysActive: 5,
         dailyThreshold: 30,
+        streakEnabled: true, // Must be enabled to show on dashboard
       });
 
       const result = await getDashboardData();

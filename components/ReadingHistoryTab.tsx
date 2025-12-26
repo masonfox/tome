@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, BookOpen, Pencil } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import { toast } from "@/utils/toast";
 import { formatDateOnly } from "@/utils/dateFormatting";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface ReadingSession {
   id: number;
@@ -34,30 +36,36 @@ interface ReadingHistoryTabProps {
 }
 
 export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: ReadingHistoryTabProps) {
-  const [sessions, setSessions] = useState<ReadingSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSession, setEditingSession] = useState<ReadingSession | null>(null);
 
-  const fetchSessions = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/books/${bookId}/sessions`);
-      const data = await response.json();
+  // Fetch sessions using TanStack Query - automatic caching and background refetching
+  const { data: allSessions = [], isLoading: loading } = useQuery<ReadingSession[]>({
+    queryKey: ['sessions', bookId],
+    queryFn: async () => {
+      const response = await fetch(`/api/books/${bookId}/sessions`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      
+      return response.json();
+    },
+    staleTime: 5000, // Data is fresh for 5 seconds
+  });
 
-      // Filter to show only archived sessions (isActive = false)
-      const archivedSessions = data.filter((session: ReadingSession) => !session.isActive);
-      setSessions(archivedSessions);
-    } catch (error) {
-      // Suppress console; reading sessions fetch failure ignored
-    } finally {
-      setLoading(false);
-    }
-  }, [bookId]);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+  // Filter to show completed sessions (archived OR status='read')
+  // This ensures single-read books display their completed session even when isActive=true
+  const sessions = allSessions.filter((session: ReadingSession) => 
+    !session.isActive || session.status === 'read'
+  );
 
   function handleOpenEditModal(session: ReadingSession) {
     setEditingSession(session);
@@ -87,8 +95,9 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         throw new Error("Failed to update session");
       }
 
-      // Refresh sessions to show updates
-      await fetchSessions();
+      // Invalidate queries to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       
       handleCloseEditModal();
       toast.success("Session updated successfully");
@@ -98,7 +107,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     }
   }
 
-  // Don't show anything while loading or if there are no archived sessions
+  // Don't show anything while loading or if there are no completed sessions
   if (loading || sessions.length === 0) {
     return null;
   }
@@ -195,9 +204,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <p className="text-xs text-[var(--foreground)]/60 font-semibold uppercase tracking-wide mb-2">
                   Review
                 </p>
-                <p className="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">
-                  {session.review}
-                </p>
+                <MarkdownRenderer content={session.review} />
               </div>
             )}
           </div>
@@ -210,6 +217,8 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         onConfirm={handleSaveSession}
         bookTitle={bookTitle}
         sessionNumber={editingSession?.sessionNumber ?? 0}
+        sessionId={editingSession?.id ?? 0}
+        bookId={bookId}
         currentStartedDate={editingSession?.startedDate ?? null}
         currentCompletedDate={editingSession?.completedDate ?? null}
         currentReview={editingSession?.review ?? null}

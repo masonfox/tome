@@ -7,14 +7,14 @@ interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  title?: string;
+  icon?: React.ReactNode;
 }
 
-// Delay before focusing close button to allow animation to complete
-export const FOCUS_DELAY_MS = 100;
 // Animation duration for closing transition
 const CLOSE_ANIMATION_MS = 300;
 
-export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
+export function BottomSheet({ isOpen, onClose, children, title = "More", icon }: BottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -22,10 +22,12 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setIsClosing(false);
-      // Focus the close button to prevent auto-focus on other elements
-      setTimeout(() => {
+      
+      // Immediately focus the close button before browser auto-focus kicks in
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
         closeButtonRef.current?.focus();
-      }, FOCUS_DELAY_MS);
+      });
     } else {
       document.body.style.overflow = "";
     }
@@ -60,12 +62,16 @@ export function BottomSheet({ isOpen, onClose, children }: BottomSheetProps) {
         isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
       }`}>
         <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[var(--heading-text)]">More</h3>
+          <div className="flex items-center gap-2">
+            {icon && <span className="text-[var(--accent)]">{icon}</span>}
+            <h3 className="text-lg font-semibold text-[var(--heading-text)]">{title}</h3>
+          </div>
           <button
             ref={closeButtonRef}
             onClick={handleClose}
             className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
             aria-label="Close"
+            autoFocus
           >
             <X className="w-5 h-5" />
           </button>

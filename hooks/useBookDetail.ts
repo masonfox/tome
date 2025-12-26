@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/utils/toast";
 
 export interface Book {
   id: number;
@@ -9,6 +11,7 @@ export interface Book {
   publisher?: string;
   pubDate?: string;
   series?: string;
+  seriesIndex?: number | null;
   description?: string;
   tags: string[];
   totalReads?: number;
@@ -31,6 +34,7 @@ export interface Book {
 export interface UseBookDetailReturn {
   book: Book | null;
   loading: boolean;
+  error: Error | null;
   imageError: boolean;
   setImageError: (error: boolean) => void;
   refetchBook: () => Promise<void>;
@@ -40,62 +44,97 @@ export interface UseBookDetailReturn {
 
 /**
  * Custom hook for managing book detail data fetching and updates
+ * Uses TanStack Query for automatic caching, refetching, and state management
  *
  * @param bookId - The ID of the book to fetch
  * @returns Book data, loading state, and utility functions
  */
 export function useBookDetail(bookId: string): UseBookDetailReturn {
-  const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [imageError, setImageError] = useState(false);
 
-  const fetchBook = useCallback(async () => {
-    try {
+  // Fetch book data with automatic caching and background refetching
+  const {
+    data: book = null,
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery<Book>({
+    queryKey: ['book', bookId],
+    queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}`);
-      const data = await response.json();
-      setBook(data);
-    } catch (error) {
-      console.error("Failed to fetch book:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [bookId]);
+      if (!response.ok) {
+        throw new Error('Failed to fetch book');
+      }
+      return response.json();
+    },
+    staleTime: 5000, // Data is fresh for 5 seconds
+  });
 
-  const refetchBook = useCallback(async () => {
-    await fetchBook();
-  }, [fetchBook]);
-
-  const updateTotalPages = useCallback(async (totalPages: number) => {
-    try {
+  // Mutation for updating total pages
+  const updateTotalPagesMutation = useMutation({
+    mutationFn: async (totalPages: number) => {
       const response = await fetch(`/api/books/${bookId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ totalPages }),
       });
 
-      if (response.ok) {
-        // Optimistically update local state instead of full refetch
-        setBook(prev => prev ? { ...prev, totalPages } : null);
+      if (!response.ok) {
+        throw new Error('Failed to update total pages');
       }
-    } catch (error) {
-      console.error("Failed to update total pages:", error);
-    }
-  }, [bookId]);
 
-  // Partial update method for optimistic updates
-  const updateBookPartial = useCallback((updates: Partial<Book>) => {
-    setBook(prev => prev ? { ...prev, ...updates } : null);
-  }, []);
+      return response.json();
+    },
+    onMutate: async (totalPages) => {
+      // Cancel outgoing queries to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
 
-  // Fetch book on mount or when bookId changes
-  useEffect(() => {
-    setLoading(true);
-    fetchBook();
-  }, [bookId, fetchBook]);
+      // Snapshot the previous value
+      const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Book>(['book', bookId], (old) => 
+        old ? { ...old, totalPages } : old
+      );
+
+      // Return context with previous value for rollback
+      return { previousBook };
+    },
+    onError: (_err, _totalPages, context) => {
+      // Rollback on error
+      if (context?.previousBook) {
+        queryClient.setQueryData(['book', bookId], context.previousBook);
+      }
+      toast.error('Failed to update page count');
+    },
+    onSuccess: () => {
+      // Invalidate and refetch book data
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      toast.success('Page count updated');
+    },
+  });
+
+  // Wrapper functions to maintain compatibility with existing code
+  const refetchBook = async () => {
+    await refetch();
+  };
+
+  const updateTotalPages = async (totalPages: number) => {
+    await updateTotalPagesMutation.mutateAsync(totalPages);
+  };
+
+  // Partial update method for optimistic updates from other hooks
+  const updateBookPartial = (updates: Partial<Book>) => {
+    queryClient.setQueryData<Book>(['book', bookId], (old) =>
+      old ? { ...old, ...updates } : old
+    );
+  };
 
   return {
     book,
     loading,
+    error: error as Error | null,
     imageError,
     setImageError,
     refetchBook,

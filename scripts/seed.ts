@@ -50,6 +50,8 @@ async function main() {
       booksUsed: result.booksUsed,
       sessionsSeeded: result.sessionsSeeded,
       progressLogsSeeded: result.progressLogsSeeded,
+      goalsCreated: result.goalsCreated,
+      booksCompletedHistorically: result.booksCompletedHistorically,
       currentStreak: result.currentStreak,
       longestStreak: result.longestStreak,
       totalDaysActive: result.totalDaysActive,
@@ -62,6 +64,10 @@ async function main() {
     console.log(`  📖 Books used for seeding: ${result.booksUsed}`);
     console.log(`  📝 Sessions created: ${result.sessionsSeeded}`);
     console.log(`  📊 Progress logs created: ${result.progressLogsSeeded}`);
+    if (result.goalsCreated !== undefined) {
+      console.log(`  🎯 Reading goals created: ${result.goalsCreated}`);
+      console.log(`  📅 Historical completions: ${result.booksCompletedHistorically}`);
+    }
     if (result.currentStreak !== undefined) {
       console.log(`  🔥 Current streak: ${result.currentStreak} ${result.currentStreak === 1 ? 'day' : 'days'}`);
       console.log(`  ⭐ Longest streak: ${result.longestStreak} ${result.longestStreak === 1 ? 'day' : 'days'}`);
@@ -71,6 +77,7 @@ async function main() {
 
     console.log("Next steps:");
     console.log("  • Start the dev server: bun run dev");
+    console.log("  • Visit /goals to see your reading goals");
     console.log("  • Visit /streak to see the analytics");
     console.log("  • Check the dashboard to see books in progress\n");
 

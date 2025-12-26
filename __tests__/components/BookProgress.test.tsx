@@ -1,7 +1,12 @@
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach, mock } from "bun:test";
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BookProgress from "@/components/BookDetail/BookProgress";
+
+// Mock MarkdownEditor to avoid browser API dependencies
+mock.module("@/components/MarkdownEditor", () => ({
+  default: require("../../__mocks__/components/MarkdownEditor").default,
+}));
 
 afterEach(() => {
   cleanup();
@@ -62,7 +67,7 @@ describe("BookProgress", () => {
     expect(screen.getByPlaceholderText("Percentage")).toBeInTheDocument();
   });
 
-  test("should render notes textarea", () => {
+  test("should render notes section with markdown editor", () => {
     render(
       <BookProgress
         book={mockBook}
@@ -82,9 +87,8 @@ describe("BookProgress", () => {
       />
     );
 
-    const textarea = screen.getByPlaceholderText("Add notes about your reading session (optional)") as HTMLTextAreaElement;
-    expect(textarea).toBeInTheDocument();
-    expect(textarea.value).toBe("Great chapter!");
+    // Check for the Notes label
+    expect(screen.getByText("Notes")).toBeInTheDocument();
   });
 
   test("should show mode toggle button", () => {

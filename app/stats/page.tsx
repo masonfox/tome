@@ -1,3 +1,5 @@
+"use client";
+
 import { StatsCard } from "@/components/ui/StatsCard";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -8,51 +10,10 @@ import {
   Flame,
   BarChart3,
 } from "lucide-react";
+import { useStats } from "@/hooks/useStats";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Disable all caching including router cache
-
-async function getStats() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-  try {
-    const response = await fetch(`${baseUrl}/api/stats/overview`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return response.json();
-  } catch (error) {
-    // Suppress console; return null to indicate failure
-    return null;
-  }
-}
-
-async function getStreak() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-  try {
-    const response = await fetch(`${baseUrl}/api/streaks`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return response.json();
-  } catch (error) {
-    // Suppress console; return null to indicate failure
-    return null;
-  }
-}
-
-export default async function StatsPage() {
-  const stats = await getStats();
-  const streak = await getStreak();
+export default function StatsPage() {
+  const { stats, streak, isLoading } = useStats();
 
   return (
     <div className="space-y-10">
@@ -62,8 +23,21 @@ export default async function StatsPage() {
         icon={BarChart3}
       />
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-32 bg-[var(--border-color)] rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Streak Stats */}
-      {streak && (
+      {!isLoading && streak && (
         <div>
           <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
             Reading Streaks
@@ -92,7 +66,7 @@ export default async function StatsPage() {
       )}
 
       {/* Reading Stats */}
-      {stats && (
+      {!isLoading && stats && (
         <>
           <div>
             <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">

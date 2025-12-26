@@ -2,40 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MoreHorizontal, Settings, LogOut, Sun, Moon } from "lucide-react";
+import { MoreHorizontal, LogOut, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { BottomSheet } from "./BottomSheet";
-import { NAV_LINKS, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, BOTTOM_SHEET_LINKS, isActiveRoute } from "@/lib/navigation-config";
+import { useDarkMode } from "@/hooks/useDarkMode";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export function BottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [authEnabled, setAuthEnabled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    
-    // Get current theme from DOM (already set by layout script)
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    setDarkMode(currentTheme === "dark");
-    
-    // Check auth status
-    fetch("/api/auth/status")
-      .then((res) => res.json())
-      .then((data) => setAuthEnabled(data.enabled))
-      .catch(() => setAuthEnabled(false));
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("darkMode", newMode.toString());
-    document.documentElement.setAttribute("data-theme", newMode ? "dark" : "light");
-  };
+  const { darkMode, toggleDarkMode, mounted } = useDarkMode();
+  const { authEnabled } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -141,19 +121,29 @@ export function BottomNavigation() {
       {/* Bottom Sheet for More Menu */}
       <BottomSheet isOpen={isMoreOpen} onClose={() => setIsMoreOpen(false)}>
         <div className="space-y-2">
-          <button
-            onClick={() => handleSheetItemClick("/settings")}
-            className={clsx(
-              "flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
-              pathname === "/settings"
-                ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                : "text-[var(--foreground)] hover:bg-[var(--border-color)]"
-            )}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
-          </button>
+          {/* Bottom Sheet Navigation Links */}
+          {BOTTOM_SHEET_LINKS.map((link) => {
+            const Icon = link.icon;
+            const active = isActiveRoute(pathname, link.href);
+            
+            return (
+              <button
+                key={link.href}
+                onClick={() => handleSheetItemClick(link.href)}
+                className={clsx(
+                  "flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                  active
+                    ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                    : "text-[var(--foreground)] hover:bg-[var(--border-color)]"
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{link.label}</span>
+              </button>
+            );
+          })}
 
+          {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
             className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -162,6 +152,7 @@ export function BottomNavigation() {
             <span className="font-medium">{darkMode ? "Light Mode" : "Dark Mode"}</span>
           </button>
 
+          {/* Logout */}
           {authEnabled && (
             <button
               onClick={handleLogout}

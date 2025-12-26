@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Bookmark, Clock, BookCheck } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo } from "react";
+import { StatusBadge } from "@/components/StatusBadge";
+import { type BookStatus } from "@/utils/statusConfig";
 
 interface BookCardProps {
   id: string;
@@ -15,26 +17,6 @@ interface BookCardProps {
   currentProgress?: number;
   className?: string;
 }
-
-// Move outside component to avoid recreation on every render
-const statusConfig = {
-  "to-read": {
-    icon: Bookmark,
-    label: "Want to Read",
-  },
-  "read-next": {
-    icon: Clock,
-    label: "Read Next",
-  },
-  reading: {
-    icon: BookOpen,
-    label: "Reading",
-  },
-  read: {
-    icon: BookCheck,
-    label: "Read",
-  },
-};
 
 export const BookCard = memo(function BookCard({
   id,
@@ -58,7 +40,7 @@ export const BookCard = memo(function BookCard({
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
           {!imageError ? (
             <Image
-              src={`/api/covers/${calibreId}/cover.jpg`}
+              src={`/api/books/${calibreId}/cover`}
               alt={title}
               fill
               loading="lazy"
@@ -80,15 +62,7 @@ export const BookCard = memo(function BookCard({
 
           {status && (
             <div className="pt-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#c9a876] text-[#3a3a3a] rounded-sm font-medium text-xs">
-                {(() => {
-                  const Icon = statusConfig[status as keyof typeof statusConfig].icon;
-                  return <Icon className="w-3 h-3" />;
-                })()}
-                <span>
-                  {statusConfig[status as keyof typeof statusConfig].label}
-                </span>
-              </div>
+              <StatusBadge status={status as BookStatus} size="sm" />
             </div>
           )}
 

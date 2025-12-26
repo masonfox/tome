@@ -492,6 +492,68 @@ export class StreakService {
 
     return finalStreak!;
   }
+
+  /**
+   * Enable or disable streak tracking
+   * When enabling, optionally set an initial daily goal
+   */
+  async setStreakEnabled(
+    userId: number | null,
+    enabled: boolean,
+    dailyThreshold?: number
+  ): Promise<Streak> {
+    // Get or create streak
+    const streak = await streakRepository.getOrCreate(userId);
+
+    logger.info(
+      {
+        userId,
+        oldEnabled: streak.streakEnabled,
+        newEnabled: enabled,
+        dailyThreshold,
+      },
+      "Updating streak enabled status"
+    );
+
+    // Update enabled status and optionally threshold
+    const updates: Partial<Streak> = {
+      streakEnabled: enabled,
+    };
+
+    if (enabled && dailyThreshold !== undefined) {
+      // Validate threshold when enabling
+      if (!Number.isInteger(dailyThreshold)) {
+        throw new Error("Daily threshold must be an integer");
+      }
+      if (dailyThreshold < 1 || dailyThreshold > 9999) {
+        throw new Error("Daily threshold must be between 1 and 9999");
+      }
+      updates.dailyThreshold = dailyThreshold;
+    }
+
+    const updated = await streakRepository.update(streak.id, updates as any);
+
+    // If enabling, rebuild streak from historical data
+    if (enabled && !streak.streakEnabled) {
+      logger.info({ userId }, "Streak enabled, rebuilding from historical data");
+      const { rebuildStreak } = await import("@/lib/streaks");
+      await rebuildStreak(userId);
+
+      // Fetch final state after rebuild
+      const finalStreak = await streakRepository.findByUserId(userId);
+      return finalStreak!;
+    }
+
+    logger.info(
+      {
+        userId,
+        enabled: updated?.streakEnabled,
+      },
+      "Streak enabled status updated"
+    );
+
+    return updated!;
+  }
 }
 
 // Singleton instance

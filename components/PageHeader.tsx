@@ -33,9 +33,9 @@ export function PageHeader({
       )}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
-            <Icon className="w-8 h-8" />
-            {title}
+          <h1 className="text-5xl font-serif font-bold flex items-center gap-3">
+            <Icon className="w-8 h-8 text-[var(--subheading-text)]" />
+            <span className="text-[var(--heading-text)]">{title}</span>
           </h1>
           <p className="text-[var(--subheading-text)] mt-2 font-medium">
             {subtitle}

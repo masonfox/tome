@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from "@/utils/dateFormatting";
+import MarkdownEditor from "@/components/MarkdownEditor";
+import { useDraftField } from "@/hooks/useDraftField";
 
 interface SessionEditModalProps {
   isOpen: boolean;
@@ -14,6 +16,8 @@ interface SessionEditModalProps {
   }) => void;
   bookTitle: string;
   sessionNumber: number;
+  sessionId: number;
+  bookId: string;
   currentStartedDate?: string | null;
   currentCompletedDate?: string | null;
   currentReview?: string | null;
@@ -25,6 +29,8 @@ export default function SessionEditModal({
   onConfirm,
   bookTitle,
   sessionNumber,
+  sessionId,
+  bookId,
   currentStartedDate,
   currentCompletedDate,
   currentReview,
@@ -32,6 +38,17 @@ export default function SessionEditModal({
   const [startedDate, setStartedDate] = useState("");
   const [completedDate, setCompletedDate] = useState("");
   const [review, setReview] = useState("");
+
+  // Track whether we've already restored the draft for this modal session
+  const hasRestoredDraft = useRef(false);
+
+  // Draft management for review field
+  const {
+    draft: draftReview,
+    saveDraft,
+    clearDraft,
+    isInitialized,
+  } = useDraftField(`draft-session-edit-${bookId}-${sessionId}`);
 
   // Reset form when modal opens with current values
   useEffect(() => {
@@ -44,8 +61,24 @@ export default function SessionEditModal({
         currentCompletedDate ? currentCompletedDate.split("T")[0] : ""
       );
       setReview(currentReview || "");
+      hasRestoredDraft.current = false; // Reset draft restoration flag
     }
   }, [isOpen, currentStartedDate, currentCompletedDate, currentReview]);
+
+  // Restore draft only once when modal opens (if no existing review)
+  useEffect(() => {
+    if (isOpen && isInitialized && !currentReview && draftReview && !hasRestoredDraft.current) {
+      setReview(draftReview);
+      hasRestoredDraft.current = true;
+    }
+  }, [isOpen, isInitialized, currentReview, draftReview]);
+
+  // Auto-save draft (only after initialization to prevent race condition)
+  useEffect(() => {
+    if (isInitialized && review && isOpen) {
+      saveDraft(review);
+    }
+  }, [review, isInitialized, saveDraft, isOpen]);
 
   function handleSave() {
     // Convert date strings back to ISO format (with time set to midnight UTC)
@@ -62,6 +95,9 @@ export default function SessionEditModal({
       completedDate: completedISO,
       review: reviewValue,
     });
+    
+    // Clear draft after successful save
+    clearDraft();
   }
 
   function handleClearDates() {
@@ -78,6 +114,7 @@ export default function SessionEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Edit Session - ${bookTitle} (Read #${sessionNumber})`}
+      size="2xl"
       actions={
         <div className="flex justify-end gap-4">
           <button
@@ -111,7 +148,7 @@ export default function SessionEditModal({
               value={startedDate}
               onChange={(e) => setStartedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
             />
           </div>
 
@@ -128,7 +165,7 @@ export default function SessionEditModal({
               value={completedDate}
               onChange={(e) => setCompletedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
             />
           </div>
 
@@ -150,14 +187,15 @@ export default function SessionEditModal({
           >
             Review
           </label>
-          <textarea
-            id="review"
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            placeholder="Add your thoughts about this reading..."
-            rows={6}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium placeholder:text-[var(--foreground)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-          />
+          <div>
+            <MarkdownEditor
+              value={review}
+              onChange={setReview}
+              placeholder="Add your thoughts about this reading..."
+              height={280}
+              id="review"
+            />
+          </div>
           {review && (
             <button
               onClick={handleRemoveReview}

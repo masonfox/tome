@@ -413,4 +413,273 @@ describe("StreakService - Auto-initialization", () => {
       expect(fromDb?.id).toBe(created.id);
     });
   });
+
+  describe("setStreakEnabled()", () => {
+    describe("Enabling Streak Tracking", () => {
+      it("should enable streak tracking with new dailyThreshold", async () => {
+        // Create disabled streak
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 0,
+          dailyThreshold: 10,
+          streakEnabled: false,
+        });
+
+        // Enable with new threshold
+        const result = await streakService.setStreakEnabled(null, true, 25);
+
+        expect(result.streakEnabled).toBe(true);
+        expect(result.dailyThreshold).toBe(25);
+      });
+
+      it("should enable streak tracking without changing dailyThreshold", async () => {
+        // Create disabled streak with existing threshold
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 0,
+          dailyThreshold: 15,
+          streakEnabled: false,
+        });
+
+        // Enable without specifying threshold
+        const result = await streakService.setStreakEnabled(null, true);
+
+        expect(result.streakEnabled).toBe(true);
+        expect(result.dailyThreshold).toBe(15); // Should preserve existing
+      });
+
+      it("should auto-create streak record if none exists when enabling", async () => {
+        // Verify no streak exists
+        const existing = await streakRepository.findByUserId(null);
+        expect(existing).toBeUndefined();
+
+        // Enable streak tracking
+        const result = await streakService.setStreakEnabled(null, true, 20);
+
+        expect(result.id).toBeGreaterThan(0);
+        expect(result.streakEnabled).toBe(true);
+        expect(result.dailyThreshold).toBe(20);
+        expect(result.currentStreak).toBe(0);
+        expect(result.longestStreak).toBe(0);
+      });
+
+      it("should enable with default threshold when none provided and none exists", async () => {
+        // No existing streak
+        const result = await streakService.setStreakEnabled(null, true);
+
+        expect(result.streakEnabled).toBe(true);
+        expect(result.dailyThreshold).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    describe("Disabling Streak Tracking", () => {
+      it("should disable streak tracking", async () => {
+        // Create enabled streak
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 5,
+          longestStreak: 10,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 15,
+          dailyThreshold: 20,
+          streakEnabled: true,
+        });
+
+        // Disable
+        const result = await streakService.setStreakEnabled(null, false);
+
+        expect(result.streakEnabled).toBe(false);
+        expect(result.dailyThreshold).toBe(20); // Preserved
+        expect(result.currentStreak).toBe(5); // Preserved
+        expect(result.longestStreak).toBe(10); // Preserved
+      });
+
+      it("should preserve all streak data when disabling", async () => {
+        const lastActivity = new Date();
+        const streakStart = new Date();
+        streakStart.setDate(streakStart.getDate() - 10);
+
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 11,
+          longestStreak: 20,
+          lastActivityDate: lastActivity,
+          streakStartDate: streakStart,
+          totalDaysActive: 50,
+          dailyThreshold: 30,
+          streakEnabled: true,
+        });
+
+        const result = await streakService.setStreakEnabled(null, false);
+
+        expect(result.streakEnabled).toBe(false);
+        expect(result.currentStreak).toBe(11);
+        expect(result.longestStreak).toBe(20);
+        expect(result.totalDaysActive).toBe(50);
+        expect(result.dailyThreshold).toBe(30);
+      });
+
+      it("should auto-create streak as disabled if none exists", async () => {
+        // No existing streak
+        const result = await streakService.setStreakEnabled(null, false);
+
+        expect(result.streakEnabled).toBe(false);
+        expect(result.id).toBeGreaterThan(0);
+      });
+    });
+
+    describe("Toggle Behavior", () => {
+      it("should allow toggling between enabled and disabled", async () => {
+        // Start disabled
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 0,
+          dailyThreshold: 15,
+          streakEnabled: false,
+        });
+
+        // Enable
+        const enabled = await streakService.setStreakEnabled(null, true);
+        expect(enabled.streakEnabled).toBe(true);
+
+        // Disable
+        const disabled = await streakService.setStreakEnabled(null, false);
+        expect(disabled.streakEnabled).toBe(false);
+        expect(disabled.id).toBe(enabled.id); // Same record
+
+        // Enable again
+        const reEnabled = await streakService.setStreakEnabled(null, true);
+        expect(reEnabled.streakEnabled).toBe(true);
+        expect(reEnabled.id).toBe(enabled.id); // Still same record
+      });
+
+      it("should handle rapid consecutive toggles", async () => {
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 3,
+          longestStreak: 5,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 10,
+          dailyThreshold: 10,
+          streakEnabled: false,
+        });
+
+        // Rapid toggles
+        await streakService.setStreakEnabled(null, true);
+        await streakService.setStreakEnabled(null, false);
+        await streakService.setStreakEnabled(null, true);
+        const final = await streakService.setStreakEnabled(null, false);
+
+        expect(final.streakEnabled).toBe(false);
+        expect(final.currentStreak).toBe(3); // Data preserved
+      });
+    });
+
+    describe("Combined Operations", () => {
+      it("should enable and update threshold in one call", async () => {
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 2,
+          longestStreak: 5,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 8,
+          dailyThreshold: 10,
+          streakEnabled: false,
+        });
+
+        const result = await streakService.setStreakEnabled(null, true, 40);
+
+        expect(result.streakEnabled).toBe(true);
+        expect(result.dailyThreshold).toBe(40);
+      });
+
+      it("should validate dailyThreshold when enabling", async () => {
+        // Invalid threshold (too low)
+        await expect(async () => {
+          await streakService.setStreakEnabled(null, true, 0);
+        }).toThrow();
+
+        // Invalid threshold (too high)
+        await expect(async () => {
+          await streakService.setStreakEnabled(null, true, 10000);
+        }).toThrow();
+      });
+
+      it("should not validate dailyThreshold when disabling", async () => {
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 0,
+          dailyThreshold: 15,
+          streakEnabled: true,
+        });
+
+        // Should not throw even with invalid threshold (it's ignored when disabling)
+        const result = await streakService.setStreakEnabled(null, false, -5);
+        expect(result.streakEnabled).toBe(false);
+        expect(result.dailyThreshold).toBe(15); // Original preserved
+      });
+    });
+
+    describe("Integration", () => {
+      it("should handle fresh database → enable flow", async () => {
+        // Fresh database
+        const existing = await streakRepository.findByUserId(null);
+        expect(existing).toBeUndefined();
+
+        // User enables streak tracking for first time
+        const result = await streakService.setStreakEnabled(null, true, 20);
+
+        expect(result.streakEnabled).toBe(true);
+        expect(result.dailyThreshold).toBe(20);
+        expect(result.currentStreak).toBe(0);
+
+        // Verify can be fetched
+        const fetched = await streakService.getStreak(null);
+        expect(fetched.id).toBe(result.id);
+        expect(fetched.streakEnabled).toBe(true);
+      });
+
+      it("should return streakEnabled flag in getStreak()", async () => {
+        // Create enabled streak
+        await streakRepository.create({
+          userId: null,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivityDate: new Date(),
+          streakStartDate: new Date(),
+          totalDaysActive: 0,
+          dailyThreshold: 10,
+          streakEnabled: true,
+        });
+
+        const streak = await streakService.getStreak(null);
+        expect(streak.streakEnabled).toBe(true);
+
+        // Disable it
+        await streakService.setStreakEnabled(null, false);
+
+        const disabledStreak = await streakService.getStreak(null);
+        expect(disabledStreak.streakEnabled).toBe(false);
+      });
+    });
+  });
 });

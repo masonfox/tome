@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor, act } from "../test-utils";
 import { useBookDetail } from "@/hooks/useBookDetail";
 
 // Mock fetch globally
@@ -54,9 +54,6 @@ describe("useBookDetail", () => {
     });
 
     test("should handle fetch errors gracefully", async () => {
-      const consoleErrorSpy = mock(console.error);
-      console.error = consoleErrorSpy;
-
       global.fetch = mock(() => Promise.reject(new Error("Network error")));
 
       const { result } = renderHook(() => useBookDetail("123"));
@@ -66,9 +63,9 @@ describe("useBookDetail", () => {
       });
 
       expect(result.current.book).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      console.error = console.error;
+      // TanStack Query doesn't log errors to console by default
+      // Instead, check the error state
+      expect(result.current.error).toBeTruthy();
     });
   });
 
@@ -116,7 +113,7 @@ describe("useBookDetail", () => {
   });
 
   describe("updateTotalPages", () => {
-    test("should update book total pages and refetch", async () => {
+    test("should optimistically update book total pages", async () => {
       const mockBook = {
         id: 123,
         calibreId: 1,
@@ -125,24 +122,24 @@ describe("useBookDetail", () => {
         tags: [],
       };
 
-      const mockUpdatedBook = {
-        ...mockBook,
-        totalPages: 350,
-      };
-
-      let fetchCallCount = 0;
+      let patchCalled = false;
+      let bookData = { ...mockBook }; // Track current book state
+      
       global.fetch = mock((url: string, options?: any) => {
         if (options?.method === "PATCH") {
+          patchCalled = true;
+          // Update bookData when PATCH succeeds
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, ...body };
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true }),
           } as Response);
         }
-        // GET requests
-        fetchCallCount++;
+        // GET requests return current book state
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(fetchCallCount === 1 ? mockBook : mockUpdatedBook),
+          json: () => Promise.resolve(bookData),
         } as Response);
       });
 
@@ -155,13 +152,17 @@ describe("useBookDetail", () => {
       expect(result.current.book?.totalPages).toBeUndefined();
 
       // Update total pages
-      await result.current.updateTotalPages(350);
-
-      await waitFor(() => {
-        expect(result.current.book?.totalPages).toBe(350);
+      await act(async () => {
+        await result.current.updateTotalPages(350);
       });
 
+      // Wait for update to complete (mutation + refetch)
+      await waitFor(() => {
+        expect(result.current.book?.totalPages).toBe(350);
+      }, { timeout: 2000 });
+
       // Verify PATCH was called with correct payload
+      expect(patchCalled).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/books/123",
         expect.objectContaining({
@@ -173,9 +174,6 @@ describe("useBookDetail", () => {
     });
 
     test("should handle update errors", async () => {
-      const consoleErrorSpy = mock(console.error);
-      console.error = consoleErrorSpy;
-
       const mockBook = {
         id: 123,
         calibreId: 1,
@@ -200,12 +198,8 @@ describe("useBookDetail", () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Attempt update
-      await result.current.updateTotalPages(350);
-
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      console.error = console.error;
+      // Attempt update - expect it to throw
+      await expect(result.current.updateTotalPages(350)).rejects.toThrow("Update failed");
     });
   });
 
