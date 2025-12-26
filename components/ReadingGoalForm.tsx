@@ -72,9 +72,9 @@ export function ReadingGoalForm({
     setSaving(true);
     try {
       if (mode === "create") {
-        await createGoalAsync({ year, targetBooks: booksGoal });
+        await createGoalAsync({ year, booksGoal });
       } else if (existingGoal) {
-        await updateGoalAsync({ id: existingGoal.id, data: { targetBooks: booksGoal } });
+        await updateGoalAsync({ id: existingGoal.id, data: { booksGoal } });
       }
       onSuccess();
     } catch (error) {
