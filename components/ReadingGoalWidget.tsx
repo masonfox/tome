@@ -199,7 +199,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         </div>
         
         {/* Pacing Indicator Row */}
-        <div>
+        <div className="inline-flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-3 py-2">
           {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
           {isExceeded && (
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">

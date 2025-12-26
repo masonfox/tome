@@ -19,7 +19,9 @@ export function ReadingGoalWidgetSkeleton() {
         </div>
         
         {/* Pacing Indicator Row */}
-        <div className="h-5 bg-[var(--foreground)]/10 rounded w-24" />
+        <div className="inline-flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-3 py-2">
+          <div className="h-5 bg-[var(--foreground)]/10 rounded w-24" />
+        </div>
       </div>
 
       {/* Progress Bar */}
