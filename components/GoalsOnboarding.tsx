@@ -76,10 +76,10 @@ export function GoalsOnboarding({ onCreateGoal }: GoalsOnboardingProps) {
             <BookOpen className="w-6 h-6 text-white" />
           </div>
           <h3 className="text-lg font-serif font-bold text-[var(--heading-text)]">
-            Multi-Year History
+            Year History
           </h3>
           <p className="text-sm text-[var(--subheading-text)]">
-            Create goals for any year and review your reading achievements over time.
+            Review your reading achievements across different years.
           </p>
         </div>
       </div>
@@ -91,7 +91,7 @@ export function GoalsOnboarding({ onCreateGoal }: GoalsOnboardingProps) {
             Create Your First Goal
           </h2>
           <p className="text-[var(--subheading-text)]">
-            Choose how many books you want to read this year. You can update this later or create goals for other years.
+            Choose how many books you want to read this year. You can update this later.
           </p>
         </div>
 

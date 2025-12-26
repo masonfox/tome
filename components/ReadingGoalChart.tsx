@@ -71,11 +71,11 @@ export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
   };
 
   return (
-    <div className="w-full h-80 md:h-96">
+    <div className="w-full h-64 md:h-80">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={chartData}
-          margin={{ top: 20, right: 10, left: 0, bottom: 40 }}
+          margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
         >
           <defs>
             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">

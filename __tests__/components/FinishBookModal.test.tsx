@@ -144,7 +144,7 @@ describe("FinishBookModal", () => {
     test("should clear draft after successful submit", async () => {
       // Arrange: Type a review (creates draft)
       localStorage.setItem("draft-finish-review-123", "My review");
-      const onConfirm = mock(() => {});
+      const onConfirm = mock(async () => {});
 
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
       const stars = screen.getAllByTestId("star-icon");
@@ -153,9 +153,13 @@ describe("FinishBookModal", () => {
       fireEvent.click(stars[3]); // 4 stars
       fireEvent.click(screen.getByText("Mark as Read"));
 
+      // Wait for async operations to complete
+      await waitFor(() => {
+        expect(onConfirm).toHaveBeenCalledWith(4, "My review");
+      });
+
       // Assert: Draft should be cleared
       expect(localStorage.getItem("draft-finish-review-123")).toBeNull();
-      expect(onConfirm).toHaveBeenCalledWith(4, "My review");
     });
 
     test("should preserve draft when modal is closed without submitting", () => {

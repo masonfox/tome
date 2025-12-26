@@ -295,26 +295,6 @@ describe("Integration: Reading Goals API", () => {
       expect(data.error.code).toBe("INVALID_ID");
       expect(data.error.message).toContain("positive integer");
     });
-
-    test("should successfully delete future year goals", async () => {
-      const futureYear = new Date().getFullYear() + 1;
-      
-      const goal = await readingGoalRepository.create({
-        year: futureYear,
-        booksGoal: 50,
-      });
-      
-      const request = createMockRequest("DELETE", `/api/reading-goals/${goal.id}`) as any;
-      const response = await DELETE_GOAL(request, { params: Promise.resolve({ id: goal.id.toString() }) });
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.success).toBe(true);
-      
-      // Verify deletion
-      const deletedGoal = await readingGoalRepository.findById(goal.id);
-      expect(deletedGoal).toBeUndefined();
-    });
   });
 
   describe("Goal Retrieval with Progress", () => {
@@ -823,10 +803,10 @@ describe("Integration: Reading Goals API", () => {
       // Note: parseInt("1.5") returns 1, so floating point strings are truncated to integers
       // This is acceptable behavior - the ID "1.5" gets treated as ID 1
       test("should accept floating point IDs (parseInt truncates)", async () => {
-        // Create goal for future year (can be deleted)
-        const futureYear = new Date().getFullYear() + 1;
+        // Create goal for current year (can be deleted)
+        const currentYear = new Date().getFullYear();
         const goal = await readingGoalRepository.create({
-          year: futureYear,
+          year: currentYear,
           booksGoal: 50,
         });
         
@@ -841,10 +821,10 @@ describe("Integration: Reading Goals API", () => {
       });
 
       test("should accept decimal IDs with many places (parseInt truncates)", async () => {
-        // Create goal for future year (can be deleted)
-        const futureYear = new Date().getFullYear() + 1;
+        // Create goal for current year (can be deleted)
+        const currentYear = new Date().getFullYear();
         const goal = await readingGoalRepository.create({
-          year: futureYear,
+          year: currentYear,
           booksGoal: 50,
         });
         

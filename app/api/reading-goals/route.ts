@@ -109,6 +109,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate year - only allow current year
+    const currentYear = new Date().getFullYear();
+    if (year > currentYear) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "FUTURE_YEAR_NOT_ALLOWED",
+            message: "Goals can only be created for the current year or past years",
+          },
+        },
+        { status: 400 }
+      );
+    }
+
     try {
       const goal = await readingGoalsService.createGoal(null, year, booksGoal);
       

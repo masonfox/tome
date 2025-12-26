@@ -18,6 +18,18 @@ A self-hosted book tracking web application that integrates directly with Calibr
 **Book Detail**
 ![Book UI](./docs/assets/book-detail.png)
 
+**Series**
+![Series UI](./docs/assets/series.png)
+
+**Journal**
+![Journal UI](./docs/assets/journal.png)
+
+**Streak**
+![Streak UI](./docs/assets/streak.png)
+
+**Goals**
+![Goals UI](./docs/assets/goals.png)
+
 </details>
 
 ## What is Tome?
@@ -32,6 +44,21 @@ Your reading data lives locally, under your control, and survives platform chang
 - **Seamless Calibre integration**: Works directly with your Calibre library without modification
 - **Self-hosted with zero dependencies**: No Redis, no cloud APIs, no external services—just SQLite
 - **Full control over your data**: Host it yourself, backup anytime, own your history forever
+
+## Features
+
+- **Calibre Integration**: Direct access to your Calibre database with automatic sync
+- **Reading Progress Tracking**: Track page-based or percentage-based progress with history
+- **Enhanced Reading Streaks**: Daily streak tracking with configurable goals and analytics
+- **Book Status Management**: Organize books by reading status (To Read, Reading, Read)
+- **Statistics Dashboard**: Comprehensive reading statistics and visualizations
+- **Annual goals**: Set and track annual reading goals
+- **Self-Hosted**: Full control over your data with no external dependencies
+
+## Prerequisites
+
+- [Bun](https://bun.sh/) installed (v1.3.0 or higher)
+- Calibre library with metadata.db file
 
 ## Quick Start
 
@@ -58,48 +85,31 @@ Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre libra
 
 **Using pre-built image from GHCR:**
 
-```bash
-docker run -d \
-  --name tome \
-  -p 3000:3000 \
-  -v tome-data:/app/data \
-  -v /path/to/calibre/library:/calibre \
-  -e CALIBRE_DB_PATH=/calibre/metadata.db \
-  ghcr.io/masonfox/tome:latest
 ```
+version: '3.8'
 
-**Using Docker Compose:**
-
-```bash
-# Edit docker-compose.yml to set your Calibre library path
-docker-compose up -d
+services:
+  tome:
+    image: ghcr.io/masonfox/tome:latest
+    container_name: tome
+    user: "1001:100"
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - AUTH_PASSWORD=hello
+      - CALIBRE_DB_PATH=/data/calibre/metadata.db
+    volumes:
+      # Persist SQLite database
+      - /path/to/storage:/app/data
+      # Calibre library
+      - /path/to/calibre/folder:/data/calibre
+    restart: always
 ```
 
 **Access the application** at http://localhost:3000
 
 For detailed deployment configuration, see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
-
-## Features
-
-- **Calibre Integration**: Direct read-only access to your Calibre database with automatic sync
-- **Reading Progress Tracking**: Track page-based or percentage-based progress with history
-- **Enhanced Reading Streaks**: Daily streak tracking with configurable goals and analytics
-- **Book Status Management**: Organize books by reading status (To Read, Reading, Read)
-- **Statistics Dashboard**: Comprehensive reading statistics and visualizations
-- **Self-Hosted**: Full control over your data with no external dependencies
-
-## Tech Stack
-
-- **Frontend**: Next.js 14 (App Router)
-- **Runtime**: Bun
-- **Database**: SQLite (via Drizzle ORM + bun:sqlite)
-- **Styling**: Tailwind CSS
-- **Calibre Integration**: Direct SQLite database access (read-only)
-
-## Prerequisites
-
-- [Bun](https://bun.sh/) installed (v1.3.0 or higher)
-- Calibre library with metadata.db file
 
 ## Documentation
 
@@ -111,14 +121,6 @@ Comprehensive documentation is available in the [`/docs`](./docs) directory:
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Architecture](./docs/ARCHITECTURE.md)** - System architecture and patterns
 - **[Testing Guide](./__tests__/README.md)** - Testing patterns and best practices
-
-### For AI Coding Assistants
-
-**Please read [`AI_INSTRUCTIONS.md`](./AI_INSTRUCTIONS.md) before making changes.** This file contains essential patterns and guidelines for maintaining code consistency.
-
-Tool-specific instructions:
-- **Claude Code**: See [`.claude/instructions.md`](./.claude/instructions.md)
-- **GitHub Copilot**: See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md)
 
 ## Development
 

@@ -91,20 +91,6 @@ describe("Reading Goals [ID] API - PATCH /api/reading-goals/[id]", () => {
       expect(response.status).toBe(200);
       expect(data.data.booksGoal).toBe(500);
     });
-
-    test("allows updating future year goal", async () => {
-      const futureYear = new Date().getFullYear() + 1;
-      const goal = await readingGoalRepository.create({ userId: null, year: futureYear, booksGoal: 30 });
-
-      const request = createMockRequest("PATCH", `/api/reading-goals/${goal.id}`, {
-        booksGoal: 40,
-      });
-      const response = await PATCH(request as NextRequest, {
-        params: Promise.resolve({ id: goal.id.toString() }),
-      });
-
-      expect(response.status).toBe(200);
-    });
   });
 
   describe("PATCH - Validation errors", () => {
@@ -320,22 +306,6 @@ describe("Reading Goals [ID] API - DELETE /api/reading-goals/[id]", () => {
       expect(data.success).toBe(true);
 
       // Verify deletion in database
-      const deleted = await readingGoalRepository.findById(goal.id);
-      expect(deleted).toBeUndefined();
-    });
-
-    test("allows deleting future year goal", async () => {
-      const futureYear = new Date().getFullYear() + 1;
-      const goal = await readingGoalRepository.create({ userId: null, year: futureYear, booksGoal: 30 });
-
-      const request = createMockRequest("DELETE", `/api/reading-goals/${goal.id}`);
-      const response = await DELETE(request as NextRequest, {
-        params: Promise.resolve({ id: goal.id.toString() }),
-      });
-
-      expect(response.status).toBe(200);
-      
-      // Verify deletion
       const deleted = await readingGoalRepository.findById(goal.id);
       expect(deleted).toBeUndefined();
     });
