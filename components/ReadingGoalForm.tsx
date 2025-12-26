@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Target, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -22,13 +22,8 @@ export function ReadingGoalForm({
   const { createGoalAsync, updateGoalAsync } = useReadingGoals();
   
   const currentYear = new Date().getFullYear();
-  // Generate year options: current year + next year
-  const yearOptions = [
-    currentYear,
-    currentYear + 1
-  ];
   
-  const [year, setYear] = useState(existingGoal?.year || currentYear);
+  const year = existingGoal?.year || currentYear;
   const [booksGoal, setBooksGoal] = useState<number | "">(
     existingGoal?.booksGoal ?? ""
   );
@@ -39,7 +34,6 @@ export function ReadingGoalForm({
 
   useEffect(() => {
     if (existingGoal) {
-      setYear(existingGoal.year);
       setBooksGoal(existingGoal.booksGoal);
     }
   }, [existingGoal]);
@@ -63,9 +57,9 @@ export function ReadingGoalForm({
       return;
     }
 
-    // Year validation (should always be valid since we use a select, but keep for safety)
-    if (!Number.isInteger(year) || year < currentYear) {
-      toast.error("Please select a valid year");
+    // Year validation - only allow current year for new goals
+    if (!Number.isInteger(year) || year !== currentYear) {
+      toast.error("Goals can only be created for the current year");
       return;
     }
 
@@ -86,22 +80,6 @@ export function ReadingGoalForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Target className="w-6 h-6 text-[var(--accent)]" />
-          <h3 className="text-xl font-serif font-bold text-[var(--heading-text)]">
-            {mode === "create" ? "Create Reading Goal" : "Edit Reading Goal"}
-          </h3>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-[var(--foreground)]/60 hover:text-[var(--foreground)] transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
       {isPastYear && mode === "edit" && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-md p-4">
           <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">
@@ -112,34 +90,6 @@ export function ReadingGoalForm({
       )}
 
       <div className="space-y-4">
-        {/* Year Selector (only for create mode) */}
-        {mode === "create" && (
-          <div>
-            <label
-              htmlFor="goal-year"
-              className="block text-sm font-semibold text-[var(--foreground)]/70 mb-2"
-            >
-              Year
-            </label>
-            <select
-              id="goal-year"
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-full pl-4 pr-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-              disabled={saving}
-            >
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
-              Select the year for this goal
-            </p>
-          </div>
-        )}
-
         {/* Books Goal Input */}
         <div>
           <label

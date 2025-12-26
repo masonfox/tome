@@ -84,15 +84,6 @@ describe("ReadingGoalsService", () => {
       expect(updated.year).toBe(currentYear);
     });
 
-    test("updates goal for future year", async () => {
-      const futureYear = new Date().getFullYear() + 1;
-      const created = await readingGoalsService.createGoal(null, futureYear, 40);
-
-      const updated = await readingGoalsService.updateGoal(created.id, 60);
-
-      expect(updated.booksGoal).toBe(60);
-    });
-
     test("rejects update for past year", async () => {
       const pastYear = new Date().getFullYear() - 1;
       const created = await readingGoalsService.createGoal(null, pastYear, 40);
@@ -126,16 +117,6 @@ describe("ReadingGoalsService", () => {
       await readingGoalsService.deleteGoal(created.id);
 
       const retrieved = await readingGoalsService.getGoal(null, currentYear);
-      expect(retrieved).toBeNull();
-    });
-
-    test("deletes goal for future year", async () => {
-      const futureYear = new Date().getFullYear() + 1;
-      const created = await readingGoalsService.createGoal(null, futureYear, 40);
-
-      await readingGoalsService.deleteGoal(created.id);
-
-      const retrieved = await readingGoalsService.getGoal(null, futureYear);
       expect(retrieved).toBeNull();
     });
 

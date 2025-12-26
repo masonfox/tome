@@ -10,7 +10,7 @@
 ### Session 2025-11-27
 
 - Q: Book Completion Integration Point - How should the annual goals feature integrate with existing book completion tracking? → A: Use existing book completion date field (completedDate or similar) from the reading_sessions/books table without creating new tracking mechanisms
-- Q: Dashboard Widget Visibility for Past Years - Should the dashboard show historical goals from past years or only the current year? → A: Show only the current year's goal on the dashboard; past/future years are viewable only in Settings
+- Q: Dashboard Widget Visibility for Past Years - Should the dashboard show historical goals from past years or only the current year? → A: Show only the current year's goal on the dashboard; past years are viewable only in Settings
 - Q: Historical Goal Data Retention - How should the system handle goals from past years? → A: Keep all historical goals indefinitely; allow users to view but not edit past years
 - Q: Projected Finish Date Early in Year - When should the system start showing projected finish date predictions? → A: Show projection only after at least 14 days have passed OR at least 2 books completed, whichever comes first
 - Q: Goal Data Privacy and Visibility - Should reading goals be shareable or visible to other users? → A: Goals are private to each user; no sharing or visibility to other users
@@ -28,7 +28,7 @@
 
 ### User Story 1 - Set Annual Reading Goal (Priority: P1)
 
-A user wants to set a goal for how many books they aim to read during a specific calendar year. They navigate to the Goals page via bottom navigation, and can create or edit goals through a modal interface. Users can create and edit goals for the current year and future years. Historical goals (past years) are viewable but cannot be edited.
+A user wants to set a goal for how many books they aim to read during a specific calendar year. They navigate to the Goals page via bottom navigation, and can create or edit goals through a modal interface. Users can create and edit goals for the current year only. Historical goals (past years) are viewable but cannot be edited.
 
 **Why this priority**: This is the foundation of the entire feature. Without the ability to set a goal, none of the tracking or visualization features can function. This delivers immediate value by allowing users to commit to a reading target.
 
@@ -111,7 +111,7 @@ A user wants to see which specific books they completed in a given year while vi
 - What happens on January 1st when switching to a new year? The Goals page automatically displays the new year's goal (if set) with 0 books completed in the year selector. If no goal exists for the new year, the Goals page prompts the user to create one. Previous year's goal remains accessible via the year selector dropdown for historical reference.
 - How does the system handle leap years in pace calculations? Leap years use 366 days instead of 365 when calculating daily pace (goal / days in year).
 - What if a user completes 100 books against a goal of 10? Progress bar displays at 100% with "Goal exceeded!" indicator and shows actual completion (e.g., "100 / 10 books - 1000%").
-- Can users edit goals from previous years? No. Historical goals (years before the current year) are read-only and preserved for reference. Only current and future year goals can be edited.
+- Can users edit goals from previous years? No. Historical goals (years before the current year) are read-only and preserved for reference. Only current year goals can be edited.
 - When does the projected finish date appear? The system shows projected finish date only when there's sufficient data for a reliable prediction: either 14+ days have elapsed in the year OR the user has completed 2+ books, whichever comes first. Before this threshold, the projection is hidden.
 
 ## Requirements *(mandatory)*
@@ -134,7 +134,7 @@ A user wants to see which specific books they completed in a given year while vi
 - **FR-014**: System MUST persist goal changes and immediately reflect updates in all progress calculations
 - **FR-015**: System MUST validate that year values are positive four-digit integers representing valid calendar years
 - **FR-016**: Goals page MUST display selected year's goal with year selector dropdown; only years with created goals are shown in the selector
-- **FR-017**: System MUST allow editing goals for current and future years via modal interface on Goals page; goals for past years are read-only
+- **FR-017**: System MUST allow editing goals for current year only via modal interface on Goals page; goals for past years are read-only
 - **FR-018**: System MUST retain all historical goals indefinitely for user reference, accessible via year selector on Goals page
 - **FR-019**: System MUST ensure reading goals are private to each user with no sharing or cross-user visibility
 - **FR-020**: System MUST provide month-by-month bar chart visualization of books completed within a selected year

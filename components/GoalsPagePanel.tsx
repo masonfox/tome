@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
+import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "./YearSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";
+import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "./CompletedBooksSection";
 import { GoalsOnboarding } from "./GoalsOnboarding";
+import BaseModal from "./BaseModal";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -22,23 +24,21 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
-  const [mounted, setMounted] = useState(false);
 
   const availableYears = useMemo(() => 
     Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a),
     [allGoals]
   );
 
-  // Track if component is mounted for portal
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // Goal data query
   const { data: currentGoalData, isLoading: goalLoading, error: goalError } = useQuery({
     queryKey: ['reading-goal', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
+      // 404 is expected when no goal exists for the year - return null instead of throwing
+      if (response.status === 404) {
+        return null;
+      }
       if (!response.ok) {
         throw new Error(`Failed to fetch goal data: ${response.statusText}`);
       }
@@ -49,7 +49,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   });
 
   // Monthly breakdown query
-  const { data: monthlyData = [] } = useQuery({
+  const { data: monthlyData = [], isLoading: monthlyLoading } = useQuery({
     queryKey: ['monthly-breakdown', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
@@ -157,10 +157,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     <div className="space-y-8 rounded-md">
       {/* Year Selector */}
       {availableYears.length > 0 && (
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-serif font-bold text-[var(--heading-text)]">
-            Reading Goals
-          </h2>
+        <div className="flex items-center justify-start">
           <YearSelector
             years={availableYears}
             selectedYear={selectedYear}
@@ -178,9 +175,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
       {/* Current Goal Display */}
       {loading ? (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-16 text-center">
-          <p className="text-[var(--subheading-text)] font-medium">Loading...</p>
-        </div>
+        <ReadingGoalWidgetSkeleton />
       ) : currentGoalData ? (
         <ReadingGoalWidget 
           goalData={currentGoalData}
@@ -202,39 +197,39 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         </div>
       )}
 
-      {/* Modal Overlay - Rendered via Portal to document.body */}
-      {mounted && isModalOpen && createPortal(
-        <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[100] p-4 animate-fade-in"
-          onClick={handleCloseModal}
-        >
-          <div 
-            className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm shadow-lg p-6 max-w-md w-full animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ReadingGoalForm
-              mode={modalMode}
-              existingGoal={modalMode === "edit" ? currentGoalData?.goal : undefined}
-              onSuccess={handleSuccess}
-              onCancel={handleCloseModal}
-            />
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Edit/Create Goal Modal */}
+      <BaseModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={modalMode === "create" ? "Create Reading Goal" : "Edit Reading Goal"}
+        subtitle={`Set your reading goal for ${selectedYear}`}
+        actions={<></>}
+        size="md"
+      >
+        <ReadingGoalForm
+          mode={modalMode}
+          existingGoal={modalMode === "edit" ? currentGoalData?.goal : undefined}
+          onSuccess={handleSuccess}
+          onCancel={handleCloseModal}
+        />
+      </BaseModal>
 
       {/* Monthly Chart - Only show for past and current years */}
-      {currentGoalData && monthlyData.length > 0 && selectedYear <= new Date().getFullYear() && (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6">
-          <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
-            {selectedYear < new Date().getFullYear() 
-              ? "Monthly Breakdown" 
-              : "Monthly Progress"}
-          </h3>
-          <ReadingGoalChart
-            monthlyData={monthlyData}
-          />
-        </div>
+      {currentGoalData && selectedYear <= new Date().getFullYear() && (
+        monthlyLoading ? (
+          <ReadingGoalChartSkeleton />
+        ) : monthlyData.length > 0 ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 pb-4">
+            <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
+              {selectedYear < new Date().getFullYear() 
+                ? "Monthly Breakdown" 
+                : "Monthly Progress"}
+            </h3>
+            <ReadingGoalChart
+              monthlyData={monthlyData}
+            />
+          </div>
+        ) : null
       )}
 
       {/* Completed Books Section - Only show for past and current years */}
