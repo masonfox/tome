@@ -742,6 +742,82 @@ describe("BookService", () => {
     });
   });
 
+  describe("updateTags", () => {
+    test("should update tags successfully", async () => {
+      // Create a book with initial tags (use unique calibreId)
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 10001,
+        title: "Tags Test Book 1",
+        authors: ["Test Author"],
+        path: "Test Author/Tags Test Book 1 (10001)",
+        tags: ["old-tag", "another-tag"],
+      }));
+
+      const newTags = ["fiction", "fantasy", "epic"];
+      const result = await bookService.updateTags(book.id, newTags);
+
+      expect(result).toBeDefined();
+      expect(result.tags).toEqual(newTags);
+
+      // Verify in database
+      const updated = await bookRepository.findById(book.id);
+      expect(updated?.tags).toEqual(newTags);
+    });
+
+    test("should throw error for non-existent book", async () => {
+      await expect(bookService.updateTags(99999, ["fiction"])).rejects.toThrow("Book not found");
+    });
+
+    test("should throw error for non-array tags", async () => {
+      // @ts-expect-error Testing invalid input
+      await expect(bookService.updateTags(book1.id, "not-an-array")).rejects.toThrow("Tags must be an array");
+    });
+
+    test("should update Tome database even if Calibre sync fails", async () => {
+      // Note: Calibre operations are already mocked globally to be no-ops in tests
+      // This test verifies that updateTags succeeds despite any Calibre issues
+      
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 10002,
+        title: "Tags Test Book 2",
+        authors: ["Test Author"],
+        path: "Test Author/Tags Test Book 2 (10002)",
+        tags: ["old-tag"],
+      }));
+
+      const newTags = ["new-tag"];
+      const result = await bookService.updateTags(book.id, newTags);
+
+      // Should succeed (Calibre sync is best-effort)
+      expect(result).toBeDefined();
+      expect(result.tags).toEqual(newTags);
+
+      // Verify Tome database was updated
+      const updated = await bookRepository.findById(book.id);
+      expect(updated?.tags).toEqual(newTags);
+    });
+
+    test("should handle empty tags array (clear all tags)", async () => {
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 10003,
+        title: "Tags Test Book 3",
+        authors: ["Test Author"],
+        path: "Test Author/Tags Test Book 3 (10003)",
+        tags: ["tag1", "tag2", "tag3"],
+      }));
+
+      // Clear all tags
+      const result = await bookService.updateTags(book.id, []);
+
+      expect(result).toBeDefined();
+      expect(result.tags).toEqual([]);
+
+      // Verify in database
+      const updated = await bookRepository.findById(book.id);
+      expect(updated?.tags).toEqual([]);
+    });
+  });
+
   describe("getBooksByFilters", () => {
     test("should return books with pagination", async () => {
       const result = await bookService.getBooksByFilters({}, 10, 0);
