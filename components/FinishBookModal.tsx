@@ -67,9 +67,10 @@ export default function FinishBookModal({
     logger.debug({ isOpen, bookId }, 'FinishBookModal state changed');
   }, [isOpen, bookId]);
 
-  const handleSubmit = () => {
-    onConfirm(rating, review || undefined);
+  const handleSubmit = async () => {
+    await onConfirm(rating, review || undefined);
     clearDraft(); // Clear draft after successful submission
+    onClose(); // Explicitly close the modal after successful confirmation
   };
 
   const handleClose = () => {
