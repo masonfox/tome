@@ -4,11 +4,11 @@ import type { ReadingGoal } from "@/lib/db/schema";
 
 interface CreateGoalPayload {
   year: number;
-  targetBooks: number;
+  booksGoal: number;
 }
 
 interface UpdateGoalPayload {
-  targetBooks: number;
+  booksGoal: number;
 }
 
 /**
@@ -44,7 +44,10 @@ export function useReadingGoals() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create reading goal');
+        const errorMessage = typeof errorData.error === 'object' 
+          ? errorData.error.message 
+          : errorData.error || 'Failed to create reading goal';
+        throw new Error(errorMessage);
       }
 
       return response.json();
@@ -69,7 +72,10 @@ export function useReadingGoals() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update reading goal');
+        const errorMessage = typeof errorData.error === 'object' 
+          ? errorData.error.message 
+          : errorData.error || 'Failed to update reading goal';
+        throw new Error(errorMessage);
       }
 
       return response.json();
@@ -92,7 +98,10 @@ export function useReadingGoals() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete reading goal');
+        const errorMessage = typeof errorData.error === 'object' 
+          ? errorData.error.message 
+          : errorData.error || 'Failed to delete reading goal';
+        throw new Error(errorMessage);
       }
 
       return response.json();
