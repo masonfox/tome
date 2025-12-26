@@ -64,11 +64,6 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    # Skip tests if we just created a tag (they'll run again when the tag triggers the workflow)
-    if: |
-      always() && 
-      (needs.auto-tag.outputs.tag_created != 'true' || github.event_name == 'workflow_dispatch')
-    needs: [auto-tag]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
