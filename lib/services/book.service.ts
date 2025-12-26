@@ -315,4 +315,231 @@ export class BookService {
       throw error;
     }
   }
+
+  /**
+   * Get tag statistics with book counts
+   * 
+   * @returns Promise resolving to array of tags with their book counts
+   * @example
+   * const stats = await bookService.getTagStats();
+   * // returns: [{ name: "fantasy", bookCount: 23 }, ...]
+   */
+  async getTagStats(): Promise<Array<{ name: string; bookCount: number }>> {
+    return bookRepository.getTagStats();
+  }
+
+  /**
+   * Get all books with a specific tag
+   * 
+   * @param tagName - The tag name to filter by
+   * @param limit - Maximum number of books to return (default: 50)
+   * @param skip - Number of books to skip for pagination (default: 0)
+   * @returns Promise resolving to object with books array and total count
+   */
+  async getBooksByTag(
+    tagName: string,
+    limit: number = 50,
+    skip: number = 0
+  ): Promise<{ books: Book[]; total: number }> {
+    return bookRepository.findByTag(tagName, limit, skip);
+  }
+
+  /**
+   * Rename a tag across all books and sync to Calibre
+   * 
+   * @param oldName - The current tag name
+   * @param newName - The new tag name
+   * @returns Promise resolving to object with number of books updated
+   * @throws {Error} If tag rename fails
+   */
+  async renameTag(oldName: string, newName: string): Promise<{ booksUpdated: number }> {
+    // Validate inputs
+    if (!oldName || !newName) {
+      throw new Error("Tag names cannot be empty");
+    }
+
+    if (oldName === newName) {
+      throw new Error("Old and new tag names must be different");
+    }
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    // Rename in Tome database
+    const booksUpdated = await bookRepository.renameTag(oldName, newName);
+
+    // Sync to Calibre for each affected book (best effort)
+    try {
+      const booksWithTag = await bookRepository.findByTag(newName, booksUpdated, 0);
+      
+      for (const book of booksWithTag.books) {
+        try {
+          await this.syncTagsToCalibre(book.calibreId, book.tags);
+        } catch (error) {
+          logger.error({ err: error, bookId: book.id }, "Failed to sync renamed tag to Calibre");
+        }
+      }
+    } catch (error) {
+      logger.error({ err: error, oldName, newName }, "Failed to sync renamed tags to Calibre");
+    }
+
+    logger.info({ oldName, newName, booksUpdated }, "Renamed tag");
+
+    return { booksUpdated };
+  }
+
+  /**
+   * Delete a tag from all books and sync to Calibre
+   * 
+   * @param tagName - The tag name to delete
+   * @returns Promise resolving to object with number of books updated
+   * @throws {Error} If tag deletion fails
+   */
+  async deleteTag(tagName: string): Promise<{ booksUpdated: number }> {
+    // Validate input
+    if (!tagName) {
+      throw new Error("Tag name cannot be empty");
+    }
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    // Get books with this tag before deletion (for Calibre sync)
+    const booksWithTag = await bookRepository.findByTag(tagName, 1000, 0);
+
+    // Delete from Tome database
+    const booksUpdated = await bookRepository.deleteTag(tagName);
+
+    // Sync to Calibre for each affected book (best effort)
+    try {
+      for (const book of booksWithTag.books) {
+        try {
+          // Refetch book to get updated tags after deletion
+          const updatedBook = await bookRepository.findById(book.id);
+          if (updatedBook) {
+            await this.syncTagsToCalibre(book.calibreId, updatedBook.tags);
+          }
+        } catch (error) {
+          logger.error({ err: error, bookId: book.id }, "Failed to sync deleted tag to Calibre");
+        }
+      }
+    } catch (error) {
+      logger.error({ err: error, tagName }, "Failed to sync deleted tag to Calibre");
+    }
+
+    logger.info({ tagName, booksUpdated }, "Deleted tag");
+
+    return { booksUpdated };
+  }
+
+  /**
+   * Merge multiple source tags into a target tag and sync to Calibre
+   * 
+   * @param sourceTags - Array of tag names to merge from
+   * @param targetTag - The tag name to merge into
+   * @returns Promise resolving to object with number of books updated
+   * @throws {Error} If tag merge fails
+   */
+  async mergeTags(sourceTags: string[], targetTag: string): Promise<{ booksUpdated: number }> {
+    // Validate inputs
+    if (!Array.isArray(sourceTags) || sourceTags.length === 0) {
+      throw new Error("Source tags must be a non-empty array");
+    }
+
+    if (!targetTag) {
+      throw new Error("Target tag cannot be empty");
+    }
+
+    if (sourceTags.includes(targetTag)) {
+      throw new Error("Cannot merge a tag into itself");
+    }
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    // Merge in Tome database
+    const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
+
+    // Sync to Calibre for each affected book (best effort)
+    try {
+      const booksWithTag = await bookRepository.findByTag(targetTag, booksUpdated, 0);
+      
+      for (const book of booksWithTag.books) {
+        try {
+          await this.syncTagsToCalibre(book.calibreId, book.tags);
+        } catch (error) {
+          logger.error({ err: error, bookId: book.id }, "Failed to sync merged tag to Calibre");
+        }
+      }
+    } catch (error) {
+      logger.error({ err: error, sourceTags, targetTag }, "Failed to sync merged tags to Calibre");
+    }
+
+    logger.info({ sourceTags, targetTag, booksUpdated }, "Merged tags");
+
+    return { booksUpdated };
+  }
+
+  /**
+   * Bulk update tags for multiple books and sync to Calibre
+   * 
+   * @param bookIds - Array of book IDs to update
+   * @param action - Action to perform: "add" or "remove"
+   * @param tags - Array of tag names to add or remove
+   * @returns Promise resolving to object with number of books updated
+   * @throws {Error} If bulk update fails
+   */
+  async bulkUpdateTags(
+    bookIds: number[],
+    action: "add" | "remove",
+    tags: string[]
+  ): Promise<{ booksUpdated: number }> {
+    // Validate inputs
+    if (!Array.isArray(bookIds) || bookIds.length === 0) {
+      throw new Error("Book IDs must be a non-empty array");
+    }
+
+    if (!Array.isArray(tags) || tags.length === 0) {
+      throw new Error("Tags must be a non-empty array");
+    }
+
+    if (action !== "add" && action !== "remove") {
+      throw new Error("Action must be 'add' or 'remove'");
+    }
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    // Bulk update in Tome database
+    const tagsToAdd = action === "add" ? tags : [];
+    const tagsToRemove = action === "remove" ? tags : [];
+    
+    const booksUpdated = await bookRepository.bulkUpdateBookTags(
+      bookIds,
+      tagsToAdd,
+      tagsToRemove
+    );
+
+    // Sync to Calibre for each affected book (best effort)
+    try {
+      const updatedBooks = await bookRepository.findByIds(bookIds);
+      
+      for (const book of updatedBooks) {
+        try {
+          await this.syncTagsToCalibre(book.calibreId, book.tags);
+        } catch (error) {
+          logger.error({ err: error, bookId: book.id }, "Failed to sync bulk tag update to Calibre");
+        }
+      }
+    } catch (error) {
+      logger.error({ err: error, bookIds, action, tags }, "Failed to sync bulk tag updates to Calibre");
+    }
+
+    logger.info({ bookIds, action, tags, booksUpdated }, "Bulk updated tags");
+
+    return { booksUpdated };
+  }
 }
+
+// Singleton instance
+export const bookService = new BookService();
