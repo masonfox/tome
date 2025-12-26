@@ -702,3 +702,94 @@ describe("Calibre Write Operations - Tag Management", () => {
     });
   });
 });
+
+describe("Calibre Write Operations - Error Logging", () => {
+  let errorTestDb: Database;
+  
+  beforeAll(() => {
+    errorTestDb = new Database(":memory:");
+    createCalibreRatingsSchema(errorTestDb);
+    insertTestBooks(errorTestDb);
+  });
+
+  afterAll(() => {
+    errorTestDb.close();
+  });
+
+  beforeEach(() => {
+    // Clear mock call history before each test
+    mockError.mockClear();
+    mockInfo.mockClear();
+    
+    // Recreate schema in case previous test broke it
+    try {
+      errorTestDb.run("DROP TABLE IF EXISTS books_ratings_link");
+      errorTestDb.run("DROP TABLE IF EXISTS ratings");
+      errorTestDb.run("DROP TABLE IF EXISTS books_tags_link");
+      errorTestDb.run("DROP TABLE IF EXISTS tags");
+      errorTestDb.run("DROP TABLE IF EXISTS books");
+    } catch (e) {
+      // Ignore errors
+    }
+    createCalibreRatingsSchema(errorTestDb);
+    insertTestBooks(errorTestDb);
+  });
+
+  describe("Error Logging", () => {
+    test("should log error when rating update fails", () => {
+      mockError.mockClear();
+      
+      // Force an error by dropping a required table
+      errorTestDb.run("DROP TABLE ratings");
+      
+      // Attempt operation - should fail and log error
+      expect(() => {
+        updateCalibreRating(1, 5, errorTestDb);
+      }).toThrow("Failed to update rating in Calibre database");
+      
+      // Verify error was logged
+      expect(mockError).toHaveBeenCalled();
+    });
+    
+    test("should log error when tag update fails", () => {
+      mockError.mockClear();
+      
+      // Drop required table
+      errorTestDb.run("DROP TABLE tags");
+      
+      expect(() => {
+        updateCalibreTags(1, ["Fiction"], errorTestDb);
+      }).toThrow("Failed to update tags in Calibre database");
+      
+      expect(mockError).toHaveBeenCalled();
+    });
+    
+    test("should log error when rating read fails", () => {
+      mockError.mockClear();
+      
+      // Use empty database with no schema
+      const tempDb = new Database(":memory:");
+      
+      const result = readCalibreRating(1, tempDb);
+      
+      expect(result).toBeNull();
+      expect(mockError).toHaveBeenCalled();
+      
+      tempDb.close();
+    });
+    
+    test("should log error when tag read fails", () => {
+      mockError.mockClear();
+      
+      // Use empty database with no schema
+      const tempDb = new Database(":memory:");
+      
+      const result = readCalibreTags(1, tempDb);
+      
+      expect(result).toEqual([]);
+      expect(mockError).toHaveBeenCalled();
+      
+      tempDb.close();
+    });
+  });
+});
