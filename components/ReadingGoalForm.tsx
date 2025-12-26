@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Target, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -80,22 +80,6 @@ export function ReadingGoalForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Target className="w-6 h-6 text-[var(--accent)]" />
-          <h3 className="text-xl font-serif font-bold text-[var(--heading-text)]">
-            {mode === "create" ? "Create Reading Goal" : "Edit Reading Goal"}
-          </h3>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-[var(--foreground)]/60 hover:text-[var(--foreground)] transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
       {isPastYear && mode === "edit" && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-md p-4">
           <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">
