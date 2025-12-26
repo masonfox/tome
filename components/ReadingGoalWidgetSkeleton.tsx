@@ -8,23 +8,14 @@ export function ReadingGoalWidgetSkeleton() {
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative animate-pulse">
       {/* Header Section */}
-      <div className="mb-6">
-        {/* Pacing Indicator and Edit Button Row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="inline-flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-3 py-2">
-            {/* Pace indicator skeleton */}
-            <div className="h-5 bg-[var(--foreground)]/10 rounded w-24" />
-          </div>
-          
-          {/* Edit button skeleton */}
-          <div className="h-7 w-14 bg-[var(--foreground)]/10 rounded" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="inline-flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-3 py-2">
+          {/* Pace indicator skeleton */}
+          <div className="h-5 bg-[var(--foreground)]/10 rounded w-24" />
         </div>
         
-        {/* Subtitle Row */}
-        <div>
-          {/* Subtitle skeleton (e.g., "10 of 12 books completed") */}
-          <div className="h-5 bg-[var(--foreground)]/10 rounded w-40" />
-        </div>
+        {/* Edit button skeleton */}
+        <div className="h-7 w-14 bg-[var(--foreground)]/10 rounded" />
       </div>
 
       {/* Progress Bar */}

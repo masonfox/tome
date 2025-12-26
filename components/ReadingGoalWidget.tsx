@@ -78,30 +78,34 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   if (isPastYear) {
     return (
       <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-        {/* Header Section - Subtitle and Status Badge */}
+        {/* Header Section - Status Badge */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-[var(--subheading-text)] font-medium">
-            {booksCompleted} of {goal.booksGoal} books completed
-          </p>
-          
-          {!isExceeded && booksRemaining > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600">
-              <TrendingDown className="w-3.5 h-3.5" />
-              Fell short
-            </span>
-          )}
-          {isExceeded && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <Target className="w-3.5 h-3.5" />
-              Goal Exceeded!
-            </span>
-          )}
-          {!isExceeded && booksCompleted === goal.booksGoal && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <Target className="w-3.5 h-3.5" />
-              Goal Achieved!
-            </span>
-          )}
+          <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${
+            isExceeded
+              ? "border-2 border-emerald-600"
+              : booksCompleted === goal.booksGoal
+              ? "border-2 border-emerald-600"
+              : "border-2 border-orange-600"
+          }`}>
+            {!isExceeded && booksRemaining > 0 && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600">
+                <TrendingDown className="w-3.5 h-3.5" />
+                Fell short
+              </span>
+            )}
+            {isExceeded && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                <Target className="w-3.5 h-3.5" />
+                Goal Exceeded!
+              </span>
+            )}
+            {!isExceeded && booksCompleted === goal.booksGoal && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                <Target className="w-3.5 h-3.5" />
+                Goal Achieved!
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Achievement Bar */}
@@ -177,39 +181,37 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
       {/* Header Section */}
-      <div className="mb-6">
-        {/* Pacing Indicator and Edit Button Row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="inline-flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-3 py-2">
-            {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
-            {isExceeded && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                <Target className="w-3.5 h-3.5" />
-                Goal Exceeded!
-              </span>
-            )}
-          </div>
-          
-          {onEditClick && (
-            <button
-              onClick={onEditClick}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--foreground)]/30 rounded-sm transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                <path d="m15 5 4 4"/>
-              </svg>
-              Edit
-            </button>
+      <div className="flex items-center justify-between mb-6">
+        <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${
+          isExceeded
+            ? "border-2 border-emerald-600"
+            : paceStatus === "ahead"
+            ? "border-2 border-emerald-600"
+            : paceStatus === "on-track"
+            ? "border-2 border-[var(--accent)]"
+            : "border-2 border-orange-600"
+        }`}>
+          {!isExceeded && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
+          {isExceeded && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Target className="w-3.5 h-3.5" />
+              Goal Exceeded!
+            </span>
           )}
         </div>
         
-        {/* Subtitle Row */}
-        <div>
-          <p className="text-sm text-[var(--subheading-text)] font-medium">
-            {booksCompleted} of {goal.booksGoal} books completed
-          </p>
-        </div>
+        {onEditClick && (
+          <button
+            onClick={onEditClick}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              <path d="m15 5 4 4"/>
+            </svg>
+            Edit
+          </button>
+        )}
       </div>
 
       {/* Progress Bar */}

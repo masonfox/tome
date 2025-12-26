@@ -163,7 +163,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     <div className="space-y-8 rounded-md">
       {/* Year Selector */}
       {availableYears.length > 0 && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-start">
           <YearSelector
             years={availableYears}
             selectedYear={selectedYear}
