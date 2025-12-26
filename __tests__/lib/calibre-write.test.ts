@@ -515,36 +515,36 @@ describe("Calibre Write Operations - Tag Management", () => {
 
   describe("Tag Creation", () => {
     test("should create tags for book", () => {
-      updateCalibreTags(1, ["Fiction", "Science Fiction", "Classic"]);
+      updateCalibreTags(1, ["Fiction", "Science Fiction", "Classic"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual(["Classic", "Fiction", "Science Fiction"]); // Sorted alphabetically
     });
 
     test("should create single tag for book", () => {
-      updateCalibreTags(1, ["Fiction"]);
+      updateCalibreTags(1, ["Fiction"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual(["Fiction"]);
     });
 
     test("should handle empty tags array", () => {
-      updateCalibreTags(1, []);
+      updateCalibreTags(1, [], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual([]);
     });
 
     test("should reuse existing tags", () => {
       // Add tags to first book
-      updateCalibreTags(1, ["Fiction", "Classic"]);
+      updateCalibreTags(1, ["Fiction", "Classic"], tagTestDb);
       
       // Add same tags to second book - should reuse tag IDs
-      updateCalibreTags(2, ["Fiction", "Classic"]);
+      updateCalibreTags(2, ["Fiction", "Classic"], tagTestDb);
 
       // Verify both books have the tags
-      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
-      expect(readCalibreTags(2)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(2, tagTestDb)).toEqual(["Classic", "Fiction"]);
 
       // Verify only 2 tags exist in tags table (not 4)
       const tagCount = tagTestDb.prepare("SELECT COUNT(*) as count FROM tags").get() as { count: number };
@@ -552,16 +552,16 @@ describe("Calibre Write Operations - Tag Management", () => {
     });
 
     test("should filter out empty/whitespace tags", () => {
-      updateCalibreTags(1, ["Fiction", "", "  ", "Classic", "\t"]);
+      updateCalibreTags(1, ["Fiction", "", "  ", "Classic", "\t"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual(["Classic", "Fiction"]);
     });
 
     test("should remove duplicate tags", () => {
-      updateCalibreTags(1, ["Fiction", "fiction", "FICTION", "Classic"]);
+      updateCalibreTags(1, ["Fiction", "fiction", "FICTION", "Classic"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       // Note: Calibre is case-sensitive, so these would be different tags
       // Our implementation preserves the first occurrence
       expect(tags.length).toBeGreaterThan(0);
@@ -570,9 +570,9 @@ describe("Calibre Write Operations - Tag Management", () => {
     });
 
     test("should trim whitespace from tags", () => {
-      updateCalibreTags(1, ["  Fiction  ", " Classic "]);
+      updateCalibreTags(1, ["  Fiction  ", " Classic "], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual(["Classic", "Fiction"]);
     });
   });
@@ -580,88 +580,88 @@ describe("Calibre Write Operations - Tag Management", () => {
   describe("Tag Updates", () => {
     test("should replace existing tags", () => {
       // Set initial tags
-      updateCalibreTags(1, ["Fiction", "Classic"]);
-      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
+      updateCalibreTags(1, ["Fiction", "Classic"], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Classic", "Fiction"]);
 
       // Replace with new tags
-      updateCalibreTags(1, ["Science Fiction", "Adventure"]);
-      expect(readCalibreTags(1)).toEqual(["Adventure", "Science Fiction"]);
+      updateCalibreTags(1, ["Science Fiction", "Adventure"], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Adventure", "Science Fiction"]);
     });
 
     test("should clear all tags when empty array provided", () => {
       // Set initial tags
-      updateCalibreTags(1, ["Fiction", "Classic"]);
-      expect(readCalibreTags(1).length).toBe(2);
+      updateCalibreTags(1, ["Fiction", "Classic"], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb).length).toBe(2);
 
       // Clear all tags
-      updateCalibreTags(1, []);
-      expect(readCalibreTags(1)).toEqual([]);
+      updateCalibreTags(1, [], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual([]);
     });
 
     test("should update tags without affecting other books", () => {
       // Set tags for two books
-      updateCalibreTags(1, ["Fiction", "Classic"]);
-      updateCalibreTags(2, ["Non-Fiction", "Biography"]);
+      updateCalibreTags(1, ["Fiction", "Classic"], tagTestDb);
+      updateCalibreTags(2, ["Non-Fiction", "Biography"], tagTestDb);
 
       // Update first book's tags
-      updateCalibreTags(1, ["Science Fiction"]);
+      updateCalibreTags(1, ["Science Fiction"], tagTestDb);
 
       // Verify first book updated, second book unchanged
-      expect(readCalibreTags(1)).toEqual(["Science Fiction"]);
-      expect(readCalibreTags(2)).toEqual(["Biography", "Non-Fiction"]);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Science Fiction"]);
+      expect(readCalibreTags(2, tagTestDb)).toEqual(["Biography", "Non-Fiction"]);
     });
 
     test("should handle adding and removing tags in sequence", () => {
-      updateCalibreTags(1, ["Fiction"]);
-      expect(readCalibreTags(1)).toEqual(["Fiction"]);
+      updateCalibreTags(1, ["Fiction"], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Fiction"]);
 
-      updateCalibreTags(1, ["Fiction", "Classic"]);
-      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
+      updateCalibreTags(1, ["Fiction", "Classic"], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Classic", "Fiction"]);
 
-      updateCalibreTags(1, ["Classic"]);
-      expect(readCalibreTags(1)).toEqual(["Classic"]);
+      updateCalibreTags(1, ["Classic"], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Classic"]);
 
-      updateCalibreTags(1, []);
-      expect(readCalibreTags(1)).toEqual([]);
+      updateCalibreTags(1, [], tagTestDb);
+      expect(readCalibreTags(1, tagTestDb)).toEqual([]);
     });
   });
 
   describe("Tag Validation", () => {
     test("should throw error for non-array tags", () => {
       expect(() => {
-        updateCalibreTags(1, "Fiction" as any);
+        updateCalibreTags(1, "Fiction" as any, tagTestDb);
       }).toThrow("Tags must be an array");
     });
 
     test("should handle undefined gracefully", () => {
       expect(() => {
-        updateCalibreTags(1, undefined as any);
+        updateCalibreTags(1, undefined as any, tagTestDb);
       }).toThrow("Tags must be an array");
     });
 
     test("should handle null gracefully", () => {
       expect(() => {
-        updateCalibreTags(1, null as any);
+        updateCalibreTags(1, null as any, tagTestDb);
       }).toThrow("Tags must be an array");
     });
 
     test("should filter out non-string values", () => {
-      updateCalibreTags(1, ["Fiction", 123 as any, null as any, undefined as any, "Classic"]);
+      updateCalibreTags(1, ["Fiction", 123 as any, null as any, undefined as any, "Classic"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual(["Classic", "Fiction"]);
     });
   });
 
   describe("Multiple Books and Tags", () => {
     test("should handle multiple books with overlapping tags", () => {
-      updateCalibreTags(1, ["Fiction", "Classic"]);
-      updateCalibreTags(2, ["Fiction", "Modern"]);
-      updateCalibreTags(3, ["Non-Fiction"]);
+      updateCalibreTags(1, ["Fiction", "Classic"], tagTestDb);
+      updateCalibreTags(2, ["Fiction", "Modern"], tagTestDb);
+      updateCalibreTags(3, ["Non-Fiction"], tagTestDb);
 
-      expect(readCalibreTags(1)).toEqual(["Classic", "Fiction"]);
-      expect(readCalibreTags(2)).toEqual(["Fiction", "Modern"]);
-      expect(readCalibreTags(3)).toEqual(["Non-Fiction"]);
+      expect(readCalibreTags(1, tagTestDb)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(2, tagTestDb)).toEqual(["Fiction", "Modern"]);
+      expect(readCalibreTags(3, tagTestDb)).toEqual(["Non-Fiction"]);
 
       // Verify Fiction tag is shared (only 4 unique tags total)
       const tagCount = tagTestDb.prepare("SELECT COUNT(*) as count FROM tags").get() as { count: number };
@@ -670,23 +670,23 @@ describe("Calibre Write Operations - Tag Management", () => {
 
     test("should handle large number of tags", () => {
       const manyTags = Array.from({ length: 50 }, (_, i) => `Tag${i}`);
-      updateCalibreTags(1, manyTags);
+      updateCalibreTags(1, manyTags, tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags.length).toBe(50);
     });
   });
 
   describe("Edge Cases", () => {
     test("should return empty array for book with no tags", () => {
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toEqual([]);
     });
 
     test("should handle special characters in tag names", () => {
-      updateCalibreTags(1, ["Science-Fiction", "Action & Adventure", "Editor's Choice"]);
+      updateCalibreTags(1, ["Science-Fiction", "Action & Adventure", "Editor's Choice"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toContain("Science-Fiction");
       expect(tags).toContain("Action & Adventure");
       expect(tags).toContain("Editor's Choice");
@@ -694,9 +694,9 @@ describe("Calibre Write Operations - Tag Management", () => {
 
     test("should handle very long tag names", () => {
       const longTag = "A".repeat(200);
-      updateCalibreTags(1, [longTag, "Short"]);
+      updateCalibreTags(1, [longTag, "Short"], tagTestDb);
 
-      const tags = readCalibreTags(1);
+      const tags = readCalibreTags(1, tagTestDb);
       expect(tags).toContain(longTag);
       expect(tags).toContain("Short");
     });
