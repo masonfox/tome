@@ -169,31 +169,30 @@ function TagsPageContent() {
 
   return (
     <div className="max-w-[1400px] mx-auto">
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <TagManagementHeader
-          totalTags={tags.length}
-          totalBooks={totalBooks}
-          loading={tagsLoading}
-          onRefresh={handleRefresh}
-        />
+      {/* Header */}
+      <TagManagementHeader
+        totalTags={tags.length}
+        totalBooks={totalBooks}
+        loading={tagsLoading}
+        onRefresh={handleRefresh}
+      />
 
-        {/* Error states */}
-        {tagsError && (
-          <div className="mt-6 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
-            Error loading tags: {tagsError}
-          </div>
-        )}
-        {booksError && (
-          <div className="mt-6 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
-            Error loading books: {booksError}
-          </div>
-        )}
+      {/* Error states */}
+      {tagsError && (
+        <div className="mt-6 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
+          Error loading tags: {tagsError}
+        </div>
+      )}
+      {booksError && (
+        <div className="mt-6 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
+          Error loading books: {booksError}
+        </div>
+      )}
 
-        {/* Main content: Master-detail layout */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
-          {/* Tag list (left panel on desktop, full width on mobile) */}
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-2 md:p-4 overflow-hidden flex flex-col">
+      {/* Main content: Master-detail layout */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
+        {/* Tag list (left panel on desktop, full width on mobile) */}
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 overflow-hidden flex flex-col">
             <TagList
               tags={tags}
               selectedTag={selectedTag}
@@ -256,7 +255,6 @@ function TagsPageContent() {
           onConfirm={confirmMergeTags}
           loading={mergeLoading}
         />
-      </div>
     </div>
   );
 }
