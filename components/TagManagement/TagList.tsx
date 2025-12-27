@@ -192,7 +192,7 @@ export function TagList({
         {!checkboxMode ? (
           <button
             onClick={() => setCheckboxMode(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] transition-colors font-medium"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] hover:bg-[var(--foreground)]/5 transition-colors font-medium"
           >
             <CheckSquare className="w-4 h-4" />
             Select Multiple
