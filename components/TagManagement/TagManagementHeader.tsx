@@ -62,7 +62,8 @@ export function TagManagementHeader({
             type="checkbox"
             checked={confirmRemoval}
             onChange={(e) => onConfirmRemovalChange(e.target.checked)}
-            className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0"
+            className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+            style={{ accentColor: 'var(--accent)' }}
           />
           <span>Confirm before removing tags from books</span>
         </label>

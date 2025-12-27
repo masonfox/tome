@@ -47,7 +47,8 @@ export function TagItem({
             e.stopPropagation();
             onCheckboxChange(e.target.checked);
           }}
-          className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+          className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-[var(--accent)] cursor-pointer"
+          style={{ accentColor: 'var(--accent)' }}
         />
       )}
 
