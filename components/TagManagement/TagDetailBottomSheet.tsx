@@ -136,14 +136,14 @@ export function TagDetailBottomSheet({
         onClick={handleClose}
       />
       
-      {/* Bottom Sheet - takes 85% of screen height */}
-      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-[var(--card-bg)] border-t border-[var(--border-color)] shadow-2xl max-h-[85vh] rounded-t-2xl transition-transform duration-300 flex flex-col ${
+      {/* Bottom Sheet - full height */}
+      <div className={`fixed bottom-0 left-0 right-0 top-0 z-50 bg-[var(--card-bg)] transition-transform duration-300 flex flex-col ${
         isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
       }`}>
         {/* Header - sticky with drag handle */}
-        <div className="flex-shrink-0 bg-[var(--card-bg)] border-b border-[var(--border-color)] rounded-t-2xl">
+        <div className="flex-shrink-0 bg-[var(--card-bg)] border-b border-[var(--border-color)]">
           {/* Drag handle */}
-          <div className="flex justify-center py-2">
+          <div className="flex justify-center py-3">
             <div className="w-12 h-1 bg-[var(--foreground)]/20 rounded-full" />
           </div>
           
@@ -177,7 +177,7 @@ export function TagDetailBottomSheet({
         </div>
 
         {/* Content - scrollable */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-safe">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8">
           {loading ? (
             <div className="grid grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
