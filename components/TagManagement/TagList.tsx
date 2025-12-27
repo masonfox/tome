@@ -1,15 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, CheckSquare, X } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown } from "lucide-react";
 import { TagItem, type TagWithStats } from "./TagItem";
+import { TagListSkeleton } from "./TagListSkeleton";
 import { cn } from "@/utils/cn";
 
 type SortOption = "name-asc" | "name-desc" | "count-desc" | "count-asc";
 
+// Sort options with icons and labels
+const sortOptions = [
+  { value: "name-asc", label: "Name (A-Z)", icon: ArrowDownAZ },
+  { value: "name-desc", label: "Name (Z-A)", icon: ArrowUpAZ },
+  { value: "count-desc", label: "Most Books", icon: TrendingUp },
+  { value: "count-asc", label: "Least Books", icon: TrendingDown },
+] as const;
+
 interface TagListProps {
   tags: TagWithStats[];
   selectedTag: string | null;
+  loading?: boolean;
   onSelectTag: (tagName: string) => void;
   onRenameTag: (tagName: string) => void;
   onDeleteTag: (tagName: string) => void;
@@ -19,6 +29,7 @@ interface TagListProps {
 export function TagList({
   tags,
   selectedTag,
+  loading = false,
   onSelectTag,
   onRenameTag,
   onDeleteTag,
@@ -26,8 +37,23 @@ export function TagList({
 }: TagListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [checkboxMode, setCheckboxMode] = useState(false);
   const [checkedTags, setCheckedTags] = useState<Set<string>>(new Set());
+  
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Filter and sort tags
   const filteredAndSortedTags = useMemo(() => {
@@ -84,33 +110,83 @@ export function TagList({
     setCheckedTags(new Set());
   };
 
+  // Show loading skeleton if loading
+  if (loading) {
+    return <TagListSkeleton />;
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Search and controls */}
       <div className="space-y-3 mb-4">
         {/* Search bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--subheading-text)]" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--foreground)]/40" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search tags..."
-            className="w-full pl-10 pr-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] placeholder:text-[var(--subheading-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
           />
         </div>
 
         {/* Sort dropdown */}
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value as SortOption)}
-          className="w-full px-3 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-        >
-          <option value="name-asc">Name (A-Z)</option>
-          <option value="name-desc">Name (Z-A)</option>
-          <option value="count-desc">Most books</option>
-          <option value="count-asc">Least books</option>
-        </select>
+        <div className="relative" ref={sortDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setShowSortDropdown(!showSortDropdown)}
+            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] transition-colors flex items-center gap-2"
+          >
+            {(() => {
+              const currentOption = sortOptions.find(opt => opt.value === sortOption);
+              const Icon = currentOption?.icon || ArrowDownAZ;
+              return (
+                <>
+                  <Icon className="w-4 h-4 shrink-0 text-[var(--foreground)]/60" />
+                  <span className="flex-1 text-left text-sm">
+                    {currentOption?.label || "Name (A-Z)"}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 transition-transform shrink-0 text-[var(--foreground)]/60",
+                      showSortDropdown && "rotate-180"
+                    )}
+                  />
+                </>
+              );
+            })()}
+          </button>
+
+          {showSortDropdown && (
+            <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg overflow-hidden">
+              {sortOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setSortOption(option.value);
+                      setShowSortDropdown(false);
+                    }}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors text-sm",
+                      "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                      sortOption === option.value && "bg-[var(--accent)]/10"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 text-[var(--foreground)]/60 shrink-0" />
+                    <span className="flex-1">{option.label}</span>
+                    {sortOption === option.value && (
+                      <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Bulk operations toggle */}
         {!checkboxMode ? (
