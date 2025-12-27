@@ -780,45 +780,45 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable ol li::marker {
   text-decoration-color: var(--foreground);
 }
 
-/* Tag list scrollbar styling */
-.tag-list-scrollbar {
+/* Custom scrollbar utility for tag management views */
+.custom-scrollbar {
   /* Custom scrollbar styling for Firefox */
   scrollbar-width: thin;
   scrollbar-color: #d4cbbe #F0EAE3;
 }
 
-html[data-theme="dark"] .tag-list-scrollbar {
+html[data-theme="dark"] .custom-scrollbar {
   scrollbar-color: #4a4640 #1f1c19;
 }
 
 /* Custom scrollbar styling for WebKit browsers (Chrome, Safari, Edge) */
-.tag-list-scrollbar::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
 
-.tag-list-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: #F0EAE3;
   border-radius: 4px;
 }
 
-.tag-list-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background: #d4cbbe;
   border-radius: 4px;
 }
 
-.tag-list-scrollbar::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #c9a876;
 }
 
-html[data-theme="dark"] .tag-list-scrollbar::-webkit-scrollbar-track {
+html[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track {
   background: #1f1c19;
 }
 
-html[data-theme="dark"] .tag-list-scrollbar::-webkit-scrollbar-thumb {
+html[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #4a4640;
 }
 
-html[data-theme="dark"] .tag-list-scrollbar::-webkit-scrollbar-thumb:hover {
+html[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #a89968;
 }
 

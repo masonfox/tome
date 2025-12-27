@@ -168,7 +168,7 @@ export function TagDetailPanel({
       </div>
 
       {/* Books grid */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {loading ? (
           <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (

@@ -227,7 +227,7 @@ export function TagList({
       </div>
 
       {/* Tags list */}
-      <div className="flex-1 overflow-y-auto space-y-2 tag-list-scrollbar">
+      <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
         {filteredAndSortedTags.length === 0 ? (
           <div className="text-center py-8 text-[var(--subheading-text)]">
             {searchQuery ? "No tags found" : "No tags yet"}

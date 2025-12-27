@@ -209,7 +209,7 @@ export function TagDetailBottomSheet({
         </div>
 
         {/* Content - scrollable */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8 custom-scrollbar">
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
