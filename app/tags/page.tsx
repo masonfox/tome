@@ -28,6 +28,11 @@ function TagsPageContent() {
   const [tagToRename, setTagToRename] = useState<string>("");
   const [tagToDelete, setTagToDelete] = useState<{ name: string; bookCount: number } | null>(null);
   const [tagsToMerge, setTagsToMerge] = useState<string[]>([]);
+  
+  // Loading states for modals
+  const [renameLoading, setRenameLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [mergeLoading, setMergeLoading] = useState(false);
 
   // Sync selected tag with URL
   useEffect(() => {
@@ -70,6 +75,7 @@ function TagsPageContent() {
   };
 
   const confirmRenameTag = async (newName: string) => {
+    setRenameLoading(true);
     try {
       await renameTag(tagToRename, newName);
       toast.success(`Tag renamed to "${newName}"`);
@@ -79,8 +85,11 @@ function TagsPageContent() {
         setSelectedTag(newName);
         router.push(`/tags?tag=${encodeURIComponent(newName)}`);
       }
+      setRenameModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to rename tag");
+    } finally {
+      setRenameLoading(false);
     }
   };
 
@@ -96,6 +105,7 @@ function TagsPageContent() {
   const confirmDeleteTag = async () => {
     if (!tagToDelete) return;
 
+    setDeleteLoading(true);
     try {
       await deleteTag(tagToDelete.name);
       toast.success(`Tag "${tagToDelete.name}" deleted`);
@@ -105,8 +115,11 @@ function TagsPageContent() {
         setSelectedTag(null);
         router.push("/tags");
       }
+      setDeleteModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete tag");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -117,6 +130,7 @@ function TagsPageContent() {
   };
 
   const confirmMergeTags = async (targetTag: string) => {
+    setMergeLoading(true);
     try {
       await mergeTags(tagsToMerge, targetTag);
       toast.success(`Merged ${tagsToMerge.length} tags into "${targetTag}"`);
@@ -126,8 +140,11 @@ function TagsPageContent() {
         setSelectedTag(targetTag);
         router.push(`/tags?tag=${encodeURIComponent(targetTag)}`);
       }
+      setMergeModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to merge tags");
+    } finally {
+      setMergeLoading(false);
     }
   };
 
@@ -213,6 +230,7 @@ function TagsPageContent() {
           onClose={() => setRenameModalOpen(false)}
           tagName={tagToRename}
           onConfirm={confirmRenameTag}
+          loading={renameLoading}
         />
 
         <DeleteTagModal
@@ -221,6 +239,7 @@ function TagsPageContent() {
           tagName={tagToDelete?.name || ""}
           bookCount={tagToDelete?.bookCount || 0}
           onConfirm={confirmDeleteTag}
+          loading={deleteLoading}
         />
 
         <MergeTagsModal
@@ -228,6 +247,7 @@ function TagsPageContent() {
           onClose={() => setMergeModalOpen(false)}
           sourceTags={tagsToMerge}
           onConfirm={confirmMergeTags}
+          loading={mergeLoading}
         />
       </div>
     </div>

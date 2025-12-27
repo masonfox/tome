@@ -8,6 +8,7 @@ interface RenameTagModalProps {
   onClose: () => void;
   tagName: string;
   onConfirm: (newName: string) => void;
+  loading?: boolean;
 }
 
 export function RenameTagModal({
@@ -15,6 +16,7 @@ export function RenameTagModal({
   onClose,
   tagName,
   onConfirm,
+  loading = false,
 }: RenameTagModalProps) {
   const [newName, setNewName] = useState(tagName);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export function RenameTagModal({
       title="Rename Tag"
       subtitle={`Current name: "${tagName}"`}
       size="md"
+      loading={loading}
       actions={
         <div className="flex items-center justify-end gap-3">
           <button
@@ -69,7 +72,7 @@ export function RenameTagModal({
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={!newName.trim() || newName === tagName}
+            disabled={!newName.trim() || newName === tagName || loading}
             className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Rename

@@ -9,6 +9,7 @@ interface MergeTagsModalProps {
   onClose: () => void;
   sourceTags: string[];
   onConfirm: (targetTag: string) => void;
+  loading?: boolean;
 }
 
 export function MergeTagsModal({
@@ -16,6 +17,7 @@ export function MergeTagsModal({
   onClose,
   sourceTags,
   onConfirm,
+  loading = false,
 }: MergeTagsModalProps) {
   const [targetTag, setTargetTag] = useState(sourceTags[0] || "");
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export function MergeTagsModal({
       title="Merge Tags"
       subtitle={`Merging ${sourceTags.length} tags`}
       size="md"
+      loading={loading}
       actions={
         <div className="flex items-center justify-end gap-3">
           <button
@@ -65,7 +68,7 @@ export function MergeTagsModal({
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={!targetTag.trim()}
+            disabled={!targetTag.trim() || loading}
             className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <MergeIcon className="w-4 h-4" />

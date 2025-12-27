@@ -9,6 +9,7 @@ interface DeleteTagModalProps {
   tagName: string;
   bookCount: number;
   onConfirm: () => void;
+  loading?: boolean;
 }
 
 export function DeleteTagModal({
@@ -17,6 +18,7 @@ export function DeleteTagModal({
   tagName,
   bookCount,
   onConfirm,
+  loading = false,
 }: DeleteTagModalProps) {
   const handleConfirm = () => {
     onConfirm();
@@ -30,6 +32,7 @@ export function DeleteTagModal({
       title="Delete Tag"
       subtitle={`"${tagName}"`}
       size="md"
+      loading={loading}
       actions={
         <div className="flex items-center justify-end gap-3">
           <button
@@ -42,7 +45,8 @@ export function DeleteTagModal({
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium"
+            disabled={loading}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Delete Tag
           </button>
