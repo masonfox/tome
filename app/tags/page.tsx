@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { TagManagementHeader } from "@/components/TagManagement/TagManagementHeader";
 import { TagList } from "@/components/TagManagement/TagList";
 import { TagDetailPanel } from "@/components/TagManagement/TagDetailPanel";
+import { TagDetailBottomSheet } from "@/components/TagManagement/TagDetailBottomSheet";
 import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
 import { DeleteTagModal } from "@/components/TagManagement/DeleteTagModal";
 import { MergeTagsModal } from "@/components/TagManagement/MergeTagsModal";
@@ -192,14 +193,11 @@ function TagsPageContent() {
         {/* Main content: Master-detail layout */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
           {/* Tag list (left panel on desktop, full width on mobile) */}
-          <div
-            className={`${
-              selectedTag ? "hidden md:block" : "block"
-            } bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 overflow-hidden flex flex-col`}
-          >
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 overflow-hidden flex flex-col">
             <TagList
               tags={tags}
               selectedTag={selectedTag}
+              loading={tagsLoading}
               onSelectTag={handleSelectTag}
               onRenameTag={handleRenameTag}
               onDeleteTag={handleDeleteTag}
@@ -207,12 +205,8 @@ function TagsPageContent() {
             />
           </div>
 
-          {/* Tag detail panel (right panel on desktop, full width on mobile) */}
-          <div
-            className={`${
-              selectedTag ? "block" : "hidden md:block"
-            } bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6 overflow-hidden`}
-          >
+          {/* Tag detail panel (right panel on desktop only) */}
+          <div className="hidden md:block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6 overflow-hidden">
             <TagDetailPanel
               tagName={selectedTag}
               books={books}
@@ -222,6 +216,19 @@ function TagsPageContent() {
               onClose={handleCloseDetail}
             />
           </div>
+        </div>
+
+        {/* Mobile bottom sheet for tag detail */}
+        <div className="md:hidden">
+          <TagDetailBottomSheet
+            isOpen={!!selectedTag}
+            onClose={handleCloseDetail}
+            tagName={selectedTag}
+            books={books}
+            loading={booksLoading}
+            totalBooks={totalBooksInTag}
+            onRemoveTag={handleRemoveTagFromBook}
+          />
         </div>
 
         {/* Modals */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -104,19 +104,24 @@ export function TagDetailPanel({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border-color)]">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold text-[var(--heading-text)] truncate">
-            {tagName}
-          </h2>
-          <p className="text-sm text-[var(--subheading-text)] mt-1">
-            {loading ? (
-              <span className="inline-block h-4 w-20 bg-[var(--foreground)]/10 rounded animate-pulse" />
-            ) : (
-              <>
-                {totalBooks} {totalBooks === 1 ? "book" : "books"}
-              </>
-            )}
-          </p>
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold text-[var(--heading-text)] truncate">
+              {tagName}
+            </h2>
+            <p className="text-sm text-[var(--subheading-text)] mt-1">
+              {loading ? (
+                <span className="inline-block h-4 w-20 bg-[var(--foreground)]/10 rounded animate-pulse" />
+              ) : (
+                <>
+                  {totalBooks} {totalBooks === 1 ? "book" : "books"}
+                </>
+              )}
+            </p>
+          </div>
+          {loading && (
+            <Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin flex-shrink-0" />
+          )}
         </div>
 
         {onClose && (
