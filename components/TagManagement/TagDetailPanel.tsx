@@ -170,7 +170,7 @@ export function TagDetailPanel({
       {/* Books grid */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
@@ -191,7 +191,7 @@ export function TagDetailPanel({
             </p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {books.map((book) => (
               <BookCardSimple
                 key={book.id}

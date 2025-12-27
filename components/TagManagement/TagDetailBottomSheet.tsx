@@ -211,7 +211,7 @@ export function TagDetailBottomSheet({
         {/* Content - scrollable */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8">
           {loading ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
@@ -232,7 +232,7 @@ export function TagDetailBottomSheet({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {books.map((book) => (
                 <BookCardSimple
                   key={book.id}
