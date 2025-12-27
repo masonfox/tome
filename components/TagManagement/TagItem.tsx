@@ -32,10 +32,10 @@ export function TagItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer",
+        "group flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer shadow-sm",
         isSelected
-          ? "bg-[var(--accent)]/10 border-[var(--accent)]"
-          : "bg-[var(--card-bg)] border-[var(--border-color)] hover:border-[var(--accent)]/50"
+          ? "bg-[var(--accent)]/10 border-[var(--accent)] shadow-md"
+          : "bg-[var(--background)] border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:shadow-md"
       )}
       onClick={isCheckboxMode ? undefined : onSelect}
     >
