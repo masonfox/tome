@@ -159,7 +159,7 @@ export function TagDetailPanel({
         {onClose && (
           <button
             onClick={onClose}
-            className="md:hidden p-2 rounded-lg hover:bg-[var(--foreground)]/10 transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-[var(--foreground)]/10 transition-colors"
             title="Back to tags"
           >
             <X className="w-5 h-5" />
@@ -170,7 +170,7 @@ export function TagDetailPanel({
       {/* Books grid */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
@@ -191,7 +191,7 @@ export function TagDetailPanel({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {books.map((book) => (
               <BookCardSimple
                 key={book.id}

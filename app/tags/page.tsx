@@ -195,8 +195,8 @@ function TagsPageContent() {
       )}
 
       {/* Main content: Master-detail layout */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
-        {/* Tag list (left panel on desktop, full width on mobile) */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
+        {/* Tag list (left panel on desktop, full width on mobile/tablet) */}
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 overflow-hidden flex flex-col">
             <TagList
               tags={tags}
@@ -209,8 +209,8 @@ function TagsPageContent() {
             />
           </div>
 
-          {/* Tag detail panel (right panel on desktop only) */}
-          <div className="hidden md:block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6 overflow-hidden">
+          {/* Tag detail panel (right panel on large desktop only) */}
+          <div className="hidden lg:block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6 overflow-hidden">
             <TagDetailPanel
               tagName={selectedTag}
               books={books}
@@ -223,8 +223,8 @@ function TagsPageContent() {
           </div>
         </div>
 
-        {/* Mobile bottom sheet for tag detail */}
-        <div className="md:hidden">
+        {/* Bottom sheet for tag detail (mobile + tablet) */}
+        <div className="lg:hidden">
           <TagDetailBottomSheet
             isOpen={!!selectedTag}
             onClose={handleCloseDetail}
