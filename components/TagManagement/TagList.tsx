@@ -118,7 +118,7 @@ export function TagList({
   return (
     <div className="flex flex-col h-full">
       {/* Search and controls - grouped with background */}
-      <div className="bg-amber-50 [html[data-theme='dark']_&]:bg-stone-700 rounded-lg p-3 mb-4 border border-[var(--border-color)]">
+      <div className="bg-[var(--card-bg)] [html[data-theme='dark']_&]:bg-stone-700 rounded-lg p-3 mb-4 border border-[var(--border-color)]">
         <div className="space-y-3">
           {/* Search bar */}
           <div className="relative">
