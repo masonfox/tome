@@ -123,7 +123,7 @@ export function MergeTagsModal({
 
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <p className="text-sm text-[var(--foreground)]/70">
-              <span className="font-medium">Note:</span> All books with any of the source tags will be tagged with "{targetTag}". 
+              <span className="font-medium">Note:</span> All books with any of the source tags will be tagged with &quot;{targetTag}&quot;. 
               The source tags will then be removed from the system.
             </p>
           </div>
