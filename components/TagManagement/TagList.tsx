@@ -117,111 +117,113 @@ export function TagList({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search and controls */}
-      <div className="space-y-3 mb-4">
-        {/* Search bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--foreground)]/40" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tags..."
-            className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
-          />
-        </div>
+      {/* Search and controls - grouped with background */}
+      <div className="bg-amber-50 [html[data-theme='dark']_&]:bg-stone-700 rounded-lg p-3 mb-4 border border-[var(--border-color)]">
+        <div className="space-y-3">
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--foreground)]/40" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tags..."
+              className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
+            />
+          </div>
 
-        {/* Sort dropdown */}
-        <div className="relative" ref={sortDropdownRef}>
-          <button
-            type="button"
-            onClick={() => setShowSortDropdown(!showSortDropdown)}
-            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] transition-colors flex items-center gap-2"
-          >
-            {(() => {
-              const currentOption = sortOptions.find(opt => opt.value === sortOption);
-              const Icon = currentOption?.icon || ArrowDownAZ;
-              return (
-                <>
-                  <Icon className="w-4 h-4 shrink-0 text-[var(--foreground)]/60" />
-                  <span className="flex-1 text-left text-sm">
-                    {currentOption?.label || "Name (A-Z)"}
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform shrink-0 text-[var(--foreground)]/60",
-                      showSortDropdown && "rotate-180"
-                    )}
-                  />
-                </>
-              );
-            })()}
-          </button>
-
-          {showSortDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg overflow-hidden">
-              {sortOptions.map((option) => {
-                const Icon = option.icon;
+          {/* Sort dropdown */}
+          <div className="relative" ref={sortDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] transition-colors flex items-center gap-2"
+            >
+              {(() => {
+                const currentOption = sortOptions.find(opt => opt.value === sortOption);
+                const Icon = currentOption?.icon || ArrowDownAZ;
                 return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setSortOption(option.value);
-                      setShowSortDropdown(false);
-                    }}
-                    className={cn(
-                      "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors text-sm",
-                      "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                      sortOption === option.value && "bg-[var(--accent)]/10"
-                    )}
-                  >
-                    <Icon className="w-4 h-4 text-[var(--foreground)]/60 shrink-0" />
-                    <span className="flex-1">{option.label}</span>
-                    {sortOption === option.value && (
-                      <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
-                    )}
-                  </button>
+                  <>
+                    <Icon className="w-4 h-4 shrink-0 text-[var(--foreground)]/60" />
+                    <span className="flex-1 text-left text-sm">
+                      {currentOption?.label || "Name (A-Z)"}
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 transition-transform shrink-0 text-[var(--foreground)]/60",
+                        showSortDropdown && "rotate-180"
+                      )}
+                    />
+                  </>
                 );
-              })}
+              })()}
+            </button>
+
+            {showSortDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg overflow-hidden">
+                {sortOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setSortOption(option.value);
+                        setShowSortDropdown(false);
+                      }}
+                      className={cn(
+                        "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors text-sm",
+                        "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                        sortOption === option.value && "bg-[var(--accent)]/10"
+                      )}
+                    >
+                      <Icon className="w-4 h-4 text-[var(--foreground)]/60 shrink-0" />
+                      <span className="flex-1">{option.label}</span>
+                      {sortOption === option.value && (
+                        <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Bulk operations toggle */}
+          {!checkboxMode ? (
+            <button
+              onClick={() => setCheckboxMode(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] hover:bg-[var(--foreground)]/5 transition-colors font-medium"
+            >
+              <CheckSquare className="w-4 h-4" />
+              Select Multiple
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-[var(--subheading-text)]">
+                <span>{checkedTags.size} selected</span>
+                <button
+                  onClick={handleCancelCheckboxMode}
+                  className="text-[var(--accent)] hover:text-[var(--light-accent)] font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+              <button
+                onClick={handleMergeClick}
+                disabled={checkedTags.size < 2}
+                className={cn(
+                  "w-full px-4 py-2 rounded-lg font-medium transition-colors",
+                  checkedTags.size >= 2
+                    ? "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
+                    : "bg-[var(--foreground)]/10 text-[var(--subheading-text)] cursor-not-allowed"
+                )}
+              >
+                Merge Selected
+              </button>
             </div>
           )}
         </div>
-
-        {/* Bulk operations toggle */}
-        {!checkboxMode ? (
-          <button
-            onClick={() => setCheckboxMode(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] hover:bg-[var(--foreground)]/5 transition-colors font-medium"
-          >
-            <CheckSquare className="w-4 h-4" />
-            Select Multiple
-          </button>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm text-[var(--subheading-text)]">
-              <span>{checkedTags.size} selected</span>
-              <button
-                onClick={handleCancelCheckboxMode}
-                className="text-[var(--accent)] hover:text-[var(--light-accent)] font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-            <button
-              onClick={handleMergeClick}
-              disabled={checkedTags.size < 2}
-              className={cn(
-                "w-full px-4 py-2 rounded-lg font-medium transition-colors",
-                checkedTags.size >= 2
-                  ? "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
-                  : "bg-[var(--foreground)]/10 text-[var(--subheading-text)] cursor-not-allowed"
-              )}
-            >
-              Merge Selected
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Tags list */}
