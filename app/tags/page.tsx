@@ -35,6 +35,9 @@ function TagsPageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
 
+  // Settings state
+  const [confirmTagRemoval, setConfirmTagRemoval] = useState(true);
+
   // Sync selected tag with URL
   useEffect(() => {
     if (selectedTagFromURL !== selectedTag) {
@@ -175,6 +178,8 @@ function TagsPageContent() {
         totalBooks={totalBooks}
         loading={tagsLoading}
         onRefresh={handleRefresh}
+        confirmRemoval={confirmTagRemoval}
+        onConfirmRemovalChange={setConfirmTagRemoval}
       />
 
       {/* Error states */}
@@ -213,6 +218,7 @@ function TagsPageContent() {
               totalBooks={totalBooksInTag}
               onRemoveTag={handleRemoveTagFromBook}
               onClose={handleCloseDetail}
+              confirmRemoval={confirmTagRemoval}
             />
           </div>
         </div>
@@ -227,6 +233,7 @@ function TagsPageContent() {
             loading={booksLoading}
             totalBooks={totalBooksInTag}
             onRemoveTag={handleRemoveTagFromBook}
+            confirmRemoval={confirmTagRemoval}
           />
         </div>
 

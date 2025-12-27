@@ -5,6 +5,7 @@ import { X, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { RemoveTagFromBookModal } from "./RemoveTagFromBookModal";
 
 export interface Book {
   id: number;
@@ -21,6 +22,7 @@ interface TagDetailBottomSheetProps {
   loading: boolean;
   totalBooks: number;
   onRemoveTag: (bookId: number) => void;
+  confirmRemoval: boolean;
 }
 
 // Animation duration for closing transition
@@ -29,59 +31,88 @@ const CLOSE_ANIMATION_MS = 300;
 function BookCardSimple({
   book,
   onRemove,
+  confirmRemoval,
+  tagName,
 }: {
   book: Book;
   onRemove: () => void;
+  confirmRemoval: boolean;
+  tagName: string;
 }) {
   const [imageError, setImageError] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+
+  const handleRemoveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (confirmRemoval) {
+      setShowRemoveModal(true);
+    } else {
+      onRemove();
+    }
+  };
+
+  const handleConfirmRemove = () => {
+    onRemove();
+    setShowRemoveModal(false);
+  };
 
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg overflow-hidden group hover:shadow-md transition-shadow">
-      <div className="relative">
+    <>
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="relative">
+          <Link href={`/books/${book.id}`}>
+            <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
+              {!imageError ? (
+                <Image
+                  src={`/api/books/${book.calibreId}/cover`}
+                  alt={book.title}
+                  fill
+                  loading="lazy"
+                  className="object-cover group-hover:opacity-95 transition-opacity"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <BookOpen className="w-12 h-12 text-[var(--accent)]/40" />
+              )}
+            </div>
+          </Link>
+
+          {/* Remove button overlay */}
+          <button
+            onClick={handleRemoveClick}
+            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md"
+            title="Remove tag from book"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
         <Link href={`/books/${book.id}`}>
-          <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
-            {!imageError ? (
-              <Image
-                src={`/api/books/${book.calibreId}/cover`}
-                alt={book.title}
-                fill
-                loading="lazy"
-                className="object-cover group-hover:opacity-95 transition-opacity"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <BookOpen className="w-12 h-12 text-[var(--accent)]/40" />
+          <div className="p-3 space-y-1">
+            <h3 className="text-sm font-semibold text-[var(--heading-text)] line-clamp-2 leading-snug">
+              {book.title}
+            </h3>
+            {book.authors && book.authors.length > 0 && (
+              <p className="text-xs text-[var(--subheading-text)] line-clamp-1">
+                {book.authors.join(", ")}
+              </p>
             )}
           </div>
         </Link>
-
-        {/* Remove button overlay */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onRemove();
-          }}
-          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md"
-          title="Remove tag from book"
-        >
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
-      <Link href={`/books/${book.id}`}>
-        <div className="p-3 space-y-1">
-          <h3 className="text-sm font-semibold text-[var(--heading-text)] line-clamp-2 leading-snug">
-            {book.title}
-          </h3>
-          {book.authors && book.authors.length > 0 && (
-            <p className="text-xs text-[var(--subheading-text)] line-clamp-1">
-              {book.authors.join(", ")}
-            </p>
-          )}
-        </div>
-      </Link>
-    </div>
+      {confirmRemoval && (
+        <RemoveTagFromBookModal
+          isOpen={showRemoveModal}
+          onClose={() => setShowRemoveModal(false)}
+          tagName={tagName}
+          bookTitle={book.title}
+          onConfirm={handleConfirmRemove}
+        />
+      )}
+    </>
   );
 }
 
@@ -93,6 +124,7 @@ export function TagDetailBottomSheet({
   loading,
   totalBooks,
   onRemoveTag,
+  confirmRemoval,
 }: TagDetailBottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -206,6 +238,8 @@ export function TagDetailBottomSheet({
                   key={book.id}
                   book={book}
                   onRemove={() => onRemoveTag(book.id)}
+                  confirmRemoval={confirmRemoval}
+                  tagName={tagName || ""}
                 />
               ))}
             </div>
