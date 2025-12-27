@@ -12,6 +12,7 @@ interface BaseModalProps {
   children: React.ReactNode;
   actions: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  loading?: boolean;
 }
 
 const sizeClasses = {
@@ -30,6 +31,7 @@ export default function BaseModal({
   children,
   actions,
   size = "md",
+  loading = false,
 }: BaseModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -85,7 +87,13 @@ export default function BaseModal({
 
         {/* Content */}
         <div className="mb-6">
-          {children}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
+            </div>
+          ) : (
+            children
+          )}
         </div>
 
         {/* Action Buttons */}
