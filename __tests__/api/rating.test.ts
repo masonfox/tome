@@ -1,10 +1,8 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
-import { POST } from "@/app/api/books/[id]/rating/route";
 import { bookRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { mockBook1, mockBook2, createMockRequest } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
-import * as calibreWrite from "@/lib/db/calibre-write";
 
 /**
  * Rating API Endpoint Tests
@@ -25,20 +23,30 @@ import * as calibreWrite from "@/lib/db/calibre-write";
  * We mock Calibre write operations to: (1) verify our code attempts to sync ratings,
  * and (2) simulate error conditions (e.g., Calibre database unavailable) to test
  * our error handling without requiring actual file system failures.
+ * 
+ * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
+ * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
 let mockUpdateCalibreRating = mock(() => {});
 let mockCalibreShouldFail = false;
 
-mock.module("@/lib/db/calibre-write", () => ({
-  updateCalibreRating: (calibreId: number, rating: number | null) => {
-    if (mockCalibreShouldFail) {
-      throw new Error("Calibre database is unavailable");
-    }
-    mockUpdateCalibreRating(calibreId, rating);
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      mockUpdateCalibreRating(calibreId, rating);
+    },
+    updateTags: mock(() => {}),
+    readRating: mock(() => null),
+    readTags: mock(() => []),
   },
-  readCalibreRating: mock(() => null),
-  getCalibreWriteDB: mock(() => ({})),
+  CalibreService: class {},
 }));
+
+// Import after mock is set up
+import { POST } from "@/app/api/books/[id]/rating/route";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);

@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
-import { POST } from "@/app/api/books/[id]/status/route";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest, createTestBook, createTestSession } from "../fixtures/test-data";
@@ -21,15 +20,24 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
  * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
  * our code correctly attempts to sync ratings, without actually writing to disk.
+ * 
+ * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
+ * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
-mock.module("@/lib/db/calibre-write", () => ({
-  updateCalibreRating: (calibreId: number, rating: number | null) => {
-    calibreRatingCalls.push({ calibreId, rating });
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
+      calibreRatingCalls.push({ calibreId, rating });
+    },
+    readRating: () => null,
+    updateTags: () => {},
+    readTags: () => [],
   },
-  readCalibreRating: () => null,
-  getCalibreWriteDB: () => ({}),
-  closeCalibreWriteDB: () => {},
+  CalibreService: class {},
 }));
+
+// Import after mock is set up
+import { POST } from "@/app/api/books/[id]/status/route";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
@@ -226,14 +234,17 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
     // Mock Calibre write to throw error
     let calibreSyncAttempted = false;
-    mock.module("@/lib/db/calibre-write", () => ({
-      updateCalibreRating: (calibreId: number, rating: number | null) => {
-        calibreSyncAttempted = true;
-        throw new Error("Calibre database unavailable");
+    mock.module("@/lib/services/calibre.service", () => ({
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreSyncAttempted = true;
+          throw new Error("Calibre database unavailable");
+        },
+        readRating: () => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: () => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
 
     // Act
@@ -259,13 +270,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(calibreSyncAttempted).toBe(true);
 
     // Restore normal mock
-    mock.module("@/lib/db/calibre-write", () => ({
-      updateCalibreRating: (calibreId: number, rating: number | null) => {
-        calibreRatingCalls.push({ calibreId, rating });
+    mock.module("@/lib/services/calibre.service", () => ({
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: () => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: () => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
   });
 });
