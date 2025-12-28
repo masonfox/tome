@@ -613,13 +613,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
      * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
      * our code correctly attempts to sync ratings, without actually writing to disk.
      */
-    mock.module("@/lib/db/calibre-write", () => ({
-      updateCalibreRating: (calibreId: number, rating: number | null) => {
-        calibreRatingCalls.push({ calibreId, rating });
+    mock.module("@/lib/services/calibre.service", () => ({
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: () => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: (calibreId: number) => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
   });
   
@@ -799,13 +802,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should continue status update even if Calibre sync fails", async () => {
     // Arrange - Mock Calibre to throw error
-    mock.module("@/lib/db/calibre-write", () => ({
-      updateCalibreRating: () => {
-        throw new Error("Calibre database unavailable");
+    mock.module("@/lib/services/calibre.service", () => ({
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: (calibreId: number) => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: (calibreId: number) => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
 
     const book = await bookRepository.create(mockBook1);
@@ -836,13 +842,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(updatedBook?.rating).toBe(5);
 
     // Restore normal mock
-    mock.module("@/lib/db/calibre-write", () => ({
-      updateCalibreRating: (calibreId: number, rating: number | null) => {
-        calibreRatingCalls.push({ calibreId, rating });
+    mock.module("@/lib/services/calibre.service", () => ({
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
+          calibreRatingCalls.push({ calibreId, rating });
+        },
+        readRating: (calibreId: number) => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      readCalibreRating: (calibreId: number) => null,
-      getCalibreWriteDB: () => ({}),
-      closeCalibreWriteDB: () => {},
+      CalibreService: class {},
     }));
   });
 

@@ -33,9 +33,29 @@ type SQLiteDatabase = any;
 
 const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
 
-if (!CALIBRE_DB_PATH) {
+/**
+ * Get logger instance (with test-friendly fallback)
+ * 
+ * Returns a no-op logger in test environments to avoid global mock.module()
+ * issues that leak between test files. This pattern matches getCalibreWriteDB()
+ * which also has test-specific behavior.
+ */
+function getLoggerSafe() {
+  if (process.env.NODE_ENV === 'test') {
+    // Return a no-op logger for tests to avoid module mocking issues
+    return {
+      info: () => {},
+      error: () => {},
+      debug: () => {},
+      warn: () => {},
+    };
+  }
   const { getLogger } = require("../logger");
-  getLogger().warn("CALIBRE_DB_PATH not set. Calibre write operations will not work.");
+  return getLogger();
+}
+
+if (!CALIBRE_DB_PATH) {
+  getLoggerSafe().warn("CALIBRE_DB_PATH not set. Calibre write operations will not work.");
 }
 
 let writeDbInstance: ReturnType<typeof createDatabase> | null = null;
@@ -63,8 +83,7 @@ export function getCalibreWriteDB(): SQLiteDatabase {
         foreignKeys: false, // Calibre DB manages its own schema
         wal: false, // Don't modify journal mode on Calibre DB
       });
-      const { getLogger } = require("../logger");
-      getLogger().debug(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
+      getLoggerSafe().debug(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }
@@ -108,8 +127,7 @@ export function updateCalibreRating(
       stmt.run(calibreId);
       
       // Note: Don't delete from ratings table - it's a shared lookup table
-      const { getLogger } = require("../logger");
-      getLogger().info(`[Calibre] Removed rating for book ${calibreId}`);
+      getLoggerSafe().info(`[Calibre] Removed rating for book ${calibreId}`);
     } else {
       // Step 1: Get or create rating value in ratings table
       let ratingRecord = db.prepare(
@@ -118,8 +136,7 @@ export function updateCalibreRating(
       
       if (!ratingRecord) {
         // Rating value doesn't exist yet, create it
-        const { getLogger } = require("../logger");
-        getLogger().info(`[Calibre] Creating new rating value: ${calibreRating}`);
+        getLoggerSafe().info(`[Calibre] Creating new rating value: ${calibreRating}`);
         const insertStmt = db.prepare(
           "INSERT INTO ratings (rating, link) VALUES (?, '')"
         );
@@ -138,21 +155,18 @@ export function updateCalibreRating(
           "UPDATE books_ratings_link SET rating = ? WHERE book = ?"
         );
         updateStmt.run(ratingRecord.id, calibreId);
-        const { getLogger } = require("../logger");
-        getLogger().info(`[Calibre] Updated rating for book ${calibreId} to ${rating} stars (rating_id=${ratingRecord.id})`);
+        getLoggerSafe().info(`[Calibre] Updated rating for book ${calibreId} to ${rating} stars (rating_id=${ratingRecord.id})`);
       } else {
         // Create new link
         const insertStmt = db.prepare(
           "INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)"
         );
         insertStmt.run(calibreId, ratingRecord.id);
-        const { getLogger } = require("../logger");
-        getLogger().info(`[Calibre] Created rating for book ${calibreId}: ${rating} stars (rating_id=${ratingRecord.id})`);
+        getLoggerSafe().info(`[Calibre] Created rating for book ${calibreId}: ${rating} stars (rating_id=${ratingRecord.id})`);
       }
     }
   } catch (error) {
-    const { getLogger } = require("../logger");
-    getLogger().error({ err: error }, `[Calibre] Failed to update rating for book ${calibreId}`);
+    getLoggerSafe().error({ err: error }, `[Calibre] Failed to update rating for book ${calibreId}`);
     throw new Error(`Failed to update rating in Calibre database: ${error}`);
   }
 }
@@ -185,8 +199,7 @@ export function readCalibreRating(
     // Convert from Calibre scale (0-10) to stars (1-5)
     return result.rating / 2;
   } catch (error) {
-    const { getLogger } = require("../logger");
-    getLogger().error({ err: error }, `[Calibre] Failed to read rating for book ${calibreId}`);
+    getLoggerSafe().error({ err: error }, `[Calibre] Failed to read rating for book ${calibreId}`);
     return null;
   }
 }
@@ -223,14 +236,12 @@ export function updateCalibreTags(
   const validTags = Array.from(new Set(filteredTags));
   
   try {
-    const { getLogger } = require("../logger");
-    
     // Step 1: Clear existing tag links for this book
     const deleteStmt = db.prepare("DELETE FROM books_tags_link WHERE book = ?");
     deleteStmt.run(calibreId);
     
     if (validTags.length === 0) {
-      getLogger().info(`[Calibre] Removed all tags for book ${calibreId}`);
+      getLoggerSafe().info(`[Calibre] Removed all tags for book ${calibreId}`);
       return;
     }
     
@@ -245,7 +256,7 @@ export function updateCalibreTags(
       
       if (!tagRecord) {
         // Tag doesn't exist, create it
-        getLogger().info(`[Calibre] Creating new tag: ${tagName}`);
+        getLoggerSafe().info(`[Calibre] Creating new tag: ${tagName}`);
         const insertStmt = db.prepare(
           "INSERT INTO tags (name) VALUES (?)"
         );
@@ -265,11 +276,10 @@ export function updateCalibreTags(
       insertLinkStmt.run(calibreId, tagId);
     }
     
-    getLogger().info(`[Calibre] Updated tags for book ${calibreId}: ${validTags.join(', ')}`);
+    getLoggerSafe().info(`[Calibre] Updated tags for book ${calibreId}: ${validTags.join(', ')}`);
     
   } catch (error) {
-    const { getLogger } = require("../logger");
-    getLogger().error({ err: error }, `[Calibre] Failed to update tags for book ${calibreId}`);
+    getLoggerSafe().error({ err: error }, `[Calibre] Failed to update tags for book ${calibreId}`);
     throw new Error(`Failed to update tags in Calibre database: ${error}`);
   }
 }
@@ -298,8 +308,7 @@ export function readCalibreTags(
     
     return result.map(r => r.name);
   } catch (error) {
-    const { getLogger } = require("../logger");
-    getLogger().error({ err: error }, `[Calibre] Failed to read tags for book ${calibreId}`);
+    getLoggerSafe().error({ err: error }, `[Calibre] Failed to read tags for book ${calibreId}`);
     return [];
   }
 }
@@ -313,11 +322,9 @@ export function closeCalibreWriteDB(): void {
     try {
       writeDbInstance.sqlite.close();
       writeDbInstance = null;
-      const { getLogger } = require("../logger");
-      getLogger().info("Calibre write database connection closed");
+      getLoggerSafe().info("Calibre write database connection closed");
     } catch (error) {
-      const { getLogger } = require("../logger");
-      getLogger().error({ err: error }, "Error closing Calibre write database");
+      getLoggerSafe().error({ err: error }, "Error closing Calibre write database");
     }
   }
 }

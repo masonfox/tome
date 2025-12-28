@@ -2,7 +2,7 @@ import { bookRepository, sessionRepository, progressRepository } from "@/lib/rep
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import { rebuildStreak } from "@/lib/streaks";
 import { revalidatePath } from "next/cache";
-import { updateCalibreRating } from "@/lib/db/calibre-write";
+import { calibreService } from "@/lib/services/calibre.service";
 
 /**
  * Status update data structure
@@ -265,7 +265,7 @@ export class SessionService {
     if (rating !== undefined) {
       try {
         // Sync to Calibre first (best effort)
-        updateCalibreRating(book.calibreId, rating);
+        calibreService.updateRating(book.calibreId, rating);
         const { getLogger } = require("@/lib/logger");
         getLogger().info(`[SessionService] Synced rating to Calibre for book ${bookId} (calibreId: ${book.calibreId}): ${rating ?? 'removed'}`);
       } catch (calibreError) {
