@@ -212,6 +212,13 @@ export class ShelfRepository extends BaseRepository<
   }
 
   /**
+   * Alias for getShelvesForBook - find all shelves that contain a specific book
+   */
+  async findShelvesByBookId(bookId: number): Promise<Shelf[]> {
+    return this.getShelvesForBook(bookId);
+  }
+
+  /**
    * Add a book to a shelf
    */
   async addBookToShelf(
