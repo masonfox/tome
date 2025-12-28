@@ -20,29 +20,31 @@ import type { NextRequest } from "next/server";
 
 /**
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+ * We mock at the service boundary to prevent test pollution.
  */
 let mockUpdateCalibreTags = mock(() => {});
 let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
 let mockCalibreShouldFail = false;
 
-mock.module("@/lib/db/calibre-write", () => ({
-  updateCalibreTags: (calibreId: number, tags: string[]) => {
-    if (mockCalibreShouldFail) {
-      throw new Error("Calibre database is unavailable");
-    }
-    mockUpdateCalibreTags();
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateTags: (calibreId: number, tags: string[]) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      mockUpdateCalibreTags();
+    },
+    batchUpdateTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      return mockBatchUpdateCalibreTags(updates);
+    },
+    updateRating: mock(() => {}),
+    readTags: mock(() => []),
+    readRating: mock(() => null),
   },
-  batchUpdateCalibreTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
-    if (mockCalibreShouldFail) {
-      throw new Error("Calibre database is unavailable");
-    }
-    return mockBatchUpdateCalibreTags(updates);
-  },
-  readCalibreTags: mock(() => []),
-  getCalibreWriteDB: mock(() => ({})),
-  updateCalibreRating: mock(() => {}),
-  readCalibreRating: mock(() => null),
-  closeCalibreWriteDB: mock(() => {}),
+  CalibreService: class {},
 }));
 
 beforeAll(async () => {
