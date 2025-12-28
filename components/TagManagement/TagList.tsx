@@ -24,6 +24,7 @@ interface TagListProps {
   onRenameTag: (tagName: string) => void;
   onDeleteTag: (tagName: string) => void;
   onMergeTags?: (tagNames: string[]) => void;
+  onBulkDeleteTags?: (tagNames: string[]) => void;
 }
 
 export function TagList({
@@ -34,6 +35,7 @@ export function TagList({
   onRenameTag,
   onDeleteTag,
   onMergeTags,
+  onBulkDeleteTags,
 }: TagListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
@@ -100,6 +102,14 @@ export function TagList({
   const handleMergeClick = () => {
     if (checkedTags.size >= 2 && onMergeTags) {
       onMergeTags(Array.from(checkedTags));
+      setCheckedTags(new Set());
+      setCheckboxMode(false);
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (checkedTags.size >= 1 && onBulkDeleteTags) {
+      onBulkDeleteTags(Array.from(checkedTags));
       setCheckedTags(new Set());
       setCheckboxMode(false);
     }
@@ -220,6 +230,18 @@ export function TagList({
                 )}
               >
                 Merge Selected
+              </button>
+              <button
+                onClick={handleBulkDeleteClick}
+                disabled={checkedTags.size < 1}
+                className={cn(
+                  "w-full px-4 py-2 rounded-lg font-medium transition-colors",
+                  checkedTags.size >= 1
+                    ? "bg-red-600 text-white hover:bg-red-700 [html[data-theme='dark']_&]:bg-red-700 [html[data-theme='dark']_&]:hover:bg-red-800"
+                    : "bg-[var(--foreground)]/10 text-[var(--subheading-text)] cursor-not-allowed"
+                )}
+              >
+                Delete Selected
               </button>
             </div>
           )}

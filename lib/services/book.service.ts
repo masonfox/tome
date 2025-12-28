@@ -500,6 +500,75 @@ export class BookService {
   }
 
   /**
+   * Bulk delete multiple tags
+   * Suspends the Calibre watcher during deletion to prevent sync interference
+   * 
+   * @param tagNames - Array of tag names to delete
+   * @returns Promise resolving to object with total number of books updated
+   * @throws {Error} If bulk delete fails
+   * 
+   * @example
+   * const result = await bookService.bulkDeleteTags(["Tag1", "Tag2", "Tag3"]);
+   * console.log(`Updated ${result.booksUpdated} books`);
+   */
+  async bulkDeleteTags(tagNames: string[]): Promise<{ booksUpdated: number, tagsDeleted: number }> {
+    // Validate inputs
+    if (!Array.isArray(tagNames) || tagNames.length === 0) {
+      throw new Error("Tag names must be a non-empty array");
+    }
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    // Suspend the Calibre watcher during bulk delete to prevent interference
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    calibreWatcher.suspend();
+    
+    try {
+      let totalBooksUpdated = 0;
+      let tagsDeleted = 0;
+
+      // Delete each tag
+      for (const tagName of tagNames) {
+        try {
+          // Get books with this tag before deletion (for Calibre sync)
+          const booksWithTag = await bookRepository.findByTag(tagName, 1000, 0);
+
+          // Delete from Tome database
+          const booksUpdated = await bookRepository.deleteTag(tagName);
+          totalBooksUpdated += booksUpdated;
+          tagsDeleted++;
+
+          logger.info({ tagName, booksUpdated }, "Deleted tag");
+
+          // Sync to Calibre for each affected book (best effort)
+          for (const book of booksWithTag.books) {
+            try {
+              // Refetch book to get updated tags after deletion
+              const updatedBook = await bookRepository.findById(book.id);
+              if (updatedBook) {
+                await this.syncTagsToCalibre(book.calibreId, updatedBook.tags);
+              }
+            } catch (error) {
+              logger.error({ err: error, bookId: book.id }, "Failed to sync deleted tag to Calibre");
+            }
+          }
+        } catch (error) {
+          logger.error({ err: error, tagName }, "Failed to delete tag");
+          // Continue with other tags even if one fails
+        }
+      }
+
+      logger.info({ tagNames, totalBooksUpdated, tagsDeleted }, "Bulk deleted tags");
+
+      return { booksUpdated: totalBooksUpdated, tagsDeleted };
+    } finally {
+      // Always resume the watcher, even if there was an error
+      calibreWatcher.resume();
+    }
+  }
+
+  /**
    * Bulk update tags for multiple books and sync to Calibre
    * 
    * @param bookIds - Array of book IDs to update

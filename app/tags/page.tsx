@@ -9,6 +9,7 @@ import { TagDetailBottomSheet } from "@/components/TagManagement/TagDetailBottom
 import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
 import { DeleteTagModal } from "@/components/TagManagement/DeleteTagModal";
 import { MergeTagsModal } from "@/components/TagManagement/MergeTagsModal";
+import { BulkDeleteTagsModal } from "@/components/TagManagement/BulkDeleteTagsModal";
 import { useTagManagement } from "@/hooks/useTagManagement";
 import { useTagBooks } from "@/hooks/useTagBooks";
 import { toast } from "@/utils/toast";
@@ -26,14 +27,17 @@ function TagsPageContent() {
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [tagToRename, setTagToRename] = useState<string>("");
   const [tagToDelete, setTagToDelete] = useState<{ name: string; bookCount: number } | null>(null);
   const [tagsToMerge, setTagsToMerge] = useState<string[]>([]);
+  const [tagsToDelete, setTagsToDelete] = useState<Array<{ name: string; bookCount: number }>>([]);
   
   // Loading states for modals
   const [renameLoading, setRenameLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   // Settings state
   const [confirmTagRemoval, setConfirmTagRemoval] = useState(true);
@@ -162,6 +166,56 @@ function TagsPageContent() {
     }
   };
 
+  // Handle bulk delete tags
+  const handleBulkDeleteTags = async (tagNames: string[]) => {
+    const tagsWithCounts = tagNames.map(name => {
+      const tag = tags.find(t => t.name === name);
+      return { name, bookCount: tag?.bookCount || 0 };
+    });
+    setTagsToDelete(tagsWithCounts);
+    setBulkDeleteModalOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    try {
+      const tagNames = tagsToDelete.map(t => t.name);
+      
+      // Call bulk delete API
+      const response = await fetch("/api/tags/bulk-delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tagNames }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete tags");
+      }
+
+      await refetchTags();
+      
+      const deleteCount = tagsToDelete.length;
+      if (deleteCount === 1) {
+        toast.success(`Tag "${tagsToDelete[0].name}" deleted`);
+      } else {
+        toast.success(`Deleted ${deleteCount} tags`);
+      }
+      
+      // Clear selection if deleted tag was selected
+      if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
+        setSelectedTag(null);
+        router.push("/tags");
+      }
+      setBulkDeleteModalOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete tags");
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   // Handle remove tag from book
   const handleRemoveTagFromBook = async (bookId: number) => {
     if (!selectedTag) return;
@@ -216,6 +270,7 @@ function TagsPageContent() {
               onRenameTag={handleRenameTag}
               onDeleteTag={handleDeleteTag}
               onMergeTags={handleMergeTags}
+              onBulkDeleteTags={handleBulkDeleteTags}
             />
           </div>
 
@@ -272,6 +327,14 @@ function TagsPageContent() {
           tagStats={tags}
           onConfirm={confirmMergeTags}
           loading={mergeLoading}
+        />
+
+        <BulkDeleteTagsModal
+          isOpen={bulkDeleteModalOpen}
+          onClose={() => setBulkDeleteModalOpen(false)}
+          tags={tagsToDelete}
+          onConfirm={confirmBulkDelete}
+          loading={bulkDeleteLoading}
         />
     </div>
   );
