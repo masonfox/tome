@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown } from "lucide-react";
+import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, X } from "lucide-react";
 import { TagItem, type TagWithStats } from "./TagItem";
 import { TagListSkeleton } from "./TagListSkeleton";
 import { cn } from "@/utils/cn";
@@ -138,8 +138,19 @@ export function TagList({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tags..."
-              className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors"
+              className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors ${
+                searchQuery ? "pr-10" : "pr-4"
+              }`}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           {/* Sort dropdown */}
