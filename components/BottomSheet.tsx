@@ -39,14 +39,19 @@ export function BottomSheet({
       setIsClosing(false);
       
       // Focus the close button to prevent browser from auto-focusing action items
-      const timeoutId = setTimeout(() => {
-        closeButtonRef.current?.focus();
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
+      // Use double RAF to ensure this happens after browser layout and paint
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          closeButtonRef.current?.focus();
+        });
+      });
     } else {
       document.body.style.overflow = "";
     }
+    
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const handleClose = () => {
