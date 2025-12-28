@@ -177,109 +177,42 @@ describe("updateStatus", () => {
 ```typescript
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { bookRepository } from "@/lib/repositories";
 
-// Describe what you're testing
 describe("Feature Name", () => {
-  // Setup: Run once before all tests
-  beforeAll(async () => {
-    await setupTestDatabase(__filename);
-  });
+  // ✅ API, Service, Integration tests: Always use database setup
+  beforeAll(async () => await setupTestDatabase(__filename));
+  afterAll(async () => await teardownTestDatabase(__filename));
+  beforeEach(async () => await clearTestDatabase(__filename));
 
-  // Cleanup: Run once after all tests
-  afterAll(async () => {
-    await teardownTestDatabase(__filename);
-  });
+  // ⚠️ Library/utility tests: Skip database if testing pure functions
+  // ⚠️ React hooks/components: Add afterEach(() => cleanup()) from @testing-library/react
 
-  // Reset: Run before each test for isolation
-  beforeEach(async () => {
-    await clearTestDatabase(__filename);
-  });
-
-  // Group related tests
-  describe("Specific Behavior", () => {
-    test("should do X when Y happens", async () => {
-      // Arrange: Set up test data
-      const book = await bookRepository.create({
-        calibreId: 1,
-        title: "Test Book",
-        authors: ["Author"],
-        tags: [],
-        path: "Author/Test Book (1)",
-      });
-
-      // Act: Perform the action
-      const result = await someFunction(book.id);
-
-      // Assert: Verify the outcome
-      expect(result).toBe(expectedValue);
-    });
+  test("should do X when Y happens", async () => {
+    // Arrange, Act, Assert
+    const book = await bookRepository.create({ calibreId: 1, title: "Test" });
+    const result = await someFunction(book.id);
+    expect(result).toBe(expectedValue);
   });
 });
 ```
 
 ### Assertion Style Guide
 
-#### Primitive Comparison
+| Type | ✅ Use | ❌ Avoid |
+|------|--------|----------|
+| **Primitives** | `expect(id).toBe(123)` | `expect(id).toEqual(123)` |
+| **Objects** | `expect(obj).toEqual({...})` | `expect(obj).toBe({...})` |
+| **Partial match** | `expect(obj).toMatchObject({id: 1})` | Full object comparison |
+| **Null/undefined** | `expect(x).toBeNull()` | `expect(x).toBe(null)` |
+| **Arrays** | `expect(arr).toHaveLength(3)` | `expect(arr.length).toBe(3)` |
+| **Contains** | `expect(arr).toContain("x")` | Manual array search |
 
+**HTTP Response Pattern**:
 ```typescript
-// ✅ Use .toBe() for primitives and references
-expect(book.id).toBe(123);
-expect(loading).toBe(true);
-expect(status).toBe("reading");
-
-// ❌ Don't use .toEqual() for primitives
-expect(loading).toEqual(true); // Wrong - unnecessary deep comparison
-```
-
-#### Object/Array Comparison
-
-```typescript
-// ✅ Use .toEqual() for deep equality
-expect(book).toEqual({ id: 123, title: "Test" });
-expect(tags).toEqual(["fantasy", "sci-fi"]);
-
-// ✅ Use .toMatchObject() for partial matching
-expect(book).toMatchObject({ title: "Test" }); // Ignores other properties
-```
-
-#### Null/Undefined Checks
-
-```typescript
-// ✅ Use specific matchers for clarity
-expect(result).toBeNull();
-expect(result).toBeUndefined();
-expect(result).toBeDefined();
-expect(array).toHaveLength(3);
-
-// ❌ Don't use generic matchers
-expect(result).toBe(null); // Less semantic
-expect(result == null).toBe(true); // Hard to read
-```
-
-#### Array/Collection Checks
-
-```typescript
-// ✅ Use collection-specific matchers
-expect(books).toHaveLength(5);
-expect(tags).toContain("fantasy");
-expect(tags).toEqual(["fantasy", "sci-fi"]); // Order matters
-expect(tags).toEqual(expect.arrayContaining(["fantasy"])); // Order doesn't matter
-
-// For objects in arrays
-expect(books).toContainEqual({ id: 123, title: "Test" });
-```
-
-#### HTTP Response Testing
-
-```typescript
-// ✅ Test status and body separately
 const response = await GET(request);
-expect(response.status).toBe(200);
-
-const data = await response.json();
-expect(data.books).toHaveLength(5);
-expect(data.total).toBe(5);
+expect(response.status).toBe(200);    // Check status first
+const data = await response.json();    // Then parse body
+expect(data.books).toHaveLength(5);   // Then assert on data
 ```
 
 ---
@@ -290,113 +223,65 @@ expect(data.total).toBe(5);
 
 **Purpose**: Test HTTP endpoints with real database
 
-**Pattern**:
+**Setup**: Use standard [test structure template](#test-structure-template)
+
+**Example**:
 ```typescript
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
-import { GET, POST } from "@/app/api/books/route";
-import { createMockRequest } from "../fixtures/test-data";
-
-beforeAll(async () => {
-  await setupTestDatabase(__filename);
-});
-
-afterAll(async () => {
-  await teardownTestDatabase(__filename);
-});
-
-beforeEach(async () => {
-  await clearTestDatabase(__filename);
-});
-
 describe("GET /api/books", () => {
   test("should return books with status filter", async () => {
-    // Arrange: Create test data
     const book = await bookRepository.create({ ... });
-    await sessionRepository.create({ bookId: book.id, status: "reading" });
-
-    // Act: Call API endpoint
-    const request = createMockRequest("GET", "/api/books?status=reading");
-    const response = await GET(request);
+    const response = await GET(createMockRequest("GET", "/api/books?status=reading"));
     const data = await response.json();
-
-    // Assert: Verify response
+    
     expect(response.status).toBe(200);
-    expect(data.books).toHaveLength(1);
     expect(data.books[0].status).toBe("reading");
   });
 });
 ```
 
-**Key Principles**:
-- Use real database (in-memory SQLite)
-- Test HTTP contract (status codes, response shape)
-- Test business logic (filtering, validation)
-- Test error cases (404, 400, 500)
+**Focus**: HTTP contract, business logic, error cases (404, 400, 500)
 
 ### 2. Service Unit Tests (`__tests__/services/`)
 
 **Purpose**: Test business logic in isolation
 
-**Pattern**:
-```typescript
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { BookService } from "@/lib/services/book.service";
-import { bookRepository } from "@/lib/repositories";
+**Setup**: Use standard [test structure template](#test-structure-template) + instantiate service in `beforeAll`
 
+**Example**:
+```typescript
 describe("BookService", () => {
   let bookService: BookService;
-
   beforeAll(async () => {
     await setupTestDatabase(__filename);
     bookService = new BookService();
   });
 
-  afterAll(async () => {
-    await teardownTestDatabase(__filename);
-  });
-
-  beforeEach(async () => {
-    await clearTestDatabase(__filename);
-  });
-
-  describe("updateRating", () => {
-    test("should throw error for invalid rating", async () => {
-      const book = await bookRepository.create({ ... });
-      
-      await expect(
-        bookService.updateRating(book.id, 6)
-      ).rejects.toThrow("Rating must be between 1 and 5");
-    });
+  test("should throw error for invalid rating", async () => {
+    await expect(bookService.updateRating(1, 6))
+      .rejects.toThrow("Rating must be between 1 and 5");
   });
 });
 ```
 
-**Key Principles**:
-- Test business rules and validations
-- Test error handling
-- Use real database for complex queries
-- Mock external services (Calibre sync, file I/O)
+**Focus**: Business rules, validations, error handling. Mock external services (Calibre, file I/O).
 
 ### 3. Library Function Tests (`__tests__/lib/`)
 
 **Purpose**: Test pure functions and utilities
 
-**Pattern**:
-```typescript
-import { describe, test, expect } from "bun:test";
-import { calculateStreakDays } from "@/lib/streaks";
-import { startOfDay } from "date-fns";
+**Setup**: No database needed for pure functions
 
+**Example**:
+```typescript
 describe("Streak Calculations", () => {
   test("should detect consecutive days", () => {
-    const today = startOfDay(new Date("2025-11-17"));
-    const yesterday = startOfDay(new Date("2025-11-16"));
-    
     const result = calculateStreakDays(yesterday, today);
-    
-    expect(result).toBe(1); // 1 day difference = consecutive
+    expect(result).toBe(1);
+  });
+});
+```
+
+**Focus**: Mathematical correctness, edge cases, no side effects
   });
   
   test("should detect broken streak", () => {
@@ -420,102 +305,52 @@ describe("Streak Calculations", () => {
 
 **Purpose**: Test React hooks in isolation
 
-**Pattern**:
+**Setup**: Mock `global.fetch`, restore in `afterEach`
+
+**Example**:
 ```typescript
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
-import { renderHook, waitFor } from "@testing-library/react";
-import { useBookDetail } from "@/hooks/useBookDetail";
-
-// Mock fetch globally
-const originalFetch = global.fetch;
-
 describe("useBookDetail", () => {
   beforeEach(() => {
     global.fetch = mock(() => Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({ id: 123, title: "Test Book" }),
-    } as Response));
+      json: () => Promise.resolve({ id: 123, title: "Test" }),
+    }));
   });
-
-  afterEach(() => {
-    global.fetch = originalFetch; // Always restore!
-  });
+  afterEach(() => { global.fetch = originalFetch; });
 
   test("should fetch book data on mount", async () => {
     const { result } = renderHook(() => useBookDetail("123"));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.book).toEqual({ id: 123, title: "Test Book" });
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(global.fetch).toHaveBeenCalledWith("/api/books/123");
   });
 });
 ```
 
-**Key Principles**:
-- Mock API calls (hooks should not hit real database)
-- Test loading states
-- Test error handling
-- Test refetch/retry logic
-- **ALWAYS restore mocks in afterEach**
+**Focus**: Loading states, error handling, API interactions. Always restore mocks.
 
 ### 5. Component Tests (`__tests__/components/`)
 
 **Purpose**: Test React components in isolation
 
-**Pattern**:
-```typescript
-import { test, expect, describe, afterEach, mock } from "bun:test";
-import { render, screen, cleanup } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import BookHeader from "@/components/BookDetail/BookHeader";
+**Setup**: Mock Next.js components, call `cleanup()` in `afterEach`
 
-// Mock Next.js Image (no real implementation available)
+**Example**:
+```typescript
 mock.module("next/image", () => ({
-  default: ({ alt, ...props }: any) => <img alt={alt} {...props} />,
+  default: ({ alt, ...props }: any) => <img alt={alt} {...props} />
 }));
 
-afterEach(() => {
-  cleanup(); // Always cleanup after each test
-});
-
 describe("BookHeader", () => {
+  afterEach(() => cleanup());
+
   test("should render status dropdown", () => {
-    render(
-      <BookHeader
-        book={{ calibreId: 1, totalPages: 300 }}
-        selectedStatus="to-read"
-        onStatusChange={() => {}}
-        // ... other required props
-      />
-    );
-
+    render(<BookHeader selectedStatus="to-read" {...props} />);
     expect(screen.getByText("Want to Read")).toBeInTheDocument();
-  });
-  
-  test("should show rating when book is rated", () => {
-    render(
-      <BookHeader
-        book={{ calibreId: 1, totalPages: 300 }}
-        selectedStatus="read"
-        rating={4}
-        // ... other required props
-      />
-    );
-
-    expect(screen.getByText("4 stars")).toBeInTheDocument();
   });
 });
 ```
 
-**Key Principles**:
-- Mock Next.js components (Image, Link)
-- Test rendering with different props
-- Test user interactions (clicks, form inputs)
-- Test conditional rendering
-- **ALWAYS call cleanup() in afterEach**
+**Focus**: Rendering with different props, user interactions, conditional rendering
 
 ---
 
@@ -1055,168 +890,30 @@ describe("Error Handling", () => {
 
 ### Pattern 6: Testing External Dependencies (Calibre Database)
 
-This pattern shows how to test code that interacts with external resources (like the Calibre database) using two complementary approaches.
+**See [Service Layer Testing Pattern](#service-layer-testing-pattern) for full architecture and implementation details.**
 
-#### Approach A: Unit Test the Implementation (with Test Database)
+This pattern uses two complementary approaches:
 
-Test the actual low-level functions by injecting a test database:
+**Approach A: Unit Tests** - Test implementation with injected test database
+- File: `__tests__/lib/calibre-write.test.ts`
+- Method: Inject in-memory Calibre database into production functions
+- Tests: Business logic, scale conversion, database constraints
 
-```typescript
-// __tests__/lib/calibre-write.test.ts
+**Approach B: Integration Tests** - Mock service layer to isolate from file system
+- File: `__tests__/api/rating.test.ts`, `__tests__/api/tags.test.ts`
+- Method: Mock `CalibreService` at service boundary
+- Tests: API contract, error handling, best-effort sync behavior
 
-import { Database } from "bun:sqlite";
-import { updateCalibreRating, readCalibreRating } from "@/lib/db/calibre-write";
-
-describe("Calibre Write Operations - Rating Management", () => {
-  let testDb: Database;
-
-  beforeAll(() => {
-    // Create in-memory test database with Calibre schema
-    testDb = new Database(":memory:");
-    createCalibreSchema(testDb);
-    insertTestBooks(testDb);
-  });
-
-  afterAll(() => {
-    testDb.close();
-  });
-
-  beforeEach(() => {
-    // Clear ratings before each test
-    testDb.run("DELETE FROM books_ratings_link");
-    testDb.run("DELETE FROM ratings");
-  });
-
-  test("should create rating for book (5 stars)", () => {
-    // Inject test database into production function
-    updateCalibreRating(1, 5, testDb);
-
-    // Verify using real queries
-    const rating = readCalibreRating(1, testDb);
-    expect(rating).toBe(5);
-
-    // Can also verify low-level database state
-    const ratingRecord = testDb.prepare(
-      "SELECT * FROM ratings WHERE rating = ?"
-    ).get(10) as any;
-    expect(ratingRecord.rating).toBe(10); // 5 stars * 2 = Calibre scale
-  });
-
-  test("should convert 1-5 stars to Calibre scale (2,4,6,8,10)", () => {
-    updateCalibreRating(1, 3, testDb);
-
-    const ratingRecord = testDb.prepare(
-      "SELECT rating FROM ratings JOIN books_ratings_link ON ratings.id = books_ratings_link.rating WHERE book = ?"
-    ).get(1) as any;
-
-    expect(ratingRecord.rating).toBe(6); // 3 stars * 2
-  });
-});
-```
-
-**Key points:**
-- Tests actual implementation (not mocked)
-- Uses dependency injection (`testDb` parameter) to avoid file I/O
-- Verifies both high-level behavior and low-level database state
-- Tests business logic like scale conversion (1-5 → 2,4,6,8,10)
-
-#### Approach B: Integration Test with Mocked Service
-
-Test the API endpoints by mocking the service layer:
-
-```typescript
-// __tests__/api/rating.test.ts
-
-import { mock } from "bun:test";
-
-// Mock the service layer (not the implementation)
-let mockUpdateCalibreRating = mock(() => {});
-let mockCalibreShouldFail = false;
-
-mock.module("@/lib/services/calibre.service", () => ({
-  calibreService: {
-    updateRating: (calibreId: number, rating: number | null) => {
-      if (mockCalibreShouldFail) {
-        throw new Error("Calibre database is unavailable");
-      }
-      mockUpdateCalibreRating(calibreId, rating);
-    },
-    updateTags: mock(() => {}),
-    readRating: mock(() => null),
-    readTags: mock(() => []),
-  },
-  CalibreService: class {},
-}));
-
-// Import after mock is set up
-import { POST } from "@/app/api/books/[id]/rating/route";
-
-beforeEach(async () => {
-  await clearTestDatabase(__filename);
-  mockUpdateCalibreRating.mockClear();
-  mockCalibreShouldFail = false;
-});
-
-test("should set rating to 5 stars", async () => {
-  const book = await bookRepository.create(mockBook1);
-
-  const request = createMockRequest("POST", `/api/books/${book.id}/rating`, {
-    rating: 5,
-  });
-  const response = await POST(request, { params: { id: book.id.toString() } });
-  const data = await response.json();
-
-  expect(response.status).toBe(200);
-  expect(data.rating).toBe(5);
-  
-  // Verify service was called with correct parameters
-  expect(mockUpdateCalibreRating).toHaveBeenCalledWith(book.calibreId, 5);
-
-  // Verify Tome database was updated
-  const updatedBook = await bookRepository.findById(book.id);
-  expect(updatedBook?.rating).toBe(5);
-});
-
-test("should handle Calibre sync failure gracefully", async () => {
-  const book = await bookRepository.create(mockBook1);
-  mockCalibreShouldFail = true; // Simulate Calibre failure
-
-  const request = createMockRequest("POST", `/api/books/${book.id}/rating`, {
-    rating: 5,
-  });
-  const response = await POST(request, { params: { id: book.id.toString() } });
-
-  // API should still succeed (best effort sync)
-  expect(response.status).toBe(200);
-  
-  // Tome database should be updated even if Calibre fails
-  const updatedBook = await bookRepository.findById(book.id);
-  expect(updatedBook?.rating).toBe(5);
-});
-```
-
-**Key points:**
-- Mocks at the **service layer boundary** (not implementation)
-- Tests API behavior without file system I/O
-- Verifies both success and error scenarios
-- Checks that business logic continues even if external sync fails
-
-#### Why Both Approaches?
+**Comparison**:
 
 | Aspect | Unit Tests (Approach A) | Integration Tests (Approach B) |
 |--------|------------------------|--------------------------------|
 | **What's tested** | Low-level implementation | End-to-end API flow |
 | **Database** | Calibre test schema | Tome test database |
 | **Mocking** | None (real functions) | Service layer only |
-| **Speed** | Fast (in-memory) | Fast (in-memory) |
 | **Coverage** | Business logic, edge cases | API contract, error handling |
-| **Isolation** | Complete (no dependencies) | Isolated from file system |
 
-Together, these approaches give you:
-- ✅ Confidence that low-level functions work correctly
-- ✅ Confidence that API endpoints integrate properly
-- ✅ No file system dependencies in tests
-- ✅ No test pollution between files
+**Result**: Both approaches together provide confidence in implementation correctness and integration behavior without file system dependencies or test pollution.
 
 ---
 
@@ -1564,6 +1261,13 @@ bun test --coverage
 
 ## Version History
 
+- **1.2.0** (2025-12-28): Optimized for AI consumption (19% reduction)
+  - Condensed Pattern 6 to cross-reference Service Layer section (removed 140 lines of duplication)
+  - Consolidated test structure templates into single authoritative template (removed 90 lines)
+  - Converted Assertion Style Guide to table format (removed 35 lines)
+  - Streamlined Test Types section with references to main template (removed 60 lines)
+  - Created `test-data-helpers.ts` to support condensed examples
+  - Reduced from 1,578 to 1,275 lines (303 lines saved)
 - **1.1.0** (2025-12-28): Added service layer testing pattern
   - Documented CalibreService abstraction pattern for external dependencies
   - Added Pattern 6: Testing External Dependencies (Calibre Database)
