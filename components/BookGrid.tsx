@@ -10,8 +10,8 @@ interface BookGridProps {
     title: string;
     authors: string[];
     coverPath?: string;
-    status: string | null;
-    tags: string[];
+    status?: string | null;
+    tags?: string[];
     totalPages?: number;
   }>;
   loading?: boolean;
