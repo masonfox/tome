@@ -17,6 +17,8 @@ function LibraryPageContent() {
   const [syncing, setSyncing] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
+  const [availableShelves, setAvailableShelves] = useState<Array<{ id: number; name: string; color: string | null }>>([]);
+  const [loadingShelves, setLoadingShelves] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const observerTarget = useRef<HTMLDivElement>(null);
   const [restoringScrollState, setRestoringScrollState] = useState(false);
@@ -64,6 +66,9 @@ function LibraryPageContent() {
     if (currentFilters.rating && currentFilters.rating !== 'all') {
       params.set('rating', currentFilters.rating);
     }
+    if (currentFilters.shelf) {
+      params.set('shelf', currentFilters.shelf.toString());
+    }
     if (currentFilters.sort && currentFilters.sort !== 'created') {
       params.set('sort', currentFilters.sort);
     }
@@ -87,6 +92,7 @@ function LibraryPageContent() {
     setStatus,
     setTags,
     setRating,
+    setShelf,
     setSortBy,
     filters,
     refresh,
@@ -95,6 +101,7 @@ function LibraryPageContent() {
     status: searchParams?.get("status") || undefined,
     tags: searchParams?.get("tags")?.split(",").filter(Boolean) || undefined,
     rating: searchParams?.get("rating") || undefined,
+    shelf: searchParams?.get("shelf") ? parseInt(searchParams.get("shelf")!) : undefined,
     sortBy: searchParams?.get("sort") || undefined,
   });
 
@@ -319,6 +326,19 @@ function LibraryPageContent() {
     });
   }, [setRating, updateURL, filters.search, filters.status, filters.tags, filters.sortBy]);
 
+  const handleShelfChange = useCallback((shelfId: number | null) => {
+    const shelf = shelfId || undefined;
+    setShelf(shelf);
+    updateURL({
+      search: filters.search,
+      status: filters.status || 'all',
+      tags: filters.tags || [],
+      rating: filters.rating || 'all',
+      shelf: shelf,
+      sort: filters.sortBy || 'created'
+    });
+  }, [setShelf, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sortBy]);
+
   // Handle search submission
   const handleSearchSubmit = useCallback(() => {
     if (!isReady) return;
@@ -453,6 +473,10 @@ function LibraryPageContent() {
         onTagsChange={(tags) => handleTagsChange(tags.length > 0 ? tags : undefined)}
         ratingFilter={filters.rating || "all"}
         onRatingFilterChange={(rating) => handleRatingChange(rating === "all" ? undefined : rating)}
+        shelfFilter={filters.shelf || null}
+        onShelfFilterChange={handleShelfChange}
+        availableShelves={availableShelves}
+        loadingShelves={loadingShelves}
         sortBy={filters.sortBy || "created"}
         onSortChange={handleSortChange}
         availableTags={availableTags}

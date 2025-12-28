@@ -630,6 +630,23 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
     }
 
+    // Shelf filter (books must be on ANY of the selected shelves - OR logic)
+    if (filters.shelfIds && filters.shelfIds.length > 0) {
+      const shelfQuery = this.getDatabase()
+        .selectDistinct({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(inArray(bookShelves.shelfId, filters.shelfIds));
+
+      const shelfBooks = shelfQuery.all() as Array<{ bookId: number }>;
+      const shelfBookIds = shelfBooks.map((s) => s.bookId);
+
+      if (shelfBookIds.length === 0) {
+        return { books: [], total: 0 };
+      }
+
+      conditions.push(inArray(books.id, shelfBookIds));
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count

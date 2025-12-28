@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
 
@@ -100,6 +100,10 @@ interface LibraryFiltersProps {
   onStatusFilterChange: (status: string) => void;
   ratingFilter: string;
   onRatingFilterChange: (rating: string) => void;
+  shelfFilter?: number | null;
+  onShelfFilterChange?: (shelfId: number | null) => void;
+  availableShelves?: Array<{ id: number; name: string; color: string | null }>;
+  loadingShelves?: boolean;
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   availableTags: string[];
@@ -119,6 +123,10 @@ export function LibraryFilters({
   onStatusFilterChange,
   ratingFilter,
   onRatingFilterChange,
+  shelfFilter,
+  onShelfFilterChange,
+  availableShelves = [],
+  loadingShelves = false,
   selectedTags,
   onTagsChange,
   availableTags,
@@ -132,10 +140,12 @@ export function LibraryFilters({
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [showShelfDropdown, setShowShelfDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const ratingDropdownRef = useRef<HTMLDivElement>(null);
+  const shelfDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +158,9 @@ export function LibraryFilters({
       }
       if (ratingDropdownRef.current && !ratingDropdownRef.current.contains(event.target as Node)) {
         setShowRatingDropdown(false);
+      }
+      if (shelfDropdownRef.current && !shelfDropdownRef.current.contains(event.target as Node)) {
+        setShowShelfDropdown(false);
       }
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
         setShowSortDropdown(false);
@@ -196,8 +209,8 @@ export function LibraryFilters({
 
   // Memoize filter check
   const hasActiveFilters = useMemo(() => 
-    search || statusFilter !== "all" || ratingFilter !== "all" || selectedTags.length > 0,
-    [search, statusFilter, ratingFilter, selectedTags.length]
+    search || statusFilter !== "all" || ratingFilter !== "all" || shelfFilter || selectedTags.length > 0,
+    [search, statusFilter, ratingFilter, shelfFilter, selectedTags.length]
   );
 
   // Clear all filters on Escape key
@@ -359,8 +372,8 @@ export function LibraryFilters({
           </div>
         </div>
 
-        {/* Status and Rating Filters Row - 50% Each */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Status, Rating, and Shelf Filters Row - 33% Each */}
+        <div className="grid grid-cols-3 gap-3">
           {/* Status Dropdown */}
           <div className="relative" ref={statusDropdownRef}>
             <button
