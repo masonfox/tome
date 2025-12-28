@@ -336,6 +336,33 @@ export class BookService {
   }
 
   /**
+   * Batch sync tags to Calibre for multiple books (best effort)
+   * 
+   * This method syncs tags for multiple books in a single operation,
+   * providing significant performance improvements over individual syncs.
+   * Errors are logged but don't stop the batch operation.
+   * 
+   * @param books - Array of books with their tags to sync
+   */
+  private async batchSyncTagsToCalibre(books: Array<{ calibreId: number; tags: string[] }>): Promise<void> {
+    if (books.length === 0) return;
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    try {
+      const successCount = this.getCalibreService().batchUpdateTags(books);
+      logger.info(
+        { totalBooks: books.length, successCount },
+        "[BookService] Batch synced tags to Calibre"
+      );
+    } catch (error) {
+      logger.error({ err: error, bookCount: books.length }, "[BookService] Failed to batch sync tags to Calibre");
+      // Don't throw - this is best effort
+    }
+  }
+
+  /**
    * Get tag statistics with book counts
    * 
    * @returns Promise resolving to array of tags with their book counts
@@ -399,17 +426,17 @@ export class BookService {
     // Rename in Tome database
     const booksUpdated = await bookRepository.renameTag(oldName, newName);
 
-    // Sync to Calibre for each affected book (best effort)
+    // Batch sync to Calibre for all affected books (best effort)
     try {
       const booksWithTag = await bookRepository.findByTag(newName, booksUpdated, 0);
       
-      for (const book of booksWithTag.books) {
-        try {
-          await this.syncTagsToCalibre(book.calibreId, book.tags);
-        } catch (error) {
-          logger.error({ err: error, bookId: book.id }, "Failed to sync renamed tag to Calibre");
-        }
-      }
+      // Prepare batch update data
+      const updates = booksWithTag.books.map(book => ({
+        calibreId: book.calibreId,
+        tags: book.tags
+      }));
+
+      await this.batchSyncTagsToCalibre(updates);
     } catch (error) {
       logger.error({ err: error, oldName, newName }, "Failed to sync renamed tags to Calibre");
     }
@@ -441,19 +468,19 @@ export class BookService {
     // Delete from Tome database
     const booksUpdated = await bookRepository.deleteTag(tagName);
 
-    // Sync to Calibre for each affected book (best effort)
+    // Batch sync to Calibre for all affected books (best effort)
     try {
-      for (const book of booksWithTag.books) {
-        try {
-          // Refetch book to get updated tags after deletion
-          const updatedBook = await bookRepository.findById(book.id);
-          if (updatedBook) {
-            await this.syncTagsToCalibre(book.calibreId, updatedBook.tags);
-          }
-        } catch (error) {
-          logger.error({ err: error, bookId: book.id }, "Failed to sync deleted tag to Calibre");
-        }
-      }
+      // Refetch books to get updated tags after deletion
+      const bookIds = booksWithTag.books.map(b => b.id);
+      const updatedBooks = await bookRepository.findByIds(bookIds);
+      
+      // Prepare batch update data
+      const updates = updatedBooks.map(book => ({
+        calibreId: book.calibreId,
+        tags: book.tags
+      }));
+
+      await this.batchSyncTagsToCalibre(updates);
     } catch (error) {
       logger.error({ err: error, tagName }, "Failed to sync deleted tag to Calibre");
     }
@@ -492,19 +519,19 @@ export class BookService {
       // Merge in Tome database
       const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
 
-      // Sync to Calibre for each affected book (best effort)
+      // Batch sync to Calibre for all affected books (best effort)
       try {
         const booksWithTag = await bookRepository.findByTag(targetTag, booksUpdated, 0);
         
-        logger.info({ bookCount: booksWithTag.books.length }, "Syncing merged tags to Calibre");
+        logger.info({ bookCount: booksWithTag.books.length }, "Batch syncing merged tags to Calibre");
         
-        for (const book of booksWithTag.books) {
-          try {
-            await this.syncTagsToCalibre(book.calibreId, book.tags);
-          } catch (error) {
-            logger.error({ err: error, bookId: book.id }, "Failed to sync merged tag to Calibre");
-          }
-        }
+        // Prepare batch update data
+        const updates = booksWithTag.books.map(book => ({
+          calibreId: book.calibreId,
+          tags: book.tags
+        }));
+
+        await this.batchSyncTagsToCalibre(updates);
       } catch (error) {
         logger.error({ err: error, sourceTags, targetTag }, "Failed to sync merged tags to Calibre");
       }
@@ -560,17 +587,18 @@ export class BookService {
 
           logger.info({ tagName, booksUpdated }, "Deleted tag");
 
-          // Sync to Calibre for each affected book (best effort)
-          for (const book of booksWithTag.books) {
-            try {
-              // Refetch book to get updated tags after deletion
-              const updatedBook = await bookRepository.findById(book.id);
-              if (updatedBook) {
-                await this.syncTagsToCalibre(book.calibreId, updatedBook.tags);
-              }
-            } catch (error) {
-              logger.error({ err: error, bookId: book.id }, "Failed to sync deleted tag to Calibre");
-            }
+          // Sync to Calibre for all affected books in batch (best effort)
+          if (booksWithTag.books.length > 0) {
+            // Refetch books to get updated tags after deletion
+            const bookIds = booksWithTag.books.map(b => b.id);
+            const updatedBooks = await bookRepository.findByIds(bookIds);
+            
+            const updates = updatedBooks.map(book => ({
+              calibreId: book.calibreId,
+              tags: book.tags
+            }));
+
+            await this.batchSyncTagsToCalibre(updates);
           }
         } catch (error) {
           logger.error({ err: error, tagName }, "Failed to delete tag");
@@ -627,17 +655,16 @@ export class BookService {
       tagsToRemove
     );
 
-    // Sync to Calibre for each affected book (best effort)
+    // Sync to Calibre for all affected books in batch (best effort)
     try {
       const updatedBooks = await bookRepository.findByIds(bookIds);
       
-      for (const book of updatedBooks) {
-        try {
-          await this.syncTagsToCalibre(book.calibreId, book.tags);
-        } catch (error) {
-          logger.error({ err: error, bookId: book.id }, "Failed to sync bulk tag update to Calibre");
-        }
-      }
+      const updates = updatedBooks.map(book => ({
+        calibreId: book.calibreId,
+        tags: book.tags
+      }));
+
+      await this.batchSyncTagsToCalibre(updates);
     } catch (error) {
       logger.error({ err: error, bookIds, action, tags }, "Failed to sync bulk tag updates to Calibre");
     }

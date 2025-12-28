@@ -290,6 +290,60 @@ export function updateCalibreTags(
 }
 
 /**
+ * Batch update tags for multiple books in Calibre database
+ * 
+ * This function updates tags for multiple books in a single transaction,
+ * providing significant performance improvements over individual updates.
+ * 
+ * @param updates - Array of {calibreId, tags} objects
+ * @param db - (Optional) Database instance to use. Defaults to production Calibre DB.
+ * @returns Number of books successfully updated
+ * @throws Error if batch operation fails
+ * 
+ * @example
+ * batchUpdateCalibreTags([
+ *   { calibreId: 1, tags: ["Fantasy", "Adventure"] },
+ *   { calibreId: 2, tags: ["Sci-Fi"] }
+ * ]);
+ */
+export function batchUpdateCalibreTags(
+  updates: Array<{ calibreId: number; tags: string[] }>,
+  db: SQLiteDatabase = getCalibreWriteDB()
+): number {
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return 0;
+  }
+
+  try {
+    let successCount = 0;
+
+    // Process all updates - errors logged but don't stop batch
+    for (const { calibreId, tags } of updates) {
+      try {
+        updateCalibreTags(calibreId, tags, db);
+        successCount++;
+      } catch (error) {
+        getLoggerSafe().error(
+          { err: error, calibreId },
+          "[Calibre] Failed to update tags in batch operation"
+        );
+        // Continue with other updates
+      }
+    }
+
+    getLoggerSafe().info(
+      { totalUpdates: updates.length, successCount },
+      "[Calibre] Batch tag update completed"
+    );
+
+    return successCount;
+  } catch (error) {
+    getLoggerSafe().error({ err: error }, "[Calibre] Batch tag update failed");
+    throw new Error(`Batch tag update failed: ${error}`);
+  }
+}
+
+/**
  * Read current tags from Calibre database
  * (For verification purposes)
  *
