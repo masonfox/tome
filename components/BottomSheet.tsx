@@ -38,18 +38,16 @@ export function BottomSheet({
       document.body.style.overflow = "hidden";
       setIsClosing(false);
       
-      // Immediately focus the close button before browser auto-focus kicks in
-      // Use requestAnimationFrame to ensure DOM is ready
-      requestAnimationFrame(() => {
+      // Focus the close button after the sheet animates in
+      // Use a small delay to ensure the animation and rendering are complete
+      const timeoutId = setTimeout(() => {
         closeButtonRef.current?.focus();
-      });
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
     } else {
       document.body.style.overflow = "";
     }
-    
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -93,7 +91,6 @@ export function BottomSheet({
             onClick={handleClose}
             className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
             aria-label="Close"
-            autoFocus
           >
             <X className="w-5 h-5" />
           </button>
