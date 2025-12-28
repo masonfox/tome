@@ -574,7 +574,7 @@ describe("BookHeader", () => {
 
 ### DON'T ❌
 
-1. **Don't Mock Application Code**
+1. **Don't Mock Application Code (with exceptions)**
    ```typescript
    // ❌ Bad - Mocking your own services
    mock.module("@/lib/services/book.service", () => ({
@@ -583,6 +583,15 @@ describe("BookHeader", () => {
    
    // ✅ Good - Use real service with test database
    const bookService = new BookService();
+   
+   // ✅ Exception: Mock at service layer boundaries for external I/O
+   // (See "Service Layer Testing Pattern" section below)
+   mock.module("@/lib/services/calibre.service", () => ({
+     calibreService: {
+       updateRating: mock(() => {}),
+       updateTags: mock(() => {}),
+     }
+   }));
    ```
 
 2. **Don't Use `as any` for Type Assertions**
@@ -645,6 +654,221 @@ describe("BookHeader", () => {
    // Note: Rating moved from sessions to books table
    expect(data.books[0].rating).toBeNull(); // Not set in this test
    ```
+
+---
+
+## Service Layer Testing Pattern
+
+### Overview
+
+When testing code that interacts with external dependencies (file systems, external databases, third-party APIs), use a **service layer abstraction** to enable clean mocking at integration boundaries while keeping unit tests pure.
+
+This pattern solves two problems:
+1. **Avoids `mock.module()` pollution** - Mocking implementation modules can leak to other tests
+2. **Enables dependency injection** - Services can accept mock implementations for testing
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ API Routes / Application Code                           │
+│   └─> Uses: bookService.updateRating()                  │
+└─────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│ BookService (business logic)                            │
+│   └─> Depends on: calibreService (injected)            │
+└─────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│ CalibreService (external dependency abstraction)        │
+│   └─> Wraps: calibre-write module functions            │
+└─────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│ calibre-write module (low-level implementation)         │
+│   └─> Direct SQLite file I/O to Calibre database       │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Testing Strategy:**
+- **Unit tests** (`__tests__/lib/calibre-write.test.ts`): Test actual implementation with injected test database
+- **Integration tests** (`__tests__/api/rating.test.ts`): Mock service layer to isolate from file system
+
+### Implementation Pattern
+
+#### Step 1: Create Service Interface
+
+```typescript
+// lib/services/calibre.service.ts
+
+/**
+ * Interface for Calibre operations
+ * Makes it easy to create test mocks
+ */
+export interface ICalibreService {
+  updateRating(calibreId: number, rating: number | null): void;
+  updateTags(calibreId: number, tags: string[]): void;
+}
+
+/**
+ * Service class wraps low-level module functions
+ */
+export class CalibreService implements ICalibreService {
+  updateRating(calibreId: number, rating: number | null): void {
+    return updateCalibreRatingImpl(calibreId, rating);
+  }
+
+  updateTags(calibreId: number, tags: string[]): void {
+    return updateCalibreTagsImpl(calibreId, tags);
+  }
+}
+
+// Default singleton for production use
+export const calibreService = new CalibreService();
+```
+
+#### Step 2: Use Dependency Injection in Consumers
+
+```typescript
+// lib/services/book.service.ts
+
+export class BookService {
+  private calibre?: ICalibreService;
+  
+  constructor(calibre?: ICalibreService) {
+    this.calibre = calibre;
+  }
+  
+  /**
+   * Lazy load calibre service to support test mocking
+   * Always re-imports to ensure test mocks are applied
+   */
+  private getCalibreService(): ICalibreService {
+    if (this.calibre) {
+      return this.calibre;
+    }
+    // Lazy import - don't cache to support test mocking
+    const { calibreService } = require("@/lib/services/calibre.service");
+    return calibreService;
+  }
+  
+  async updateRating(bookId: number, rating: number | null): Promise<Book> {
+    const book = await bookRepository.findById(bookId);
+    
+    // Use injected or lazy-loaded service
+    await this.getCalibreService().updateRating(book.calibreId, rating);
+    
+    return bookRepository.update(bookId, { rating });
+  }
+}
+
+// Default singleton for production use
+export const bookService = new BookService();
+```
+
+#### Step 3: Test Implementation with Real Database
+
+```typescript
+// __tests__/lib/calibre-write.test.ts
+
+import { Database } from "bun:sqlite";
+import { updateCalibreRating, readCalibreRating } from "@/lib/db/calibre-write";
+
+describe("Calibre Write Operations", () => {
+  let testDb: Database;
+  
+  beforeAll(() => {
+    // Create in-memory test database with Calibre schema
+    testDb = new Database(":memory:");
+    createCalibreSchema(testDb);
+  });
+  
+  test("should update rating in Calibre database", () => {
+    // Test actual implementation by injecting test database
+    updateCalibreRating(1, 5, testDb);
+    
+    const rating = readCalibreRating(1, testDb);
+    expect(rating).toBe(5);
+  });
+});
+```
+
+#### Step 4: Test Integration with Mocked Service
+
+```typescript
+// __tests__/api/rating.test.ts
+
+import { mock } from "bun:test";
+
+// Mock the service layer (not the implementation)
+let mockUpdateRating = mock(() => {});
+
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
+      mockUpdateRating(calibreId, rating);
+    },
+  },
+  CalibreService: class {},
+}));
+
+// Import after mock is set up
+import { POST } from "@/app/api/books/[id]/rating/route";
+
+test("should update book rating and sync to Calibre", async () => {
+  const book = await bookRepository.create({ calibreId: 123, ... });
+  
+  const response = await POST(createMockRequest("POST", "/api/books/123/rating", {
+    rating: 5
+  }));
+  
+  // Verify API updated Tome database
+  expect(response.status).toBe(200);
+  
+  // Verify API called Calibre service
+  expect(mockUpdateRating).toHaveBeenCalledWith(123, 5);
+});
+```
+
+### When to Use This Pattern
+
+✅ **Use service layer abstraction when:**
+- Interacting with external file systems (Calibre database)
+- Calling third-party APIs (webhooks, email services)
+- Performing expensive I/O operations (image processing, file uploads)
+- Testing code that depends on these operations
+
+❌ **Don't use service layer when:**
+- Working with your own database (use test database instead)
+- Testing pure functions (no external dependencies)
+- Mocking would hide important business logic
+
+### Benefits
+
+1. **No Test Pollution**: Mocking service layer doesn't affect implementation tests
+2. **Clean Boundaries**: Clear separation between business logic and external I/O
+3. **Testable**: Can test both implementation (with test DB) and integration (with mocks)
+4. **Flexible**: Easy to swap implementations (production vs. test vs. mock)
+5. **Type-Safe**: Interfaces ensure mock compatibility
+
+### Real-World Example: Calibre Integration
+
+**Problem**: Tests for `calibre-write` module were being polluted by `mock.module()` calls in API tests.
+
+**Solution**: 
+1. Created `CalibreService` to wrap `calibre-write` functions
+2. `BookService` uses lazy-loaded `calibreService`
+3. API tests mock `CalibreService` (service layer)
+4. Unit tests test `calibre-write` directly (implementation layer)
+
+**Result**: 
+- `calibre-write.test.ts` tests actual Calibre database operations
+- `rating.test.ts` verifies API behavior without file I/O
+- No mock leakage between test files
 
 ---
 
@@ -829,6 +1053,171 @@ describe("Error Handling", () => {
 });
 ```
 
+### Pattern 6: Testing External Dependencies (Calibre Database)
+
+This pattern shows how to test code that interacts with external resources (like the Calibre database) using two complementary approaches.
+
+#### Approach A: Unit Test the Implementation (with Test Database)
+
+Test the actual low-level functions by injecting a test database:
+
+```typescript
+// __tests__/lib/calibre-write.test.ts
+
+import { Database } from "bun:sqlite";
+import { updateCalibreRating, readCalibreRating } from "@/lib/db/calibre-write";
+
+describe("Calibre Write Operations - Rating Management", () => {
+  let testDb: Database;
+
+  beforeAll(() => {
+    // Create in-memory test database with Calibre schema
+    testDb = new Database(":memory:");
+    createCalibreSchema(testDb);
+    insertTestBooks(testDb);
+  });
+
+  afterAll(() => {
+    testDb.close();
+  });
+
+  beforeEach(() => {
+    // Clear ratings before each test
+    testDb.run("DELETE FROM books_ratings_link");
+    testDb.run("DELETE FROM ratings");
+  });
+
+  test("should create rating for book (5 stars)", () => {
+    // Inject test database into production function
+    updateCalibreRating(1, 5, testDb);
+
+    // Verify using real queries
+    const rating = readCalibreRating(1, testDb);
+    expect(rating).toBe(5);
+
+    // Can also verify low-level database state
+    const ratingRecord = testDb.prepare(
+      "SELECT * FROM ratings WHERE rating = ?"
+    ).get(10) as any;
+    expect(ratingRecord.rating).toBe(10); // 5 stars * 2 = Calibre scale
+  });
+
+  test("should convert 1-5 stars to Calibre scale (2,4,6,8,10)", () => {
+    updateCalibreRating(1, 3, testDb);
+
+    const ratingRecord = testDb.prepare(
+      "SELECT rating FROM ratings JOIN books_ratings_link ON ratings.id = books_ratings_link.rating WHERE book = ?"
+    ).get(1) as any;
+
+    expect(ratingRecord.rating).toBe(6); // 3 stars * 2
+  });
+});
+```
+
+**Key points:**
+- Tests actual implementation (not mocked)
+- Uses dependency injection (`testDb` parameter) to avoid file I/O
+- Verifies both high-level behavior and low-level database state
+- Tests business logic like scale conversion (1-5 → 2,4,6,8,10)
+
+#### Approach B: Integration Test with Mocked Service
+
+Test the API endpoints by mocking the service layer:
+
+```typescript
+// __tests__/api/rating.test.ts
+
+import { mock } from "bun:test";
+
+// Mock the service layer (not the implementation)
+let mockUpdateCalibreRating = mock(() => {});
+let mockCalibreShouldFail = false;
+
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      mockUpdateCalibreRating(calibreId, rating);
+    },
+    updateTags: mock(() => {}),
+    readRating: mock(() => null),
+    readTags: mock(() => []),
+  },
+  CalibreService: class {},
+}));
+
+// Import after mock is set up
+import { POST } from "@/app/api/books/[id]/rating/route";
+
+beforeEach(async () => {
+  await clearTestDatabase(__filename);
+  mockUpdateCalibreRating.mockClear();
+  mockCalibreShouldFail = false;
+});
+
+test("should set rating to 5 stars", async () => {
+  const book = await bookRepository.create(mockBook1);
+
+  const request = createMockRequest("POST", `/api/books/${book.id}/rating`, {
+    rating: 5,
+  });
+  const response = await POST(request, { params: { id: book.id.toString() } });
+  const data = await response.json();
+
+  expect(response.status).toBe(200);
+  expect(data.rating).toBe(5);
+  
+  // Verify service was called with correct parameters
+  expect(mockUpdateCalibreRating).toHaveBeenCalledWith(book.calibreId, 5);
+
+  // Verify Tome database was updated
+  const updatedBook = await bookRepository.findById(book.id);
+  expect(updatedBook?.rating).toBe(5);
+});
+
+test("should handle Calibre sync failure gracefully", async () => {
+  const book = await bookRepository.create(mockBook1);
+  mockCalibreShouldFail = true; // Simulate Calibre failure
+
+  const request = createMockRequest("POST", `/api/books/${book.id}/rating`, {
+    rating: 5,
+  });
+  const response = await POST(request, { params: { id: book.id.toString() } });
+
+  // API should still succeed (best effort sync)
+  expect(response.status).toBe(200);
+  
+  // Tome database should be updated even if Calibre fails
+  const updatedBook = await bookRepository.findById(book.id);
+  expect(updatedBook?.rating).toBe(5);
+});
+```
+
+**Key points:**
+- Mocks at the **service layer boundary** (not implementation)
+- Tests API behavior without file system I/O
+- Verifies both success and error scenarios
+- Checks that business logic continues even if external sync fails
+
+#### Why Both Approaches?
+
+| Aspect | Unit Tests (Approach A) | Integration Tests (Approach B) |
+|--------|------------------------|--------------------------------|
+| **What's tested** | Low-level implementation | End-to-end API flow |
+| **Database** | Calibre test schema | Tome test database |
+| **Mocking** | None (real functions) | Service layer only |
+| **Speed** | Fast (in-memory) | Fast (in-memory) |
+| **Coverage** | Business logic, edge cases | API contract, error handling |
+| **Isolation** | Complete (no dependencies) | Isolated from file system |
+
+Together, these approaches give you:
+- ✅ Confidence that low-level functions work correctly
+- ✅ Confidence that API endpoints integrate properly
+- ✅ No file system dependencies in tests
+- ✅ No test pollution between files
+
 ---
 
 ## Troubleshooting
@@ -961,22 +1350,87 @@ import { bookRepository } from "@/lib/repositories";
 
 ### Problem: Mocks leak between test files
 
-**Cause**: Using `mock.module()` which is global in Bun
+**Cause**: Using `mock.module()` which is global and permanent in Bun
 
-**Solution**:
-1. **Preferred**: Avoid `mock.module()` entirely
-   - Use dependency injection in production code
-   - Add test-specific behavior in production code (e.g., `if (process.env.NODE_ENV === 'test')`)
-   - Example: `lib/db/calibre-write.ts` uses `getLoggerSafe()` to return no-op logger in tests
+**Symptoms**:
+- Test file A mocks a module, but Test file B (which doesn't mock) is affected
+- Functions return undefined or behave unexpectedly in unrelated tests
+- Tests pass individually but fail when run together
 
-2. **If unavoidable**: Control test execution order
-   - Tests that DON'T mock should run first (prefix with `000-`)
-   - Tests that DO mock run later (their mocks won't affect earlier tests)
-   - Example: `__tests__/000-calibre-write.test.ts` runs before API tests that mock calibre-write
+**Solutions** (in order of preference):
 
-3. **Always**: Run tests serially (`concurrency = 1` in bunfig.toml)
+#### 1. ✅ BEST: Use Service Layer Abstraction
 
-**Reference**: See `docs/CALIBRE_WRITE_TEST_FIX.md` for detailed case study
+Create a service layer to wrap external dependencies, then mock the service instead of the implementation:
+
+```typescript
+// ✅ Good - Mock service layer (CalibreService pattern)
+// __tests__/api/rating.test.ts
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: mock(() => {}),
+  },
+}));
+
+// __tests__/lib/calibre-write.test.ts - NOT AFFECTED
+// Tests actual implementation with injected test database
+import { updateCalibreRating } from "@/lib/db/calibre-write";
+```
+
+**Why this works:**
+- Service layer and implementation are separate modules
+- Mocking service doesn't affect implementation tests
+- Clean separation of concerns
+- See "Service Layer Testing Pattern" section for full details
+
+**Real-world example:**
+- Created `CalibreService` to wrap `calibre-write` functions
+- API tests mock `CalibreService` (no leakage to implementation tests)
+- Unit tests test `calibre-write` directly with test database
+
+#### 2. Use Dependency Injection
+
+```typescript
+// Production code accepts optional dependencies
+export class BookService {
+  constructor(private calibre?: ICalibreService) {}
+  
+  private getCalibreService() {
+    if (this.calibre) return this.calibre;
+    return require("@/lib/services/calibre.service").calibreService;
+  }
+}
+
+// Tests inject mocks
+const mockCalibre = { updateRating: mock(() => {}) };
+const bookService = new BookService(mockCalibre);
+```
+
+#### 3. Add Test-Specific Behavior in Production Code
+
+```typescript
+// lib/db/calibre-write.ts
+function getLoggerSafe() {
+  if (process.env.NODE_ENV === 'test') {
+    return { info: () => {}, error: () => {} }; // No-op logger
+  }
+  return getLogger();
+}
+```
+
+#### 4. Control Test Execution Order (Last Resort)
+
+If you must use `mock.module()`:
+- Tests that DON'T mock should run first (prefix with `000-`)
+- Tests that DO mock run later (their mocks won't affect earlier tests)
+- Example: `__tests__/000-calibre-write.test.ts` runs before API tests
+- Always run tests serially (`concurrency = 1` in bunfig.toml)
+
+**⚠️ Warning**: This is fragile and should be avoided. Use service layer pattern instead.
+
+**Related sections:**
+- See "Service Layer Testing Pattern" for architecture details
+- See Pattern 6 for testing external dependencies examples
 
 ### Problem: Component tests fail with "ReferenceError: document is not defined"
 
@@ -1110,6 +1564,12 @@ bun test --coverage
 
 ## Version History
 
+- **1.1.0** (2025-12-28): Added service layer testing pattern
+  - Documented CalibreService abstraction pattern for external dependencies
+  - Added Pattern 6: Testing External Dependencies (Calibre Database)
+  - Updated mock leakage troubleshooting with service layer solution
+  - Clarified when to mock at service boundaries vs. testing with real databases
+  - Added lazy loading pattern for dependency injection in services
 - **1.0.0** (2025-11-26): Initial version based on codebase analysis
 
 ---
