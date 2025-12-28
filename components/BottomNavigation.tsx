@@ -35,8 +35,15 @@ export function BottomNavigation() {
 
   // Blur the More button when the sheet opens to prevent focus carryover
   useEffect(() => {
-    if (isMoreOpen && moreButtonRef.current) {
-      moreButtonRef.current.blur();
+    if (isMoreOpen) {
+      // Blur the More button
+      if (moreButtonRef.current) {
+        moreButtonRef.current.blur();
+      }
+      // Also blur any currently focused element to prevent browser auto-focus
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     }
   }, [isMoreOpen]);
 
