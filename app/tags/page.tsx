@@ -39,14 +39,18 @@ function TagsPageContent() {
   const [mergeLoading, setMergeLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
-  // Settings state - initialize from localStorage to prevent flash
-  const [confirmTagRemoval, setConfirmTagRemoval] = useState(() => {
+  // Settings state - load from localStorage
+  const [confirmTagRemoval, setConfirmTagRemoval] = useState(true);
+
+  // Load confirmTagRemoval preference from localStorage on mount
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const savedPreference = localStorage.getItem("confirmTagRemoval");
-      return savedPreference !== null ? savedPreference === "true" : true;
+      if (savedPreference !== null) {
+        setConfirmTagRemoval(savedPreference === "true");
+      }
     }
-    return true;
-  });
+  }, []);
 
   // Handle confirmTagRemoval change and save to localStorage
   const handleConfirmRemovalChange = (value: boolean) => {
