@@ -6,7 +6,8 @@ import {
   updateCalibreRating, 
   readCalibreRating,
   updateCalibreTags,
-  readCalibreTags 
+  readCalibreTags,
+  batchUpdateCalibreTags
 } from "@/lib/db/calibre-write";
 
 /**
@@ -705,3 +706,312 @@ describe("Calibre Write Operations - Tag Management", () => {
 });
 
 
+
+describe("Calibre Write Operations - Batch Tag Updates", () => {
+  let batchTestDb: Database;
+
+  beforeAll(() => {
+    batchTestDb = new Database(":memory:");
+    createCalibreRatingsSchema(batchTestDb);
+    
+    // Create test books
+    batchTestDb.run("INSERT INTO books (id, title) VALUES (1, 'Book 1')");
+    batchTestDb.run("INSERT INTO books (id, title) VALUES (2, 'Book 2')");
+    batchTestDb.run("INSERT INTO books (id, title) VALUES (3, 'Book 3')");
+    batchTestDb.run("INSERT INTO books (id, title) VALUES (4, 'Book 4')");
+    batchTestDb.run("INSERT INTO books (id, title) VALUES (5, 'Book 5')");
+  });
+
+  afterAll(() => {
+    batchTestDb.close();
+  });
+
+  beforeEach(() => {
+    // Clear tags between tests
+    batchTestDb.run("DELETE FROM books_tags_link");
+    batchTestDb.run("DELETE FROM tags");
+  });
+
+  describe("Basic Batch Operations", () => {
+    test("should update tags for multiple books in batch", () => {
+      // Arrange
+      const updates = [
+        { calibreId: 1, tags: ["Fiction", "Classic"] },
+        { calibreId: 2, tags: ["Science Fiction", "Adventure"] },
+        { calibreId: 3, tags: ["Biography"] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(3);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
+      expect(readCalibreTags(3, batchTestDb)).toEqual(["Biography"]);
+    });
+
+    test("should handle single book update", () => {
+      // Arrange
+      const updates = [{ calibreId: 1, tags: ["Fiction"] }];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(1);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Fiction"]);
+    });
+
+    test("should return 0 for empty updates array", () => {
+      // Act
+      const successCount = batchUpdateCalibreTags([], batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(0);
+    });
+
+    test("should handle clearing tags for multiple books", () => {
+      // Arrange: Set initial tags
+      updateCalibreTags(1, ["Fiction"], batchTestDb);
+      updateCalibreTags(2, ["Classic"], batchTestDb);
+      
+      const updates = [
+        { calibreId: 1, tags: [] },
+        { calibreId: 2, tags: [] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(2);
+      expect(readCalibreTags(1, batchTestDb)).toEqual([]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual([]);
+    });
+  });
+
+  describe("Tag Reuse and Deduplication", () => {
+    test("should reuse same tag across multiple books", () => {
+      // Arrange
+      const updates = [
+        { calibreId: 1, tags: ["Fiction", "Popular"] },
+        { calibreId: 2, tags: ["Fiction", "Classic"] },
+        { calibreId: 3, tags: ["Fiction"] },
+      ];
+
+      // Act
+      batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert: All books have Fiction tag
+      expect(readCalibreTags(1, batchTestDb)).toContain("Fiction");
+      expect(readCalibreTags(2, batchTestDb)).toContain("Fiction");
+      expect(readCalibreTags(3, batchTestDb)).toContain("Fiction");
+
+      // Verify Fiction tag exists only once in tags table
+      const tagCount = batchTestDb.prepare(
+        "SELECT COUNT(*) as count FROM tags WHERE name = 'Fiction'"
+      ).get() as { count: number };
+      expect(tagCount.count).toBe(1);
+    });
+
+    test("should handle overlapping tags efficiently", () => {
+      // Arrange: Create books with some shared tags
+      const updates = [
+        { calibreId: 1, tags: ["Fiction", "Adventure", "Popular"] },
+        { calibreId: 2, tags: ["Fiction", "Classic", "Popular"] },
+        { calibreId: 3, tags: ["Non-Fiction", "Popular"] },
+      ];
+
+      // Act
+      batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert: Check all books have correct tags
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Adventure", "Fiction", "Popular"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Classic", "Fiction", "Popular"]);
+      expect(readCalibreTags(3, batchTestDb)).toEqual(["Non-Fiction", "Popular"]);
+
+      // Verify only 5 unique tags exist (Fiction, Adventure, Popular, Classic, Non-Fiction)
+      const totalTagCount = batchTestDb.prepare("SELECT COUNT(*) as count FROM tags").get() as { count: number };
+      expect(totalTagCount.count).toBe(5);
+    });
+  });
+
+  describe("Error Handling", () => {
+    test("should process all updates even with non-existent book IDs", () => {
+      // Arrange: Include non-existent book IDs (SQLite allows this without FK triggers)
+      const updates = [
+        { calibreId: 1, tags: ["Fiction"] },
+        { calibreId: 999, tags: ["Invalid"] }, // Non-existent book (still succeeds without FK enforcement)
+        { calibreId: 2, tags: ["Classic"] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert: All succeed (FK not enforced in test DB for tags)
+      expect(successCount).toBe(3);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Fiction"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Classic"]);
+      expect(readCalibreTags(999, batchTestDb)).toEqual(["Invalid"]);
+    });
+
+    test("should handle batch with only non-existent book IDs", () => {
+      // Arrange: All non-existent book IDs
+      const updates = [
+        { calibreId: 999, tags: ["Invalid1"] },
+        { calibreId: 998, tags: ["Invalid2"] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(2); // Succeed without FK enforcement
+    });
+
+    test("should return 0 for non-array input", () => {
+      // Act & Assert
+      expect(batchUpdateCalibreTags(null as any, batchTestDb)).toBe(0);
+      expect(batchUpdateCalibreTags(undefined as any, batchTestDb)).toBe(0);
+      expect(batchUpdateCalibreTags("not an array" as any, batchTestDb)).toBe(0);
+    });
+  });
+
+  describe("Edge Cases", () => {
+    test("should handle large batch updates", () => {
+      // Arrange: Update all 5 books with different tags
+      const updates = [
+        { calibreId: 1, tags: ["Fiction", "Classic", "Popular"] },
+        { calibreId: 2, tags: ["Science Fiction", "Adventure"] },
+        { calibreId: 3, tags: ["Biography", "Non-Fiction"] },
+        { calibreId: 4, tags: ["Fantasy", "Magic", "Epic"] },
+        { calibreId: 5, tags: ["Mystery", "Thriller"] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(5);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction", "Popular"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
+      expect(readCalibreTags(3, batchTestDb)).toEqual(["Biography", "Non-Fiction"]);
+      expect(readCalibreTags(4, batchTestDb)).toEqual(["Epic", "Fantasy", "Magic"]);
+      expect(readCalibreTags(5, batchTestDb)).toEqual(["Mystery", "Thriller"]);
+    });
+
+    test("should handle books with many tags", () => {
+      // Arrange: Books with 20+ tags each
+      const manyTags1 = Array.from({ length: 25 }, (_, i) => `Tag${i}`);
+      const manyTags2 = Array.from({ length: 30 }, (_, i) => `Genre${i}`);
+      
+      const updates = [
+        { calibreId: 1, tags: manyTags1 },
+        { calibreId: 2, tags: manyTags2 },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(2);
+      expect(readCalibreTags(1, batchTestDb)).toHaveLength(25);
+      expect(readCalibreTags(2, batchTestDb)).toHaveLength(30);
+    });
+
+    test("should handle unicode and special characters in batch", () => {
+      // Arrange
+      const updates = [
+        { calibreId: 1, tags: ["科幻小説", "ファンタジー"] },
+        { calibreId: 2, tags: ["Editor's Choice", "Action & Adventure"] },
+        { calibreId: 3, tags: ["🔮 Magic", "⭐ Popular"] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(3);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["ファンタジー", "科幻小説"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Action & Adventure", "Editor's Choice"]);
+      expect(readCalibreTags(3, batchTestDb)).toEqual(["⭐ Popular", "🔮 Magic"]);
+    });
+
+    test("should handle empty strings and whitespace in batch", () => {
+      // Arrange
+      const updates = [
+        { calibreId: 1, tags: ["  Fiction  ", "", "  ", "Classic"] },
+        { calibreId: 2, tags: ["", "  "] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(2);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]); // Empty/whitespace filtered
+      expect(readCalibreTags(2, batchTestDb)).toEqual([]); // All filtered out
+    });
+
+    test("should handle duplicate tags in single book update", () => {
+      // Arrange
+      const updates = [
+        { calibreId: 1, tags: ["Fiction", "Classic", "Fiction", "Classic"] },
+      ];
+
+      // Act
+      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert
+      expect(successCount).toBe(1);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]); // Deduplicated
+    });
+  });
+
+  describe("Idempotency", () => {
+    test("should produce same result when called multiple times", () => {
+      // Arrange
+      const updates = [
+        { calibreId: 1, tags: ["Fiction", "Classic"] },
+        { calibreId: 2, tags: ["Science Fiction"] },
+      ];
+
+      // Act: Call twice
+      const count1 = batchUpdateCalibreTags(updates, batchTestDb);
+      const count2 = batchUpdateCalibreTags(updates, batchTestDb);
+
+      // Assert: Both succeed with same result
+      expect(count1).toBe(2);
+      expect(count2).toBe(2);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Science Fiction"]);
+    });
+
+    test("should handle sequential batch updates to same books", () => {
+      // Arrange: First batch
+      const updates1 = [
+        { calibreId: 1, tags: ["Fiction"] },
+        { calibreId: 2, tags: ["Classic"] },
+      ];
+
+      // Act: First batch
+      batchUpdateCalibreTags(updates1, batchTestDb);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Fiction"]);
+
+      // Arrange: Second batch (update same books)
+      const updates2 = [
+        { calibreId: 1, tags: ["Science Fiction", "Adventure"] },
+        { calibreId: 2, tags: ["Biography"] },
+      ];
+
+      // Act: Second batch
+      const count2 = batchUpdateCalibreTags(updates2, batchTestDb);
+
+      // Assert: Tags replaced correctly
+      expect(count2).toBe(2);
+      expect(readCalibreTags(1, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
+      expect(readCalibreTags(2, batchTestDb)).toEqual(["Biography"]);
+    });
+  });
+});
