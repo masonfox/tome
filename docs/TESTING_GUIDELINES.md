@@ -356,139 +356,23 @@ describe("BookHeader", () => {
 
 ## Best Practices
 
+## Best Practices
+
 ### DO ✅
 
-1. **Use Real Database for Integration Tests**
-   ```typescript
-   // ✅ Good - Real database, real queries
-   await setupTestDatabase(__filename);
-   const book = await bookRepository.create({ ... });
-   ```
-
-2. **Test Behavior, Not Implementation**
-   ```typescript
-   // ✅ Good - Tests the outcome
-   test("should mark book as read when progress reaches 100%", () => {
-     // Assert that status changed to "read"
-   });
-   
-   // ❌ Bad - Tests how it's done
-   test("should call sessionRepository.update with status='read'", () => {
-     // Fragile - breaks if implementation changes
-   });
-   ```
-
-3. **Use Descriptive Test Data**
-   ```typescript
-   // ✅ Good - Clear intent
-   const bookWithoutPages = await bookRepository.create({
-     title: "Book Without Total Pages",
-     totalPages: null,
-   });
-   
-   // ❌ Bad - Magic values
-   const book = await bookRepository.create({ totalPages: null });
-   ```
-
-4. **Test Error Cases**
-   ```typescript
-   // ✅ Good - Tests validation
-   test("should return 404 when book not found", async () => {
-     const response = await GET(createMockRequest("GET", "/api/books/99999"));
-     expect(response.status).toBe(404);
-   });
-   ```
-
-5. **Isolate Tests**
-   ```typescript
-   // ✅ Good - Each test is independent
-   beforeEach(async () => {
-     await clearTestDatabase(__filename);
-   });
-   ```
+1. **Use Real Database** - Integration tests use `setupTestDatabase(__filename)`
+2. **Test Behavior, Not Implementation** - Assert outcomes, not internal method calls
+3. **Use Descriptive Test Data** - `bookWithoutPages` > `book` (with null pages)
+4. **Test Error Cases** - Every endpoint tests 404, 400, validation errors
+5. **Isolate Tests** - `clearTestDatabase(__filename)` in `beforeEach`
 
 ### DON'T ❌
 
-1. **Don't Mock Application Code (with exceptions)**
-   ```typescript
-   // ❌ Bad - Mocking your own services
-   mock.module("@/lib/services/book.service", () => ({
-     BookService: class { ... }
-   }));
-   
-   // ✅ Good - Use real service with test database
-   const bookService = new BookService();
-   
-   // ✅ Exception: Mock at service layer boundaries for external I/O
-   // (See "Service Layer Testing Pattern" section below)
-   mock.module("@/lib/services/calibre.service", () => ({
-     calibreService: {
-       updateRating: mock(() => {}),
-       updateTags: mock(() => {}),
-     }
-   }));
-   ```
-
-2. **Don't Use `as any` for Type Assertions**
-   ```typescript
-   // ❌ Bad - Defeats type safety
-   const book = await bookRepository.create(mockBook1 as any);
-   
-   // ✅ Good - Use proper types or create type helper
-   const book = await bookRepository.create({
-     calibreId: 1,
-     title: "Test",
-     authors: ["Author"],
-     tags: [],
-     path: "Author/Test (1)",
-   });
-   ```
-
-3. **Don't Test Third-Party Libraries**
-   ```typescript
-   // ❌ Bad - Testing date-fns
-   test("should parse date correctly", () => {
-     const result = parseISO("2025-11-17");
-     expect(result).toBeInstanceOf(Date);
-   });
-   
-   // ✅ Good - Test your usage of the library
-   test("should calculate streak based on dates", () => {
-     const result = calculateStreakDays(date1, date2);
-     expect(result).toBe(1);
-   });
-   ```
-
-4. **Don't Share State Between Tests**
-   ```typescript
-   // ❌ Bad - Tests depend on order
-   let book: Book;
-   
-   test("create book", async () => {
-     book = await bookRepository.create({ ... });
-   });
-   
-   test("update book", async () => {
-     await bookRepository.update(book.id, { ... }); // Fails if first test skipped!
-   });
-   
-   // ✅ Good - Each test is self-contained
-   test("should update book", async () => {
-     const book = await bookRepository.create({ ... });
-     await bookRepository.update(book.id, { ... });
-     // Assert...
-   });
-   ```
-
-5. **Don't Leave Commented-Out Code**
-   ```typescript
-   // ❌ Bad - Dead code
-   // expect(data.books[0].rating).toBe(5);
-   
-   // ✅ Good - Remove or add explanation
-   // Note: Rating moved from sessions to books table
-   expect(data.books[0].rating).toBeNull(); // Not set in this test
-   ```
+1. **Don't Mock Application Code** - Use real services with test database. Exception: Mock at service boundaries for external I/O (see [Service Layer Pattern](#service-layer-testing-pattern))
+2. **Don't Use `as any`** - Use proper types or helpers: `createTestBook()`
+3. **Don't Test Third-Party Libraries** - Test your usage, not `parseISO()` itself
+4. **Don't Share State Between Tests** - Each test creates its own data
+5. **Don't Leave Commented-Out Code** - Remove or explain with comments
 
 ---
 
@@ -713,33 +597,17 @@ test("should update book rating and sync to Calibre", async () => {
 
 ```typescript
 test("should auto-calculate percentage from pages", async () => {
-  const book = await bookRepository.create({
-    calibreId: 1,
-    title: "Test Book",
-    authors: ["Author"],
-    tags: [],
-    path: "Author/Test Book (1)",
-    totalPages: 300, // Important for calculation
-  });
-
-  const session = await sessionRepository.create({
-    bookId: book.id,
-    sessionNumber: 1,
-    status: "reading",
-    isActive: true,
-  });
-
-  const request = createMockRequest("POST", `/api/books/${book.id}/progress`, {
-    sessionId: session.id,
-    currentPage: 150, // 50% of 300
-  });
-
-  const response = await POST(request);
+  const { book, session } = await createTestBookWithSession({ totalPages: 300 });
+  
+  const response = await POST(
+    createMockRequest("POST", `/api/books/${book.id}/progress`, {
+      sessionId: session.id,
+      currentPage: 150,
+    })
+  );
+  
   const data = await response.json();
-
-  expect(response.status).toBe(200);
-  expect(data.currentPage).toBe(150);
-  expect(data.currentPercentage).toBe(50); // Auto-calculated
+  expect(data.currentPercentage).toBe(50); // 150/300 = 50%
 });
 ```
 
@@ -747,31 +615,15 @@ test("should auto-calculate percentage from pages", async () => {
 
 ```typescript
 test("should archive previous session when starting re-read", async () => {
-  const book = await bookRepository.create({ ... });
-
-  // First read (completed)
-  const session1 = await sessionRepository.create({
-    bookId: book.id,
-    sessionNumber: 1,
-    status: "read",
-    isActive: true,
-    completedDate: new Date("2024-01-01"),
+  const { book, session } = await createTestBookWithSession({ 
+    status: "read", 
+    completedDate: new Date("2024-01-01") 
   });
 
-  // Start re-reading
-  const request = createMockRequest("POST", "/api/books/reread", {
-    bookId: book.id,
-  });
-  const response = await POST(request);
-
-  // Assert session1 is archived
-  const archivedSession = await sessionRepository.findById(session1.id);
-  expect(archivedSession?.isActive).toBe(false);
-
-  // Assert new session created
-  const data = await response.json();
-  expect(data.sessionNumber).toBe(2);
-  expect(data.isActive).toBe(true);
+  const response = await POST(createMockRequest("POST", "/api/books/reread", { bookId: book.id }));
+  
+  expect((await sessionRepository.findById(session.id))?.isActive).toBe(false);
+  expect((await response.json()).sessionNumber).toBe(2);
 });
 ```
 
@@ -779,40 +631,15 @@ test("should archive previous session when starting re-read", async () => {
 
 ```typescript
 test("should filter books by multiple criteria", async () => {
-  // Create test books with different attributes
-  const book1 = await bookRepository.create({
-    calibreId: 1,
-    title: "Fantasy Book",
-    authors: ["Author 1"],
-    tags: ["fantasy", "magic"],
-    path: "Author 1/Fantasy Book (1)",
-  });
+  const book1 = await createTestBook({ title: "Fantasy", tags: ["fantasy"] });
+  const book2 = await createTestBook({ title: "Sci-Fi", tags: ["sci-fi"] });
+  await sessionRepository.create({ bookId: book1.id, status: "reading" });
 
-  const book2 = await bookRepository.create({
-    calibreId: 2,
-    title: "Sci-Fi Book",
-    authors: ["Author 2"],
-    tags: ["sci-fi", "space"],
-    path: "Author 2/Sci-Fi Book (2)",
-  });
-
-  await sessionRepository.create({
-    bookId: book1.id,
-    sessionNumber: 1,
-    status: "reading",
-    isActive: true,
-  });
-
-  // Filter by status + tags
-  const request = createMockRequest(
-    "GET",
-    "/api/books?status=reading&tags=fantasy"
-  );
-  const response = await GET(request);
+  const response = await GET(createMockRequest("GET", "/api/books?status=reading&tags=fantasy"));
   const data = await response.json();
-
+  
   expect(data.books).toHaveLength(1);
-  expect(data.books[0].title).toBe("Fantasy Book");
+  expect(data.books[0].title).toBe("Fantasy");
 });
 ```
 
@@ -820,71 +647,38 @@ test("should filter books by multiple criteria", async () => {
 
 ```typescript
 test("should increment streak for consecutive days", async () => {
-  // Create initial streak
   await streakRepository.upsertStreak({
     currentStreak: 5,
-    longestStreak: 10,
     lastActivityDate: new Date("2025-11-16"),
-    streakStartDate: new Date("2025-11-11"),
-    totalDaysActive: 15,
   });
-
-  // Log progress (triggers streak update)
-  const book = await bookRepository.create({ ... });
-  const session = await sessionRepository.create({ ... });
   
-  const request = createMockRequest("POST", `/api/books/${book.id}/progress`, {
+  const { book, session } = await createTestBookWithSession();
+  await POST(createMockRequest("POST", `/api/books/${book.id}/progress`, {
     sessionId: session.id,
     currentPage: 50,
-  });
-  await POST(request);
+  }));
 
-  // Verify streak incremented (assuming test runs on 2025-11-17)
   const streak = await streakRepository.getActiveStreak();
-  expect(streak?.currentStreak).toBe(6); // Was 5, now 6
-  expect(streak?.lastActivityDate).toEqual(new Date("2025-11-17"));
+  expect(streak?.currentStreak).toBe(6);
 });
 ```
 
 ### Pattern 5: Testing Error Handling
 
 ```typescript
-describe("Error Handling", () => {
-  test("should return 400 for invalid input", async () => {
-    const request = createMockRequest("POST", "/api/books", {
-      // Missing required field: calibreId
-      title: "Test Book",
-    });
-    
-    const response = await POST(request);
-    const data = await response.json();
-    
-    expect(response.status).toBe(400);
-    expect(data.error).toContain("Missing required fields");
-  });
-  
-  test("should return 404 for non-existent book", async () => {
-    const request = createMockRequest("GET", "/api/books/99999");
-    const response = await GET(request);
-    
-    expect(response.status).toBe(404);
-  });
-  
-  test("should handle database errors gracefully", async () => {
-    // Force a constraint violation
-    const book = await bookRepository.create({ ... });
-    
-    // Try to create duplicate calibreId
-    const result = bookRepository.create({
-      calibreId: book.calibreId, // Duplicate!
-      title: "Another Book",
-      authors: ["Author"],
-      tags: [],
-      path: "Author/Book (2)",
-    });
-    
-    await expect(result).rejects.toThrow();
-  });
+test("should return 400 for invalid input", async () => {
+  const response = await POST(createMockRequest("POST", "/api/books", { title: "Test" }));
+  expect(response.status).toBe(400);
+});
+
+test("should return 404 for non-existent book", async () => {
+  const response = await GET(createMockRequest("GET", "/api/books/99999"));
+  expect(response.status).toBe(404);
+});
+
+test("should handle database constraint violations", async () => {
+  const book = await createTestBook();
+  await expect(createTestBook({ calibreId: book.calibreId })).rejects.toThrow();
 });
 ```
 
