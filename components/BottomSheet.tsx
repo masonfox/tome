@@ -37,17 +37,13 @@ export function BottomSheet({
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setIsClosing(false);
-      
-      // Focus the close button after the sheet animates in
-      // Use a small delay to ensure the animation and rendering are complete
-      const timeoutId = setTimeout(() => {
-        closeButtonRef.current?.focus();
-      }, 50);
-      
-      return () => clearTimeout(timeoutId);
     } else {
       document.body.style.overflow = "";
     }
+    
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const handleClose = () => {
