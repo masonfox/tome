@@ -99,6 +99,13 @@
       "when": 1733862000000,
       "tag": "0013_optimize_series_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1766959864874,
+      "tag": "0014_add_shelves",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import { BaseRepository } from "./base.repository";
 import { books, Book, NewBook } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
+import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
 
 export interface BookFilter {
@@ -12,6 +13,7 @@ export interface BookFilter {
   rating?: string; // "all" | "rated" | "5" | "4" | "3" | "2" | "1" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
+  shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
 }
 
 export interface BookWithStatus extends Book {
@@ -351,6 +353,23 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       if (bookIds.length > 0) {
         conditions.push(inArray(books.id, bookIds));
       }
+    }
+
+    // Shelf filter (books must be on ANY of the selected shelves - OR logic)
+    if (filters.shelfIds && filters.shelfIds.length > 0) {
+      const shelfQuery = this.getDatabase()
+        .selectDistinct({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(inArray(bookShelves.shelfId, filters.shelfIds));
+
+      const shelfBooks = shelfQuery.all() as Array<{ bookId: number }>;
+      const shelfBookIds = shelfBooks.map((s) => s.bookId);
+
+      if (shelfBookIds.length === 0) {
+        return { books: [], total: 0 };
+      }
+
+      conditions.push(inArray(books.id, shelfBookIds));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
