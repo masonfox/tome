@@ -93,7 +93,8 @@ export function BottomSheet({
           <button
             ref={closeButtonRef}
             onClick={handleClose}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
+            tabIndex={0}
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:ring-2 focus:ring-[var(--accent)] rounded"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
