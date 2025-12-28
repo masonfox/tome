@@ -22,6 +22,7 @@ import type { NextRequest } from "next/server";
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
  */
 let mockUpdateCalibreTags = mock(() => {});
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/db/calibre-write", () => ({
@@ -30,6 +31,12 @@ mock.module("@/lib/db/calibre-write", () => ({
       throw new Error("Calibre database is unavailable");
     }
     mockUpdateCalibreTags();
+  },
+  batchUpdateCalibreTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
+    if (mockCalibreShouldFail) {
+      throw new Error("Calibre database is unavailable");
+    }
+    return mockBatchUpdateCalibreTags(updates);
   },
   readCalibreTags: mock(() => []),
   getCalibreWriteDB: mock(() => ({})),
@@ -49,6 +56,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await clearTestDatabase(__filename);
   mockUpdateCalibreTags.mockClear();
+  mockBatchUpdateCalibreTags.mockClear();
   mockCalibreShouldFail = false;
 });
 
@@ -158,8 +166,11 @@ describe("DELETE /api/tags/:tagName", () => {
       const request = createMockRequest("DELETE", "/api/tags/delete-me");
       await DELETE(request as NextRequest, { params: { tagName: "delete-me" } });
 
-      // Assert: Calibre sync was called
-      expect(mockUpdateCalibreTags).toHaveBeenCalled();
+      // Assert: Batch Calibre sync was called with correct data
+      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledWith([
+        { calibreId: 30, tags: [] }
+      ]);
     });
   });
 

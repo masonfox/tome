@@ -23,10 +23,11 @@ import type { NextRequest } from "next/server";
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
  * We mock Calibre write operations and the watcher to verify our code properly:
  * (1) suspends the watcher during bulk delete
- * (2) attempts to sync tags for each affected book
+ * (2) attempts to sync tags in batch for each affected book
  * (3) resumes the watcher after deletion
  */
 let mockUpdateCalibreTags = mock(() => {});
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/db/calibre-write", () => ({
@@ -35,6 +36,12 @@ mock.module("@/lib/db/calibre-write", () => ({
       throw new Error("Calibre database is unavailable");
     }
     mockUpdateCalibreTags();
+  },
+  batchUpdateCalibreTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
+    if (mockCalibreShouldFail) {
+      throw new Error("Calibre database is unavailable");
+    }
+    return mockBatchUpdateCalibreTags(updates);
   },
   readCalibreTags: mock(() => []),
   getCalibreWriteDB: mock(() => ({})),
@@ -71,6 +78,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await clearTestDatabase(__filename);
   mockUpdateCalibreTags.mockClear();
+  mockBatchUpdateCalibreTags.mockClear();
   mockCalibreShouldFail = false;
   mockWatcherSuspendCalled = false;
   mockWatcherResumeCalled = false;
@@ -176,8 +184,12 @@ describe("POST /api/tags/bulk-delete", () => {
       });
       await POST(request as NextRequest);
 
-      // Assert: Calibre sync was called for each book
-      expect(mockUpdateCalibreTags).toHaveBeenCalled();
+      // Assert: Batch Calibre sync was called with correct data
+      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledWith([
+        { calibreId: 20, tags: [] },
+        { calibreId: 21, tags: [] }
+      ]);
     });
 
     test("should suspend and resume watcher during bulk delete", async () => {
