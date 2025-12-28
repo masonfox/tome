@@ -35,13 +35,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (body.sourceTags.includes(targetTag)) {
-      return NextResponse.json(
-        { error: "Cannot merge a tag into itself" },
-        { status: 400 }
-      );
-    }
-
     const result = await bookService.mergeTags(body.sourceTags, targetTag);
 
     return NextResponse.json({

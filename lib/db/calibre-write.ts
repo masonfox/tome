@@ -224,13 +224,17 @@ export function updateCalibreTags(
   
   try {
     const { getLogger } = require("../logger");
+    const logger = getLogger();
+    
+    logger.info({ calibreId, tagsToWrite: validTags }, "[Calibre] STARTING tag update");
     
     // Step 1: Clear existing tag links for this book
     const deleteStmt = db.prepare("DELETE FROM books_tags_link WHERE book = ?");
-    deleteStmt.run(calibreId);
+    const deleteResult = deleteStmt.run(calibreId);
+    logger.info({ calibreId, deletedLinks: deleteResult.changes }, "[Calibre] Deleted existing tag links");
     
     if (validTags.length === 0) {
-      getLogger().info(`[Calibre] Removed all tags for book ${calibreId}`);
+      logger.info({ calibreId }, "[Calibre] Removed all tags for book (no valid tags to add)");
       return;
     }
     
@@ -245,7 +249,7 @@ export function updateCalibreTags(
       
       if (!tagRecord) {
         // Tag doesn't exist, create it
-        getLogger().info(`[Calibre] Creating new tag: ${tagName}`);
+        logger.info({ tagName }, "[Calibre] Creating new tag");
         const insertStmt = db.prepare(
           "INSERT INTO tags (name) VALUES (?)"
         );
@@ -256,16 +260,20 @@ export function updateCalibreTags(
       }
     }
     
+    logger.info({ calibreId, tagIds, tagCount: tagIds.length }, "[Calibre] Got/created tag IDs");
+    
     // Step 3: Create new tag links
     const insertLinkStmt = db.prepare(
       "INSERT INTO books_tags_link (book, tag) VALUES (?, ?)"
     );
     
+    let linksCreated = 0;
     for (const tagId of tagIds) {
       insertLinkStmt.run(calibreId, tagId);
+      linksCreated++;
     }
     
-    getLogger().info(`[Calibre] Updated tags for book ${calibreId}: ${validTags.join(', ')}`);
+    logger.info({ calibreId, linksCreated, tags: validTags }, "[Calibre] COMPLETED tag update");
     
   } catch (error) {
     const { getLogger } = require("../logger");

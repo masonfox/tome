@@ -136,8 +136,18 @@ function TagsPageContent() {
   const confirmMergeTags = async (targetTag: string) => {
     setMergeLoading(true);
     try {
-      await mergeTags(tagsToMerge, targetTag);
-      toast.success(`Merged ${tagsToMerge.length} tags into "${targetTag}"`);
+      // Filter out the target tag from source tags to avoid "merge into itself" error
+      const sourceTagsToRemove = tagsToMerge.filter(tag => tag !== targetTag);
+      
+      await mergeTags(sourceTagsToRemove, targetTag);
+      
+      // Success message should reflect actual number of tags being merged
+      const mergeCount = sourceTagsToRemove.length;
+      if (mergeCount === 1) {
+        toast.success(`Merged "${sourceTagsToRemove[0]}" into "${targetTag}"`);
+      } else {
+        toast.success(`Merged ${mergeCount} tags into "${targetTag}"`);
+      }
       
       // Update selection if one of the source tags was selected
       if (selectedTag && tagsToMerge.includes(selectedTag)) {
@@ -259,6 +269,7 @@ function TagsPageContent() {
           isOpen={mergeModalOpen}
           onClose={() => setMergeModalOpen(false)}
           sourceTags={tagsToMerge}
+          tagStats={tags}
           onConfirm={confirmMergeTags}
           loading={mergeLoading}
         />

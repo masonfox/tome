@@ -10,6 +10,7 @@ class CalibreWatcher {
   private syncing: boolean = false;
   private syncCallback: SyncCallback | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
+  private suspended: boolean = false;
 
   async start(calibreDbPath: string, onSync: SyncCallback) {
     const { getLogger } = require("@/lib/logger");
@@ -60,6 +61,11 @@ class CalibreWatcher {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
+    if (this.suspended) {
+      logger.debug("Watcher is suspended, skipping sync");
+      return;
+    }
+
     if (this.syncing) {
       logger.debug("Sync already in progress, skipping");
       return;
@@ -79,6 +85,22 @@ class CalibreWatcher {
     } finally {
       this.syncing = false;
     }
+  }
+
+  suspend() {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+    
+    this.suspended = true;
+    logger.info("Calibre watcher suspended");
+  }
+
+  resume() {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+    
+    this.suspended = false;
+    logger.info("Calibre watcher resumed");
   }
 
   stop() {

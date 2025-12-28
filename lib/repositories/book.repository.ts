@@ -1016,6 +1016,16 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       for (const book of booksWithTags) {
         const currentTags = book.tags || [];
         
+        const { getLogger } = require("@/lib/logger");
+        const logger = getLogger();
+        
+        logger.info({ 
+          bookId: book.id, 
+          currentTags, 
+          sourceTags, 
+          targetTag 
+        }, "Before merging tags for book");
+        
         // Remove source tags and add target tag
         let updatedTags = currentTags.filter(tag => !sourceTags.includes(tag));
         
@@ -1023,6 +1033,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         if (!updatedTags.includes(targetTag)) {
           updatedTags.push(targetTag);
         }
+        
+        logger.info({ 
+          bookId: book.id, 
+          updatedTags,
+          changed: JSON.stringify(currentTags) !== JSON.stringify(updatedTags)
+        }, "After merging tags for book");
 
         await this.update(book.id, { tags: updatedTags });
         updatedCount++;

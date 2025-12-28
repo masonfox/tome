@@ -462,34 +462,41 @@ export class BookService {
       throw new Error("Target tag cannot be empty");
     }
 
-    if (sourceTags.includes(targetTag)) {
-      throw new Error("Cannot merge a tag into itself");
-    }
-
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
-    // Merge in Tome database
-    const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
-
-    // Sync to Calibre for each affected book (best effort)
+    // Suspend the Calibre watcher during merge to prevent interference
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    calibreWatcher.suspend();
+    
     try {
-      const booksWithTag = await bookRepository.findByTag(targetTag, booksUpdated, 0);
-      
-      for (const book of booksWithTag.books) {
-        try {
-          await this.syncTagsToCalibre(book.calibreId, book.tags);
-        } catch (error) {
-          logger.error({ err: error, bookId: book.id }, "Failed to sync merged tag to Calibre");
+      // Merge in Tome database
+      const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
+
+      // Sync to Calibre for each affected book (best effort)
+      try {
+        const booksWithTag = await bookRepository.findByTag(targetTag, booksUpdated, 0);
+        
+        logger.info({ bookCount: booksWithTag.books.length }, "Syncing merged tags to Calibre");
+        
+        for (const book of booksWithTag.books) {
+          try {
+            await this.syncTagsToCalibre(book.calibreId, book.tags);
+          } catch (error) {
+            logger.error({ err: error, bookId: book.id }, "Failed to sync merged tag to Calibre");
+          }
         }
+      } catch (error) {
+        logger.error({ err: error, sourceTags, targetTag }, "Failed to sync merged tags to Calibre");
       }
-    } catch (error) {
-      logger.error({ err: error, sourceTags, targetTag }, "Failed to sync merged tags to Calibre");
+
+      logger.info({ sourceTags, targetTag, booksUpdated }, "Merged tags");
+
+      return { booksUpdated };
+    } finally {
+      // Always resume the watcher, even if there was an error
+      calibreWatcher.resume();
     }
-
-    logger.info({ sourceTags, targetTag, booksUpdated }, "Merged tags");
-
-    return { booksUpdated };
   }
 
   /**

@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import BaseModal from "@/components/BaseModal";
 import { MergeIcon } from "lucide-react";
+
+interface TagWithCount {
+  name: string;
+  bookCount: number;
+}
 
 interface MergeTagsModalProps {
   isOpen: boolean;
   onClose: () => void;
   sourceTags: string[];
+  tagStats?: TagWithCount[];
   onConfirm: (targetTag: string) => void;
   loading?: boolean;
 }
@@ -16,19 +22,51 @@ export function MergeTagsModal({
   isOpen,
   onClose,
   sourceTags,
+  tagStats = [],
   onConfirm,
   loading = false,
 }: MergeTagsModalProps) {
-  const [targetTag, setTargetTag] = useState(sourceTags[0] || "");
+  /**
+   * Smart default: Select the tag with the most books as the target.
+   * This way, the target tag already exists and won't be deleted,
+   * preventing the "can't merge a tag into itself" error.
+   */
+  const defaultTargetTag = useMemo(() => {
+    if (sourceTags.length === 0) return "";
+    
+    // If we have stats, use the tag with the most books
+    if (tagStats.length > 0) {
+      const relevantStats = tagStats.filter(stat => 
+        sourceTags.includes(stat.name)
+      );
+      
+      if (relevantStats.length > 0) {
+        const maxTag = relevantStats.reduce((max, tag) => 
+          tag.bookCount > max.bookCount ? tag : max
+        );
+        return maxTag.name;
+      }
+    }
+    
+    // Fallback to first tag if no stats available
+    return sourceTags[0];
+  }, [sourceTags, tagStats]);
+
+  const [targetTag, setTargetTag] = useState(defaultTargetTag);
   const [error, setError] = useState<string | null>(null);
+
+  // Compute source tags to display (excluding the current target tag)
+  const displaySourceTags = useMemo(() => {
+    return sourceTags.filter(tag => tag !== targetTag);
+  }, [sourceTags, targetTag]);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setTargetTag(sourceTags[0] || "");
+      setTargetTag(defaultTargetTag);
       setError(null);
     }
-  }, [isOpen, sourceTags]);
+  }, [isOpen, defaultTargetTag]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +123,7 @@ export function MergeTagsModal({
             </label>
             <div className="p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md">
               <div className="flex flex-wrap gap-2">
-                {sourceTags.map((tag) => (
+                {displaySourceTags.map((tag) => (
                   <span
                     key={tag}
                     className="inline-flex items-center px-2 py-1 bg-[var(--foreground)]/10 text-[var(--foreground)] text-sm rounded-md"
