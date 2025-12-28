@@ -117,21 +117,28 @@ export function MergeTagsModal({
     >
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-[var(--foreground)]">
               Source tags (will be removed)
             </label>
-            <div className="p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md">
-              <div className="flex flex-wrap gap-2">
-                {displaySourceTags.map((tag) => (
-                  <span
+            <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar">
+              {displaySourceTags.map((tag) => {
+                const tagStat = tagStats.find(stat => stat.name === tag);
+                const bookCount = tagStat?.bookCount ?? 0;
+                return (
+                  <div
                     key={tag}
-                    className="inline-flex items-center px-2 py-1 bg-[var(--foreground)]/10 text-[var(--foreground)] text-sm rounded-md"
+                    className="flex items-center justify-between px-3 py-2 bg-[var(--background)] rounded-md"
                   >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+                    <span className="text-sm text-[var(--foreground)]">
+                      {tag}
+                    </span>
+                    <span className="text-xs text-[var(--subheading-text)]">
+                      {bookCount} {bookCount === 1 ? "book" : "books"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
