@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FolderOpen } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
 import { BookGrid } from "@/components/BookGrid";
 import BaseModal from "@/components/BaseModal";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 
 type SortOption = "sortOrder" | "title" | "dateAdded" | "recentlyAdded";
 
@@ -113,9 +114,18 @@ export default function ShelfDetailPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <div
-                  className="w-8 h-8 rounded-full flex-shrink-0"
+                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: shelf.color || "#3b82f6" }}
-                />
+                >
+                  {(() => {
+                    const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
+                    return Icon ? (
+                      <Icon className="w-6 h-6 text-white" />
+                    ) : (
+                      <FolderOpen className="w-6 h-6 text-white" />
+                    );
+                  })()}
+                </div>
                 <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)]">
                   {shelf.name}
                 </h1>

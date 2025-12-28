@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Edit2, Trash2, MoreVertical } from "lucide-react";
+import { BookOpen, Edit2, Trash2, MoreVertical, FolderOpen } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { ShelfWithBookCount } from "@/hooks/useShelfManagement";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 
 interface ShelfItemProps {
   shelf: ShelfWithBookCount;
@@ -29,6 +30,8 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
     }
   }, [showMenu]);
 
+  const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
+
   return (
     <div className="group relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent-color)] transition-all">
       {/* Color indicator */}
@@ -45,6 +48,18 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
           className="flex-1 min-w-0"
         >
           <div className="flex items-center gap-2 mb-1">
+            {/* Icon or color circle */}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: shelf.color || "#3b82f6" }}
+            >
+              {Icon ? (
+                <Icon className="w-5 h-5 text-white" />
+              ) : (
+                <FolderOpen className="w-5 h-5 text-white" />
+              )}
+            </div>
+
             <h3 className="text-lg font-serif font-semibold text-[var(--heading-text)] group-hover:text-[var(--accent-color)] transition-colors truncate">
               {shelf.name}
             </h3>

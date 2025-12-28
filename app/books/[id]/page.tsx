@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil, FolderOpen } from "lucide-react";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
 import RatingModal from "@/components/RatingModal";
@@ -125,7 +126,7 @@ export default function BookDetailPage() {
   const availableTags = availableTagsData?.tags || [];
 
   // Fetch available shelves for the shelf editor
-  const { data: availableShelvesData } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null }> }>({
+  const { data: availableShelvesData } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
     queryKey: ['availableShelves'],
     queryFn: async () => {
       const response = await fetch('/api/shelves');
@@ -139,7 +140,7 @@ export default function BookDetailPage() {
   const availableShelves = availableShelvesData?.data || [];
 
   // Fetch current shelves for this book
-  const { data: bookShelvesData, refetch: refetchBookShelves } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null }> }>({
+  const { data: bookShelvesData, refetch: refetchBookShelves } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
     queryKey: ['bookShelves', bookId],
     queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}/shelves`);
@@ -525,19 +526,24 @@ export default function BookDetailPage() {
             </div>
             {currentShelves.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {currentShelves.map((shelf) => (
-                  <Link
-                    key={shelf.id}
-                    href={`/library/shelves/${shelf.id}`}
-                    className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium flex items-center gap-2"
-                  >
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: shelf.color || '#3b82f6' }}
-                    />
-                    {shelf.name}
-                  </Link>
-                ))}
+                {currentShelves.map((shelf) => {
+                  const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
+                  return (
+                    <Link
+                      key={shelf.id}
+                      href={`/library/shelves/${shelf.id}`}
+                      className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium flex items-center gap-2"
+                    >
+                      <div
+                        className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center"
+                        style={{ backgroundColor: shelf.color || '#3b82f6' }}
+                      >
+                        {Icon && <Icon className="w-3 h-3 text-white" />}
+                      </div>
+                      {shelf.name}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-[var(--foreground)]/50">

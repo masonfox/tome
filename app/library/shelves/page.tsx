@@ -5,9 +5,9 @@ import { Plus, Library } from "lucide-react";
 import { useShelfManagement, type ShelfWithBookCount } from "@/hooks/useShelfManagement";
 import { ShelfItem, ShelfItemSkeleton } from "@/components/ShelfManagement/ShelfItem";
 import { CreateShelfModal } from "@/components/ShelfManagement/CreateShelfModal";
+import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
 import { PageHeader } from "@/components/PageHeader";
 import BaseModal from "@/components/BaseModal";
-import type { UpdateShelfData } from "@/hooks/useShelfManagement";
 
 export default function ShelvesPage() {
   const {
@@ -22,12 +22,6 @@ export default function ShelvesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingShelf, setEditingShelf] = useState<ShelfWithBookCount | null>(null);
   const [deletingShelf, setDeletingShelf] = useState<ShelfWithBookCount | null>(null);
-  
-  // Edit shelf state
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editColor, setEditColor] = useState("");
-  const [editLoading, setEditLoading] = useState(false);
 
   // Delete loading
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -36,34 +30,6 @@ export default function ShelvesPage() {
   useEffect(() => {
     fetchShelves();
   }, [fetchShelves]);
-
-  // Populate edit form when editing shelf changes
-  useEffect(() => {
-    if (editingShelf) {
-      setEditName(editingShelf.name);
-      setEditDescription(editingShelf.description || "");
-      setEditColor(editingShelf.color || "#3b82f6");
-    }
-  }, [editingShelf]);
-
-  const handleEditShelf = async () => {
-    if (!editingShelf || !editName.trim()) return;
-
-    setEditLoading(true);
-    try {
-      const updates: UpdateShelfData = {
-        name: editName.trim(),
-        description: editDescription.trim() || undefined,
-        color: editColor,
-      };
-      await updateShelf(editingShelf.id, updates);
-      setEditingShelf(null);
-    } catch (error) {
-      // Error handled by hook
-    } finally {
-      setEditLoading(false);
-    }
-  };
 
   const handleDeleteShelf = async () => {
     if (!deletingShelf) return;
@@ -163,83 +129,12 @@ export default function ShelvesPage() {
       />
 
       {/* Edit Shelf Modal */}
-      <BaseModal
+      <EditShelfModal
         isOpen={!!editingShelf}
-        onClose={() => !editLoading && setEditingShelf(null)}
-        title="Edit Shelf"
-        subtitle="Update shelf details"
-        size="md"
-        loading={editLoading}
-        actions={
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => setEditingShelf(null)}
-              disabled={editLoading}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleEditShelf}
-              disabled={!editName.trim() || editLoading}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {editLoading ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
-              Shelf Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              maxLength={100}
-              disabled={editLoading}
-              className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
-              Description
-            </label>
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              rows={3}
-              disabled={editLoading}
-              className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] resize-none disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
-              Color
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={editColor}
-                onChange={(e) => setEditColor(e.target.value)}
-                disabled={editLoading}
-                className="h-10 w-20 rounded-lg cursor-pointer disabled:opacity-50"
-              />
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full border-2 border-[var(--border-color)]"
-                  style={{ backgroundColor: editColor }}
-                />
-                <span className="text-sm text-[var(--foreground)]/70 font-mono">
-                  {editColor}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </BaseModal>
+        onClose={() => setEditingShelf(null)}
+        onUpdateShelf={updateShelf}
+        shelf={editingShelf}
+      />
 
       {/* Delete Confirmation Modal */}
       <BaseModal

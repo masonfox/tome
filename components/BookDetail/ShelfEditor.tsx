@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { X, FolderOpen, Plus, Check } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 
 interface Shelf {
   id: number;
   name: string;
   description: string | null;
   color: string | null;
+  icon: string | null;
 }
 
 interface ShelfEditorProps {
@@ -109,6 +111,8 @@ export default function ShelfEditor({
             <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 -mr-2">
               {availableShelves.map((shelf) => {
                 const isSelected = selectedShelfIds.includes(shelf.id);
+                const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
+                
                 return (
                   <button
                     key={shelf.id}
@@ -127,7 +131,9 @@ export default function ShelfEditor({
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: shelf.color || "#3b82f6" }}
                     >
-                      {isSelected ? (
+                      {Icon ? (
+                        <Icon className="w-5 h-5 text-white" />
+                      ) : isSelected ? (
                         <Check className="w-5 h-5 text-white" />
                       ) : (
                         <Plus className="w-5 h-5 text-white" />

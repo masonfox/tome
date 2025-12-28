@@ -1,67 +1,72 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import BaseModal from "@/components/BaseModal";
 import { ShelfIconPicker } from "@/components/ShelfIconPicker";
-import type { CreateShelfData } from "@/hooks/useShelfManagement";
+import type { UpdateShelfData, ShelfWithBookCount } from "@/hooks/useShelfManagement";
 
-interface CreateShelfModalProps {
+interface EditShelfModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateShelf: (data: CreateShelfData) => Promise<void>;
+  onUpdateShelf: (shelfId: number, data: UpdateShelfData) => Promise<void>;
+  shelf: ShelfWithBookCount | null;
 }
 
-export function CreateShelfModal({
+export function EditShelfModal({
   isOpen,
   onClose,
-  onCreateShelf,
-}: CreateShelfModalProps) {
+  onUpdateShelf,
+  shelf,
+}: EditShelfModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#3b82f6");
   const [icon, setIcon] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Initialize form when shelf changes or modal opens
+  useEffect(() => {
+    if (isOpen && shelf) {
+      setName(shelf.name);
+      setDescription(shelf.description || "");
+      setColor(shelf.color || "#3b82f6");
+      setIcon(shelf.icon || null);
+    }
+  }, [isOpen, shelf]);
+
   const handleSubmit = useCallback(async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !shelf) return;
 
     setLoading(true);
     try {
-      await onCreateShelf({
+      await onUpdateShelf(shelf.id, {
         name: name.trim(),
         description: description.trim() || undefined,
         color,
         icon: icon || undefined,
       });
-      // Reset form
-      setName("");
-      setDescription("");
-      setColor("#3b82f6");
-      setIcon(null);
       onClose();
     } catch (error) {
       // Error is handled by the hook
     } finally {
       setLoading(false);
     }
-  }, [name, description, color, icon, onCreateShelf, onClose]);
+  }, [name, description, color, icon, shelf, onUpdateShelf, onClose]);
 
   const handleClose = useCallback(() => {
     if (!loading) {
-      setName("");
-      setDescription("");
-      setColor("#3b82f6");
-      setIcon(null);
       onClose();
     }
   }, [loading, onClose]);
+
+  if (!shelf) return null;
 
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Create New Shelf"
-      subtitle="Organize your books into custom shelves"
+      title="Edit Shelf"
+      subtitle="Update your shelf details"
       size="md"
       loading={loading}
       actions={
@@ -78,7 +83,7 @@ export function CreateShelfModal({
             disabled={!name.trim() || loading}
             className="px-4 py-2 text-sm font-medium bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating..." : "Create Shelf"}
+            {loading ? "Saving..." : "Save Changes"}
           </button>
         </div>
       }
@@ -87,13 +92,13 @@ export function CreateShelfModal({
         {/* Shelf Name */}
         <div>
           <label
-            htmlFor="shelf-name"
+            htmlFor="edit-shelf-name"
             className="block text-sm font-medium text-[var(--heading-text)] mb-2"
           >
             Shelf Name <span className="text-red-500">*</span>
           </label>
           <input
-            id="shelf-name"
+            id="edit-shelf-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -110,13 +115,13 @@ export function CreateShelfModal({
         {/* Description */}
         <div>
           <label
-            htmlFor="shelf-description"
+            htmlFor="edit-shelf-description"
             className="block text-sm font-medium text-[var(--heading-text)] mb-2"
           >
             Description (Optional)
           </label>
           <textarea
-            id="shelf-description"
+            id="edit-shelf-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add a description for this shelf..."
@@ -129,14 +134,14 @@ export function CreateShelfModal({
         {/* Color Picker */}
         <div>
           <label
-            htmlFor="shelf-color"
+            htmlFor="edit-shelf-color"
             className="block text-sm font-medium text-[var(--heading-text)] mb-2"
           >
             Color
           </label>
           <div className="flex items-center gap-3">
             <input
-              id="shelf-color"
+              id="edit-shelf-color"
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}

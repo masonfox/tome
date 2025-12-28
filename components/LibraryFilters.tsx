@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 
 // Helper function to render star ratings
 function renderStars(rating: number) {
@@ -102,7 +103,7 @@ interface LibraryFiltersProps {
   onRatingFilterChange: (rating: string) => void;
   shelfFilter?: number | null;
   onShelfFilterChange?: (shelfId: number | null) => void;
-  availableShelves?: Array<{ id: number; name: string; color: string | null }>;
+  availableShelves?: Array<{ id: number; name: string; color: string | null; icon?: string | null }>;
   loadingShelves?: boolean;
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
