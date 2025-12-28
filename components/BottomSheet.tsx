@@ -38,10 +38,12 @@ export function BottomSheet({
       document.body.style.overflow = "hidden";
       setIsClosing(false);
       
-      // Immediately focus the close button before browser auto-focus kicks in
-      // Use requestAnimationFrame to ensure DOM is ready
+      // Focus the close button to prevent browser from auto-focusing action items
+      // Use double RAF to ensure this happens after browser layout and paint
       requestAnimationFrame(() => {
-        closeButtonRef.current?.focus();
+        requestAnimationFrame(() => {
+          closeButtonRef.current?.focus();
+        });
       });
     } else {
       document.body.style.overflow = "";
@@ -91,9 +93,9 @@ export function BottomSheet({
           <button
             ref={closeButtonRef}
             onClick={handleClose}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded"
+            tabIndex={0}
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:ring-2 focus:ring-[var(--accent)] rounded"
             aria-label="Close"
-            autoFocus
           >
             <X className="w-5 h-5" />
           </button>

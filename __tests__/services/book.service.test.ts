@@ -916,4 +916,258 @@ describe("BookService", () => {
       expect(result.total).toBe(3);
     });
   });
+
+  describe("deleteTag", () => {
+    test("should delete tag from all books", async () => {
+      // Clear existing books first
+      await clearTestDatabase(__filename);
+      
+      // Arrange: Create books with tags
+      const book1 = await bookRepository.create(createTestBook({
+        calibreId: 100,
+        title: "Fantasy Book",
+        authors: ["Author"],
+        path: "Author/Fantasy Book (100)",
+        tags: ["fantasy", "magic", "adventure"],
+      }));
+
+      const book2 = await bookRepository.create(createTestBook({
+        calibreId: 101,
+        title: "Another Fantasy Book",
+        authors: ["Author 2"],
+        path: "Author 2/Another Fantasy Book (101)",
+        tags: ["fantasy", "dragons"],
+      }));
+
+      const book3 = await bookRepository.create(createTestBook({
+        calibreId: 102,
+        title: "Sci-Fi Book",
+        authors: ["Author 3"],
+        path: "Author 3/Sci-Fi Book (102)",
+        tags: ["sci-fi", "space"],
+      }));
+
+      // Act: Delete "fantasy" tag
+      const result = await bookService.deleteTag("fantasy");
+
+      // Assert: Returns correct count
+      expect(result.booksUpdated).toBe(2);
+
+      // Verify tag removed from books
+      const updatedBook1 = await bookRepository.findById(book1.id);
+      const updatedBook2 = await bookRepository.findById(book2.id);
+      const updatedBook3 = await bookRepository.findById(book3.id);
+
+      expect(updatedBook1?.tags).toEqual(["magic", "adventure"]);
+      expect(updatedBook2?.tags).toEqual(["dragons"]);
+      expect(updatedBook3?.tags).toEqual(["sci-fi", "space"]); // Unchanged
+    });
+
+    test("should return zero when tag not found", async () => {
+      const result = await bookService.deleteTag("nonexistent-tag");
+
+      expect(result.booksUpdated).toBe(0);
+    });
+
+    test("should throw error for empty tag name", async () => {
+      await expect(bookService.deleteTag("")).rejects.toThrow("Tag name cannot be empty");
+    });
+
+    test("should handle books with only the deleted tag", async () => {
+      // Arrange: Book with only one tag
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 200,
+        title: "Single Tag Book",
+        authors: ["Author"],
+        path: "Author/Single Tag Book (200)",
+        tags: ["only-tag"],
+      }));
+
+      // Act: Delete the only tag
+      const result = await bookService.deleteTag("only-tag");
+
+      // Assert: Book should have empty tags array
+      expect(result.booksUpdated).toBe(1);
+      const updatedBook = await bookRepository.findById(book.id);
+      expect(updatedBook?.tags).toEqual([]);
+    });
+  });
+
+  describe("mergeTags", () => {
+    test("should merge multiple source tags into target tag", async () => {
+      // Clear existing books first
+      await clearTestDatabase(__filename);
+      
+      // Arrange: Books with various tags
+      const book1 = await bookRepository.create(createTestBook({
+        calibreId: 300,
+        title: "Fantasy Book 1",
+        authors: ["Author"],
+        path: "Author/Fantasy Book 1 (300)",
+        tags: ["fantasy", "magic"],
+      }));
+
+      const book2 = await bookRepository.create(createTestBook({
+        calibreId: 301,
+        title: "Fantasy Book 2",
+        authors: ["Author 2"],
+        path: "Author 2/Fantasy Book 2 (301)",
+        tags: ["fantacy", "adventure"], // Typo tag to merge
+      }));
+
+      const book3 = await bookRepository.create(createTestBook({
+        calibreId: 302,
+        title: "Fantasy Book 3",
+        authors: ["Author 3"],
+        path: "Author 3/Fantasy Book 3 (302)",
+        tags: ["sci-fi", "space"], // No fantasy tags
+      }));
+
+      // Act: Merge "fantacy" typo into "fantasy"
+      const result = await bookService.mergeTags(["fantacy"], "fantasy");
+
+      // Assert: Returns correct count
+      expect(result.booksUpdated).toBe(1);
+
+      // Verify tags merged
+      const updatedBook1 = await bookRepository.findById(book1.id);
+      const updatedBook2 = await bookRepository.findById(book2.id);
+      const updatedBook3 = await bookRepository.findById(book3.id);
+
+      expect(updatedBook1?.tags).toEqual(["fantasy", "magic"]); // Unchanged
+      expect(updatedBook2?.tags).toEqual(["adventure", "fantasy"]); // "fantacy" -> "fantasy"
+      expect(updatedBook3?.tags).toEqual(["sci-fi", "space"]); // Unchanged
+    });
+
+    test("should merge multiple source tags and deduplicate", async () => {
+      // Arrange: Book with multiple tags to merge
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 400,
+        title: "Multi-Tag Book",
+        authors: ["Author"],
+        path: "Author/Multi-Tag Book (400)",
+        tags: ["fantasy", "fantacy", "fantasie", "magic"],
+      }));
+
+      // Act: Merge typo tags into "fantasy"
+      const result = await bookService.mergeTags(["fantacy", "fantasie"], "fantasy");
+
+      // Assert: Target tag not duplicated
+      expect(result.booksUpdated).toBe(1);
+      const updatedBook = await bookRepository.findById(book.id);
+      expect(updatedBook?.tags).toEqual(["fantasy", "magic"]); // Deduplicated
+    });
+
+    test("should throw error for empty source tags array", async () => {
+      await expect(bookService.mergeTags([], "fantasy")).rejects.toThrow("Source tags must be a non-empty array");
+    });
+
+    test("should throw error for empty target tag", async () => {
+      await expect(bookService.mergeTags(["tag1"], "")).rejects.toThrow("Target tag cannot be empty");
+    });
+
+    test("should return zero when no books have source tags", async () => {
+      const result = await bookService.mergeTags(["nonexistent-tag"], "fantasy");
+
+      expect(result.booksUpdated).toBe(0);
+    });
+
+    test("should preserve other tags when merging", async () => {
+      // Arrange: Book with multiple tags
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 500,
+        title: "Multi-Tag Book",
+        authors: ["Author"],
+        path: "Author/Multi-Tag Book (500)",
+        tags: ["old-name", "keep-this", "keep-that"],
+      }));
+
+      // Act: Merge one tag
+      const result = await bookService.mergeTags(["old-name"], "new-name");
+
+      // Assert: Other tags preserved
+      expect(result.booksUpdated).toBe(1);
+      const updatedBook = await bookRepository.findById(book.id);
+      expect(updatedBook?.tags).toEqual(["keep-this", "keep-that", "new-name"]);
+    });
+  });
+
+  describe("bulkDeleteTags", () => {
+    test("should delete multiple tags at once", async () => {
+      // Clear existing books first
+      await clearTestDatabase(__filename);
+      
+      // Arrange: Books with various tags
+      const book1 = await bookRepository.create(createTestBook({
+        calibreId: 600,
+        title: "Book 1",
+        authors: ["Author"],
+        path: "Author/Book 1 (600)",
+        tags: ["tag1", "tag2", "keep-this"],
+      }));
+
+      const book2 = await bookRepository.create(createTestBook({
+        calibreId: 601,
+        title: "Book 2",
+        authors: ["Author 2"],
+        path: "Author 2/Book 2 (601)",
+        tags: ["tag2", "tag3", "keep-that"],
+      }));
+
+      const book3 = await bookRepository.create(createTestBook({
+        calibreId: 602,
+        title: "Book 3",
+        authors: ["Author 3"],
+        path: "Author 3/Book 3 (602)",
+        tags: ["tag1", "tag3"],
+      }));
+
+      // Act: Delete tag1, tag2, tag3
+      const result = await bookService.bulkDeleteTags(["tag1", "tag2", "tag3"]);
+
+      // Assert: Returns correct stats
+      expect(result.tagsDeleted).toBe(3);
+      expect(result.booksUpdated).toBeGreaterThanOrEqual(3); // May count same book multiple times
+
+      // Verify tags removed
+      const updatedBook1 = await bookRepository.findById(book1.id);
+      const updatedBook2 = await bookRepository.findById(book2.id);
+      const updatedBook3 = await bookRepository.findById(book3.id);
+
+      expect(updatedBook1?.tags).toEqual(["keep-this"]);
+      expect(updatedBook2?.tags).toEqual(["keep-that"]);
+      expect(updatedBook3?.tags).toEqual([]);
+    });
+
+    test("should throw error for empty tag names array", async () => {
+      await expect(bookService.bulkDeleteTags([])).rejects.toThrow("Tag names must be a non-empty array");
+    });
+
+    test("should return zero counts when no tags found", async () => {
+      const result = await bookService.bulkDeleteTags(["nonexistent1", "nonexistent2"]);
+
+      expect(result.tagsDeleted).toBe(2); // Still counts as "processed"
+      expect(result.booksUpdated).toBe(0); // But no books updated
+    });
+
+    test("should handle partial failures gracefully", async () => {
+      // Arrange: Book with some tags
+      const book = await bookRepository.create(createTestBook({
+        calibreId: 700,
+        title: "Test Book",
+        authors: ["Author"],
+        path: "Author/Test Book (700)",
+        tags: ["exists", "keep-this"],
+      }));
+
+      // Act: Try to delete one existing and one non-existing tag
+      const result = await bookService.bulkDeleteTags(["exists", "nonexistent"]);
+
+      // Assert: Should process both, but only update for existing
+      expect(result.tagsDeleted).toBe(2); // Both "processed"
+      
+      const updatedBook = await bookRepository.findById(book.id);
+      expect(updatedBook?.tags).toEqual(["keep-this"]);
+    });
+  });
 });

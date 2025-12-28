@@ -38,6 +38,7 @@
 import { 
   updateCalibreRating as updateRatingImpl,
   updateCalibreTags as updateTagsImpl,
+  batchUpdateCalibreTags as batchUpdateTagsImpl,
   readCalibreRating as readRatingImpl,
   readCalibreTags as readTagsImpl,
 } from "@/lib/db/calibre-write";
@@ -49,6 +50,7 @@ import {
 export interface ICalibreService {
   updateRating(calibreId: number, rating: number | null): void;
   updateTags(calibreId: number, tags: string[]): void;
+  batchUpdateTags(updates: Array<{ calibreId: number; tags: string[] }>): number;
   readRating(calibreId: number): number | null;
   readTags(calibreId: number): string[];
 }
@@ -77,6 +79,17 @@ export class CalibreService implements ICalibreService {
    */
   updateTags(calibreId: number, tags: string[]): void {
     return updateTagsImpl(calibreId, tags);
+  }
+
+  /**
+   * Batch update tags for multiple books in Calibre database
+   * 
+   * @param updates - Array of {calibreId, tags} objects
+   * @returns Number of books successfully updated
+   * @throws Error if batch operation fails
+   */
+  batchUpdateTags(updates: Array<{ calibreId: number; tags: string[] }>): number {
+    return batchUpdateTagsImpl(updates);
   }
 
   /**

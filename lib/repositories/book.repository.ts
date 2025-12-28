@@ -65,6 +65,21 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Find multiple books by IDs
+   */
+  async findByIds(bookIds: number[]): Promise<Book[]> {
+    if (bookIds.length === 0) {
+      return [];
+    }
+
+    return this.getDatabase()
+      .select()
+      .from(books)
+      .where(inArray(books.id, bookIds))
+      .all();
+  }
+
+  /**
    * Find a book by ID with enriched details (session, progress, read count) - OPTIMIZED
    * Uses a single query with LEFT JOINs and subqueries instead of 3 separate queries
    */
@@ -805,6 +820,338 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     }));
 
     return { books: booksWithRelations, total };
+  }
+
+  /**
+   * Get tag statistics with book counts
+   * Returns all tags with their book counts
+   */
+  async getTagStats(): Promise<Array<{ name: string; bookCount: number }>> {
+    try {
+      // Query to get all unique tags with their book counts
+      // Uses json_each to extract individual tag values from JSON arrays
+      const results = this.getDatabase()
+        .all(sql`
+          SELECT 
+            json_each.value as name,
+            COUNT(DISTINCT books.id) as bookCount
+          FROM books, json_each(books.tags)
+          WHERE json_array_length(books.tags) > 0
+          GROUP BY json_each.value
+          ORDER BY json_each.value ASC
+        `);
+
+      // Map the raw results to the expected type
+      return results.map((row: any) => ({
+        name: row.name,
+        bookCount: Number(row.bookCount),
+      }));
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "Error fetching tag statistics");
+      return [];
+    }
+  }
+
+  /**
+   * Get count of unique books that have at least one tag
+   */
+  async countBooksWithTags(): Promise<number> {
+    try {
+      const result = this.getDatabase()
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(books)
+        .where(sql`json_array_length(${books.tags}) > 0`)
+        .get();
+      
+      return result?.count || 0;
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error }, "Error counting books with tags");
+      return 0;
+    }
+  }
+
+  /**
+   * Find books by a specific tag with pagination
+   */
+  async findByTag(
+    tag: string,
+    limit: number = 50,
+    skip: number = 0
+  ): Promise<{ books: Book[]; total: number }> {
+    try {
+      // Build the tag filter condition
+      const tagCondition = sql`EXISTS (
+        SELECT 1 FROM json_each(${books.tags})
+        WHERE json_each.value = ${tag}
+      )`;
+
+      // Get total count
+      const countResult = this.getDatabase()
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(books)
+        .where(tagCondition)
+        .get();
+
+      const total = countResult?.count || 0;
+
+      // Get paginated books
+      const results = this.getDatabase()
+        .select()
+        .from(books)
+        .where(tagCondition)
+        .orderBy(desc(books.createdAt))
+        .limit(limit)
+        .offset(skip)
+        .all();
+
+      return { books: results, total };
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, tag }, "Error finding books by tag");
+      return { books: [], total: 0 };
+    }
+  }
+
+  /**
+   * Rename a tag across all books
+   * Returns the number of books updated
+   * 
+   * Uses a transaction to ensure atomicity - either all books are updated or none are.
+   * This prevents race conditions where concurrent tag operations could leave data in an inconsistent state.
+   */
+  async renameTag(oldName: string, newName: string): Promise<number> {
+    try {
+      const db = this.getDatabase();
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+
+      // Use transaction for atomic update across all books
+      return await db.transaction((tx) => {
+        // Find all books with the old tag
+        const booksWithTag = tx
+          .select()
+          .from(books)
+          .where(sql`EXISTS (
+            SELECT 1 FROM json_each(${books.tags})
+            WHERE json_each.value = ${oldName}
+          )`)
+          .all();
+
+        let updatedCount = 0;
+
+        // Update each book's tags within the transaction
+        for (const book of booksWithTag) {
+          const currentTags = book.tags || [];
+          const updatedTags = currentTags.map((tag: string) => tag === oldName ? newName : tag);
+
+          tx.update(books)
+            .set({ tags: updatedTags })
+            .where(eq(books.id, book.id))
+            .run();
+          
+          updatedCount++;
+        }
+
+        logger.info({ oldName, newName, updatedCount }, "Renamed tag across books");
+
+        return updatedCount;
+      });
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, oldName, newName }, "Error renaming tag");
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a tag from all books
+   * Returns the number of books updated
+   * 
+   * Uses a transaction to ensure atomicity - either all books are updated or none are.
+   * This prevents race conditions where concurrent tag operations could leave data in an inconsistent state.
+   */
+  async deleteTag(tagName: string): Promise<number> {
+    try {
+      const db = this.getDatabase();
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+
+      // Use transaction for atomic update across all books
+      return await db.transaction((tx) => {
+        // Find all books with the tag
+        const booksWithTag = tx
+          .select()
+          .from(books)
+          .where(sql`EXISTS (
+            SELECT 1 FROM json_each(${books.tags})
+            WHERE json_each.value = ${tagName}
+          )`)
+          .all();
+
+        let updatedCount = 0;
+
+        // Remove tag from each book within the transaction
+        for (const book of booksWithTag) {
+          const currentTags = book.tags || [];
+          const updatedTags = currentTags.filter((tag: string) => tag !== tagName);
+
+          tx.update(books)
+            .set({ tags: updatedTags })
+            .where(eq(books.id, book.id))
+            .run();
+          
+          updatedCount++;
+        }
+
+        logger.info({ tagName, updatedCount }, "Deleted tag from books");
+
+        return updatedCount;
+      });
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, tagName }, "Error deleting tag");
+      throw error;
+    }
+  }
+
+  /**
+   * Merge multiple source tags into a target tag
+   * Returns the number of books updated
+   * 
+   * Uses a transaction to ensure atomicity - either all books are updated or none are.
+   * This prevents race conditions where concurrent tag operations could leave data in an inconsistent state.
+   */
+  async mergeTags(sourceTags: string[], targetTag: string): Promise<number> {
+    try {
+      const db = this.getDatabase();
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+
+      // Use transaction for atomic update across all books
+      return await db.transaction((tx) => {
+        // Find all books with any of the source tags
+        const tagConditions = sourceTags.map(tag =>
+          sql`EXISTS (
+            SELECT 1 FROM json_each(${books.tags})
+            WHERE json_each.value = ${tag}
+          )`
+        );
+
+        const booksWithTags = tx
+          .select()
+          .from(books)
+          .where(or(...tagConditions)!)
+          .all();
+
+        let updatedCount = 0;
+
+        // Update each book's tags within the transaction
+        for (const book of booksWithTags) {
+          const currentTags = book.tags || [];
+          
+          logger.info({ 
+            bookId: book.id, 
+            currentTags, 
+            sourceTags, 
+            targetTag 
+          }, "Before merging tags for book");
+          
+          // Remove source tags and add target tag
+          let updatedTags = currentTags.filter((tag: string) => !sourceTags.includes(tag));
+          
+          // Add target tag if not already present (deduplication)
+          if (!updatedTags.includes(targetTag)) {
+            updatedTags.push(targetTag);
+          }
+          
+          logger.info({ 
+            bookId: book.id, 
+            updatedTags,
+            changed: JSON.stringify(currentTags) !== JSON.stringify(updatedTags)
+          }, "After merging tags for book");
+
+          tx.update(books)
+            .set({ tags: updatedTags })
+            .where(eq(books.id, book.id))
+            .run();
+          
+          updatedCount++;
+        }
+
+        logger.info({ sourceTags, targetTag, updatedCount }, "Merged tags");
+
+        return updatedCount;
+      });
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, sourceTags, targetTag }, "Error merging tags");
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk update tags for multiple books
+   * Can add and/or remove tags from specified books
+   * 
+   * Uses a transaction to ensure atomicity - either all books are updated or none are.
+   * This prevents race conditions where concurrent tag operations could leave data in an inconsistent state.
+   */
+  async bulkUpdateBookTags(
+    bookIds: number[],
+    tagsToAdd: string[] = [],
+    tagsToRemove: string[] = []
+  ): Promise<number> {
+    try {
+      if (bookIds.length === 0) {
+        return 0;
+      }
+
+      const db = this.getDatabase();
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+
+      // Use transaction for atomic update across all books
+      return await db.transaction((tx) => {
+        const booksToUpdate = tx
+          .select()
+          .from(books)
+          .where(inArray(books.id, bookIds))
+          .all();
+
+        let updatedCount = 0;
+
+        for (const book of booksToUpdate) {
+          const currentTags = book.tags || [];
+          
+          // Remove specified tags
+          let updatedTags = currentTags.filter((tag: string) => !tagsToRemove.includes(tag));
+          
+          // Add new tags (avoiding duplicates)
+          for (const tagToAdd of tagsToAdd) {
+            if (!updatedTags.includes(tagToAdd)) {
+              updatedTags.push(tagToAdd);
+            }
+          }
+
+          tx.update(books)
+            .set({ tags: updatedTags })
+            .where(eq(books.id, book.id))
+            .run();
+          
+          updatedCount++;
+        }
+
+        logger.info({ bookIds, tagsToAdd, tagsToRemove, updatedCount }, "Bulk updated book tags");
+
+        return updatedCount;
+      });
+    } catch (error) {
+      const { getLogger } = require("@/lib/logger");
+      getLogger().error({ err: error, bookIds, tagsToAdd, tagsToRemove }, "Error bulk updating tags");
+      throw error;
+    }
   }
 }
 
