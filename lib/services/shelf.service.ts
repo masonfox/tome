@@ -238,6 +238,27 @@ export class ShelfService {
   }
 
   /**
+   * Update the sort order of a specific book on a shelf
+   */
+  async updateBookOrder(shelfId: number, bookId: number, sortOrder: number): Promise<void> {
+    // Validate shelf exists
+    const shelf = await shelfRepository.findById(shelfId);
+    if (!shelf) {
+      throw new Error(`Shelf with ID ${shelfId} not found`);
+    }
+
+    // Validate book is on shelf
+    const isOnShelf = await shelfRepository.isBookOnShelf(shelfId, bookId);
+    if (!isOnShelf) {
+      throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
+    }
+
+    logger.info({ shelfId, bookId, sortOrder }, "Updating book order on shelf");
+    await shelfRepository.updateBookOrder(shelfId, bookId, sortOrder);
+    logger.info({ shelfId, bookId }, "Book order updated successfully");
+  }
+
+  /**
    * Manage which shelves a book belongs to
    * Adds/removes book from shelves to match the provided shelfIds array
    */
@@ -281,7 +302,8 @@ export class ShelfService {
   }
 
   /**
-   * Reorder books within a shelf
+   * Reorder all books in a shelf
+   * Books not included in orderedBookIds will be placed after the ordered ones
    */
   async reorderBooksInShelf(shelfId: number, orderedBookIds: number[]): Promise<void> {
     // Validate shelf exists
