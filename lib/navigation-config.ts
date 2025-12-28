@@ -1,4 +1,4 @@
-import { BookOpen, Library, Target, Flame, Settings, BarChart3, BookMarked, ScrollText, Tag } from "lucide-react";
+import { BookOpen, Library, Target, Flame, Settings, BarChart3, BookMarked, ScrollText, Tag, FolderOpen } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavLink {
@@ -23,6 +23,9 @@ export const SERIES_LINK: NavLink = { href: "/series", label: "Series", icon: Bo
 // Tags link (shown in desktop sidebar and bottom sheet menu)
 export const TAGS_LINK: NavLink = { href: "/tags", label: "Tags", icon: Tag };
 
+// Shelves link (shown in desktop sidebar and bottom sheet menu)
+export const SHELVES_LINK: NavLink = { href: "/library/shelves", label: "Shelves", icon: FolderOpen };
+
 // Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
 export const MORE_MENU_LINKS: NavLink[] = [
   { href: "/goals", label: "Goals", icon: Target },
@@ -32,11 +35,12 @@ export const MORE_MENU_LINKS: NavLink[] = [
 // Bottom utility link (shown in bottom section of desktop sidebar)
 export const SETTINGS_LINK: NavLink = { href: "/settings", label: "Settings", icon: Settings };
 
-// Additional links shown in bottom sheet "More" menu on mobile (includes journal, series, tags and settings)
+// Additional links shown in bottom sheet "More" menu on mobile (includes journal, series, tags, shelves and settings)
 export const BOTTOM_SHEET_LINKS: NavLink[] = [
   JOURNAL_LINK,
   SERIES_LINK,
   TAGS_LINK,
+  SHELVES_LINK,
   ...MORE_MENU_LINKS,
   SETTINGS_LINK,
 ];
