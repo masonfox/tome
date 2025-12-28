@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MoreHorizontal, LogOut, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { BottomSheet } from "./BottomSheet";
 import { NAV_LINKS, BOTTOM_SHEET_LINKS, isActiveRoute } from "@/lib/navigation-config";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -16,7 +16,6 @@ export function BottomNavigation() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const { darkMode, toggleDarkMode, mounted } = useDarkMode();
   const { authEnabled } = useAuth();
-  const moreButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = async () => {
     try {
@@ -32,20 +31,6 @@ export function BottomNavigation() {
   const handleMoreClick = () => {
     setIsMoreOpen(true);
   };
-
-  // Blur the More button when the sheet opens to prevent focus carryover
-  useEffect(() => {
-    if (isMoreOpen) {
-      // Blur the More button
-      if (moreButtonRef.current) {
-        moreButtonRef.current.blur();
-      }
-      // Also blur any currently focused element to prevent browser auto-focus
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-    }
-  }, [isMoreOpen]);
 
   const handleSheetItemClick = (href: string) => {
     setIsMoreOpen(false);
@@ -119,7 +104,6 @@ export function BottomNavigation() {
 
           {/* More Button */}
           <button
-            ref={moreButtonRef}
             onClick={handleMoreClick}
             className={clsx(
               "flex flex-col items-center justify-center gap-1 transition-colors",

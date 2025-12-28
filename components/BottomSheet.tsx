@@ -37,13 +37,19 @@ export function BottomSheet({
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setIsClosing(false);
+      
+      // Prevent any element from receiving focus when the sheet opens
+      // Use a small delay to ensure this runs after the browser's auto-focus
+      const timeoutId = setTimeout(() => {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     } else {
       document.body.style.overflow = "";
     }
-    
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isOpen]);
 
   const handleClose = () => {
