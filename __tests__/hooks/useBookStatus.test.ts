@@ -65,7 +65,7 @@ describe("useBookStatus", () => {
   });
 
   describe("handleUpdateStatus", () => {
-    test("should show read confirmation when marking as read", () => {
+    test("should show complete book modal when marking as read from to-read", () => {
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
@@ -74,7 +74,27 @@ describe("useBookStatus", () => {
         result.current.handleUpdateStatus("read");
       });
 
+      expect(result.current.showCompleteBookModal).toBe(true);
+      expect(result.current.showReadConfirmation).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test("should show finish book modal when marking as read from reading", () => {
+      const readingBook = {
+        ...mockBook,
+        activeSession: { id: 1, status: "reading" },
+      };
+
+      const { result } = renderHook(() =>
+        useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
+      );
+
+      act(() => {
+        result.current.handleUpdateStatus("read");
+      });
+
       expect(result.current.showReadConfirmation).toBe(true);
+      expect(result.current.showCompleteBookModal).toBe(false);
       expect(global.fetch).not.toHaveBeenCalled();
     });
 

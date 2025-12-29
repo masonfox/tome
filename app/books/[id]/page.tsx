@@ -191,8 +191,9 @@ export default function BookDetailPage() {
 
   // Wrapper for status updates with optimistic page count validation
   async function handleUpdateStatus(newStatus: string) {
-    // Optimistic check: if trying to change to reading/read without pages, show modal immediately
-    if ((newStatus === "reading" || newStatus === "read") && !book?.totalPages) {
+    // Optimistic check: if trying to change to "reading" without pages, show modal immediately
+    // Note: "read" transitions from Want to Read/Read Next are handled by CompleteBookModal
+    if (newStatus === "reading" && !book?.totalPages) {
       setPendingStatusForPageCount(newStatus);
       setShowPageCountModal(true);
       return;
@@ -202,7 +203,7 @@ export default function BookDetailPage() {
     try {
       await handleUpdateStatusFromHook(newStatus);
     } catch (error: any) {
-      // Defense in depth: Handle API validation error
+      // Defense in depth: Handle API validation error for "reading" status
       if (error?.code === "PAGES_REQUIRED" || error?.response?.data?.code === "PAGES_REQUIRED") {
         setPendingStatusForPageCount(newStatus);
         setShowPageCountModal(true);
