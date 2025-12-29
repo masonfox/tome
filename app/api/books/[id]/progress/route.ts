@@ -65,7 +65,15 @@ export async function POST(
 
     // Note: Cache invalidation handled by ProgressService.invalidateCache()
 
-    return NextResponse.json(result);
+    // Serialize the result properly (Date objects need to be converted to ISO strings)
+    const serializedResult = {
+      ...result,
+      progressLog: result.progressLog,
+      shouldShowCompletionModal: result.shouldShowCompletionModal,
+      completionDate: result.completionDate?.toISOString(),
+    };
+
+    return NextResponse.json(serializedResult);
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error logging progress");

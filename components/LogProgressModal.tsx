@@ -101,7 +101,7 @@ export default function LogProgressModal({
       
       // Check if we should show completion modal
       if (result.shouldShowCompletionModal) {
-        logger.info({ bookId: book.id }, 'Completion detected in LogProgressModal');
+        logger.info({ bookId: book.id, completionDate: result.completionDate }, 'Completion detected in LogProgressModal');
         setCompletionDate(result.completionDate);
         setShowLocalCompletionModal(true);
         // Don't close progress modal - let FinishBookModal appear
@@ -126,6 +126,9 @@ export default function LogProgressModal({
       // Use the completion date from the progress log that reached 100%
       if (completionDate) {
         body.completedDate = completionDate.toISOString();
+        logger.info({ completionDate: completionDate.toISOString() }, 'Sending completedDate to status API');
+      } else {
+        logger.warn('No completionDate available when marking as read');
       }
 
       const response = await fetch(`/api/books/${book.id}/status`, {
