@@ -31,6 +31,7 @@ class CalibreWatcher {
 
       this.watcher = watch(calibreDbPath, async (eventType) => {
         if (eventType === "change") {
+          logger.info("[WATCHER] Calibre database change detected");
           if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
           }
@@ -39,12 +40,14 @@ class CalibreWatcher {
             try {
               const newStats = await stat(calibreDbPath);
               if (newStats.mtimeMs > this.lastModified) {
-                logger.info("Calibre database changed, triggering sync...");
+                logger.info("[WATCHER] Calibre database modified, triggering sync...");
                 this.lastModified = newStats.mtimeMs;
                 await this.triggerSync();
+              } else {
+                logger.info("[WATCHER] Calibre database change was not a modification, skipping sync");
               }
             } catch (error) {
-              logger.error({ err: error }, "Error checking Calibre database");
+              logger.error({ err: error }, "[WATCHER] Error checking Calibre database");
             }
           }, 2000);
         }
@@ -62,26 +65,27 @@ class CalibreWatcher {
     const logger = getLogger();
 
     if (this.suspended) {
-      logger.debug("Watcher is suspended, skipping sync");
+      logger.info("[WATCHER] Watcher is suspended, skipping sync");
       return;
     }
 
     if (this.syncing) {
-      logger.debug("Sync already in progress, skipping");
+      logger.info("[WATCHER] Sync already in progress, skipping");
       return;
     }
 
     if (!this.syncCallback) {
-      logger.error("No sync callback registered");
+      logger.error("[WATCHER] No sync callback registered");
       return;
     }
 
     this.syncing = true;
+    logger.info("[WATCHER] Starting automatic sync from Calibre");
     try {
       await this.syncCallback();
-      logger.info("Automatic sync completed");
+      logger.info("[WATCHER] Automatic sync completed");
     } catch (error) {
-      logger.error({ err: error }, "Automatic sync failed");
+      logger.error({ err: error }, "[WATCHER] Automatic sync failed");
     } finally {
       this.syncing = false;
     }
@@ -92,7 +96,7 @@ class CalibreWatcher {
     const logger = getLogger();
     
     this.suspended = true;
-    logger.info("Calibre watcher suspended");
+    logger.info("[WATCHER] Calibre watcher suspended");
   }
 
   resume() {
@@ -100,7 +104,7 @@ class CalibreWatcher {
     const logger = getLogger();
     
     this.suspended = false;
-    logger.info("Calibre watcher resumed");
+    logger.info("[WATCHER] Calibre watcher resumed");
   }
 
   stop() {
