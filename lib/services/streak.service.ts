@@ -536,8 +536,7 @@ export class StreakService {
     // If enabling, rebuild streak from historical data
     if (enabled && !streak.streakEnabled) {
       logger.info({ userId }, "Streak enabled, rebuilding from historical data");
-      const { rebuildStreak } = await import("@/lib/streaks");
-      await rebuildStreak(userId);
+      await this.rebuildStreak(userId);
 
       // Fetch final state after rebuild
       const finalStreak = await streakRepository.findByUserId(userId);
