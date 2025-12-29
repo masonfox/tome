@@ -326,18 +326,21 @@ export function useBookProgress(
 
     try {
       const result = await logProgressMutation.mutateAsync(payload);
-      logger.info({ bookId, result }, 'Progress log result');
+      logger.info({ bookId, result, completionDate: result.completionDate }, 'Progress log result from API');
       
       // Check if completion modal should be shown
       if (result.shouldShowCompletionModal) {
-        logger.info({ bookId }, 'Setting showCompletionModal to true');
+        logger.info({ bookId, hasCompletionDate: !!result.completionDate, completionDateValue: result.completionDate }, 'Setting showCompletionModal to true');
         setShowCompletionModal(true);
       }
+      
+      const parsedCompletionDate = result.completionDate ? new Date(result.completionDate) : undefined;
+      logger.info({ parsedCompletionDate, originalDate: result.completionDate }, 'Parsed completion date');
       
       return { 
         success: true, 
         shouldShowCompletionModal: result.shouldShowCompletionModal,
-        completionDate: result.completionDate ? new Date(result.completionDate) : undefined
+        completionDate: parsedCompletionDate
       };
     } catch (error) {
       return { success: false };
