@@ -96,6 +96,14 @@ class CalibreWatcher {
     const logger = getLogger();
     
     this.suspended = true;
+    
+    // Clear any pending debounce timer to prevent queued syncs from running after resume
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+      logger.info("[WATCHER] Cleared pending debounce timer during suspend");
+    }
+    
     logger.info("[WATCHER] Calibre watcher suspended");
   }
 
