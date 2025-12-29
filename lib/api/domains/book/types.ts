@@ -134,3 +134,25 @@ export interface StartRereadResponse {
   newSessionId: number;
   archivedSessionId: number;
 }
+
+// ============================================================================
+// Complete Book API Types
+// ============================================================================
+
+/**
+ * Request to complete a book (mark as read from non-reading status)
+ */
+export interface CompleteBookRequest {
+  totalPages?: number;
+  startDate: string;
+  endDate: string;
+  rating?: number;
+  review?: string;
+}
+
+/**
+ * Response from completing a book
+ */
+export interface CompleteBookResponse {
+  success: boolean;
+}

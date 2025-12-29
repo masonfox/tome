@@ -114,7 +114,7 @@ export default function FinishBookModal({
     >
       {/* Subtitle explaining the book is already completed */}
       <p className="text-sm text-[var(--subheading-text)] mb-6">
-        You've finished reading <i>{bookTitle}</i>! Would you like to rate and review it?
+        You&apos;ve finished reading <i>{bookTitle}</i>! Would you like to rate and review it?
       </p>
 
       {/* Rating */}

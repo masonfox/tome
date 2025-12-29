@@ -44,15 +44,25 @@ function invalidateBookQueries(queryClient: any, bookId: string): void {
   queryClient.invalidateQueries({ queryKey: ['library-books'] });
 }
 
+export interface CompleteBookData {
+  totalPages?: number;
+  startDate: string;
+  endDate: string;
+  rating?: number;
+  review?: string;
+}
+
 export interface UseBookStatusReturn {
   selectedStatus: string;
   showReadConfirmation: boolean;
   showStatusChangeConfirmation: boolean;
+  showCompleteBookModal: boolean;
   pendingStatusChange: string | null;
   handleUpdateStatus: (newStatus: string) => Promise<void>;
   handleConfirmStatusChange: () => Promise<void>;
   handleCancelStatusChange: () => void;
   handleConfirmRead: (rating?: number, review?: string) => Promise<void>;
+  handleCompleteBook: (data: CompleteBookData) => Promise<void>;
   handleStartReread: () => Promise<void>;
 }
 
@@ -78,6 +88,7 @@ export function useBookStatus(
   const [selectedStatus, setSelectedStatus] = useState("to-read");
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
+  const [showCompleteBookModal, setShowCompleteBookModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
 
   // Initialize status from book data
@@ -199,10 +210,10 @@ export function useBookStatus(
     },
     onError: (error) => {
       if (error instanceof ApiError) {
-        getLogger().error({ 
-          statusCode: error.statusCode, 
-          endpoint: error.endpoint, 
-          details: error.details 
+        getLogger().error({
+          statusCode: error.statusCode,
+          endpoint: error.endpoint,
+          details: error.details
         }, "Failed to start re-reading");
       } else {
         getLogger().error({ err: error }, "Failed to start re-reading");
@@ -211,9 +222,57 @@ export function useBookStatus(
     },
   });
 
+  // Mutation for completing a book - uses bookApi
+  const completeBookMutation = useMutation({
+    mutationFn: async (data: CompleteBookData) => {
+      return await bookApi.completeBook(bookId, data);
+    },
+    onMutate: async () => {
+      // Cancel outgoing queries and snapshot state
+      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      const previousStatus = selectedStatus;
+
+      // Optimistic update
+      setSelectedStatus("read");
+      return { previousStatus };
+    },
+    onError: (error, _variables, context) => {
+      // Rollback
+      if (context?.previousStatus) {
+        setSelectedStatus(context.previousStatus);
+      }
+
+      if (error instanceof ApiError) {
+        getLogger().error({
+          statusCode: error.statusCode,
+          endpoint: error.endpoint,
+          details: error.details
+        }, "Failed to complete book");
+      } else {
+        getLogger().error({ err: error }, "Failed to complete book");
+      }
+      toast.error("Failed to mark book as read");
+    },
+    onSuccess: () => {
+      // Invalidate all related queries
+      invalidateBookQueries(queryClient, bookId);
+      toast.success("Book marked as read!");
+      setShowCompleteBookModal(false);
+
+      // Legacy callbacks for compatibility
+      onRefresh?.();
+    },
+  });
+
   const handleUpdateStatus = useCallback(async (newStatus: string) => {
-    // If marking as "read", show confirmation dialog
-    if (newStatus === "read" && selectedStatus !== "read") {
+    // If marking as "read" from non-reading status, show CompleteBookModal
+    if (newStatus === "read" && selectedStatus !== "read" && selectedStatus !== "reading") {
+      setShowCompleteBookModal(true);
+      return;
+    }
+
+    // If marking as "read" from "reading" status, show FinishBookModal
+    if (newStatus === "read" && selectedStatus === "reading") {
       setShowReadConfirmation(true);
       return;
     }
@@ -240,6 +299,7 @@ export function useBookStatus(
   const handleCancelStatusChange = useCallback(() => {
     setShowStatusChangeConfirmation(false);
     setShowReadConfirmation(false);
+    setShowCompleteBookModal(false);
     setPendingStatusChange(null);
   }, []);
 
@@ -247,6 +307,10 @@ export function useBookStatus(
     setShowReadConfirmation(false);
     await markAsReadMutation.mutateAsync({ rating, review });
   }, [markAsReadMutation]);
+
+  const handleCompleteBook = useCallback(async (data: CompleteBookData) => {
+    await completeBookMutation.mutateAsync(data);
+  }, [completeBookMutation]);
 
   const handleStartReread = useCallback(async () => {
     await rereadMutation.mutateAsync();
@@ -256,11 +320,13 @@ export function useBookStatus(
     selectedStatus,
     showReadConfirmation,
     showStatusChangeConfirmation,
+    showCompleteBookModal,
     pendingStatusChange,
     handleUpdateStatus,
     handleConfirmStatusChange,
     handleCancelStatusChange,
     handleConfirmRead,
+    handleCompleteBook,
     handleStartReread,
   };
 }

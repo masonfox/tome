@@ -7,6 +7,7 @@ import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
+import CompleteBookModal from "@/components/CompleteBookModal";
 import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
 import RereadConfirmModal from "@/components/RereadConfirmModal";
@@ -53,11 +54,13 @@ export default function BookDetailPage() {
     selectedStatus,
     showReadConfirmation,
     showStatusChangeConfirmation,
+    showCompleteBookModal,
     pendingStatusChange,
     handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
+    handleCompleteBook,
     handleStartReread,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
@@ -514,7 +517,19 @@ export default function BookDetailPage() {
       </div>
 
       {/* Modals */}
-      {/* Manual status change to "read" - uses mark-as-read API */}
+      {/* Manual completion from non-reading status (Want to Read / Read Next → Read) */}
+      <CompleteBookModal
+        isOpen={showCompleteBookModal}
+        onClose={() => handleCancelStatusChange()}
+        onConfirm={handleCompleteBook}
+        bookTitle={book.title}
+        bookId={bookId}
+        currentPageCount={book.totalPages}
+        currentRating={book.rating}
+        defaultStartDate={book.activeSession?.startedDate ? new Date(book.activeSession.startedDate) : undefined}
+      />
+
+      {/* Manual status change from "reading" to "read" - uses mark-as-read API */}
       <FinishBookModal
         isOpen={showReadConfirmation}
         onClose={() => handleCancelStatusChange()}
@@ -523,7 +538,7 @@ export default function BookDetailPage() {
         bookId={bookId}
       />
 
-      {/* Completion Modal (shown when progress reaches 100%) - book already marked as read */}
+      {/* Auto-completion modal (shown when progress reaches 100%) - book already marked as read */}
       <FinishBookModal
         isOpen={bookProgressHook.showCompletionModal}
         onClose={bookProgressHook.closeCompletionModal}

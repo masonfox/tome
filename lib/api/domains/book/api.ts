@@ -17,6 +17,8 @@ import type {
   MarkAsReadRequest,
   MarkAsReadResponse,
   StartRereadResponse,
+  CompleteBookRequest,
+  CompleteBookResponse,
 } from "./types";
 
 /**
@@ -198,6 +200,51 @@ export const bookApi = {
     return baseApiClient["post"]<void, StartRereadResponse>(
       `/api/books/${bookId}/reread`,
       undefined
+    );
+  },
+
+  /**
+   * Complete a book (mark as read from non-reading status)
+   *
+   * Handles the full workflow for marking a book as read from "Want to Read" or
+   * "Read Next" status. This consolidates all steps into a single API call:
+   * - Updates page count if needed
+   * - Creates reading session with start date
+   * - Logs progress from start to finish
+   * - Marks book as read with completion date
+   * - Updates rating and review
+   *
+   * This is different from markAsRead which is used for books already in "reading"
+   * status or for updating an already-read book.
+   *
+   * @param bookId - The ID of the book
+   * @param request - Complete book data (dates, pages, rating, review)
+   * @returns Complete book response
+   * @throws {ApiError} When request fails
+   *
+   * @example
+   * const result = await bookApi.completeBook('123', {
+   *   totalPages: 350,
+   *   startDate: '2024-01-01',
+   *   endDate: '2024-01-15',
+   *   rating: 5,
+   *   review: 'Amazing book!'
+   * });
+   *
+   * @example
+   * // Without rating or review
+   * await bookApi.completeBook('123', {
+   *   startDate: '2024-01-01',
+   *   endDate: '2024-01-15'
+   * });
+   */
+  completeBook: (
+    bookId: string | number,
+    request: CompleteBookRequest
+  ): Promise<CompleteBookResponse> => {
+    return baseApiClient["post"]<CompleteBookRequest, CompleteBookResponse>(
+      `/api/books/${bookId}/complete`,
+      request
     );
   },
 };
