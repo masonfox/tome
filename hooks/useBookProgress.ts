@@ -118,6 +118,7 @@ export function useBookProgress(
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -165,6 +166,7 @@ export function useBookProgress(
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -200,6 +202,7 @@ export function useBookProgress(
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });

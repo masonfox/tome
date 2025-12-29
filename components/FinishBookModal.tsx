@@ -84,7 +84,7 @@ export default function FinishBookModal({
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Finished Reading?"
+      title="Book Completed!"
       size="2xl"
       actions={
         <div className="flex gap-3 justify-end">
@@ -92,21 +92,26 @@ export default function FinishBookModal({
             onClick={handleClose}
             className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
           >
-            Cancel
+            Skip
           </button>
           <button
             onClick={handleSubmit}
             className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
           >
-            Mark as Read
+            Save Rating & Review
           </button>
         </div>
       }
     >
+      {/* Subtitle explaining the book is already completed */}
+      <p className="text-sm text-[var(--subheading-text)] mb-6">
+        You've finished reading <i>{bookTitle}</i>! Would you like to rate and review it?
+      </p>
+
       {/* Rating */}
       <div className="mb-6">
         <label className="block text-sm text-[var(--foreground)] mb-3">
-          Rate <i>{bookTitle}</i>:
+          Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((star) => (
