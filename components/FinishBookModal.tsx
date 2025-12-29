@@ -70,20 +70,16 @@ export default function FinishBookModal({
   }, [isOpen, bookId]);
 
   const handleSubmit = async () => {
-    console.log("[FinishBookModal] handleSubmit called", { rating, review, bookId });
     // Only pass rating if it's > 0 (user actually selected a rating)
     await onConfirm(rating > 0 ? rating : undefined, review || undefined);
-    console.log("[FinishBookModal] onConfirm completed");
     clearDraft(); // Clear draft after successful submission
     onClose(); // Explicitly close the modal after successful confirmation
   };
 
   const handleClose = async () => {
-    console.log("[FinishBookModal] handleClose (Skip) called", { bookId, sessionId });
     // If this is a manual mark-as-read flow (no sessionId), we should still mark the book as read
     // Otherwise, clicking Skip cancels the entire status change
     if (!sessionId) {
-      console.log("[FinishBookModal] No sessionId, calling onConfirm to mark as read");
       await onConfirm(undefined, undefined); // Mark as read without rating/review
       clearDraft();
     }

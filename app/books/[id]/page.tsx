@@ -61,15 +61,6 @@ export default function BookDetailPage() {
     handleStartReread,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
-  // Debug logging
-  console.log("[BookDetailPage] Hook values", {
-    selectedStatus,
-    showReadConfirmation,
-    showCompletionModal: bookProgressHook.showCompletionModal,
-    handleConfirmReadFromHook: typeof handleConfirmReadFromHook,
-    bookId
-  });
-
   // Handle finishing book from auto-completion modal (when progress reaches 100%)
   // Note: Book status is already "read" at this point (auto-completed by progress service)
   // We only need to update rating/review, not status
