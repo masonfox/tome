@@ -67,10 +67,10 @@ export default function BookDetailPage() {
   // Handle finishing book from auto-completion modal (when progress reaches 100%)
   // Note: Book status is already "read" at this point (auto-completed by progress service)
   // We only need to update rating/review, not status
-  async function handleConfirmReadAfterAutoCompletion(rating: number, review?: string) {
+  async function handleConfirmReadAfterAutoCompletion(rating?: number, review?: string) {
     try {
       // Update rating to the book table if provided
-      if (rating > 0) {
+      if (rating && rating > 0) {
         const ratingBody = { rating };
         const ratingResponse = await fetch(`/api/books/${bookId}/rating`, {
           method: "PATCH",
@@ -525,7 +525,7 @@ export default function BookDetailPage() {
         onConfirm={handleCompleteBook}
         bookTitle={book.title}
         bookId={bookId}
-        currentPageCount={book.totalPages}
+        currentPageCount={book.totalPages ?? null}
         currentRating={book.rating}
         defaultStartDate={book.activeSession?.startedDate ? new Date(book.activeSession.startedDate) : undefined}
       />

@@ -115,10 +115,10 @@ export default function LogProgressModal({
 
   // Handle finishing the book (called from FinishBookModal)
   // Note: Book status is already "read" at this point (auto-completed by progress service)
-  async function handleConfirmFinish(rating: number, review?: string) {
+  async function handleConfirmFinish(rating?: number, review?: string) {
     try {
       // Update rating to the book table if provided
-      if (rating > 0) {
+      if (rating && rating > 0) {
         const ratingBody = { rating };
         const ratingResponse = await fetch(`/api/books/${book.id}/rating`, {
           method: "PATCH",

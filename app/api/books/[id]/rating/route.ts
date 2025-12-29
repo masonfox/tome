@@ -83,8 +83,17 @@ export async function PATCH(
 
     // Update review in database if provided
     if (review !== undefined) {
-      await bookRepository.update(bookId, { review });
-      logger.info({ bookId, hasReview: !!review }, 'Updated review');
+      // Get active session for the book
+      const activeSession = await sessionService.getActiveSession(bookId);
+      if (!activeSession) {
+        return NextResponse.json(
+          { error: "No active reading session found for this book" },
+          { status: 400 }
+        );
+      }
+      
+      await sessionService.updateSessionReview(activeSession.id, review);
+      logger.info({ bookId, sessionId: activeSession.id, hasReview: !!review }, 'Updated review');
     }
 
     // Invalidate cache
