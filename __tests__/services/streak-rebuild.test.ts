@@ -1,5 +1,7 @@
 import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { ProgressService } from "@/lib/services/progress.service";
 
 /**
  * Test suite for streak rebuild logic in progress mutations
@@ -15,12 +17,12 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
  */
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
-// Import after mock is set up to ensure mock is applied
-import { progressService } from "@/lib/services";
-import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+let progressService: ProgressService;
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
+  // Create instance after mocks are set up
+  progressService = new ProgressService();
 });
 
 afterAll(async () => {
