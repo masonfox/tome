@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
+import { bookApi } from "@/lib/api/book-api";
+import { ApiError } from "@/lib/api/base-client";
 
 interface ProgressEntry {
   id: number;
@@ -26,17 +28,19 @@ async function ensureReadingStatus(
 ): Promise<void> {
   if (currentStatus === "reading") return;
 
-  const response = await fetch(`/api/books/${bookId}/status`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status: "reading" }),
-  });
-
-  if (!response.ok) {
+  try {
+    await bookApi.updateStatus(bookId, { status: "reading" });
+    getLogger().info({ bookId, from: currentStatus, to: "reading" }, "Transitioned book to reading status");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      getLogger().error({ 
+        bookId, 
+        statusCode: error.statusCode, 
+        details: error.details 
+      }, "Failed to transition to reading status");
+    }
     throw new Error("Failed to transition to reading status");
   }
-
-  getLogger().info({ bookId, from: currentStatus, to: "reading" }, "Transitioned book to reading status");
 }
 
 /**
@@ -46,50 +50,43 @@ async function create100PercentProgress(
   bookId: string,
   totalPages: number
 ): Promise<void> {
-  const response = await fetch(`/api/books/${bookId}/progress`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  try {
+    await bookApi.createProgress(bookId, {
       currentPage: totalPages,
       currentPercentage: 100,
       notes: "Marked as read",
-    }),
-  });
-
-  if (!response.ok) {
-    const errorDetails: any = {
-      status: response.status,
-      statusText: response.statusText,
-    };
-    try {
-      const data = await response.json();
-      errorDetails.body = data;
-    } catch (e) {
-      // Ignore JSON parse errors
+    });
+    getLogger().info({ bookId, totalPages }, "Created 100% progress entry (auto-completing to read)");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      getLogger().error({ 
+        bookId, 
+        statusCode: error.statusCode, 
+        details: error.details 
+      }, "Failed to create 100% progress entry");
     }
-    getLogger().error({ err: errorDetails }, "Failed to create 100% progress entry");
     throw new Error("Failed to create 100% progress entry");
   }
-
-  getLogger().info({ bookId, totalPages }, "Created 100% progress entry (auto-completing to read)");
 }
 
 /**
  * Updates book rating in the books table
  */
 async function updateRating(bookId: string, rating: number): Promise<void> {
-  const response = await fetch(`/api/books/${bookId}/rating`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ rating }),
-  });
-
-  if (!response.ok) {
-    getLogger().error({ bookId, rating }, "Failed to update rating");
+  try {
+    await bookApi.updateRating(bookId, { rating });
+    getLogger().info({ bookId, rating }, "Updated book rating");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      getLogger().error({ 
+        bookId, 
+        rating, 
+        statusCode: error.statusCode, 
+        details: error.details 
+      }, "Failed to update rating");
+    }
     throw new Error("Failed to update rating");
   }
-
-  getLogger().info({ bookId, rating }, "Updated book rating");
 }
 
 /**
@@ -100,68 +97,73 @@ async function updateSessionReview(
   sessionId: number,
   review: string
 ): Promise<void> {
-  const response = await fetch(`/api/books/${bookId}/sessions/${sessionId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ review }),
-  });
-
-  if (!response.ok) {
-    getLogger().error({ bookId, sessionId }, "Failed to update session review");
+  try {
+    await bookApi.updateSessionReview(bookId, sessionId, { review });
+    getLogger().info({ bookId, sessionId }, "Updated session review");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      getLogger().error({ 
+        bookId, 
+        sessionId, 
+        statusCode: error.statusCode, 
+        details: error.details 
+      }, "Failed to update session review");
+    }
     throw new Error("Failed to update session review");
   }
-
-  getLogger().info({ bookId, sessionId }, "Updated session review");
 }
 
 /**
  * Updates book status directly (without progress tracking)
  */
 async function updateBookStatus(bookId: string, status: string): Promise<void> {
-  const response = await fetch(`/api/books/${bookId}/status`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
-  });
-
-  if (!response.ok) {
+  try {
+    await bookApi.updateStatus(bookId, { status: status as any });
+    getLogger().info({ bookId, status }, "Updated book status");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      getLogger().error({ 
+        bookId, 
+        status, 
+        statusCode: error.statusCode, 
+        details: error.details 
+      }, `Failed to update book status to ${status}`);
+    }
     throw new Error(`Failed to update book status to ${status}`);
   }
-
-  getLogger().info({ bookId, status }, "Updated book status");
 }
 
 /**
  * Finds the most recent completed reading session for a book
  */
 async function findMostRecentCompletedSession(bookId: string): Promise<number | undefined> {
-  const response = await fetch(`/api/books/${bookId}/sessions`);
-  
-  if (!response.ok) {
-    getLogger().error({ bookId }, "Failed to fetch sessions");
+  try {
+    const sessions = await bookApi.getSessions(bookId);
+    
+    const completedSessions = sessions.filter(
+      (s) => !s.isActive && s.status === "read"
+    );
+
+    if (completedSessions.length === 0) {
+      return undefined;
+    }
+
+    // Sort by completedDate descending to get most recent
+    completedSessions.sort((a, b) =>
+      new Date(b.completedDate || 0).getTime() - new Date(a.completedDate || 0).getTime()
+    );
+
+    return completedSessions[0].id;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      getLogger().error({ 
+        bookId, 
+        statusCode: error.statusCode, 
+        details: error.details 
+      }, "Failed to fetch sessions");
+    }
     return undefined;
   }
-
-  const sessions = await response.json();
-  
-  if (!Array.isArray(sessions)) {
-    return undefined;
-  }
-
-  const completedSessions = sessions.filter(
-    (s: any) => !s.isActive && s.status === "read"
-  );
-
-  if (completedSessions.length === 0) {
-    return undefined;
-  }
-
-  // Sort by completedDate descending to get most recent
-  completedSessions.sort((a: any, b: any) =>
-    new Date(b.completedDate || 0).getTime() - new Date(a.completedDate || 0).getTime()
-  );
-
-  return completedSessions[0].id;
 }
 
 /**
@@ -347,26 +349,16 @@ export function useBookStatus(
   // Mutation for status updates
   const statusMutation = useMutation({
     mutationFn: async ({ status, rating, review }: { status: string; rating?: number; review?: string }) => {
-      const body: any = { status };
+      // Build request with optional fields
+      const request: any = { status: status as any };
       if (rating !== undefined && rating > 0) {
-        body.rating = rating;
+        request.rating = rating;
       }
       if (review) {
-        body.review = review;
+        request.review = review;
       }
 
-      const response = await fetch(`/api/books/${bookId}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update status");
-      }
-
-      return response.json();
+      return await bookApi.updateStatus(bookId, request);
     },
     onMutate: async ({ status }) => {
       // Cancel outgoing queries
@@ -385,7 +377,17 @@ export function useBookStatus(
       if (context?.previousStatus) {
         setSelectedStatus(context.previousStatus);
       }
-      getLogger().error({ err: error }, "Failed to update status");
+      
+      if (error instanceof ApiError) {
+        getLogger().error({ 
+          statusCode: error.statusCode, 
+          endpoint: error.endpoint, 
+          details: error.details 
+        }, "Failed to update status");
+      } else {
+        getLogger().error({ err: error }, "Failed to update status");
+      }
+      
       toast.error("Failed to update status");
     },
     onSuccess: (data) => {
@@ -432,7 +434,17 @@ export function useBookStatus(
       if (context?.previousStatus) {
         setSelectedStatus(context.previousStatus);
       }
-      getLogger().error({ err: error }, "Failed to mark book as read");
+      
+      if (error instanceof ApiError) {
+        getLogger().error({ 
+          statusCode: error.statusCode, 
+          endpoint: error.endpoint, 
+          details: error.details 
+        }, "Failed to mark book as read");
+      } else {
+        getLogger().error({ err: error }, "Failed to mark book as read");
+      }
+      
       toast.error("Failed to mark book as read");
     },
     onSuccess: () => {
@@ -447,17 +459,7 @@ export function useBookStatus(
   // Mutation for starting a re-read
   const rereadMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/books/${bookId}/reread`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to start re-reading");
-      }
-
-      return response.json();
+      return await bookApi.startReread(bookId);
     },
     onSuccess: () => {
       invalidateBookQueries(queryClient, bookId);
@@ -465,7 +467,15 @@ export function useBookStatus(
       onRefresh?.();
     },
     onError: (error) => {
-      console.error("Failed to start re-reading:", error);
+      if (error instanceof ApiError) {
+        getLogger().error({ 
+          statusCode: error.statusCode, 
+          endpoint: error.endpoint, 
+          details: error.details 
+        }, "Failed to start re-reading");
+      } else {
+        getLogger().error({ err: error }, "Failed to start re-reading");
+      }
       toast.error("Failed to start re-reading");
     },
   });

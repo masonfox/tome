@@ -1,0 +1,26 @@
+/**
+ * API Client Barrel Export
+ * 
+ * Central export point for all API-related modules.
+ * Makes it easy to import API functionality throughout the app.
+ * 
+ * @example
+ * import { bookApi, ApiError } from '@/lib/api';
+ * 
+ * try {
+ *   await bookApi.updateStatus('123', { status: 'reading' });
+ * } catch (error) {
+ *   if (error instanceof ApiError) {
+ *     console.log('API error:', error.statusCode);
+ *   }
+ * }
+ */
+
+// Re-export base client classes and utilities
+export { baseApiClient, BaseApiClient, ApiError } from "./base-client";
+
+// Re-export domain API helpers
+export { bookApi } from "./book-api";
+
+// Re-export all types (type-only imports)
+export type * from "./book-api.types";

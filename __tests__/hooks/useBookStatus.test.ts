@@ -25,8 +25,10 @@ describe("useBookStatus", () => {
   beforeEach(() => {
     global.fetch = mock(() => Promise.resolve({
       ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
       json: () => Promise.resolve({}),
-    } as Response));
+    } as Response)) as any;
     mockOnStatusChange.mockClear();
     mockOnRefresh.mockClear();
   });
@@ -99,8 +101,10 @@ describe("useBookStatus", () => {
     test("should update status directly for forward movement", async () => {
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ sessionArchived: false }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -132,8 +136,10 @@ describe("useBookStatus", () => {
 
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ sessionArchived: false }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -161,8 +167,10 @@ describe("useBookStatus", () => {
 
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ sessionArchived: true, archivedSessionNumber: 1 }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(readingBook, progressEntries, "123", mockOnStatusChange, mockOnRefresh)
@@ -222,9 +230,11 @@ describe("useBookStatus", () => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
           json: () => Promise.resolve({}),
         } as Response);
-      });
+      }) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -275,9 +285,11 @@ describe("useBookStatus", () => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
           json: () => Promise.resolve({}),
         } as Response);
-      });
+      }) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -339,8 +351,10 @@ describe("useBookStatus", () => {
 
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({}),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(bookWithoutPages, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -377,8 +391,10 @@ describe("useBookStatus", () => {
     test("should start re-reading and refresh data", async () => {
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({}),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -403,8 +419,10 @@ describe("useBookStatus", () => {
     test("should handle reread errors", async () => {
       global.fetch = mock(() => Promise.resolve({
         ok: false,
+        status: 400,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ error: "Cannot reread" }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
