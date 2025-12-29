@@ -2,6 +2,7 @@ import { bookRepository, sessionRepository, progressRepository } from "@/lib/rep
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { validateProgressTimeline, validateProgressEdit } from "./progress-validation";
 import { streakService } from "@/lib/services/streak.service";
+import { SessionService } from "@/lib/services/session.service";
 import { revalidatePath } from "next/cache";
 import { 
   calculatePercentage, 
@@ -203,8 +204,21 @@ export class ProgressService {
     // Update streak system
     await this.updateStreakSystem();
 
-    // Check if book is completed (100% progress) but DON'T auto-complete
+    // Check if book is completed (100% progress) and auto-transition to "read" status
     const shouldShowCompletionModal = this.shouldShowCompletionModal(activeSession.status, metrics.currentPercentage);
+    
+    if (shouldShowCompletionModal) {
+      // Auto-complete the book with the progress date as the completion date
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+      logger.info({ bookId, progressDate: requestedDate }, 'Auto-completing book at 100% progress');
+      
+      const sessionService = new SessionService();
+      await sessionService.updateStatus(bookId, {
+        status: "read",
+        completedDate: requestedDate  // Use the progress date, including backdated entries!
+      });
+    }
 
     // Invalidate cache
     await this.invalidateCache(bookId);

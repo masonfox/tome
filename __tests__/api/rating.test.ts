@@ -7,15 +7,19 @@ import type { NextRequest } from "next/server";
 /**
  * Rating API Endpoint Tests
  * 
- * Tests the POST /api/books/:id/rating endpoint which updates book ratings
- * in both the local database and Calibre database.
+ * Tests the PATCH /api/books/:id/rating endpoint which updates book ratings
+ * and reviews independently of status changes.
+ * 
+ * This endpoint was created as part of the auto-completion refactoring to
+ * separate rating/review updates from status changes for cleaner architecture.
  * 
  * Coverage:
  * - Valid rating updates (1-5 stars)
- * - Rating removal (null)
- * - Validation errors
+ * - Review updates (with and without rating)
+ * - Rating removal (rating=0 sets to null)
+ * - Calibre sync (best effort)
  * - 404 for non-existent books
- * - Calibre write failure handling
+ * - Error handling
  */
 
 /**
@@ -46,7 +50,7 @@ mock.module("@/lib/services/calibre.service", () => ({
 }));
 
 // Import after mock is set up
-import { POST } from "@/app/api/books/[id]/rating/route";
+import { PATCH } from "@/app/api/books/[id]/rating/route";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
@@ -62,19 +66,19 @@ beforeEach(async () => {
   mockCalibreShouldFail = false;
 });
 
-describe("POST /api/books/[id]/rating", () => {
+describe("PATCH /api/books/[id]/rating", () => {
   describe("Successful Rating Updates", () => {
-    test("should set rating to 5 stars", async () => {
+    test("should update book rating", async () => {
       const book = await bookRepository.create(mockBook1);
 
-      const request = createMockRequest("POST", `/api/books/${book.id}/rating`, {
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
         rating: 5,
       });
-      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.rating).toBe(5);
+      expect(data.success).toBe(true);
       expect(mockUpdateCalibreRating).toHaveBeenCalledWith(book.calibreId, 5);
 
       // Verify in database

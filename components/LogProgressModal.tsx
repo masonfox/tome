@@ -112,24 +112,28 @@ export default function LogProgressModal({
   }
 
   // Handle finishing the book (called from FinishBookModal)
+  // Note: Book status is already "read" at this point (auto-completed by progress service)
   async function handleConfirmFinish(rating: number, review?: string) {
     try {
-      const body: any = { status: "read" };
-      if (rating > 0) {
-        body.rating = rating;
-      }
-      if (review) {
-        body.review = review;
-      }
+      // Update rating/review if provided (status is already "read")
+      if (rating > 0 || review) {
+        const body: any = {};
+        if (rating > 0) {
+          body.rating = rating;
+        }
+        if (review) {
+          body.review = review;
+        }
 
-      const response = await fetch(`/api/books/${book.id}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        const response = await fetch(`/api/books/${book.id}/rating`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to mark book as read");
+        if (!response.ok) {
+          throw new Error("Failed to update rating/review");
+        }
       }
 
       // Close both modals
@@ -142,10 +146,10 @@ export default function LogProgressModal({
       await queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
       router.refresh(); // Refresh server components
       
-      toast.success("Marked as read!");
+      toast.success("Book completed!");
     } catch (error) {
-      logger.error({ error }, "Failed to mark book as read");
-      toast.error("Failed to mark book as read");
+      logger.error({ error }, "Failed to update rating/review");
+      toast.error("Failed to update rating/review");
     }
   }
   

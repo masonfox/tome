@@ -125,11 +125,17 @@ export function useBookStatus(
     },
   });
 
-  // Mutation for marking as read (includes progress update)
+  // Mutation for marking as read (auto-creates 100% progress if needed)
   const markAsReadMutation = useMutation({
     mutationFn: async ({ rating, review }: { rating: number; review?: string }) => {
-      // First, set the progress to 100% if book has total pages
-      if (book?.totalPages) {
+      // Check if we need to create 100% progress first
+      const has100Progress = progress.some(p => p.currentPercentage >= 100);
+      const currentStatus = book?.activeSession?.status;
+      const isAlreadyRead = currentStatus === "read";
+      
+      if (book?.totalPages && !has100Progress && !isAlreadyRead && currentStatus === "reading") {
+        // Auto-create 100% progress entry (will auto-complete via progress service)
+        // Only do this if book is currently "reading" status
         const progressPayload = {
           currentPage: book.totalPages,
           currentPercentage: 100,
@@ -153,30 +159,50 @@ export function useBookStatus(
           } catch (e) {
             // Ignore JSON parse errors
           }
-          getLogger().error({ err: errorDetails }, "Failed to update progress to 100%");
+          getLogger().error({ err: errorDetails }, "Failed to create 100% progress entry");
+          throw new Error("Failed to create progress entry");
+        }
+        
+        // Progress service already changed status to "read"
+      } else if (!isAlreadyRead) {
+        // Book either has no totalPages, or is not in "reading" status
+        // Change status directly if not already "read"
+        const statusBody: any = { status: "read" };
+        
+        const statusResponse = await fetch(`/api/books/${bookId}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(statusBody),
+        });
+
+        if (!statusResponse.ok) {
+          throw new Error("Failed to mark book as read");
+        }
+      }
+      
+      // Update rating/review if provided (regardless of path taken)
+      if (rating > 0 || review) {
+        const ratingBody: any = {};
+        if (rating > 0) {
+          ratingBody.rating = rating;
+        }
+        if (review) {
+          ratingBody.review = review;
+        }
+
+        const ratingResponse = await fetch(`/api/books/${bookId}/rating`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(ratingBody),
+        });
+
+        if (!ratingResponse.ok) {
+          getLogger().error("Failed to update rating/review");
+          // Don't throw - book is already marked as read
         }
       }
 
-      // Then, update the status to "read"
-      const statusBody: any = { status: "read" };
-      if (rating > 0) {
-        statusBody.rating = rating;
-      }
-      if (review) {
-        statusBody.review = review;
-      }
-
-      const statusResponse = await fetch(`/api/books/${bookId}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(statusBody),
-      });
-
-      if (!statusResponse.ok) {
-        throw new Error("Failed to mark book as read");
-      }
-
-      return statusResponse.json();
+      return { success: true };
     },
     onMutate: async () => {
       // Optimistic update
