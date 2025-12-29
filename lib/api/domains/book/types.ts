@@ -100,6 +100,29 @@ export interface ReadingSession {
 }
 
 // ============================================================================
+// Mark as Read API Types
+// ============================================================================
+
+/**
+ * Request to mark a book as read
+ */
+export interface MarkAsReadRequest {
+  rating?: number;
+  review?: string;
+  completedDate?: Date | string;
+}
+
+/**
+ * Response from marking a book as read
+ */
+export interface MarkAsReadResponse {
+  session: ReadingSession;
+  ratingUpdated: boolean;
+  reviewUpdated: boolean;
+  progressCreated: boolean;
+}
+
+// ============================================================================
 // Reread API Types
 // ============================================================================
 

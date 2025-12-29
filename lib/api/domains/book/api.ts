@@ -14,6 +14,8 @@ import type {
   UpdateRatingRequest,
   UpdateSessionReviewRequest,
   ReadingSession,
+  MarkAsReadRequest,
+  MarkAsReadResponse,
   StartRereadResponse,
 } from "./types";
 
@@ -147,12 +149,47 @@ export const bookApi = {
   },
 
   /**
+   * Mark a book as read with optional rating and review
+   *
+   * Orchestrates the full "mark as read" workflow:
+   * - Ensures book is in reading status
+   * - Creates 100% progress entry if needed
+   * - Updates rating (syncs to Calibre)
+   * - Updates review on session
+   * - Handles books without totalPages
+   *
+   * @param bookId - The ID of the book
+   * @param request - Rating and review data
+   * @returns Mark as read response with flags for what was updated
+   * @throws {ApiError} When request fails
+   *
+   * @example
+   * const result = await bookApi.markAsRead('123', {
+   *   rating: 5,
+   *   review: 'Amazing book!'
+   * });
+   *
+   * if (result.progressCreated) {
+   *   console.log('Created 100% progress entry');
+   * }
+   */
+  markAsRead: (
+    bookId: string | number,
+    request: MarkAsReadRequest
+  ): Promise<MarkAsReadResponse> => {
+    return baseApiClient["post"]<MarkAsReadRequest, MarkAsReadResponse>(
+      `/api/books/${bookId}/mark-as-read`,
+      request
+    );
+  },
+
+  /**
    * Start re-reading a book (archives current session and creates new one)
-   * 
+   *
    * @param bookId - The ID of the book
    * @returns Reread response with session IDs
    * @throws {ApiError} When request fails
-   * 
+   *
    * @example
    * const result = await bookApi.startReread('123');
    * console.log('Started reread with session:', result.newSessionId);

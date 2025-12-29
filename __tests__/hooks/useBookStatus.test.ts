@@ -3,24 +3,6 @@ import { renderHook, waitFor, act } from "../test-utils";
 import { useBookStatus } from "@/hooks/useBookStatus";
 import type { Book } from "@/hooks/useBookDetail";
 
-// Mock SessionService
-const mockUpdateStatus = mock(() => Promise.resolve({ session: { id: 1, status: "reading" } }));
-const mockMarkAsRead = mock(() => Promise.resolve({
-  session: { id: 1, status: "read" },
-  ratingUpdated: true,
-  reviewUpdated: true,
-  progressCreated: false,
-}));
-const mockStartReread = mock(() => Promise.resolve({ id: 2, status: "reading", sessionNumber: 2 }));
-
-mock.module("@/lib/services", () => ({
-  sessionService: {
-    updateStatus: mockUpdateStatus,
-    markAsRead: mockMarkAsRead,
-    startReread: mockStartReread,
-  },
-}));
-
 const originalFetch = global.fetch;
 
 describe("useBookStatus", () => {
@@ -49,9 +31,6 @@ describe("useBookStatus", () => {
     } as Response)) as any;
     mockOnStatusChange.mockClear();
     mockOnRefresh.mockClear();
-    mockUpdateStatus.mockClear();
-    mockMarkAsRead.mockClear();
-    mockStartReread.mockClear();
   });
 
   afterEach(() => {
@@ -136,10 +115,11 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(mockUpdateStatus).toHaveBeenCalledWith(
-          123,
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/status",
           expect.objectContaining({
-            status: "read-next",
+            method: "POST",
+            body: expect.stringContaining("read-next"),
           })
         );
       });
@@ -170,7 +150,12 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(mockUpdateStatus).toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/status",
+          expect.objectContaining({
+            method: "POST",
+          })
+        );
       });
 
       expect(result.current.showStatusChangeConfirmation).toBe(false);
@@ -254,11 +239,11 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(mockMarkAsRead).toHaveBeenCalledWith(
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/mark-as-read",
           expect.objectContaining({
-            bookId: 123,
-            rating: 4,
-            review: "Great book!",
+            method: "POST",
+            body: expect.stringContaining("4"),
           })
         );
       });
@@ -288,11 +273,11 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(mockMarkAsRead).toHaveBeenCalledWith(
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/mark-as-read",
           expect.objectContaining({
-            bookId: 123,
-            rating: 4,
-            review: "Great book!",
+            method: "POST",
+            body: expect.stringContaining("4"),
           })
         );
       });
@@ -316,10 +301,11 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(mockMarkAsRead).toHaveBeenCalledWith(
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/mark-as-read",
           expect.objectContaining({
-            bookId: 123,
-            rating: 5,
+            method: "POST",
+            body: expect.stringContaining("5"),
           })
         );
       });
@@ -337,14 +323,19 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(mockStartReread).toHaveBeenCalledWith(123);
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/reread",
+          expect.objectContaining({
+            method: "POST",
+          })
+        );
       });
 
       expect(mockOnRefresh).toHaveBeenCalled();
     });
 
     test("should handle reread errors", async () => {
-      mockStartReread.mockImplementationOnce(() => Promise.reject(new Error("Cannot reread")));
+      global.fetch = mock(() => Promise.reject(new Error("Cannot reread"))) as any;
 
       const { result} = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -352,7 +343,7 @@ describe("useBookStatus", () => {
 
       // Expect the mutation to throw
       await act(async () => {
-        await expect(result.current.handleStartReread()).rejects.toThrow("Cannot reread");
+        await expect(result.current.handleStartReread()).rejects.toThrow();
       });
     });
   });

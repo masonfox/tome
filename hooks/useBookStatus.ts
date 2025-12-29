@@ -4,7 +4,6 @@ import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { bookApi, ApiError } from "@/lib/api";
-import { sessionService } from "@/lib/services";
 
 interface ProgressEntry {
   id: number;
@@ -90,13 +89,11 @@ export function useBookStatus(
     }
   }, [book]);
 
-  // Mutation for status updates - uses SessionService
+  // Mutation for status updates - uses bookApi
   const statusMutation = useMutation({
-    mutationFn: async ({ status, rating, review }: { status: string; rating?: number; review?: string }) => {
-      return await sessionService.updateStatus(parseInt(bookId), {
+    mutationFn: async ({ status }: { status: string }) => {
+      return await bookApi.updateStatus(bookId, {
         status: status as any,
-        rating: rating !== undefined && rating > 0 ? rating : undefined,
-        review,
       });
     },
     onMutate: async ({ status }) => {
@@ -148,11 +145,10 @@ export function useBookStatus(
     },
   });
 
-  // Mutation for marking as read - uses SessionService
+  // Mutation for marking as read - uses bookApi
   const markAsReadMutation = useMutation({
     mutationFn: async ({ rating, review }: { rating?: number; review?: string }) => {
-      return await sessionService.markAsRead({
-        bookId: parseInt(bookId),
+      return await bookApi.markAsRead(bookId, {
         rating,
         review,
       });
@@ -191,10 +187,10 @@ export function useBookStatus(
     },
   });
 
-  // Mutation for starting a re-read - uses SessionService
+  // Mutation for starting a re-read - uses bookApi
   const rereadMutation = useMutation({
     mutationFn: async () => {
-      return await sessionService.startReread(parseInt(bookId));
+      return await bookApi.startReread(bookId);
     },
     onSuccess: () => {
       invalidateBookQueries(queryClient, bookId);
