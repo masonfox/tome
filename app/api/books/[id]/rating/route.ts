@@ -28,6 +28,33 @@ export async function PATCH(
     const body = await request.json();
     const { rating, review } = body;
 
+    // Validate rating if provided
+    if (rating !== undefined && rating !== null) {
+      // Type validation - must be a number
+      if (typeof rating !== 'number') {
+        return NextResponse.json(
+          { error: "Rating must be a number between 1 and 5" },
+          { status: 400 }
+        );
+      }
+
+      // Whole number validation
+      if (!Number.isInteger(rating)) {
+        return NextResponse.json(
+          { error: "Rating must be a whole number" },
+          { status: 400 }
+        );
+      }
+
+      // Range validation (1-5)
+      if (rating < 1 || rating > 5) {
+        return NextResponse.json(
+          { error: "Rating must be between 1 and 5" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Verify book exists
     const book = await bookRepository.findById(bookId);
     if (!book) {
@@ -41,6 +68,11 @@ export async function PATCH(
     }
     if (review !== undefined) {
       updateData.review = review;
+    }
+
+    // If nothing to update, return the book as-is
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(book);
     }
 
     // Update rating/review in database
@@ -65,7 +97,9 @@ export async function PATCH(
 
     logger.info({ bookId, rating, hasReview: !!review }, 'Updated book rating/review');
 
-    return NextResponse.json({ success: true });
+    // Return the updated book
+    const updatedBook = await bookRepository.findById(bookId);
+    return NextResponse.json(updatedBook);
   } catch (error) {
     logger.error({ err: error }, "Error updating rating/review");
     return NextResponse.json({ error: "Failed to update rating/review" }, { status: 500 });

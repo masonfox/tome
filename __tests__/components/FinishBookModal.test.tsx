@@ -49,12 +49,12 @@ describe("FinishBookModal", () => {
   describe("Rendering", () => {
     test("should not render when isOpen is false", () => {
       render(<FinishBookModal {...defaultProps} isOpen={false} />);
-      expect(screen.queryByText("Finished Reading?")).not.toBeInTheDocument();
+      expect(screen.queryByText("Book Completed!")).not.toBeInTheDocument();
     });
 
     test("should render modal with title when isOpen is true", () => {
       render(<FinishBookModal {...defaultProps} />);
-      expect(screen.getByText("Finished Reading?")).toBeInTheDocument();
+      expect(screen.getByText("Book Completed!")).toBeInTheDocument();
     });
 
     test("should display book title in rating label", () => {
@@ -75,8 +75,8 @@ describe("FinishBookModal", () => {
 
     test("should render Cancel and Mark as Read buttons", () => {
       render(<FinishBookModal {...defaultProps} />);
-      expect(screen.getByText("Cancel")).toBeInTheDocument();
-      expect(screen.getByText("Mark as Read")).toBeInTheDocument();
+      expect(screen.getByText("Skip")).toBeInTheDocument();
+      expect(screen.getByText("Save Rating & Review")).toBeInTheDocument();
     });
   });
 
@@ -151,7 +151,7 @@ describe("FinishBookModal", () => {
 
       // Act: Select rating and submit
       fireEvent.click(stars[3]); // 4 stars
-      fireEvent.click(screen.getByText("Mark as Read"));
+      fireEvent.click(screen.getByText("Save Rating & Review"));
 
       // Wait for async operations to complete
       await waitFor(() => {
@@ -168,7 +168,7 @@ describe("FinishBookModal", () => {
       render(<FinishBookModal {...defaultProps} />);
 
       // Close modal
-      fireEvent.click(screen.getByText("Cancel"));
+      fireEvent.click(screen.getByText("Skip"));
 
       // Draft should still exist
       expect(localStorage.getItem("draft-finish-review-123")).toBe("Unsaved review");
@@ -225,7 +225,7 @@ describe("FinishBookModal", () => {
       fireEvent.change(textarea, { target: { value: "Masterpiece!" } });
 
       // Submit
-      fireEvent.click(screen.getByText("Mark as Read"));
+      fireEvent.click(screen.getByText("Save Rating & Review"));
 
       expect(onConfirm).toHaveBeenCalledWith(5, "Masterpiece!");
     });
@@ -240,7 +240,7 @@ describe("FinishBookModal", () => {
       fireEvent.click(stars[2]); // 3 stars
 
       // Submit
-      fireEvent.click(screen.getByText("Mark as Read"));
+      fireEvent.click(screen.getByText("Save Rating & Review"));
 
       expect(onConfirm).toHaveBeenCalledWith(3, undefined);
     });
@@ -250,7 +250,7 @@ describe("FinishBookModal", () => {
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
 
       // Submit without selecting rating
-      fireEvent.click(screen.getByText("Mark as Read"));
+      fireEvent.click(screen.getByText("Save Rating & Review"));
 
       expect(onConfirm).toHaveBeenCalledWith(0, undefined);
     });
@@ -261,7 +261,7 @@ describe("FinishBookModal", () => {
       const onClose = mock(() => {});
       render(<FinishBookModal {...defaultProps} onClose={onClose} />);
 
-      fireEvent.click(screen.getByText("Cancel"));
+      fireEvent.click(screen.getByText("Skip"));
 
       expect(onClose).toHaveBeenCalled();
     });
@@ -287,7 +287,7 @@ describe("FinishBookModal", () => {
       fireEvent.change(textarea, { target: { value: "Some text" } });
 
       // Close modal
-      fireEvent.click(screen.getByText("Cancel"));
+      fireEvent.click(screen.getByText("Skip"));
 
       // TODO: This test would need rerender to verify state reset
       // For now, we're just verifying onClose is called
@@ -305,7 +305,7 @@ describe("FinishBookModal", () => {
       fireEvent.click(stars[2]); // 3 stars
       fireEvent.change(textarea, { target: { value: "   \n  \t  " } });
 
-      fireEvent.click(screen.getByText("Mark as Read"));
+      fireEvent.click(screen.getByText("Save Rating & Review"));
 
       // Whitespace is trimmed in handleSubmit, but still passed as string
       // The component passes review || undefined, so empty string becomes undefined
@@ -335,7 +335,9 @@ describe("FinishBookModal", () => {
     test("should have proper label for review field", () => {
       render(<FinishBookModal {...defaultProps} />);
       expect(screen.getByText("Review")).toBeInTheDocument();
-      expect(screen.getByText("(optional)")).toBeInTheDocument();
+      // Check that there are 2 instances of (optional) - one for Rating, one for Review
+      const optionalLabels = screen.getAllByText(/\(optional\)/);
+      expect(optionalLabels).toHaveLength(2);
     });
 
     test("should have descriptive placeholder for review", () => {

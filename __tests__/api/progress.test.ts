@@ -299,10 +299,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(response.status).toBe(200);
     expect(data.shouldShowCompletionModal).toBe(true);
 
-    // Check session status was NOT auto-updated (requires user confirmation now)
-    const session = await sessionRepository.findActiveByBookId(testBook.id);
-    expect(session!.status).toBe("reading"); // Still reading, not auto-completed
-    expect(session!.completedDate).toBeNull();
+    // Check session status WAS auto-updated to "read" (auto-completion)
+    const readSessions = await sessionRepository.findAllByBookId(testBook.id);
+    const completedSession = readSessions.find((s: any) => s.status === "read");
+    expect(completedSession).toBeDefined();
+    expect(completedSession!.completedDate).toBeDefined();
+    
+    // There should no longer be an active "reading" session
+    const activeSession = await sessionRepository.findActiveByBookId(testBook.id);
+    expect(activeSession).toBeUndefined();
   });
 
   test("returns completion flag when percentage reaches 100%", async () => {
@@ -317,11 +322,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(response.status).toBe(200);
     expect(data.shouldShowCompletionModal).toBe(true);
 
-    // Check session status was NOT auto-updated
-    const session = await sessionRepository.findActiveByBookId(testBook.id);
-    expect(session).toBeDefined();
-    expect(session!.status).toBe("reading"); // Still reading, not auto-completed
-    expect(session!.completedDate).toBeNull();
+    // Check session status WAS auto-updated to "read" (auto-completion)
+    const readSessions = await sessionRepository.findAllByBookId(testBook.id);
+    const completedSession = readSessions.find((s: any) => s.status === "read");
+    expect(completedSession).toBeDefined();
+    expect(completedSession!.completedDate).toBeDefined();
+    
+    // There should no longer be an active "reading" session
+    const activeSession = await sessionRepository.findActiveByBookId(testBook.id);
+    expect(activeSession).toBeUndefined();
   });
 
   test("doesn't mark as complete for progress below 100%", async () => {
