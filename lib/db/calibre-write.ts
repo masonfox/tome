@@ -229,11 +229,21 @@ export function updateCalibreTags(
     throw new Error("Tags must be an array");
   }
   
-  // Filter out empty/invalid tags and remove duplicates
+  // Filter out empty/invalid tags and remove duplicates (case-insensitive)
   const filteredTags = tags.filter(tag => 
     typeof tag === 'string' && tag.trim().length > 0
   ).map(tag => tag.trim());
-  const validTags = Array.from(new Set(filteredTags));
+  
+  // Deduplicate case-insensitively (preserve first occurrence)
+  const seen = new Set<string>();
+  const validTags: string[] = [];
+  for (const tag of filteredTags) {
+    const lowerTag = tag.toLowerCase();
+    if (!seen.has(lowerTag)) {
+      seen.add(lowerTag);
+      validTags.push(tag);
+    }
+  }
   
   try {
     // Step 1: Clear existing tag links for this book
