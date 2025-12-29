@@ -481,3 +481,9 @@ export class ProgressService {
     }
   }
 }
+
+/**
+ * Default ProgressService instance
+ * Use this in API routes, services, and other application code
+ */
+export const progressService = new ProgressService();
