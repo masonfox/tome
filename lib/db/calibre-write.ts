@@ -250,10 +250,10 @@ export function updateCalibreTags(
     const tagIds: number[] = [];
     
     for (const tagName of validTags) {
-      // Check if tag exists
+      // Check if tag exists (case-insensitive since Calibre uses COLLATE NOCASE)
       let tagRecord = db.prepare(
-        "SELECT id FROM tags WHERE name = ?"
-      ).get(tagName) as { id: number } | undefined;
+        "SELECT id, name FROM tags WHERE name = ? COLLATE NOCASE"
+      ).get(tagName) as { id: number; name: string } | undefined;
       
       if (!tagRecord) {
         // Tag doesn't exist, create it
@@ -264,6 +264,11 @@ export function updateCalibreTags(
         const result = insertStmt.run(tagName);
         tagIds.push(Number(result.lastInsertRowid));
       } else {
+        // Tag exists - update the name if case has changed
+        if (tagRecord.name !== tagName) {
+          getLoggerSafe().info(`[Calibre] Updating tag case: "${tagRecord.name}" -> "${tagName}"`);
+          db.prepare("UPDATE tags SET name = ? WHERE id = ?").run(tagName, tagRecord.id);
+        }
         tagIds.push(tagRecord.id);
       }
     }
