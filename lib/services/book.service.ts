@@ -423,28 +423,38 @@ export class BookService {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
-    // Rename in Tome database
-    const booksUpdated = await bookRepository.renameTag(oldName, newName);
-
-    // Batch sync to Calibre for all affected books (best effort)
+    // Suspend the Calibre watcher during rename to prevent race conditions
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    calibreWatcher.suspend();
+    
     try {
-      const booksWithTag = await bookRepository.findByTag(newName, booksUpdated, 0);
-      
-      // Prepare batch update data
-      const updates = booksWithTag.books.map(book => ({
-        calibreId: book.calibreId,
-        tags: book.tags
-      }));
+      // Rename in Tome database
+      const booksUpdated = await bookRepository.renameTag(oldName, newName);
 
-      await this.batchSyncTagsToCalibre(updates);
-    } catch (error) {
-      logger.error({ err: error, oldName, newName }, "Failed to sync renamed tags to Calibre");
+      // Batch sync to Calibre for all affected books (best effort)
+      try {
+        const booksWithTag = await bookRepository.findByTag(newName, booksUpdated, 0);
+        
+        // Prepare batch update data
+        const updates = booksWithTag.books.map(book => ({
+          calibreId: book.calibreId,
+          tags: book.tags
+        }));
+
+        await this.batchSyncTagsToCalibre(updates);
+      } catch (error) {
+        logger.error({ err: error, oldName, newName }, "Failed to sync renamed tags to Calibre");
+      }
+
+      logger.info({ oldName, newName, booksUpdated }, "Renamed tag");
+
+      return { booksUpdated };
+    } finally {
+      // Always resume the watcher, even if there was an error
+      calibreWatcher.resume();
     }
-
-    logger.info({ oldName, newName, booksUpdated }, "Renamed tag");
-
-    return { booksUpdated };
   }
+
 
   /**
    * Delete a tag from all books and sync to Calibre
