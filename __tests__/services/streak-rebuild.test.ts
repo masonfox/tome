@@ -1,11 +1,9 @@
 import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
-import { progressService } from "@/lib/services";
-import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 /**
  * Test suite for streak rebuild logic in progress mutations
- * 
+ *
  * Focus area: Ensuring that ALL progress mutations (create, update, delete)
  * call rebuildStreak() to keep streak data accurate and self-correcting
  */
@@ -16,6 +14,10 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
  * Next.js's caching behavior - just our business logic.
  */
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
+
+// Import after mock is set up to ensure mock is applied
+import { progressService } from "@/lib/services";
+import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
