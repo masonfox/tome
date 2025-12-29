@@ -57,13 +57,23 @@ export default function BookDetailPage() {
     handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange,
     handleCancelStatusChange,
+    handleConfirmRead: handleConfirmReadFromHook,
     handleStartReread,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
-  // Handle finishing book from completion modal
+  // Debug logging
+  console.log("[BookDetailPage] Hook values", {
+    selectedStatus,
+    showReadConfirmation,
+    showCompletionModal: bookProgressHook.showCompletionModal,
+    handleConfirmReadFromHook: typeof handleConfirmReadFromHook,
+    bookId
+  });
+
+  // Handle finishing book from auto-completion modal (when progress reaches 100%)
   // Note: Book status is already "read" at this point (auto-completed by progress service)
   // We only need to update rating/review, not status
-  async function handleConfirmRead(rating: number, review?: string) {
+  async function handleConfirmReadAfterAutoCompletion(rating: number, review?: string) {
     try {
       // Update rating to the book table if provided
       if (rating > 0) {
@@ -513,19 +523,20 @@ export default function BookDetailPage() {
       </div>
 
       {/* Modals */}
+      {/* Manual status change to "read" - uses mark-as-read API */}
       <FinishBookModal
         isOpen={showReadConfirmation}
         onClose={() => handleCancelStatusChange()}
-        onConfirm={handleConfirmRead}
+        onConfirm={handleConfirmReadFromHook}
         bookTitle={book.title}
         bookId={bookId}
       />
 
-      {/* Completion Modal (shown when progress reaches 100%) */}
+      {/* Completion Modal (shown when progress reaches 100%) - book already marked as read */}
       <FinishBookModal
         isOpen={bookProgressHook.showCompletionModal}
         onClose={bookProgressHook.closeCompletionModal}
-        onConfirm={handleConfirmRead}
+        onConfirm={handleConfirmReadAfterAutoCompletion}
         bookTitle={book.title}
         bookId={bookId}
         sessionId={bookProgressHook.completedSessionId}

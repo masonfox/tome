@@ -52,7 +52,7 @@ export interface UseBookStatusReturn {
   handleUpdateStatus: (newStatus: string) => Promise<void>;
   handleConfirmStatusChange: () => Promise<void>;
   handleCancelStatusChange: () => void;
-  handleConfirmRead: (rating: number, review?: string) => Promise<void>;
+  handleConfirmRead: (rating?: number, review?: string) => Promise<void>;
   handleStartReread: () => Promise<void>;
 }
 
@@ -148,18 +148,23 @@ export function useBookStatus(
   // Mutation for marking as read - uses bookApi
   const markAsReadMutation = useMutation({
     mutationFn: async ({ rating, review }: { rating?: number; review?: string }) => {
-      return await bookApi.markAsRead(bookId, {
+      console.log("[markAsReadMutation] mutationFn called", { bookId, rating, review });
+      const result = await bookApi.markAsRead(bookId, {
         rating,
         review,
       });
+      console.log("[markAsReadMutation] API call completed", result);
+      return result;
     },
     onMutate: async () => {
+      console.log("[markAsReadMutation] onMutate called", { selectedStatus });
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
       const previousStatus = selectedStatus;
 
       // Optimistic update
       setSelectedStatus("read");
+      console.log("[markAsReadMutation] Optimistically set status to read");
       return { previousStatus };
     },
     onError: (error, _variables, context) => {
@@ -243,10 +248,13 @@ export function useBookStatus(
     setPendingStatusChange(null);
   }, []);
 
-  const handleConfirmRead = useCallback(async (rating: number, review?: string) => {
+  const handleConfirmRead = useCallback(async (rating?: number, review?: string) => {
+    console.log("[useBookStatus] handleConfirmRead called", { rating, review, bookId });
     setShowReadConfirmation(false);
+    console.log("[useBookStatus] About to call markAsReadMutation");
     await markAsReadMutation.mutateAsync({ rating, review });
-  }, [markAsReadMutation]);
+    console.log("[useBookStatus] markAsReadMutation completed");
+  }, [markAsReadMutation, bookId]);
 
   const handleStartReread = useCallback(async () => {
     await rereadMutation.mutateAsync();
