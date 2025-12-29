@@ -57,15 +57,47 @@ export default function BookDetailPage() {
     handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange,
     handleCancelStatusChange,
-    handleConfirmRead: handleConfirmReadFromHook,
     handleStartReread,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
-  // Wrap handleConfirmRead to clear form state after marking as read
+  // Handle finishing book from completion modal
+  // Note: Book status is already "read" at this point (auto-completed by progress service)
+  // We only need to update rating/review, not status
   async function handleConfirmRead(rating: number, review?: string) {
-    await handleConfirmReadFromHook(rating, review);
-    bookProgressHook.clearFormState();
-    clearDraft(); // Clear the draft note
+    try {
+      // Update rating/review if provided (status is already "read")
+      if (rating > 0 || review) {
+        const body: any = {};
+        if (rating > 0) {
+          body.rating = rating;
+        }
+        if (review) {
+          body.review = review;
+        }
+
+        const response = await fetch(`/api/books/${bookId}/rating`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update rating/review");
+        }
+      }
+
+      // Clear form state and draft
+      bookProgressHook.clearFormState();
+      clearDraft();
+
+      // Refresh data
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['library-books'] });
+    } catch (error) {
+      logger.error({ error }, "Failed to finish book");
+      throw error;
+    }
   }
 
   const {

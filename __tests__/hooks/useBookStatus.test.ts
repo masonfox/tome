@@ -210,7 +210,59 @@ describe("useBookStatus", () => {
   });
 
   describe("handleConfirmRead", () => {
-    test("should mark book as read with rating and review", async () => {
+    test("should mark book as read with rating and review when status is 'reading'", async () => {
+      const readingBook = {
+        ...mockBook,
+        activeSession: { status: "reading" },
+      };
+
+      let fetchCallCount = 0;
+      global.fetch = mock(() => {
+        fetchCallCount++;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        } as Response);
+      });
+
+      const { result } = renderHook(() =>
+        useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
+      );
+
+      await act(async () => {
+        await result.current.handleConfirmRead(4, "Great book!");
+      });
+
+      await waitFor(() => {
+        expect(fetchCallCount).toBe(2); // progress (auto-completes) + rating
+      });
+
+      // Check progress was set to 100% (this auto-completes the book via progress service)
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/progress",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining("100"),
+        })
+      );
+
+      // Check rating was updated via the rating endpoint
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/rating",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({
+            rating: 4,
+            review: "Great book!",
+          }),
+        })
+      );
+
+      expect(result.current.selectedStatus).toBe("read");
+      expect(result.current.showReadConfirmation).toBe(false);
+    });
+
+    test("should mark book as read via status endpoint when not in 'reading' status", async () => {
       let fetchCallCount = 0;
       global.fetch = mock(() => {
         fetchCallCount++;
@@ -229,25 +281,24 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(2); // progress + status
+        expect(fetchCallCount).toBe(2); // status + rating
       });
 
-      // Check progress was set to 100%
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/progress",
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining("100"),
-        })
-      );
-
-      // Check status was updated with rating and review
+      // Should change status to "read" first (no progress entry needed for non-reading books)
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/books/123/status",
         expect.objectContaining({
           method: "POST",
+          body: JSON.stringify({ status: "read" }),
+        })
+      );
+
+      // Then update rating
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/rating",
+        expect.objectContaining({
+          method: "PATCH",
           body: JSON.stringify({
-            status: "read",
             rating: 4,
             review: "Great book!",
           }),
@@ -278,13 +329,24 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        // Should only call status endpoint, not progress
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        // Should call status endpoint + rating endpoint (no progress)
+        expect(global.fetch).toHaveBeenCalledTimes(2);
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/books/123/status",
-        expect.anything()
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ status: "read" }),
+        })
+      );
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/rating",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ rating: 5 }),
+        })
       );
     });
   });
