@@ -4,6 +4,7 @@ import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { bookApi, ApiError } from "@/lib/api";
+import { sessionService } from "@/lib/services";
 
 interface ProgressEntry {
   id: number;
@@ -15,192 +16,8 @@ interface ProgressEntry {
 }
 
 // ============================================================================
-// Helper Functions - Extracted to eliminate duplication
+// Helper Functions - UI-specific helpers kept in hook
 // ============================================================================
-
-/**
- * Ensures a book is in "reading" status, transitioning if necessary
- */
-async function ensureReadingStatus(
-  bookId: string,
-  currentStatus?: string
-): Promise<void> {
-  if (currentStatus === "reading") return;
-
-  try {
-    await bookApi.updateStatus(bookId, { status: "reading" });
-    getLogger().info({ bookId, from: currentStatus, to: "reading" }, "Transitioned book to reading status");
-  } catch (error) {
-    if (error instanceof ApiError) {
-      getLogger().error({ 
-        bookId, 
-        statusCode: error.statusCode, 
-        details: error.details 
-      }, "Failed to transition to reading status");
-    }
-    throw new Error("Failed to transition to reading status");
-  }
-}
-
-/**
- * Creates a 100% progress entry for a book (triggers auto-completion to "read")
- */
-async function create100PercentProgress(
-  bookId: string,
-  totalPages: number
-): Promise<void> {
-  try {
-    await bookApi.createProgress(bookId, {
-      currentPage: totalPages,
-      currentPercentage: 100,
-      notes: "Marked as read",
-    });
-    getLogger().info({ bookId, totalPages }, "Created 100% progress entry (auto-completing to read)");
-  } catch (error) {
-    if (error instanceof ApiError) {
-      getLogger().error({ 
-        bookId, 
-        statusCode: error.statusCode, 
-        details: error.details 
-      }, "Failed to create 100% progress entry");
-    }
-    throw new Error("Failed to create 100% progress entry");
-  }
-}
-
-/**
- * Updates book rating in the books table
- */
-async function updateRating(bookId: string, rating: number): Promise<void> {
-  try {
-    await bookApi.updateRating(bookId, { rating });
-    getLogger().info({ bookId, rating }, "Updated book rating");
-  } catch (error) {
-    if (error instanceof ApiError) {
-      getLogger().error({ 
-        bookId, 
-        rating, 
-        statusCode: error.statusCode, 
-        details: error.details 
-      }, "Failed to update rating");
-    }
-    throw new Error("Failed to update rating");
-  }
-}
-
-/**
- * Updates review on a reading session
- */
-async function updateSessionReview(
-  bookId: string,
-  sessionId: number,
-  review: string
-): Promise<void> {
-  try {
-    await bookApi.updateSessionReview(bookId, sessionId, { review });
-    getLogger().info({ bookId, sessionId }, "Updated session review");
-  } catch (error) {
-    if (error instanceof ApiError) {
-      getLogger().error({ 
-        bookId, 
-        sessionId, 
-        statusCode: error.statusCode, 
-        details: error.details 
-      }, "Failed to update session review");
-    }
-    throw new Error("Failed to update session review");
-  }
-}
-
-/**
- * Updates book status directly (without progress tracking)
- */
-async function updateBookStatus(bookId: string, status: string): Promise<void> {
-  try {
-    await bookApi.updateStatus(bookId, { status: status as any });
-    getLogger().info({ bookId, status }, "Updated book status");
-  } catch (error) {
-    if (error instanceof ApiError) {
-      getLogger().error({ 
-        bookId, 
-        status, 
-        statusCode: error.statusCode, 
-        details: error.details 
-      }, `Failed to update book status to ${status}`);
-    }
-    throw new Error(`Failed to update book status to ${status}`);
-  }
-}
-
-/**
- * Finds the most recent completed reading session for a book
- */
-async function findMostRecentCompletedSession(bookId: string): Promise<number | undefined> {
-  try {
-    const sessions = await bookApi.getSessions(bookId);
-    
-    const completedSessions = sessions.filter(
-      (s) => !s.isActive && s.status === "read"
-    );
-
-    if (completedSessions.length === 0) {
-      return undefined;
-    }
-
-    // Sort by completedDate descending to get most recent
-    completedSessions.sort((a, b) =>
-      new Date(b.completedDate || 0).getTime() - new Date(a.completedDate || 0).getTime()
-    );
-
-    return completedSessions[0].id;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      getLogger().error({ 
-        bookId, 
-        statusCode: error.statusCode, 
-        details: error.details 
-      }, "Failed to fetch sessions");
-    }
-    return undefined;
-  }
-}
-
-/**
- * Updates rating and review after marking book as read
- * Handles both operations with best-effort error handling
- */
-async function updateRatingAndReview(
-  bookId: string,
-  rating?: number,
-  review?: string,
-  sessionId?: number
-): Promise<void> {
-  const errors: string[] = [];
-
-  // Update rating if provided (non-blocking)
-  if (rating && rating > 0) {
-    try {
-      await updateRating(bookId, rating);
-    } catch (error) {
-      errors.push("rating");
-      // Don't throw - book is already marked as read
-    }
-  }
-
-  // Update review if provided (non-blocking)
-  if (review && sessionId) {
-    try {
-      await updateSessionReview(bookId, sessionId, review);
-    } catch (error) {
-      errors.push("review");
-      // Don't throw - book is already marked as read
-    }
-  }
-
-  if (errors.length > 0) {
-    getLogger().warn({ bookId, errors }, "Some updates failed after marking as read");
-  }
-}
 
 /**
  * Checks if status change requires archive confirmation
@@ -226,78 +43,6 @@ function invalidateBookQueries(queryClient: any, bookId: string): void {
   queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
   queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   queryClient.invalidateQueries({ queryKey: ['library-books'] });
-}
-
-interface MarkAsReadParams {
-  bookId: string;
-  book: Book | null;
-  progress: ProgressEntry[];
-  rating?: number;
-  review?: string;
-}
-
-interface MarkAsReadResult {
-  success: boolean;
-  sessionId?: number;
-}
-
-/**
- * Unified function for marking a book as "read"
- * Handles all the complex logic for status transitions and progress tracking
- * 
- * Flow:
- * 1. Determine if book needs 100% progress or direct status change
- * 2. Ensure book is in "reading" status if needed (for progress tracking)
- * 3. Create 100% progress entry (auto-completes) OR change status directly
- * 4. Update rating and review
- */
-async function markBookAsRead(params: MarkAsReadParams): Promise<MarkAsReadResult> {
-  const { bookId, book, progress, rating, review } = params;
-
-  const currentStatus = book?.activeSession?.status;
-  const has100Progress = progress.some(p => p.currentPercentage >= 100);
-  const isAlreadyRead = currentStatus === "read";
-
-  let sessionId = book?.activeSession?.id;
-
-  getLogger().info({
-    bookId,
-    currentStatus,
-    has100Progress,
-    isAlreadyRead,
-    totalPages: book?.totalPages,
-    sessionId,
-  }, "Starting markBookAsRead");
-
-  // Step 1: Ensure book is marked as "read"
-  if (!isAlreadyRead) {
-    if (book?.totalPages && !has100Progress) {
-      // Book has pages and no 100% progress yet
-      // Need to create 100% progress entry (which auto-completes to "read")
-      await ensureReadingStatus(bookId, currentStatus);
-      await create100PercentProgress(bookId, book.totalPages);
-      // Session ID is still valid - it gets archived during progress creation
-    } else {
-      // Book either has no totalPages, or already has 100% progress
-      // Change status directly to "read"
-      getLogger().info(
-        { bookId, reason: !book?.totalPages ? "no totalPages" : "has 100% progress" },
-        "Marking as read via direct status change"
-      );
-      await updateBookStatus(bookId, "read");
-    }
-  } else {
-    // Book is already read - need to find the archived session for review
-    getLogger().info({ bookId }, "Book already marked as read, finding archived session");
-    sessionId = await findMostRecentCompletedSession(bookId);
-  }
-
-  // Step 2: Update rating and review (best-effort)
-  await updateRatingAndReview(bookId, rating, review, sessionId);
-
-  getLogger().info({ bookId, sessionId }, "Successfully marked book as read");
-
-  return { success: true, sessionId };
 }
 
 export interface UseBookStatusReturn {
@@ -345,19 +90,14 @@ export function useBookStatus(
     }
   }, [book]);
 
-  // Mutation for status updates
+  // Mutation for status updates - uses SessionService
   const statusMutation = useMutation({
     mutationFn: async ({ status, rating, review }: { status: string; rating?: number; review?: string }) => {
-      // Build request with optional fields
-      const request: any = { status: status as any };
-      if (rating !== undefined && rating > 0) {
-        request.rating = rating;
-      }
-      if (review) {
-        request.review = review;
-      }
-
-      return await bookApi.updateStatus(bookId, request);
+      return await sessionService.updateStatus(parseInt(bookId), {
+        status: status as any,
+        rating: rating !== undefined && rating > 0 ? rating : undefined,
+        review,
+      });
     },
     onMutate: async ({ status }) => {
       // Cancel outgoing queries
@@ -408,13 +148,11 @@ export function useBookStatus(
     },
   });
 
-  // Mutation for marking as read - uses unified markBookAsRead function
+  // Mutation for marking as read - uses SessionService
   const markAsReadMutation = useMutation({
-    mutationFn: async ({ rating, review }: { rating: number; review?: string }) => {
-      return markBookAsRead({
-        bookId,
-        book,
-        progress,
+    mutationFn: async ({ rating, review }: { rating?: number; review?: string }) => {
+      return await sessionService.markAsRead({
+        bookId: parseInt(bookId),
         rating,
         review,
       });
@@ -423,7 +161,7 @@ export function useBookStatus(
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
       const previousStatus = selectedStatus;
-      
+
       // Optimistic update
       setSelectedStatus("read");
       return { previousStatus };
@@ -433,32 +171,30 @@ export function useBookStatus(
       if (context?.previousStatus) {
         setSelectedStatus(context.previousStatus);
       }
-      
-      if (error instanceof ApiError) {
-        getLogger().error({ 
-          statusCode: error.statusCode, 
-          endpoint: error.endpoint, 
-          details: error.details 
-        }, "Failed to mark book as read");
-      } else {
-        getLogger().error({ err: error }, "Failed to mark book as read");
-      }
-      
+
+      getLogger().error({ err: error }, "Failed to mark book as read");
       toast.error("Failed to mark book as read");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalidate all related queries
       invalidateBookQueries(queryClient, bookId);
-      
+
+      // Build success message based on what was updated
+      const messages = ["Marked as read!"];
+      if (data.ratingUpdated) messages.push("Rating saved");
+      if (data.reviewUpdated) messages.push("Review saved");
+
+      toast.success(messages.join(" • "));
+
+      // Legacy callbacks for compatibility
       onRefresh?.();
-      toast.success("Marked as read!");
     },
   });
 
-  // Mutation for starting a re-read
+  // Mutation for starting a re-read - uses SessionService
   const rereadMutation = useMutation({
     mutationFn: async () => {
-      return await bookApi.startReread(bookId);
+      return await sessionService.startReread(parseInt(bookId));
     },
     onSuccess: () => {
       invalidateBookQueries(queryClient, bookId);

@@ -3,6 +3,24 @@ import { renderHook, waitFor, act } from "../test-utils";
 import { useBookStatus } from "@/hooks/useBookStatus";
 import type { Book } from "@/hooks/useBookDetail";
 
+// Mock SessionService
+const mockUpdateStatus = mock(() => Promise.resolve({ session: { id: 1, status: "reading" } }));
+const mockMarkAsRead = mock(() => Promise.resolve({
+  session: { id: 1, status: "read" },
+  ratingUpdated: true,
+  reviewUpdated: true,
+  progressCreated: false,
+}));
+const mockStartReread = mock(() => Promise.resolve({ id: 2, status: "reading", sessionNumber: 2 }));
+
+mock.module("@/lib/services", () => ({
+  sessionService: {
+    updateStatus: mockUpdateStatus,
+    markAsRead: mockMarkAsRead,
+    startReread: mockStartReread,
+  },
+}));
+
 const originalFetch = global.fetch;
 
 describe("useBookStatus", () => {
@@ -31,6 +49,9 @@ describe("useBookStatus", () => {
     } as Response)) as any;
     mockOnStatusChange.mockClear();
     mockOnRefresh.mockClear();
+    mockUpdateStatus.mockClear();
+    mockMarkAsRead.mockClear();
+    mockStartReread.mockClear();
   });
 
   afterEach(() => {
@@ -115,11 +136,10 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/status",
+        expect(mockUpdateStatus).toHaveBeenCalledWith(
+          123,
           expect.objectContaining({
-            method: "POST",
-            body: JSON.stringify({ status: "read-next" }),
+            status: "read-next",
           })
         );
       });
@@ -150,7 +170,7 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
+        expect(mockUpdateStatus).toHaveBeenCalled();
       });
 
       expect(result.current.showStatusChangeConfirmation).toBe(false);
@@ -225,17 +245,6 @@ describe("useBookStatus", () => {
         activeSession: { id: 1, status: "reading" },
       };
 
-      let fetchCallCount = 0;
-      global.fetch = mock(() => {
-        fetchCallCount++;
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          headers: new Headers({ "content-type": "application/json" }),
-          json: () => Promise.resolve({}),
-        } as Response);
-      }) as any;
-
       const { result } = renderHook(() =>
         useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
@@ -245,35 +254,14 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(3); // progress (auto-completes) + rating + session review
+        expect(mockMarkAsRead).toHaveBeenCalledWith(
+          expect.objectContaining({
+            bookId: 123,
+            rating: 4,
+            review: "Great book!",
+          })
+        );
       });
-
-      // Check progress was set to 100% (this auto-completes the book via progress service)
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/progress",
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining("100"),
-        })
-      );
-
-      // Check rating was updated via the rating endpoint
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/rating",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ rating: 4 }),
-        })
-      );
-
-      // Check review was updated via the session endpoint
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/sessions/1",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ review: "Great book!" }),
-        })
-      );
 
       expect(result.current.selectedStatus).toBe("read");
       expect(result.current.showReadConfirmation).toBe(false);
@@ -300,61 +288,24 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(4); // transition to reading + progress (auto-completes) + rating + session review
+        expect(mockMarkAsRead).toHaveBeenCalledWith(
+          expect.objectContaining({
+            bookId: 123,
+            rating: 4,
+            review: "Great book!",
+          })
+        );
       });
-
-      // Should transition to "reading" first
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/status",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({ status: "reading" }),
-        })
-      );
-
-      // Then create 100% progress (which auto-completes to "read")
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/progress",
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining("100"),
-        })
-      );
-
-      // Then update rating
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/rating",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ rating: 4 }),
-        })
-      );
-
-      // Check review was updated via the session endpoint
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/sessions/1",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ review: "Great book!" }),
-        })
-      );
 
       expect(result.current.selectedStatus).toBe("read");
       expect(result.current.showReadConfirmation).toBe(false);
     });
 
-    test("should skip progress update if book has no total pages", async () => {
+    test("should handle books without total pages", async () => {
       const bookWithoutPages = {
         ...mockBook,
         totalPages: undefined,
       };
-
-      global.fetch = mock(() => Promise.resolve({
-        ok: true,
-        status: 200,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve({}),
-      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(bookWithoutPages, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -365,37 +316,18 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        // Should call status endpoint + rating endpoint (no progress)
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(mockMarkAsRead).toHaveBeenCalledWith(
+          expect.objectContaining({
+            bookId: 123,
+            rating: 5,
+          })
+        );
       });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/status",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({ status: "read" }),
-        })
-      );
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/rating",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ rating: 5 }),
-        })
-      );
     });
   });
 
   describe("handleStartReread", () => {
     test("should start re-reading and refresh data", async () => {
-      global.fetch = mock(() => Promise.resolve({
-        ok: true,
-        status: 200,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve({}),
-      } as Response)) as any;
-
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
@@ -405,26 +337,16 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/reread",
-          expect.objectContaining({
-            method: "POST",
-          })
-        );
+        expect(mockStartReread).toHaveBeenCalledWith(123);
       });
 
       expect(mockOnRefresh).toHaveBeenCalled();
     });
 
     test("should handle reread errors", async () => {
-      global.fetch = mock(() => Promise.resolve({
-        ok: false,
-        status: 400,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve({ error: "Cannot reread" }),
-      } as Response)) as any;
+      mockStartReread.mockImplementationOnce(() => Promise.reject(new Error("Cannot reread")));
 
-      const { result } = renderHook(() =>
+      const { result} = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
 
