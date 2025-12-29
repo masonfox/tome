@@ -423,24 +423,24 @@ export class BookService {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
-    logger.debug({ oldName, newName }, "[RENAME] Starting tag rename operation");
+    logger.info({ oldName, newName }, "[RENAME] Starting tag rename operation");
 
     // Suspend the Calibre watcher during rename to prevent race conditions
     const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
-    logger.debug("[RENAME] Calibre watcher suspended");
+    logger.info("[RENAME] Calibre watcher suspended");
     
     try {
       // Rename in Tome database
-      logger.debug({ oldName, newName }, "[RENAME] About to rename in Tome database");
+      logger.info({ oldName, newName }, "[RENAME] About to rename in Tome database");
       const booksUpdated = await bookRepository.renameTag(oldName, newName);
-      logger.debug({ oldName, newName, booksUpdated }, "[RENAME] Renamed in Tome database");
+      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Renamed in Tome database");
 
       // Batch sync to Calibre for all affected books (best effort)
       try {
-        logger.debug({ newName, expectedCount: booksUpdated }, "[RENAME] Fetching books with new tag name");
+        logger.info({ newName, expectedCount: booksUpdated }, "[RENAME] Fetching books with new tag name");
         const booksWithTag = await bookRepository.findByTag(newName, booksUpdated, 0);
-        logger.debug({ bookCount: booksWithTag.books.length }, "[RENAME] Found books with new tag");
+        logger.info({ bookCount: booksWithTag.books.length }, "[RENAME] Found books with new tag");
         
         // Prepare batch update data
         const updates = booksWithTag.books.map(book => ({
@@ -448,20 +448,20 @@ export class BookService {
           tags: book.tags
         }));
 
-        logger.debug({ updateCount: updates.length }, "[RENAME] Syncing to Calibre");
+        logger.info({ updateCount: updates.length }, "[RENAME] Syncing to Calibre");
         await this.batchSyncTagsToCalibre(updates);
-        logger.debug("[RENAME] Calibre sync completed");
+        logger.info("[RENAME] Calibre sync completed");
       } catch (error) {
         logger.error({ err: error, oldName, newName }, "[RENAME] Failed to sync renamed tags to Calibre");
       }
 
-      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Tag rename completed");
+      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Tag rename operation completed");
 
       return { booksUpdated };
     } finally {
       // Always resume the watcher, even if there was an error
       calibreWatcher.resume();
-      logger.debug("[RENAME] Calibre watcher resumed");
+      logger.info("[RENAME] Calibre watcher resumed");
     }
   }
 
@@ -531,19 +531,24 @@ export class BookService {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
+    logger.debug({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
+
     // Suspend the Calibre watcher during merge to prevent interference
     const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
+    logger.debug("[MERGE] Calibre watcher suspended");
     
     try {
       // Merge in Tome database
+      logger.debug({ sourceTags, targetTag }, "[MERGE] About to merge in Tome database");
       const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
+      logger.debug({ sourceTags, targetTag, booksUpdated }, "[MERGE] Merged in Tome database");
 
       // Batch sync to Calibre for all affected books (best effort)
       try {
         const booksWithTag = await bookRepository.findByTag(targetTag, booksUpdated, 0);
         
-        logger.info({ bookCount: booksWithTag.books.length }, "Batch syncing merged tags to Calibre");
+        logger.debug({ bookCount: booksWithTag.books.length }, "[MERGE] Batch syncing merged tags to Calibre");
         
         // Prepare batch update data
         const updates = booksWithTag.books.map(book => ({
@@ -552,16 +557,18 @@ export class BookService {
         }));
 
         await this.batchSyncTagsToCalibre(updates);
+        logger.debug("[MERGE] Calibre sync completed");
       } catch (error) {
-        logger.error({ err: error, sourceTags, targetTag }, "Failed to sync merged tags to Calibre");
+        logger.error({ err: error, sourceTags, targetTag }, "[MERGE] Failed to sync merged tags to Calibre");
       }
 
-      logger.info({ sourceTags, targetTag, booksUpdated }, "Merged tags");
+      logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Tag merge completed");
 
       return { booksUpdated };
     } finally {
       // Always resume the watcher, even if there was an error
       calibreWatcher.resume();
+      logger.debug("[MERGE] Calibre watcher resumed");
     }
   }
 
