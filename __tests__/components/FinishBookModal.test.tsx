@@ -245,34 +245,55 @@ describe("FinishBookModal", () => {
       expect(onConfirm).toHaveBeenCalledWith(3, undefined);
     });
 
-    test("should submit with rating=0 if no star selected", () => {
+    test("should submit with rating=undefined if no star selected", () => {
       const onConfirm = mock(() => {});
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
 
       // Submit without selecting rating
       fireEvent.click(screen.getByText("Save Rating & Review"));
 
-      expect(onConfirm).toHaveBeenCalledWith(0, undefined);
+      // Rating should be undefined if not selected (not 0)
+      expect(onConfirm).toHaveBeenCalledWith(undefined, undefined);
     });
   });
 
   describe("Modal Controls", () => {
-    test("should call onClose when Cancel button is clicked", () => {
+    test("should call onConfirm and onClose when Skip button is clicked (manual flow)", async () => {
       const onClose = mock(() => {});
-      render(<FinishBookModal {...defaultProps} onClose={onClose} />);
+      const onConfirm = mock(() => Promise.resolve());
+      render(<FinishBookModal {...defaultProps} onClose={onClose} onConfirm={onConfirm} />);
 
       fireEvent.click(screen.getByText("Skip"));
 
+      // When there's no sessionId (manual mark-as-read flow), Skip should mark as read without rating
+      await waitFor(() => {
+        expect(onConfirm).toHaveBeenCalledWith(undefined, undefined);
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    test("should only call onClose when Skip button is clicked (auto-completion flow)", () => {
+      const onClose = mock(() => {});
+      const onConfirm = mock(() => {});
+      render(<FinishBookModal {...defaultProps} onClose={onClose} onConfirm={onConfirm} sessionId={123} />);
+
+      fireEvent.click(screen.getByText("Skip"));
+
+      // When there IS a sessionId (auto-completion flow), Skip should just close without confirming
+      expect(onConfirm).not.toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
     });
 
     test("should call onClose when X button is clicked", () => {
       const onClose = mock(() => {});
-      render(<FinishBookModal {...defaultProps} onClose={onClose} />);
+      const onConfirm = mock(() => {});
+      render(<FinishBookModal {...defaultProps} onClose={onClose} onConfirm={onConfirm} sessionId={123} />);
 
       const closeButton = screen.getByTestId("x-icon");
       fireEvent.click(closeButton.parentElement!);
 
+      // X button in auto-completion flow should just close, not confirm
+      expect(onConfirm).not.toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
     });
 
