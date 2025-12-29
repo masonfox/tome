@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository } from "@/lib/repositories";
-import { calibreService } from "@/lib/services/calibre.service";
+import { sessionService } from "@/lib/services";
 import { revalidatePath } from "next/cache";
 import { getLogger } from "@/lib/logger";
 
@@ -75,18 +75,16 @@ export async function PATCH(
       return NextResponse.json(book);
     }
 
-    // Update rating/review in database
-    await bookRepository.update(bookId, updateData);
-
-    // Sync rating to Calibre (best effort)
+    // Update rating using SessionService (handles Calibre sync)
     if (rating !== undefined) {
-      try {
-        await calibreService.updateRating(book.calibreId, rating);
-        logger.info({ bookId, calibreId: book.calibreId, rating }, 'Synced rating to Calibre');
-      } catch (calibreError) {
-        logger.error({ err: calibreError, bookId }, 'Failed to sync rating to Calibre');
-        // Don't fail the request if Calibre sync fails
-      }
+      await sessionService.updateBookRating(bookId, rating);
+      logger.info({ bookId, rating }, 'Updated rating via SessionService');
+    }
+
+    // Update review in database if provided
+    if (review !== undefined) {
+      await bookRepository.update(bookId, { review });
+      logger.info({ bookId, hasReview: !!review }, 'Updated review');
     }
 
     // Invalidate cache
@@ -94,8 +92,6 @@ export async function PATCH(
     revalidatePath("/library");
     revalidatePath("/stats");
     revalidatePath(`/books/${bookId}`);
-
-    logger.info({ bookId, rating, hasReview: !!review }, 'Updated book rating/review');
 
     // Return the updated book
     const updatedBook = await bookRepository.findById(bookId);
