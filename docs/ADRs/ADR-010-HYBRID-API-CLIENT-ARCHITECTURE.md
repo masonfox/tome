@@ -150,12 +150,36 @@ A flat structure (just BaseApiClient) would be too bare-bones because:
 
 ## Implementation Plan
 
+### File Structure
+
+```
+lib/api/
+├── base-client.ts           # Core HTTP client (BaseApiClient, ApiError)
+├── index.ts                 # Barrel export for all API functionality
+└── domains/                 # Domain-specific API helpers
+    ├── book/
+    │   ├── api.ts          # bookApi object with typed methods
+    │   ├── types.ts        # TypeScript types for book API
+    │   └── index.ts        # Re-exports bookApi and types
+    ├── goals/              # (Future) Reading goals API
+    ├── streak/             # (Future) Streak tracking API
+    ├── series/             # (Future) Series management API
+    └── ...                 # Other domains as needed
+```
+
+**Benefits of Domain Folders:**
+- Clear organization by feature/domain
+- Easy to locate related files (api.ts + types.ts in same folder)
+- Scalable structure for 12+ domains
+- Clean imports: `import { bookApi } from '@/lib/api'`
+
 ### Phase 1: Foundation (This PR)
 1. Create `BaseApiClient` with error handling
 2. Define TypeScript types for book API
 3. Create `bookApi` domain helper
 4. Refactor `useBookStatus` to use `bookApi`
 5. Add comprehensive tests
+6. Organize domains into `lib/api/domains/` folders
 
 ### Phase 2: Incremental Migration (Future PRs)
 Gradually migrate other domains:

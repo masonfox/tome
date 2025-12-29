@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
-import { BaseApiClient, ApiError } from "@/lib/api/base-client";
+import { BaseApiClient, ApiError } from "@/lib/api";
 
 describe("BaseApiClient", () => {
   let client: BaseApiClient;

@@ -20,7 +20,7 @@
 export { baseApiClient, BaseApiClient, ApiError } from "./base-client";
 
 // Re-export domain API helpers
-export { bookApi } from "./book-api";
+export { bookApi } from "./domains/book";
 
 // Re-export all types (type-only imports)
-export type * from "./book-api.types";
+export type * from "./domains/book";

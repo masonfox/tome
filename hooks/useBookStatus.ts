@@ -3,8 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
-import { bookApi } from "@/lib/api/book-api";
-import { ApiError } from "@/lib/api/base-client";
+import { bookApi, ApiError } from "@/lib/api";
 
 interface ProgressEntry {
   id: number;

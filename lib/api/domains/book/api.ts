@@ -5,7 +5,7 @@
  * Uses the BaseApiClient for HTTP handling and error management.
  */
 
-import { baseApiClient } from "./base-client";
+import { baseApiClient } from "../../base-client";
 import type {
   UpdateStatusRequest,
   UpdateStatusResponse,
@@ -15,7 +15,7 @@ import type {
   UpdateSessionReviewRequest,
   ReadingSession,
   StartRereadResponse,
-} from "./book-api.types";
+} from "./types";
 
 /**
  * Book API domain helper
