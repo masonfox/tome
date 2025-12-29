@@ -212,10 +212,11 @@ export default function CompleteBookModal({
       {/* Page Count (only shown if not already set) */}
       {!currentPageCount && (
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+          <label htmlFor="complete-page-count" className="block text-sm font-semibold text-[var(--foreground)] mb-2">
             Total Pages
           </label>
           <input
+            id="complete-page-count"
             type="number"
             value={pageCount}
             onChange={(e) => setPageCount(e.target.value)}
@@ -231,10 +232,24 @@ export default function CompleteBookModal({
       {/* Date Range */}
       <div className="mb-6 grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+          <label htmlFor="complete-start-date" className="block text-sm font-semibold text-[var(--foreground)] mb-2">
             Start Date
           </label>
           <input
+            id="complete-start-date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            disabled={isSubmitting}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+          />
+        </div>
+        <div>
+          <label htmlFor="complete-end-date" className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+            End Date
+          </label>
+          <input
+            id="complete-end-date"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
