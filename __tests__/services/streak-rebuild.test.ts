@@ -1,9 +1,7 @@
 import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
-import { ProgressService } from "@/lib/services";
+import { progressService } from "@/lib/services";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-
-const progressService = new ProgressService();
 
 /**
  * Test suite for streak rebuild logic in progress mutations
