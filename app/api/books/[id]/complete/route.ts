@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { sessionService, progressService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
@@ -168,7 +167,8 @@ export async function POST(
         isActive: false,
       } as any);
 
-      // Revalidate paths to refresh UI
+      // Revalidate paths to refresh UI (lazy import to avoid mock pollution in tests)
+      const { revalidatePath } = await import("next/cache");
       revalidatePath(`/books/${bookId}`);
       revalidatePath('/dashboard');
       revalidatePath('/library');
