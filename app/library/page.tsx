@@ -384,6 +384,24 @@ function LibraryPageContent() {
     fetchTags();
   }, []);
 
+  // Fetch available shelves on mount
+  useEffect(() => {
+    async function fetchShelves() {
+      try {
+        const response = await fetch('/api/shelves?withCounts=true');
+        const data = await response.json();
+        if (data.success) {
+          setAvailableShelves(data.data);
+        }
+      } catch (error) {
+        // Suppress console; toast used for user feedback
+      } finally {
+        setLoadingShelves(false);
+      }
+    }
+    fetchShelves();
+  }, []);
+
   // Set up intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -444,6 +462,7 @@ function LibraryPageContent() {
     setStatus(undefined);
     setTags(undefined);
     setRating(undefined);
+    setShelf(undefined);
     setSortBy(undefined);
     
     // Update URL to remove all filter parameters
