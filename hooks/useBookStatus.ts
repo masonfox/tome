@@ -136,9 +136,22 @@ export function useBookStatus(
       const currentStatus = book?.activeSession?.status;
       const isAlreadyRead = currentStatus === "read";
       
-      if (book?.totalPages && !has100Progress && !isAlreadyRead && currentStatus === "reading") {
-        // Auto-create 100% progress entry (will auto-complete via progress service)
-        // Only do this if book is currently "reading" status
+      if (book?.totalPages && !has100Progress && !isAlreadyRead) {
+        // Need to ensure book is in "reading" status before logging 100% progress
+        // If not in "reading" status, transition to "reading" first
+        if (currentStatus !== "reading") {
+          const transitionResponse = await fetch(`/api/books/${bookId}/status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "reading" }),
+          });
+
+          if (!transitionResponse.ok) {
+            throw new Error("Failed to transition to reading status");
+          }
+        }
+
+        // Now create 100% progress entry (will auto-complete via progress service)
         const progressPayload = {
           currentPage: book.totalPages,
           currentPercentage: 100,
@@ -168,7 +181,7 @@ export function useBookStatus(
         
         // Progress service already changed status to "read"
       } else if (!isAlreadyRead) {
-        // Book either has no totalPages, or is not in "reading" status
+        // Book either has no totalPages, or already has 100% progress
         // Change status directly if not already "read"
         const statusBody: any = { status: "read" };
         

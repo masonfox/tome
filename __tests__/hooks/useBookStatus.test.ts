@@ -269,7 +269,7 @@ describe("useBookStatus", () => {
       expect(result.current.showReadConfirmation).toBe(false);
     });
 
-    test("should mark book as read via status endpoint when not in 'reading' status", async () => {
+    test("should mark book as read via progress endpoint when not in 'reading' status", async () => {
       let fetchCallCount = 0;
       global.fetch = mock(() => {
         fetchCallCount++;
@@ -288,15 +288,24 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(3); // status + rating + session review
+        expect(fetchCallCount).toBe(4); // transition to reading + progress (auto-completes) + rating + session review
       });
 
-      // Should change status to "read" first (no progress entry needed for non-reading books)
+      // Should transition to "reading" first
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/books/123/status",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ status: "read" }),
+          body: JSON.stringify({ status: "reading" }),
+        })
+      );
+
+      // Then create 100% progress (which auto-completes to "read")
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/progress",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining("100"),
         })
       );
 
