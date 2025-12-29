@@ -1,7 +1,6 @@
 import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
-import { ProgressService } from "@/lib/services/progress.service";
 
 /**
  * Test suite for streak rebuild logic in progress mutations
@@ -17,12 +16,14 @@ import { ProgressService } from "@/lib/services/progress.service";
  */
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
-let progressService: ProgressService;
+// Lazy-load progressService singleton to avoid Bun module caching issues
+// Using require() instead of import ensures fresh module after mocks are established
+function getProgressService() {
+  return require("@/lib/services/progress.service").progressService;
+}
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
-  // Create instance after mocks are set up
-  progressService = new ProgressService();
 });
 
 afterAll(async () => {
@@ -73,7 +74,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Log progress today - this should rebuild streak
-    const progress = await progressService.logProgress(book.id, {
+    const progress = await getProgressService().logProgress(book.id, {
       currentPage: 50,
       progressDate: today,
     });
@@ -126,7 +127,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Update progress to a different date (2 days ago)
-    await progressService.updateProgress(progress.id, {
+    await getProgressService().updateProgress(progress.id, {
       currentPage: 100,
       progressDate: day2Ago,
     });
@@ -188,7 +189,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Delete first progress log
-    await progressService.deleteProgress(progress1.id);
+    await getProgressService().deleteProgress(progress1.id);
 
     // Verify streak was rebuilt correctly
     const streak = await streakRepository.findByUserId(null);
@@ -257,7 +258,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Log new progress today - this should rebuild and self-correct
-    await progressService.logProgress(book.id, {
+    await getProgressService().logProgress(book.id, {
       currentPage: 200,
       progressDate: today,
     });
@@ -292,7 +293,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     // Don't create a streak - this might cause rebuildStreak to fail
 
     // Log progress - should succeed even if streak rebuild encounters issues
-    const result = await progressService.logProgress(book.id, {
+    const result = await getProgressService().logProgress(book.id, {
       currentPage: 50,
       progressDate: day2Ago,
     });
@@ -340,7 +341,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     });
 
     // Create progress 3 days ago
-    const result1 = await progressService.logProgress(book.id, {
+    const result1 = await getProgressService().logProgress(book.id, {
       currentPage: 50,
       progressDate: day3Ago,
     });
@@ -350,7 +351,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     expect(streak!.totalDaysActive).toBe(1);
 
     // Create progress 2 days ago
-    const result2 = await progressService.logProgress(book.id, {
+    const result2 = await getProgressService().logProgress(book.id, {
       currentPage: 100,
       progressDate: day2Ago,
     });
@@ -360,7 +361,7 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     expect(streak!.totalDaysActive).toBe(2);
 
     // Update progress2 to a different page
-    await progressService.updateProgress(progress2.id, {
+    await getProgressService().updateProgress(progress2.id, {
       currentPage: 120,
     });
 
@@ -368,13 +369,13 @@ describe("Progress Mutations - Streak Rebuild Integration", () => {
     expect(streak!.totalDaysActive).toBe(2); // Should still be 2
 
     // Delete progress1
-    await progressService.deleteProgress(progress1.id);
+    await getProgressService().deleteProgress(progress1.id);
 
     streak = await streakRepository.findByUserId(null);
     expect(streak!.totalDaysActive).toBe(1); // Now should be 1 (only 2 days ago)
 
     // Create new progress 1 day ago
-    await progressService.logProgress(book.id, {
+    await getProgressService().logProgress(book.id, {
       currentPage: 150,
       progressDate: day1Ago,
     });
@@ -406,7 +407,7 @@ describe("Progress Mutations - Data Integrity", () => {
     const day1Ago = getDaysAgo(1);
 
     // Log progress
-    const result = await progressService.logProgress(book.id, {
+    const result = await getProgressService().logProgress(book.id, {
       currentPage: 75,
       progressDate: day1Ago,
     });
@@ -453,7 +454,7 @@ describe("Progress Mutations - Data Integrity", () => {
     });
 
     // Update progress
-    const updated = await progressService.updateProgress(progress.id, {
+    const updated = await getProgressService().updateProgress(progress.id, {
       currentPage: 150,
     });
 
@@ -496,7 +497,7 @@ describe("Progress Mutations - Data Integrity", () => {
     });
 
     // Delete progress
-    const result = await progressService.deleteProgress(progress.id);
+    const result = await getProgressService().deleteProgress(progress.id);
     expect(result).toBe(true);
 
     // Verify it's deleted from database
