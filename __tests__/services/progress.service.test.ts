@@ -281,6 +281,80 @@ describe("ProgressService", () => {
       const updatedSession = await sessionRepository.findById(session.id);
       expect(updatedSession?.status).toBe("reading");
     });
+
+    test("should return completionDate when progress reaches 100%", async () => {
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      expect(result.completionDate).toBeDefined();
+      expect(result.completionDate).toBeInstanceOf(Date);
+    });
+
+    test("should return completionDate matching progressDate for backdated 100% progress", async () => {
+      const backdatedDate = new Date("2025-11-10T12:00:00.000Z");
+
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        progressDate: backdatedDate,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      expect(result.completionDate).toBeDefined();
+      expect(result.completionDate).toEqual(backdatedDate);
+    });
+
+    test("should return completionDate matching progressDate for backdated 100% progress by page", async () => {
+      const backdatedDate = new Date("2025-10-15T08:30:00.000Z");
+
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 1040, // 100% of book
+        progressDate: backdatedDate,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      expect(result.completionDate).toBeDefined();
+      expect(result.completionDate).toEqual(backdatedDate);
+    });
+
+    test("should return current date as completionDate when no progressDate provided for 100% progress", async () => {
+      const beforeTime = new Date();
+
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+      });
+
+      const afterTime = new Date();
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      expect(result.completionDate).toBeDefined();
+      expect(result.completionDate!.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
+      expect(result.completionDate!.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
+    });
+
+    test("should not return completionDate when progress is below 100%", async () => {
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 99,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(false);
+      expect(result.completionDate).toBeUndefined();
+    });
+
+    test("should return completionDate for backdated progress 2 weeks ago reaching 100%", async () => {
+      const twoWeeksAgo = new Date();
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        progressDate: twoWeeksAgo,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      expect(result.completionDate).toBeDefined();
+      expect(result.completionDate).toEqual(twoWeeksAgo);
+    });
   });
 
   describe("logProgress - side effects", () => {

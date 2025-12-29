@@ -338,6 +338,98 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(session!.completedDate).toBeNull();
   });
 
+  test("returns completionDate in response when progress reaches 100%", async () => {
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPage: 500, // 100%
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
+    expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(true);
+    expect(data.completionDate).toBeDefined();
+    expect(new Date(data.completionDate)).toBeInstanceOf(Date);
+  });
+
+  test("returns backdated completionDate when progress to 100% uses backdated date", async () => {
+    const backdatedDate = new Date("2025-11-10T12:00:00.000Z");
+    
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPage: 500, // 100%
+      progressDate: backdatedDate.toISOString(),
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
+    expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(true);
+    expect(data.completionDate).toBeDefined();
+    
+    // completionDate should match the backdated progressDate
+    const returnedDate = new Date(data.completionDate);
+    expect(returnedDate.toISOString()).toBe(backdatedDate.toISOString());
+  });
+
+  test("returns backdated completionDate for 100% progress logged 2 weeks ago", async () => {
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    twoWeeksAgo.setHours(10, 30, 0, 0); // Set specific time
+    
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPercentage: 100,
+      progressDate: twoWeeksAgo.toISOString(),
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
+    expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(true);
+    expect(data.completionDate).toBeDefined();
+    
+    const returnedDate = new Date(data.completionDate);
+    expect(returnedDate.toISOString()).toBe(twoWeeksAgo.toISOString());
+  });
+
+  test("does not return completionDate when progress is below 100%", async () => {
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPercentage: 95,
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
+    expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(false);
+    expect(data.completionDate).toBeUndefined();
+  });
+
+  test("returns completionDate when logging backdated progress to last page", async () => {
+    const backdatedDate = new Date("2025-10-20T15:45:00.000Z");
+    
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPage: 500, // Last page = 100%
+      progressDate: backdatedDate.toISOString(),
+      notes: "Finished last month",
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+    
+    expect(response.status).toBe(200);
+    expect(data.shouldShowCompletionModal).toBe(true);
+    expect(data.completionDate).toBeDefined();
+    expect(new Date(data.completionDate).toISOString()).toBe(backdatedDate.toISOString());
+    expect(data.progressLog.notes).toBe("Finished last month");
+  });
+
   test("returns 404 for non-existent book", async () => {
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 100,

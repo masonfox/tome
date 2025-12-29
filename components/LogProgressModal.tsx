@@ -48,6 +48,7 @@ export default function LogProgressModal({
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MDXEditorMethods | null>(null);
   const [showLocalCompletionModal, setShowLocalCompletionModal] = useState(false);
+  const [completionDate, setCompletionDate] = useState<Date | undefined>(undefined);
 
   const bookProgressHook = useBookProgress(book.id.toString(), book as any, async () => {
     // Invalidate dashboard queries to refresh data
@@ -101,6 +102,7 @@ export default function LogProgressModal({
       // Check if we should show completion modal
       if (result.shouldShowCompletionModal) {
         logger.info({ bookId: book.id }, 'Completion detected in LogProgressModal');
+        setCompletionDate(result.completionDate);
         setShowLocalCompletionModal(true);
         // Don't close progress modal - let FinishBookModal appear
         return;
@@ -120,6 +122,10 @@ export default function LogProgressModal({
       }
       if (review) {
         body.review = review;
+      }
+      // Use the completion date from the progress log that reached 100%
+      if (completionDate) {
+        body.completedDate = completionDate.toISOString();
       }
 
       const response = await fetch(`/api/books/${book.id}/status`, {

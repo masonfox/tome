@@ -142,10 +142,13 @@ describe("useBookProgress", () => {
       global.fetch = mock(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
-          id: 3,
-          currentPage: 100,
-          currentPercentage: 33.33,
-          progressDate: "2024-01-03",
+          progressLog: {
+            id: 3,
+            currentPage: 100,
+            currentPercentage: 33.33,
+            progressDate: "2024-01-03",
+          },
+          shouldShowCompletionModal: false,
         }),
       } as Response));
 
@@ -467,6 +470,251 @@ describe("useBookProgress", () => {
       await waitFor(() => {
         expect(result.current.progress.length).toBe(3);
       });
+    });
+  });
+
+  describe("handleLogProgress - completionDate handling", () => {
+    test("should return completionDate when progress reaches 100%", async () => {
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 300,
+            currentPercentage: 100,
+            progressDate: "2024-01-03",
+          },
+          shouldShowCompletionModal: true,
+          completionDate: "2024-01-03T12:00:00.000Z",
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      act(() => {
+        result.current.setCurrentPage("300");
+      });
+
+      let logResult: any;
+      await act(async () => {
+        logResult = await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      expect(logResult.success).toBe(true);
+      expect(logResult.shouldShowCompletionModal).toBe(true);
+      expect(logResult.completionDate).toBeDefined();
+      expect(logResult.completionDate).toBeInstanceOf(Date);
+    });
+
+    test("should return backdated completionDate when logging 100% progress with backdated date", async () => {
+      const backdatedDate = "2024-01-15T10:30:00.000Z";
+      
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 300,
+            currentPercentage: 100,
+            progressDate: backdatedDate,
+          },
+          shouldShowCompletionModal: true,
+          completionDate: backdatedDate,
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      act(() => {
+        result.current.setCurrentPage("300");
+        result.current.setProgressDate("2024-01-15");
+      });
+
+      let logResult: any;
+      await act(async () => {
+        logResult = await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      expect(logResult.success).toBe(true);
+      expect(logResult.shouldShowCompletionModal).toBe(true);
+      expect(logResult.completionDate).toBeDefined();
+      expect(logResult.completionDate).toEqual(new Date(backdatedDate));
+    });
+
+    test("should not return completionDate when progress is below 100%", async () => {
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 250,
+            currentPercentage: 83.33,
+            progressDate: "2024-01-03",
+          },
+          shouldShowCompletionModal: false,
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      act(() => {
+        result.current.setCurrentPage("250");
+      });
+
+      let logResult: any;
+      await act(async () => {
+        logResult = await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      expect(logResult.success).toBe(true);
+      expect(logResult.shouldShowCompletionModal).toBe(false);
+      expect(logResult.completionDate).toBeUndefined();
+    });
+
+    test("should show completion modal when completionDate is returned", async () => {
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 300,
+            currentPercentage: 100,
+            progressDate: "2024-01-03T15:00:00.000Z",
+          },
+          shouldShowCompletionModal: true,
+          completionDate: "2024-01-03T15:00:00.000Z",
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setProgressInputMode("percentage");
+        result.current.setCurrentPercentage("100");
+      });
+
+      await act(async () => {
+        await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      await waitFor(() => {
+        expect(result.current.showCompletionModal).toBe(true);
+      });
+    });
+
+    test("should handle backdated completion 2 weeks ago", async () => {
+      const twoWeeksAgo = new Date();
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+      const backdatedISO = twoWeeksAgo.toISOString();
+      
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 300,
+            currentPercentage: 100,
+            progressDate: backdatedISO,
+          },
+          shouldShowCompletionModal: true,
+          completionDate: backdatedISO,
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setProgressInputMode("percentage");
+        result.current.setCurrentPercentage("100");
+        result.current.setProgressDate(twoWeeksAgo.toISOString().split('T')[0]);
+      });
+
+      let logResult: any;
+      await act(async () => {
+        logResult = await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      expect(logResult.success).toBe(true);
+      expect(logResult.completionDate).toBeDefined();
+      expect(logResult.completionDate).toEqual(new Date(backdatedISO));
+    });
+  });
+
+  describe("showCompletionModal state", () => {
+    test("should open completion modal when API returns shouldShowCompletionModal", async () => {
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 300,
+            currentPercentage: 100,
+            progressDate: "2024-01-03",
+          },
+          shouldShowCompletionModal: true,
+          completionDate: "2024-01-03T12:00:00.000Z",
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      expect(result.current.showCompletionModal).toBe(false);
+
+      act(() => {
+        result.current.setCurrentPage("300");
+      });
+
+      await act(async () => {
+        await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      await waitFor(() => {
+        expect(result.current.showCompletionModal).toBe(true);
+      });
+    });
+
+    test("should close completion modal when closeCompletionModal is called", async () => {
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          progressLog: {
+            id: 3,
+            currentPage: 300,
+            currentPercentage: 100,
+            progressDate: "2024-01-03",
+          },
+          shouldShowCompletionModal: true,
+          completionDate: "2024-01-03T12:00:00.000Z",
+        }),
+      } as Response));
+
+      const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
+
+      act(() => {
+        result.current.setCurrentPage("300");
+      });
+
+      await act(async () => {
+        await result.current.handleLogProgress({ preventDefault: () => {} } as any);
+      });
+
+      await waitFor(() => {
+        expect(result.current.showCompletionModal).toBe(true);
+      });
+
+      act(() => {
+        result.current.closeCompletionModal();
+      });
+
+      expect(result.current.showCompletionModal).toBe(false);
     });
   });
 });

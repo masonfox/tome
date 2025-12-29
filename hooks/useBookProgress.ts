@@ -34,7 +34,7 @@ export interface UseBookProgressReturn {
   setProgressInputMode: (mode: "page" | "percentage") => void;
   setNotes: (value: string) => void;
   setProgressDate: (value: string) => void;
-  handleLogProgress: (e: React.FormEvent) => Promise<{ success: boolean; shouldShowCompletionModal?: boolean }>;
+  handleLogProgress: (e: React.FormEvent) => Promise<{ success: boolean; shouldShowCompletionModal?: boolean; completionDate?: Date }>;
   handleEditProgress: (entry: ProgressEntry) => void;
   handleConfirmEditProgress: (updatedData: {
     currentPage?: number;
@@ -287,7 +287,7 @@ export function useBookProgress(
     }
   }, [book?.latestProgress]);
 
-  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<{ success: boolean; shouldShowCompletionModal?: boolean }> => {
+  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<{ success: boolean; shouldShowCompletionModal?: boolean; completionDate?: Date }> => {
     e.preventDefault();
 
     const payload: any = {};
@@ -336,7 +336,8 @@ export function useBookProgress(
       
       return { 
         success: true, 
-        shouldShowCompletionModal: result.shouldShowCompletionModal 
+        shouldShowCompletionModal: result.shouldShowCompletionModal,
+        completionDate: result.completionDate ? new Date(result.completionDate) : undefined
       };
     } catch (error) {
       return { success: false };

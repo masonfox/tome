@@ -43,6 +43,7 @@ interface ProgressMetrics {
 export interface ProgressLogResult {
   progressLog: ProgressLog;
   shouldShowCompletionModal: boolean;
+  completionDate?: Date;
 }
 
 /**
@@ -212,6 +213,7 @@ export class ProgressService {
     return {
       progressLog,
       shouldShowCompletionModal,
+      completionDate: shouldShowCompletionModal ? requestedDate : undefined,
     };
   }
 
