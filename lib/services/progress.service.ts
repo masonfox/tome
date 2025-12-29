@@ -44,6 +44,7 @@ interface ProgressMetrics {
 export interface ProgressLogResult {
   progressLog: ProgressLog;
   shouldShowCompletionModal: boolean;
+  completedSessionId?: number; // Session ID when auto-completed (for updating review)
 }
 
 /**
@@ -207,6 +208,7 @@ export class ProgressService {
     // Check if book is completed (100% progress) and auto-transition to "read" status
     const shouldShowCompletionModal = this.shouldShowCompletionModal(activeSession.status, metrics.currentPercentage);
     
+    let completedSessionId: number | undefined;
     if (shouldShowCompletionModal) {
       // Auto-complete the book with the progress date as the completion date
       const { getLogger } = require("@/lib/logger");
@@ -218,6 +220,9 @@ export class ProgressService {
         status: "read",
         completedDate: requestedDate  // Use the progress date, including backdated entries!
       });
+      
+      // Return the session ID so the completion modal can update the review on this session
+      completedSessionId = activeSession.id;
     }
 
     // Invalidate cache
@@ -226,6 +231,7 @@ export class ProgressService {
     return {
       progressLog,
       shouldShowCompletionModal,
+      completedSessionId,
     };
   }
 

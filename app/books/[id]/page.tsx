@@ -65,24 +65,33 @@ export default function BookDetailPage() {
   // We only need to update rating/review, not status
   async function handleConfirmRead(rating: number, review?: string) {
     try {
-      // Update rating/review if provided (status is already "read")
-      if (rating > 0 || review) {
-        const body: any = {};
-        if (rating > 0) {
-          body.rating = rating;
-        }
-        if (review) {
-          body.review = review;
-        }
-
-        const response = await fetch(`/api/books/${bookId}/rating`, {
+      // Update rating to the book table if provided
+      if (rating > 0) {
+        const ratingBody = { rating };
+        const ratingResponse = await fetch(`/api/books/${bookId}/rating`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify(ratingBody),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to update rating/review");
+        if (!ratingResponse.ok) {
+          throw new Error("Failed to update rating");
+        }
+      }
+
+      // Update review to the session if provided and we have a session ID
+      // Check both bookProgressHook.completedSessionId (from auto-completion) and book.activeSession.id (from manual mark as read)
+      const sessionId = bookProgressHook.completedSessionId || book?.activeSession?.id;
+      if (review && sessionId) {
+        const sessionBody = { review };
+        const sessionResponse = await fetch(`/api/books/${bookId}/sessions/${sessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionBody),
+        });
+
+        if (!sessionResponse.ok) {
+          throw new Error("Failed to update review");
         }
       }
 
@@ -93,6 +102,7 @@ export default function BookDetailPage() {
       // Refresh data
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
       await queryClient.invalidateQueries({ queryKey: ['library-books'] });
     } catch (error) {
       logger.error({ error }, "Failed to finish book");
@@ -161,9 +171,9 @@ export default function BookDetailPage() {
 
   // Wrapper for log progress that clears draft and resets editor
   async function handleLogProgress(e: React.FormEvent) {
-    const success = await bookProgressHook.handleLogProgress(e);
+    const result = await bookProgressHook.handleLogProgress(e);
     // Only clear draft and reset editor if submission was successful
-    if (success) {
+    if (result.success) {
       clearDraft();
       // Reset MDXEditor using the documented setMarkdown method
       try {
@@ -518,6 +528,7 @@ export default function BookDetailPage() {
         onConfirm={handleConfirmRead}
         bookTitle={book.title}
         bookId={bookId}
+        sessionId={bookProgressHook.completedSessionId}
       />
 
       <RatingModal

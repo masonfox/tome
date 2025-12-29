@@ -14,6 +14,7 @@ describe("useBookStatus", () => {
     tags: [],
     totalPages: 300,
     activeSession: {
+      id: 1,
       status: "to-read",
     },
   };
@@ -78,7 +79,7 @@ describe("useBookStatus", () => {
     test("should show confirmation for backward movement with progress", () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
       const progressEntries = [{ id: 1, currentPage: 50, currentPercentage: 16.7, progressDate: "2024-01-01", notes: "", pagesRead: 50 }];
 
@@ -126,7 +127,7 @@ describe("useBookStatus", () => {
     test("should not show confirmation for backward movement without progress", async () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
 
       global.fetch = mock(() => Promise.resolve({
@@ -154,7 +155,7 @@ describe("useBookStatus", () => {
     test("should perform status change and clear pending state", async () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
       const progressEntries = [{ id: 1, currentPage: 50, currentPercentage: 16.7, progressDate: "2024-01-01", notes: "", pagesRead: 50 }];
 
@@ -213,7 +214,7 @@ describe("useBookStatus", () => {
     test("should mark book as read with rating and review when status is 'reading'", async () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
 
       let fetchCallCount = 0;
@@ -234,7 +235,7 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(2); // progress (auto-completes) + rating
+        expect(fetchCallCount).toBe(3); // progress (auto-completes) + rating + session review
       });
 
       // Check progress was set to 100% (this auto-completes the book via progress service)
@@ -251,10 +252,16 @@ describe("useBookStatus", () => {
         "/api/books/123/rating",
         expect.objectContaining({
           method: "PATCH",
-          body: JSON.stringify({
-            rating: 4,
-            review: "Great book!",
-          }),
+          body: JSON.stringify({ rating: 4 }),
+        })
+      );
+
+      // Check review was updated via the session endpoint
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/sessions/1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ review: "Great book!" }),
         })
       );
 
@@ -281,7 +288,7 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(2); // status + rating
+        expect(fetchCallCount).toBe(3); // status + rating + session review
       });
 
       // Should change status to "read" first (no progress entry needed for non-reading books)
@@ -298,10 +305,16 @@ describe("useBookStatus", () => {
         "/api/books/123/rating",
         expect.objectContaining({
           method: "PATCH",
-          body: JSON.stringify({
-            rating: 4,
-            review: "Great book!",
-          }),
+          body: JSON.stringify({ rating: 4 }),
+        })
+      );
+
+      // Check review was updated via the session endpoint
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/sessions/1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ review: "Great book!" }),
         })
       );
 
@@ -406,7 +419,7 @@ describe("useBookStatus", () => {
 
       const updatedBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
 
       rerender({ book: updatedBook });

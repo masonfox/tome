@@ -16,6 +16,7 @@ interface FinishBookModalProps {
   onConfirm: (rating: number, review?: string) => void;
   bookTitle: string;
   bookId: string;
+  sessionId?: number; // Session ID to update with review (when auto-completed)
 }
 
 export default function FinishBookModal({
@@ -24,6 +25,7 @@ export default function FinishBookModal({
   onConfirm,
   bookTitle,
   bookId,
+  sessionId,
 }: FinishBookModalProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);

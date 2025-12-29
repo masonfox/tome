@@ -128,6 +128,9 @@ export function useBookStatus(
   // Mutation for marking as read (auto-creates 100% progress if needed)
   const markAsReadMutation = useMutation({
     mutationFn: async ({ rating, review }: { rating: number; review?: string }) => {
+      // Capture the active session ID before it gets archived
+      const activeSessionId = book?.activeSession?.id;
+      
       // Check if we need to create 100% progress first
       const has100Progress = progress.some(p => p.currentPercentage >= 100);
       const currentStatus = book?.activeSession?.status;
@@ -180,16 +183,9 @@ export function useBookStatus(
         }
       }
       
-      // Update rating/review if provided (regardless of path taken)
-      if (rating > 0 || review) {
-        const ratingBody: any = {};
-        if (rating > 0) {
-          ratingBody.rating = rating;
-        }
-        if (review) {
-          ratingBody.review = review;
-        }
-
+      // Update rating to books table if provided
+      if (rating > 0) {
+        const ratingBody = { rating };
         const ratingResponse = await fetch(`/api/books/${bookId}/rating`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -197,7 +193,22 @@ export function useBookStatus(
         });
 
         if (!ratingResponse.ok) {
-          getLogger().error("Failed to update rating/review");
+          getLogger().error("Failed to update rating");
+          // Don't throw - book is already marked as read
+        }
+      }
+      
+      // Update review to the archived session if provided
+      if (review && activeSessionId) {
+        const sessionBody = { review };
+        const sessionResponse = await fetch(`/api/books/${bookId}/sessions/${activeSessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionBody),
+        });
+
+        if (!sessionResponse.ok) {
+          getLogger().error("Failed to update review");
           // Don't throw - book is already marked as read
         }
       }

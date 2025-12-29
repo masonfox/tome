@@ -48,6 +48,7 @@ export default function LogProgressModal({
   const progressModeDropdownRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<MDXEditorMethods | null>(null);
   const [showLocalCompletionModal, setShowLocalCompletionModal] = useState(false);
+  const [completedSessionId, setCompletedSessionId] = useState<number | undefined>();
 
   const bookProgressHook = useBookProgress(book.id.toString(), book as any, async () => {
     // Invalidate dashboard queries to refresh data
@@ -100,7 +101,8 @@ export default function LogProgressModal({
       
       // Check if we should show completion modal
       if (result.shouldShowCompletionModal) {
-        logger.info({ bookId: book.id }, 'Completion detected in LogProgressModal');
+        logger.info({ bookId: book.id, sessionId: result.completedSessionId }, 'Completion detected in LogProgressModal');
+        setCompletedSessionId(result.completedSessionId);
         setShowLocalCompletionModal(true);
         // Don't close progress modal - let FinishBookModal appear
         return;
@@ -115,24 +117,31 @@ export default function LogProgressModal({
   // Note: Book status is already "read" at this point (auto-completed by progress service)
   async function handleConfirmFinish(rating: number, review?: string) {
     try {
-      // Update rating/review if provided (status is already "read")
-      if (rating > 0 || review) {
-        const body: any = {};
-        if (rating > 0) {
-          body.rating = rating;
-        }
-        if (review) {
-          body.review = review;
-        }
-
-        const response = await fetch(`/api/books/${book.id}/rating`, {
+      // Update rating to the book table if provided
+      if (rating > 0) {
+        const ratingBody = { rating };
+        const ratingResponse = await fetch(`/api/books/${book.id}/rating`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify(ratingBody),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to update rating/review");
+        if (!ratingResponse.ok) {
+          throw new Error("Failed to update rating");
+        }
+      }
+
+      // Update review to the session if provided and we have a session ID
+      if (review && completedSessionId) {
+        const sessionBody = { review };
+        const sessionResponse = await fetch(`/api/books/${book.id}/sessions/${completedSessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionBody),
+        });
+
+        if (!sessionResponse.ok) {
+          throw new Error("Failed to update review");
         }
       }
 
@@ -143,6 +152,7 @@ export default function LogProgressModal({
       // Refresh data
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       await queryClient.invalidateQueries({ queryKey: ['book', book.id] });
+      await queryClient.invalidateQueries({ queryKey: ['sessions', book.id] });
       await queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
       router.refresh(); // Refresh server components
       
@@ -211,6 +221,7 @@ export default function LogProgressModal({
           onConfirm={handleConfirmFinish}
           bookTitle={book.title}
           bookId={book.id.toString()}
+          sessionId={completedSessionId}
         />
       </>
     );
@@ -235,6 +246,7 @@ export default function LogProgressModal({
         onConfirm={handleConfirmFinish}
         bookTitle={book.title}
         bookId={book.id.toString()}
+        sessionId={completedSessionId}
       />
     </>
   );
