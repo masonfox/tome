@@ -1,7 +1,6 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import { rebuildStreak } from "@/lib/streaks";
-import { revalidatePath } from "next/cache";
 import { calibreService } from "@/lib/services/calibre.service";
 import { progressService } from "@/lib/services/progress.service";
 
@@ -774,6 +773,8 @@ export class SessionService {
    */
   private async invalidateCache(bookId: number): Promise<void> {
     try {
+      // Lazy import to avoid mock pollution in tests
+      const { revalidatePath } = await import("next/cache");
       revalidatePath("/"); // Dashboard
       revalidatePath("/library"); // Library page
       revalidatePath("/stats"); // Stats page

@@ -3,9 +3,8 @@ import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { validateProgressTimeline, validateProgressEdit } from "./progress-validation";
 import { streakService } from "@/lib/services/streak.service";
 import { SessionService } from "@/lib/services/session.service";
-import { revalidatePath } from "next/cache";
-import { 
-  calculatePercentage, 
+import {
+  calculatePercentage,
   calculatePageFromPercentage
 } from "@/lib/utils/progress-calculations";
 
@@ -470,6 +469,8 @@ export class ProgressService {
    */
   private async invalidateCache(bookId: number): Promise<void> {
     try {
+      // Lazy import to avoid mock pollution in tests
+      const { revalidatePath } = await import("next/cache");
       revalidatePath("/"); // Dashboard
       revalidatePath("/library"); // Library page
       revalidatePath("/stats"); // Stats page
