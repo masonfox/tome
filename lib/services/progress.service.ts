@@ -138,7 +138,7 @@ export class ProgressService {
    *   currentPercentage: 75
    * });
    */
-  async logProgress(bookId: number, progressData: ProgressLogData): Promise<ProgressLogResult> {
+  async logProgress(bookId: number, progressData: ProgressLogData, tx?: any): Promise<ProgressLogResult> {
     const { currentPage, currentPercentage, notes, progressDate } = progressData;
 
     // Validate input
@@ -147,13 +147,13 @@ export class ProgressService {
     }
 
     // Verify book exists
-    const book = await bookRepository.findById(bookId);
+    const book = await bookRepository.findById(bookId, tx);
     if (!book) {
       throw new Error("Book not found");
     }
 
     // Get the active reading session
-    const activeSession = await sessionRepository.findActiveByBookId(bookId);
+    const activeSession = await sessionRepository.findActiveByBookId(bookId, tx);
     if (!activeSession) {
       throw new Error("No active reading session found. Please set a reading status first.");
     }
@@ -164,7 +164,7 @@ export class ProgressService {
     }
 
     // Get the last progress entry for this session to calculate pages read
-    const lastProgress = await progressRepository.findLatestBySessionId(activeSession.id);
+    const lastProgress = await progressRepository.findLatestBySessionId(activeSession.id, tx);
 
     // Calculate progress metrics
     const metrics = await this.calculateProgressMetrics(book, progressData, lastProgress);
@@ -173,7 +173,7 @@ export class ProgressService {
     const requestedDate = progressDate || new Date();
     const usePercentage = currentPercentage !== undefined;
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
-    
+
     const validationResult = await validateProgressTimeline(
       activeSession.id,
       requestedDate,
@@ -194,38 +194,44 @@ export class ProgressService {
       progressDate: requestedDate,
       notes,
       pagesRead: metrics.pagesRead,
-    });
+    }, tx);
 
     // Touch the session to update its updatedAt timestamp (for sorting on dashboard)
     await sessionRepository.update(activeSession.id, {
       updatedAt: new Date(),
-    } as any);
+    } as any, tx);
 
-    // Update streak system
-    await this.updateStreakSystem();
+    // Update streak system (only if not in transaction)
+    if (!tx) {
+      await this.updateStreakSystem();
+    }
 
     // Check if book is completed (100% progress) and auto-transition to "read" status
     const shouldShowCompletionModal = this.shouldShowCompletionModal(activeSession.status, metrics.currentPercentage);
-    
+
     let completedSessionId: number | undefined;
     if (shouldShowCompletionModal) {
       // Auto-complete the book with the progress date as the completion date
       const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
       logger.info({ bookId, progressDate: requestedDate }, 'Auto-completing book at 100% progress');
-      
-      const sessionService = new SessionService();
-      await sessionService.updateStatus(bookId, {
+
+      // IMPORTANT: Use direct repository call instead of creating new SessionService
+      // to avoid circular dependency and maintain transaction context
+      await sessionRepository.update(activeSession.id, {
         status: "read",
-        completedDate: requestedDate  // Use the progress date, including backdated entries!
-      });
-      
+        completedDate: requestedDate,  // Use the progress date, including backdated entries!
+        isActive: false,
+      } as any, tx);
+
       // Return the session ID so the completion modal can update the review on this session
       completedSessionId = activeSession.id;
     }
 
-    // Invalidate cache
-    await this.invalidateCache(bookId);
+    // Invalidate cache (only if not in transaction)
+    if (!tx) {
+      await this.invalidateCache(bookId);
+    }
 
     return {
       progressLog,

@@ -54,9 +54,10 @@ interface MarkAsReadStrategyContext {
   has100Progress: boolean;
   isAlreadyRead: boolean;
   completedDate?: Date;
-  ensureReadingStatus: (bookId: number) => Promise<ReadingSession>;
-  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: Date) => Promise<void>;
-  updateStatus: (bookId: number, statusData: StatusUpdateData) => Promise<StatusUpdateResult>;
+  tx?: any; // Optional transaction context
+  ensureReadingStatus: (bookId: number, tx?: any) => Promise<ReadingSession>;
+  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: Date, tx?: any) => Promise<void>;
+  updateStatus: (bookId: number, statusData: StatusUpdateData, tx?: any) => Promise<StatusUpdateResult>;
   invalidateCache: (bookId: number) => Promise<void>;
   findMostRecentCompletedSession: (bookId: number) => Promise<ReadingSession | null>;
   sessionRepository: typeof sessionRepository;
@@ -196,7 +197,7 @@ export class SessionService {
    *   console.log(`Session #${result.archivedSessionNumber} archived`);
    * }
    */
-  async updateStatus(bookId: number, statusData: StatusUpdateData): Promise<StatusUpdateResult> {
+  async updateStatus(bookId: number, statusData: StatusUpdateData, tx?: any): Promise<StatusUpdateResult> {
     const { status, rating, review, startedDate, completedDate } = statusData;
 
     // Validate status
@@ -206,7 +207,7 @@ export class SessionService {
     }
 
     // Verify book exists
-    const book = await bookRepository.findById(bookId);
+    const book = await bookRepository.findById(bookId, tx);
     if (!book) {
       throw new Error("Book not found");
     }
@@ -219,7 +220,7 @@ export class SessionService {
     }
 
     // Find active reading session or prepare to create new one
-    let readingSession = await sessionRepository.findActiveByBookId(bookId);
+    let readingSession = await sessionRepository.findActiveByBookId(bookId, tx);
 
     // Detect "backward movement" from "reading" to planning statuses
     const isBackwardMovement =
@@ -230,7 +231,7 @@ export class SessionService {
     // Check if current session has progress
     let hasProgress = false;
     if (isBackwardMovement && readingSession) {
-      hasProgress = await progressRepository.hasProgressForSession(readingSession.id);
+      hasProgress = await progressRepository.hasProgressForSession(readingSession.id, tx);
     }
 
     // If moving backward with progress, archive current session and create new one
@@ -239,8 +240,8 @@ export class SessionService {
       getLogger().info(`[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`);
 
       // Get last progress date for completedDate (use last activity or current date)
-      const latestProgress = await progressRepository.findLatestBySessionId(readingSession.id);
-      const completedDate = latestProgress?.progressDate 
+      const latestProgress = await progressRepository.findLatestBySessionId(readingSession.id, tx);
+      const completedDate = latestProgress?.progressDate
         ? new Date(latestProgress.progressDate)
         : new Date();
 
@@ -248,7 +249,7 @@ export class SessionService {
       await sessionRepository.update(readingSession.id, {
         isActive: false,
         completedDate,
-      } as any);
+      } as any, tx);
 
       // Create new session with new status
       const newSessionNumber = readingSession.sessionNumber + 1;
@@ -258,13 +259,17 @@ export class SessionService {
         sessionNumber: newSessionNumber,
         status: status as any,
         isActive: true,
-      });
+      }, tx);
 
-      // Rebuild streak to ensure consistency
-      await this.updateStreakSystem();
+      // Rebuild streak to ensure consistency (only if not in transaction)
+      if (!tx) {
+        await this.updateStreakSystem();
+      }
 
-      // Invalidate cache
-      await this.invalidateCache(bookId);
+      // Invalidate cache (only if not in transaction)
+      if (!tx) {
+        await this.invalidateCache(bookId);
+      }
 
       return {
         session: newSession,
@@ -298,30 +303,33 @@ export class SessionService {
 
     if (readingSession) {
       // Update existing session
-      readingSession = await sessionRepository.update(readingSession.id, updateData);
-      
+      readingSession = await sessionRepository.update(readingSession.id, updateData, tx);
+
       if (!readingSession) {
         throw new Error("Failed to update session");
       }
     } else {
       // Create new session (first time reading this book)
-      const sessionNumber = await sessionRepository.getNextSessionNumber(bookId);
+      const sessionNumber = await sessionRepository.getNextSessionNumber(bookId, tx);
 
       readingSession = await sessionRepository.create({
         bookId,
         sessionNumber,
         isActive: true,
         ...updateData,
-      });
+      }, tx);
     }
 
     // Update book rating if provided (single source of truth: books table)
-    if (rating !== undefined) {
+    // NOTE: Rating updates happen outside transaction (best-effort)
+    if (rating !== undefined && !tx) {
       await this.updateBookRating(bookId, rating);
     }
 
-    // Invalidate cache
-    await this.invalidateCache(bookId);
+    // Invalidate cache (only if not in transaction)
+    if (!tx) {
+      await this.invalidateCache(bookId);
+    }
 
     return { session: readingSession };
   }
@@ -399,12 +407,12 @@ export class SessionService {
    * const session = await sessionService.ensureReadingStatus(123);
    * // Now safe to log progress for this book
    */
-  async ensureReadingStatus(bookId: number): Promise<ReadingSession> {
+  async ensureReadingStatus(bookId: number, tx?: any): Promise<ReadingSession> {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
     // Check if book already has reading status
-    const activeSession = await sessionRepository.findActiveByBookId(bookId);
+    const activeSession = await sessionRepository.findActiveByBookId(bookId, tx);
 
     if (activeSession?.status === "reading") {
       logger.info({ bookId, sessionId: activeSession.id }, "Book already in reading status");
@@ -413,7 +421,7 @@ export class SessionService {
 
     // Transition to reading status
     logger.info({ bookId, currentStatus: activeSession?.status }, "Transitioning book to reading status");
-    const result = await this.updateStatus(bookId, { status: "reading" });
+    const result = await this.updateStatus(bookId, { status: "reading" }, tx);
 
     return result.session;
   }
@@ -439,7 +447,7 @@ export class SessionService {
    * await sessionService.create100PercentProgress(123, 350);
    * // Book is now marked as "read" with 100% progress logged
    */
-  async create100PercentProgress(bookId: number, totalPages: number, completedDate?: Date): Promise<void> {
+  async create100PercentProgress(bookId: number, totalPages: number, completedDate?: Date, tx?: any): Promise<void> {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
@@ -451,7 +459,7 @@ export class SessionService {
       currentPercentage: 100,
       notes: "Marked as read",
       progressDate: completedDate,
-    });
+    }, tx);
 
     logger.info({ bookId }, "Successfully created 100% progress entry (book auto-completed)");
   }
@@ -587,15 +595,15 @@ export class SessionService {
   private async createProgressStrategy(
     context: MarkAsReadStrategyContext
   ): Promise<MarkAsReadStrategyResult> {
-    const { bookId, book, activeSession, completedDate, logger } = context;
+    const { bookId, book, activeSession, completedDate, logger, tx } = context;
 
     logger.info(
       { bookId, reason: "has pages, no 100% progress" },
       "Marking as read via progress creation"
     );
 
-    await context.ensureReadingStatus(bookId);
-    await context.create100PercentProgress(bookId, book.totalPages!, completedDate);
+    await context.ensureReadingStatus(bookId, tx);
+    await context.create100PercentProgress(bookId, book.totalPages!, completedDate, tx);
 
     return {
       sessionId: activeSession?.id,
@@ -610,7 +618,7 @@ export class SessionService {
   private async directStatusChangeStrategy(
     context: MarkAsReadStrategyContext
   ): Promise<MarkAsReadStrategyResult> {
-    const { bookId, completedDate, logger } = context;
+    const { bookId, completedDate, logger, tx } = context;
 
     logger.info(
       { bookId, reason: "has 100% progress" },
@@ -620,7 +628,7 @@ export class SessionService {
     const result = await context.updateStatus(bookId, {
       status: "read",
       completedDate: completedDate,
-    });
+    }, tx);
 
     return {
       sessionId: result.session.id,
@@ -635,7 +643,7 @@ export class SessionService {
   private async manualSessionUpdateStrategy(
     context: MarkAsReadStrategyContext
   ): Promise<MarkAsReadStrategyResult> {
-    const { bookId, activeSession, completedDate, sessionRepository, logger, invalidateCache } = context;
+    const { bookId, activeSession, completedDate, sessionRepository, logger, invalidateCache, tx } = context;
 
     logger.info(
       { bookId, reason: "no totalPages" },
@@ -649,10 +657,10 @@ export class SessionService {
         status: "read",
         completedDate: completedDate || new Date(),
         isActive: false,
-      } as any);
+      } as any, tx);
       sessionId = updated?.id;
     } else {
-      const nextSessionNumber = await sessionRepository.getNextSessionNumber(bookId);
+      const nextSessionNumber = await sessionRepository.getNextSessionNumber(bookId, tx);
       const newSession = await sessionRepository.create({
         bookId,
         sessionNumber: nextSessionNumber,
@@ -660,11 +668,14 @@ export class SessionService {
         isActive: false,
         startedDate: completedDate || new Date(),
         completedDate: completedDate || new Date(),
-      });
+      }, tx);
       sessionId = newSession.id;
     }
 
-    await invalidateCache(bookId);
+    // Cache invalidation handled outside transaction
+    if (!tx) {
+      await invalidateCache(bookId);
+    }
 
     return {
       sessionId,
@@ -817,23 +828,62 @@ export class SessionService {
 
     logger.info({ bookId, strategy: strategyName }, "Executing mark-as-read strategy");
 
-    const strategyContext: MarkAsReadStrategyContext = {
-      bookId,
-      book,
-      activeSession,
-      has100Progress,
-      isAlreadyRead,
-      completedDate,
-      ensureReadingStatus: this.ensureReadingStatus.bind(this),
-      create100PercentProgress: this.create100PercentProgress.bind(this),
-      updateStatus: this.updateStatus.bind(this),
-      invalidateCache: this.invalidateCache.bind(this),
-      findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
-      sessionRepository,
-      logger,
-    };
+    // CRITICAL SECTION: Execute strategy within transaction
+    const { getDatabase } = await import("@/lib/db/context");
+    const db = getDatabase();
 
-    const { sessionId, progressCreated } = await strategy(strategyContext);
+    let sessionId: number | undefined;
+    let progressCreated: boolean;
+
+    try {
+      const result = await db.transaction((tx) => {
+        const strategyContext: MarkAsReadStrategyContext = {
+          bookId,
+          book,
+          activeSession,
+          has100Progress,
+          isAlreadyRead,
+          completedDate,
+          tx, // Pass transaction context
+          ensureReadingStatus: this.ensureReadingStatus.bind(this),
+          create100PercentProgress: this.create100PercentProgress.bind(this),
+          updateStatus: this.updateStatus.bind(this),
+          invalidateCache: this.invalidateCache.bind(this),
+          findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
+          sessionRepository,
+          logger,
+        };
+
+        return strategy(strategyContext);
+      });
+
+      sessionId = result.sessionId;
+      progressCreated = result.progressCreated;
+
+      logger.info({ bookId, sessionId, strategy: strategyName },
+        "Transaction committed successfully");
+    } catch (error) {
+      logger.error({ err: error, bookId, strategy: strategyName },
+        "Transaction failed, rolling back");
+      throw error;
+    }
+
+    // POST-TRANSACTION: Best-effort operations
+    // Rebuild streak to ensure consistency
+    try {
+      await this.updateStreakSystem();
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to update streak (continuing)");
+      // Don't throw - book is already marked as read
+    }
+
+    // Invalidate cache
+    try {
+      await this.invalidateCache(bookId);
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to invalidate cache (continuing)");
+      // Don't throw - book is already marked as read
+    }
 
     // Step 2: Update rating (best-effort)
     let ratingUpdated = false;
