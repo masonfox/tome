@@ -34,11 +34,22 @@ export function isAuthenticatedFromRequest(request: NextRequest): boolean {
   }
 
   const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
-  
+
   return authCookie?.value === "authenticated";
 }
 
-export function createAuthResponse(): NextResponse {
+function isSecureConnection(request: NextRequest): boolean {
+  // Check x-forwarded-proto header (for reverse proxies/load balancers)
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  if (forwardedProto) {
+    return forwardedProto === 'https';
+  }
+
+  // Fall back to checking the URL protocol
+  return request.url.startsWith('https://');
+}
+
+export function createAuthResponse(request: NextRequest): NextResponse {
   const response = NextResponse.json({ success: true });
   
   // Set authentication cookie
@@ -46,7 +57,7 @@ export function createAuthResponse(): NextResponse {
     name: AUTH_COOKIE_NAME,
     value: "authenticated",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureConnection(request),
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: "/",
