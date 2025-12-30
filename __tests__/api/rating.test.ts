@@ -24,29 +24,36 @@ import type { NextRequest } from "next/server";
 
 /**
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
- * We mock Calibre write operations to: (1) verify our code attempts to sync ratings,
+ * We mock sync operations to: (1) verify our code attempts to sync ratings,
  * and (2) simulate error conditions (e.g., Calibre database unavailable) to test
  * our error handling without requiring actual file system failures.
- * 
- * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
- * This prevents mock leakage to calibre-write.test.ts since they're different modules.
+ *
+ * ARCHITECTURE UPDATE: Now using SyncOrchestrator which centralizes external service sync.
  */
 let mockUpdateCalibreRating = mock(() => {});
 let mockCalibreShouldFail = false;
 
-mock.module("@/lib/services/calibre.service", () => ({
-  calibreService: {
-    updateRating: (calibreId: number, rating: number | null) => {
+// Mock the SyncOrchestrator
+mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
+  syncOrchestrator: {
+    syncRating: async (calibreId: number, rating: number | null) => {
       if (mockCalibreShouldFail) {
-        throw new Error("Calibre database is unavailable");
+        mockUpdateCalibreRating(calibreId, rating);
+        return {
+          success: false,
+          results: [{ service: "calibre", success: false, error: new Error("Calibre database is unavailable") }],
+          errors: [new Error("Calibre database is unavailable")],
+        };
       }
       mockUpdateCalibreRating(calibreId, rating);
+      return {
+        success: true,
+        results: [{ service: "calibre", success: true }],
+        errors: [],
+      };
     },
-    updateTags: mock(() => {}),
-    readRating: mock(() => null),
-    readTags: mock(() => []),
   },
-  CalibreService: class {},
+  SyncOrchestrator: class {},
 }));
 
 // Mock Next.js revalidatePath - not available in test environment

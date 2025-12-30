@@ -121,9 +121,28 @@ export default function CompleteBookModal({
 
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const now = new Date();
+    now.setHours(23, 59, 59, 999); // End of today
 
+    // Prevent future dates
+    if (start > now) {
+      return "Start date cannot be in the future";
+    }
+
+    if (end > now) {
+      return "End date cannot be in the future";
+    }
+
+    // Validate date ordering
     if (end < start) {
       return "End date must be on or after start date";
+    }
+
+    // Warn for very long reading durations
+    const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 365) {
+      // This is a warning, not an error - still allow it
+      logger.warn({ startDate, endDate, daysDiff }, "Book took over a year to read");
     }
 
     return null;
@@ -240,6 +259,7 @@ export default function CompleteBookModal({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={today}
             disabled={isSubmitting}
             className="w-full px-3 py-2 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
           />
@@ -251,20 +271,9 @@ export default function CompleteBookModal({
           <input
             id="complete-end-date"
             type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
-            End Date
-          </label>
-          <input
-            type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            max={today}
             disabled={isSubmitting}
             className="w-full px-3 py-2 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
           />

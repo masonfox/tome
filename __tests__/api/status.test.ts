@@ -613,16 +613,18 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
      * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
      * our code correctly attempts to sync ratings, without actually writing to disk.
      */
-    mock.module("@/lib/services/calibre.service", () => ({
-      calibreService: {
-        updateRating: (calibreId: number, rating: number | null) => {
+    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
+      syncOrchestrator: {
+        syncRating: async (calibreId: number, rating: number | null) => {
           calibreRatingCalls.push({ calibreId, rating });
+          return {
+            success: true,
+            results: [{ service: "calibre", success: true }],
+            errors: [],
+          };
         },
-        readRating: () => null,
-        updateTags: () => {},
-        readTags: () => [],
       },
-      CalibreService: class {},
+      SyncOrchestrator: class {},
     }));
   });
   
@@ -802,16 +804,18 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should continue status update even if Calibre sync fails", async () => {
     // Arrange - Mock Calibre to throw error
-    mock.module("@/lib/services/calibre.service", () => ({
-      calibreService: {
-        updateRating: (calibreId: number, rating: number | null) => {
+    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
+      syncOrchestrator: {
+        syncRating: async (calibreId: number, rating: number | null) => {
           calibreRatingCalls.push({ calibreId, rating });
+          return {
+            success: true,
+            results: [{ service: "calibre", success: true }],
+            errors: [],
+          };
         },
-        readRating: (calibreId: number) => null,
-        updateTags: () => {},
-        readTags: () => [],
       },
-      CalibreService: class {},
+      SyncOrchestrator: class {},
     }));
 
     const book = await bookRepository.create(mockBook1);
@@ -842,16 +846,18 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(updatedBook?.rating).toBe(5);
 
     // Restore normal mock
-    mock.module("@/lib/services/calibre.service", () => ({
-      calibreService: {
-        updateRating: (calibreId: number, rating: number | null) => {
+    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
+      syncOrchestrator: {
+        syncRating: async (calibreId: number, rating: number | null) => {
           calibreRatingCalls.push({ calibreId, rating });
+          return {
+            success: true,
+            results: [{ service: "calibre", success: true }],
+            errors: [],
+          };
         },
-        readRating: (calibreId: number) => null,
-        updateTags: () => {},
-        readTags: () => [],
       },
-      CalibreService: class {},
+      SyncOrchestrator: class {},
     }));
   });
 

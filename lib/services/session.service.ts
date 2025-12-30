@@ -1,7 +1,7 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import { rebuildStreak } from "@/lib/streaks";
-import { calibreService } from "@/lib/services/calibre.service";
+import { syncOrchestrator } from "@/lib/services/integrations/sync-orchestrator";
 import { progressService } from "@/lib/services/progress.service";
 
 /**
@@ -452,13 +452,20 @@ export class SessionService {
       throw new Error("Book not found");
     }
 
-    try {
-      // Sync to Calibre first (best effort)
-      calibreService.updateRating(book.calibreId, rating);
-      logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to Calibre");
-    } catch (calibreError) {
-      // Log error but continue with Tome database update
-      logger.error({ err: calibreError, bookId }, "Failed to sync rating to Calibre");
+    // Sync to external services (best effort - failures won't block database update)
+    const syncResult = await syncOrchestrator.syncRating(book.calibreId, rating);
+
+    if (syncResult.success) {
+      logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to all external services");
+    } else {
+      logger.warn(
+        {
+          bookId,
+          calibreId: book.calibreId,
+          failedServices: syncResult.results.filter(r => !r.success).map(r => r.service)
+        },
+        `Rating sync completed with ${syncResult.errors.length} failure(s)`
+      );
     }
 
     // Update Tome database (single source of truth)
@@ -551,7 +558,7 @@ export class SessionService {
    * complex decision logic for transitioning a book to "read" status, including:
    * - Status transitions (ensuring book goes through "reading" if needed)
    * - Progress tracking (creating 100% progress if book has pages)
-   * - Rating updates (with Calibre sync)
+   * - Rating updates (with external service sync)
    * - Review attachment (to the correct session)
    *
    * Decision Flow:
@@ -567,8 +574,16 @@ export class SessionService {
    * 4. Update rating if provided (best-effort, won't fail the operation)
    * 5. Update review if provided (best-effort, won't fail the operation)
    *
+   * Transaction Boundaries:
+   * - CRITICAL operations (status transitions, progress creation) are NOT currently wrapped
+   *   in a database transaction due to complexity of refactoring repository methods
+   * - BEST-EFFORT operations (rating sync, review updates) intentionally outside transactions
+   * - See docs/TRANSACTION_BOUNDARIES.md for detailed analysis and future roadmap
+   * - Risk level: MEDIUM (database failures unlikely, user can retry on partial state)
+   *
    * Error Handling:
    * - Rating and review updates use best-effort approach
+   * - External sync failures (Calibre) are logged but don't fail the operation
    * - If rating sync fails, book is still marked as read
    * - If review update fails, book is still marked as read
    * - Errors are logged but don't fail the overall operation

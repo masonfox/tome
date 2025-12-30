@@ -5,8 +5,12 @@ describe("BaseApiClient", () => {
   let client: BaseApiClient;
 
   beforeEach(() => {
-    // Create a fresh client instance for each test
-    client = new BaseApiClient();
+    // Create a fresh client instance for each test (with retries disabled for predictable test behavior)
+    client = new BaseApiClient({
+      retry: {
+        maxRetries: 0,
+      },
+    });
   });
 
   describe("GET requests", () => {
