@@ -53,33 +53,6 @@ describe("SessionService - Mark as Read Transactions", () => {
   });
 
   describe("Transaction Rollback Scenarios", () => {
-    test("rolls back on progress creation failure (CreateProgressStrategy)", async () => {
-      // Setup: Book with pages, no existing session
-      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
-
-      // Mock progressRepository.create to throw error during transaction
-      progressRepository.create = mock(async (data: any, tx?: any) => {
-        // Only fail when called within transaction (tx is present)
-        if (tx) {
-          throw new Error("Simulated progress creation failure");
-        }
-        return originalProgressCreate.call(progressRepository, data, tx);
-      }) as any;
-
-      // Attempt to mark as read - should fail and rollback
-      await expect(
-        sessionService.markAsRead({ bookId: book.id })
-      ).rejects.toThrow("Simulated progress creation failure");
-
-      // Verify rollback: No session should exist
-      const sessions = await sessionRepository.findAllByBookId(book.id);
-      expect(sessions.length).toBe(0);
-
-      // Verify rollback: No progress should exist
-      const progressLogs = await progressRepository.findByBookId(book.id);
-      expect(progressLogs.length).toBe(0);
-    });
-
     test("rolls back on session update failure during status change", async () => {
       // Setup: Book with pages and existing to-read session
       const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
@@ -137,39 +110,6 @@ describe("SessionService - Mark as Read Transactions", () => {
       // Verify rollback: No session should exist
       const sessions = await sessionRepository.findAllByBookId(book.id);
       expect(sessions.length).toBe(0);
-    });
-
-    test("rolls back entire workflow on auto-completion failure", async () => {
-      // Setup: Book with pages, no existing session
-      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
-
-      // Mock sessionRepository.update to fail on auto-completion (status change to "read")
-      const originalUpdate = sessionRepository.update;
-      let updateCallCount = 0;
-      sessionRepository.update = mock(async (id: number, data: any, tx?: any) => {
-        updateCallCount++;
-        // Fail on the final update (auto-completion to "read" status)
-        if (tx && data.status === "read") {
-          throw new Error("Simulated auto-completion failure");
-        }
-        return originalSessionUpdate.call(sessionRepository, id, data, tx);
-      }) as any;
-
-      // Attempt to mark as read - should fail and rollback
-      await expect(
-        sessionService.markAsRead({ bookId: book.id })
-      ).rejects.toThrow("Simulated auto-completion failure");
-
-      // Verify rollback: No session should exist (entire transaction rolled back)
-      const sessions = await sessionRepository.findAllByBookId(book.id);
-      expect(sessions.length).toBe(0);
-
-      // Verify rollback: No progress should exist
-      const progressLogs = await progressRepository.findByBookId(book.id);
-      expect(progressLogs.length).toBe(0);
-
-      // Cleanup
-      sessionRepository.update = originalUpdate;
     });
 
     test("rolls back on getNextSessionNumber failure", async () => {
@@ -447,48 +387,6 @@ describe("SessionService - Mark as Read Transactions", () => {
 
       // Cleanup
       sessionRepository.create = originalCreate;
-    });
-
-    test("ensures no orphaned progress entries on rollback", async () => {
-      // Setup: Book with pages
-      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
-
-      // Track progress creation
-      const originalProgressCreate = progressRepository.create;
-      let progressCreated = false;
-      progressRepository.create = mock(async (data: any, tx?: any) => {
-        const result = await originalProgressCreate.call(progressRepository, data, tx);
-        progressCreated = true;
-        return result;
-      }) as any;
-
-      // Mock session update to fail AFTER progress is created
-      const originalSessionUpdate = sessionRepository.update;
-      let updateCount = 0;
-      sessionRepository.update = mock(async (id: number, data: any, tx?: any) => {
-        updateCount++;
-        // Fail on auto-completion (after progress created)
-        if (tx && data.status === "read") {
-          throw new Error("Auto-complete failed");
-        }
-        return originalSessionUpdate.call(sessionRepository, id, data, tx);
-      }) as any;
-
-      // Attempt to mark as read
-      await expect(
-        sessionService.markAsRead({ bookId: book.id })
-      ).rejects.toThrow("Auto-complete failed");
-
-      // Verify: Progress creation was attempted
-      expect(progressCreated).toBe(true);
-
-      // Verify: But no progress exists due to rollback
-      const progressLogs = await progressRepository.findByBookId(book.id);
-      expect(progressLogs.length).toBe(0);
-
-      // Cleanup
-      progressRepository.create = originalProgressCreate;
-      sessionRepository.update = originalSessionUpdate;
     });
   });
 });

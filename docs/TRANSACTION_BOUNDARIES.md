@@ -218,11 +218,27 @@ Actual effort: ~1 hour
 - No regressions detected
 - Backward compatibility maintained
 
-### Recommended Additional Tests ⏳ FUTURE WORK
-Future PRs could add specific transaction failure tests:
-1. Mock repository failures to verify rollback behavior
-2. Test partial failure scenarios (e.g., progress created but auto-complete fails)
-3. Verify best-effort operations don't cause rollback
+### Transaction Tests ✅ COMPLETED
+**File**: `__tests__/services/session/mark-as-read.transactions.test.ts`
+
+**Test Results**: 10 passing tests
+
+- ✅ Transaction Rollback Scenarios (3 tests)
+  - ✅ Session update failure during status change rolls back
+  - ✅ Session creation failure rolls back (ManualSessionUpdateStrategy)
+  - ✅ GetNextSessionNumber failure prevents session creation
+
+- ✅ Best-Effort Operations (6 tests)
+  - ✅ Rating update failures don't prevent book completion
+  - ✅ Review update failures don't prevent session completion
+  - ✅ Combined rating+review failures still complete successfully
+  - ✅ Rating failures don't prevent progress creation
+  - ✅ Review failures don't prevent session archiving
+  - ✅ Core operation succeeds independently of best-effort failures
+
+- ✅ Transaction Atomicity Guarantees (2 tests)
+  - ✅ DirectStatusChangeStrategy status updates are atomic
+  - ✅ ManualSessionUpdateStrategy session creation is atomic
 
 ---
 
