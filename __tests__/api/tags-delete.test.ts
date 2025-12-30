@@ -47,6 +47,28 @@ mock.module("@/lib/services/calibre.service", () => ({
   CalibreService: class {},
 }));
 
+// Mock Calibre watcher to track suspend/resume calls
+let mockWatcherSuspendCalled = false;
+let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
+
+mock.module("@/lib/calibre-watcher", () => ({
+  calibreWatcher: {
+    suspend: () => {
+      mockWatcherSuspendCalled = true;
+    },
+    resume: () => {
+      mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
+    },
+    start: mock(() => {}),
+    stop: mock(() => {}),
+  },
+}));
+
 beforeAll(async () => {
   await setupTestDatabase(__filename);
 });
@@ -60,6 +82,9 @@ beforeEach(async () => {
   mockUpdateCalibreTags.mockClear();
   mockBatchUpdateCalibreTags.mockClear();
   mockCalibreShouldFail = false;
+  mockWatcherSuspendCalled = false;
+  mockWatcherResumeCalled = false;
+  mockWatcherResumeIgnorePeriod = 0;
 });
 
 describe("DELETE /api/tags/:tagName", () => {
@@ -241,7 +266,7 @@ describe("DELETE /api/tags/:tagName", () => {
   });
 
   describe("Error Cases", () => {
-    test("should handle Calibre sync failure gracefully", async () => {
+    test("should fail when Calibre sync fails (fail fast)", async () => {
       // Arrange: Book and mock Calibre failure
       const book = await bookRepository.create(createTestBook({
         calibreId: 70,
@@ -255,13 +280,19 @@ describe("DELETE /api/tags/:tagName", () => {
       // Act: Delete tag
       const request = createMockRequest("DELETE", "/api/tags/delete-me");
       const response = await DELETE(request as NextRequest, { params: { tagName: "delete-me" } });
+      const data = await response.json();
 
-      // Assert: API should still succeed (best-effort sync)
-      expect(response.status).toBe(200);
+      // Assert: API should return 500 error
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("Failed to delete tag");
 
-      // Verify local database was updated
-      const updatedBook = await bookRepository.findById(book.id);
-      expect(updatedBook?.tags).toEqual([]);
+      // Verify Tome DB unchanged
+      const unchangedBook = await bookRepository.findById(book.id);
+      expect(unchangedBook?.tags).toEqual(["delete-me"]);
+      
+      // Verify watcher was still resumed with ignore period
+      expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
   });
 });

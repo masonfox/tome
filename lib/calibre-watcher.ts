@@ -11,6 +11,7 @@ class CalibreWatcher {
   private syncCallback: SyncCallback | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
   private suspended: boolean = false;
+  private ignorePeriodEnd: number = 0; // Timestamp until which to ignore changes
 
   async start(calibreDbPath: string, onSync: SyncCallback) {
     const { getLogger } = require("@/lib/logger");
@@ -69,6 +70,12 @@ class CalibreWatcher {
       return;
     }
 
+    // Check if we're in the ignore period (self-inflicted change from recent write)
+    if (Date.now() < this.ignorePeriodEnd) {
+      logger.info("[WATCHER] Ignoring change (recent write operation, within ignore period)");
+      return;
+    }
+
     if (this.syncing) {
       logger.info("[WATCHER] Sync already in progress, skipping");
       return;
@@ -113,6 +120,23 @@ class CalibreWatcher {
     
     this.suspended = false;
     logger.info("[WATCHER] Calibre watcher resumed");
+  }
+
+  /**
+   * Resume the watcher with an ignore period to prevent syncing self-inflicted changes
+   * 
+   * @param durationMs - Duration in milliseconds to ignore changes (default: 3000ms / 3 seconds)
+   */
+  resumeWithIgnorePeriod(durationMs: number = 3000) {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+    
+    this.suspended = false;
+    this.ignorePeriodEnd = Date.now() + durationMs;
+    logger.info(
+      { durationMs, ignoreUntil: new Date(this.ignorePeriodEnd).toISOString() },
+      "[WATCHER] Calibre watcher resumed with ignore period"
+    );
   }
 
   stop() {

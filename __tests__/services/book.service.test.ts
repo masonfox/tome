@@ -1,9 +1,53 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { BookService } from "@/lib/services/book.service";
 import { mockBook1, mockBook2, mockSessionReading, mockProgressLog1, createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
+
+/**
+ * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+ */
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockCalibreShouldFail = false;
+
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    batchUpdateTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      return mockBatchUpdateCalibreTags(updates);
+    },
+    updateTags: mock(() => {}),
+    updateRating: mock(() => {}),
+    readTags: mock(() => []),
+    readRating: mock(() => null),
+  },
+  CalibreService: class {},
+}));
+
+// Mock Calibre watcher to track suspend/resume calls
+let mockWatcherSuspendCalled = false;
+let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
+
+mock.module("@/lib/calibre-watcher", () => ({
+  calibreWatcher: {
+    suspend: () => {
+      mockWatcherSuspendCalled = true;
+    },
+    resume: () => {
+      mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
+    },
+    start: mock(() => {}),
+    stop: mock(() => {}),
+  },
+}));
 
 describe("BookService", () => {
   let bookService: BookService;
@@ -21,6 +65,12 @@ describe("BookService", () => {
 
   beforeEach(async () => {
     await clearTestDatabase(__filename);
+    // Reset mock state
+    mockBatchUpdateCalibreTags.mockClear();
+    mockCalibreShouldFail = false;
+    mockWatcherSuspendCalled = false;
+    mockWatcherResumeCalled = false;
+    mockWatcherResumeIgnorePeriod = 0;
     // Create fresh test books for each test
     book1 = await bookRepository.create(createTestBook(mockBook1));
     book2 = await bookRepository.create(createTestBook(mockBook2));
@@ -1146,8 +1196,8 @@ describe("BookService", () => {
     test("should return zero counts when no tags found", async () => {
       const result = await bookService.bulkDeleteTags(["nonexistent1", "nonexistent2"]);
 
-      expect(result.tagsDeleted).toBe(2); // Still counts as "processed"
-      expect(result.booksUpdated).toBe(0); // But no books updated
+      expect(result.tagsDeleted).toBe(0); // No tags found/deleted
+      expect(result.booksUpdated).toBe(0); // No books updated
     });
 
     test("should handle partial failures gracefully", async () => {
