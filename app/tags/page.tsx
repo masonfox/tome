@@ -65,8 +65,11 @@ function TagsPageContent() {
     books,
     total: totalBooksInTag,
     loading: booksLoading,
+    loadingMore,
+    hasMore,
     error: booksError,
     refetch: refetchBooks,
+    loadMore,
     removeTagFromBook,
   } = useTagBooks(selectedTag);
 
@@ -282,8 +285,11 @@ function TagsPageContent() {
               tagName={selectedTag}
               books={books}
               loading={booksLoading}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
               totalBooks={totalBooksInTag}
               onRemoveTag={handleRemoveTagFromBook}
+              onLoadMore={loadMore}
               onClose={handleCloseDetail}
               confirmRemoval={confirmTagRemoval}
             />
@@ -298,8 +304,11 @@ function TagsPageContent() {
             tagName={selectedTag}
             books={books}
             loading={booksLoading}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
             totalBooks={totalBooksInTag}
             onRemoveTag={handleRemoveTagFromBook}
+            onLoadMore={loadMore}
             confirmRemoval={confirmTagRemoval}
           />
         </div>
