@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { parseISO, startOfDay } from "date-fns";
-import { getTodayLocalDate } from "@/utils/dateFormatting";
+import { getTodayLocalDate } from '@/utils/dateHelpers';
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger().child({ hook: "useBookProgress" });

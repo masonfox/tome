@@ -6,7 +6,7 @@ import { Calendar, BookOpen, Pencil, ChevronRight } from "lucide-react";
 import SessionEditModal from "./SessionEditModal";
 import SessionProgressModal from "./SessionProgressModal";
 import { toast } from "@/utils/toast";
-import { formatDateOnly } from "@/utils/dateFormatting";
+import { formatDateOnly } from '@/utils/dateHelpers';
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface ReadingSession {

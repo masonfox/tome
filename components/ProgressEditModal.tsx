@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { getTodayLocalDate } from "@/utils/dateFormatting";
+import { getTodayLocalDate } from '@/utils/dateHelpers';
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";

@@ -1,5 +1,5 @@
 import { Calendar, Pencil } from "lucide-react";
-import { formatDateOnly, getTodayLocalDate } from "@/utils/dateFormatting";
+import { formatDateOnly, getTodayLocalDate } from '@/utils/dateHelpers';
 
 interface SessionDetailsProps {
   startedDate: string | null | undefined;

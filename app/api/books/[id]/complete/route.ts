@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { sessionService, progressService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
+import { parseLocalDateToUtc } from "@/utils/dateHelpers";
 
 const logger = getLogger().child({ endpoint: "complete-book" });
 
@@ -58,10 +59,15 @@ export async function POST(
       );
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    // Parse dates as midnight in user's timezone, converted to UTC (per ADR-006)
+    let start: Date;
+    let end: Date;
+    
+    try {
+      start = await parseLocalDateToUtc(startDate);
+      end = await parseLocalDateToUtc(endDate);
+    } catch (error) {
+      logger.error({ err: error, startDate, endDate }, "Failed to parse dates");
       return NextResponse.json(
         { error: "Invalid date format" },
         { status: 400 }

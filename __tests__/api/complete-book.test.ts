@@ -8,6 +8,7 @@ import {
   createTestSession,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { formatInTimeZone } from "date-fns-tz";
 
 /**
  * Complete Book API Endpoint Tests
@@ -59,6 +60,13 @@ mock.module("@/lib/services/calibre.service", () => ({
 mock.module("@/lib/streaks", () => ({
   rebuildStreak: mock(() => Promise.resolve()),
 }));
+
+// Helper function to extract date in EST timezone from a stored UTC date
+// Since dates are stored as midnight EST converted to UTC, we need to convert back to EST to check the date
+function getDateInEST(date: Date): string {
+  const { formatInTimeZone } = require("date-fns-tz");
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
@@ -185,12 +193,9 @@ describe("POST /api/books/[id]/complete", () => {
         sessionNumber: 1,
       }));
 
-      const startDate = new Date("2024-01-01");
-      const endDate = new Date("2024-01-20");
-
       const request = createMockRequest("POST", `/api/books/${book.id}/complete`, {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: "2024-01-01",
+        endDate: "2024-01-20",
       });
 
       const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
@@ -206,12 +211,12 @@ describe("POST /api/books/[id]/complete", () => {
 
       // First progress should be on start date
       const firstProgress = sortedProgress[0];
-      expect(new Date(firstProgress.progressDate).toISOString().split('T')[0]).toBe("2024-01-01");
+      expect(getDateInEST(new Date(firstProgress.progressDate))).toBe("2024-01-01");
       expect(firstProgress.currentPage).toBe(1);
 
       // Last progress should be on end date
       const lastProgress = sortedProgress[sortedProgress.length - 1];
-      expect(new Date(lastProgress.progressDate).toISOString().split('T')[0]).toBe("2024-01-20");
+      expect(getDateInEST(new Date(lastProgress.progressDate))).toBe("2024-01-20");
       expect(lastProgress.currentPercentage).toBe(100);
     });
 

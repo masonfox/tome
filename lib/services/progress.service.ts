@@ -7,6 +7,7 @@ import {
   calculatePercentage,
   calculatePageFromPercentage
 } from "@/lib/utils/progress-calculations";
+import { getCurrentDateInUserTimezone } from "@/utils/dateHelpers";
 
 /**
  * Progress log data for creating new entries
@@ -170,7 +171,7 @@ export class ProgressService {
     const metrics = await this.calculateProgressMetrics(book, progressData, lastProgress);
 
     // Temporal validation: Check if progress is consistent with existing timeline
-    const requestedDate = progressDate || new Date();
+    const requestedDate = progressDate || await getCurrentDateInUserTimezone();
     const usePercentage = currentPercentage !== undefined;
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
 

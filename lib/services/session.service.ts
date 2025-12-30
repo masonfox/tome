@@ -60,6 +60,7 @@ interface MarkAsReadStrategyContext {
   updateStatus: (bookId: number, statusData: StatusUpdateData, tx?: any) => Promise<StatusUpdateResult>;
   invalidateCache: (bookId: number) => Promise<void>;
   findMostRecentCompletedSession: (bookId: number) => Promise<ReadingSession | null>;
+  getCurrentDateInUserTimezone: () => Promise<Date>;
   sessionRepository: typeof sessionRepository;
   logger: any; // Logger type
 }
@@ -91,6 +92,26 @@ type MarkAsReadStrategy = (
  * - Cache invalidation
  */
 export class SessionService {
+  /**
+   * Get the current date as midnight in user's timezone, converted to UTC.
+   * 
+   * Used for default date values when creating sessions or progress logs.
+   * Follows ADR-006 "The Right Way™" pattern.
+   * 
+   * @returns UTC Date representing midnight today in user's timezone
+   */
+  private async getCurrentDateInUserTimezone(): Promise<Date> {
+    try {
+      const { getCurrentDateInUserTimezone } = await import('@/utils/dateHelpers');
+      return await getCurrentDateInUserTimezone();
+    } catch (error) {
+      // Fallback to current UTC time if timezone conversion fails
+      const { getLogger } = require("@/lib/logger");
+      getLogger().warn({ err: error }, 'Failed to get current date in user timezone, using UTC');
+      return new Date();
+    }
+  }
+
   /**
    * Get the active reading session for a book
    * 
@@ -285,14 +306,14 @@ export class SessionService {
 
     // Set dates based on status
     if (status === "reading" && !readingSession?.startedDate) {
-      updateData.startedDate = startedDate || new Date();
+      updateData.startedDate = startedDate || await this.getCurrentDateInUserTimezone();
     }
 
     if (status === "read") {
       if (!updateData.startedDate && !readingSession?.startedDate) {
-        updateData.startedDate = startedDate || new Date();
+        updateData.startedDate = startedDate || await this.getCurrentDateInUserTimezone();
       }
-      updateData.completedDate = completedDate || new Date();
+      updateData.completedDate = completedDate || await this.getCurrentDateInUserTimezone();
       // Auto-archive session when marked as read
       updateData.isActive = false;
     }
@@ -356,7 +377,7 @@ export class SessionService {
       sessionNumber,
       status: "reading",
       isActive: true,
-      startedDate: new Date(),
+      startedDate: await this.getCurrentDateInUserTimezone(),
       userId: previousSession?.userId ?? null,
     });
 
@@ -655,7 +676,7 @@ export class SessionService {
     if (activeSession) {
       const updated = await sessionRepository.update(activeSession.id, {
         status: "read",
-        completedDate: completedDate || new Date(),
+        completedDate: completedDate || await context.getCurrentDateInUserTimezone(),
         isActive: false,
       } as any, tx);
       sessionId = updated?.id;
@@ -666,8 +687,8 @@ export class SessionService {
         sessionNumber: nextSessionNumber,
         status: "read",
         isActive: false,
-        startedDate: completedDate || new Date(),
-        completedDate: completedDate || new Date(),
+        startedDate: completedDate || await context.getCurrentDateInUserTimezone(),
+        completedDate: completedDate || await context.getCurrentDateInUserTimezone(),
       }, tx);
       sessionId = newSession.id;
     }
@@ -850,6 +871,7 @@ export class SessionService {
           updateStatus: this.updateStatus.bind(this),
           invalidateCache: this.invalidateCache.bind(this),
           findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
+          getCurrentDateInUserTimezone: this.getCurrentDateInUserTimezone.bind(this),
           sessionRepository,
           logger,
         };
