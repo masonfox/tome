@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (password === getAuthPassword()) {
-      return createAuthResponse();
+      return createAuthResponse(request);
     } else {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
