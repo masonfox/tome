@@ -65,7 +65,7 @@ function TagsPageContent() {
     if (selectedTagFromURL !== selectedTag) {
       setSelectedTag(selectedTagFromURL);
     }
-  }, [selectedTagFromURL]);
+  }, [selectedTagFromURL, selectedTag]);
 
   // Tag management hook
   const { tags, totalBooks, loading: tagsLoading, error: tagsError, refetch: refetchTags, renameTag, deleteTag, mergeTags } = useTagManagement();

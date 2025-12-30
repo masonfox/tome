@@ -4,6 +4,7 @@ import { bookRepository, progressRepository, sessionRepository } from "@/lib/rep
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, getTestSqlite } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { formatInTimeZone } from "date-fns-tz";
 
 /**
  * Progress API Tests
@@ -15,6 +16,14 @@ import type { NextRequest } from "next/server";
  * - Automatic status updates when book is completed
  * - Streak integration (real - runs with test database)
  */
+
+/**
+ * Helper function to get date in EST timezone (for test assertions)
+ * Extracts just the date part (YYYY-MM-DD) from a UTC timestamp stored in the database.
+ */
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
@@ -299,10 +308,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(response.status).toBe(200);
     expect(data.shouldShowCompletionModal).toBe(true);
 
-    // Check session status was NOT auto-updated (requires user confirmation now)
-    const session = await sessionRepository.findActiveByBookId(testBook.id);
-    expect(session!.status).toBe("reading"); // Still reading, not auto-completed
-    expect(session!.completedDate).toBeNull();
+    // Check session status WAS auto-updated to "read" (auto-completion)
+    const readSessions = await sessionRepository.findAllByBookId(testBook.id);
+    const completedSession = readSessions.find((s: any) => s.status === "read");
+    expect(completedSession).toBeDefined();
+    expect(completedSession!.completedDate).toBeDefined();
+    
+    // There should no longer be an active "reading" session
+    const activeSession = await sessionRepository.findActiveByBookId(testBook.id);
+    expect(activeSession).toBeUndefined();
   });
 
   test("returns completion flag when percentage reaches 100%", async () => {
@@ -317,11 +331,15 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     expect(response.status).toBe(200);
     expect(data.shouldShowCompletionModal).toBe(true);
 
-    // Check session status was NOT auto-updated
-    const session = await sessionRepository.findActiveByBookId(testBook.id);
-    expect(session).toBeDefined();
-    expect(session!.status).toBe("reading"); // Still reading, not auto-completed
-    expect(session!.completedDate).toBeNull();
+    // Check session status WAS auto-updated to "read" (auto-completion)
+    const readSessions = await sessionRepository.findAllByBookId(testBook.id);
+    const completedSession = readSessions.find((s: any) => s.status === "read");
+    expect(completedSession).toBeDefined();
+    expect(completedSession!.completedDate).toBeDefined();
+    
+    // There should no longer be an active "reading" session
+    const activeSession = await sessionRepository.findActiveByBookId(testBook.id);
+    expect(activeSession).toBeUndefined();
   });
 
   test("doesn't mark as complete for progress below 100%", async () => {
@@ -433,7 +451,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
   });
 
   test("stores progress date correctly", async () => {
-    const beforeTime = new Date();
+    const todayEST = formatInTimeZone(new Date(), "America/New_York", "yyyy-MM-dd");
 
     const request = createMockRequest("POST", "/api/books/123/progress", {
       currentPage: 100,
@@ -442,14 +460,11 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
 
     await POST(request as NextRequest, { params });
 
-    const afterTime = new Date();
-
     const logs = await progressRepository.findByBookId(testBook.id);
     const log = logs[0];
     expect(log!.progressDate).toBeDefined();
-    // SQLite stores timestamps as seconds, so allow 1 second variance
-    expect(log!.progressDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
-    expect(log!.progressDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
+    // Progress date should be today's date (midnight in user's timezone)
+    expect(getDateInEST(log!.progressDate)).toBe(todayEST);
   });
 
   test("preserves notes when provided", async () => {

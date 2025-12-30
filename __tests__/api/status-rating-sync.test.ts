@@ -20,7 +20,7 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
  * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
  * our code correctly attempts to sync ratings, without actually writing to disk.
- * 
+ *
  * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
@@ -29,9 +29,9 @@ mock.module("@/lib/services/calibre.service", () => ({
     updateRating: (calibreId: number, rating: number | null) => {
       calibreRatingCalls.push({ calibreId, rating });
     },
-    readRating: () => null,
-    updateTags: () => {},
-    readTags: () => [],
+    updateTags: mock(() => {}),
+    readRating: mock(() => null),
+    readTags: mock(() => []),
   },
   CalibreService: class {},
 }));
@@ -268,18 +268,5 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
     // Assert - Calibre sync was attempted
     expect(calibreSyncAttempted).toBe(true);
-
-    // Restore normal mock
-    mock.module("@/lib/services/calibre.service", () => ({
-      calibreService: {
-        updateRating: (calibreId: number, rating: number | null) => {
-          calibreRatingCalls.push({ calibreId, rating });
-        },
-        readRating: () => null,
-        updateTags: () => {},
-        readTags: () => [],
-      },
-      CalibreService: class {},
-    }));
   });
 });
