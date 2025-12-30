@@ -10,6 +10,7 @@ import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
 import { DeleteTagModal } from "@/components/TagManagement/DeleteTagModal";
 import { MergeTagsModal } from "@/components/TagManagement/MergeTagsModal";
 import { BulkDeleteTagsModal } from "@/components/TagManagement/BulkDeleteTagsModal";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { useTagManagement } from "@/hooks/useTagManagement";
 import { useTagBooks } from "@/hooks/useTagBooks";
 import { toast } from "@/utils/toast";
@@ -354,6 +355,9 @@ function TagsPageContent() {
           onConfirm={confirmBulkDelete}
           loading={bulkDeleteLoading}
         />
+
+        {/* Scroll to top button */}
+        <ScrollToTopButton />
     </div>
   );
 }
