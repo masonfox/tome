@@ -54,6 +54,7 @@ mock.module("@/lib/services/calibre.service", () => ({
 // Mock Calibre watcher to track suspend/resume calls
 let mockWatcherSuspendCalled = false;
 let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
 
 mock.module("@/lib/calibre-watcher", () => ({
   calibreWatcher: {
@@ -62,6 +63,10 @@ mock.module("@/lib/calibre-watcher", () => ({
     },
     resume: () => {
       mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
     },
     start: mock(() => {}),
     stop: mock(() => {}),
@@ -83,6 +88,7 @@ beforeEach(async () => {
   mockCalibreShouldFail = false;
   mockWatcherSuspendCalled = false;
   mockWatcherResumeCalled = false;
+  mockWatcherResumeIgnorePeriod = 0;
 });
 
 describe("POST /api/tags/merge", () => {
@@ -271,9 +277,10 @@ describe("POST /api/tags/merge", () => {
       });
       await POST(request as NextRequest);
 
-      // Assert: Watcher was suspended and resumed
+      // Assert: Watcher was suspended and resumed with ignore period
       expect(mockWatcherSuspendCalled).toBe(true);
       expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
   });
 
@@ -350,9 +357,9 @@ describe("POST /api/tags/merge", () => {
   });
 
   describe("Error Cases", () => {
-    test("should handle Calibre sync failure gracefully", async () => {
+    test("should fail when Calibre sync fails (fail fast)", async () => {
       // Arrange: Book and mock Calibre failure
-      await bookRepository.create(createTestBook({
+      const book = await bookRepository.create(createTestBook({
         calibreId: 60,
         title: "Sync Fail Book",
         authors: ["Author"],
@@ -367,12 +374,19 @@ describe("POST /api/tags/merge", () => {
         targetTag: "new-tag",
       });
       const response = await POST(request as NextRequest);
+      const data = await response.json();
 
-      // Assert: API should still succeed (best-effort sync)
-      expect(response.status).toBe(200);
+      // Assert: API should return 500 error
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("Failed to merge tags");
 
-      // Verify local database was updated (even though Calibre sync failed)
-      // Note: Since Calibre sync is best-effort, the local DB should still be updated
+      // Verify Tome DB unchanged
+      const unchangedBook = await bookRepository.findById(book.id);
+      expect(unchangedBook?.tags).toEqual(["old-tag"]);
+
+      // Verify watcher was still resumed with ignore period
+      expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
 
     test("should resume watcher even if merge fails", async () => {

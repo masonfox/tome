@@ -50,6 +50,7 @@ mock.module("@/lib/services/calibre.service", () => ({
 // Mock Calibre watcher to track suspend/resume calls
 let mockWatcherSuspendCalled = false;
 let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
 
 mock.module("@/lib/calibre-watcher", () => ({
   calibreWatcher: {
@@ -58,6 +59,10 @@ mock.module("@/lib/calibre-watcher", () => ({
     },
     resume: () => {
       mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
     },
     start: mock(() => {}),
     stop: mock(() => {}),
@@ -79,6 +84,7 @@ beforeEach(async () => {
   mockCalibreShouldFail = false;
   mockWatcherSuspendCalled = false;
   mockWatcherResumeCalled = false;
+  mockWatcherResumeIgnorePeriod = 0;
 });
 
 describe("BookService.getTagStats()", () => {
@@ -302,11 +308,14 @@ describe("BookService.renameTag()", () => {
 
     // Verify Calibre sync was called
     expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+    
+    // Verify watcher was resumed with ignore period
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
 
-  test("should handle Calibre sync failures gracefully", async () => {
+  test("should fail when Calibre sync fails (fail fast)", async () => {
     // Arrange: Book with tag to rename
-    await bookRepository.create(createTestBook({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book",
       tags: ["OldTag"],
@@ -315,11 +324,17 @@ describe("BookService.renameTag()", () => {
     // Set Calibre to fail
     mockCalibreShouldFail = true;
 
-    // Act: Should not throw even if Calibre sync fails
-    const result = await bookService.renameTag("OldTag", "NewTag");
+    // Act & Assert: Should throw when Calibre sync fails
+    await expect(bookService.renameTag("OldTag", "NewTag"))
+      .rejects.toThrow("Calibre database is unavailable");
 
-    // Assert: Database update succeeded
-    expect(result.booksUpdated).toBe(1);
+    // Verify Tome DB unchanged
+    const unchangedBook = await bookRepository.findById(book.id);
+    expect(unchangedBook?.tags).toEqual(["OldTag"]);
+    
+    // Verify watcher was still resumed with ignore period
+    expect(mockWatcherResumeCalled).toBe(true);
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
 });
 
@@ -366,6 +381,9 @@ describe("BookService.deleteTag()", () => {
 
     // Verify Calibre sync was called
     expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+    
+    // Verify watcher was resumed with ignore period
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
 
   test("should return 0 when tag doesn't exist", async () => {
@@ -386,9 +404,9 @@ describe("BookService.deleteTag()", () => {
     expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(0);
   });
 
-  test("should handle Calibre sync failures gracefully", async () => {
+  test("should fail when Calibre sync fails (fail fast)", async () => {
     // Arrange: Book with tag to delete
-    await bookRepository.create(createTestBook({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
       title: "Book",
       tags: ["DeleteMe"],
@@ -397,11 +415,17 @@ describe("BookService.deleteTag()", () => {
     // Set Calibre to fail
     mockCalibreShouldFail = true;
 
-    // Act: Should not throw even if Calibre sync fails
-    const result = await bookService.deleteTag("DeleteMe");
+    // Act & Assert: Should throw when Calibre sync fails
+    await expect(bookService.deleteTag("DeleteMe"))
+      .rejects.toThrow("Calibre database is unavailable");
 
-    // Assert: Database update succeeded
-    expect(result.booksUpdated).toBe(1);
+    // Verify Tome DB unchanged
+    const unchangedBook = await bookRepository.findById(book.id);
+    expect(unchangedBook?.tags).toEqual(["DeleteMe"]);
+    
+    // Verify watcher was still resumed with ignore period
+    expect(mockWatcherResumeCalled).toBe(true);
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
 });
 
@@ -475,22 +499,34 @@ describe("BookService.mergeTags()", () => {
     // Verify watcher was suspended and resumed
     expect(mockWatcherSuspendCalled).toBe(true);
     expect(mockWatcherResumeCalled).toBe(true);
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
 
     // Verify Calibre sync was called
     expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
   });
 
-  test("should ensure watcher is resumed even if merge fails", async () => {
-    // Arrange: Invalid scenario that might cause error
-    // Act: Call with empty database
-    try {
-      await bookService.mergeTags(["Tag1"], "Target");
-    } catch (error) {
-      // Ignore any errors
-    }
+  test("should fail when Calibre sync fails (fail fast)", async () => {
+    // Arrange: Book with tags to merge
+    const book = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Book",
+      tags: ["Tag1"],
+    }));
 
-    // Assert: Watcher should still be resumed
+    // Set Calibre to fail
+    mockCalibreShouldFail = true;
+
+    // Act & Assert: Should throw when Calibre sync fails
+    await expect(bookService.mergeTags(["Tag1"], "MergedTag"))
+      .rejects.toThrow("Calibre database is unavailable");
+
+    // Verify Tome DB unchanged
+    const unchangedBook = await bookRepository.findById(book.id);
+    expect(unchangedBook?.tags).toEqual(["Tag1"]);
+    
+    // Verify watcher was still resumed with ignore period
     expect(mockWatcherResumeCalled).toBe(true);
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
 });
 
@@ -544,36 +580,34 @@ describe("BookService.bulkDeleteTags()", () => {
     // Verify watcher was suspended and resumed
     expect(mockWatcherSuspendCalled).toBe(true);
     expect(mockWatcherResumeCalled).toBe(true);
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
 
     // Verify Calibre sync was called (once per tag)
     expect(mockBatchUpdateCalibreTags.mock.calls.length).toBeGreaterThan(0);
   });
 
-  test("should continue deleting other tags if one fails", async () => {
+  test("should fail when Calibre sync fails (fail fast)", async () => {
     // Arrange: Books with tags
-    await bookRepository.create(createTestBook({
+    const book = await bookRepository.create(createTestBook({
       calibreId: 1,
-      title: "Book 1",
-      tags: ["Delete1", "Delete2"],
+      title: "Book",
+      tags: ["Delete1"],
     }));
 
-    // Act: Try to delete including a non-existent tag
-    const result = await bookService.bulkDeleteTags(["NonExistent", "Delete1"]);
+    // Set Calibre to fail
+    mockCalibreShouldFail = true;
 
-    // Assert: Should still delete the tag that exists
-    expect(result.tagsDeleted).toBeGreaterThan(0);
-  });
+    // Act & Assert: Should throw when Calibre sync fails
+    await expect(bookService.bulkDeleteTags(["Delete1"]))
+      .rejects.toThrow("Calibre database is unavailable");
 
-  test("should ensure watcher is resumed even if deletion fails", async () => {
-    // Act: Call with non-existent tags
-    try {
-      await bookService.bulkDeleteTags(["NonExistent"]);
-    } catch (error) {
-      // Ignore any errors
-    }
-
-    // Assert: Watcher should still be resumed
+    // Verify Tome DB unchanged
+    const unchangedBook = await bookRepository.findById(book.id);
+    expect(unchangedBook?.tags).toEqual(["Delete1"]);
+    
+    // Verify watcher was still resumed with ignore period
     expect(mockWatcherResumeCalled).toBe(true);
+    expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
 });
 

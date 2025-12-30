@@ -45,6 +45,28 @@ mock.module("@/lib/services/calibre.service", () => ({
   CalibreService: class {},
 }));
 
+// Mock Calibre watcher to track suspend/resume calls
+let mockWatcherSuspendCalled = false;
+let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
+
+mock.module("@/lib/calibre-watcher", () => ({
+  calibreWatcher: {
+    suspend: () => {
+      mockWatcherSuspendCalled = true;
+    },
+    resume: () => {
+      mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
+    },
+    start: mock(() => {}),
+    stop: mock(() => {}),
+  },
+}));
+
 beforeAll(async () => {
   await setupTestDatabase(__filename);
 });
@@ -57,6 +79,9 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
   mockBatchUpdateCalibreTags.mockClear();
   mockCalibreShouldFail = false;
+  mockWatcherSuspendCalled = false;
+  mockWatcherResumeCalled = false;
+  mockWatcherResumeIgnorePeriod = 0;
 });
 
 describe("GET /api/tags/[tagName]", () => {
@@ -464,9 +489,9 @@ describe("PATCH /api/tags/[tagName]", () => {
       expect(syncCall).toHaveLength(2);
     });
 
-    test("should handle Calibre sync failure gracefully", async () => {
+    test("should fail when Calibre sync fails (fail fast)", async () => {
       // Arrange
-      await bookRepository.create(createTestBook({
+      const book = await bookRepository.create(createTestBook({
         calibreId: 1,
         title: "Book",
         authors: ["Author"],
@@ -480,13 +505,19 @@ describe("PATCH /api/tags/[tagName]", () => {
         newName: "new",
       });
       const response = await PATCH(request as NextRequest, { params: { tagName: "old" } });
+      const data = await response.json();
 
-      // Assert: Should still succeed (best-effort sync)
-      expect(response.status).toBe(200);
+      // Assert: Should return 500 error
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("Failed to rename tag");
 
-      // Verify local database still updated
-      const books = await bookRepository.findByTag("new", 10, 0);
-      expect(books.books).toHaveLength(1);
+      // Verify Tome DB unchanged
+      const unchangedBook = await bookRepository.findById(book.id);
+      expect(unchangedBook?.tags).toEqual(["old"]);
+      
+      // Verify watcher was still resumed with ignore period
+      expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
   });
 

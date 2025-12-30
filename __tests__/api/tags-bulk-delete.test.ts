@@ -54,6 +54,7 @@ mock.module("@/lib/services/calibre.service", () => ({
 // Mock Calibre watcher to track suspend/resume calls
 let mockWatcherSuspendCalled = false;
 let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
 
 mock.module("@/lib/calibre-watcher", () => ({
   calibreWatcher: {
@@ -62,6 +63,10 @@ mock.module("@/lib/calibre-watcher", () => ({
     },
     resume: () => {
       mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
     },
     start: mock(() => {}),
     stop: mock(() => {}),
@@ -83,6 +88,7 @@ beforeEach(async () => {
   mockCalibreShouldFail = false;
   mockWatcherSuspendCalled = false;
   mockWatcherResumeCalled = false;
+  mockWatcherResumeIgnorePeriod = 0;
 });
 
 describe("POST /api/tags/bulk-delete", () => {
@@ -209,9 +215,10 @@ describe("POST /api/tags/bulk-delete", () => {
       });
       await POST(request as NextRequest);
 
-      // Assert: Watcher was suspended and resumed
+      // Assert: Watcher was suspended and resumed with ignore period
       expect(mockWatcherSuspendCalled).toBe(true);
       expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
   });
 
@@ -271,7 +278,7 @@ describe("POST /api/tags/bulk-delete", () => {
   });
 
   describe("Error Cases", () => {
-    test("should handle Calibre sync failure gracefully", async () => {
+    test("should fail when Calibre sync fails (fail fast)", async () => {
       // Arrange: Book and mock Calibre failure
       const book = await bookRepository.create(createTestBook({
         calibreId: 40,
@@ -287,13 +294,19 @@ describe("POST /api/tags/bulk-delete", () => {
         tagNames: ["delete-me"],
       });
       const response = await POST(request as NextRequest);
+      const data = await response.json();
 
-      // Assert: API should still succeed (best-effort sync)
-      expect(response.status).toBe(200);
+      // Assert: API should return 500 error
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("Failed to delete tags");
 
-      // Verify local database was updated
-      const updatedBook = await bookRepository.findById(book.id);
-      expect(updatedBook?.tags).toEqual([]);
+      // Verify Tome DB unchanged
+      const unchangedBook = await bookRepository.findById(book.id);
+      expect(unchangedBook?.tags).toEqual(["delete-me"]);
+      
+      // Verify watcher was still resumed with ignore period
+      expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
 
     test("should resume watcher even on failure", async () => {
@@ -328,10 +341,10 @@ describe("POST /api/tags/bulk-delete", () => {
       const response = await POST(request as NextRequest);
       const data = await response.json();
 
-      // Assert: Success with zero updates
+      // Assert: Success with zero updates (tags don't exist)
       expect(response.status).toBe(200);
-      expect(data.tagsDeleted).toBe(2); // Both "processed"
-      expect(data.booksUpdated).toBe(0); // But no books updated
+      expect(data.tagsDeleted).toBe(0); // No tags found/deleted
+      expect(data.booksUpdated).toBe(0); // No books updated
     });
 
     test("should handle partial matches (some tags exist, some don't)", async () => {
