@@ -300,25 +300,38 @@ describe("Integration: Completion Flow", () => {
       isActive: true,
     }));
 
-    // Log to 100%
-    await progressService.logProgress(book.id, {
+    // Log to 100% - auto-completes the book
+    const result = await progressService.logProgress(book.id, {
       currentPage: 300,
       progressDate: new Date("2025-12-21"),
     });
 
-    // ACT: User dismisses completion modal, logs more progress
+    // ASSERT: Book is auto-completed
+    expect(result.shouldShowCompletionModal).toBe(true);
+    
+    // Session is now marked as "read" (auto-completed)
+    const completedSession = await sessionRepository.findById(session.id);
+    expect(completedSession?.status).toBe("read");
+    expect(completedSession?.completedDate).toBeDefined();
+    
+    // ACT: User wants to continue reading - they need to change status back to "reading"
+    // This creates a new reading session
+    await sessionRepository.create(createTestSession({
+      bookId: book.id,
+      sessionNumber: 2,
+      status: "reading",
+      isActive: true,
+    }));
+    
+    // Now they can log more progress
     const additionalResult = await progressService.logProgress(book.id, {
       currentPage: 300,
       notes: "Re-reading favorite chapter",
       progressDate: new Date("2025-12-22"),
     });
 
-    // ASSERT: Should allow additional progress
+    // ASSERT: Should allow additional progress in new session
     expect(additionalResult).toBeDefined();
-    
-    // Session should still be active (not auto-completed)
-    const activeSession = await sessionRepository.findById(session.id);
-    expect(activeSession?.status).toBe("reading");
-    expect(activeSession?.isActive).toBe(true);
+    expect(additionalResult.progressLog).toBeDefined();
   });
 });

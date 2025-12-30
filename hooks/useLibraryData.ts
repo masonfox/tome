@@ -65,7 +65,9 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
       return lastPage.skip + lastPage.limit;
     },
     initialPageParam: 0,
-    staleTime: 30000, // 30 seconds
+    // Refetch when data is stale on mount or window focus (e.g., back navigation)
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Flatten pages into a single books array

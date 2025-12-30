@@ -1,60 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bookRepository } from "@/lib/repositories";
+import { sessionService } from "@/lib/services";
 import { revalidatePath } from "next/cache";
-import { bookService } from "@/lib/services/book.service";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger().child({ api: "rating" });
 
 export const dynamic = 'force-dynamic';
 
 /**
- * POST /api/books/:id/rating
- * Update book rating in both Tome DB and Calibre DB
+ * Update book rating and/or review
  * 
- * Request Body:
- * {
- *   "rating": number | null  // 1-5 stars or null to remove
- * }
- * 
- * Responses:
- * - 200: Rating updated successfully (returns updated book)
- * - 400: Invalid rating value
- * - 404: Book not found
- * - 500: Update failed
+ * This endpoint is separate from the status endpoint to allow updating
+ * rating/review independently of the book's reading status.
  */
-export async function POST(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const bookId = parseInt(params.id);
-    
+
     if (isNaN(bookId)) {
-      return NextResponse.json(
-        { error: "Invalid book ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid book ID format" }, { status: 400 });
     }
-    
+
     const body = await request.json();
-    const { rating } = body;
-    
-    // Validate rating type and value
-    if (rating !== null && rating !== undefined) {
-      // Check if rating is a number
+    const { rating, review } = body;
+
+    // Validate rating if provided
+    if (rating !== undefined && rating !== null) {
+      // Type validation - must be a number
       if (typeof rating !== 'number') {
         return NextResponse.json(
           { error: "Rating must be a number between 1 and 5" },
           { status: 400 }
         );
       }
-      
-      // Check if rating is an integer
+
+      // Whole number validation
       if (!Number.isInteger(rating)) {
         return NextResponse.json(
-          { error: "Rating must be a whole number between 1 and 5" },
+          { error: "Rating must be a whole number" },
           { status: 400 }
         );
       }
-      
-      // Check range (will be checked again in service, but fail fast here)
+
+      // Range validation (1-5)
       if (rating < 1 || rating > 5) {
         return NextResponse.json(
           { error: "Rating must be between 1 and 5" },
@@ -62,38 +54,59 @@ export async function POST(
         );
       }
     }
-    
-    const updatedBook = await bookService.updateRating(bookId, rating ?? null);
-    
-    // Revalidate the dashboard to update book rating display (safe in test environments)
-    try {
-      revalidatePath('/');
-    } catch (error) {
-      // Ignore revalidation errors in test environments
-      // where Next.js static generation store is not available
+
+    // Verify book exists
+    const book = await bookRepository.findById(bookId);
+    if (!book) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
-    
+
+    // Build update data
+    const updateData: any = {};
+    if (rating !== undefined) {
+      updateData.rating = rating ?? null;
+    }
+    if (review !== undefined) {
+      updateData.review = review;
+    }
+
+    // If nothing to update, return the book as-is
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(book);
+    }
+
+    // Update rating using SessionService (handles Calibre sync)
+    if (rating !== undefined) {
+      await sessionService.updateBookRating(bookId, rating);
+      logger.info({ bookId, rating }, 'Updated rating via SessionService');
+    }
+
+    // Update review in database if provided
+    if (review !== undefined) {
+      // Get active session for the book
+      const activeSession = await sessionService.getActiveSession(bookId);
+      if (!activeSession) {
+        return NextResponse.json(
+          { error: "No active reading session found for this book" },
+          { status: 400 }
+        );
+      }
+      
+      await sessionService.updateSessionReview(activeSession.id, review);
+      logger.info({ bookId, sessionId: activeSession.id, hasReview: !!review }, 'Updated review');
+    }
+
+    // Invalidate cache
+    revalidatePath("/");
+    revalidatePath("/library");
+    revalidatePath("/stats");
+    revalidatePath(`/books/${bookId}`);
+
+    // Return the updated book
+    const updatedBook = await bookRepository.findById(bookId);
     return NextResponse.json(updatedBook);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
-    getLogger().error({ err: error }, "[Rating API] Error");
-    
-    // Handle specific errors
-    if (error instanceof Error) {
-      if (error.message.includes("not found")) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
-      }
-      if (error.message.includes("must be")) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-    }
-    
-    return NextResponse.json(
-      { 
-        error: "Failed to update rating",
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    logger.error({ err: error }, "Error updating rating/review");
+    return NextResponse.json({ error: "Failed to update rating/review" }, { status: 500 });
   }
 }

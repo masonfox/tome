@@ -3,9 +3,8 @@
 import { X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BookOpen } from "lucide-react";
-import { cn } from "@/utils/cn";
 import { RemoveTagFromBookModal } from "./RemoveTagFromBookModal";
 
 export interface Book {
@@ -19,8 +18,11 @@ interface TagDetailPanelProps {
   tagName: string | null;
   books: Book[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   totalBooks: number;
   onRemoveTag: (bookId: number) => void;
+  onLoadMore: () => void;
   onClose?: () => void; // For mobile back navigation
   confirmRemoval: boolean;
 }
@@ -117,11 +119,45 @@ export function TagDetailPanel({
   tagName,
   books,
   loading,
+  loadingMore,
+  hasMore,
   totalBooks,
   onRemoveTag,
+  onLoadMore,
   onClose,
   confirmRemoval,
 }: TagDetailPanelProps) {
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position when tag changes
+  useEffect(() => {
+    if (scrollContainerRef.current && tagName) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [tagName]);
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { 
+        threshold: 0.1,
+        rootMargin: '800px' // Start loading 800px before the trigger element comes into view
+      }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, loading, loadingMore]);
+
   if (!tagName) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -168,7 +204,7 @@ export function TagDetailPanel({
       </div>
 
       {/* Books grid */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
         {loading ? (
           <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -191,17 +227,30 @@ export function TagDetailPanel({
             </p>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {books.map((book) => (
-              <BookCardSimple
-                key={book.id}
-                book={book}
-                onRemove={() => onRemoveTag(book.id)}
-                confirmRemoval={confirmRemoval}
-                tagName={tagName || ""}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {books.map((book) => (
+                <BookCardSimple
+                  key={book.id}
+                  book={book}
+                  onRemove={() => onRemoveTag(book.id)}
+                  confirmRemoval={confirmRemoval}
+                  tagName={tagName || ""}
+                />
+              ))}
+            </div>
+
+            {/* Loading more indicator */}
+            {loadingMore && (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="w-6 h-6 text-[var(--accent)] animate-spin" />
+                <span className="ml-2 text-[var(--subheading-text)]">Loading more books...</span>
+              </div>
+            )}
+
+            {/* Infinite scroll trigger */}
+            <div ref={observerTarget} className="py-4" />
+          </>
         )}
       </div>
     </div>

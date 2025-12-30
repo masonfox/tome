@@ -2,7 +2,7 @@ import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import type { Book } from "@/hooks/useBookDetail";
-import { getTodayLocalDate } from "@/utils/dateFormatting";
+import { getTodayLocalDate } from '@/utils/dateHelpers';
 
 const originalFetch = global.fetch;
 const originalLocalStorage = global.localStorage;

@@ -10,6 +10,7 @@ import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
 import { DeleteTagModal } from "@/components/TagManagement/DeleteTagModal";
 import { MergeTagsModal } from "@/components/TagManagement/MergeTagsModal";
 import { BulkDeleteTagsModal } from "@/components/TagManagement/BulkDeleteTagsModal";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { useTagManagement } from "@/hooks/useTagManagement";
 import { useTagBooks } from "@/hooks/useTagBooks";
 import { toast } from "@/utils/toast";
@@ -17,11 +18,7 @@ import { toast } from "@/utils/toast";
 function TagsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedTagFromURL = searchParams?.get("tag");
-
-  const [selectedTag, setSelectedTag] = useState<string | null>(
-    selectedTagFromURL
-  );
+  const selectedTag = searchParams?.get("tag");
 
   // Modal states
   const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -60,13 +57,6 @@ function TagsPageContent() {
     }
   };
 
-  // Sync selected tag with URL
-  useEffect(() => {
-    if (selectedTagFromURL !== selectedTag) {
-      setSelectedTag(selectedTagFromURL);
-    }
-  }, [selectedTagFromURL]);
-
   // Tag management hook
   const { tags, totalBooks, loading: tagsLoading, error: tagsError, refetch: refetchTags, renameTag, deleteTag, mergeTags } = useTagManagement();
 
@@ -75,14 +65,16 @@ function TagsPageContent() {
     books,
     total: totalBooksInTag,
     loading: booksLoading,
+    loadingMore,
+    hasMore,
     error: booksError,
     refetch: refetchBooks,
+    loadMore,
     removeTagFromBook,
   } = useTagBooks(selectedTag);
 
   // Update URL when tag is selected
   const handleSelectTag = (tagName: string) => {
-    setSelectedTag(tagName);
     router.push(`/tags?tag=${encodeURIComponent(tagName)}`);
   };
 
@@ -106,9 +98,8 @@ function TagsPageContent() {
       await renameTag(tagToRename, newName);
       toast.success(`Tag renamed to "${newName}"`);
       
-      // Update selected tag if it was the renamed one
+      // Update URL if the renamed tag was selected
       if (selectedTag === tagToRename) {
-        setSelectedTag(newName);
         router.push(`/tags?tag=${encodeURIComponent(newName)}`);
       }
       setRenameModalOpen(false);
@@ -136,9 +127,8 @@ function TagsPageContent() {
       await deleteTag(tagToDelete.name);
       toast.success(`Tag "${tagToDelete.name}" deleted`);
       
-      // Clear selection if deleted tag was selected
+      // Clear URL if deleted tag was selected
       if (selectedTag === tagToDelete.name) {
-        setSelectedTag(null);
         router.push("/tags");
       }
       setDeleteModalOpen(false);
@@ -171,9 +161,8 @@ function TagsPageContent() {
         toast.success(`Merged ${mergeCount} tags into "${targetTag}"`);
       }
       
-      // Update selection if one of the source tags was selected
+      // Update URL if one of the source tags was selected
       if (selectedTag && tagsToMerge.includes(selectedTag)) {
-        setSelectedTag(targetTag);
         router.push(`/tags?tag=${encodeURIComponent(targetTag)}`);
       }
       setMergeModalOpen(false);
@@ -221,9 +210,8 @@ function TagsPageContent() {
         toast.success(`Deleted ${deleteCount} tags`);
       }
       
-      // Clear selection if deleted tag was selected
+      // Clear URL if deleted tag was selected
       if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
-        setSelectedTag(null);
         router.push("/tags");
       }
       setBulkDeleteModalOpen(false);
@@ -248,7 +236,6 @@ function TagsPageContent() {
 
   // Handle mobile back navigation
   const handleCloseDetail = () => {
-    setSelectedTag(null);
     router.push("/tags");
   };
 
@@ -277,9 +264,9 @@ function TagsPageContent() {
       )}
 
       {/* Main content: Master-detail layout */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 lg:h-[calc(100vh-280px)]">
         {/* Tag list (left panel on desktop, full width on mobile/tablet) */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 overflow-hidden flex flex-col">
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 lg:overflow-hidden flex flex-col">
             <TagList
               tags={tags}
               selectedTag={selectedTag}
@@ -298,8 +285,11 @@ function TagsPageContent() {
               tagName={selectedTag}
               books={books}
               loading={booksLoading}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
               totalBooks={totalBooksInTag}
               onRemoveTag={handleRemoveTagFromBook}
+              onLoadMore={loadMore}
               onClose={handleCloseDetail}
               confirmRemoval={confirmTagRemoval}
             />
@@ -314,8 +304,11 @@ function TagsPageContent() {
             tagName={selectedTag}
             books={books}
             loading={booksLoading}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
             totalBooks={totalBooksInTag}
             onRemoveTag={handleRemoveTagFromBook}
+            onLoadMore={loadMore}
             confirmRemoval={confirmTagRemoval}
           />
         </div>
@@ -354,6 +347,9 @@ function TagsPageContent() {
           onConfirm={confirmBulkDelete}
           loading={bulkDeleteLoading}
         />
+
+        {/* Scroll to top button */}
+        <ScrollToTopButton />
     </div>
   );
 }

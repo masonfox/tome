@@ -11,6 +11,7 @@ class CalibreWatcher {
   private syncCallback: SyncCallback | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
   private suspended: boolean = false;
+  private ignorePeriodEnd: number = 0; // Timestamp until which to ignore changes
 
   async start(calibreDbPath: string, onSync: SyncCallback) {
     const { getLogger } = require("@/lib/logger");
@@ -31,6 +32,7 @@ class CalibreWatcher {
 
       this.watcher = watch(calibreDbPath, async (eventType) => {
         if (eventType === "change") {
+          logger.info("[WATCHER] Calibre database change detected");
           if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
           }
@@ -39,12 +41,14 @@ class CalibreWatcher {
             try {
               const newStats = await stat(calibreDbPath);
               if (newStats.mtimeMs > this.lastModified) {
-                logger.info("Calibre database changed, triggering sync...");
+                logger.info("[WATCHER] Calibre database modified, triggering sync...");
                 this.lastModified = newStats.mtimeMs;
                 await this.triggerSync();
+              } else {
+                logger.info("[WATCHER] Calibre database change was not a modification, skipping sync");
               }
             } catch (error) {
-              logger.error({ err: error }, "Error checking Calibre database");
+              logger.error({ err: error }, "[WATCHER] Error checking Calibre database");
             }
           }, 2000);
         }
@@ -62,26 +66,33 @@ class CalibreWatcher {
     const logger = getLogger();
 
     if (this.suspended) {
-      logger.debug("Watcher is suspended, skipping sync");
+      logger.info("[WATCHER] Watcher is suspended, skipping sync");
+      return;
+    }
+
+    // Check if we're in the ignore period (self-inflicted change from recent write)
+    if (Date.now() < this.ignorePeriodEnd) {
+      logger.info("[WATCHER] Ignoring change (recent write operation, within ignore period)");
       return;
     }
 
     if (this.syncing) {
-      logger.debug("Sync already in progress, skipping");
+      logger.info("[WATCHER] Sync already in progress, skipping");
       return;
     }
 
     if (!this.syncCallback) {
-      logger.error("No sync callback registered");
+      logger.error("[WATCHER] No sync callback registered");
       return;
     }
 
     this.syncing = true;
+    logger.info("[WATCHER] Starting automatic sync from Calibre");
     try {
       await this.syncCallback();
-      logger.info("Automatic sync completed");
+      logger.info("[WATCHER] Automatic sync completed");
     } catch (error) {
-      logger.error({ err: error }, "Automatic sync failed");
+      logger.error({ err: error }, "[WATCHER] Automatic sync failed");
     } finally {
       this.syncing = false;
     }
@@ -92,7 +103,15 @@ class CalibreWatcher {
     const logger = getLogger();
     
     this.suspended = true;
-    logger.info("Calibre watcher suspended");
+    
+    // Clear any pending debounce timer to prevent queued syncs from running after resume
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+      logger.info("[WATCHER] Cleared pending debounce timer during suspend");
+    }
+    
+    logger.info("[WATCHER] Calibre watcher suspended");
   }
 
   resume() {
@@ -100,7 +119,24 @@ class CalibreWatcher {
     const logger = getLogger();
     
     this.suspended = false;
-    logger.info("Calibre watcher resumed");
+    logger.info("[WATCHER] Calibre watcher resumed");
+  }
+
+  /**
+   * Resume the watcher with an ignore period to prevent syncing self-inflicted changes
+   * 
+   * @param durationMs - Duration in milliseconds to ignore changes (default: 3000ms / 3 seconds)
+   */
+  resumeWithIgnorePeriod(durationMs: number = 3000) {
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+    
+    this.suspended = false;
+    this.ignorePeriodEnd = Date.now() + durationMs;
+    logger.info(
+      { durationMs, ignoreUntil: new Date(this.ignorePeriodEnd).toISOString() },
+      "[WATCHER] Calibre watcher resumed with ignore period"
+    );
   }
 
   stop() {

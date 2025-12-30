@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { X, Tag } from "lucide-react";
+import { X, Tag, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
@@ -20,8 +20,11 @@ interface TagDetailBottomSheetProps {
   tagName: string | null;
   books: Book[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   totalBooks: number;
   onRemoveTag: (bookId: number) => void;
+  onLoadMore: () => void;
   confirmRemoval: boolean;
 }
 
@@ -122,17 +125,31 @@ export function TagDetailBottomSheet({
   tagName,
   books,
   loading,
+  loadingMore,
+  hasMore,
   totalBooks,
   onRemoveTag,
+  onLoadMore,
   confirmRemoval,
 }: TagDetailBottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setIsClosing(false);
+      // Only reset isClosing if we're not in the middle of a close animation
+      if (!closingTimeoutRef.current) {
+        setIsClosing(false);
+      }
+      
+      // Reset scroll position when tag changes
+      if (contentRef.current) {
+        contentRef.current.scrollTop = 0;
+      }
       
       // Focus the close button when sheet opens
       requestAnimationFrame(() => {
@@ -144,14 +161,45 @@ export function TagDetailBottomSheet({
     
     return () => {
       document.body.style.overflow = "";
+      // Clean up any pending timeout
+      if (closingTimeoutRef.current) {
+        clearTimeout(closingTimeoutRef.current);
+      }
     };
-  }, [isOpen]);
+  }, [isOpen, tagName]);
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    if (!isOpen || !contentRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { 
+        root: contentRef.current,
+        threshold: 0.1,
+        rootMargin: '800px' // Start loading 800px before the trigger element comes into view
+      }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, loading, loadingMore, isOpen]);
 
   const handleClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
+    closingTimeoutRef.current = setTimeout(() => {
       onClose();
+      closingTimeoutRef.current = setTimeout(() => {
+        setIsClosing(false);
+        closingTimeoutRef.current = null;
+      }, 50);
     }, CLOSE_ANIMATION_MS);
   };
 
@@ -209,7 +257,10 @@ export function TagDetailBottomSheet({
         </div>
 
         {/* Content - scrollable */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8 custom-scrollbar">
+        <div 
+          ref={contentRef}
+          className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8 custom-scrollbar"
+        >
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -232,17 +283,30 @@ export function TagDetailBottomSheet({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {books.map((book) => (
-                <BookCardSimple
-                  key={book.id}
-                  book={book}
-                  onRemove={() => onRemoveTag(book.id)}
-                  confirmRemoval={confirmRemoval}
-                  tagName={tagName || ""}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {books.map((book) => (
+                  <BookCardSimple
+                    key={book.id}
+                    book={book}
+                    onRemove={() => onRemoveTag(book.id)}
+                    confirmRemoval={confirmRemoval}
+                    tagName={tagName || ""}
+                  />
+                ))}
+              </div>
+
+              {/* Loading more indicator */}
+              {loadingMore && (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="w-6 h-6 text-[var(--accent)] animate-spin" />
+                  <span className="ml-2 text-[var(--subheading-text)]">Loading more books...</span>
+                </div>
+              )}
+
+              {/* Infinite scroll trigger */}
+              <div ref={observerTarget} className="py-4" />
+            </>
           )}
         </div>
       </div>

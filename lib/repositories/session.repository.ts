@@ -16,8 +16,9 @@ export class SessionRepository extends BaseRepository<
   /**
    * Find active session for a book
    */
-  async findActiveByBookId(bookId: number): Promise<ReadingSession | undefined> {
-    return this.getDatabase()
+  async findActiveByBookId(bookId: number, tx?: any): Promise<ReadingSession | undefined> {
+    const database = tx || this.getDatabase();
+    return database
       .select()
       .from(readingSessions)
       .where(and(eq(readingSessions.bookId, bookId), eq(readingSessions.isActive, true)))
@@ -65,8 +66,9 @@ export class SessionRepository extends BaseRepository<
   /**
    * Find all sessions for a book, sorted by session number (descending)
    */
-  async findAllByBookId(bookId: number): Promise<ReadingSession[]> {
-    return this.getDatabase()
+  async findAllByBookId(bookId: number, tx?: any): Promise<ReadingSession[]> {
+    const database = tx || this.getDatabase();
+    return database
       .select()
       .from(readingSessions)
       .where(eq(readingSessions.bookId, bookId))
@@ -181,8 +183,9 @@ export class SessionRepository extends BaseRepository<
   /**
    * Find latest session for a book (highest session number)
    */
-  async findLatestByBookId(bookId: number): Promise<ReadingSession | undefined> {
-    return this.getDatabase()
+  async findLatestByBookId(bookId: number, tx?: any): Promise<ReadingSession | undefined> {
+    const database = tx || this.getDatabase();
+    return database
       .select()
       .from(readingSessions)
       .where(eq(readingSessions.bookId, bookId))
@@ -357,16 +360,17 @@ export class SessionRepository extends BaseRepository<
   /**
    * Get next session number for a book
    */
-  async getNextSessionNumber(bookId: number): Promise<number> {
-    const latest = await this.findLatestByBookId(bookId);
+  async getNextSessionNumber(bookId: number, tx?: any): Promise<number> {
+    const latest = await this.findLatestByBookId(bookId, tx);
     return latest ? latest.sessionNumber + 1 : 1;
   }
 
   /**
    * Check if book has any completed reads
    */
-  async hasCompletedReads(bookId: number): Promise<boolean> {
-    const result = this.getDatabase()
+  async hasCompletedReads(bookId: number, tx?: any): Promise<boolean> {
+    const database = tx || this.getDatabase();
+    const result = database
       .select({ count: sql<number>`count(*)` })
       .from(readingSessions)
       .where(

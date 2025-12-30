@@ -1,23 +1,36 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Book } from "@/lib/db/schema/books";
+
+const BOOKS_PER_PAGE = 50;
 
 export function useTagBooks(tagName: string | null) {
   const [books, setBooks] = useState<Book[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const skipRef = useRef(0);
 
-  const fetchBooks = useCallback(async () => {
+  // Calculate if there are more books to load
+  const hasMore = books.length < total;
+
+  // Fetch initial books when tag changes
+  const fetchInitialBooks = useCallback(async () => {
     if (!tagName) {
       setBooks([]);
       setTotal(0);
+      skipRef.current = 0;
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/tags/${encodeURIComponent(tagName)}`);
+      skipRef.current = 0;
+      
+      const response = await fetch(
+        `/api/tags/${encodeURIComponent(tagName)}?limit=${BOOKS_PER_PAGE}&skip=0`
+      );
       
       if (!response.ok) {
         throw new Error("Failed to fetch books");
@@ -26,6 +39,7 @@ export function useTagBooks(tagName: string | null) {
       const data = await response.json();
       setBooks(data.books || []);
       setTotal(data.total || 0);
+      skipRef.current = BOOKS_PER_PAGE;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch books");
       setBooks([]);
@@ -35,9 +49,39 @@ export function useTagBooks(tagName: string | null) {
     }
   }, [tagName]);
 
+  // Load more books for infinite scroll
+  const loadMore = useCallback(async () => {
+    if (!tagName || loadingMore || !hasMore) {
+      return;
+    }
+
+    try {
+      setLoadingMore(true);
+      setError(null);
+      
+      const response = await fetch(
+        `/api/tags/${encodeURIComponent(tagName)}?limit=${BOOKS_PER_PAGE}&skip=${skipRef.current}`
+      );
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch more books");
+      }
+
+      const data = await response.json();
+      setBooks(prev => [...prev, ...(data.books || [])]);
+      setTotal(data.total || 0);
+      skipRef.current += BOOKS_PER_PAGE;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch more books");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [tagName, loadingMore, hasMore]);
+
+  // Reset and fetch initial books when tag changes
   useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+    fetchInitialBooks();
+  }, [fetchInitialBooks]);
 
   const removeTagFromBook = useCallback(async (bookId: number) => {
     if (!tagName) return;
@@ -59,11 +103,11 @@ export function useTagBooks(tagName: string | null) {
       }
 
       // Refresh books after successful removal
-      await fetchBooks();
+      await fetchInitialBooks();
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to remove tag");
     }
-  }, [tagName, fetchBooks]);
+  }, [tagName, fetchInitialBooks]);
 
   const addTagToBooks = useCallback(async (bookIds: number[]) => {
     if (!tagName || bookIds.length === 0) return;
@@ -85,11 +129,11 @@ export function useTagBooks(tagName: string | null) {
       }
 
       // Refresh books after successful addition
-      await fetchBooks();
+      await fetchInitialBooks();
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to add tag");
     }
-  }, [tagName, fetchBooks]);
+  }, [tagName, fetchInitialBooks]);
 
   const bulkRemoveTag = useCallback(async (bookIds: number[]) => {
     if (!tagName || bookIds.length === 0) return;
@@ -111,21 +155,24 @@ export function useTagBooks(tagName: string | null) {
       }
 
       // Refresh books after successful bulk removal
-      await fetchBooks();
+      await fetchInitialBooks();
       
       const data = await response.json();
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to remove tag from books");
     }
-  }, [tagName, fetchBooks]);
+  }, [tagName, fetchInitialBooks]);
 
   return {
     books,
     total,
     loading,
+    loadingMore,
+    hasMore,
     error,
-    refetch: fetchBooks,
+    refetch: fetchInitialBooks,
+    loadMore,
     removeTagFromBook,
     addTagToBooks,
     bulkRemoveTag,

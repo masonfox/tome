@@ -229,11 +229,21 @@ export function updateCalibreTags(
     throw new Error("Tags must be an array");
   }
   
-  // Filter out empty/invalid tags and remove duplicates
+  // Filter out empty/invalid tags and remove duplicates (case-insensitive)
   const filteredTags = tags.filter(tag => 
     typeof tag === 'string' && tag.trim().length > 0
   ).map(tag => tag.trim());
-  const validTags = Array.from(new Set(filteredTags));
+  
+  // Deduplicate case-insensitively (preserve first occurrence)
+  const seen = new Set<string>();
+  const validTags: string[] = [];
+  for (const tag of filteredTags) {
+    const lowerTag = tag.toLowerCase();
+    if (!seen.has(lowerTag)) {
+      seen.add(lowerTag);
+      validTags.push(tag);
+    }
+  }
   
   try {
     // Step 1: Clear existing tag links for this book
@@ -250,10 +260,10 @@ export function updateCalibreTags(
     const tagIds: number[] = [];
     
     for (const tagName of validTags) {
-      // Check if tag exists
+      // Check if tag exists (case-insensitive since Calibre uses COLLATE NOCASE)
       let tagRecord = db.prepare(
-        "SELECT id FROM tags WHERE name = ?"
-      ).get(tagName) as { id: number } | undefined;
+        "SELECT id, name FROM tags WHERE name = ? COLLATE NOCASE"
+      ).get(tagName) as { id: number; name: string } | undefined;
       
       if (!tagRecord) {
         // Tag doesn't exist, create it
@@ -264,6 +274,11 @@ export function updateCalibreTags(
         const result = insertStmt.run(tagName);
         tagIds.push(Number(result.lastInsertRowid));
       } else {
+        // Tag exists - update the name if case has changed
+        if (tagRecord.name !== tagName) {
+          getLoggerSafe().info(`[Calibre] Updating tag case: "${tagRecord.name}" -> "${tagName}"`);
+          db.prepare("UPDATE tags SET name = ? WHERE id = ?").run(tagName, tagRecord.id);
+        }
         tagIds.push(tagRecord.id);
       }
     }
