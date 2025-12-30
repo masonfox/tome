@@ -75,8 +75,76 @@ describe("Authentication Utilities", () => {
   describe("getAuthCookieName", () => {
     test("should return the auth cookie name", async () => {
       const { getAuthCookieName } = await import("@/lib/auth");
-      
+
       expect(getAuthCookieName()).toBe("tome-auth");
+    });
+  });
+
+  describe("createAuthResponse", () => {
+    test("should set secure cookie for HTTPS requests", async () => {
+      const { createAuthResponse } = await import("@/lib/auth");
+
+      const mockRequest = {
+        url: "https://example.com/api/auth/login",
+        headers: new Map(),
+      } as any;
+      mockRequest.headers.get = () => null;
+
+      const response = createAuthResponse(mockRequest);
+      const setCookieHeader = response.headers.get("set-cookie");
+
+      expect(setCookieHeader).toContain("tome-auth=authenticated");
+      expect(setCookieHeader).toContain("Secure");
+    });
+
+    test("should not set secure cookie for HTTP requests", async () => {
+      const { createAuthResponse } = await import("@/lib/auth");
+
+      const mockRequest = {
+        url: "http://192.168.1.100:3000/api/auth/login",
+        headers: new Map(),
+      } as any;
+      mockRequest.headers.get = () => null;
+
+      const response = createAuthResponse(mockRequest);
+      const setCookieHeader = response.headers.get("set-cookie");
+
+      expect(setCookieHeader).toContain("tome-auth=authenticated");
+      expect(setCookieHeader).not.toContain("Secure");
+    });
+
+    test("should set secure cookie when x-forwarded-proto is https", async () => {
+      const { createAuthResponse } = await import("@/lib/auth");
+
+      const mockRequest = {
+        url: "http://internal-server:3000/api/auth/login",
+        headers: new Map([["x-forwarded-proto", "https"]]),
+      } as any;
+      mockRequest.headers.get = (key: string) =>
+        key === "x-forwarded-proto" ? "https" : null;
+
+      const response = createAuthResponse(mockRequest);
+      const setCookieHeader = response.headers.get("set-cookie");
+
+      expect(setCookieHeader).toContain("tome-auth=authenticated");
+      expect(setCookieHeader).toContain("Secure");
+    });
+
+    test("should not set secure cookie when x-forwarded-proto is http", async () => {
+      const { createAuthResponse } = await import("@/lib/auth");
+
+      const mockRequest = {
+        url: "http://internal-server:3000/api/auth/login",
+        headers: new Map([["x-forwarded-proto", "http"]]),
+      } as any;
+      mockRequest.headers.get = (key: string) =>
+        key === "x-forwarded-proto" ? "http" : null;
+
+      const response = createAuthResponse(mockRequest);
+      const setCookieHeader = response.headers.get("set-cookie");
+
+      expect(setCookieHeader).toContain("tome-auth=authenticated");
+      expect(setCookieHeader).not.toContain("Secure");
     });
   });
 });
