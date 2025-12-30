@@ -5,6 +5,15 @@ import { ProgressService } from "@/lib/services/progress.service";
 import { mockBook1, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
+import { formatInTimeZone } from "date-fns-tz";
+
+/**
+ * Helper function to get date in EST timezone (for test assertions)
+ * Extracts just the date part (YYYY-MM-DD) from a UTC timestamp stored in the database.
+ */
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 /**
  * Mock Rationale: Isolate progress service tests from streak calculation complexity.
@@ -289,14 +298,12 @@ describe("ProgressService", () => {
     });
 
     test("should use today's date as completion date for current 100% progress", async () => {
-      const beforeLogging = new Date();
+      const todayEST = formatInTimeZone(new Date(), "America/New_York", "yyyy-MM-dd");
       
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 100,
         // No progressDate provided, uses today
       });
-
-      const afterLogging = new Date();
 
       expect(result.shouldShowCompletionModal).toBe(true);
       
@@ -304,12 +311,8 @@ describe("ProgressService", () => {
       expect(updatedSession?.status).toBe("read");
       expect(updatedSession?.completedDate).not.toBeNull();
       
-      // Should be approximately the current time (allowing for database timestamp precision)
-      // Some databases store timestamps with second precision, losing milliseconds
-      const completedTime = updatedSession!.completedDate!.getTime();
-      const tolerance = 2000; // 2 seconds tolerance for timestamp precision
-      expect(completedTime).toBeGreaterThanOrEqual(beforeLogging.getTime() - tolerance);
-      expect(completedTime).toBeLessThanOrEqual(afterLogging.getTime() + tolerance);
+      // Should be today's date (midnight in user's timezone)
+      expect(getDateInEST(updatedSession!.completedDate!)).toBe(todayEST);
     });
 
     test("should auto-complete when logging 100% by page number", async () => {

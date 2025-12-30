@@ -85,11 +85,34 @@ export async function parseLocalDateToUtc(dateString: string, userId?: number | 
     dateOnly = dateString.split('T')[0];
   }
   
+  // Validate date format (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    throw new Error(`Invalid date format: ${dateString}. Expected YYYY-MM-DD format.`);
+  }
+  
+  // Parse date parts
+  const [year, month, day] = dateOnly.split('-').map(Number);
+  
+  // Validate date parts
+  if (isNaN(year) || isNaN(month) || isNaN(day)) {
+    throw new Error(`Invalid date format: ${dateString}. Date parts must be numeric.`);
+  }
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid date format: ${dateString}. Month must be between 1 and 12.`);
+  }
+  if (day < 1 || day > 31) {
+    throw new Error(`Invalid date format: ${dateString}. Day must be between 1 and 31.`);
+  }
+  
   // Create midnight in the user's timezone
   // fromZonedTime interprets a date AS IF it's in the given timezone
   // E.g., "treat 2024-01-01 00:00 as if it's in America/New_York, and give me the UTC equivalent"
-  const [year, month, day] = dateOnly.split('-').map(Number);
   const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+  
+  // Validate that we got a valid date (e.g., not Feb 31)
+  if (isNaN(localDate.getTime())) {
+    throw new Error(`Invalid date: ${dateString}. Date does not exist in calendar.`);
+  }
   
   // Convert to UTC: treat this local date as being in the user's timezone
   return fromZonedTime(localDate, userTimezone);

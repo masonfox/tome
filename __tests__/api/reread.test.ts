@@ -108,23 +108,26 @@ describe("POST /api/books/[id]/reread", () => {
        isActive: false, // Archived
      });
 
-     const beforeTime = new Date();
-     const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
-     const response = await POST(request, { params: { id: book.id.toString() } });
-     const data = await response.json();
-     const afterTime = new Date();
+      const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+      const response = await POST(request, { params: { id: book.id.toString() } });
+      const data = await response.json();
 
-     expect(response.status).toBe(200);
-     expect(data.session.status).toBe("reading");
-     expect(data.session.startedDate).toBeDefined();
+      expect(response.status).toBe(200);
+      expect(data.session.status).toBe("reading");
+      expect(data.session.startedDate).toBeDefined();
 
-     // startedDate is returned as an ISO string (Drizzle serializes Date objects)
-     expect(typeof data.session.startedDate).toBe("string");
-     const startedDate = new Date(data.session.startedDate);
-     // Allow 1 second tolerance for SQLite second precision
-     expect(startedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
-     expect(startedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
-   });
+      // startedDate is returned as an ISO string (Drizzle serializes Date objects)
+      expect(typeof data.session.startedDate).toBe("string");
+      const startedDate = new Date(data.session.startedDate);
+      
+      // After timezone changes, startedDate is midnight today in user's timezone (EST)
+      // Check it's today's date (not an exact timestamp)
+      const { formatInTimeZone } = require("date-fns-tz");
+      const dateInEST = formatInTimeZone(startedDate, "America/New_York", "yyyy-MM-dd");
+      const today = new Date();
+      const todayStr = formatInTimeZone(today, "America/New_York", "yyyy-MM-dd");
+      expect(dateInEST).toBe(todayStr);
+    });
 
   test("should preserve userId from previous session", async () => {
     const book = await bookRepository.create(mockBook1);

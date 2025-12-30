@@ -15,6 +15,15 @@ import {
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+
+/**
+ * Helper function to get date in EST timezone (for test assertions)
+ * Extracts just the date part (YYYY-MM-DD) from a UTC timestamp stored in the database.
+ */
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
@@ -354,20 +363,19 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   test("should set startedDate when moving to 'reading' status", async () => {
     const book = await bookRepository.create(mockBook1);
 
-    const beforeTime = new Date();
+    const todayEST = formatInTimeZone(new Date(), "America/New_York", "yyyy-MM-dd");
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
     });
     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
-    const afterTime = new Date();
 
     expect(response.status).toBe(200);
     expect(data.startedDate).toBeDefined();
 
+    // Started date should be today's date (midnight in user's timezone)
     const startedDate = new Date(data.startedDate);
-    expect(startedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
-    expect(startedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
+    expect(getDateInEST(startedDate)).toBe(todayEST);
   });
 
   test("should set completedDate when moving to 'read' status", async () => {
@@ -380,21 +388,20 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
       isActive: true,
     });
 
-    const beforeTime = new Date();
+    const todayEST = formatInTimeZone(new Date(), "America/New_York", "yyyy-MM-dd");
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read",
       rating: 4,
     });
     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
-    const afterTime = new Date();
 
     expect(response.status).toBe(200);
     expect(data.completedDate).toBeDefined();
 
+    // Completed date should be today's date (midnight in user's timezone)
     const completedDate = new Date(data.completedDate);
-    expect(completedDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime() - 1000);
-    expect(completedDate.getTime()).toBeLessThanOrEqual(afterTime.getTime() + 1000);
+    expect(getDateInEST(completedDate)).toBe(todayEST);
   });
 
   test("should accept custom startedDate", async () => {
