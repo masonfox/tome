@@ -45,6 +45,40 @@ export interface MarkAsReadResult {
 }
 
 /**
+ * Context data passed to mark-as-read strategies
+ */
+interface MarkAsReadStrategyContext {
+  bookId: number;
+  book: any; // Book type from repository
+  activeSession: ReadingSession | null;
+  has100Progress: boolean;
+  isAlreadyRead: boolean;
+  completedDate?: Date;
+  ensureReadingStatus: (bookId: number) => Promise<ReadingSession>;
+  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: Date) => Promise<void>;
+  updateStatus: (bookId: number, statusData: StatusUpdateData) => Promise<StatusUpdateResult>;
+  invalidateCache: (bookId: number) => Promise<void>;
+  findMostRecentCompletedSession: (bookId: number) => Promise<ReadingSession | null>;
+  sessionRepository: typeof sessionRepository;
+  logger: any; // Logger type
+}
+
+/**
+ * Result from executing a mark-as-read strategy
+ */
+interface MarkAsReadStrategyResult {
+  sessionId: number | undefined;
+  progressCreated: boolean;
+}
+
+/**
+ * Strategy function type for marking a book as read
+ */
+type MarkAsReadStrategy = (
+  context: MarkAsReadStrategyContext
+) => Promise<MarkAsReadStrategyResult>;
+
+/**
  * SessionService - Handles reading session lifecycle and status transitions
  * 
  * Responsibilities:
@@ -544,6 +578,142 @@ export class SessionService {
     return completedSessions[0];
   }
 
+  // ========== MARK AS READ STRATEGIES ==========
+
+  /**
+   * Strategy: Create 100% progress entry to mark book as read
+   * Used when: Book has totalPages but no 100% progress yet
+   */
+  private async createProgressStrategy(
+    context: MarkAsReadStrategyContext
+  ): Promise<MarkAsReadStrategyResult> {
+    const { bookId, book, activeSession, completedDate, logger } = context;
+
+    logger.info(
+      { bookId, reason: "has pages, no 100% progress" },
+      "Marking as read via progress creation"
+    );
+
+    await context.ensureReadingStatus(bookId);
+    await context.create100PercentProgress(bookId, book.totalPages!, completedDate);
+
+    return {
+      sessionId: activeSession?.id,
+      progressCreated: true,
+    };
+  }
+
+  /**
+   * Strategy: Direct status change to "read"
+   * Used when: Book has totalPages and already has 100% progress
+   */
+  private async directStatusChangeStrategy(
+    context: MarkAsReadStrategyContext
+  ): Promise<MarkAsReadStrategyResult> {
+    const { bookId, completedDate, logger } = context;
+
+    logger.info(
+      { bookId, reason: "has 100% progress" },
+      "Marking as read via direct status change"
+    );
+
+    const result = await context.updateStatus(bookId, {
+      status: "read",
+      completedDate: completedDate,
+    });
+
+    return {
+      sessionId: result.session.id,
+      progressCreated: false,
+    };
+  }
+
+  /**
+   * Strategy: Manual session update without pages
+   * Used when: Book has no totalPages (can't validate with progress)
+   */
+  private async manualSessionUpdateStrategy(
+    context: MarkAsReadStrategyContext
+  ): Promise<MarkAsReadStrategyResult> {
+    const { bookId, activeSession, completedDate, sessionRepository, logger, invalidateCache } = context;
+
+    logger.info(
+      { bookId, reason: "no totalPages" },
+      "Marking as read via session update (no pages)"
+    );
+
+    let sessionId: number | undefined;
+
+    if (activeSession) {
+      const updated = await sessionRepository.update(activeSession.id, {
+        status: "read",
+        completedDate: completedDate || new Date(),
+        isActive: false,
+      } as any);
+      sessionId = updated?.id;
+    } else {
+      const nextSessionNumber = await sessionRepository.getNextSessionNumber(bookId);
+      const newSession = await sessionRepository.create({
+        bookId,
+        sessionNumber: nextSessionNumber,
+        status: "read",
+        isActive: false,
+        startedDate: completedDate || new Date(),
+        completedDate: completedDate || new Date(),
+      });
+      sessionId = newSession.id;
+    }
+
+    await invalidateCache(bookId);
+
+    return {
+      sessionId,
+      progressCreated: false,
+    };
+  }
+
+  /**
+   * Strategy: Find archived session for already-read books
+   * Used when: Book is already marked as read (has completed reads, no active session)
+   */
+  private async alreadyReadStrategy(
+    context: MarkAsReadStrategyContext
+  ): Promise<MarkAsReadStrategyResult> {
+    const { bookId, logger, findMostRecentCompletedSession } = context;
+
+    logger.info({ bookId }, "Book already marked as read, finding archived session");
+
+    const completedSession = await findMostRecentCompletedSession(bookId);
+
+    return {
+      sessionId: completedSession?.id,
+      progressCreated: false,
+    };
+  }
+
+  /**
+   * Select the appropriate strategy for marking a book as read
+   */
+  private selectMarkAsReadStrategy(
+    book: any,
+    isAlreadyRead: boolean,
+    has100Progress: boolean
+  ): { strategy: MarkAsReadStrategy; name: string } {
+    if (isAlreadyRead) {
+      return { strategy: this.alreadyReadStrategy.bind(this), name: "AlreadyRead" };
+    }
+
+    if (book.totalPages && !has100Progress) {
+      return { strategy: this.createProgressStrategy.bind(this), name: "CreateProgress" };
+    }
+
+    if (book.totalPages && has100Progress) {
+      return { strategy: this.directStatusChangeStrategy.bind(this), name: "DirectStatusChange" };
+    }
+
+    return { strategy: this.manualSessionUpdateStrategy.bind(this), name: "ManualSessionUpdate" };
+  }
+
   /**
    * Unified orchestration for marking a book as "read"
    *
@@ -638,66 +808,32 @@ export class SessionService {
       has100Progress,
     }, "Book state analysis");
 
-    let sessionId = activeSession?.id;
-    let progressCreated = false;
+    // STRATEGY PATTERN: Select and execute appropriate strategy
+    const { strategy, name: strategyName } = this.selectMarkAsReadStrategy(
+      book,
+      isAlreadyRead,
+      has100Progress
+    );
 
-    // Step 1: Ensure book is marked as "read"
-    if (!isAlreadyRead) {
-      if (book.totalPages && !has100Progress) {
-        // Book has pages and no 100% progress yet
-        // Need to create 100% progress entry (which auto-completes to "read")
-        logger.info({ bookId, reason: "has pages, no 100% progress" }, "Marking as read via progress creation");
+    logger.info({ bookId, strategy: strategyName }, "Executing mark-as-read strategy");
 
-        await this.ensureReadingStatus(bookId);
-        await this.create100PercentProgress(bookId, book.totalPages, completedDate);
-        progressCreated = true;
+    const strategyContext: MarkAsReadStrategyContext = {
+      bookId,
+      book,
+      activeSession,
+      has100Progress,
+      isAlreadyRead,
+      completedDate,
+      ensureReadingStatus: this.ensureReadingStatus.bind(this),
+      create100PercentProgress: this.create100PercentProgress.bind(this),
+      updateStatus: this.updateStatus.bind(this),
+      invalidateCache: this.invalidateCache.bind(this),
+      findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
+      sessionRepository,
+      logger,
+    };
 
-        // Session ID is still valid - it gets archived during progress creation
-      } else if (book.totalPages && has100Progress) {
-        // Book has pages and already has 100% progress
-        // Change status directly to "read" via updateStatus
-        logger.info({ bookId, reason: "has 100% progress" }, "Marking as read via direct status change");
-
-        const result = await this.updateStatus(bookId, {
-          status: "read",
-          completedDate: completedDate,
-        });
-        sessionId = result.session.id;
-      } else {
-        // Book has no totalPages - need to handle manually to bypass validation
-        logger.info({ bookId, reason: "no totalPages" }, "Marking as read via session update (no pages)");
-
-        if (activeSession) {
-          // Update existing session to "read"
-          const updated = await sessionRepository.update(activeSession.id, {
-            status: "read",
-            completedDate: completedDate || new Date(),
-            isActive: false,
-          } as any);
-          sessionId = updated?.id;
-        } else {
-          // Create new session directly as "read"
-          const nextSessionNumber = await sessionRepository.getNextSessionNumber(bookId);
-          const newSession = await sessionRepository.create({
-            bookId,
-            sessionNumber: nextSessionNumber,
-            status: "read",
-            isActive: false,
-            startedDate: completedDate || new Date(),
-            completedDate: completedDate || new Date(),
-          });
-          sessionId = newSession.id;
-        }
-
-        // Invalidate cache manually since we bypassed updateStatus
-        await this.invalidateCache(bookId);
-      }
-    } else {
-      // Book is already read - need to find the archived session for review
-      logger.info({ bookId }, "Book already marked as read, finding archived session");
-      const completedSession = await this.findMostRecentCompletedSession(bookId);
-      sessionId = completedSession?.id;
-    }
+    const { sessionId, progressCreated } = await strategy(strategyContext);
 
     // Step 2: Update rating (best-effort)
     let ratingUpdated = false;
@@ -748,6 +884,7 @@ export class SessionService {
     logger.info({
       bookId,
       sessionId: finalSession.id,
+      strategy: strategyName,
       ratingUpdated,
       reviewUpdated,
       progressCreated,
