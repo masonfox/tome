@@ -613,21 +613,16 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
      * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
      * our code correctly attempts to sync ratings, without actually writing to disk.
      */
-    // Import the real class first to preserve it in the mock
-    const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
-
-    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-      syncOrchestrator: {
-        syncRating: async (calibreId: number, rating: number | null) => {
+    mock.module("@/lib/services/calibre.service", () => ({
+      calibreService: {
+        updateRating: (calibreId: number, rating: number | null) => {
           calibreRatingCalls.push({ calibreId, rating });
-          return {
-            success: true,
-            results: [{ service: "calibre", success: true }],
-            errors: [],
-          };
         },
+        readRating: () => null,
+        updateTags: () => {},
+        readTags: () => [],
       },
-      SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
+      CalibreService: class {},
     }));
   });
   

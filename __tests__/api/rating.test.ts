@@ -24,39 +24,29 @@ import type { NextRequest } from "next/server";
 
 /**
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
- * We mock sync operations to: (1) verify our code attempts to sync ratings,
+ * We mock Calibre write operations to: (1) verify our code attempts to sync ratings,
  * and (2) simulate error conditions (e.g., Calibre database unavailable) to test
  * our error handling without requiring actual file system failures.
  *
- * ARCHITECTURE UPDATE: Now using SyncOrchestrator which centralizes external service sync.
+ * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
+ * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
 let mockUpdateCalibreRating = mock(() => {});
 let mockCalibreShouldFail = false;
 
-// Mock the SyncOrchestrator
-// Import the real class first to preserve it in the mock
-const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
-
-mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-  syncOrchestrator: {
-    syncRating: async (calibreId: number, rating: number | null) => {
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
       if (mockCalibreShouldFail) {
-        mockUpdateCalibreRating(calibreId, rating);
-        return {
-          success: false,
-          results: [{ service: "calibre", success: false, error: new Error("Calibre database is unavailable") }],
-          errors: [new Error("Calibre database is unavailable")],
-        };
+        throw new Error("Calibre database is unavailable");
       }
       mockUpdateCalibreRating(calibreId, rating);
-      return {
-        success: true,
-        results: [{ service: "calibre", success: true }],
-        errors: [],
-      };
     },
+    updateTags: mock(() => {}),
+    readRating: mock(() => null),
+    readTags: mock(() => []),
   },
-  SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
+  CalibreService: class {},
 }));
 
 // Mock Next.js revalidatePath - not available in test environment

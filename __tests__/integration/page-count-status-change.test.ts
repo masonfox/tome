@@ -35,23 +35,19 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
  * our code correctly attempts to sync ratings, without actually writing to disk.
  *
- * ARCHITECTURE UPDATE: Now using SyncOrchestrator which centralizes external service sync.
+ * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
+ * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
-// Import the real class first to preserve it in the mock
-const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
-
-mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-  syncOrchestrator: {
-    syncRating: async (calibreId: number, rating: number | null) => {
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
       calibreRatingCalls.push({ calibreId, rating });
-      return {
-        success: true,
-        results: [{ service: "calibre", success: true }],
-        errors: [],
-      };
     },
+    updateTags: mock(() => {}),
+    readRating: mock(() => null),
+    readTags: mock(() => []),
   },
-  SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
+  CalibreService: class {},
 }));
 
 // IMPORTANT: Import route handlers AFTER mocks are set up

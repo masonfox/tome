@@ -1,7 +1,7 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import { rebuildStreak } from "@/lib/streaks";
-import { syncOrchestrator } from "@/lib/services/integrations/sync-orchestrator";
+import { calibreService } from "@/lib/services/calibre.service";
 import { progressService } from "@/lib/services/progress.service";
 
 /**
@@ -452,20 +452,13 @@ export class SessionService {
       throw new Error("Book not found");
     }
 
-    // Sync to external services (best effort - failures won't block database update)
-    const syncResult = await syncOrchestrator.syncRating(book.calibreId, rating);
-
-    if (syncResult.success) {
-      logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to all external services");
-    } else {
-      logger.warn(
-        {
-          bookId,
-          calibreId: book.calibreId,
-          failedServices: syncResult.results.filter(r => !r.success).map(r => r.service)
-        },
-        `Rating sync completed with ${syncResult.errors.length} failure(s)`
-      );
+    try {
+      // Sync to Calibre first (best effort)
+      calibreService.updateRating(book.calibreId, rating);
+      logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to Calibre");
+    } catch (calibreError) {
+      // Log error but continue with Tome database update
+      logger.error({ err: calibreError, bookId }, "Failed to sync rating to Calibre");
     }
 
     // Update Tome database (single source of truth)
