@@ -59,7 +59,7 @@ interface MarkAsReadStrategyContext {
   create100PercentProgress: (bookId: number, totalPages: number, completedDate?: Date, tx?: any) => Promise<void>;
   updateStatus: (bookId: number, statusData: StatusUpdateData, tx?: any) => Promise<StatusUpdateResult>;
   invalidateCache: (bookId: number) => Promise<void>;
-  findMostRecentCompletedSession: (bookId: number) => Promise<ReadingSession | null>;
+  findMostRecentCompletedSession: (bookId: number, tx?: any) => Promise<ReadingSession | null>;
   getCurrentDateInUserTimezone: () => Promise<Date>;
   sessionRepository: typeof sessionRepository;
   logger: any; // Logger type
@@ -585,8 +585,8 @@ export class SessionService {
    *   await sessionService.updateSessionReview(session.id, "Amazing!");
    * }
    */
-  async findMostRecentCompletedSession(bookId: number): Promise<ReadingSession | null> {
-    const sessions = await sessionRepository.findAllByBookId(bookId);
+  async findMostRecentCompletedSession(bookId: number, tx?: any): Promise<ReadingSession | null> {
+    const sessions = await sessionRepository.findAllByBookId(bookId, tx);
 
     // Filter for completed sessions (status = "read", isActive = false)
     const completedSessions = sessions.filter(
@@ -707,15 +707,16 @@ export class SessionService {
   /**
    * Strategy: Find archived session for already-read books
    * Used when: Book is already marked as read (has completed reads, no active session)
+   * NOTE: This is a read-only operation executed without a transaction.
    */
   private async alreadyReadStrategy(
     context: MarkAsReadStrategyContext
   ): Promise<MarkAsReadStrategyResult> {
-    const { bookId, logger, findMostRecentCompletedSession } = context;
+    const { bookId, logger, findMostRecentCompletedSession, tx } = context;
 
     logger.info({ bookId }, "Book already marked as read, finding archived session");
 
-    const completedSession = await findMostRecentCompletedSession(bookId);
+    const completedSession = await findMostRecentCompletedSession(bookId, tx);
 
     return {
       sessionId: completedSession?.id,
@@ -849,48 +850,45 @@ export class SessionService {
 
     logger.info({ bookId, strategy: strategyName }, "Executing mark-as-read strategy");
 
-    // CRITICAL SECTION: Execute strategy within transaction
-    const { getDatabase } = await import("@/lib/db/context");
-    const db = getDatabase();
-
     let sessionId: number | undefined;
     let progressCreated: boolean;
 
+    // Execute strategy without transaction
+    // For a single-user book tracking app, transactions add unnecessary complexity
+    // Operations are simple and local - if they fail, user can retry
     try {
-      const result = await db.transaction((tx) => {
-        const strategyContext: MarkAsReadStrategyContext = {
-          bookId,
-          book,
-          activeSession,
-          has100Progress,
-          isAlreadyRead,
-          completedDate,
-          tx, // Pass transaction context
-          ensureReadingStatus: this.ensureReadingStatus.bind(this),
-          create100PercentProgress: this.create100PercentProgress.bind(this),
-          updateStatus: this.updateStatus.bind(this),
-          invalidateCache: this.invalidateCache.bind(this),
-          findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
-          getCurrentDateInUserTimezone: this.getCurrentDateInUserTimezone.bind(this),
-          sessionRepository,
-          logger,
-        };
+      const strategyContext: MarkAsReadStrategyContext = {
+        bookId,
+        book,
+        activeSession,
+        has100Progress,
+        isAlreadyRead,
+        completedDate,
+        // No tx parameter - methods will use getDatabase() directly
+        ensureReadingStatus: this.ensureReadingStatus.bind(this),
+        create100PercentProgress: this.create100PercentProgress.bind(this),
+        updateStatus: this.updateStatus.bind(this),
+        invalidateCache: this.invalidateCache.bind(this),
+        findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
+        getCurrentDateInUserTimezone: this.getCurrentDateInUserTimezone.bind(this),
+        sessionRepository,
+        logger,
+      };
 
-        return strategy(strategyContext);
-      });
+      const result = await strategy(strategyContext);
 
       sessionId = result.sessionId;
       progressCreated = result.progressCreated;
 
       logger.info({ bookId, sessionId, strategy: strategyName },
-        "Transaction committed successfully");
+        "Strategy executed successfully");
     } catch (error) {
       logger.error({ err: error, bookId, strategy: strategyName },
-        "Transaction failed, rolling back");
+        "Strategy execution failed");
       throw error;
     }
 
-    // POST-TRANSACTION: Best-effort operations
+    // POST-STRATEGY: Best-effort operations
     // Rebuild streak to ensure consistency
     try {
       await this.updateStreakSystem();
