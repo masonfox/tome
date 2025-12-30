@@ -1,43 +1,11 @@
-import { describe, expect, test, beforeEach, afterAll, mock } from "bun:test";
+// Import shared mock setup (must be first to properly mock modules)
+import "./setup";
+
+import { describe, expect, test, beforeEach, afterAll } from "bun:test";
 import { SessionService } from "@/lib/services/session.service";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { setupTestDatabase, clearTestDatabase, teardownTestDatabase } from "../helpers/db-setup";
-import { createTestBook } from "../fixtures/test-data";
-
-// Mock external dependencies
-mock.module("@/lib/streaks", () => ({
-  rebuildStreak: mock(() => Promise.resolve()),
-}));
-
-mock.module("next/cache", () => ({
-  revalidatePath: mock(() => {}),
-}));
-
-mock.module("@/lib/services/calibre.service", () => ({
-  calibreService: {
-    updateRating: mock(() => {}),
-  },
-}));
-
-mock.module("@/lib/services/progress.service", () => ({
-  progressService: {
-    logProgress: mock(async (bookId: number, data: any) => {
-      return {
-        progressLog: {
-          id: 1,
-          bookId,
-          sessionId: 1,
-          currentPage: data.currentPage,
-          currentPercentage: data.currentPercentage,
-          progressDate: data.progressDate || new Date(),
-          notes: data.notes,
-          pagesRead: data.currentPage,
-        },
-        shouldShowCompletionModal: data.currentPercentage >= 100,
-      };
-    }),
-  },
-}));
+import { setupTestDatabase, clearTestDatabase, teardownTestDatabase } from "../../helpers/db-setup";
+import { createTestBook } from "../../fixtures/test-data";
 
 let instance: any;
 
