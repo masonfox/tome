@@ -23,7 +23,7 @@ import BookProgress from "@/components/BookDetail/BookProgress";
 import Journal from "@/components/BookDetail/Journal";
 import SessionDetails from "@/components/BookDetail/SessionDetails";
 import { useBookDetail } from "@/hooks/useBookDetail";
-import { useBookStatus } from "@/hooks/useBookStatus";
+import { useBookStatus, invalidateBookQueries } from "@/hooks/useBookStatus";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
@@ -236,11 +236,9 @@ export default function BookDetailPage() {
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
-    
-    // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-    await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+
+    // Use shared invalidation helper to ensure consistency across all code paths
+    invalidateBookQueries(queryClient, bookId);
   }
   
   function handlePageCountModalClose() {

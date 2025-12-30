@@ -4,6 +4,7 @@ import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { bookApi, ApiError } from "@/lib/api";
+import { libraryService } from "@/lib/library-service";
 
 interface ProgressEntry {
   id: number;
@@ -35,13 +36,17 @@ function requiresArchiveConfirmation(
 
 /**
  * Invalidates all queries related to a book
+ * Exported to allow reuse in components that make direct API calls
  */
-function invalidateBookQueries(queryClient: any, bookId: string): void {
+export function invalidateBookQueries(queryClient: any, bookId: string): void {
   queryClient.invalidateQueries({ queryKey: ['book', bookId] });
   queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
   queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
   queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   queryClient.invalidateQueries({ queryKey: ['library-books'] });
+
+  // Clear entire LibraryService cache to ensure status changes reflect across all filters
+  libraryService.clearCache();
 }
 
 export interface CompleteBookData {
