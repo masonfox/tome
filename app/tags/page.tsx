@@ -277,9 +277,9 @@ function TagsPageContent() {
       )}
 
       {/* Main content: Master-detail layout */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 h-[calc(100vh-280px)]">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 lg:h-[calc(100vh-280px)]">
         {/* Tag list (left panel on desktop, full width on mobile/tablet) */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 overflow-hidden flex flex-col">
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 lg:overflow-hidden flex flex-col">
             <TagList
               tags={tags}
               selectedTag={selectedTag}
