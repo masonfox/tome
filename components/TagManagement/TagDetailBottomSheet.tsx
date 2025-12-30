@@ -128,11 +128,15 @@ export function TagDetailBottomSheet({
 }: TagDetailBottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setIsClosing(false);
+      // Only reset isClosing if we're not in the middle of a close animation
+      if (!closingTimeoutRef.current) {
+        setIsClosing(false);
+      }
       
       // Focus the close button when sheet opens
       requestAnimationFrame(() => {
@@ -144,14 +148,21 @@ export function TagDetailBottomSheet({
     
     return () => {
       document.body.style.overflow = "";
+      // Clean up any pending timeout
+      if (closingTimeoutRef.current) {
+        clearTimeout(closingTimeoutRef.current);
+      }
     };
   }, [isOpen]);
 
   const handleClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
+    closingTimeoutRef.current = setTimeout(() => {
       onClose();
+      closingTimeoutRef.current = setTimeout(() => {
+        setIsClosing(false);
+        closingTimeoutRef.current = null;
+      }, 50);
     }, CLOSE_ANIMATION_MS);
   };
 
