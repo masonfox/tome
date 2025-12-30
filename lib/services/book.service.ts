@@ -403,12 +403,116 @@ export class BookService {
   }
 
   /**
+   * Merge multiple source tags into a target tag and sync to Calibre
+   * 
+   * Uses Write-Through Cache pattern: Write to Calibre FIRST (source of truth),
+   * then update Tome to match. This prevents race conditions where the watcher
+   * might sync stale data back from Calibre.
+   * 
+   * @param sourceTags - Array of tag names to merge from
+   * @param targetTag - The tag name to merge into
+   * @returns Promise resolving to object with number of books updated
+   * @throws {Error} If tag merge fails (including Calibre write failure)
+   */
+  async mergeTags(sourceTags: string[], targetTag: string): Promise<{ booksUpdated: number }> {
+    // Validate inputs
+    if (!Array.isArray(sourceTags) || sourceTags.length === 0) {
+      throw new Error("Source tags must be a non-empty array");
+    }
+
+    if (!targetTag) {
+      throw new Error("Target tag cannot be empty");
+    }
+
+    const { getLogger } = require("@/lib/logger");
+    const logger = getLogger();
+
+    logger.info({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
+
+    // Suspend the Calibre watcher during merge to prevent interference
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    calibreWatcher.suspend();
+    logger.info("[MERGE] Calibre watcher suspended");
+    
+    try {
+      // STEP 1: Get affected books BEFORE making any changes (fetch books with any of the source tags)
+      logger.info({ sourceTags }, "[MERGE] Finding books with source tags");
+      const affectedBooksMap = new Map<number, Book>();
+      
+      for (const sourceTag of sourceTags) {
+        const result = await bookRepository.findByTag(sourceTag, 1000, 0);
+        for (const book of result.books) {
+          affectedBooksMap.set(book.id, book);
+        }
+      }
+      
+      const affectedBooks = Array.from(affectedBooksMap.values());
+      logger.info({ bookCount: affectedBooks.length, sourceTags }, "[MERGE] Found books to update");
+
+      if (affectedBooks.length === 0) {
+        logger.info({ sourceTags }, "[MERGE] No books found with source tags, nothing to merge");
+        return { booksUpdated: 0 };
+      }
+
+      // STEP 2: Calculate new tags for each book (merge logic)
+      const calibreUpdates = affectedBooks.map(book => {
+        const currentTags = book.tags || [];
+        // Remove source tags and add target tag
+        let newTags = currentTags.filter(tag => !sourceTags.includes(tag));
+        // Add target tag if not already present (deduplication)
+        if (!newTags.includes(targetTag)) {
+          newTags.push(targetTag);
+        }
+        return {
+          calibreId: book.calibreId,
+          tags: newTags
+        };
+      });
+
+      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      logger.info({ bookCount: calibreUpdates.length }, "[MERGE] Writing merged tags to Calibre (source of truth)");
+      try {
+        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
+        
+        if (successCount !== calibreUpdates.length) {
+          throw new Error(
+            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
+            `Aborting to maintain consistency.`
+          );
+        }
+        
+        logger.info({ successCount }, "[MERGE] Successfully wrote merged tags to Calibre");
+      } catch (error) {
+        logger.error({ err: error, sourceTags, targetTag }, "[MERGE] FAILED to write to Calibre - aborting operation");
+        throw new Error(`Failed to merge tags in Calibre: ${error instanceof Error ? error.message : error}`);
+      }
+
+      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      logger.info({ sourceTags, targetTag }, "[MERGE] Updating Tome database to match Calibre");
+      const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
+      logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Updated Tome database");
+
+      logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Tag merge completed successfully");
+
+      return { booksUpdated };
+    } finally {
+      // Resume with ignore period to prevent watcher from re-syncing our own changes
+      calibreWatcher.resumeWithIgnorePeriod(3000);
+      logger.info("[MERGE] Calibre watcher resumed with 3s ignore period");
+    }
+  }
+
+  /**
    * Rename a tag across all books and sync to Calibre
+   * 
+   * Uses Write-Through Cache pattern: Write to Calibre FIRST (source of truth),
+   * then update Tome to match. This prevents race conditions where the watcher
+   * might sync stale data back from Calibre.
    * 
    * @param oldName - The current tag name
    * @param newName - The new tag name
    * @returns Promise resolving to object with number of books updated
-   * @throws {Error} If tag rename fails
+   * @throws {Error} If tag rename fails (including Calibre write failure)
    */
   async renameTag(oldName: string, newName: string): Promise<{ booksUpdated: number }> {
     // Validate inputs
@@ -431,37 +535,57 @@ export class BookService {
     logger.info("[RENAME] Calibre watcher suspended");
     
     try {
-      // Rename in Tome database
-      logger.info({ oldName, newName }, "[RENAME] About to rename in Tome database");
-      const booksUpdated = await bookRepository.renameTag(oldName, newName);
-      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Renamed in Tome database");
+      // STEP 1: Get affected books BEFORE making any changes
+      logger.info({ oldName }, "[RENAME] Finding books with old tag name");
+      const booksWithTag = await bookRepository.findByTag(oldName, 1000, 0);
+      logger.info({ bookCount: booksWithTag.books.length }, "[RENAME] Found books to update");
 
-      // Batch sync to Calibre for all affected books (best effort)
-      try {
-        logger.info({ newName, expectedCount: booksUpdated }, "[RENAME] Fetching books with new tag name");
-        const booksWithTag = await bookRepository.findByTag(newName, booksUpdated, 0);
-        logger.info({ bookCount: booksWithTag.books.length }, "[RENAME] Found books with new tag");
-        
-        // Prepare batch update data
-        const updates = booksWithTag.books.map(book => ({
-          calibreId: book.calibreId,
-          tags: book.tags
-        }));
-
-        logger.info({ updateCount: updates.length }, "[RENAME] Syncing to Calibre");
-        await this.batchSyncTagsToCalibre(updates);
-        logger.info("[RENAME] Calibre sync completed");
-      } catch (error) {
-        logger.error({ err: error, oldName, newName }, "[RENAME] Failed to sync renamed tags to Calibre");
+      if (booksWithTag.books.length === 0) {
+        logger.info({ oldName }, "[RENAME] No books found with old tag, nothing to rename");
+        return { booksUpdated: 0 };
       }
 
-      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Tag rename operation completed");
+      // STEP 2: Calculate new tags for each book (rename logic)
+      const calibreUpdates = booksWithTag.books.map(book => {
+        const currentTags = book.tags || [];
+        // Replace old tag with new tag
+        const newTags = currentTags.map(tag => tag === oldName ? newName : tag);
+        return {
+          calibreId: book.calibreId,
+          tags: newTags
+        };
+      });
+
+      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      logger.info({ bookCount: calibreUpdates.length }, "[RENAME] Writing renamed tags to Calibre (source of truth)");
+      try {
+        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
+        
+        if (successCount !== calibreUpdates.length) {
+          throw new Error(
+            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
+            `Aborting to maintain consistency.`
+          );
+        }
+        
+        logger.info({ successCount }, "[RENAME] Successfully wrote renamed tags to Calibre");
+      } catch (error) {
+        logger.error({ err: error, oldName, newName }, "[RENAME] FAILED to write to Calibre - aborting operation");
+        throw new Error(`Failed to rename tag in Calibre: ${error instanceof Error ? error.message : error}`);
+      }
+
+      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      logger.info({ oldName, newName }, "[RENAME] Updating Tome database to match Calibre");
+      const booksUpdated = await bookRepository.renameTag(oldName, newName);
+      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Updated Tome database");
+
+      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Tag rename completed successfully");
 
       return { booksUpdated };
     } finally {
-      // Always resume the watcher, even if there was an error
-      calibreWatcher.resume();
-      logger.info("[RENAME] Calibre watcher resumed");
+      // Resume with ignore period to prevent watcher from re-syncing our own changes
+      calibreWatcher.resumeWithIgnorePeriod(3000);
+      logger.info("[RENAME] Calibre watcher resumed with 3s ignore period");
     }
   }
 
@@ -469,9 +593,13 @@ export class BookService {
   /**
    * Delete a tag from all books and sync to Calibre
    * 
+   * Uses Write-Through Cache pattern: Write to Calibre FIRST (source of truth),
+   * then update Tome to match. This prevents race conditions where the watcher
+   * might sync stale data back from Calibre.
+   * 
    * @param tagName - The tag name to delete
    * @returns Promise resolving to object with number of books updated
-   * @throws {Error} If tag deletion fails
+   * @throws {Error} If tag deletion fails (including Calibre write failure)
    */
   async deleteTag(tagName: string): Promise<{ booksUpdated: number }> {
     // Validate input
@@ -482,102 +610,64 @@ export class BookService {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
-    logger.debug({ tagName }, "[DELETE] Starting tag deletion");
+    logger.info({ tagName }, "[DELETE] Starting tag deletion");
 
-    // Get books with this tag before deletion (for Calibre sync)
-    logger.debug({ tagName }, "[DELETE] Fetching books with tag");
-    const booksWithTag = await bookRepository.findByTag(tagName, 1000, 0);
-    logger.debug({ tagName, bookCount: booksWithTag.books.length }, "[DELETE] Found books with tag");
-
-    // Delete from Tome database
-    logger.debug({ tagName }, "[DELETE] Deleting tag from Tome database");
-    const booksUpdated = await bookRepository.deleteTag(tagName);
-    logger.debug({ tagName, booksUpdated }, "[DELETE] Deleted from Tome database");
-
-    // Batch sync to Calibre for all affected books (best effort)
-    try {
-      logger.debug({ tagName, bookCount: booksWithTag.books.length }, "[DELETE] Syncing to Calibre");
-      
-      // Refetch books to get updated tags after deletion
-      const bookIds = booksWithTag.books.map(b => b.id);
-      const updatedBooks = await bookRepository.findByIds(bookIds);
-      
-      // Prepare batch update data
-      const updates = updatedBooks.map(book => ({
-        calibreId: book.calibreId,
-        tags: book.tags
-      }));
-
-      await this.batchSyncTagsToCalibre(updates);
-      logger.debug({ tagName }, "[DELETE] Calibre sync completed");
-    } catch (error) {
-      logger.error({ err: error, tagName }, "[DELETE] Failed to sync deleted tag to Calibre");
-    }
-
-    logger.info({ tagName, booksUpdated }, "[DELETE] Tag deletion completed");
-
-    return { booksUpdated };
-  }
-
-  /**
-   * Merge multiple source tags into a target tag and sync to Calibre
-   * 
-   * @param sourceTags - Array of tag names to merge from
-   * @param targetTag - The tag name to merge into
-   * @returns Promise resolving to object with number of books updated
-   * @throws {Error} If tag merge fails
-   */
-  async mergeTags(sourceTags: string[], targetTag: string): Promise<{ booksUpdated: number }> {
-    // Validate inputs
-    if (!Array.isArray(sourceTags) || sourceTags.length === 0) {
-      throw new Error("Source tags must be a non-empty array");
-    }
-
-    if (!targetTag) {
-      throw new Error("Target tag cannot be empty");
-    }
-
-    const { getLogger } = require("@/lib/logger");
-    const logger = getLogger();
-
-    logger.debug({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
-
-    // Suspend the Calibre watcher during merge to prevent interference
+    // Suspend the Calibre watcher during delete to prevent interference
     const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
-    logger.debug("[MERGE] Calibre watcher suspended");
-    
+    logger.info("[DELETE] Calibre watcher suspended");
+
     try {
-      // Merge in Tome database
-      logger.debug({ sourceTags, targetTag }, "[MERGE] About to merge in Tome database");
-      const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
-      logger.debug({ sourceTags, targetTag, booksUpdated }, "[MERGE] Merged in Tome database");
+      // STEP 1: Get books with this tag before deletion
+      logger.info({ tagName }, "[DELETE] Fetching books with tag");
+      const booksWithTag = await bookRepository.findByTag(tagName, 1000, 0);
+      logger.info({ tagName, bookCount: booksWithTag.books.length }, "[DELETE] Found books with tag");
 
-      // Batch sync to Calibre for all affected books (best effort)
-      try {
-        const booksWithTag = await bookRepository.findByTag(targetTag, booksUpdated, 0);
-        
-        logger.debug({ bookCount: booksWithTag.books.length }, "[MERGE] Batch syncing merged tags to Calibre");
-        
-        // Prepare batch update data
-        const updates = booksWithTag.books.map(book => ({
-          calibreId: book.calibreId,
-          tags: book.tags
-        }));
-
-        await this.batchSyncTagsToCalibre(updates);
-        logger.debug("[MERGE] Calibre sync completed");
-      } catch (error) {
-        logger.error({ err: error, sourceTags, targetTag }, "[MERGE] Failed to sync merged tags to Calibre");
+      if (booksWithTag.books.length === 0) {
+        logger.info({ tagName }, "[DELETE] No books found with tag, nothing to delete");
+        return { booksUpdated: 0 };
       }
 
-      logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Tag merge completed");
+      // STEP 2: Calculate new tags for each book (remove the tag)
+      const calibreUpdates = booksWithTag.books.map(book => {
+        const currentTags = book.tags || [];
+        const newTags = currentTags.filter(tag => tag !== tagName);
+        return {
+          calibreId: book.calibreId,
+          tags: newTags
+        };
+      });
+
+      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      logger.info({ bookCount: calibreUpdates.length }, "[DELETE] Writing tag deletion to Calibre (source of truth)");
+      try {
+        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
+        
+        if (successCount !== calibreUpdates.length) {
+          throw new Error(
+            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
+            `Aborting to maintain consistency.`
+          );
+        }
+        
+        logger.info({ successCount }, "[DELETE] Successfully deleted tag from Calibre");
+      } catch (error) {
+        logger.error({ err: error, tagName }, "[DELETE] FAILED to write to Calibre - aborting operation");
+        throw new Error(`Failed to delete tag in Calibre: ${error instanceof Error ? error.message : error}`);
+      }
+
+      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      logger.info({ tagName }, "[DELETE] Updating Tome database to match Calibre");
+      const booksUpdated = await bookRepository.deleteTag(tagName);
+      logger.info({ tagName, booksUpdated }, "[DELETE] Updated Tome database");
+
+      logger.info({ tagName, booksUpdated }, "[DELETE] Tag deletion completed successfully");
 
       return { booksUpdated };
     } finally {
-      // Always resume the watcher, even if there was an error
-      calibreWatcher.resume();
-      logger.debug("[MERGE] Calibre watcher resumed");
+      // Resume with ignore period to prevent watcher from re-syncing our own changes
+      calibreWatcher.resumeWithIgnorePeriod(3000);
+      logger.info("[DELETE] Calibre watcher resumed with 3s ignore period");
     }
   }
 
@@ -585,9 +675,13 @@ export class BookService {
    * Bulk delete multiple tags
    * Suspends the Calibre watcher during deletion to prevent sync interference
    * 
+   * Uses Write-Through Cache pattern: Write to Calibre FIRST (source of truth),
+   * then update Tome to match. This prevents race conditions where the watcher
+   * might sync stale data back from Calibre.
+   * 
    * @param tagNames - Array of tag names to delete
    * @returns Promise resolving to object with total number of books updated
-   * @throws {Error} If bulk delete fails
+   * @throws {Error} If bulk delete fails (including Calibre write failure)
    * 
    * @example
    * const result = await bookService.bulkDeleteTags(["Tag1", "Tag2", "Tag3"]);
@@ -602,63 +696,85 @@ export class BookService {
     const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
-    logger.debug({ tagNames, count: tagNames.length }, "[BULK_DELETE] Starting bulk tag deletion");
+    logger.info({ tagNames, count: tagNames.length }, "[BULK_DELETE] Starting bulk tag deletion");
 
     // Suspend the Calibre watcher during bulk delete to prevent interference
     const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
-    logger.debug("[BULK_DELETE] Calibre watcher suspended");
+    logger.info("[BULK_DELETE] Calibre watcher suspended");
     
     try {
+      // STEP 1: Collect all affected books for all tags
+      logger.info({ tagNames }, "[BULK_DELETE] Collecting all affected books");
+      const affectedBooksMap = new Map<number, Book>();
+      
+      for (const tagName of tagNames) {
+        const result = await bookRepository.findByTag(tagName, 1000, 0);
+        for (const book of result.books) {
+          affectedBooksMap.set(book.id, book);
+        }
+      }
+      
+      const affectedBooks = Array.from(affectedBooksMap.values());
+      logger.info({ bookCount: affectedBooks.length, tagCount: tagNames.length }, "[BULK_DELETE] Found books affected by tag deletions");
+
+      if (affectedBooks.length === 0) {
+        logger.info({ tagNames }, "[BULK_DELETE] No books found with any of the tags, nothing to delete");
+        return { booksUpdated: 0, tagsDeleted: 0 };
+      }
+
+      // STEP 2: Calculate new tags for each book (remove all specified tags)
+      const calibreUpdates = affectedBooks.map(book => {
+        const currentTags = book.tags || [];
+        const newTags = currentTags.filter(tag => !tagNames.includes(tag));
+        return {
+          calibreId: book.calibreId,
+          tags: newTags
+        };
+      });
+
+      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      logger.info({ bookCount: calibreUpdates.length, tagCount: tagNames.length }, "[BULK_DELETE] Writing tag deletions to Calibre (source of truth)");
+      try {
+        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
+        
+        if (successCount !== calibreUpdates.length) {
+          throw new Error(
+            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
+            `Aborting to maintain consistency.`
+          );
+        }
+        
+        logger.info({ successCount }, "[BULK_DELETE] Successfully deleted tags from Calibre");
+      } catch (error) {
+        logger.error({ err: error, tagNames }, "[BULK_DELETE] FAILED to write to Calibre - aborting operation");
+        throw new Error(`Failed to delete tags in Calibre: ${error instanceof Error ? error.message : error}`);
+      }
+
+      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      logger.info({ tagNames }, "[BULK_DELETE] Updating Tome database to match Calibre");
       let totalBooksUpdated = 0;
       let tagsDeleted = 0;
 
-      // Delete each tag
       for (const tagName of tagNames) {
         try {
-          logger.debug({ tagName, progress: `${tagsDeleted + 1}/${tagNames.length}` }, "[BULK_DELETE] Processing tag");
-
-          // Get books with this tag before deletion (for Calibre sync)
-          logger.debug({ tagName }, "[BULK_DELETE] Fetching books with tag");
-          const booksWithTag = await bookRepository.findByTag(tagName, 1000, 0);
-          logger.debug({ tagName, bookCount: booksWithTag.books.length }, "[BULK_DELETE] Found books with tag");
-
-          // Delete from Tome database
-          logger.debug({ tagName }, "[BULK_DELETE] Deleting tag from Tome database");
           const booksUpdated = await bookRepository.deleteTag(tagName);
           totalBooksUpdated += booksUpdated;
           tagsDeleted++;
-          logger.debug({ tagName, booksUpdated }, "[BULK_DELETE] Deleted from Tome database");
-
-          // Sync to Calibre for all affected books in batch (best effort)
-          if (booksWithTag.books.length > 0) {
-            logger.debug({ tagName, bookCount: booksWithTag.books.length }, "[BULK_DELETE] Syncing to Calibre");
-            
-            // Refetch books to get updated tags after deletion
-            const bookIds = booksWithTag.books.map(b => b.id);
-            const updatedBooks = await bookRepository.findByIds(bookIds);
-            
-            const updates = updatedBooks.map(book => ({
-              calibreId: book.calibreId,
-              tags: book.tags
-            }));
-
-            await this.batchSyncTagsToCalibre(updates);
-            logger.debug({ tagName }, "[BULK_DELETE] Calibre sync completed");
-          }
+          logger.info({ tagName, booksUpdated }, "[BULK_DELETE] Deleted tag from Tome database");
         } catch (error) {
-          logger.error({ err: error, tagName }, "[BULK_DELETE] Failed to delete tag");
+          logger.error({ err: error, tagName }, "[BULK_DELETE] Failed to delete tag from Tome database");
           // Continue with other tags even if one fails
         }
       }
 
-      logger.info({ tagsDeleted, totalBooksUpdated, totalTags: tagNames.length }, "[BULK_DELETE] Bulk deletion completed");
+      logger.info({ tagsDeleted, totalBooksUpdated, totalTags: tagNames.length }, "[BULK_DELETE] Bulk deletion completed successfully");
 
       return { booksUpdated: totalBooksUpdated, tagsDeleted };
     } finally {
-      // Always resume the watcher, even if there was an error
-      calibreWatcher.resume();
-      logger.debug("[BULK_DELETE] Calibre watcher resumed");
+      // Resume with ignore period to prevent watcher from re-syncing our own changes
+      calibreWatcher.resumeWithIgnorePeriod(3000);
+      logger.info("[BULK_DELETE] Calibre watcher resumed with 3s ignore period");
     }
   }
 
