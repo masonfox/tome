@@ -50,7 +50,7 @@ export interface MarkAsReadResult {
 interface MarkAsReadStrategyContext {
   bookId: number;
   book: any; // Book type from repository
-  activeSession: ReadingSession | null;
+  activeSession: ReadingSession | null | undefined;
   has100Progress: boolean;
   isAlreadyRead: boolean;
   completedDate?: Date;
