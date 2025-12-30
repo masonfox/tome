@@ -7,6 +7,7 @@ import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getLogger } from "@/lib/logger";
+import { toast } from "@/utils/toast";
 
 const logger = getLogger().child({ component: "CompleteBookModal" });
 
@@ -152,6 +153,7 @@ export default function CompleteBookModal({
     const validationError = validateForm();
     if (validationError) {
       logger.warn({ validationError }, "Form validation failed");
+      toast.error(validationError);
       return;
     }
 
@@ -183,6 +185,9 @@ export default function CompleteBookModal({
       onClose();
     } catch (error) {
       logger.error({ err: error }, "Failed to complete book");
+      // Show error toast to user
+      const errorMessage = error instanceof Error ? error.message : "Failed to complete book";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
