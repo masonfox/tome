@@ -3,21 +3,7 @@ import { SessionService } from "@/lib/services/session.service";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, clearTestDatabase, teardownTestDatabase } from "../../helpers/db-setup";
 import { createTestBook } from "../../fixtures/test-data";
-
-// Mock external dependencies (similar to setup.ts but local to avoid conflicts)
-mock.module("@/lib/streaks", () => ({
-  rebuildStreak: mock(() => Promise.resolve()),
-}));
-
-mock.module("next/cache", () => ({
-  revalidatePath: mock(() => {}),
-}));
-
-mock.module("@/lib/services/calibre.service", () => ({
-  calibreService: {
-    updateRating: mock(() => {}),
-  },
-}));
+import "./setup"; // Use shared mock setup now that ProgressService mock is removed
 
 let instance: any;
 
