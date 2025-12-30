@@ -18,11 +18,7 @@ import { toast } from "@/utils/toast";
 function TagsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedTagFromURL = searchParams?.get("tag");
-
-  const [selectedTag, setSelectedTag] = useState<string | null>(
-    selectedTagFromURL
-  );
+  const selectedTag = searchParams?.get("tag");
 
   // Modal states
   const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -61,13 +57,6 @@ function TagsPageContent() {
     }
   };
 
-  // Sync selected tag with URL
-  useEffect(() => {
-    if (selectedTagFromURL !== selectedTag) {
-      setSelectedTag(selectedTagFromURL);
-    }
-  }, [selectedTagFromURL, selectedTag]);
-
   // Tag management hook
   const { tags, totalBooks, loading: tagsLoading, error: tagsError, refetch: refetchTags, renameTag, deleteTag, mergeTags } = useTagManagement();
 
@@ -83,7 +72,6 @@ function TagsPageContent() {
 
   // Update URL when tag is selected
   const handleSelectTag = (tagName: string) => {
-    setSelectedTag(tagName);
     router.push(`/tags?tag=${encodeURIComponent(tagName)}`);
   };
 
@@ -107,9 +95,8 @@ function TagsPageContent() {
       await renameTag(tagToRename, newName);
       toast.success(`Tag renamed to "${newName}"`);
       
-      // Update selected tag if it was the renamed one
+      // Update URL if the renamed tag was selected
       if (selectedTag === tagToRename) {
-        setSelectedTag(newName);
         router.push(`/tags?tag=${encodeURIComponent(newName)}`);
       }
       setRenameModalOpen(false);
@@ -137,9 +124,8 @@ function TagsPageContent() {
       await deleteTag(tagToDelete.name);
       toast.success(`Tag "${tagToDelete.name}" deleted`);
       
-      // Clear selection if deleted tag was selected
+      // Clear URL if deleted tag was selected
       if (selectedTag === tagToDelete.name) {
-        setSelectedTag(null);
         router.push("/tags");
       }
       setDeleteModalOpen(false);
@@ -172,9 +158,8 @@ function TagsPageContent() {
         toast.success(`Merged ${mergeCount} tags into "${targetTag}"`);
       }
       
-      // Update selection if one of the source tags was selected
+      // Update URL if one of the source tags was selected
       if (selectedTag && tagsToMerge.includes(selectedTag)) {
-        setSelectedTag(targetTag);
         router.push(`/tags?tag=${encodeURIComponent(targetTag)}`);
       }
       setMergeModalOpen(false);
@@ -222,9 +207,8 @@ function TagsPageContent() {
         toast.success(`Deleted ${deleteCount} tags`);
       }
       
-      // Clear selection if deleted tag was selected
+      // Clear URL if deleted tag was selected
       if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
-        setSelectedTag(null);
         router.push("/tags");
       }
       setBulkDeleteModalOpen(false);
@@ -249,7 +233,6 @@ function TagsPageContent() {
 
   // Handle mobile back navigation
   const handleCloseDetail = () => {
-    setSelectedTag(null);
     router.push("/tags");
   };
 
