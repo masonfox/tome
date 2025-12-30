@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { sessionService, progressService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
-import { parseLocalDateToUtc } from "@/utils/dateHelpers";
+import { parseLocalDateToUtc } from "@/utils/dateHelpers.server";
 
 const logger = getLogger().child({ endpoint: "complete-book" });
 

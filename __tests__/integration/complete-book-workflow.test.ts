@@ -4,6 +4,20 @@ import { bookRepository, sessionRepository, progressRepository } from "@/lib/rep
 import { createTestBook, createTestSession, createMockRequest } from "../fixtures/test-data";
 import { POST } from "@/app/api/books/[id]/complete/route";
 import type { NextRequest } from "next/server";
+import { formatInTimeZone } from "date-fns-tz";
+
+// Helper function to extract date in EST timezone from a stored UTC date
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
+
+// Helper function to create expected UTC date from YYYY-MM-DD string (midnight EST → UTC)
+function expectedUTCDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+  // Convert midnight EST to UTC (add 5 hours)
+  return new Date(localDate.getTime() + 5 * 60 * 60 * 1000);
+}
 
 /**
  * Integration Tests: Complete Book Workflow
@@ -90,8 +104,10 @@ describe("Integration: Complete Book Workflow", () => {
     const completedSession = sessions[0];
     expect(completedSession.status).toBe("read");
     expect(completedSession.isActive).toBe(false);
-    expect(completedSession.startedDate).toEqual(new Date("2024-01-01"));
-    expect(completedSession.completedDate).toEqual(new Date("2024-01-15"));
+    expect(completedSession.startedDate).toBeDefined();
+    expect(completedSession.completedDate).toBeDefined();
+    expect(getDateInEST(completedSession.startedDate!)).toBe("2024-01-01");
+    expect(getDateInEST(completedSession.completedDate!)).toBe("2024-01-15");
 
     // ASSERT: Progress entries were created (start → 100%)
     const progress = await progressRepository.findByBookId(book.id);
@@ -99,12 +115,12 @@ describe("Integration: Complete Book Workflow", () => {
 
     const startProgress = progress.find(p => p.currentPage === 1);
     expect(startProgress).toBeDefined();
-    expect(startProgress!.progressDate).toEqual(new Date("2024-01-01"));
+    expect(getDateInEST(startProgress!.progressDate)).toBe("2024-01-01");
 
     const endProgress = progress.find(p => p.currentPercentage === 100);
     expect(endProgress).toBeDefined();
     expect(endProgress!.currentPage).toBe(300);
-    expect(endProgress!.progressDate).toEqual(new Date("2024-01-15"));
+    expect(getDateInEST(endProgress!.progressDate)).toBe("2024-01-15");
   });
 
   test("should complete book from Read Next with custom page count", async () => {
@@ -186,7 +202,8 @@ describe("Integration: Complete Book Workflow", () => {
     const sessions = await sessionRepository.findAllByBookId(book.id);
     expect(sessions).toHaveLength(1);
     expect(sessions[0].status).toBe("read");
-    expect(sessions[0].completedDate).toEqual(new Date("2024-03-10"));
+    expect(sessions[0].completedDate).toBeDefined();
+    expect(getDateInEST(sessions[0].completedDate!)).toBe("2024-03-10");
 
     // ASSERT: No progress entries (since no pages)
     const progress = await progressRepository.findByBookId(book.id);
@@ -343,8 +360,10 @@ describe("Integration: Complete Book Workflow", () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0].sessionNumber).toBe(1);
     expect(sessions[0].status).toBe("read");
-    expect(sessions[0].startedDate).toEqual(new Date("2024-06-01"));
-    expect(sessions[0].completedDate).toEqual(new Date("2024-06-15"));
+    expect(sessions[0].startedDate).toBeDefined();
+    expect(sessions[0].completedDate).toBeDefined();
+    expect(getDateInEST(sessions[0].startedDate!)).toBe("2024-06-01");
+    expect(getDateInEST(sessions[0].completedDate!)).toBe("2024-06-15");
   });
 
   // ============================================================================
@@ -425,8 +444,10 @@ describe("Integration: Complete Book Workflow", () => {
     expect(response.status).toBe(200);
 
     const session = (await sessionRepository.findAllByBookId(book.id))[0];
-    expect(session.startedDate).toEqual(new Date("2020-01-01"));
-    expect(session.completedDate).toEqual(new Date("2020-01-31"));
+    expect(session.startedDate).toBeDefined();
+    expect(session.completedDate).toBeDefined();
+    expect(getDateInEST(session.startedDate!)).toBe("2020-01-01");
+    expect(getDateInEST(session.completedDate!)).toBe("2020-01-31");
   });
 
   // ============================================================================

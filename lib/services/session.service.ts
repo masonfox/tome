@@ -102,7 +102,7 @@ export class SessionService {
    */
   private async getCurrentDateInUserTimezone(): Promise<Date> {
     try {
-      const { getCurrentDateInUserTimezone } = await import('@/utils/dateHelpers');
+      const { getCurrentDateInUserTimezone } = await import('@/utils/dateHelpers.server');
       return await getCurrentDateInUserTimezone();
     } catch (error) {
       // Fallback to current UTC time if timezone conversion fails

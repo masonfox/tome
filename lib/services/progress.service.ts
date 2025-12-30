@@ -7,7 +7,7 @@ import {
   calculatePercentage,
   calculatePageFromPercentage
 } from "@/lib/utils/progress-calculations";
-import { getCurrentDateInUserTimezone } from "@/utils/dateHelpers";
+import { getCurrentDateInUserTimezone } from "@/utils/dateHelpers.server";
 
 /**
  * Progress log data for creating new entries
