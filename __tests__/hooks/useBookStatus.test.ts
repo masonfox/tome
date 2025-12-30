@@ -361,11 +361,11 @@ describe("useBookStatus", () => {
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
 
-      // Expect the mutation to throw
+      // Expect the mutation to throw (after retries - 1s + 2s + 4s = 7s with exponential backoff)
       await act(async () => {
         await expect(result.current.handleStartReread()).rejects.toThrow();
       });
-    });
+    }, { timeout: 10000 }); // Increase timeout to account for retry logic (3 retries with backoff)
   });
 
   describe("status changes based on book updates", () => {

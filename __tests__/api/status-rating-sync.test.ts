@@ -20,10 +20,12 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
  * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
  * our code correctly attempts to sync ratings, without actually writing to disk.
- * 
- * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
- * This prevents mock leakage to calibre-write.test.ts since they're different modules.
+ *
+ * ARCHITECTURE UPDATE: Now using SyncOrchestrator which centralizes external service sync.
  */
+// Import the real class first to preserve it in the mock
+const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
+
 mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
   syncOrchestrator: {
     syncRating: async (calibreId: number, rating: number | null) => {
@@ -35,7 +37,7 @@ mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
       };
     },
   },
-  SyncOrchestrator: class {},
+  SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
 }));
 
 // Import after mock is set up
@@ -234,21 +236,17 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       isActive: true,
     }));
 
-    // Mock sync orchestrator to return error
+    // Override the sync orchestrator mock to return error for this test
     let calibreSyncAttempted = false;
-    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-      syncOrchestrator: {
-        syncRating: async (calibreId: number, rating: number | null) => {
-          calibreSyncAttempted = true;
-          return {
-            success: false,
-            results: [{ service: "calibre", success: false, error: new Error("Calibre database unavailable") }],
-            errors: [new Error("Calibre database unavailable")],
-          };
-        },
-      },
-      SyncOrchestrator: class {},
-    }));
+    const originalSyncRating = (await import("@/lib/services/integrations/sync-orchestrator")).syncOrchestrator.syncRating;
+    (await import("@/lib/services/integrations/sync-orchestrator")).syncOrchestrator.syncRating = async (calibreId: number, rating: number | null) => {
+      calibreSyncAttempted = true;
+      return {
+        success: false,
+        results: [{ service: "calibre", success: false, error: new Error("Calibre database unavailable") }],
+        errors: [new Error("Calibre database unavailable")],
+      };
+    };
 
     // Act
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
@@ -273,18 +271,6 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(calibreSyncAttempted).toBe(true);
 
     // Restore normal mock
-    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-      syncOrchestrator: {
-        syncRating: async (calibreId: number, rating: number | null) => {
-          calibreRatingCalls.push({ calibreId, rating });
-          return {
-            success: true,
-            results: [{ service: "calibre", success: true }],
-            errors: [],
-          };
-        },
-      },
-      SyncOrchestrator: class {},
-    }));
+    (await import("@/lib/services/integrations/sync-orchestrator")).syncOrchestrator.syncRating = originalSyncRating;
   });
 });

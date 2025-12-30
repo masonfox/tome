@@ -37,6 +37,9 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  *
  * ARCHITECTURE UPDATE: Now using SyncOrchestrator which centralizes external service sync.
  */
+// Import the real class first to preserve it in the mock
+const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
+
 mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
   syncOrchestrator: {
     syncRating: async (calibreId: number, rating: number | null) => {
@@ -48,7 +51,7 @@ mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
       };
     },
   },
-  SyncOrchestrator: class {},
+  SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
 }));
 
 // IMPORTANT: Import route handlers AFTER mocks are set up

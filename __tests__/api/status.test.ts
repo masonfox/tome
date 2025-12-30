@@ -607,12 +607,15 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   // Track calls to updateCalibreRating for verification
   let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
   
-  beforeAll(() => {
+  beforeAll(async () => {
     /**
      * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
      * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
      * our code correctly attempts to sync ratings, without actually writing to disk.
      */
+    // Import the real class first to preserve it in the mock
+    const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
+
     mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
       syncOrchestrator: {
         syncRating: async (calibreId: number, rating: number | null) => {
@@ -624,7 +627,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
           };
         },
       },
-      SyncOrchestrator: class {},
+      SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
     }));
   });
   
@@ -804,19 +807,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
   test("should continue status update even if Calibre sync fails", async () => {
     // Arrange - Mock Calibre to throw error
-    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-      syncOrchestrator: {
-        syncRating: async (calibreId: number, rating: number | null) => {
-          calibreRatingCalls.push({ calibreId, rating });
-          return {
-            success: true,
-            results: [{ service: "calibre", success: true }],
-            errors: [],
-          };
-        },
-      },
-      SyncOrchestrator: class {},
-    }));
+    // No need to re-mock here - already set up in beforeAll
 
     const book = await bookRepository.create(mockBook1);
     await sessionRepository.create({
@@ -846,19 +837,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     expect(updatedBook?.rating).toBe(5);
 
     // Restore normal mock
-    mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
-      syncOrchestrator: {
-        syncRating: async (calibreId: number, rating: number | null) => {
-          calibreRatingCalls.push({ calibreId, rating });
-          return {
-            success: true,
-            results: [{ service: "calibre", success: true }],
-            errors: [],
-          };
-        },
-      },
-      SyncOrchestrator: class {},
-    }));
+    // No need to re-mock here - already set up in beforeAll
   });
 
   // ============================================================================

@@ -34,6 +34,9 @@ let mockUpdateCalibreRating = mock(() => {});
 let mockCalibreShouldFail = false;
 
 // Mock the SyncOrchestrator
+// Import the real class first to preserve it in the mock
+const { SyncOrchestrator: RealSyncOrchestrator } = await import("@/lib/services/integrations/sync-orchestrator");
+
 mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
   syncOrchestrator: {
     syncRating: async (calibreId: number, rating: number | null) => {
@@ -53,7 +56,7 @@ mock.module("@/lib/services/integrations/sync-orchestrator", () => ({
       };
     },
   },
-  SyncOrchestrator: class {},
+  SyncOrchestrator: RealSyncOrchestrator, // Preserve the real class
 }));
 
 // Mock Next.js revalidatePath - not available in test environment
