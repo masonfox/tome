@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, FolderOpen } from "lucide-react";
+import { ArrowLeft, FolderOpen, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
-import { BookGrid } from "@/components/BookGrid";
+import { BookTable } from "@/components/BookTable";
+import { BookListItem } from "@/components/BookListItem";
+import { BookListItemSkeleton } from "@/components/BookListItemSkeleton";
 import BaseModal from "@/components/BaseModal";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
 
@@ -26,6 +28,18 @@ export default function ShelfDetailPage() {
   const [sortBy, setSortBy] = useState<SortOption>("sortOrder");
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile/tablet vs desktop
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // < lg breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Fetch shelf and books on mount
   useEffect(() => {
@@ -39,13 +53,28 @@ export default function ShelfDetailPage() {
     setSortBy(newSort);
   };
 
+  // Handle table column sort
+  const handleTableSort = (column: string) => {
+    // Map table columns to our sort options
+    const columnToSort: Record<string, SortOption> = {
+      title: "title",
+      dateAdded: "dateAdded",
+    };
+
+    const newSort = columnToSort[column];
+    if (newSort) {
+      setSortBy(newSort);
+    }
+  };
+
   // Handle remove book
-  const handleRemoveBook = async () => {
-    if (!removingBook) return;
+  const handleRemoveBook = async (bookId?: number) => {
+    const targetBookId = bookId || removingBook?.id;
+    if (!targetBookId) return;
 
     setRemoveLoading(true);
     try {
-      await removeBookFromShelf(removingBook.id);
+      await removeBookFromShelf(targetBookId);
       setRemovingBook(null);
     } catch (error) {
       // Error handled by hook
@@ -62,11 +91,15 @@ export default function ShelfDetailPage() {
             <div className="h-8 bg-[var(--card-bg)] rounded w-48 mb-4"></div>
             <div className="h-12 bg-[var(--card-bg)] rounded w-96 mb-2"></div>
             <div className="h-6 bg-[var(--card-bg)] rounded w-64 mb-8"></div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="aspect-[2/3] bg-[var(--card-bg)] rounded"></div>
-              ))}
-            </div>
+            {isMobile ? (
+              <div className="space-y-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <BookListItemSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <BookTable books={[]} loading={true} />
+            )}
           </div>
         </div>
       </div>
@@ -145,8 +178,8 @@ export default function ShelfDetailPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Sort Controls */}
-        {books.length > 0 && (
+        {/* Sort Controls - Only show on desktop for table view */}
+        {books.length > 0 && !isMobile && (
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-[var(--foreground)]">
@@ -166,22 +199,59 @@ export default function ShelfDetailPage() {
           </div>
         )}
 
-        {/* Books Grid */}
+        {/* Books Display - Table for Desktop, List for Mobile/Tablet */}
         {loading ? (
-          <BookGrid books={[]} loading={true} />
+          isMobile ? (
+            <div className="space-y-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <BookListItemSkeleton key={i} />
+              ))}
+            </div>
+          ) : (
+            <BookTable books={[]} loading={true} />
+          )
         ) : books.length > 0 ? (
-          <BookGrid
-            books={books.map((book) => ({
-              id: book.id,
-              calibreId: book.calibreId,
-              title: book.title,
-              authors: book.authors,
-              coverPath: book.path || undefined,
-              tags: book.tags || [],
-              totalPages: book.totalPages || undefined,
-            }))}
-            loading={false}
-          />
+          isMobile ? (
+            // Mobile/Tablet: List View
+            <div className="space-y-4">
+              {books.map((book) => (
+                <BookListItem
+                  key={book.id}
+                  book={book}
+                  actions={
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setRemovingBook({ id: book.id, title: book.title });
+                      }}
+                      className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                      title="Remove from shelf"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            // Desktop: Table View
+            <BookTable
+              books={books.map((book) => ({
+                ...book,
+                dateAddedToShelf: book.addedToLibrary,
+              }))}
+              sortBy={sortBy}
+              sortDirection="asc"
+              onSortChange={handleTableSort}
+              onRemoveBook={(bookId) => {
+                const book = books.find((b) => b.id === bookId);
+                if (book) {
+                  setRemovingBook({ id: book.id, title: book.title });
+                }
+              }}
+            />
+          )
         ) : (
           <div className="text-center py-16">
             <div className="text-[var(--foreground)]/40 mb-4">
@@ -233,7 +303,7 @@ export default function ShelfDetailPage() {
               Cancel
             </button>
             <button
-              onClick={handleRemoveBook}
+              onClick={() => handleRemoveBook()}
               disabled={removeLoading}
               className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
