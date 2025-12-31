@@ -33,24 +33,16 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
   const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
 
   return (
-    <div className="group relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent-color)] transition-all">
-      {/* Color indicator */}
-      {shelf.color && (
-        <div
-          className="absolute top-0 left-0 w-1 h-full rounded-l-lg"
-          style={{ backgroundColor: shelf.color }}
-        />
-      )}
-
-      <div className="flex items-start justify-between pl-3">
+    <div className="group relative bg-[var(--background)] border border-[var(--border-color)] rounded-lg p-4 hover:border-[var(--accent)]/50 hover:shadow-md transition-all shadow-sm">
+      <div className="flex items-start justify-between gap-3">
         <Link
           href={`/library/shelves/${shelf.id}`}
           className="flex-1 min-w-0"
         >
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-3 mb-2">
             {/* Icon or color circle */}
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm"
               style={{ backgroundColor: shelf.color || "#3b82f6" }}
             >
               {Icon ? (
@@ -60,27 +52,29 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
               )}
             </div>
 
-            <h3 className="text-lg font-serif font-semibold text-[var(--heading-text)] group-hover:text-[var(--accent-color)] transition-colors truncate">
+            <h3 className="text-lg font-serif font-semibold text-[var(--heading-text)] group-hover:text-[var(--accent)] transition-colors truncate">
               {shelf.name}
             </h3>
           </div>
 
           {shelf.description && (
-            <p className="text-sm text-[var(--foreground)]/70 mb-2 line-clamp-2">
+            <p className="text-sm text-[var(--foreground)]/70 mb-3 line-clamp-2 ml-[52px]">
               {shelf.description}
             </p>
           )}
 
-          <div className="flex items-center gap-2 text-sm text-[var(--foreground)]/60">
-            <BookOpen className="w-4 h-4" />
-            <span>
-              {shelf.bookCount} {shelf.bookCount === 1 ? "book" : "books"}
+          <div className="flex items-center gap-2 text-sm ml-[52px]">
+            <span className="bg-[var(--foreground)]/10 text-[var(--subheading-text)] px-2 py-1 rounded-full font-medium">
+              {shelf.bookCount}
+            </span>
+            <span className="text-[var(--foreground)]/60">
+              {shelf.bookCount === 1 ? "book" : "books"}
             </span>
           </div>
         </Link>
 
         {/* Actions menu */}
-        <div className="relative" ref={menuRef}>
+        <div className="relative flex-shrink-0" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="p-2 hover:bg-[var(--hover-bg)] rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -121,12 +115,17 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
 
 export function ShelfItemSkeleton() {
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 animate-pulse">
-      <div className="pl-3">
-        <div className="h-6 bg-[var(--hover-bg)] rounded w-2/3 mb-2" />
-        <div className="h-4 bg-[var(--hover-bg)] rounded w-full mb-1" />
-        <div className="h-4 bg-[var(--hover-bg)] rounded w-3/4 mb-3" />
-        <div className="h-4 bg-[var(--hover-bg)] rounded w-24" />
+    <div className="bg-[var(--background)] border border-[var(--border-color)] rounded-lg p-4 animate-pulse shadow-sm">
+      <div className="flex items-start gap-3 mb-2">
+        <div className="w-10 h-10 bg-[var(--hover-bg)] rounded-full flex-shrink-0" />
+        <div className="flex-1">
+          <div className="h-5 bg-[var(--hover-bg)] rounded w-2/3" />
+        </div>
+      </div>
+      <div className="ml-[52px] space-y-2">
+        <div className="h-4 bg-[var(--hover-bg)] rounded w-full" />
+        <div className="h-4 bg-[var(--hover-bg)] rounded w-3/4" />
+        <div className="h-6 bg-[var(--hover-bg)] rounded-full w-16 mt-3" />
       </div>
     </div>
   );

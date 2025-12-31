@@ -81,7 +81,7 @@ export function EditShelfModal({
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || loading}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Saving..." : "Save Changes"}
           </button>
@@ -105,7 +105,7 @@ export function EditShelfModal({
             placeholder="e.g., Favorites, To Read, Currently Reading..."
             maxLength={100}
             disabled={loading}
-            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <p className="text-xs text-[var(--foreground)]/60 mt-1">
             {name.length}/100 characters
@@ -127,7 +127,7 @@ export function EditShelfModal({
             placeholder="Add a description for this shelf..."
             rows={3}
             disabled={loading}
-            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 

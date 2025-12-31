@@ -86,7 +86,7 @@ export default function ShelfDetailPage() {
             </p>
             <Link
               href="/library/shelves"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Shelves
@@ -104,7 +104,7 @@ export default function ShelfDetailPage() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <Link
             href="/library/shelves"
-            className="inline-flex items-center gap-2 text-[var(--accent-color)] hover:text-[var(--accent-hover)] mb-4 font-medium transition-colors"
+            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-4 font-medium transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Shelves
@@ -155,7 +155,7 @@ export default function ShelfDetailPage() {
               <select
                 value={sortBy}
                 onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                className="px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
+                className="px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               >
                 <option value="sortOrder">Custom Order</option>
                 <option value="title">Title (A-Z)</option>
@@ -207,7 +207,7 @@ export default function ShelfDetailPage() {
             </p>
             <Link
               href="/library"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
             >
               Go to Library
             </Link>

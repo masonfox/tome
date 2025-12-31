@@ -54,7 +54,7 @@ export default function ShelvesPage() {
         actions={
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
             New Shelf
@@ -65,31 +65,17 @@ export default function ShelvesPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Empty State */}
         {!loading && shelves.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-[var(--foreground)]/40 mb-4">
-              <svg
-                className="w-24 h-24 mx-auto"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
-              </svg>
-            </div>
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-16 text-center rounded-lg">
+            <Library className="w-16 h-16 text-[var(--accent)]/40 mx-auto mb-4" />
             <h3 className="text-xl font-serif font-semibold text-[var(--heading-text)] mb-2">
               No shelves yet
             </h3>
-            <p className="text-[var(--foreground)]/60 mb-6">
+            <p className="text-[var(--foreground)]/70 mb-6">
               Create your first shelf to start organizing your books
             </p>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
             >
               <Plus className="w-5 h-5" />
               Create Shelf
@@ -99,8 +85,8 @@ export default function ShelvesPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
               <ShelfItemSkeleton key={i} />
             ))}
           </div>
@@ -108,7 +94,7 @@ export default function ShelvesPage() {
 
         {/* Shelves Grid */}
         {!loading && shelves.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {shelves.map((shelf) => (
               <ShelfItem
                 key={shelf.id}
