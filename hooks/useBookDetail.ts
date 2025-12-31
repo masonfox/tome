@@ -156,6 +156,8 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     onSuccess: () => {
       // Invalidate and refetch book data
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      // Invalidate available tags cache since tags may have been added/removed
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
       toast.success('Tags updated');
     },
   });
