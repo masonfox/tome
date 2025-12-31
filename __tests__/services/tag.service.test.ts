@@ -1,19 +1,21 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
-import { bookService } from "@/lib/services/book.service";
+import { tagService } from "@/lib/services/tag.service";
 import { bookRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createTestBook } from "../fixtures/test-data";
 
 /**
- * BookService Tag Operations Tests
+ * TagService Tests
  * 
- * Tests the tag-related methods in BookService which provide business logic
- * on top of the repository layer, including Calibre synchronization.
+ * Tests the tag-related methods in TagService which provide business logic
+ * for tag management, including Calibre synchronization.
  * 
  * Coverage:
+ * - getAllTags(): Get all unique tags
  * - getTagStats(): Get all tags with book counts
  * - countBooksWithTags(): Count books that have at least one tag
  * - getBooksByTag(): Find books by tag with pagination
+ * - updateBookTags(): Update tags for a single book with Calibre sync
  * - renameTag(): Rename a tag across all books with Calibre sync
  * - deleteTag(): Delete a tag from all books with Calibre sync
  * - mergeTags(): Merge multiple tags into one with Calibre sync
@@ -87,7 +89,7 @@ beforeEach(async () => {
   mockWatcherResumeIgnorePeriod = 0;
 });
 
-describe("BookService.getTagStats()", () => {
+describe("TagService.getTagStats()", () => {
   test("should return empty array when no books have tags", async () => {
     // Arrange: Book with no tags
     await bookRepository.create(createTestBook({
@@ -97,7 +99,7 @@ describe("BookService.getTagStats()", () => {
     }));
 
     // Act
-    const stats = await bookService.getTagStats();
+    const stats = await tagService.getTagStats();
 
     // Assert
     expect(stats).toEqual([]);
@@ -124,7 +126,7 @@ describe("BookService.getTagStats()", () => {
     }));
 
     // Act
-    const stats = await bookService.getTagStats();
+    const stats = await tagService.getTagStats();
 
     // Assert
     expect(stats).toHaveLength(4);
@@ -135,7 +137,7 @@ describe("BookService.getTagStats()", () => {
   });
 });
 
-describe("BookService.countBooksWithTags()", () => {
+describe("TagService.countBooksWithTags()", () => {
   test("should return 0 when no books have tags", async () => {
     // Arrange: Books with no tags
     await bookRepository.create(createTestBook({
@@ -151,7 +153,7 @@ describe("BookService.countBooksWithTags()", () => {
     }));
 
     // Act
-    const count = await bookService.countBooksWithTags();
+    const count = await tagService.countBooksWithTags();
 
     // Assert
     expect(count).toBe(0);
@@ -178,14 +180,14 @@ describe("BookService.countBooksWithTags()", () => {
     }));
 
     // Act
-    const count = await bookService.countBooksWithTags();
+    const count = await tagService.countBooksWithTags();
 
     // Assert: 2 books have tags
     expect(count).toBe(2);
   });
 });
 
-describe("BookService.getBooksByTag()", () => {
+describe("TagService.getBooksByTag()", () => {
   test("should return empty result when tag doesn't exist", async () => {
     // Arrange: Books with different tags
     await bookRepository.create(createTestBook({
@@ -195,7 +197,7 @@ describe("BookService.getBooksByTag()", () => {
     }));
 
     // Act
-    const result = await bookService.getBooksByTag("NonExistent");
+    const result = await tagService.getBooksByTag("NonExistent");
 
     // Assert
     expect(result.total).toBe(0);
@@ -223,7 +225,7 @@ describe("BookService.getBooksByTag()", () => {
     }));
 
     // Act
-    const result = await bookService.getBooksByTag("Fantasy");
+    const result = await tagService.getBooksByTag("Fantasy");
 
     // Assert
     expect(result.total).toBe(2);
@@ -242,8 +244,8 @@ describe("BookService.getBooksByTag()", () => {
     }
 
     // Act: Get first page
-    const page1 = await bookService.getBooksByTag("Fantasy", 2, 0);
-    const page2 = await bookService.getBooksByTag("Fantasy", 2, 2);
+    const page1 = await tagService.getBooksByTag("Fantasy", 2, 0);
+    const page2 = await tagService.getBooksByTag("Fantasy", 2, 2);
 
     // Assert
     expect(page1.total).toBe(5);
@@ -255,20 +257,20 @@ describe("BookService.getBooksByTag()", () => {
   });
 });
 
-describe("BookService.renameTag()", () => {
+describe("TagService.renameTag()", () => {
   test("should throw error when old tag name is empty", async () => {
     // Act & Assert
-    await expect(bookService.renameTag("", "NewTag")).rejects.toThrow("Tag names cannot be empty");
+    await expect(tagService.renameTag("", "NewTag")).rejects.toThrow("Tag names cannot be empty");
   });
 
   test("should throw error when new tag name is empty", async () => {
     // Act & Assert
-    await expect(bookService.renameTag("OldTag", "")).rejects.toThrow("Tag names cannot be empty");
+    await expect(tagService.renameTag("OldTag", "")).rejects.toThrow("Tag names cannot be empty");
   });
 
   test("should throw error when old and new tag names are the same", async () => {
     // Act & Assert
-    await expect(bookService.renameTag("Tag", "Tag")).rejects.toThrow("Old and new tag names must be different");
+    await expect(tagService.renameTag("Tag", "Tag")).rejects.toThrow("Old and new tag names must be different");
   });
 
   test("should rename tag across all books", async () => {
@@ -292,7 +294,7 @@ describe("BookService.renameTag()", () => {
     }));
 
     // Act
-    const result = await bookService.renameTag("OldTag", "NewTag");
+    const result = await tagService.renameTag("OldTag", "NewTag");
 
     // Assert: 2 books were updated
     expect(result.booksUpdated).toBe(2);
@@ -325,7 +327,7 @@ describe("BookService.renameTag()", () => {
     mockCalibreShouldFail = true;
 
     // Act & Assert: Should throw when Calibre sync fails
-    await expect(bookService.renameTag("OldTag", "NewTag"))
+    await expect(tagService.renameTag("OldTag", "NewTag"))
       .rejects.toThrow("Calibre database is unavailable");
 
     // Verify Tome DB unchanged
@@ -338,10 +340,10 @@ describe("BookService.renameTag()", () => {
   });
 });
 
-describe("BookService.deleteTag()", () => {
+describe("TagService.deleteTag()", () => {
   test("should throw error when tag name is empty", async () => {
     // Act & Assert
-    await expect(bookService.deleteTag("")).rejects.toThrow("Tag name cannot be empty");
+    await expect(tagService.deleteTag("")).rejects.toThrow("Tag name cannot be empty");
   });
 
   test("should delete tag from all books", async () => {
@@ -365,7 +367,7 @@ describe("BookService.deleteTag()", () => {
     }));
 
     // Act
-    const result = await bookService.deleteTag("DeleteMe");
+    const result = await tagService.deleteTag("DeleteMe");
 
     // Assert: 2 books were updated
     expect(result.booksUpdated).toBe(2);
@@ -395,7 +397,7 @@ describe("BookService.deleteTag()", () => {
     }));
 
     // Act
-    const result = await bookService.deleteTag("NonExistent");
+    const result = await tagService.deleteTag("NonExistent");
 
     // Assert
     expect(result.booksUpdated).toBe(0);
@@ -416,7 +418,7 @@ describe("BookService.deleteTag()", () => {
     mockCalibreShouldFail = true;
 
     // Act & Assert: Should throw when Calibre sync fails
-    await expect(bookService.deleteTag("DeleteMe"))
+    await expect(tagService.deleteTag("DeleteMe"))
       .rejects.toThrow("Calibre database is unavailable");
 
     // Verify Tome DB unchanged
@@ -429,20 +431,20 @@ describe("BookService.deleteTag()", () => {
   });
 });
 
-describe("BookService.mergeTags()", () => {
+describe("TagService.mergeTags()", () => {
   test("should throw error when source tags is empty array", async () => {
     // Act & Assert
-    await expect(bookService.mergeTags([], "Target")).rejects.toThrow("Source tags must be a non-empty array");
+    await expect(tagService.mergeTags([], "Target")).rejects.toThrow("Source tags must be a non-empty array");
   });
 
   test("should throw error when source tags is not an array", async () => {
     // Act & Assert
-    await expect(bookService.mergeTags("NotArray" as any, "Target")).rejects.toThrow("Source tags must be a non-empty array");
+    await expect(tagService.mergeTags("NotArray" as any, "Target")).rejects.toThrow("Source tags must be a non-empty array");
   });
 
   test("should throw error when target tag is empty", async () => {
     // Act & Assert
-    await expect(bookService.mergeTags(["Tag1"], "")).rejects.toThrow("Target tag cannot be empty");
+    await expect(tagService.mergeTags(["Tag1"], "")).rejects.toThrow("Target tag cannot be empty");
   });
 
   test("should merge multiple tags into target tag", async () => {
@@ -472,7 +474,7 @@ describe("BookService.mergeTags()", () => {
     }));
 
     // Act: Merge Tag1 and Tag2 into MergedTag
-    const result = await bookService.mergeTags(["Tag1", "Tag2"], "MergedTag");
+    const result = await tagService.mergeTags(["Tag1", "Tag2"], "MergedTag");
 
     // Assert: 3 books were updated
     expect(result.booksUpdated).toBe(3);
@@ -517,7 +519,7 @@ describe("BookService.mergeTags()", () => {
     mockCalibreShouldFail = true;
 
     // Act & Assert: Should throw when Calibre sync fails
-    await expect(bookService.mergeTags(["Tag1"], "MergedTag"))
+    await expect(tagService.mergeTags(["Tag1"], "MergedTag"))
       .rejects.toThrow("Calibre database is unavailable");
 
     // Verify Tome DB unchanged
@@ -530,15 +532,15 @@ describe("BookService.mergeTags()", () => {
   });
 });
 
-describe("BookService.bulkDeleteTags()", () => {
+describe("TagService.bulkDeleteTags()", () => {
   test("should throw error when tag names is empty array", async () => {
     // Act & Assert
-    await expect(bookService.bulkDeleteTags([])).rejects.toThrow("Tag names must be a non-empty array");
+    await expect(tagService.bulkDeleteTags([])).rejects.toThrow("Tag names must be a non-empty array");
   });
 
   test("should throw error when tag names is not an array", async () => {
     // Act & Assert
-    await expect(bookService.bulkDeleteTags("NotArray" as any)).rejects.toThrow("Tag names must be a non-empty array");
+    await expect(tagService.bulkDeleteTags("NotArray" as any)).rejects.toThrow("Tag names must be a non-empty array");
   });
 
   test("should delete multiple tags", async () => {
@@ -562,7 +564,7 @@ describe("BookService.bulkDeleteTags()", () => {
     }));
 
     // Act: Delete both Delete1 and Delete2
-    const result = await bookService.bulkDeleteTags(["Delete1", "Delete2"]);
+    const result = await tagService.bulkDeleteTags(["Delete1", "Delete2"]);
 
     // Assert
     expect(result.tagsDeleted).toBe(2);
@@ -598,7 +600,7 @@ describe("BookService.bulkDeleteTags()", () => {
     mockCalibreShouldFail = true;
 
     // Act & Assert: Should throw when Calibre sync fails
-    await expect(bookService.bulkDeleteTags(["Delete1"]))
+    await expect(tagService.bulkDeleteTags(["Delete1"]))
       .rejects.toThrow("Calibre database is unavailable");
 
     // Verify Tome DB unchanged
@@ -611,20 +613,20 @@ describe("BookService.bulkDeleteTags()", () => {
   });
 });
 
-describe("BookService.bulkUpdateTags()", () => {
+describe("TagService.bulkUpdateTags()", () => {
   test("should throw error when book IDs is empty array", async () => {
     // Act & Assert
-    await expect(bookService.bulkUpdateTags([], "add", ["Tag"])).rejects.toThrow("Book IDs must be a non-empty array");
+    await expect(tagService.bulkUpdateTags([], "add", ["Tag"])).rejects.toThrow("Book IDs must be a non-empty array");
   });
 
   test("should throw error when tags is empty array", async () => {
     // Act & Assert
-    await expect(bookService.bulkUpdateTags([1], "add", [])).rejects.toThrow("Tags must be a non-empty array");
+    await expect(tagService.bulkUpdateTags([1], "add", [])).rejects.toThrow("Tags must be a non-empty array");
   });
 
   test("should throw error when action is invalid", async () => {
     // Act & Assert
-    await expect(bookService.bulkUpdateTags([1], "invalid" as any, ["Tag"])).rejects.toThrow("Action must be 'add' or 'remove'");
+    await expect(tagService.bulkUpdateTags([1], "invalid" as any, ["Tag"])).rejects.toThrow("Action must be 'add' or 'remove'");
   });
 
   test("should add tags to multiple books", async () => {
@@ -642,7 +644,7 @@ describe("BookService.bulkUpdateTags()", () => {
     }));
 
     // Act: Add tags to both books
-    const result = await bookService.bulkUpdateTags(
+    const result = await tagService.bulkUpdateTags(
       [book1.id, book2.id],
       "add",
       ["NewTag1", "NewTag2"]
@@ -681,7 +683,7 @@ describe("BookService.bulkUpdateTags()", () => {
     }));
 
     // Act: Remove tags from both books
-    const result = await bookService.bulkUpdateTags(
+    const result = await tagService.bulkUpdateTags(
       [book1.id, book2.id],
       "remove",
       ["Remove1", "Remove2"]
@@ -713,7 +715,7 @@ describe("BookService.bulkUpdateTags()", () => {
     mockCalibreShouldFail = true;
 
     // Act: Should not throw even if Calibre sync fails
-    const result = await bookService.bulkUpdateTags([book.id], "add", ["NewTag"]);
+    const result = await tagService.bulkUpdateTags([book.id], "add", ["NewTag"]);
 
     // Assert: Database update succeeded
     expect(result.booksUpdated).toBe(1);

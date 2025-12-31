@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookService } from "@/lib/services";
+import { tagService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const skip = parseInt(searchParams.get('skip') || '0', 10);
 
-    const { books, total } = await bookService.getBooksByTag(tagName, limit, skip);
+    const { books, total } = await tagService.getBooksByTag(tagName, limit, skip);
 
     return NextResponse.json({ tag: tagName, books, total });
   } catch (error) {
@@ -65,7 +65,7 @@ export async function PATCH(
       );
     }
 
-    const result = await bookService.renameTag(tagName, newName);
+    const result = await tagService.renameTag(tagName, newName);
 
     return NextResponse.json({
       oldName: tagName,
@@ -90,7 +90,7 @@ export async function DELETE(
   try {
     const tagName = decodeURIComponent(params.tagName);
 
-    const result = await bookService.deleteTag(tagName);
+    const result = await tagService.deleteTag(tagName);
 
     return NextResponse.json({
       deletedTag: tagName,
