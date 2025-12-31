@@ -1,10 +1,10 @@
 import { useState, useCallback } from "react";
 import { toast } from "@/utils/toast";
-import type { Book } from "@/lib/db/schema/books";
 import type { Shelf } from "@/lib/db/schema/shelves";
+import type { BookWithStatus } from "@/lib/repositories/shelf.repository";
 
 export interface ShelfWithBooks extends Shelf {
-  books: Book[];
+  books: BookWithStatus[];
 }
 
 export function useShelfBooks(shelfId: number | null) {

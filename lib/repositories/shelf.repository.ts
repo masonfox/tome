@@ -9,18 +9,23 @@ import {
   NewBookShelf,
 } from "@/lib/db/schema/shelves";
 import { books, Book } from "@/lib/db/schema/books";
+import { readingSessions } from "@/lib/db/schema/reading-sessions";
 
 export interface ShelfWithBookCount extends Shelf {
   bookCount: number;
 }
 
 export interface ShelfWithBooks extends Shelf {
-  books: Book[];
+  books: BookWithStatus[];
 }
 
 export interface BookWithShelfInfo extends Book {
   sortOrder: number;
   addedAt: Date;
+}
+
+export interface BookWithStatus extends Book {
+  status: string | null;
 }
 
 export type ShelfOrderBy = "sortOrder" | "title" | "dateAdded" | "recentlyAdded";
@@ -94,11 +99,12 @@ export class ShelfRepository extends BaseRepository<
 
   /**
    * Get all books on a specific shelf with ordering options
+   * Includes reading status from active sessions
    */
   async getBooksOnShelf(
     shelfId: number,
     orderBy: ShelfOrderBy = "sortOrder"
-  ): Promise<Book[]> {
+  ): Promise<BookWithStatus[]> {
     let orderClause;
 
     switch (orderBy) {
@@ -139,14 +145,22 @@ export class ShelfRepository extends BaseRepository<
         orphanedAt: books.orphanedAt,
         createdAt: books.createdAt,
         updatedAt: books.updatedAt,
+        status: readingSessions.status,
       })
       .from(bookShelves)
       .innerJoin(books, eq(bookShelves.bookId, books.id))
+      .leftJoin(
+        readingSessions,
+        and(
+          eq(readingSessions.bookId, books.id),
+          eq(readingSessions.isActive, true)
+        )
+      )
       .where(eq(bookShelves.shelfId, shelfId))
       .orderBy(orderClause)
       .all();
 
-    return result as Book[];
+    return result as BookWithStatus[];
   }
 
   /**

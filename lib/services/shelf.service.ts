@@ -2,6 +2,7 @@ import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { bookRepository } from "@/lib/repositories";
 import type { Shelf, NewShelf } from "@/lib/db/schema/shelves";
 import type { Book } from "@/lib/db/schema/books";
+import type { BookWithStatus } from "@/lib/repositories/shelf.repository";
 import { getLogger } from "@/lib/logger";
 import { DATABASE_LIMITS } from "@/lib/constants";
 
@@ -20,7 +21,7 @@ export interface ShelfWithBookCount {
 }
 
 export interface ShelfWithBooks extends Shelf {
-  books: Book[];
+  books: BookWithStatus[];
 }
 
 export class ShelfService {
