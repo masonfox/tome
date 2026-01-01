@@ -7,8 +7,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0; // Disable all caching including router cache
 
 export default async function GoalsPage() {
-  // Get current year's reading goal
-  const currentGoal = await readingGoalsService.getCurrentYearGoal(null);
+  // Get the most appropriate goal for initial display (most recent year with a goal)
+  // Falls back to null if no goals exist (triggers onboarding)
+  const defaultGoal = await readingGoalsService.getDefaultGoal(null);
   
   // Get all goals for year selector
   const allGoals = await readingGoalsService.getAllGoals(null);
@@ -27,7 +28,7 @@ export default async function GoalsPage() {
       )}
 
       <GoalsPagePanel 
-        initialGoalData={currentGoal}
+        initialGoalData={defaultGoal}
         allGoals={allGoals}
       />
     </div>
