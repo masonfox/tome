@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
       exclude: ['error', 'warn'],
     } : false,
   },
+  // Turbopack configuration (empty for now, may need future migration)
+  turbopack: {},
   webpack: (config, { isServer, dev }) => {
     if (isServer) {
       // Externalize bun:sqlite and better-sqlite3 so webpack doesn't try to bundle them
