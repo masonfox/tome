@@ -11,6 +11,7 @@ interface ReadingGoalFormProps {
   onCancel: () => void;
   existingGoal?: ReadingGoal;
   mode: "create" | "edit";
+  selectedYear?: number; // The year context from the parent (for create mode)
 }
 
 export function ReadingGoalForm({
@@ -18,12 +19,14 @@ export function ReadingGoalForm({
   onCancel,
   existingGoal,
   mode,
+  selectedYear,
 }: ReadingGoalFormProps) {
   const { createGoalAsync, updateGoalAsync } = useReadingGoals();
   
   const currentYear = new Date().getFullYear();
   
-  const year = existingGoal?.year || currentYear;
+  // Use existingGoal year for edit mode, selectedYear for create mode (to respect user's year selection), fallback to currentYear
+  const year = existingGoal?.year || selectedYear || currentYear;
   const [booksGoal, setBooksGoal] = useState<number | "">(
     existingGoal?.booksGoal ?? ""
   );
@@ -57,9 +60,9 @@ export function ReadingGoalForm({
       return;
     }
 
-    // Year validation - only allow current year for new goals
-    if (!Number.isInteger(year) || year !== currentYear) {
-      toast.error("Goals can only be created for the current year");
+    // Year validation - only allow current year or past years for new goals (no future years)
+    if (mode === "create" && year > currentYear) {
+      toast.error("Goals can only be created for the current year or past years");
       return;
     }
 
