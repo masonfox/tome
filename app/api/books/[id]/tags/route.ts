@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { bookService } from "@/lib/services/book.service";
+import { tagService } from "@/lib/services/tag.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,7 @@ export async function PATCH(
       }
     }
     
-    const updatedBook = await bookService.updateTags(bookId, tags);
+    const updatedBook = await tagService.updateBookTags(bookId, tags);
     
     // Revalidate relevant pages (safe in test environments)
     try {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface TagWithStats {
   name: string;
@@ -6,6 +7,7 @@ export interface TagWithStats {
 }
 
 export function useTagManagement() {
+  const queryClient = useQueryClient();
   const [tags, setTags] = useState<TagWithStats[]>([]);
   const [totalBooks, setTotalBooks] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export function useTagManagement() {
 
   useEffect(() => {
     fetchTags();
-  }, [fetchTags]);
+  }, [fetchTags, queryClient]);
 
   const renameTag = useCallback(async (oldName: string, newName: string) => {
     try {
@@ -51,12 +53,15 @@ export function useTagManagement() {
       // Refresh tags after successful rename
       await fetchTags();
       
+      // Invalidate available tags cache for book detail pages
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      
       const data = await response.json();
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to rename tag");
     }
-  }, [fetchTags]);
+  }, [fetchTags, queryClient]);
 
   const deleteTag = useCallback(async (tagName: string) => {
     try {
@@ -72,12 +77,15 @@ export function useTagManagement() {
       // Refresh tags after successful delete
       await fetchTags();
       
+      // Invalidate available tags cache for book detail pages
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      
       const data = await response.json();
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to delete tag");
     }
-  }, [fetchTags]);
+  }, [fetchTags, queryClient]);
 
   const mergeTags = useCallback(async (sourceTags: string[], targetTag: string) => {
     try {
@@ -95,12 +103,15 @@ export function useTagManagement() {
       // Refresh tags after successful merge
       await fetchTags();
       
+      // Invalidate available tags cache for book detail pages
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      
       const data = await response.json();
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to merge tags");
     }
-  }, [fetchTags]);
+  }, [fetchTags, queryClient]);
 
   return {
     tags,

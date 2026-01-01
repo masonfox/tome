@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookService } from "@/lib/services";
+import { tagService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await bookService.bulkDeleteTags(body.tagNames);
+    const result = await tagService.bulkDeleteTags(body.tagNames);
 
     return NextResponse.json({
       deletedTags: body.tagNames,

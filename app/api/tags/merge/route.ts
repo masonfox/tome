@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookService } from "@/lib/services";
+import { tagService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await bookService.mergeTags(body.sourceTags, targetTag);
+    const result = await tagService.mergeTags(body.sourceTags, targetTag);
 
     return NextResponse.json({
       mergedTags: body.sourceTags,

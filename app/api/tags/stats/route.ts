@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { bookService } from "@/lib/services";
+import { tagService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     // Get tag statistics with book counts
-    const tags = await bookService.getTagStats();
+    const tags = await tagService.getTagStats();
     
     // Get total count of unique books with tags
-    const totalBooks = await bookService.countBooksWithTags();
+    const totalBooks = await tagService.countBooksWithTags();
 
     return NextResponse.json({ tags, totalBooks });
   } catch (error) {

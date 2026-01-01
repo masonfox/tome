@@ -1,0 +1,525 @@
+# ADR-012: Calibre Sync Write Pattern
+## Status
+✅ **Implemented** - December 31, 2025
+
+## Context
+Tome is a reading tracker that integrates with Calibre, treating Calibre's database as the authoritative source of truth for book metadata (titles, authors, tags, ratings, identifiers, series information). Tome maintains its own SQLite database as a **cache** of this metadata, enriched with reading-specific data (sessions, progress logs, streaks).
+
+### The Challenge: Dual Database Synchronization
+Two systems maintain overlapping data:
+1. **Calibre Database** - Source of truth, user can edit directly in Calibre
+2. **Tome Database** - Cache + reading data, user edits through Tome UI
+A file watcher (`calibre-watcher.ts`) monitors Calibre's database for changes and syncs them to Tome (pull pattern). This one-way sync works well for changes made in Calibre, but creates a **race condition** when Tome needs to write changes:
+
+### The Race Condition Problem
+**Scenario:** User updates book tags in Tome UI
+```
+WITHOUT Write Pattern (BROKEN):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+T0: User updates tag "fantasy" → "sci-fi" in Tome UI
+T1: Tome writes to Tome DB (tags: ["sci-fi"]) ✓
+T2: Tome writes to Calibre DB (tags: ["sci-fi"]) ✓
+T3: Watcher detects Calibre change
+T4: Watcher reads Calibre (might still see old state due to timing)
+T5: Watcher syncs old data ["fantasy"] back to Tome
+T6: User's change LOST - Tome shows ["fantasy"] again ❌
+```
+**Why this happens:**
+- File system watchers have debounce delays (typically 1-2 seconds)
+- SQLite file system changes may not be immediately visible to other processes
+- Watcher doesn't know the change came from Tome itself
+- Watcher faithfully syncs what it sees, overwriting Tome's changes
+
+### Previous Attempts
+**Attempt 1: Best Effort Sync** - Write to Tome, then try to write to Calibre
+- ❌ If Calibre write fails, databases diverge
+- ❌ Watcher can still race and overwrite
+**Attempt 2: Write to Both Simultaneously** - Parallel writes to both databases
+- ❌ Doesn't prevent watcher race condition
+- ❌ Complex error handling (what if one succeeds and other fails?)
+**Attempt 3: Disable Watcher During Writes** - Suspend watcher for entire operation
+- ✅ Prevents race condition!
+- ⚠️ But what if watcher resumes too early?
+- ⚠️ What if Tome writes to Tome first, then Calibre write fails?
+
+## Decision
+We adopt a **Calibre Sync Write Pattern** for all operations that modify metadata stored in both Tome and Calibre databases. This pattern treats Calibre as the authoritative source and Tome as a write-through cache.
+
+### Core Principle: Write-Through Cache
+**Write-Through Cache**: When updating cached data, write to the backing store (source of truth) FIRST, then update the cache to match.
+In our case:
+- **Backing Store** = Calibre database (source of truth)
+- **Cache** = Tome database (fast local access + reading data)
+
+### The Pattern: Four-Step Atomic Operation
+```typescript
+async function updateCalibreMetadata() {
+  // STEP 1: Suspend watcher to prevent interference
+  calibreWatcher.suspend();
+  
+  try {
+    // STEP 2: Write to Calibre FIRST (source of truth)
+    //         - Required, not best-effort
+    //         - If this fails, abort entire operation
+    await writeToCalibre(newData);
+    
+    // STEP 3: Update Tome to match Calibre (cache follows source)
+    //         - Tome now reflects what's in Calibre
+    //         - Critical: must not fail (local DB should be reliable)
+    await updateTomeDatabase(newData);
+    
+  } finally {
+    // STEP 4: Resume watcher with ignore period
+    //         - Prevents watcher from re-syncing our own changes
+    //         - Ignore period allows file system to settle
+    calibreWatcher.resumeWithIgnorePeriod(3000); // 3 second buffer
+  }
+}
+```
+
+### With Pattern (CORRECT):
+```
+WITH Write Pattern (CORRECT):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+T0: User updates tag "fantasy" → "sci-fi" in Tome UI
+T1: Watcher SUSPENDED (no interference possible) 🛡️
+T2: Write to Calibre FIRST (tags: ["sci-fi"]) ✓
+T3: Write to Tome to match (tags: ["sci-fi"]) ✓
+T4: Watcher RESUMED with ignore period
+T5: Watcher detects change but IGNORES (own change) 🚫
+T6: Data consistent everywhere ✅
+    - Calibre: ["sci-fi"]
+    - Tome: ["sci-fi"]
+```
+
+## Implementation
+### Generic Helper Method: `syncWithCalibreWriteThrough()`
+The pattern is extracted into a reusable helper method in services that perform Calibre writes:
+```typescript
+/**
+ * Execute a Calibre metadata operation using Write-Through Cache pattern
+ * 
+ * @param operationName - Name for logging (e.g., "UPDATE_TAGS", "MERGE_TAGS")
+ * @param affectedBooks - Books that will be affected by this operation
+ * @param calculateCalibreUpdates - Function to calculate new Calibre values
+ * @param updateTomeDatabase - Function to update Tome DB after Calibre succeeds
+ * @returns Promise resolving to the result of the Tome database update
+ * @throws {Error} If Calibre write fails (aborts operation) or Tome update fails
+ */
+private async syncWithCalibreWriteThrough<T>(
+  operationName: string,
+  affectedBooks: Book[],
+  calculateCalibreUpdates: (books: Book[]) => Array<CalibreUpdate>,
+  updateTomeDatabase: () => Promise<T>
+): Promise<T> {
+  const logger = getLogger();
+  // STEP 1: Suspend the Calibre watcher
+  calibreWatcher.suspend();
+  logger.info(`[${operationName}] Calibre watcher suspended`);
+  
+  try {
+    if (affectedBooks.length === 0) {
+      logger.info(`[${operationName}] No books affected, skipping Calibre sync`);
+      return await updateTomeDatabase();
+    }
+    // Calculate what the new values should be
+    const calibreUpdates = calculateCalibreUpdates(affectedBooks);
+    // STEP 2: Write to Calibre FIRST (source of truth - REQUIRED)
+    logger.info({ bookCount: calibreUpdates.length }, 
+      `[${operationName}] Writing to Calibre (source of truth)`);
+    
+    try {
+      const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      
+      // Validate ALL writes succeeded
+      if (successCount !== calibreUpdates.length) {
+        throw new Error(
+          `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
+          `Aborting to maintain consistency.`
+        );
+      }
+      
+      logger.info({ successCount }, `[${operationName}] Successfully wrote to Calibre`);
+    } catch (error) {
+      logger.error({ err: error }, 
+        `[${operationName}] FAILED to write to Calibre - aborting operation`);
+      throw new Error(
+        `Failed to update Calibre: ${error instanceof Error ? error.message : error}`
+      );
+    }
+    // STEP 3: Update Tome database to match Calibre
+    logger.info(`[${operationName}] Updating Tome database to match Calibre`);
+    const result = await updateTomeDatabase();
+    logger.info(`[${operationName}] Updated Tome database successfully`);
+    return result;
+    
+  } finally {
+    // STEP 4: Resume watcher with ignore period
+    calibreWatcher.resumeWithIgnorePeriod(3000);
+    logger.info(`[${operationName}] Calibre watcher resumed with ignore period`);
+  }
+}
+```
+
+### Watcher Suspend/Resume Mechanism
+The Calibre watcher (`lib/calibre-watcher.ts`) provides suspension controls:
+```typescript
+class CalibreWatcher {
+  private suspended: boolean = false;
+  private ignorePeriodEnd: number = 0; // Timestamp until which to ignore changes
+  /**
+   * Suspend the watcher to prevent it from processing file changes
+   * Also clears any pending debounced sync operations
+   */
+  suspend() {
+    this.suspended = true;
+    
+    // Clear pending debounce timer to prevent queued syncs
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    
+    logger.info("[WATCHER] Calibre watcher suspended");
+  }
+  /**
+   * Resume the watcher
+   */
+  resume() {
+    this.suspended = false;
+    logger.info("[WATCHER] Calibre watcher resumed");
+  }
+  /**
+   * Resume with an ignore period to prevent re-syncing our own changes
+   * 
+   * @param durationMs - Duration in milliseconds to ignore file changes
+   */
+  resumeWithIgnorePeriod(durationMs: number = 3000) {
+    this.suspended = false;
+    this.ignorePeriodEnd = Date.now() + durationMs;
+    logger.info(`[WATCHER] Calibre watcher resumed with ${durationMs}ms ignore period`);
+  }
+  private async handleFileChange(eventType: string, filename: string) {
+    // Check if suspended
+    if (this.suspended) {
+      logger.info("[WATCHER] Watcher is suspended, skipping sync");
+      return;
+    }
+    // Check if we're in the ignore period (self-inflicted change)
+    if (Date.now() < this.ignorePeriodEnd) {
+      logger.info("[WATCHER] Ignoring change (within ignore period after write)");
+      return;
+    }
+    // Process the change...
+  }
+}
+```
+
+**Key aspects:**
+- **suspend()**: Immediately stops watcher, clears pending operations
+- **resumeWithIgnorePeriod()**: Resumes but ignores changes for buffer period
+- **Ignore period**: Allows file system and SQLite to settle after our writes
+
+### Current Implementations
+#### TagService (6 operations)
+**File:** `lib/services/tag.service.ts`
+All tag operations use the write-through cache pattern:
+1. **updateBookTags()** - Update tags for a single book
+2. **mergeTags()** - Merge multiple source tags into target tag
+3. **renameTag()** - Rename a tag across all books
+4. **deleteTag()** - Delete a tag from all books
+5. **bulkDeleteTags()** - Delete multiple tags at once
+6. **bulkUpdateTags()** - Add/remove tags from multiple books
+Example usage:
+```typescript
+async updateBookTags(bookId: number, tags: string[]): Promise<Book> {
+  const book = await bookRepository.findById(bookId);
+  if (!book) throw new Error("Book not found");
+  // Use write-through cache helper
+  await this.syncWithCalibreWriteThrough(
+    "UPDATE_TAGS",
+    [book],
+    (books: Book[]) => books.map(b => ({ calibreId: b.calibreId, tags })),
+    async () => {
+      const updated = await bookRepository.update(bookId, { tags });
+      if (!updated) throw new Error("Failed to update tags in Tome database");
+      return updated;
+    }
+  );
+  return await bookRepository.findById(bookId); // Re-fetch to return fresh data
+}
+```
+
+#### SessionService (rating on completion)
+**File:** `lib/services/session.service.ts`
+When marking a book as complete with a rating:
+```typescript
+async completeSession(sessionId: number, rating?: number): Promise<void> {
+  // ... validation and session update ...
+  if (rating) {
+    // Suspend watcher during rating write
+    calibreWatcher.suspend();
+    
+    try {
+      // Write to Calibre FIRST
+      calibreService.updateRating(book.calibreId, rating);
+      
+      // Update Tome to match
+      await bookRepository.update(book.id, { rating });
+      
+    } finally {
+      calibreWatcher.resumeWithIgnorePeriod(3000);
+    }
+  }
+}
+```
+
+#### BookService (standalone rating updates)
+**File:** `lib/services/book.service.ts`
+Direct rating updates (not tied to session completion):
+```typescript
+async updateRating(bookId: number, rating: number | null): Promise<Book> {
+  // Similar pattern but without generic helper (predates extraction)
+  // Consider refactoring to use syncWithCalibreWriteThrough in future
+}
+```
+## When to Use This Pattern
+### Decision Tree
+```
+Are you writing book metadata?
+├─ NO → Don't use this pattern (Tome-only data)
+└─ YES → Does Calibre store this data?
+         ├─ NO (Tome-specific) → Don't use this pattern
+         │   Examples: sessions, progress logs, streaks, reading goals
+         │
+         └─ YES → MUST use this pattern
+             Examples: tags, ratings, identifiers, series info, custom columns
+```
+
+### Strongly Recommended For:
+✅ **Tags** - User-managed categorization  
+✅ **Ratings** - Book quality assessment (1-5 stars)  
+✅ **Identifiers** - ISBN, ASIN, Goodreads ID, etc.  
+✅ **Series Information** - Series name and index  
+✅ **Custom Columns** - User-defined metadata fields in Calibre  
+✅ **Comments/Descriptions** - Book summaries or notes  
+✅ **Publisher/Publication Date** - If editable by user
+
+### Do NOT Use For:
+❌ **Reading Sessions** - Tome-specific concept  
+❌ **Progress Logs** - Tome-specific tracking  
+❌ **Streaks** - Tome-specific gamification  
+❌ **Reading Goals** - Tome-specific feature  
+❌ **Reviews** - Stored on sessions, not synced to Calibre
+
+### Exception Cases
+**Read-only Calibre data** (title, authors, paths):
+- These are synced FROM Calibre but never written back
+- Use read-only repository methods
+- Watcher handles all updates
+
+## Error Handling Strategy
+### Fail Fast, Fail Loud
+The pattern follows a **"Fail Calibre, Fail All"** strategy:
+```typescript
+try {
+  // Write to Calibre
+  const success = calibreService.updateMetadata(...);
+  if (!success) {
+    throw new Error("Calibre write failed");
+  }
+  
+  // Update Tome
+  await tomeRepository.update(...);
+  
+} catch (error) {
+  logger.error({ err: error }, "Calibre sync operation failed");
+  throw error; // Propagate to API layer for user-facing error
+}
+```
+
+### Error Scenarios and Handling
+#### Scenario 1: Calibre Write Fails
+**What happens:**
+- Operation aborts immediately
+- Tome database unchanged (never wrote to it)
+- User sees error message
+- System remains consistent (both DBs have old values)
+**Resolution:**
+- ✅ Safe state - no inconsistency
+- User can retry operation
+- Check Calibre database health
+
+#### Scenario 2: Calibre Succeeds, Tome Update Fails
+**What happens:**
+- Calibre has new value
+- Tome still has old value
+- Databases are **temporarily inconsistent** ⚠️
+**Resolution:**
+- Log as **ERROR** (critical path failure)
+- Watcher will eventually sync Calibre → Tome (self-healing)
+- Alert monitoring system (if configured)
+- Manual intervention may be needed for immediate consistency
+**Why no automatic rollback?**
+- Cross-database transactions are complex and risky
+- Rollback could corrupt Calibre data
+- Tome-write failures should be rare (local SQLite, not networked)
+- Watcher provides eventual consistency
+- Better to fail loudly than silently corrupt data
+
+#### Scenario 3: Watcher Fails to Resume
+**What happens:**
+- Watcher remains suspended
+- Future Calibre changes (from Calibre app) won't sync to Tome
+- User edits in Calibre won't appear in Tome
+**Resolution:**
+- Watcher suspend/resume uses `finally` block (always executes)
+- Application restart will reset watcher state
+- Monitor watcher health in production
+
+### Monitoring Recommendations
+**Log Levels:**
+- `INFO`: Normal operation start/completion
+- `WARN`: Retryable issues, ignore period activations
+- `ERROR`: Calibre write failures, Tome update failures after Calibre success
+- `FATAL`: Watcher crashes, database connection failures
+**Metrics to Track:**
+- Calibre write success rate
+- Tome update success rate (after Calibre write)
+- Watcher suspend/resume cycles
+- Ignore period activations
+- Operation duration (detect performance issues)
+**Alerting Triggers:**
+- Calibre write failure rate > 5%
+- Any Tome update failure after Calibre success (critical inconsistency)
+- Watcher suspended for > 10 seconds (may indicate hang)
+
+## Consequences
+### Positive
+✅ **Data Consistency**: Calibre remains single source of truth  
+✅ **No Race Conditions**: Watcher suspension prevents timing issues  
+✅ **Atomic Semantics**: If Calibre write fails, operation aborts cleanly  
+✅ **Predictable**: Clear 4-step pattern for all Calibre writes  
+✅ **Maintainable**: Generic helper method reduces code duplication  
+✅ **Testable**: Watcher and Calibre service are mockable  
+✅ **Self-Documenting**: Code clearly signals "this syncs with Calibre"
+
+### Negative
+⚠️ **Complexity**: More steps than simple DB write  
+⚠️ **Performance**: Watcher suspend/resume adds overhead (~50-100ms)  
+⚠️ **Temporary Inconsistency**: If Tome update fails after Calibre success  
+⚠️ **No Rollback**: Manual intervention needed for critical failures  
+⚠️ **Testing Complexity**: Must mock both watcher and Calibre service
+
+### Trade-offs
+**Why not write to Tome first, then Calibre?**
+- Calibre is source of truth - it should always have the "correct" value
+- If Calibre write fails, we don't want stale data in Tome
+- Watcher would eventually overwrite Tome with Calibre's value anyway
+**Why not use database transactions across both DBs?**
+- SQLite doesn't support distributed transactions
+- Cross-process locking is complex and error-prone
+- Write-through cache is simpler and well-understood pattern
+**Why not disable watcher permanently during writes?**
+- Users may edit in Calibre while using Tome
+- Want changes from Calibre to sync quickly (within 2 seconds)
+- Ignore period is sufficient to prevent self-sync
+
+## Code Review Checklist
+When reviewing code that writes to Calibre, verify:
+- [ ] **New Calibre write operation identified?**
+  - Check if metadata exists in both Calibre and Tome schemas
+  
+- [ ] **Uses `syncWithCalibreWriteThrough()` or equivalent 4-step pattern?**
+  - Look for suspend → write Calibre → update Tome → resume sequence
+  
+- [ ] **Watcher suspended BEFORE Calibre write?**
+  - `calibreWatcher.suspend()` must be first step
+  
+- [ ] **Calibre write happens BEFORE Tome update?**
+  - Order matters: source of truth first, then cache
+  
+- [ ] **Resume includes ignore period?**
+  - `calibreWatcher.resumeWithIgnorePeriod(3000)` in finally block
+  
+- [ ] **Finally block ensures watcher resumes?**
+  - Even if errors occur, watcher must not stay suspended
+  
+- [ ] **Error handling logs failures appropriately?**
+  - Calibre failures at ERROR level
+  - Tome failures after Calibre success at ERROR level (critical)
+  
+- [ ] **Tests mock calibreService and calibreWatcher?**
+  - Verify mocks are set up to test both success and failure paths
+  
+- [ ] **Operation is idempotent?**
+  - Can safely retry if it fails partway through
+  
+## Future Considerations
+
+### New Calibre Write Operations
+
+When adding new metadata writes to Calibre:
+1. **Identify Source of Truth**
+   - Does Calibre store this data? → Use write-through cache pattern
+   - Is it Tome-only? → Simple repository write
+2. **Use Pattern Helper**
+   - Extract into service method using `syncWithCalibreWriteThrough()`
+   - Include operation name for logging
+3. **Test Thoroughly**
+   - Mock Calibre service and watcher
+   - Test Calibre write success path
+   - Test Calibre write failure (abort operation)
+   - Test Tome update failure (log critical error)
+   - Verify watcher resumes in all cases
+4. **Document in ADR**
+   - Add new operation to "Current Implementations" list
+   - Update "When to Use" section if new metadata type
+
+### Pattern Evolution
+**Consider if:**
+- Multiple services need the same pattern → Extract to shared utility module
+- Ignore period timing needs tuning → Make configurable via environment variable
+- Rollback becomes necessary → Implement compensating transactions
+- Performance becomes issue → Profile and optimize watcher operations
+
+### Potential Improvements
+**Investigate:**
+- Making ignore period configurable per operation type
+- Adding retry logic for transient Calibre write failures
+- Implementing health checks for watcher state
+- Adding metrics/telemetry for operation success rates
+- Creating architectural tests to enforce pattern usage
+## Code Locations
+**Pattern Implementation:**
+- `lib/services/tag.service.ts:631-683` - `syncWithCalibreWriteThrough()` generic helper
+- `lib/services/tag.service.ts` - All 6 tag operations use pattern
+- `lib/services/session.service.ts` - Rating on completion
+- `lib/services/book.service.ts` - Standalone rating updates
+**Watcher Mechanism:**
+- `lib/calibre-watcher.ts` - Suspend/resume implementation
+- `lib/calibre-watcher.ts:suspend()` - Suspend watcher
+- `lib/calibre-watcher.ts:resumeWithIgnorePeriod()` - Resume with buffer
+**Calibre Write Operations:**
+- `lib/services/calibre.service.ts` - Service wrapper for write operations
+- `lib/db/calibre-write.ts` - Low-level write implementations
+**Tests:**
+- `__tests__/services/tag.service.test.ts` - Tag operations with pattern
+- `__tests__/api/tags-*.test.ts` - API integration tests
+- Test mocks demonstrate proper watcher and Calibre service mocking
+
+## Related ADRs
+- **ADR-002: Rating Architecture** - First implementation of Calibre writes, established "Calibre as source of truth" principle
+- **ADR-004: Backend Service Layer Architecture** - Defines service responsibilities and patterns, this ADR extends with Calibre sync helpers
+- **ADR-007: Layered Cache Invalidation Strategy** - Addresses Next.js caching (different concern but related concept of cache consistency)
+
+## References
+- [Write-Through Cache Pattern](https://en.wikipedia.org/wiki/Cache_(computing)#Writing_policies)
+- [Calibre Database Schema Documentation](https://manual.calibre-ebook.com/db_api.html)
+- Tome Calibre Watcher Implementation: `lib/calibre-watcher.ts`
+- Tag Service Refactor: Commit `2657b3e` - Extracted tag operations into TagService
+
+## Contributors
+- Initial implementation: Tag operations (PR #187)
+- Pattern extraction: TagService refactor (commit 2657b3e)
+- ADR documentation: December 31, 2025
