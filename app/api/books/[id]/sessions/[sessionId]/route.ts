@@ -22,8 +22,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; sessionId: string } }
+  props: { params: Promise<{ id: string; sessionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     const sessionId = parseInt(params.sessionId);

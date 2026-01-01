@@ -7,10 +7,8 @@ export const dynamic = 'force-dynamic';
  * GET /api/tags/:tagName
  * Get all books with a specific tag
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { tagName: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ tagName: string }> }) {
+  const params = await props.params;
   try {
     const tagName = decodeURIComponent(params.tagName);
     
@@ -33,10 +31,8 @@ export async function GET(
  * PATCH /api/tags/:tagName
  * Rename a tag across all books
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { tagName: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ tagName: string }> }) {
+  const params = await props.params;
   try {
     const tagName = decodeURIComponent(params.tagName);
     const body = await request.json();
@@ -83,10 +79,8 @@ export async function PATCH(
  * DELETE /api/tags/:tagName
  * Delete a tag from all books
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { tagName: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ tagName: string }> }) {
+  const params = await props.params;
   try {
     const tagName = decodeURIComponent(params.tagName);
 
