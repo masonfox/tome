@@ -1,8 +1,8 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   output: 'standalone',
   experimental: {
-    instrumentationHook: true,
     // Skip pre-rendering for pages that fail
     workerThreads: false,
     cpus: 1,
@@ -12,8 +12,6 @@ const nextConfig = {
   images: {
     unoptimized: true, // Required for local file system images
   },
-  // Enable production optimizations
-  swcMinify: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
@@ -41,4 +39,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
