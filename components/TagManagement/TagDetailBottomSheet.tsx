@@ -141,19 +141,19 @@ export function TagDetailBottomSheet({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      // Only reset isClosing if we're not in the middle of a close animation
-      if (!closingTimeoutRef.current) {
-        setIsClosing(false);
-      }
+      setIsClosing(false);
       
       // Reset scroll position when tag changes
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
       }
       
-      // Focus the close button when sheet opens
+      // Focus the close button to prevent browser from auto-focusing action items
+      // Use double RAF to ensure this happens after browser layout and paint
       requestAnimationFrame(() => {
-        closeButtonRef.current?.focus();
+        requestAnimationFrame(() => {
+          closeButtonRef.current?.focus();
+        });
       });
     } else {
       document.body.style.overflow = "";
@@ -195,11 +195,9 @@ export function TagDetailBottomSheet({
   const handleClose = () => {
     setIsClosing(true);
     closingTimeoutRef.current = setTimeout(() => {
+      setIsClosing(false);
       onClose();
-      closingTimeoutRef.current = setTimeout(() => {
-        setIsClosing(false);
-        closingTimeoutRef.current = null;
-      }, 50);
+      closingTimeoutRef.current = null;
     }, CLOSE_ANIMATION_MS);
   };
 
@@ -250,6 +248,7 @@ export function TagDetailBottomSheet({
               onClick={handleClose}
               className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg flex-shrink-0"
               aria-label="Close"
+              autoFocus
             >
               <X className="w-5 h-5" />
             </button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { TagManagementHeader } from "@/components/TagManagement/TagManagementHeader";
 import { TagList } from "@/components/TagManagement/TagList";
 import { TagDetailPanel } from "@/components/TagManagement/TagDetailPanel";
@@ -16,9 +15,7 @@ import { useTagBooks } from "@/hooks/useTagBooks";
 import { toast } from "@/utils/toast";
 
 function TagsPageContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const selectedTag = searchParams?.get("tag");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Modal states
   const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -73,9 +70,9 @@ function TagsPageContent() {
     removeTagFromBook,
   } = useTagBooks(selectedTag);
 
-  // Update URL when tag is selected
+  // Update selected tag when tag is clicked
   const handleSelectTag = (tagName: string) => {
-    router.push(`/tags?tag=${encodeURIComponent(tagName)}`);
+    setSelectedTag(tagName);
   };
 
   // Handle refresh
@@ -98,9 +95,9 @@ function TagsPageContent() {
       await renameTag(tagToRename, newName);
       toast.success(`Tag renamed to "${newName}"`);
       
-      // Update URL if the renamed tag was selected
+      // Update selected tag if the renamed tag was selected
       if (selectedTag === tagToRename) {
-        router.push(`/tags?tag=${encodeURIComponent(newName)}`);
+        setSelectedTag(newName);
       }
       setRenameModalOpen(false);
     } catch (error) {
@@ -127,9 +124,9 @@ function TagsPageContent() {
       await deleteTag(tagToDelete.name);
       toast.success(`Tag "${tagToDelete.name}" deleted`);
       
-      // Clear URL if deleted tag was selected
+      // Clear selected tag if deleted tag was selected
       if (selectedTag === tagToDelete.name) {
-        router.push("/tags");
+        setSelectedTag(null);
       }
       setDeleteModalOpen(false);
     } catch (error) {
@@ -161,9 +158,9 @@ function TagsPageContent() {
         toast.success(`Merged ${mergeCount} tags into "${targetTag}"`);
       }
       
-      // Update URL if one of the source tags was selected
+      // Update selected tag if one of the source tags was selected
       if (selectedTag && tagsToMerge.includes(selectedTag)) {
-        router.push(`/tags?tag=${encodeURIComponent(targetTag)}`);
+        setSelectedTag(targetTag);
       }
       setMergeModalOpen(false);
     } catch (error) {
@@ -210,9 +207,9 @@ function TagsPageContent() {
         toast.success(`Deleted ${deleteCount} tags`);
       }
       
-      // Clear URL if deleted tag was selected
+      // Clear selected tag if deleted tag was selected
       if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
-        router.push("/tags");
+        setSelectedTag(null);
       }
       setBulkDeleteModalOpen(false);
     } catch (error) {
@@ -236,7 +233,7 @@ function TagsPageContent() {
 
   // Handle mobile back navigation
   const handleCloseDetail = () => {
-    router.push("/tags");
+    setSelectedTag(null);
   };
 
   return (
