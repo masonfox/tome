@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useEffect, useState } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -90,7 +91,7 @@ export default function BaseModal({
         <div className="mb-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
+              <Spinner size="md" />
             </div>
           ) : (
             children

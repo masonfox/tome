@@ -28,6 +28,7 @@ import { useBookProgress } from "@/hooks/useBookProgress";
 import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
+import { Spinner } from "@/components/ui/Spinner";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
@@ -281,7 +282,7 @@ export default function BookDetailPage() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+        <Spinner size="md" />
       </div>
     );
   }
