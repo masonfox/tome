@@ -44,7 +44,6 @@ export function RenameTagModal({
     }
 
     onConfirm(newName.trim());
-    onClose();
   };
 
   const handleCancel = () => {
@@ -65,7 +64,8 @@ export function RenameTagModal({
           <button
             type="button"
             onClick={handleCancel}
-            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium"
+            disabled={loading}
+            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -75,7 +75,7 @@ export function RenameTagModal({
             disabled={!newName.trim() || newName === tagName || loading}
             className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Rename
+            {loading ? "Renaming..." : "Rename"}
           </button>
         </div>
       }

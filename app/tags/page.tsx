@@ -99,9 +99,12 @@ function TagsPageContent() {
       if (selectedTag === tagToRename) {
         setSelectedTag(newName);
       }
+      
+      // Close modal only on success
       setRenameModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to rename tag");
+      // Keep modal open so user can see error and retry
     } finally {
       setRenameLoading(false);
     }
@@ -128,9 +131,12 @@ function TagsPageContent() {
       if (selectedTag === tagToDelete.name) {
         setSelectedTag(null);
       }
+      
+      // Close modal only on success
       setDeleteModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete tag");
+      // Keep modal open so user can see error and retry
     } finally {
       setDeleteLoading(false);
     }
@@ -162,9 +168,12 @@ function TagsPageContent() {
       if (selectedTag && tagsToMerge.includes(selectedTag)) {
         setSelectedTag(targetTag);
       }
+      
+      // Close modal only on success
       setMergeModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to merge tags");
+      // Keep modal open so user can see error and retry
     } finally {
       setMergeLoading(false);
     }
@@ -211,9 +220,12 @@ function TagsPageContent() {
       if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
         setSelectedTag(null);
       }
+      
+      // Close modal only on success
       setBulkDeleteModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete tags");
+      // Keep modal open so user can see error and retry
     } finally {
       setBulkDeleteLoading(false);
     }
@@ -228,6 +240,7 @@ function TagsPageContent() {
       toast.success("Tag removed from book");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to remove tag");
+      throw error; // Re-throw so BookCardSimple knows to keep modal open
     }
   };
 
