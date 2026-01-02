@@ -14,6 +14,7 @@ interface BaseModalProps {
   actions: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
   loading?: boolean;
+  allowBackdropClose?: boolean;
 }
 
 const sizeClasses = {
@@ -33,6 +34,7 @@ export default function BaseModal({
   actions,
   size = "md",
   loading = false,
+  allowBackdropClose = true,
 }: BaseModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -55,7 +57,7 @@ export default function BaseModal({
         "fixed inset-0 bg-black flex items-center justify-center z-50 p-4 transition-opacity duration-200",
         isAnimating ? "bg-opacity-50" : "bg-opacity-0"
       )}
-      onClick={onClose}
+      onClick={allowBackdropClose ? onClose : undefined}
     >
       <div 
         className={cn(
