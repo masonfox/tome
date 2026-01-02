@@ -62,9 +62,8 @@ const baseOptions: LoggerOptions = {
   },
 };
 
-// Configure multi-stream to write to both stdout and file (if LOG_DEST is set)
-// This ensures logs are visible in container logs (Portainer) AND persisted to file
-const streams: pino.StreamEntry[] = [];
+// Check if we're in a server environment (Node.js/Bun) vs browser
+const isServer = typeof process !== 'undefined' && process.versions?.node;
 
 // Pretty transport only in development (for stdout)
 let transport: any = undefined;
@@ -79,20 +78,24 @@ if (LOG_PRETTY) {
   };
 }
 
-// Always add stdout stream
-streams.push({ 
-  stream: process.stdout 
-});
+// Configure multi-stream to write to both stdout and file (server-side only)
+// This ensures logs are visible in container logs (Portainer) AND persisted to file
+let baseLogger: Logger;
 
-// Optionally add file destination stream
-if (LOG_DEST) {
-  streams.push({ 
-    stream: pino.destination({ dest: LOG_DEST, sync: false }) 
-  });
+if (isServer && LOG_DEST) {
+  // Server-side with file destination: use multi-stream for both stdout and file
+  const streams: pino.StreamEntry[] = [
+    { stream: process.stdout },
+    { stream: pino.destination({ dest: LOG_DEST, sync: false }) }
+  ];
+  baseLogger = pino({ ...baseOptions, transport }, pino.multistream(streams));
+} else if (isServer) {
+  // Server-side without file destination: default to stdout
+  baseLogger = pino({ ...baseOptions, transport });
+} else {
+  // Client-side: create a minimal logger (browser console fallback)
+  baseLogger = pino({ ...baseOptions, browser: { asObject: true } });
 }
-
-// Singleton base logger with multi-stream support
-const baseLogger: Logger = pino({ ...baseOptions, transport }, pino.multistream(streams));
 
 export function getBaseLogger(): Logger { return baseLogger; }
 export function createLogger(bindings?: Record<string, any>): Logger { return baseLogger.child(bindings || {}); }
