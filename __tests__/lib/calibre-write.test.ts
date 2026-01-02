@@ -742,10 +742,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(3);
+      expect(result.totalAttempted).toBe(3);
+      expect(result.successCount).toBe(3);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
       expect(readCalibreTags(3, batchTestDb)).toEqual(["Biography"]);
@@ -756,19 +758,23 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       const updates = [{ calibreId: 1, tags: ["Fiction"] }];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(1);
+      expect(result.totalAttempted).toBe(1);
+      expect(result.successCount).toBe(1);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Fiction"]);
     });
 
     test("should return 0 for empty updates array", () => {
       // Act
-      const successCount = batchUpdateCalibreTags([], batchTestDb);
+      const result = batchUpdateCalibreTags([], batchTestDb);
 
       // Assert
-      expect(successCount).toBe(0);
+      expect(result.totalAttempted).toBe(0);
+      expect(result.successCount).toBe(0);
+      expect(result.failures).toEqual([]);
     });
 
     test("should handle clearing tags for multiple books", () => {
@@ -782,10 +788,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(2);
+      expect(result.totalAttempted).toBe(2);
+      expect(result.successCount).toBe(2);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual([]);
       expect(readCalibreTags(2, batchTestDb)).toEqual([]);
     });
@@ -847,10 +855,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert: All succeed (FK not enforced in test DB for tags)
-      expect(successCount).toBe(3);
+      expect(result.totalAttempted).toBe(3);
+      expect(result.successCount).toBe(3);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Fiction"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Classic"]);
       expect(readCalibreTags(999, batchTestDb)).toEqual(["Invalid"]);
@@ -864,17 +874,30 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(2); // Succeed without FK enforcement
+      expect(result.totalAttempted).toBe(2);
+      expect(result.successCount).toBe(2); // Succeed without FK enforcement
+      expect(result.failures).toEqual([]);
     });
 
-    test("should return 0 for non-array input", () => {
+    test("should return empty result for non-array input", () => {
       // Act & Assert
-      expect(batchUpdateCalibreTags(null as any, batchTestDb)).toBe(0);
-      expect(batchUpdateCalibreTags(undefined as any, batchTestDb)).toBe(0);
-      expect(batchUpdateCalibreTags("not an array" as any, batchTestDb)).toBe(0);
+      const result1 = batchUpdateCalibreTags(null as any, batchTestDb);
+      expect(result1.totalAttempted).toBe(0);
+      expect(result1.successCount).toBe(0);
+      expect(result1.failures).toEqual([]);
+      
+      const result2 = batchUpdateCalibreTags(undefined as any, batchTestDb);
+      expect(result2.totalAttempted).toBe(0);
+      expect(result2.successCount).toBe(0);
+      expect(result2.failures).toEqual([]);
+      
+      const result3 = batchUpdateCalibreTags("not an array" as any, batchTestDb);
+      expect(result3.totalAttempted).toBe(0);
+      expect(result3.successCount).toBe(0);
+      expect(result3.failures).toEqual([]);
     });
   });
 
@@ -890,10 +913,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(5);
+      expect(result.totalAttempted).toBe(5);
+      expect(result.successCount).toBe(5);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction", "Popular"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
       expect(readCalibreTags(3, batchTestDb)).toEqual(["Biography", "Non-Fiction"]);
@@ -912,10 +937,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(2);
+      expect(result.totalAttempted).toBe(2);
+      expect(result.successCount).toBe(2);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toHaveLength(25);
       expect(readCalibreTags(2, batchTestDb)).toHaveLength(30);
     });
@@ -929,10 +956,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(3);
+      expect(result.totalAttempted).toBe(3);
+      expect(result.successCount).toBe(3);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["ファンタジー", "科幻小説"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Action & Adventure", "Editor's Choice"]);
       expect(readCalibreTags(3, batchTestDb)).toEqual(["⭐ Popular", "🔮 Magic"]);
@@ -946,10 +975,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(2);
+      expect(result.totalAttempted).toBe(2);
+      expect(result.successCount).toBe(2);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]); // Empty/whitespace filtered
       expect(readCalibreTags(2, batchTestDb)).toEqual([]); // All filtered out
     });
@@ -961,10 +992,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act
-      const successCount = batchUpdateCalibreTags(updates, batchTestDb);
+      const result = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert
-      expect(successCount).toBe(1);
+      expect(result.totalAttempted).toBe(1);
+      expect(result.successCount).toBe(1);
+      expect(result.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]); // Deduplicated
     });
   });
@@ -978,12 +1011,16 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act: Call twice
-      const count1 = batchUpdateCalibreTags(updates, batchTestDb);
-      const count2 = batchUpdateCalibreTags(updates, batchTestDb);
+      const result1 = batchUpdateCalibreTags(updates, batchTestDb);
+      const result2 = batchUpdateCalibreTags(updates, batchTestDb);
 
       // Assert: Both succeed with same result
-      expect(count1).toBe(2);
-      expect(count2).toBe(2);
+      expect(result1.totalAttempted).toBe(2);
+      expect(result1.successCount).toBe(2);
+      expect(result1.failures).toEqual([]);
+      expect(result2.totalAttempted).toBe(2);
+      expect(result2.successCount).toBe(2);
+      expect(result2.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Classic", "Fiction"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Science Fiction"]);
     });
@@ -1006,10 +1043,12 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       ];
 
       // Act: Second batch
-      const count2 = batchUpdateCalibreTags(updates2, batchTestDb);
+      const result2 = batchUpdateCalibreTags(updates2, batchTestDb);
 
       // Assert: Tags replaced correctly
-      expect(count2).toBe(2);
+      expect(result2.totalAttempted).toBe(2);
+      expect(result2.successCount).toBe(2);
+      expect(result2.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Biography"]);
     });

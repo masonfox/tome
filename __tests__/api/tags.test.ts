@@ -28,7 +28,11 @@ import type { NextRequest } from "next/server";
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
 let mockUpdateCalibreTags = mock(() => {});
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({

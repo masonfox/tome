@@ -27,7 +27,11 @@ import type { NextRequest } from "next/server";
  * (3) resumes the watcher after deletion
  */
 let mockUpdateCalibreTags = mock(() => {});
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -128,9 +132,11 @@ describe("POST /api/tags/bulk-delete", () => {
 
       // Assert: Response correct
       expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
       expect(data.deletedTags).toEqual(["tag1", "tag2", "tag3"]);
       expect(data.tagsDeleted).toBe(3);
-      expect(data.booksUpdated).toBeGreaterThanOrEqual(3); // May count same book multiple times
+      expect(data.successCount).toBeGreaterThanOrEqual(3); // May count same book multiple times
+      expect(data.failureCount).toBe(0);
 
       // Verify tags removed from database
       const updatedBook1 = await bookRepository.findById(book1.id);
@@ -298,7 +304,7 @@ describe("POST /api/tags/bulk-delete", () => {
 
       // Assert: API should return 500 error
       expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to delete tags");
+      expect(data.error).toBe("Calibre database is unavailable");
 
       // Verify Tome DB unchanged
       const unchangedBook = await bookRepository.findById(book.id);
@@ -343,8 +349,10 @@ describe("POST /api/tags/bulk-delete", () => {
 
       // Assert: Success with zero updates (tags don't exist)
       expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
       expect(data.tagsDeleted).toBe(0); // No tags found/deleted
-      expect(data.booksUpdated).toBe(0); // No books updated
+      expect(data.successCount).toBe(0); // No books updated
+      expect(data.failureCount).toBe(0);
     });
 
     test("should handle partial matches (some tags exist, some don't)", async () => {

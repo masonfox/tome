@@ -30,7 +30,11 @@ import { createTestBook } from "../fixtures/test-data";
  * (2) handles Calibre sync failures gracefully (best effort)
  * (3) suspends/resumes watcher for bulk operations
  */
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
