@@ -3,6 +3,25 @@ import type { Book } from "@/lib/db/schema/books";
 import type { ICalibreService } from "@/lib/services/calibre.service";
 
 /**
+ * Result of a tag operation with detailed success/failure information
+ */
+export interface TagOperationResult {
+  totalBooks: number;
+  successCount: number;
+  failureCount: number;
+  calibreFailures: Array<{
+    calibreId: number;
+    bookId?: number;
+    title?: string;
+    error: string;
+  }>;
+  tomeFailures: Array<{
+    bookId: number;
+    error: string;
+  }>;
+}
+
+/**
  * TagService - Handles tag management and Calibre synchronization
  * 
  * Responsibilities:
@@ -153,10 +172,10 @@ export class TagService {
    * 
    * @param sourceTags - Array of tag names to merge from
    * @param targetTag - The tag name to merge into
-   * @returns Promise resolving to object with number of books updated
-   * @throws {Error} If tag merge fails (including Calibre write failure)
+   * @returns Promise resolving to detailed operation result
+   * @throws {Error} Only if operation completely fails (0 successes)
    */
-  async mergeTags(sourceTags: string[], targetTag: string): Promise<{ booksUpdated: number }> {
+  async mergeTags(sourceTags: string[], targetTag: string): Promise<TagOperationResult> {
     // Validate inputs
     if (!Array.isArray(sourceTags) || sourceTags.length === 0) {
       throw new Error("Source tags must be a non-empty array");
@@ -193,7 +212,13 @@ export class TagService {
 
       if (affectedBooks.length === 0) {
         logger.info({ sourceTags }, "[MERGE] No books found with source tags, nothing to merge");
-        return { booksUpdated: 0 };
+        return {
+          totalBooks: 0,
+          successCount: 0,
+          failureCount: 0,
+          calibreFailures: [],
+          tomeFailures: []
+        };
       }
 
       // STEP 2: Calculate new tags for each book (merge logic)
@@ -211,32 +236,81 @@ export class TagService {
         };
       });
 
-      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[MERGE] Writing merged tags to Calibre (source of truth)");
-      try {
-        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
-        
-        if (successCount !== calibreUpdates.length) {
-          throw new Error(
-            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
-            `Aborting to maintain consistency.`
-          );
-        }
-        
-        logger.info({ successCount }, "[MERGE] Successfully wrote merged tags to Calibre");
-      } catch (error) {
-        logger.error({ err: error, sourceTags, targetTag }, "[MERGE] FAILED to write to Calibre - aborting operation");
-        throw new Error(`Failed to merge tags in Calibre: ${error instanceof Error ? error.message : error}`);
+      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      
+      logger.info(
+        { 
+          successCount: calibreResult.successCount, 
+          failureCount: calibreResult.failures.length 
+        }, 
+        "[MERGE] Calibre batch update completed"
+      );
+
+      // Create a map of calibreId to book for enriching failure details
+      const calibreIdToBook = new Map(affectedBooks.map(b => [b.calibreId, b]));
+      
+      // Enrich failure details with book titles
+      const calibreFailures = calibreResult.failures.map(f => {
+        const book = calibreIdToBook.get(f.calibreId);
+        return {
+          calibreId: f.calibreId,
+          bookId: book?.id,
+          title: book?.title,
+          error: f.error
+        };
+      });
+
+      // If all Calibre updates failed, throw error
+      if (calibreResult.successCount === 0) {
+        logger.error({ calibreFailures }, "[MERGE] All Calibre updates failed - aborting");
+        throw new Error(
+          `Failed to merge tags in Calibre: All ${calibreResult.totalAttempted} books failed. ` +
+          `First error: ${calibreFailures[0]?.error || 'Unknown error'}`
+        );
       }
 
-      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      // STEP 4: Update Tome database to match Calibre (even with partial success)
       logger.info({ sourceTags, targetTag }, "[MERGE] Updating Tome database to match Calibre");
-      const booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
-      logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Updated Tome database");
+      
+      let booksUpdated = 0;
+      const tomeFailures: Array<{ bookId: number; error: string }> = [];
+      
+      try {
+        booksUpdated = await bookRepository.mergeTags(sourceTags, targetTag);
+        logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Updated Tome database");
+      } catch (error) {
+        logger.error({ err: error, sourceTags, targetTag }, "[MERGE] Failed to update Tome database");
+        // If Tome update fails but Calibre succeeded, log but don't fail the whole operation
+        // The watcher will eventually sync this back
+        tomeFailures.push({
+          bookId: 0, // Bulk operation, can't identify specific book
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
-      logger.info({ sourceTags, targetTag, booksUpdated }, "[MERGE] Tag merge completed successfully");
+      const result: TagOperationResult = {
+        totalBooks: affectedBooks.length,
+        successCount: calibreResult.successCount,
+        failureCount: calibreFailures.length,
+        calibreFailures,
+        tomeFailures
+      };
 
-      return { booksUpdated };
+      if (calibreFailures.length > 0) {
+        logger.warn(
+          { 
+            successCount: result.successCount,
+            failureCount: result.failureCount 
+          }, 
+          "[MERGE] Tag merge completed with partial success"
+        );
+      } else {
+        logger.info({ booksUpdated }, "[MERGE] Tag merge completed successfully");
+      }
+
+      return result;
     } finally {
       // Resume with ignore period to prevent watcher from re-syncing our own changes
       calibreWatcher.resumeWithIgnorePeriod(3000);
@@ -253,10 +327,10 @@ export class TagService {
    * 
    * @param oldName - The current tag name
    * @param newName - The new tag name
-   * @returns Promise resolving to object with number of books updated
-   * @throws {Error} If tag rename fails (including Calibre write failure)
+   * @returns Promise resolving to detailed operation result
+   * @throws {Error} Only if operation completely fails (0 successes)
    */
-  async renameTag(oldName: string, newName: string): Promise<{ booksUpdated: number }> {
+  async renameTag(oldName: string, newName: string): Promise<TagOperationResult> {
     // Validate inputs
     if (!oldName || !newName) {
       throw new Error("Tag names cannot be empty");
@@ -284,7 +358,13 @@ export class TagService {
 
       if (booksWithTag.books.length === 0) {
         logger.info({ oldName }, "[RENAME] No books found with old tag, nothing to rename");
-        return { booksUpdated: 0 };
+        return {
+          totalBooks: 0,
+          successCount: 0,
+          failureCount: 0,
+          calibreFailures: [],
+          tomeFailures: []
+        };
       }
 
       // STEP 2: Calculate new tags for each book (rename logic)
@@ -298,32 +378,79 @@ export class TagService {
         };
       });
 
-      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[RENAME] Writing renamed tags to Calibre (source of truth)");
-      try {
-        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
-        
-        if (successCount !== calibreUpdates.length) {
-          throw new Error(
-            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
-            `Aborting to maintain consistency.`
-          );
-        }
-        
-        logger.info({ successCount }, "[RENAME] Successfully wrote renamed tags to Calibre");
-      } catch (error) {
-        logger.error({ err: error, oldName, newName }, "[RENAME] FAILED to write to Calibre - aborting operation");
-        throw new Error(`Failed to rename tag in Calibre: ${error instanceof Error ? error.message : error}`);
+      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      
+      logger.info(
+        { 
+          successCount: calibreResult.successCount, 
+          failureCount: calibreResult.failures.length 
+        }, 
+        "[RENAME] Calibre batch update completed"
+      );
+
+      // Create a map of calibreId to book for enriching failure details
+      const calibreIdToBook = new Map(booksWithTag.books.map(b => [b.calibreId, b]));
+      
+      // Enrich failure details with book titles
+      const calibreFailures = calibreResult.failures.map(f => {
+        const book = calibreIdToBook.get(f.calibreId);
+        return {
+          calibreId: f.calibreId,
+          bookId: book?.id,
+          title: book?.title,
+          error: f.error
+        };
+      });
+
+      // If all Calibre updates failed, throw error
+      if (calibreResult.successCount === 0) {
+        logger.error({ calibreFailures }, "[RENAME] All Calibre updates failed - aborting");
+        throw new Error(
+          `Failed to rename tag in Calibre: All ${calibreResult.totalAttempted} books failed. ` +
+          `First error: ${calibreFailures[0]?.error || 'Unknown error'}`
+        );
       }
 
-      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      // STEP 4: Update Tome database to match Calibre (even with partial success)
       logger.info({ oldName, newName }, "[RENAME] Updating Tome database to match Calibre");
-      const booksUpdated = await bookRepository.renameTag(oldName, newName);
-      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Updated Tome database");
+      
+      let booksUpdated = 0;
+      const tomeFailures: Array<{ bookId: number; error: string }> = [];
+      
+      try {
+        booksUpdated = await bookRepository.renameTag(oldName, newName);
+        logger.info({ oldName, newName, booksUpdated }, "[RENAME] Updated Tome database");
+      } catch (error) {
+        logger.error({ err: error, oldName, newName }, "[RENAME] Failed to update Tome database");
+        tomeFailures.push({
+          bookId: 0,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
-      logger.info({ oldName, newName, booksUpdated }, "[RENAME] Tag rename completed successfully");
+      const result: TagOperationResult = {
+        totalBooks: booksWithTag.books.length,
+        successCount: calibreResult.successCount,
+        failureCount: calibreFailures.length,
+        calibreFailures,
+        tomeFailures
+      };
 
-      return { booksUpdated };
+      if (calibreFailures.length > 0) {
+        logger.warn(
+          { 
+            successCount: result.successCount,
+            failureCount: result.failureCount 
+          }, 
+          "[RENAME] Tag rename completed with partial success"
+        );
+      } else {
+        logger.info({ booksUpdated }, "[RENAME] Tag rename completed successfully");
+      }
+
+      return result;
     } finally {
       // Resume with ignore period to prevent watcher from re-syncing our own changes
       calibreWatcher.resumeWithIgnorePeriod(3000);
@@ -339,10 +466,10 @@ export class TagService {
    * might sync stale data back from Calibre.
    * 
    * @param tagName - The tag name to delete
-   * @returns Promise resolving to object with number of books updated
-   * @throws {Error} If tag deletion fails (including Calibre write failure)
+   * @returns Promise resolving to detailed operation result
+   * @throws {Error} Only if operation completely fails (0 successes)
    */
-  async deleteTag(tagName: string): Promise<{ booksUpdated: number }> {
+  async deleteTag(tagName: string): Promise<TagOperationResult> {
     // Validate input
     if (!tagName) {
       throw new Error("Tag name cannot be empty");
@@ -366,7 +493,13 @@ export class TagService {
 
       if (booksWithTag.books.length === 0) {
         logger.info({ tagName }, "[DELETE] No books found with tag, nothing to delete");
-        return { booksUpdated: 0 };
+        return {
+          totalBooks: 0,
+          successCount: 0,
+          failureCount: 0,
+          calibreFailures: [],
+          tomeFailures: []
+        };
       }
 
       // STEP 2: Calculate new tags for each book (remove the tag)
@@ -379,32 +512,79 @@ export class TagService {
         };
       });
 
-      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[DELETE] Writing tag deletion to Calibre (source of truth)");
-      try {
-        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
-        
-        if (successCount !== calibreUpdates.length) {
-          throw new Error(
-            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
-            `Aborting to maintain consistency.`
-          );
-        }
-        
-        logger.info({ successCount }, "[DELETE] Successfully deleted tag from Calibre");
-      } catch (error) {
-        logger.error({ err: error, tagName }, "[DELETE] FAILED to write to Calibre - aborting operation");
-        throw new Error(`Failed to delete tag in Calibre: ${error instanceof Error ? error.message : error}`);
+      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      
+      logger.info(
+        { 
+          successCount: calibreResult.successCount, 
+          failureCount: calibreResult.failures.length 
+        }, 
+        "[DELETE] Calibre batch update completed"
+      );
+
+      // Create a map of calibreId to book for enriching failure details
+      const calibreIdToBook = new Map(booksWithTag.books.map(b => [b.calibreId, b]));
+      
+      // Enrich failure details with book titles
+      const calibreFailures = calibreResult.failures.map(f => {
+        const book = calibreIdToBook.get(f.calibreId);
+        return {
+          calibreId: f.calibreId,
+          bookId: book?.id,
+          title: book?.title,
+          error: f.error
+        };
+      });
+
+      // If all Calibre updates failed, throw error
+      if (calibreResult.successCount === 0) {
+        logger.error({ calibreFailures }, "[DELETE] All Calibre updates failed - aborting");
+        throw new Error(
+          `Failed to delete tag in Calibre: All ${calibreResult.totalAttempted} books failed. ` +
+          `First error: ${calibreFailures[0]?.error || 'Unknown error'}`
+        );
       }
 
-      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      // STEP 4: Update Tome database to match Calibre (even with partial success)
       logger.info({ tagName }, "[DELETE] Updating Tome database to match Calibre");
-      const booksUpdated = await bookRepository.deleteTag(tagName);
-      logger.info({ tagName, booksUpdated }, "[DELETE] Updated Tome database");
+      
+      let booksUpdated = 0;
+      const tomeFailures: Array<{ bookId: number; error: string }> = [];
+      
+      try {
+        booksUpdated = await bookRepository.deleteTag(tagName);
+        logger.info({ tagName, booksUpdated }, "[DELETE] Updated Tome database");
+      } catch (error) {
+        logger.error({ err: error, tagName }, "[DELETE] Failed to update Tome database");
+        tomeFailures.push({
+          bookId: 0,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
-      logger.info({ tagName, booksUpdated }, "[DELETE] Tag deletion completed successfully");
+      const result: TagOperationResult = {
+        totalBooks: booksWithTag.books.length,
+        successCount: calibreResult.successCount,
+        failureCount: calibreFailures.length,
+        calibreFailures,
+        tomeFailures
+      };
 
-      return { booksUpdated };
+      if (calibreFailures.length > 0) {
+        logger.warn(
+          { 
+            successCount: result.successCount,
+            failureCount: result.failureCount 
+          }, 
+          "[DELETE] Tag deletion completed with partial success"
+        );
+      } else {
+        logger.info({ booksUpdated }, "[DELETE] Tag deletion completed successfully");
+      }
+
+      return result;
     } finally {
       // Resume with ignore period to prevent watcher from re-syncing our own changes
       calibreWatcher.resumeWithIgnorePeriod(3000);
@@ -421,14 +601,14 @@ export class TagService {
    * might sync stale data back from Calibre.
    * 
    * @param tagNames - Array of tag names to delete
-   * @returns Promise resolving to object with total number of books updated
-   * @throws {Error} If bulk delete fails (including Calibre write failure)
+   * @returns Promise resolving to detailed operation result and tags deleted count
+   * @throws {Error} Only if operation completely fails (0 successes)
    * 
    * @example
    * const result = await tagService.bulkDeleteTags(["Tag1", "Tag2", "Tag3"]);
-   * console.log(`Updated ${result.booksUpdated} books`);
+   * console.log(`${result.successCount} of ${result.totalBooks} books updated`);
    */
-  async bulkDeleteTags(tagNames: string[]): Promise<{ booksUpdated: number, tagsDeleted: number }> {
+  async bulkDeleteTags(tagNames: string[]): Promise<TagOperationResult & { tagsDeleted: number }> {
     // Validate inputs
     if (!Array.isArray(tagNames) || tagNames.length === 0) {
       throw new Error("Tag names must be a non-empty array");
@@ -461,7 +641,14 @@ export class TagService {
 
       if (affectedBooks.length === 0) {
         logger.info({ tagNames }, "[BULK_DELETE] No books found with any of the tags, nothing to delete");
-        return { booksUpdated: 0, tagsDeleted: 0 };
+        return {
+          totalBooks: 0,
+          successCount: 0,
+          failureCount: 0,
+          calibreFailures: [],
+          tomeFailures: [],
+          tagsDeleted: 0
+        };
       }
 
       // STEP 2: Calculate new tags for each book (remove all specified tags)
@@ -474,44 +661,84 @@ export class TagService {
         };
       });
 
-      // STEP 3: Write to Calibre FIRST (source of truth - required, not best effort)
+      // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length, tagCount: tagNames.length }, "[BULK_DELETE] Writing tag deletions to Calibre (source of truth)");
-      try {
-        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
-        
-        if (successCount !== calibreUpdates.length) {
-          throw new Error(
-            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
-            `Aborting to maintain consistency.`
-          );
-        }
-        
-        logger.info({ successCount }, "[BULK_DELETE] Successfully deleted tags from Calibre");
-      } catch (error) {
-        logger.error({ err: error, tagNames }, "[BULK_DELETE] FAILED to write to Calibre - aborting operation");
-        throw new Error(`Failed to delete tags in Calibre: ${error instanceof Error ? error.message : error}`);
+      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      
+      logger.info(
+        { 
+          successCount: calibreResult.successCount, 
+          failureCount: calibreResult.failures.length 
+        }, 
+        "[BULK_DELETE] Calibre batch update completed"
+      );
+
+      // Create a map of calibreId to book for enriching failure details
+      const calibreIdToBook = new Map(affectedBooks.map(b => [b.calibreId, b]));
+      
+      // Enrich failure details with book titles
+      const calibreFailures = calibreResult.failures.map(f => {
+        const book = calibreIdToBook.get(f.calibreId);
+        return {
+          calibreId: f.calibreId,
+          bookId: book?.id,
+          title: book?.title,
+          error: f.error
+        };
+      });
+
+      // If all Calibre updates failed, throw error
+      if (calibreResult.successCount === 0) {
+        logger.error({ calibreFailures }, "[BULK_DELETE] All Calibre updates failed - aborting");
+        throw new Error(
+          `Failed to delete tags in Calibre: All ${calibreResult.totalAttempted} books failed. ` +
+          `First error: ${calibreFailures[0]?.error || 'Unknown error'}`
+        );
       }
 
-      // STEP 4: Update Tome database to match Calibre (now the source of truth)
+      // STEP 4: Update Tome database to match Calibre (even with partial success)
       logger.info({ tagNames }, "[BULK_DELETE] Updating Tome database to match Calibre");
-      let totalBooksUpdated = 0;
       let tagsDeleted = 0;
+      const tomeFailures: Array<{ bookId: number; error: string }> = [];
 
       for (const tagName of tagNames) {
         try {
           const booksUpdated = await bookRepository.deleteTag(tagName);
-          totalBooksUpdated += booksUpdated;
           tagsDeleted++;
           logger.info({ tagName, booksUpdated }, "[BULK_DELETE] Deleted tag from Tome database");
         } catch (error) {
           logger.error({ err: error, tagName }, "[BULK_DELETE] Failed to delete tag from Tome database");
-          // Continue with other tags even if one fails
+          tomeFailures.push({
+            bookId: 0, // Bulk operation
+            error: `Failed to delete tag "${tagName}": ${error instanceof Error ? error.message : String(error)}`
+          });
         }
       }
 
-      logger.info({ tagsDeleted, totalBooksUpdated, totalTags: tagNames.length }, "[BULK_DELETE] Bulk deletion completed successfully");
+      const result = {
+        totalBooks: affectedBooks.length,
+        successCount: calibreResult.successCount,
+        failureCount: calibreFailures.length,
+        calibreFailures,
+        tomeFailures,
+        tagsDeleted
+      };
 
-      return { booksUpdated: totalBooksUpdated, tagsDeleted };
+      if (calibreFailures.length > 0 || tomeFailures.length > 0) {
+        logger.warn(
+          { 
+            successCount: result.successCount,
+            failureCount: result.failureCount,
+            tagsDeleted: result.tagsDeleted,
+            totalTags: tagNames.length
+          }, 
+          "[BULK_DELETE] Bulk deletion completed with partial success"
+        );
+      } else {
+        logger.info({ tagsDeleted, totalBooks: result.successCount }, "[BULK_DELETE] Bulk deletion completed successfully");
+      }
+
+      return result;
     } finally {
       // Resume with ignore period to prevent watcher from re-syncing our own changes
       calibreWatcher.resumeWithIgnorePeriod(3000);
@@ -594,9 +821,9 @@ export class TagService {
     const logger = getLogger();
 
     try {
-      const successCount = this.getCalibreService().batchUpdateTags(books);
+      const result = this.getCalibreService().batchUpdateTags(books);
       logger.info(
-        { totalBooks: books.length, successCount },
+        { totalBooks: books.length, successCount: result.successCount, failureCount: result.failures.length },
         "[TagService] Batch synced tags to Calibre"
       );
     } catch (error) {
@@ -647,16 +874,16 @@ export class TagService {
       // Write to Calibre FIRST (source of truth - required, not best effort)
       logger.info({ bookCount: calibreUpdates.length }, `[${operationName}] Writing to Calibre (source of truth)`);
       try {
-        const successCount = this.getCalibreService().batchUpdateTags(calibreUpdates);
+        const result = this.getCalibreService().batchUpdateTags(calibreUpdates);
         
-        if (successCount !== calibreUpdates.length) {
+        if (result.successCount !== calibreUpdates.length) {
           throw new Error(
-            `Calibre sync incomplete: ${successCount}/${calibreUpdates.length} books updated. ` +
+            `Calibre sync incomplete: ${result.successCount}/${calibreUpdates.length} books updated. ` +
             `Aborting to maintain consistency.`
           );
         }
         
-        logger.info({ successCount }, `[${operationName}] Successfully wrote to Calibre`);
+        logger.info({ successCount: result.successCount }, `[${operationName}] Successfully wrote to Calibre`);
       } catch (error) {
         logger.error({ err: error }, `[${operationName}] FAILED to write to Calibre - aborting operation`);
         throw new Error(`Failed to update Calibre: ${error instanceof Error ? error.message : error}`);

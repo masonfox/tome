@@ -30,7 +30,11 @@ import { createTestBook } from "../fixtures/test-data";
  * (2) handles Calibre sync failures gracefully (best effort)
  * (3) suspends/resumes watcher for bulk operations
  */
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -297,7 +301,9 @@ describe("TagService.renameTag()", () => {
     const result = await tagService.renameTag("OldTag", "NewTag");
 
     // Assert: 2 books were updated
-    expect(result.booksUpdated).toBe(2);
+    expect(result.totalBooks).toBe(2);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(0);
 
     // Verify tags were renamed
     const updatedBook1 = await bookRepository.findById(book1.id);
@@ -370,7 +376,7 @@ describe("TagService.deleteTag()", () => {
     const result = await tagService.deleteTag("DeleteMe");
 
     // Assert: 2 books were updated
-    expect(result.booksUpdated).toBe(2);
+    expect(result.successCount).toBe(2);
 
     // Verify tag was deleted
     const updatedBook1 = await bookRepository.findById(book1.id);
@@ -400,7 +406,7 @@ describe("TagService.deleteTag()", () => {
     const result = await tagService.deleteTag("NonExistent");
 
     // Assert
-    expect(result.booksUpdated).toBe(0);
+    expect(result.successCount).toBe(0);
     
     // Calibre sync should not be called for 0 books
     expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(0);
@@ -477,7 +483,7 @@ describe("TagService.mergeTags()", () => {
     const result = await tagService.mergeTags(["Tag1", "Tag2"], "MergedTag");
 
     // Assert: 3 books were updated
-    expect(result.booksUpdated).toBe(3);
+    expect(result.successCount).toBe(3);
 
     // Verify tags were merged
     const updatedBook1 = await bookRepository.findById(book1.id);
@@ -568,7 +574,7 @@ describe("TagService.bulkDeleteTags()", () => {
 
     // Assert
     expect(result.tagsDeleted).toBe(2);
-    expect(result.booksUpdated).toBeGreaterThan(0);
+    expect(result.successCount).toBeGreaterThan(0);
 
     // Verify tags were deleted
     const updatedBook1 = await bookRepository.findById(book1.id);

@@ -13,6 +13,7 @@ import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { useTagManagement } from "@/hooks/useTagManagement";
 import { useTagBooks } from "@/hooks/useTagBooks";
 import { toast } from "@/utils/toast";
+import type { TagOperationResult } from "@/types/tag-operations";
 
 function TagsPageContent() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -32,6 +33,12 @@ function TagsPageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+  // Result states for modals
+  const [renameResult, setRenameResult] = useState<TagOperationResult | null>(null);
+  const [deleteResult, setDeleteResult] = useState<TagOperationResult | null>(null);
+  const [mergeResult, setMergeResult] = useState<TagOperationResult | null>(null);
+  const [bulkDeleteResult, setBulkDeleteResult] = useState<TagOperationResult | null>(null);
 
   // Settings state - load from localStorage
   const [confirmTagRemoval, setConfirmTagRemoval] = useState(true);
@@ -86,25 +93,48 @@ function TagsPageContent() {
   // Handle rename tag
   const handleRenameTag = async (tagName: string) => {
     setTagToRename(tagName);
+    setRenameResult(null); // Clear previous result
     setRenameModalOpen(true);
   };
 
   const confirmRenameTag = async (newName: string) => {
     setRenameLoading(true);
+    setRenameResult(null); // Clear previous result
     try {
-      await renameTag(tagToRename, newName);
-      toast.success(`Tag renamed to "${newName}"`);
+      const result = await renameTag(tagToRename, newName);
       
-      // Update selected tag if the renamed tag was selected
-      if (selectedTag === tagToRename) {
-        setSelectedTag(newName);
+      // Handle response based on success/partial/failure
+      if (result.failureCount === 0) {
+        toast.success(`Successfully renamed tag to "${newName}" for ${result.successCount} ${result.successCount === 1 ? 'book' : 'books'}`);
+        
+        // Update selected tag if the renamed tag was selected
+        if (selectedTag === tagToRename) {
+          setSelectedTag(newName);
+        }
+        
+        // Close modal on full success
+        setRenameModalOpen(false);
+      } else if (result.successCount === 0) {
+        // Complete failure - show error toast
+        const errorMsg = result.calibreFailures?.[0]?.error || result.tomeFailures?.[0]?.error || "Failed to rename tag";
+        toast.error(errorMsg);
+        // Keep modal open and show results
+        setRenameResult(result);
+      } else {
+        // Partial success - show warning toast and results in modal
+        toast.warning(`Renamed ${result.successCount} of ${result.totalBooks} books. ${result.failureCount} failed - see details in modal.`);
+        
+        // Update selected tag since some succeeded
+        if (selectedTag === tagToRename) {
+          setSelectedTag(newName);
+        }
+        
+        // Keep modal open to show results
+        setRenameResult(result);
       }
-      
-      // Close modal only on success
-      setRenameModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to rename tag");
-      // Keep modal open so user can see error and retry
+      // Keep modal open so user can retry
     } finally {
       setRenameLoading(false);
     }
@@ -116,6 +146,7 @@ function TagsPageContent() {
     if (!tag) return;
     
     setTagToDelete({ name: tagName, bookCount: tag.bookCount });
+    setDeleteResult(null); // Clear previous result
     setDeleteModalOpen(true);
   };
 
@@ -123,20 +154,42 @@ function TagsPageContent() {
     if (!tagToDelete) return;
 
     setDeleteLoading(true);
+    setDeleteResult(null); // Clear previous result
     try {
-      await deleteTag(tagToDelete.name);
-      toast.success(`Tag "${tagToDelete.name}" deleted`);
+      const result = await deleteTag(tagToDelete.name);
       
-      // Clear selected tag if deleted tag was selected
-      if (selectedTag === tagToDelete.name) {
-        setSelectedTag(null);
+      // Handle response based on success/partial/failure
+      if (result.failureCount === 0) {
+        toast.success(`Successfully deleted tag "${tagToDelete.name}" from ${result.successCount} ${result.successCount === 1 ? 'book' : 'books'}`);
+        
+        // Clear selected tag if deleted tag was selected
+        if (selectedTag === tagToDelete.name) {
+          setSelectedTag(null);
+        }
+        
+        // Close modal on full success
+        setDeleteModalOpen(false);
+      } else if (result.successCount === 0) {
+        // Complete failure - show error toast
+        const errorMsg = result.calibreFailures?.[0]?.error || result.tomeFailures?.[0]?.error || "Failed to delete tag";
+        toast.error(errorMsg);
+        // Keep modal open and show results
+        setDeleteResult(result);
+      } else {
+        // Partial success - show warning toast and results in modal
+        toast.warning(`Deleted tag from ${result.successCount} of ${result.totalBooks} books. ${result.failureCount} failed - see details in modal.`);
+        
+        // Clear selected tag since some succeeded
+        if (selectedTag === tagToDelete.name) {
+          setSelectedTag(null);
+        }
+        
+        // Keep modal open to show results
+        setDeleteResult(result);
       }
-      
-      // Close modal only on success
-      setDeleteModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete tag");
-      // Keep modal open so user can see error and retry
+      // Keep modal open so user can retry
     } finally {
       setDeleteLoading(false);
     }
@@ -145,35 +198,56 @@ function TagsPageContent() {
   // Handle merge tags
   const handleMergeTags = async (sourceTags: string[]) => {
     setTagsToMerge(sourceTags);
+    setMergeResult(null); // Clear previous result
     setMergeModalOpen(true);
   };
 
   const confirmMergeTags = async (targetTag: string) => {
     setMergeLoading(true);
+    setMergeResult(null); // Clear previous result
     try {
       // Filter out the target tag from source tags to avoid "merge into itself" error
       const sourceTagsToRemove = tagsToMerge.filter(tag => tag !== targetTag);
       
-      await mergeTags(sourceTagsToRemove, targetTag);
+      const result = await mergeTags(sourceTagsToRemove, targetTag);
       
-      // Success message should reflect actual number of tags being merged
-      const mergeCount = sourceTagsToRemove.length;
-      if (mergeCount === 1) {
-        toast.success(`Merged "${sourceTagsToRemove[0]}" into "${targetTag}"`);
+      // Handle response based on success/partial/failure
+      if (result.failureCount === 0) {
+        const mergeCount = sourceTagsToRemove.length;
+        if (mergeCount === 1) {
+          toast.success(`Successfully merged "${sourceTagsToRemove[0]}" into "${targetTag}" for ${result.successCount} ${result.successCount === 1 ? 'book' : 'books'}`);
+        } else {
+          toast.success(`Successfully merged ${mergeCount} tags into "${targetTag}" for ${result.successCount} ${result.successCount === 1 ? 'book' : 'books'}`);
+        }
+        
+        // Update selected tag if one of the source tags was selected
+        if (selectedTag && tagsToMerge.includes(selectedTag)) {
+          setSelectedTag(targetTag);
+        }
+        
+        // Close modal on full success
+        setMergeModalOpen(false);
+      } else if (result.successCount === 0) {
+        // Complete failure - show error toast
+        const errorMsg = result.calibreFailures?.[0]?.error || result.tomeFailures?.[0]?.error || "Failed to merge tags";
+        toast.error(errorMsg);
+        // Keep modal open and show results
+        setMergeResult(result);
       } else {
-        toast.success(`Merged ${mergeCount} tags into "${targetTag}"`);
+        // Partial success - show warning toast and results in modal
+        toast.warning(`Merged ${result.successCount} of ${result.totalBooks} books. ${result.failureCount} failed - see details in modal.`);
+        
+        // Update selected tag since some succeeded
+        if (selectedTag && tagsToMerge.includes(selectedTag)) {
+          setSelectedTag(targetTag);
+        }
+        
+        // Keep modal open to show results
+        setMergeResult(result);
       }
-      
-      // Update selected tag if one of the source tags was selected
-      if (selectedTag && tagsToMerge.includes(selectedTag)) {
-        setSelectedTag(targetTag);
-      }
-      
-      // Close modal only on success
-      setMergeModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to merge tags");
-      // Keep modal open so user can see error and retry
+      // Keep modal open so user can retry
     } finally {
       setMergeLoading(false);
     }
@@ -186,11 +260,13 @@ function TagsPageContent() {
       return { name, bookCount: tag?.bookCount || 0 };
     });
     setTagsToDelete(tagsWithCounts);
+    setBulkDeleteResult(null); // Clear previous result
     setBulkDeleteModalOpen(true);
   };
 
   const confirmBulkDelete = async () => {
     setBulkDeleteLoading(true);
+    setBulkDeleteResult(null); // Clear previous result
     try {
       const tagNames = tagsToDelete.map(t => t.name);
       
@@ -203,29 +279,61 @@ function TagsPageContent() {
         body: JSON.stringify({ tagNames }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to delete tags");
+        throw new Error(data.error || "Failed to delete tags");
       }
 
       await refetchTags();
       
-      const deleteCount = tagsToDelete.length;
-      if (deleteCount === 1) {
-        toast.success(`Tag "${tagsToDelete[0].name}" deleted`);
+      const result: TagOperationResult = {
+        success: data.success,
+        partialSuccess: data.partialSuccess,
+        totalBooks: data.totalBooks,
+        successCount: data.successCount,
+        failureCount: data.failureCount,
+        calibreFailures: data.calibreFailures || [],
+        tomeFailures: data.tomeFailures || [],
+      };
+      
+      // Handle response based on success/partial/failure
+      if (result.failureCount === 0) {
+        const deleteCount = tagsToDelete.length;
+        if (deleteCount === 1) {
+          toast.success(`Successfully deleted tag "${tagsToDelete[0].name}" from ${result.successCount} ${result.successCount === 1 ? 'book' : 'books'}`);
+        } else {
+          toast.success(`Successfully deleted ${deleteCount} tags from ${result.successCount} ${result.successCount === 1 ? 'book' : 'books'}`);
+        }
+        
+        // Clear selected tag if deleted tag was selected
+        if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
+          setSelectedTag(null);
+        }
+        
+        // Close modal on full success
+        setBulkDeleteModalOpen(false);
+      } else if (result.successCount === 0) {
+        // Complete failure - show error toast
+        const errorMsg = result.calibreFailures?.[0]?.error || result.tomeFailures?.[0]?.error || "Failed to delete tags";
+        toast.error(errorMsg);
+        // Keep modal open and show results
+        setBulkDeleteResult(result);
       } else {
-        toast.success(`Deleted ${deleteCount} tags`);
+        // Partial success - show warning toast and results in modal
+        toast.warning(`Deleted tags from ${result.successCount} of ${result.totalBooks} books. ${result.failureCount} failed - see details in modal.`);
+        
+        // Clear selected tag since some succeeded
+        if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
+          setSelectedTag(null);
+        }
+        
+        // Keep modal open to show results
+        setBulkDeleteResult(result);
       }
-      
-      // Clear selected tag if deleted tag was selected
-      if (selectedTag && tagsToDelete.some(t => t.name === selectedTag)) {
-        setSelectedTag(null);
-      }
-      
-      // Close modal only on success
-      setBulkDeleteModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete tags");
-      // Keep modal open so user can see error and retry
+      // Keep modal open so user can retry
     } finally {
       setBulkDeleteLoading(false);
     }
@@ -326,36 +434,52 @@ function TagsPageContent() {
         {/* Modals */}
         <RenameTagModal
           isOpen={renameModalOpen}
-          onClose={() => setRenameModalOpen(false)}
+          onClose={() => {
+            setRenameModalOpen(false);
+            setRenameResult(null); // Clear result when closing
+          }}
           tagName={tagToRename}
           onConfirm={confirmRenameTag}
           loading={renameLoading}
+          result={renameResult}
         />
 
         <DeleteTagModal
           isOpen={deleteModalOpen}
-          onClose={() => setDeleteModalOpen(false)}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setDeleteResult(null); // Clear result when closing
+          }}
           tagName={tagToDelete?.name || ""}
           bookCount={tagToDelete?.bookCount || 0}
           onConfirm={confirmDeleteTag}
           loading={deleteLoading}
+          result={deleteResult}
         />
 
         <MergeTagsModal
           isOpen={mergeModalOpen}
-          onClose={() => setMergeModalOpen(false)}
+          onClose={() => {
+            setMergeModalOpen(false);
+            setMergeResult(null); // Clear result when closing
+          }}
           sourceTags={tagsToMerge}
           tagStats={tags}
           onConfirm={confirmMergeTags}
           loading={mergeLoading}
+          result={mergeResult}
         />
 
         <BulkDeleteTagsModal
           isOpen={bulkDeleteModalOpen}
-          onClose={() => setBulkDeleteModalOpen(false)}
+          onClose={() => {
+            setBulkDeleteModalOpen(false);
+            setBulkDeleteResult(null); // Clear result when closing
+          }}
           tags={tagsToDelete}
           onConfirm={confirmBulkDelete}
           loading={bulkDeleteLoading}
+          result={bulkDeleteResult}
         />
 
         {/* Scroll to top button */}

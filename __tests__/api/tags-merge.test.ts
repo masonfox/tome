@@ -27,7 +27,11 @@ import type { NextRequest } from "next/server";
  * (3) resumes the watcher after merge
  */
 let mockUpdateCalibreTags = mock(() => {});
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -121,9 +125,11 @@ describe("POST /api/tags/merge", () => {
 
       // Assert: Response correct
       expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
       expect(data.mergedTags).toEqual(["fantacy"]);
       expect(data.targetTag).toBe("fantasy");
-      expect(data.booksUpdated).toBe(1);
+      expect(data.successCount).toBe(1);
+      expect(data.failureCount).toBe(0);
 
       // Verify tags merged in database
       const updatedBook1 = await bookRepository.findById(book1.id);
@@ -169,7 +175,9 @@ describe("POST /api/tags/merge", () => {
 
       // Assert: All books updated
       expect(response.status).toBe(200);
-      expect(data.booksUpdated).toBe(3);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(3);
+      expect(data.failureCount).toBe(0);
 
       // Verify all tags merged
       const updatedBook1 = await bookRepository.findById(book1.id);
@@ -201,7 +209,9 @@ describe("POST /api/tags/merge", () => {
 
       // Assert: No duplicate target tag
       expect(response.status).toBe(200);
-      expect(data.booksUpdated).toBe(1);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(1);
+      expect(data.failureCount).toBe(0);
 
       const updatedBook = await bookRepository.findById(book.id);
       expect(updatedBook?.tags).toEqual(["fantasy", "magic"]); // "fantacy" removed, no duplicate "fantasy"
@@ -378,7 +388,7 @@ describe("POST /api/tags/merge", () => {
 
       // Assert: API should return 500 error
       expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to merge tags");
+      expect(data.error).toBe("Calibre database is unavailable");
 
       // Verify Tome DB unchanged
       const unchangedBook = await bookRepository.findById(book.id);
@@ -425,7 +435,9 @@ describe("POST /api/tags/merge", () => {
 
       // Assert: Success with zero updates
       expect(response.status).toBe(200);
-      expect(data.booksUpdated).toBe(0);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(0);
+      expect(data.failureCount).toBe(0);
     });
 
     test("should handle special characters in tags", async () => {

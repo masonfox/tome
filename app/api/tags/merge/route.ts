@@ -38,13 +38,29 @@ export async function POST(request: NextRequest) {
     const result = await tagService.mergeTags(body.sourceTags, targetTag);
 
     return NextResponse.json({
+      success: result.failureCount === 0,
+      partialSuccess: result.successCount > 0 && result.failureCount > 0,
       mergedTags: body.sourceTags,
       targetTag,
-      booksUpdated: result.booksUpdated,
+      totalBooks: result.totalBooks,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      calibreFailures: result.calibreFailures,
+      tomeFailures: result.tomeFailures,
     });
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error merging tags");
-    return NextResponse.json({ error: "Failed to merge tags" }, { status: 500 });
+    
+    // Return detailed error message
+    const errorMessage = error instanceof Error ? error.message : "Failed to merge tags";
+    return NextResponse.json({ 
+      error: errorMessage,
+      success: false,
+      partialSuccess: false,
+      totalBooks: 0,
+      successCount: 0,
+      failureCount: 0,
+    }, { status: 500 });
   }
 }

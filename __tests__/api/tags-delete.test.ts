@@ -23,7 +23,11 @@ import type { NextRequest } from "next/server";
  * We mock at the service boundary to prevent test pollution.
  */
 let mockUpdateCalibreTags = mock(() => {});
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -122,8 +126,10 @@ describe("DELETE /api/tags/:tagName", () => {
 
       // Assert: Response correct
       expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
       expect(data.deletedTag).toBe("delete-me");
-      expect(data.booksUpdated).toBe(2);
+      expect(data.successCount).toBe(2);
+      expect(data.failureCount).toBe(0);
 
       // Verify tags removed from database
       const updatedBook1 = await bookRepository.findById(book1.id);
@@ -219,7 +225,9 @@ describe("DELETE /api/tags/:tagName", () => {
 
       // Assert: Success with zero updates
       expect(response.status).toBe(200);
-      expect(data.booksUpdated).toBe(0);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(0);
+      expect(data.failureCount).toBe(0);
     });
 
     test("should handle special characters in tag name", async () => {
@@ -284,7 +292,7 @@ describe("DELETE /api/tags/:tagName", () => {
 
       // Assert: API should return 500 error
       expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to delete tag");
+      expect(data.error).toBe("Calibre database is unavailable");
 
       // Verify Tome DB unchanged
       const unchangedBook = await bookRepository.findById(book.id);
