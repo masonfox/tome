@@ -100,6 +100,7 @@ export function MergeTagsModal({
       subtitle={showingResults ? undefined : `Merging ${sourceTags.length} tags`}
       size="md"
       loading={loading}
+      allowBackdropClose={showingResults}
       actions={
         showingResults ? (
           <div className="flex items-center justify-end">
