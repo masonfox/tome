@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { TagManagementHeader } from "@/components/TagManagement/TagManagementHeader";
-import { TagList } from "@/components/TagManagement/TagList";
+import { TagList, type TagListRef } from "@/components/TagManagement/TagList";
 import { TagDetailPanel } from "@/components/TagManagement/TagDetailPanel";
 import { TagDetailBottomSheet } from "@/components/TagManagement/TagDetailBottomSheet";
 import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
@@ -17,6 +17,7 @@ import type { TagOperationResult } from "@/types/tag-operations";
 
 function TagsPageContent() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const tagListRef = useRef<TagListRef>(null);
 
   // Modal states
   const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -62,7 +63,18 @@ function TagsPageContent() {
   };
 
   // Tag management hook
-  const { tags, totalBooks, loading: tagsLoading, error: tagsError, refetch: refetchTags, renameTag, deleteTag, mergeTags } = useTagManagement();
+  const { 
+    tags, 
+    totalBooks, 
+    loading: tagsLoading, 
+    error: tagsError, 
+    refetch: refetchTags, 
+    renameTag, 
+    deleteTag, 
+    mergeTags,
+    setBeforeRefetch: setBeforeTagRefetch,
+    setAfterRefetch: setAfterTagRefetch,
+  } = useTagManagement();
 
   // Books for selected tag hook
   const {
@@ -76,6 +88,12 @@ function TagsPageContent() {
     loadMore,
     removeTagFromBook,
   } = useTagBooks(selectedTag);
+
+  // Setup scroll position preservation for tag list
+  useEffect(() => {
+    setBeforeTagRefetch(() => tagListRef.current?.saveScrollPosition());
+    setAfterTagRefetch(() => tagListRef.current?.restoreScrollPosition());
+  }, [setBeforeTagRefetch, setAfterTagRefetch]);
 
   // Update selected tag when tag is clicked
   const handleSelectTag = (tagName: string) => {
@@ -386,6 +404,7 @@ function TagsPageContent() {
         {/* Tag list (left panel on desktop, full width on mobile/tablet) */}
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 lg:overflow-hidden flex flex-col">
             <TagList
+              ref={tagListRef}
               tags={tags}
               selectedTag={selectedTag}
               loading={tagsLoading}
