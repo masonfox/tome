@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { TagOperationResult } from "@/types/tag-operations";
 
 export interface TagWithStats {
   name: string;
@@ -37,80 +38,92 @@ export function useTagManagement() {
     fetchTags();
   }, [fetchTags, queryClient]);
 
-  const renameTag = useCallback(async (oldName: string, newName: string) => {
-    try {
-      const response = await fetch(`/api/tags/${encodeURIComponent(oldName)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newName }),
-      });
+  const renameTag = useCallback(async (oldName: string, newName: string): Promise<TagOperationResult> => {
+    const response = await fetch(`/api/tags/${encodeURIComponent(oldName)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newName }),
+    });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to rename tag");
-      }
+    const data = await response.json();
 
-      // Refresh tags after successful rename
-      await fetchTags();
-      
-      // Invalidate available tags cache for book detail pages
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
-      
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      throw err instanceof Error ? err : new Error("Failed to rename tag");
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to rename tag");
     }
+
+    // Refresh tags after operation (even partial success)
+    await fetchTags();
+    
+    // Invalidate available tags cache for book detail pages
+    queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+    
+    return {
+      success: data.success,
+      partialSuccess: data.partialSuccess,
+      totalBooks: data.totalBooks,
+      successCount: data.successCount,
+      failureCount: data.failureCount,
+      calibreFailures: data.calibreFailures || [],
+      tomeFailures: data.tomeFailures || [],
+    };
   }, [fetchTags, queryClient]);
 
-  const deleteTag = useCallback(async (tagName: string) => {
-    try {
-      const response = await fetch(`/api/tags/${encodeURIComponent(tagName)}`, {
-        method: "DELETE",
-      });
+  const deleteTag = useCallback(async (tagName: string): Promise<TagOperationResult> => {
+    const response = await fetch(`/api/tags/${encodeURIComponent(tagName)}`, {
+      method: "DELETE",
+    });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete tag");
-      }
+    const data = await response.json();
 
-      // Refresh tags after successful delete
-      await fetchTags();
-      
-      // Invalidate available tags cache for book detail pages
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
-      
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      throw err instanceof Error ? err : new Error("Failed to delete tag");
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to delete tag");
     }
+
+    // Refresh tags after operation (even partial success)
+    await fetchTags();
+    
+    // Invalidate available tags cache for book detail pages
+    queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+    
+    return {
+      success: data.success,
+      partialSuccess: data.partialSuccess,
+      totalBooks: data.totalBooks,
+      successCount: data.successCount,
+      failureCount: data.failureCount,
+      calibreFailures: data.calibreFailures || [],
+      tomeFailures: data.tomeFailures || [],
+    };
   }, [fetchTags, queryClient]);
 
-  const mergeTags = useCallback(async (sourceTags: string[], targetTag: string) => {
-    try {
-      const response = await fetch("/api/tags/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceTags, targetTag }),
-      });
+  const mergeTags = useCallback(async (sourceTags: string[], targetTag: string): Promise<TagOperationResult> => {
+    const response = await fetch("/api/tags/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceTags, targetTag }),
+    });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to merge tags");
-      }
+    const data = await response.json();
 
-      // Refresh tags after successful merge
-      await fetchTags();
-      
-      // Invalidate available tags cache for book detail pages
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
-      
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      throw err instanceof Error ? err : new Error("Failed to merge tags");
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to merge tags");
     }
+
+    // Refresh tags after operation (even partial success)
+    await fetchTags();
+    
+    // Invalidate available tags cache for book detail pages
+    queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+    
+    return {
+      success: data.success,
+      partialSuccess: data.partialSuccess,
+      totalBooks: data.totalBooks,
+      successCount: data.successCount,
+      failureCount: data.failureCount,
+      calibreFailures: data.calibreFailures || [],
+      tomeFailures: data.tomeFailures || [],
+    };
   }, [fetchTags, queryClient]);
 
   return {
