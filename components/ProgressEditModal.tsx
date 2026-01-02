@@ -218,6 +218,7 @@ export default function ProgressEditModal({
       onClose={onClose}
       title={`Edit Progress - ${bookTitle}`}
       size="2xl"
+      allowBackdropClose={false}
       actions={
         <div className="flex justify-between w-full">
           <button

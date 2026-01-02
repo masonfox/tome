@@ -235,6 +235,7 @@ export default function LogProgressModal({
         title={`Log Progress - ${book.title}`}
         actions={<></>}
         size="2xl"
+        allowBackdropClose={false}
       >
         {progressForm}
       </BaseModal>
