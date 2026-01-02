@@ -22,7 +22,6 @@ export function DeleteTagModal({
 }: DeleteTagModalProps) {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
   };
 
   return (
@@ -38,7 +37,8 @@ export function DeleteTagModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium"
+            disabled={loading}
+            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -48,7 +48,7 @@ export function DeleteTagModal({
             disabled={loading}
             className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Delete Tag
+            {loading ? "Deleting..." : "Delete Tag"}
           </button>
         </div>
       }

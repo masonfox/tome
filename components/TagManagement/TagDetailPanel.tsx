@@ -34,12 +34,13 @@ function BookCardSimple({
   tagName,
 }: {
   book: Book;
-  onRemove: () => void;
+  onRemove: () => Promise<void>;
   confirmRemoval: boolean;
   tagName: string;
 }) {
   const [imageError, setImageError] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const handleRemoveClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,13 +49,21 @@ function BookCardSimple({
     if (confirmRemoval) {
       setShowRemoveModal(true);
     } else {
-      onRemove();
+      handleConfirmRemove();
     }
   };
 
-  const handleConfirmRemove = () => {
-    onRemove();
-    setShowRemoveModal(false);
+  const handleConfirmRemove = async () => {
+    setIsRemoving(true);
+    try {
+      await onRemove();
+      setShowRemoveModal(false);
+    } catch (error) {
+      // Error is handled by parent with toast
+      // Keep modal open so user can retry
+    } finally {
+      setIsRemoving(false);
+    }
   };
 
   return (
@@ -109,6 +118,7 @@ function BookCardSimple({
           tagName={tagName}
           bookTitle={book.title}
           onConfirm={handleConfirmRemove}
+          loading={isRemoving}
         />
       )}
     </>
@@ -233,7 +243,7 @@ export function TagDetailPanel({
                 <BookCardSimple
                   key={book.id}
                   book={book}
-                  onRemove={() => onRemoveTag(book.id)}
+                  onRemove={async () => onRemoveTag(book.id)}
                   confirmRemoval={confirmRemoval}
                   tagName={tagName || ""}
                 />

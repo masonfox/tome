@@ -78,7 +78,8 @@ export default function BaseModal({
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors"
+            disabled={loading}
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
