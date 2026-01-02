@@ -209,6 +209,7 @@ export default function CompleteBookModal({
       onClose={handleClose}
       title="Complete Book"
       size="2xl"
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
           <button

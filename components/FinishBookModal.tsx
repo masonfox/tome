@@ -95,6 +95,7 @@ export default function FinishBookModal({
       onClose={handleClose}
       title="Book Completed!"
       size="2xl"
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
           <button
