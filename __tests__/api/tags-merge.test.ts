@@ -30,7 +30,7 @@ let mockUpdateCalibreTags = mock(() => {});
 let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
   totalAttempted: updates.length,
   successCount: updates.length,
-  failures: []
+  failures: [] as Array<{ calibreId: number; error: string }>
 }));
 let mockCalibreShouldFail = false;
 
@@ -487,6 +487,76 @@ describe("POST /api/tags/merge", () => {
 
       const updatedBook = await bookRepository.findById(book.id);
       expect(updatedBook?.tags).toEqual(["new-tag"]); // Trimmed
+    });
+  });
+
+  describe("Partial Success Handling", () => {
+    test("should return partial success response when some Calibre updates fail", async () => {
+      // Arrange: Create books with source tags
+      const book1 = await bookRepository.create(createTestBook({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        path: "Author/Book 1 (1)",
+        tags: ["tag1", "keep"],
+      }));
+
+      const book2 = await bookRepository.create(createTestBook({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        path: "Author 2/Book 2 (2)",
+        tags: ["tag2"],
+      }));
+
+      const book3 = await bookRepository.create(createTestBook({
+        calibreId: 3,
+        title: "Book 3",
+        authors: ["Author 3"],
+        path: "Author 3/Book 3 (3)",
+        tags: ["tag1", "tag2"],
+      }));
+
+      // Mock partial failure
+      mockBatchUpdateCalibreTags.mockReturnValueOnce({
+        totalAttempted: 3,
+        successCount: 2,
+        failures: [
+          { calibreId: 3, error: "Sync error" }
+        ]
+      });
+
+      // Act
+      const request = createMockRequest("POST", "/api/tags/merge", {
+        sourceTags: ["tag1", "tag2"],
+        targetTag: "merged",
+      });
+      const response = await POST(request as NextRequest);
+      const data = await response.json();
+
+      // Assert: Response shows partial success
+      expect(response.status).toBe(200);
+      expect(data.mergedTags).toEqual(["tag1", "tag2"]);
+      expect(data.targetTag).toBe("merged");
+      expect(data.totalBooks).toBe(3);
+      expect(data.successCount).toBe(2);
+      expect(data.failureCount).toBe(1);
+      expect(data.calibreFailures).toHaveLength(1);
+      expect(data.calibreFailures[0]).toEqual({
+        calibreId: 3,
+        bookId: book3.id,
+        title: "Book 3",
+        error: "Sync error"
+      });
+
+      // Verify all books in Tome DB were updated
+      const updatedBook1 = await bookRepository.findById(book1.id);
+      const updatedBook2 = await bookRepository.findById(book2.id);
+      const updatedBook3 = await bookRepository.findById(book3.id);
+
+      expect(updatedBook1?.tags).toContain("merged");
+      expect(updatedBook2?.tags).toContain("merged");
+      expect(updatedBook3?.tags).toContain("merged");
     });
   });
 });

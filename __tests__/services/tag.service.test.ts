@@ -33,7 +33,7 @@ import { createTestBook } from "../fixtures/test-data";
 let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
   totalAttempted: updates.length,
   successCount: updates.length,
-  failures: []
+  failures: [] as Array<{ calibreId: number; error: string }>
 }));
 let mockCalibreShouldFail = false;
 
@@ -344,6 +344,99 @@ describe("TagService.renameTag()", () => {
     expect(mockWatcherResumeCalled).toBe(true);
     expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
+
+  test("should handle partial Calibre sync failures and still update Tome DB", async () => {
+    // Arrange: Create 3 books with "OldTag"
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Book One",
+      tags: ["OldTag", "Keep1"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Book Two",
+      tags: ["OldTag", "Keep2"],
+    }));
+
+    const book3 = await bookRepository.create(createTestBook({
+      calibreId: 3,
+      title: "Book Three",
+      tags: ["OldTag", "Keep3"],
+    }));
+
+    // Mock partial failure: 2 successes, 1 failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 3,
+      successCount: 2,
+      failures: [
+        { calibreId: 3, error: "Database locked" }
+      ]
+    });
+
+    // Act
+    const result = await tagService.renameTag("OldTag", "NewTag");
+
+    // Assert: Result shows partial success
+    expect(result.totalBooks).toBe(3);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0].calibreId).toBe(3);
+    expect(result.calibreFailures[0].title).toBe("Book Three");
+    expect(result.calibreFailures[0].bookId).toBe(book3.id);
+    expect(result.calibreFailures[0].error).toBe("Database locked");
+
+    // Assert: ALL 3 books in Tome DB have "NewTag" (not "OldTag")
+    const updatedBook1 = await bookRepository.findById(book1.id);
+    const updatedBook2 = await bookRepository.findById(book2.id);
+    const updatedBook3 = await bookRepository.findById(book3.id);
+
+    expect(updatedBook1?.tags).toEqual(["NewTag", "Keep1"]);
+    expect(updatedBook2?.tags).toEqual(["NewTag", "Keep2"]);
+    expect(updatedBook3?.tags).toEqual(["NewTag", "Keep3"]);
+
+    // Verify all books have the new tag, not the old tag
+    expect(updatedBook1?.tags).not.toContain("OldTag");
+    expect(updatedBook2?.tags).not.toContain("OldTag");
+    expect(updatedBook3?.tags).not.toContain("OldTag");
+  });
+
+  test("should enrich Calibre failures with book titles and IDs", async () => {
+    // Arrange: Create 2 books with distinct titles
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 10,
+      title: "Success Book",
+      tags: ["OldTag"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 20,
+      title: "Failed Book",
+      tags: ["OldTag"],
+    }));
+
+    // Mock partial failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 2,
+      successCount: 1,
+      failures: [
+        { calibreId: 20, error: "Connection timeout" }
+      ]
+    });
+
+    // Act
+    const result = await tagService.renameTag("OldTag", "NewTag");
+
+    // Assert: Failure is enriched with book details
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0]).toEqual({
+      calibreId: 20,
+      bookId: book2.id,
+      title: "Failed Book",
+      error: "Connection timeout"
+    });
+  });
 });
 
 describe("TagService.deleteTag()", () => {
@@ -434,6 +527,99 @@ describe("TagService.deleteTag()", () => {
     // Verify watcher was still resumed with ignore period
     expect(mockWatcherResumeCalled).toBe(true);
     expect(mockWatcherResumeIgnorePeriod).toBe(3000);
+  });
+
+  test("should handle partial Calibre sync failures and still update Tome DB", async () => {
+    // Arrange: Create 3 books with "DeleteMe"
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Delete Book One",
+      tags: ["DeleteMe", "Keep1"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Delete Book Two",
+      tags: ["DeleteMe", "Keep2"],
+    }));
+
+    const book3 = await bookRepository.create(createTestBook({
+      calibreId: 3,
+      title: "Delete Book Three",
+      tags: ["DeleteMe"],
+    }));
+
+    // Mock partial failure: 2 successes, 1 failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 3,
+      successCount: 2,
+      failures: [
+        { calibreId: 2, error: "Permission denied" }
+      ]
+    });
+
+    // Act
+    const result = await tagService.deleteTag("DeleteMe");
+
+    // Assert: Result shows partial success
+    expect(result.totalBooks).toBe(3);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0].calibreId).toBe(2);
+    expect(result.calibreFailures[0].title).toBe("Delete Book Two");
+    expect(result.calibreFailures[0].bookId).toBe(book2.id);
+    expect(result.calibreFailures[0].error).toBe("Permission denied");
+
+    // Assert: ALL 3 books in Tome DB have "DeleteMe" removed
+    const updatedBook1 = await bookRepository.findById(book1.id);
+    const updatedBook2 = await bookRepository.findById(book2.id);
+    const updatedBook3 = await bookRepository.findById(book3.id);
+
+    expect(updatedBook1?.tags).toEqual(["Keep1"]);
+    expect(updatedBook2?.tags).toEqual(["Keep2"]);
+    expect(updatedBook3?.tags).toEqual([]);
+
+    // Verify all books have the tag deleted
+    expect(updatedBook1?.tags).not.toContain("DeleteMe");
+    expect(updatedBook2?.tags).not.toContain("DeleteMe");
+    expect(updatedBook3?.tags).not.toContain("DeleteMe");
+  });
+
+  test("should enrich Calibre failures with book titles and IDs", async () => {
+    // Arrange: Create 2 books
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 100,
+      title: "Success Delete",
+      tags: ["DeleteMe"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 200,
+      title: "Failed Delete",
+      tags: ["DeleteMe"],
+    }));
+
+    // Mock partial failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 2,
+      successCount: 1,
+      failures: [
+        { calibreId: 200, error: "File is locked" }
+      ]
+    });
+
+    // Act
+    const result = await tagService.deleteTag("DeleteMe");
+
+    // Assert: Failure is enriched with book details
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0]).toEqual({
+      calibreId: 200,
+      bookId: book2.id,
+      title: "Failed Delete",
+      error: "File is locked"
+    });
   });
 });
 
@@ -536,6 +722,111 @@ describe("TagService.mergeTags()", () => {
     expect(mockWatcherResumeCalled).toBe(true);
     expect(mockWatcherResumeIgnorePeriod).toBe(3000);
   });
+
+  test("should handle partial Calibre sync failures and still update Tome DB", async () => {
+    // Arrange: Create 4 books with various tags
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Merge Book One",
+      tags: ["Tag1", "Keep"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Merge Book Two",
+      tags: ["Tag2", "Keep"],
+    }));
+
+    const book3 = await bookRepository.create(createTestBook({
+      calibreId: 3,
+      title: "Merge Book Three",
+      tags: ["Tag1", "Tag2"],
+    }));
+
+    const book4 = await bookRepository.create(createTestBook({
+      calibreId: 4,
+      title: "Merge Book Four",
+      tags: ["Tag3"],
+    }));
+
+    // Mock partial failure: 2 successes, 1 failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 3,
+      successCount: 2,
+      failures: [
+        { calibreId: 3, error: "Disk full" }
+      ]
+    });
+
+    // Act: Merge Tag1 and Tag2 into MergedTag
+    const result = await tagService.mergeTags(["Tag1", "Tag2"], "MergedTag");
+
+    // Assert: Result shows partial success
+    expect(result.totalBooks).toBe(3);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0].calibreId).toBe(3);
+    expect(result.calibreFailures[0].title).toBe("Merge Book Three");
+    expect(result.calibreFailures[0].bookId).toBe(book3.id);
+    expect(result.calibreFailures[0].error).toBe("Disk full");
+
+    // Assert: ALL 3 affected books in Tome DB have tags merged
+    const updatedBook1 = await bookRepository.findById(book1.id);
+    const updatedBook2 = await bookRepository.findById(book2.id);
+    const updatedBook3 = await bookRepository.findById(book3.id);
+    const updatedBook4 = await bookRepository.findById(book4.id);
+
+    expect(updatedBook1?.tags).toContain("MergedTag");
+    expect(updatedBook1?.tags).toContain("Keep");
+    expect(updatedBook1?.tags).not.toContain("Tag1");
+
+    expect(updatedBook2?.tags).toContain("MergedTag");
+    expect(updatedBook2?.tags).toContain("Keep");
+    expect(updatedBook2?.tags).not.toContain("Tag2");
+
+    expect(updatedBook3?.tags).toEqual(["MergedTag"]); // Both Tag1 and Tag2 replaced
+    expect(updatedBook3?.tags).not.toContain("Tag1");
+    expect(updatedBook3?.tags).not.toContain("Tag2");
+
+    expect(updatedBook4?.tags).toEqual(["Tag3"]); // Unchanged
+  });
+
+  test("should enrich Calibre failures with book titles and IDs", async () => {
+    // Arrange: Create books
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 50,
+      title: "Success Merge",
+      tags: ["SourceTag"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 60,
+      title: "Failed Merge",
+      tags: ["SourceTag"],
+    }));
+
+    // Mock partial failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 2,
+      successCount: 1,
+      failures: [
+        { calibreId: 60, error: "Network error" }
+      ]
+    });
+
+    // Act
+    const result = await tagService.mergeTags(["SourceTag"], "TargetTag");
+
+    // Assert: Failure is enriched with book details
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0]).toEqual({
+      calibreId: 60,
+      bookId: book2.id,
+      title: "Failed Merge",
+      error: "Network error"
+    });
+  });
 });
 
 describe("TagService.bulkDeleteTags()", () => {
@@ -616,6 +907,107 @@ describe("TagService.bulkDeleteTags()", () => {
     // Verify watcher was still resumed with ignore period
     expect(mockWatcherResumeCalled).toBe(true);
     expect(mockWatcherResumeIgnorePeriod).toBe(3000);
+  });
+
+  test("should handle partial Calibre sync failures and still update Tome DB", async () => {
+    // Arrange: Create books with multiple tags to delete
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Bulk Delete Book One",
+      tags: ["Delete1", "Delete2", "Keep"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Bulk Delete Book Two",
+      tags: ["Delete1", "Keep"],
+    }));
+
+    const book3 = await bookRepository.create(createTestBook({
+      calibreId: 3,
+      title: "Bulk Delete Book Three",
+      tags: ["Delete2"],
+    }));
+
+    // Mock partial failure: 2 successes, 1 failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 3,
+      successCount: 2,
+      failures: [
+        { calibreId: 2, error: "Timeout" }
+      ]
+    });
+
+    // Act: Delete Delete1 and Delete2
+    const result = await tagService.bulkDeleteTags(["Delete1", "Delete2"]);
+
+    // Assert: Result shows partial success
+    expect(result.totalBooks).toBe(3);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+    expect(result.tagsDeleted).toBe(2); // Both tags were processed
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0].calibreId).toBe(2);
+    expect(result.calibreFailures[0].title).toBe("Bulk Delete Book Two");
+    expect(result.calibreFailures[0].bookId).toBe(book2.id);
+    expect(result.calibreFailures[0].error).toBe("Timeout");
+
+    // Assert: ALL books in Tome DB have tags deleted
+    const updatedBook1 = await bookRepository.findById(book1.id);
+    const updatedBook2 = await bookRepository.findById(book2.id);
+    const updatedBook3 = await bookRepository.findById(book3.id);
+
+    expect(updatedBook1?.tags).toEqual(["Keep"]);
+    expect(updatedBook2?.tags).toEqual(["Keep"]);
+    expect(updatedBook3?.tags).toEqual([]);
+
+    // Verify all books have the tags deleted
+    expect(updatedBook1?.tags).not.toContain("Delete1");
+    expect(updatedBook1?.tags).not.toContain("Delete2");
+    expect(updatedBook2?.tags).not.toContain("Delete1");
+    expect(updatedBook3?.tags).not.toContain("Delete2");
+  });
+
+  test("should enrich Calibre failures with book titles and IDs", async () => {
+    // Arrange: Create books
+    const book1 = await bookRepository.create(createTestBook({
+      calibreId: 70,
+      title: "Success Bulk Delete",
+      tags: ["BulkTag1"],
+    }));
+
+    const book2 = await bookRepository.create(createTestBook({
+      calibreId: 80,
+      title: "Failed Bulk Delete",
+      tags: ["BulkTag1", "BulkTag2"],
+    }));
+
+    const book3 = await bookRepository.create(createTestBook({
+      calibreId: 90,
+      title: "Another Success",
+      tags: ["BulkTag2"],
+    }));
+
+    // Mock partial failure
+    mockBatchUpdateCalibreTags.mockReturnValueOnce({
+      totalAttempted: 3,
+      successCount: 2,
+      failures: [
+        { calibreId: 80, error: "Access denied" }
+      ]
+    });
+
+    // Act
+    const result = await tagService.bulkDeleteTags(["BulkTag1", "BulkTag2"]);
+
+    // Assert: Failure is enriched with book details
+    expect(result.calibreFailures).toHaveLength(1);
+    expect(result.calibreFailures[0]).toEqual({
+      calibreId: 80,
+      bookId: book2.id,
+      title: "Failed Bulk Delete",
+      error: "Access denied"
+    });
   });
 });
 
