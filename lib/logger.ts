@@ -62,12 +62,11 @@ const baseOptions: LoggerOptions = {
   },
 };
 
-let destination: DestinationStream | undefined;
-if (LOG_DEST) {
-  destination = pino.destination({ dest: LOG_DEST, sync: false });
-}
+// Configure multi-stream to write to both stdout and file (if LOG_DEST is set)
+// This ensures logs are visible in container logs (Portainer) AND persisted to file
+const streams: pino.StreamEntry[] = [];
 
-// Pretty transport only in development
+// Pretty transport only in development (for stdout)
 let transport: any = undefined;
 if (LOG_PRETTY) {
   transport = {
@@ -80,8 +79,20 @@ if (LOG_PRETTY) {
   };
 }
 
-// Singleton base logger
-const baseLogger: Logger = pino({ ...baseOptions, transport }, destination);
+// Always add stdout stream
+streams.push({ 
+  stream: process.stdout 
+});
+
+// Optionally add file destination stream
+if (LOG_DEST) {
+  streams.push({ 
+    stream: pino.destination({ dest: LOG_DEST, sync: false }) 
+  });
+}
+
+// Singleton base logger with multi-stream support
+const baseLogger: Logger = pino({ ...baseOptions, transport }, pino.multistream(streams));
 
 export function getBaseLogger(): Logger { return baseLogger; }
 export function createLogger(bindings?: Record<string, any>): Logger { return baseLogger.child(bindings || {}); }
