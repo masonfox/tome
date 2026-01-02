@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, X } from "lucide-react";
 import { TagItem, type TagWithStats } from "./TagItem";
 import { TagListSkeleton } from "./TagListSkeleton";
@@ -27,7 +27,12 @@ interface TagListProps {
   onBulkDeleteTags?: (tagNames: string[]) => void;
 }
 
-export function TagList({
+export interface TagListRef {
+  saveScrollPosition: () => void;
+  restoreScrollPosition: () => void;
+}
+
+export const TagList = forwardRef<TagListRef, TagListProps>(function TagList({
   tags,
   selectedTag,
   loading = false,
@@ -36,7 +41,7 @@ export function TagList({
   onDeleteTag,
   onMergeTags,
   onBulkDeleteTags,
-}: TagListProps) {
+}, ref) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -44,6 +49,38 @@ export function TagList({
   const [checkedTags, setCheckedTags] = useState<Set<string>>(new Set());
   
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const savedScrollPosition = useRef<number>(0);
+  const shouldRestoreScroll = useRef<boolean>(false);
+
+  // Expose scroll position methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    saveScrollPosition: () => {
+      if (scrollContainerRef.current) {
+        savedScrollPosition.current = scrollContainerRef.current.scrollTop;
+        shouldRestoreScroll.current = true;
+      }
+    },
+    restoreScrollPosition: () => {
+      if (scrollContainerRef.current && shouldRestoreScroll.current) {
+        // Use requestAnimationFrame to ensure DOM has updated
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = savedScrollPosition.current;
+            shouldRestoreScroll.current = false;
+          }
+        });
+      }
+    },
+  }), []);
+
+  // Restore scroll position after tags update (if flagged)
+  useEffect(() => {
+    if (shouldRestoreScroll.current && !loading && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = savedScrollPosition.current;
+      shouldRestoreScroll.current = false;
+    }
+  }, [tags, loading]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -260,7 +297,7 @@ export function TagList({
       </div>
 
       {/* Tags list */}
-      <div className="lg:flex-1 lg:overflow-y-auto space-y-2 custom-scrollbar">
+      <div ref={scrollContainerRef} className="lg:flex-1 lg:overflow-y-auto space-y-2 custom-scrollbar">
         {filteredAndSortedTags.length === 0 ? (
           <div className="text-center py-8 text-[var(--subheading-text)]">
             {searchQuery ? "No tags found" : "No tags yet"}
@@ -285,4 +322,4 @@ export function TagList({
       </div>
     </div>
   );
-}
+});

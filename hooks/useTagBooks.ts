@@ -10,6 +10,8 @@ export function useTagBooks(tagName: string | null) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const skipRef = useRef(0);
+  const beforeRefetchCallback = useRef<(() => void) | null>(null);
+  const afterRefetchCallback = useRef<(() => void) | null>(null);
 
   // Calculate if there are more books to load
   const hasMore = books.length < total;
@@ -24,6 +26,9 @@ export function useTagBooks(tagName: string | null) {
     }
 
     try {
+      // Call before refetch callback if set (to save scroll position)
+      beforeRefetchCallback.current?.();
+      
       setLoading(true);
       setError(null);
       skipRef.current = 0;
@@ -46,6 +51,9 @@ export function useTagBooks(tagName: string | null) {
       setTotal(0);
     } finally {
       setLoading(false);
+      
+      // Call after refetch callback if set (to restore scroll position)
+      afterRefetchCallback.current?.();
     }
   }, [tagName]);
 
@@ -176,5 +184,11 @@ export function useTagBooks(tagName: string | null) {
     removeTagFromBook,
     addTagToBooks,
     bulkRemoveTag,
+    setBeforeRefetch: (callback: (() => void) | null) => {
+      beforeRefetchCallback.current = callback;
+    },
+    setAfterRefetch: (callback: (() => void) | null) => {
+      afterRefetchCallback.current = callback;
+    },
   };
 }

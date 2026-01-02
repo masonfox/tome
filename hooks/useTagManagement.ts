@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TagOperationResult } from "@/types/tag-operations";
 
@@ -13,9 +13,14 @@ export function useTagManagement() {
   const [totalBooks, setTotalBooks] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const beforeRefetchCallback = useRef<(() => void) | null>(null);
+  const afterRefetchCallback = useRef<(() => void) | null>(null);
 
   const fetchTags = useCallback(async () => {
     try {
+      // Call before refetch callback if set (to save scroll position)
+      beforeRefetchCallback.current?.();
+      
       setLoading(true);
       setError(null);
       const response = await fetch("/api/tags/stats");
@@ -31,6 +36,9 @@ export function useTagManagement() {
       setError(err instanceof Error ? err.message : "Failed to fetch tags");
     } finally {
       setLoading(false);
+      
+      // Call after refetch callback if set (to restore scroll position)
+      afterRefetchCallback.current?.();
     }
   }, []);
 
@@ -135,5 +143,11 @@ export function useTagManagement() {
     renameTag,
     deleteTag,
     mergeTags,
+    setBeforeRefetch: (callback: (() => void) | null) => {
+      beforeRefetchCallback.current = callback;
+    },
+    setAfterRefetch: (callback: (() => void) | null) => {
+      afterRefetchCallback.current = callback;
+    },
   };
 }
