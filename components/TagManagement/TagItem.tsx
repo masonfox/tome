@@ -32,28 +32,35 @@ export function TagItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer shadow-sm",
+        "group flex items-center gap-3 p-3 rounded-lg border transition-all shadow-sm",
+        isCheckboxMode ? "" : "cursor-pointer",
         isSelected
           ? "bg-[var(--accent)]/10 border-[var(--accent)] shadow-md"
           : "bg-[var(--background)] border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:shadow-md"
       )}
-      onClick={isCheckboxMode ? undefined : onSelect}
     >
       {isCheckboxMode && (
-        <input
-          type="checkbox"
-          checked={isChecked}
-          onChange={(e) => {
-            e.stopPropagation();
-            onCheckboxChange(e.target.checked);
-          }}
-          className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-[var(--accent)] cursor-pointer"
-          style={{ accentColor: 'var(--accent)' }}
-        />
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center"
+        >
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={(e) => {
+              onCheckboxChange(e.target.checked);
+            }}
+            className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-[var(--accent)] cursor-pointer"
+            style={{ accentColor: 'var(--accent)' }}
+          />
+        </div>
       )}
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+      <div 
+        className="flex-1 min-w-0 flex items-center gap-3 cursor-pointer"
+        onClick={onSelect}
+      >
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <Tag className="w-4 h-4 text-[var(--subheading-text)] flex-shrink-0" />
           <span
             className={cn(
@@ -64,18 +71,18 @@ export function TagItem({
             {tag.name}
           </span>
         </div>
-      </div>
 
-      <span
-        className={cn(
-          "text-sm font-medium px-2 py-1 rounded-full flex-shrink-0",
-          isSelected
-            ? "bg-[var(--accent)] text-white"
-            : "bg-[var(--foreground)]/10 text-[var(--subheading-text)]"
-        )}
-      >
-        {tag.bookCount}
-      </span>
+        <span
+          className={cn(
+            "text-sm font-medium px-2 py-1 rounded-full flex-shrink-0",
+            isSelected
+              ? "bg-[var(--accent)] text-white"
+              : "bg-[var(--foreground)]/10 text-[var(--subheading-text)]"
+          )}
+        >
+          {tag.bookCount}
+        </span>
+      </div>
 
       {!isCheckboxMode && (
         <div className="flex items-center gap-1">
