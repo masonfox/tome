@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Book } from "@/lib/db/schema/books";
 
 const BOOKS_PER_PAGE = 50;
 
 export function useTagBooks(tagName: string | null) {
+  const queryClient = useQueryClient();
   const [books, setBooks] = useState<Book[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -163,10 +165,14 @@ export function useTagBooks(tagName: string | null) {
 
       // Refresh books after successful removal
       await fetchInitialBooks();
+      
+      // Invalidate tags cache since book count changed
+      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to remove tag");
     }
-  }, [tagName, fetchInitialBooks]);
+  }, [tagName, fetchInitialBooks, queryClient]);
 
   const addTagToBooks = useCallback(async (bookIds: number[]) => {
     if (!tagName || bookIds.length === 0) return;
@@ -189,10 +195,14 @@ export function useTagBooks(tagName: string | null) {
 
       // Refresh books after successful addition
       await fetchInitialBooks();
+      
+      // Invalidate tags cache since book count changed
+      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to add tag");
     }
-  }, [tagName, fetchInitialBooks]);
+  }, [tagName, fetchInitialBooks, queryClient]);
 
   const bulkRemoveTag = useCallback(async (bookIds: number[]) => {
     if (!tagName || bookIds.length === 0) return;
@@ -216,12 +226,16 @@ export function useTagBooks(tagName: string | null) {
       // Refresh books after successful bulk removal
       await fetchInitialBooks();
       
+      // Invalidate tags cache since book count changed
+      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      
       const data = await response.json();
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to remove tag from books");
     }
-  }, [tagName, fetchInitialBooks]);
+  }, [tagName, fetchInitialBooks, queryClient]);
 
   return {
     books,
