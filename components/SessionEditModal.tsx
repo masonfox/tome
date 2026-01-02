@@ -115,6 +115,7 @@ export default function SessionEditModal({
       onClose={onClose}
       title={`Edit Session - ${bookTitle} (Read #${sessionNumber})`}
       size="2xl"
+      allowBackdropClose={false}
       actions={
         <div className="flex justify-end gap-4">
           <button
