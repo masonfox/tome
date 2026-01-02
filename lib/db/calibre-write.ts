@@ -305,6 +305,18 @@ export function updateCalibreTags(
 }
 
 /**
+ * Result of a batch update operation
+ */
+export interface CalibreBatchResult {
+  totalAttempted: number;
+  successCount: number;
+  failures: Array<{
+    calibreId: number;
+    error: string;
+  }>;
+}
+
+/**
  * Batch update tags for multiple books in Calibre database
  * 
  * This function updates tags for multiple books in a single transaction,
@@ -312,48 +324,62 @@ export function updateCalibreTags(
  * 
  * @param updates - Array of {calibreId, tags} objects
  * @param db - (Optional) Database instance to use. Defaults to production Calibre DB.
- * @returns Number of books successfully updated
- * @throws Error if batch operation fails
+ * @returns CalibreBatchResult with success count and detailed failure information
+ * @throws Error if batch operation fails catastrophically
  * 
  * @example
- * batchUpdateCalibreTags([
+ * const result = batchUpdateCalibreTags([
  *   { calibreId: 1, tags: ["Fantasy", "Adventure"] },
  *   { calibreId: 2, tags: ["Sci-Fi"] }
  * ]);
+ * console.log(`${result.successCount} succeeded, ${result.failures.length} failed`);
  */
 export function batchUpdateCalibreTags(
   updates: Array<{ calibreId: number; tags: string[] }>,
   db: SQLiteDatabase = getCalibreWriteDB()
-): number {
+): CalibreBatchResult {
   if (!Array.isArray(updates) || updates.length === 0) {
-    return 0;
+    return {
+      totalAttempted: 0,
+      successCount: 0,
+      failures: []
+    };
   }
 
   try {
     let successCount = 0;
+    const failures: Array<{ calibreId: number; error: string }> = [];
 
-    // Process all updates - errors logged but don't stop batch
+    // Process all updates - errors logged and tracked
     for (const { calibreId, tags } of updates) {
       try {
         updateCalibreTags(calibreId, tags, db);
         successCount++;
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         getLoggerSafe().error(
           { err: error, calibreId },
           "[Calibre] Failed to update tags in batch operation"
         );
-        // Continue with other updates
+        failures.push({
+          calibreId,
+          error: errorMessage
+        });
       }
     }
 
     getLoggerSafe().info(
-      { totalUpdates: updates.length, successCount },
+      { totalUpdates: updates.length, successCount, failureCount: failures.length },
       "[Calibre] Batch tag update completed"
     );
 
-    return successCount;
+    return {
+      totalAttempted: updates.length,
+      successCount,
+      failures
+    };
   } catch (error) {
-    getLoggerSafe().error({ err: error }, "[Calibre] Batch tag update failed");
+    getLoggerSafe().error({ err: error }, "[Calibre] Batch tag update failed catastrophically");
     throw new Error(`Batch tag update failed: ${error}`);
   }
 }
