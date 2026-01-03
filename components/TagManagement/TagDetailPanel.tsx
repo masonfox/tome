@@ -42,17 +42,6 @@ const BookCardSimple = memo(function BookCardSimple({
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  const handleRemoveClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (confirmRemoval) {
-      setShowRemoveModal(true);
-    } else {
-      handleConfirmRemove();
-    }
-  }, [confirmRemoval]);
-
   const handleConfirmRemove = useCallback(async () => {
     setIsRemoving(true);
     try {
@@ -65,6 +54,17 @@ const BookCardSimple = memo(function BookCardSimple({
       setIsRemoving(false);
     }
   }, [onRemove]);
+
+  const handleRemoveClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (confirmRemoval) {
+      setShowRemoveModal(true);
+    } else {
+      handleConfirmRemove();
+    }
+  }, [confirmRemoval, handleConfirmRemove]);
 
   const handleCloseModal = useCallback(() => setShowRemoveModal(false), []);
 
@@ -160,7 +160,7 @@ export const TagDetailPanel = memo(function TagDetailPanel({
             onLoadMore();
           }
         },
-        { 
+        {
           threshold: 0.1,
           rootMargin: '800px' // Start loading 800px before the trigger element comes into view
         }
@@ -179,7 +179,8 @@ export const TagDetailPanel = memo(function TagDetailPanel({
         observer.unobserve(target);
       }
     };
-  }, [tagName]); // Only recreate when tag changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagName]); // Only recreate when tag changes - observer callback updated separately
 
   // Update observer callback when dependencies change
   useEffect(() => {
