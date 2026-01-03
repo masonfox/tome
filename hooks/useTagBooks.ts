@@ -16,6 +16,7 @@ export function useTagBooks(tagName: string | null) {
   const afterRefetchCallback = useRef<(() => void) | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadMoreAbortControllerRef = useRef<AbortController | null>(null);
+  const isLoadingRef = useRef(false);
 
   // Calculate if there are more books to load
   const hasMore = books.length < total;
@@ -30,7 +31,7 @@ export function useTagBooks(tagName: string | null) {
     }
 
     // Prevent double fetch - if already loading, return
-    if (loading) {
+    if (isLoadingRef.current) {
       return;
     }
 
@@ -47,6 +48,7 @@ export function useTagBooks(tagName: string | null) {
       // Call before refetch callback if set (to save scroll position)
       beforeRefetchCallback.current?.();
       
+      isLoadingRef.current = true;
       setLoading(true);
       setError(null);
       skipRef.current = 0;
@@ -75,13 +77,14 @@ export function useTagBooks(tagName: string | null) {
     } finally {
       // Only update loading state if this request wasn't aborted
       if (!abortController.signal.aborted) {
+        isLoadingRef.current = false;
         setLoading(false);
         
         // Call after refetch callback if set (to restore scroll position)
         afterRefetchCallback.current?.();
       }
     }
-  }, [tagName, loading]);
+  }, [tagName]);
 
   // Load more books for infinite scroll
   const loadMore = useCallback(async () => {
