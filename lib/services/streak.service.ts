@@ -494,6 +494,141 @@ export class StreakService {
   }
 
   /**
+   * Get streak analytics data including daily reading history
+   * @param days Number of days to fetch, or special values "this-year" or "all-time"
+   * @param userId User ID (null for default user)
+   * @returns Analytics data with streak info and daily reading history
+   */
+  async getAnalytics(
+    days: number | "this-year" | "all-time" = 365,
+    userId: number | null = null
+  ): Promise<{
+    streak: {
+      currentStreak: number;
+      longestStreak: number;
+      dailyThreshold: number;
+      totalDaysActive: number;
+    };
+    dailyReadingHistory: {
+      date: string;
+      pagesRead: number;
+      thresholdMet: boolean;
+    }[];
+    booksAheadOrBehind?: number;
+  }> {
+    const now = new Date();
+    let actualDays: number;
+
+    // Handle special time period options
+    if (days === "this-year") {
+      // Calculate days from January 1st of current year to today
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      actualDays = Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+    } else if (days === "all-time") {
+      // Use a large number to fetch all available data
+      actualDays = 3650; // ~10 years
+    } else {
+      actualDays = days;
+    }
+
+    const streak = await this.getStreak(userId);
+    if (!streak) {
+      throw new Error("No streak record found for user");
+    }
+
+    // Get user timezone for date calculations
+    const userTimezone = streak.userTimezone || "America/New_York";
+
+    // Calculate date range in the user's timezone to ensure correct day boundaries
+    // Get current date/time in user's timezone
+    const nowInUserTz = toZonedTime(new Date(), userTimezone);
+    
+    // Calculate start date by going back N days in user's timezone
+    const requestedStartDateInUserTz = new Date(nowInUserTz);
+    requestedStartDateInUserTz.setDate(requestedStartDateInUserTz.getDate() - actualDays);
+    requestedStartDateInUserTz.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC timestamp for database queries
+    const requestedStartDate = fromZonedTime(requestedStartDateInUserTz, userTimezone);
+    
+    // End date is end of today in user's timezone
+    const endDateInUserTz = new Date(nowInUserTz);
+    endDateInUserTz.setHours(23, 59, 59, 999);
+    const endDate = fromZonedTime(endDateInUserTz, userTimezone);
+    
+    // Get the earliest progress date to avoid showing empty days before tracking started
+    const earliestProgressDate = await progressRepository.getEarliestProgressDate();
+    
+    // Use the later of: requested start date OR earliest progress date
+    // This prevents showing empty data before the user started tracking
+    const actualStartDate = earliestProgressDate && earliestProgressDate > requestedStartDate
+      ? earliestProgressDate
+      : requestedStartDate;
+    
+    const history = await progressRepository.getActivityCalendar(
+      actualStartDate,
+      endDate,
+      userTimezone
+    );
+
+    // Create a map of existing data for quick lookup
+    const dataMap = new Map<string, number>();
+    history.forEach((day) => {
+      dataMap.set(day.date, day.pagesRead);
+    });
+
+    // Fill in all days in the range, including days with no data (0 pages)
+    // getActivityCalendar returns dates in the user's timezone, so we iterate through
+    // dates in the user's timezone as well
+    const allDays: { date: string; pagesRead: number; thresholdMet: boolean }[] = [];
+    
+    // Get the start date in the user's timezone
+    const startDateInUserTz = toZonedTime(actualStartDate, userTimezone);
+    startDateInUserTz.setHours(0, 0, 0, 0);
+    
+    // Use endDateInUserTz calculated earlier (end of today in user's timezone)
+    // This ensures we only show data up to the current day in the user's timezone
+    
+    const currentDate = new Date(startDateInUserTz);
+    while (currentDate <= endDateInUserTz) {
+      // Format as a date string in the user's timezone
+      const dateStr = formatInTimeZone(
+        fromZonedTime(currentDate, userTimezone),
+        userTimezone,
+        'yyyy-MM-dd'
+      );
+      const pagesRead = dataMap.get(dateStr) || 0;
+      
+      allDays.push({
+        date: dateStr,
+        pagesRead,
+        thresholdMet: pagesRead >= streak.dailyThreshold,
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    const enrichedHistory = allDays;
+
+    // Calculate books ahead/behind (optional, only if reading goal exists)
+    // TODO: Implement when reading goal feature is available
+    // For now, we'll check if a goal exists and calculate accordingly
+    let booksAheadOrBehind: number | undefined = undefined;
+
+    // Return analytics data
+    return {
+      streak: {
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
+        dailyThreshold: streak.dailyThreshold,
+        totalDaysActive: streak.totalDaysActive,
+      },
+      dailyReadingHistory: enrichedHistory,
+      ...(booksAheadOrBehind !== undefined && { booksAheadOrBehind }),
+    };
+  }
+
+  /**
    * Enable or disable streak tracking
    * When enabling, optionally set an initial daily goal
    */
