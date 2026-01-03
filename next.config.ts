@@ -19,13 +19,28 @@ const nextConfig: NextConfig = {
   },
   // Turbopack configuration (empty for now, may need future migration)
   turbopack: {},
+  // Externalize native modules for server-side rendering
+  serverExternalPackages: ['better-sqlite3', 'bun:sqlite'],
   webpack: (config, { isServer, dev }) => {
     if (isServer) {
-      // Externalize bun:sqlite and better-sqlite3 so webpack doesn't try to bundle them
-      // These are loaded dynamically at runtime based on the environment
-      config.externals = config.externals || [];
-      config.externals.push('bun:sqlite');
-      config.externals.push('better-sqlite3');
+      // Additional webpack externals configuration for Next.js 16
+      // This ensures native modules are not bundled
+      if (!config.externals) {
+        config.externals = [];
+      }
+      
+      // Handle externals as a function or array
+      const externals = Array.isArray(config.externals) ? config.externals : [config.externals];
+      
+      // Add our native modules to externals
+      externals.push(({ request }: any, callback: any) => {
+        if (request === 'better-sqlite3' || request === 'bun:sqlite') {
+          return callback(null, `commonjs ${request}`);
+        }
+        callback();
+      });
+      
+      config.externals = externals;
     }
     
     // Enable better tree-shaking in production

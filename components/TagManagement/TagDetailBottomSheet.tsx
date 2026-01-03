@@ -149,7 +149,7 @@ export const TagDetailBottomSheet = memo(function TagDetailBottomSheet({
   const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     if (isOpen) {
