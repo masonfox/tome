@@ -3,6 +3,12 @@ let cleanupListenersRegistered = false;
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Skip database imports during build phase to avoid Turbopack bundling native modules
+    // NEXT_PHASE is set to 'phase-production-build' during build
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return;
+    }
+
     // Calibre automatic sync works in both dev and production
     // Uses better-sqlite3 in Node.js (dev) and bun:sqlite in Bun (production)
     const runtime = typeof Bun !== 'undefined' ? 'Bun' : 'Node.js';
