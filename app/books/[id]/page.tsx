@@ -166,6 +166,9 @@ export default function BookDetailPage() {
       return response.json();
     },
     staleTime: 60000, // Cache for 1 minute
+    gcTime: 300000, // 5 minutes - match other queries
+    refetchOnMount: false, // Don't refetch when mounting if data exists
+    retry: 1, // Reduce retry attempts to prevent blocking
   });
   const availableTags = availableTagsData?.tags || [];
 
