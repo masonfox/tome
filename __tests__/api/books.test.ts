@@ -756,6 +756,143 @@ describe("GET /api/books", () => {
   });
 
   // ============================================================================
+  // RATING FILTERING TESTS
+  // ============================================================================
+
+  describe("Rating Filtering", () => {
+    test("should filter books by specific rating (5 stars)", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "5 Star Book",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 5,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "4 Star Book",
+        authors: ["Author 2"],
+        tags: [],
+        totalPages: 400,
+        rating: 4,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "Unrated Book",
+        authors: ["Author 3"],
+        tags: [],
+        totalPages: 350,
+      });
+
+      const request = createMockRequest("GET", "/api/books?rating=5");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].title).toBe("5 Star Book");
+      expect(data.books[0].rating).toBe(5);
+    });
+
+    test("should filter books by 'unrated'", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Rated Book",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 4,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Unrated Book 1",
+        authors: ["Author 2"],
+        tags: [],
+        totalPages: 400,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "Unrated Book 2",
+        authors: ["Author 3"],
+        tags: [],
+        totalPages: 350,
+      });
+
+      const request = createMockRequest("GET", "/api/books?rating=unrated");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(2);
+      expect(data.books[0].rating).toBeNull();
+      expect(data.books[1].rating).toBeNull();
+    });
+
+    test("should filter books by 'rated' (any rating)", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "5 Star Book",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 5,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "3 Star Book",
+        authors: ["Author 2"],
+        tags: [],
+        totalPages: 400,
+        rating: 3,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "1 Star Book",
+        authors: ["Author 3"],
+        tags: [],
+        totalPages: 350,
+        rating: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 4,
+        path: "test/path/4",
+        title: "Unrated Book",
+        authors: ["Author 4"],
+        tags: [],
+        totalPages: 250,
+      });
+
+      const request = createMockRequest("GET", "/api/books?rating=rated");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(3);
+      expect(data.books[0].rating).not.toBeNull();
+      expect(data.books[1].rating).not.toBeNull();
+      expect(data.books[2].rating).not.toBeNull();
+      expect(data.total).toBe(3);
+    });
+  });
+
+  // ============================================================================
   // PAGINATION TESTS
   // ============================================================================
 
