@@ -49,13 +49,13 @@ const BookCardSimple = memo(function BookCardSimple({
   const handleRemoveClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (confirmRemoval) {
       setShowRemoveModal(true);
     } else {
       handleConfirmRemove();
     }
-  }, [confirmRemoval]);
+  }, [confirmRemoval, handleConfirmRemove]);
 
   const handleConfirmRemove = useCallback(async () => {
     setIsRemoving(true);
@@ -193,7 +193,7 @@ export const TagDetailBottomSheet = memo(function TagDetailBottomSheet({
             onLoadMore();
           }
         },
-        { 
+        {
           root: contentRef.current,
           threshold: 0.1,
           rootMargin: '800px' // Start loading 800px before the trigger element comes into view
@@ -213,7 +213,8 @@ export const TagDetailBottomSheet = memo(function TagDetailBottomSheet({
         observer.unobserve(target);
       }
     };
-  }, [isOpen, tagName]); // Only recreate when sheet opens or tag changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, tagName]); // Only recreate when sheet opens or tag changes - observer callback updated separately
 
   // Update observer callback when dependencies change
   useEffect(() => {
