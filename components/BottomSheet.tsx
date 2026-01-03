@@ -96,6 +96,7 @@ export function BottomSheet({
             tabIndex={0}
             className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:ring-2 focus:ring-[var(--accent)] rounded"
             aria-label="Close"
+            autoFocus
           >
             <X className="w-5 h-5" />
           </button>

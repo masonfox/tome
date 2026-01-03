@@ -210,6 +210,7 @@ export default function LogProgressModal({
           onClose={onClose}
           title={book.title}
           icon={<TrendingUp className="w-5 h-5" />}
+          size="full"
         >
           {progressForm}
         </BottomSheet>
@@ -235,6 +236,7 @@ export default function LogProgressModal({
         title={`Log Progress - ${book.title}`}
         actions={<></>}
         size="2xl"
+        allowBackdropClose={false}
       >
         {progressForm}
       </BaseModal>

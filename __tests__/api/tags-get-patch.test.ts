@@ -26,7 +26,11 @@ import type { NextRequest } from "next/server";
  * We mock Calibre service operations at the service boundary to verify our code properly
  * attempts batch sync operations.
  */
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: [] as Array<{ calibreId: number; error: string }>
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -346,9 +350,11 @@ describe("PATCH /api/tags/[tagName]", () => {
 
       // Assert
       expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
       expect(data.oldName).toBe("fantacy");
       expect(data.newName).toBe("fantasy");
-      expect(data.booksUpdated).toBe(2);
+      expect(data.successCount).toBe(2);
+      expect(data.failureCount).toBe(0);
 
       // Verify books updated
       const updatedBook1 = await bookRepository.findById(book1.id);
@@ -509,7 +515,7 @@ describe("PATCH /api/tags/[tagName]", () => {
 
       // Assert: Should return 500 error
       expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to rename tag");
+      expect(data.error).toBe("Calibre database is unavailable");
 
       // Verify Tome DB unchanged
       const unchangedBook = await bookRepository.findById(book.id);
@@ -599,7 +605,9 @@ describe("PATCH /api/tags/[tagName]", () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(data.booksUpdated).toBe(0);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(0);
+      expect(data.failureCount).toBe(0);
     });
 
     test("should preserve other tags when renaming", async () => {
@@ -652,7 +660,10 @@ describe("PATCH /api/tags/[tagName]", () => {
       const data = await response.json();
 
       // Assert
-      expect(data.booksUpdated).toBe(1); // Only book1 affected
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(1); // Only book1 affected
+      expect(data.failureCount).toBe(0);
       
       const unchangedBook = await bookRepository.findById(book2.id);
       expect(unchangedBook?.tags).toEqual(["different"]); // Unchanged
@@ -678,6 +689,75 @@ describe("PATCH /api/tags/[tagName]", () => {
       // Assert: Should not create duplicates
       const updatedBook = await bookRepository.findById(book.id);
       expect(updatedBook?.tags).toEqual(["new"]);
+    });
+  });
+
+  describe("Partial Success Handling", () => {
+    test("should return partial success response when some Calibre updates fail", async () => {
+      // Arrange: Create 3 books with "OldTag"
+      const book1 = await bookRepository.create(createTestBook({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        path: "Author/Book 1 (1)",
+        tags: ["OldTag", "Keep"],
+      }));
+
+      const book2 = await bookRepository.create(createTestBook({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        path: "Author 2/Book 2 (2)",
+        tags: ["OldTag"],
+      }));
+
+      const book3 = await bookRepository.create(createTestBook({
+        calibreId: 3,
+        title: "Book 3",
+        authors: ["Author 3"],
+        path: "Author 3/Book 3 (3)",
+        tags: ["OldTag"],
+      }));
+
+      // Mock partial failure
+      mockBatchUpdateCalibreTags.mockReturnValueOnce({
+        totalAttempted: 3,
+        successCount: 2,
+        failures: [
+          { calibreId: 3, error: "Database locked" }
+        ]
+      });
+
+      // Act
+      const request = createMockRequest("PATCH", "/api/tags/OldTag", {
+        newName: "NewTag",
+      });
+      const response = await PATCH(request as NextRequest, { params: { tagName: "OldTag" } });
+      const data = await response.json();
+
+      // Assert: Response shows partial success
+      expect(response.status).toBe(200);
+      expect(data.oldName).toBe("OldTag");
+      expect(data.newName).toBe("NewTag");
+      expect(data.totalBooks).toBe(3);
+      expect(data.successCount).toBe(2);
+      expect(data.failureCount).toBe(1);
+      expect(data.calibreFailures).toHaveLength(1);
+      expect(data.calibreFailures[0]).toEqual({
+        calibreId: 3,
+        bookId: book3.id,
+        title: "Book 3",
+        error: "Database locked"
+      });
+
+      // Verify all books in Tome DB were updated
+      const updatedBook1 = await bookRepository.findById(book1.id);
+      const updatedBook2 = await bookRepository.findById(book2.id);
+      const updatedBook3 = await bookRepository.findById(book3.id);
+
+      expect(updatedBook1?.tags).toContain("NewTag");
+      expect(updatedBook2?.tags).toContain("NewTag");
+      expect(updatedBook3?.tags).toContain("NewTag");
     });
   });
 });

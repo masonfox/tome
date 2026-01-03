@@ -23,7 +23,11 @@ import type { NextRequest } from "next/server";
  * We mock at the service boundary to prevent test pollution.
  */
 let mockUpdateCalibreTags = mock(() => {});
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: [] as Array<{ calibreId: number; error: string }>
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -122,8 +126,10 @@ describe("DELETE /api/tags/:tagName", () => {
 
       // Assert: Response correct
       expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
       expect(data.deletedTag).toBe("delete-me");
-      expect(data.booksUpdated).toBe(2);
+      expect(data.successCount).toBe(2);
+      expect(data.failureCount).toBe(0);
 
       // Verify tags removed from database
       const updatedBook1 = await bookRepository.findById(book1.id);
@@ -219,7 +225,9 @@ describe("DELETE /api/tags/:tagName", () => {
 
       // Assert: Success with zero updates
       expect(response.status).toBe(200);
-      expect(data.booksUpdated).toBe(0);
+      expect(data.success).toBe(true);
+      expect(data.successCount).toBe(0);
+      expect(data.failureCount).toBe(0);
     });
 
     test("should handle special characters in tag name", async () => {
@@ -284,7 +292,7 @@ describe("DELETE /api/tags/:tagName", () => {
 
       // Assert: API should return 500 error
       expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to delete tag");
+      expect(data.error).toBe("Calibre database is unavailable");
 
       // Verify Tome DB unchanged
       const unchangedBook = await bookRepository.findById(book.id);
@@ -293,6 +301,72 @@ describe("DELETE /api/tags/:tagName", () => {
       // Verify watcher was still resumed with ignore period
       expect(mockWatcherResumeCalled).toBe(true);
       expect(mockWatcherResumeIgnorePeriod).toBe(3000);
+    });
+  });
+
+  describe("Partial Success Handling", () => {
+    test("should return partial success response when some Calibre updates fail", async () => {
+      // Arrange: Create 3 books with tag
+      const book1 = await bookRepository.create(createTestBook({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author"],
+        path: "Author/Book 1 (1)",
+        tags: ["delete-me", "keep"],
+      }));
+
+      const book2 = await bookRepository.create(createTestBook({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        path: "Author 2/Book 2 (2)",
+        tags: ["delete-me"],
+      }));
+
+      const book3 = await bookRepository.create(createTestBook({
+        calibreId: 3,
+        title: "Book 3",
+        authors: ["Author 3"],
+        path: "Author 3/Book 3 (3)",
+        tags: ["delete-me", "other"],
+      }));
+
+      // Mock partial failure
+      mockBatchUpdateCalibreTags.mockReturnValueOnce({
+        totalAttempted: 3,
+        successCount: 2,
+        failures: [
+          { calibreId: 2, error: "Write timeout" }
+        ]
+      });
+
+      // Act
+      const request = createMockRequest("DELETE", "/api/tags/delete-me");
+      const response = await DELETE(request as NextRequest, { params: { tagName: "delete-me" } });
+      const data = await response.json();
+
+      // Assert: Response shows partial success
+      expect(response.status).toBe(200);
+      expect(data.deletedTag).toBe("delete-me");
+      expect(data.totalBooks).toBe(3);
+      expect(data.successCount).toBe(2);
+      expect(data.failureCount).toBe(1);
+      expect(data.calibreFailures).toHaveLength(1);
+      expect(data.calibreFailures[0]).toEqual({
+        calibreId: 2,
+        bookId: book2.id,
+        title: "Book 2",
+        error: "Write timeout"
+      });
+
+      // Verify all books in Tome DB were updated
+      const updatedBook1 = await bookRepository.findById(book1.id);
+      const updatedBook2 = await bookRepository.findById(book2.id);
+      const updatedBook3 = await bookRepository.findById(book3.id);
+
+      expect(updatedBook1?.tags).toEqual(["keep"]);
+      expect(updatedBook2?.tags).toEqual([]);
+      expect(updatedBook3?.tags).toEqual(["other"]);
     });
   });
 });

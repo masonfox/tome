@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import BaseModal from "@/components/BaseModal";
+import { TagOperationResults } from "./TagOperationResults";
+import type { TagOperationResult } from "@/types/tag-operations";
 
 interface RenameTagModalProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface RenameTagModalProps {
   tagName: string;
   onConfirm: (newName: string) => void;
   loading?: boolean;
+  result?: TagOperationResult | null;  // Add result prop
 }
 
 export function RenameTagModal({
@@ -17,17 +20,18 @@ export function RenameTagModal({
   tagName,
   onConfirm,
   loading = false,
+  result = null,
 }: RenameTagModalProps) {
   const [newName, setNewName] = useState(tagName);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset state when modal opens
+  // Reset state when modal opens or when result is cleared
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !result) {
       setNewName(tagName);
       setError(null);
     }
-  }, [isOpen, tagName]);
+  }, [isOpen, tagName, result]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +48,6 @@ export function RenameTagModal({
     }
 
     onConfirm(newName.trim());
-    onClose();
   };
 
   const handleCancel = () => {
@@ -52,35 +55,62 @@ export function RenameTagModal({
     onClose();
   };
 
+  // Show results mode if we have results
+  const showingResults = !!result;
+
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={handleCancel}
-      title="Rename Tag"
-      subtitle={`Current name: "${tagName}"`}
+      title={showingResults ? "Rename Results" : "Rename Tag"}
+      subtitle={showingResults ? undefined : `Current name: "${tagName}"`}
       size="md"
       loading={loading}
+      allowBackdropClose={showingResults}
       actions={
-        <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={!newName.trim() || newName === tagName || loading}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Rename
-          </button>
-        </div>
+        showingResults ? (
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={loading}
+              className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={!newName.trim() || newName === tagName || loading}
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Renaming..." : "Rename"}
+            </button>
+          </div>
+        )
       }
     >
-      <form onSubmit={handleSubmit}>
+      {showingResults ? (
+        <TagOperationResults
+          operation="rename"
+          result={result}
+          operationDetails={{
+            oldName: tagName,
+            newName,
+          }}
+        />
+      ) : (
+        <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
             <label
@@ -110,6 +140,7 @@ export function RenameTagModal({
           </p>
         </div>
       </form>
+      )}
     </BaseModal>
   );
 }

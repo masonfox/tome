@@ -64,14 +64,29 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ tag
     const result = await tagService.renameTag(tagName, newName);
 
     return NextResponse.json({
+      success: result.failureCount === 0,
+      partialSuccess: result.successCount > 0 && result.failureCount > 0,
       oldName: tagName,
       newName,
-      booksUpdated: result.booksUpdated,
+      totalBooks: result.totalBooks,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      calibreFailures: result.calibreFailures,
+      tomeFailures: result.tomeFailures,
     });
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error renaming tag");
-    return NextResponse.json({ error: "Failed to rename tag" }, { status: 500 });
+    
+    const errorMessage = error instanceof Error ? error.message : "Failed to rename tag";
+    return NextResponse.json({ 
+      error: errorMessage,
+      success: false,
+      partialSuccess: false,
+      totalBooks: 0,
+      successCount: 0,
+      failureCount: 0,
+    }, { status: 500 });
   }
 }
 
@@ -87,12 +102,27 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ ta
     const result = await tagService.deleteTag(tagName);
 
     return NextResponse.json({
+      success: result.failureCount === 0,
+      partialSuccess: result.successCount > 0 && result.failureCount > 0,
       deletedTag: tagName,
-      booksUpdated: result.booksUpdated,
+      totalBooks: result.totalBooks,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      calibreFailures: result.calibreFailures,
+      tomeFailures: result.tomeFailures,
     });
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error deleting tag");
-    return NextResponse.json({ error: "Failed to delete tag" }, { status: 500 });
+    
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete tag";
+    return NextResponse.json({ 
+      error: errorMessage,
+      success: false,
+      partialSuccess: false,
+      totalBooks: 0,
+      successCount: 0,
+      failureCount: 0,
+    }, { status: 500 });
   }
 }

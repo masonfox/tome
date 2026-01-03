@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import BaseModal from "@/components/BaseModal";
 import { MergeIcon } from "lucide-react";
+import { TagOperationResults } from "./TagOperationResults";
+import type { TagOperationResult } from "@/types/tag-operations";
 
 interface TagWithCount {
   name: string;
@@ -16,6 +18,7 @@ interface MergeTagsModalProps {
   tagStats?: TagWithCount[];
   onConfirm: (targetTag: string) => void;
   loading?: boolean;
+  result?: TagOperationResult | null;  // Add result prop
 }
 
 export function MergeTagsModal({
@@ -25,6 +28,7 @@ export function MergeTagsModal({
   tagStats = [],
   onConfirm,
   loading = false,
+  result = null,
 }: MergeTagsModalProps) {
   /**
    * Smart default: Select the tag with the most books as the target.
@@ -60,13 +64,13 @@ export function MergeTagsModal({
     return sourceTags.filter(tag => tag !== targetTag);
   }, [sourceTags, targetTag]);
 
-  // Reset state when modal opens
+  // Reset state when modal opens or when result is cleared
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !result) {
       setTargetTag(defaultTargetTag);
       setError(null);
     }
-  }, [isOpen, defaultTargetTag]);
+  }, [isOpen, defaultTargetTag, result]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +82,6 @@ export function MergeTagsModal({
     }
 
     onConfirm(targetTag.trim());
-    onClose();
   };
 
   const handleCancel = () => {
@@ -86,36 +89,63 @@ export function MergeTagsModal({
     onClose();
   };
 
+  // Show results mode if we have results
+  const showingResults = !!result;
+
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={handleCancel}
-      title="Merge Tags"
-      subtitle={`Merging ${sourceTags.length} tags`}
+      title={showingResults ? "Merge Results" : "Merge Tags"}
+      subtitle={showingResults ? undefined : `Merging ${sourceTags.length} tags`}
       size="md"
       loading={loading}
+      allowBackdropClose={showingResults}
       actions={
-        <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={!targetTag.trim() || loading}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <MergeIcon className="w-4 h-4" />
-            Merge Tags
-          </button>
-        </div>
+        showingResults ? (
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={loading}
+              className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={!targetTag.trim() || loading}
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <MergeIcon className="w-4 h-4" />
+              {loading ? "Merging..." : "Merge Tags"}
+            </button>
+          </div>
+        )
       }
     >
-      <form onSubmit={handleSubmit}>
+      {showingResults ? (
+        <TagOperationResults
+          operation="merge"
+          result={result}
+          operationDetails={{
+            sourceTags: displaySourceTags,
+            targetTag,
+          }}
+        />
+      ) : (
+        <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--foreground)]">
@@ -174,6 +204,7 @@ export function MergeTagsModal({
           </div>
         </div>
       </form>
+      )}
     </BaseModal>
   );
 }
