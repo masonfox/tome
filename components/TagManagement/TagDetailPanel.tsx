@@ -92,7 +92,7 @@ const BookCardSimple = memo(function BookCardSimple({
           {/* Remove button overlay */}
           <button
             onClick={handleRemoveClick}
-            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
             title="Remove tag from book"
           >
             <X className="w-4 h-4" />
