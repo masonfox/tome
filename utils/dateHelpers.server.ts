@@ -135,10 +135,13 @@ export async function parseLocalDateToUtc(dateString: string, userId?: number | 
  * // Returns: 2025-12-30T05:00:00.000Z (midnight EST = 5 AM UTC)
  */
 export async function getCurrentDateInUserTimezone(userId?: number | null): Promise<Date> {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth() + 1;
-  const day = today.getDate();
-  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const userTimezone = await getCurrentUserTimezone(userId);
+  
+  // Get the current date/time in the user's timezone
+  const { formatInTimeZone } = await import('date-fns-tz');
+  const now = new Date();
+  const dateString = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+  
+  // Parse this date back to midnight in user's timezone, converted to UTC
   return parseLocalDateToUtc(dateString, userId);
 }
