@@ -4,6 +4,7 @@ import { StreakRebuildSection } from "@/components/StreakRebuildSection";
 import { StreakOnboarding } from "@/components/StreakOnboarding";
 import { PageHeader } from "@/components/PageHeader";
 import { getLogger } from "@/lib/logger";
+import { getServerBaseUrl } from "@/lib/utils/server-url";
 import { Flame } from "lucide-react";
 import { streakService } from "@/lib/services/streak.service";
 import { redirect } from "next/navigation";
@@ -34,7 +35,7 @@ interface AnalyticsData {
 
 async function fetchAnalytics(days: number = 365): Promise<AnalyticsData | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = getServerBaseUrl();
     const res = await fetch(`${baseUrl}/api/streak/analytics?days=${days}`, {
       cache: "no-store",
     });
