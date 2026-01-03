@@ -14,10 +14,8 @@ export const dynamic = 'force-dynamic';
  * This endpoint is separate from the status endpoint to allow updating
  * rating/review independently of the book's reading status.
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 

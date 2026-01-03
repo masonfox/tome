@@ -17,7 +17,7 @@ interface BookHeaderProps {
   onRereadClick: () => void;
   showStatusDropdown: boolean;
   setShowStatusDropdown: (show: boolean) => void;
-  dropdownRef?: React.RefObject<HTMLDivElement>;
+  dropdownRef?: React.RefObject<HTMLDivElement | null>;
   rating: number | null | undefined;
   hasCompletedReads: boolean;
   hasActiveSession: boolean;

@@ -101,7 +101,7 @@ describe("Auth API Routes Logic", () => {
     });
   });
 
-  describe("Middleware Behavior", () => {
+  describe("Proxy Behavior", () => {
     test("should allow /login when auth is enabled", () => {
       process.env.AUTH_PASSWORD = "testpass123";
       

@@ -5,12 +5,14 @@ WORKDIR /app
 # Install dependencies
 FROM base AS deps
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# Skip postinstall scripts to avoid building better-sqlite3 native module
+# (Docker uses bun:sqlite at runtime, better-sqlite3 only needed for Turbopack resolution)
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Install production dependencies only
 FROM base AS prod-deps
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile --production --ignore-scripts
 
 # Install migration dependencies only (drizzle-orm and pino for migration scripts)
 FROM base AS migration-deps

@@ -13,10 +13,8 @@ export const dynamic = 'force-dynamic';
  * - Updates review
  * - Handles books without totalPages
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 

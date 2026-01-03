@@ -8,8 +8,9 @@ const progressService = new ProgressService();
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; progressId: string } }
+  props: { params: Promise<{ id: string; progressId: string }> }
 ) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     const progressId = parseInt(params.progressId);
@@ -72,8 +73,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; progressId: string } }
+  props: { params: Promise<{ id: string; progressId: string }> }
 ) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     const progressId = parseInt(params.progressId);

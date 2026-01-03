@@ -29,7 +29,7 @@ interface BookProgressProps {
   onEditorReady?: (methods: MDXEditorMethods) => void;
   showProgressModeDropdown: boolean;
   setShowProgressModeDropdown: (show: boolean) => void;
-  progressModeDropdownRef?: React.RefObject<HTMLDivElement>;
+  progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function BookProgress({
