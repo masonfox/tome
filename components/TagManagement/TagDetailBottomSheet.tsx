@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, memo, useCallback } from "react";
 import { X, Tag, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -31,7 +31,7 @@ interface TagDetailBottomSheetProps {
 // Animation duration for closing transition
 const CLOSE_ANIMATION_MS = 300;
 
-function BookCardSimple({
+const BookCardSimple = memo(function BookCardSimple({
   book,
   onRemove,
   confirmRemoval,
@@ -46,7 +46,7 @@ function BookCardSimple({
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  const handleRemoveClick = (e: React.MouseEvent) => {
+  const handleRemoveClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -55,9 +55,9 @@ function BookCardSimple({
     } else {
       handleConfirmRemove();
     }
-  };
+  }, [confirmRemoval]);
 
-  const handleConfirmRemove = async () => {
+  const handleConfirmRemove = useCallback(async () => {
     setIsRemoving(true);
     try {
       await onRemove();
@@ -68,7 +68,9 @@ function BookCardSimple({
     } finally {
       setIsRemoving(false);
     }
-  };
+  }, [onRemove]);
+
+  const handleCloseModal = useCallback(() => setShowRemoveModal(false), []);
 
   return (
     <>
@@ -118,7 +120,7 @@ function BookCardSimple({
       {confirmRemoval && (
         <RemoveTagFromBookModal
           isOpen={showRemoveModal}
-          onClose={() => setShowRemoveModal(false)}
+          onClose={handleCloseModal}
           tagName={tagName}
           bookTitle={book.title}
           onConfirm={handleConfirmRemove}
@@ -127,9 +129,9 @@ function BookCardSimple({
       )}
     </>
   );
-}
+});
 
-export function TagDetailBottomSheet({
+export const TagDetailBottomSheet = memo(function TagDetailBottomSheet({
   isOpen,
   onClose,
   tagName,
@@ -147,6 +149,7 @@ export function TagDetailBottomSheet({
   const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver>();
 
   useEffect(() => {
     if (isOpen) {
@@ -178,38 +181,73 @@ export function TagDetailBottomSheet({
     };
   }, [isOpen, tagName]);
 
-  // Set up intersection observer for infinite scroll
+  // Set up intersection observer for infinite scroll - optimized to reduce recreations
   useEffect(() => {
     if (!isOpen || !contentRef.current) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-          onLoadMore();
+    // Create observer only once
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            onLoadMore();
+          }
+        },
+        { 
+          root: contentRef.current,
+          threshold: 0.1,
+          rootMargin: '800px' // Start loading 800px before the trigger element comes into view
         }
-      },
-      { 
-        root: contentRef.current,
-        threshold: 0.1,
-        rootMargin: '800px' // Start loading 800px before the trigger element comes into view
-      }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+      );
     }
 
-    return () => observer.disconnect();
-  }, [onLoadMore, hasMore, loading, loadingMore, isOpen]);
+    const target = observerTarget.current;
+    const observer = observerRef.current;
 
-  const handleClose = () => {
+    if (target && observer) {
+      observer.observe(target);
+    }
+
+    return () => {
+      if (target && observer) {
+        observer.unobserve(target);
+      }
+    };
+  }, [isOpen, tagName]); // Only recreate when sheet opens or tag changes
+
+  // Update observer callback when dependencies change
+  useEffect(() => {
+    if (observerRef.current && isOpen && contentRef.current) {
+      // Disconnect and recreate with new callback
+      observerRef.current.disconnect();
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            onLoadMore();
+          }
+        },
+        { 
+          root: contentRef.current,
+          threshold: 0.1,
+          rootMargin: '800px'
+        }
+      );
+
+      const target = observerTarget.current;
+      if (target) {
+        observerRef.current.observe(target);
+      }
+    }
+  }, [hasMore, loading, loadingMore, onLoadMore, isOpen]);
+
+  const handleClose = useCallback(() => {
     setIsClosing(true);
     closingTimeoutRef.current = setTimeout(() => {
       setIsClosing(false);
       onClose();
       closingTimeoutRef.current = null;
     }, CLOSE_ANIMATION_MS);
-  };
+  }, [onClose]);
 
   if (!isOpen && !isClosing) return null;
   if (!tagName) return null;
@@ -224,8 +262,8 @@ export function TagDetailBottomSheet({
         onClick={handleClose}
       />
       
-      {/* Bottom Sheet - full height */}
-      <div className={`fixed bottom-0 left-0 right-0 top-0 z-50 bg-[var(--card-bg)] transition-transform duration-300 flex flex-col ${
+      {/* Bottom Sheet - full height with GPU acceleration hint */}
+      <div className={`fixed bottom-0 left-0 right-0 top-0 z-50 bg-[var(--card-bg)] transition-transform duration-300 flex flex-col will-change-transform ${
         isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
       }`}>
         {/* Header - sticky with drag handle */}
@@ -321,4 +359,19 @@ export function TagDetailBottomSheet({
       </div>
     </>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison for optimal re-renders
+  return (
+    prevProps.isOpen === nextProps.isOpen &&
+    prevProps.tagName === nextProps.tagName &&
+    prevProps.loading === nextProps.loading &&
+    prevProps.loadingMore === nextProps.loadingMore &&
+    prevProps.hasMore === nextProps.hasMore &&
+    prevProps.totalBooks === nextProps.totalBooks &&
+    prevProps.books.length === nextProps.books.length &&
+    prevProps.confirmRemoval === nextProps.confirmRemoval &&
+    prevProps.onClose === nextProps.onClose &&
+    prevProps.onRemoveTag === nextProps.onRemoveTag &&
+    prevProps.onLoadMore === nextProps.onLoadMore
+  );
+});

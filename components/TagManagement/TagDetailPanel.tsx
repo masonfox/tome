@@ -3,7 +3,7 @@
 import { X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { BookOpen } from "lucide-react";
 import { RemoveTagFromBookModal } from "./RemoveTagFromBookModal";
 
@@ -27,7 +27,7 @@ interface TagDetailPanelProps {
   confirmRemoval: boolean;
 }
 
-function BookCardSimple({
+const BookCardSimple = memo(function BookCardSimple({
   book,
   onRemove,
   confirmRemoval,
@@ -42,7 +42,7 @@ function BookCardSimple({
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  const handleRemoveClick = (e: React.MouseEvent) => {
+  const handleRemoveClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -51,9 +51,9 @@ function BookCardSimple({
     } else {
       handleConfirmRemove();
     }
-  };
+  }, [confirmRemoval]);
 
-  const handleConfirmRemove = async () => {
+  const handleConfirmRemove = useCallback(async () => {
     setIsRemoving(true);
     try {
       await onRemove();
@@ -64,7 +64,9 @@ function BookCardSimple({
     } finally {
       setIsRemoving(false);
     }
-  };
+  }, [onRemove]);
+
+  const handleCloseModal = useCallback(() => setShowRemoveModal(false), []);
 
   return (
     <>
@@ -114,7 +116,7 @@ function BookCardSimple({
       {confirmRemoval && (
         <RemoveTagFromBookModal
           isOpen={showRemoveModal}
-          onClose={() => setShowRemoveModal(false)}
+          onClose={handleCloseModal}
           tagName={tagName}
           bookTitle={book.title}
           onConfirm={handleConfirmRemove}
@@ -123,9 +125,9 @@ function BookCardSimple({
       )}
     </>
   );
-}
+});
 
-export function TagDetailPanel({
+export const TagDetailPanel = memo(function TagDetailPanel({
   tagName,
   books,
   loading,
@@ -139,6 +141,7 @@ export function TagDetailPanel({
 }: TagDetailPanelProps) {
   const observerTarget = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver>();
 
   // Reset scroll position when tag changes
   useEffect(() => {
@@ -147,26 +150,60 @@ export function TagDetailPanel({
     }
   }, [tagName]);
 
-  // Set up intersection observer for infinite scroll
+  // Set up intersection observer for infinite scroll - optimized to reduce recreations
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-          onLoadMore();
+    // Create observer only once
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            onLoadMore();
+          }
+        },
+        { 
+          threshold: 0.1,
+          rootMargin: '800px' // Start loading 800px before the trigger element comes into view
         }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '800px' // Start loading 800px before the trigger element comes into view
-      }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+      );
     }
 
-    return () => observer.disconnect();
-  }, [onLoadMore, hasMore, loading, loadingMore]);
+    const target = observerTarget.current;
+    const observer = observerRef.current;
+
+    if (target && observer) {
+      observer.observe(target);
+    }
+
+    return () => {
+      if (target && observer) {
+        observer.unobserve(target);
+      }
+    };
+  }, [tagName]); // Only recreate when tag changes
+
+  // Update observer callback when dependencies change
+  useEffect(() => {
+    if (observerRef.current) {
+      // Disconnect and recreate with new callback
+      observerRef.current.disconnect();
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            onLoadMore();
+          }
+        },
+        { 
+          threshold: 0.1,
+          rootMargin: '800px'
+        }
+      );
+
+      const target = observerTarget.current;
+      if (target) {
+        observerRef.current.observe(target);
+      }
+    }
+  }, [hasMore, loading, loadingMore, onLoadMore]);
 
   if (!tagName) {
     return (
@@ -265,4 +302,18 @@ export function TagDetailPanel({
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison for optimal re-renders
+  return (
+    prevProps.tagName === nextProps.tagName &&
+    prevProps.loading === nextProps.loading &&
+    prevProps.loadingMore === nextProps.loadingMore &&
+    prevProps.hasMore === nextProps.hasMore &&
+    prevProps.totalBooks === nextProps.totalBooks &&
+    prevProps.books.length === nextProps.books.length &&
+    prevProps.confirmRemoval === nextProps.confirmRemoval &&
+    prevProps.onRemoveTag === nextProps.onRemoveTag &&
+    prevProps.onLoadMore === nextProps.onLoadMore &&
+    prevProps.onClose === nextProps.onClose
+  );
+});

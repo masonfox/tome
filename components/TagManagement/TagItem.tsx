@@ -1,6 +1,7 @@
 "use client";
 
 import { Tag, Pencil, Trash2 } from "lucide-react";
+import { memo, useCallback } from "react";
 import { cn } from "@/utils/cn";
 
 export interface TagWithStats {
@@ -19,7 +20,7 @@ interface TagItemProps {
   onDelete: () => void;
 }
 
-export function TagItem({
+export const TagItem = memo(function TagItem({
   tag,
   isSelected,
   isCheckboxMode,
@@ -29,6 +30,24 @@ export function TagItem({
   onRename,
   onDelete,
 }: TagItemProps) {
+  const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const handleCheckboxChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onCheckboxChange(e.target.checked);
+  }, [onCheckboxChange]);
+
+  const handleRenameClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRename();
+  }, [onRename]);
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+  }, [onDelete]);
+
   return (
     <div
       className={cn(
@@ -41,15 +60,13 @@ export function TagItem({
     >
       {isCheckboxMode && (
         <div
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleCheckboxClick}
           className="flex items-center"
         >
           <input
             type="checkbox"
             checked={isChecked}
-            onChange={(e) => {
-              onCheckboxChange(e.target.checked);
-            }}
+            onChange={handleCheckboxChange}
             className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-[var(--accent)] cursor-pointer"
             style={{ accentColor: 'var(--accent)' }}
           />
@@ -87,20 +104,14 @@ export function TagItem({
       {!isCheckboxMode && (
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRename();
-            }}
+            onClick={handleRenameClick}
             className="p-1.5 rounded hover:bg-[var(--foreground)]/10 transition-colors"
             title="Rename tag"
           >
             <Pencil className="w-4 h-4 text-[var(--subheading-text)]" />
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            onClick={handleDeleteClick}
             className="p-1.5 rounded hover:bg-red-500/10 transition-colors"
             title="Delete tag"
           >
@@ -110,4 +121,17 @@ export function TagItem({
       )}
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison for optimal re-renders
+  return (
+    prevProps.tag.name === nextProps.tag.name &&
+    prevProps.tag.bookCount === nextProps.tag.bookCount &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isCheckboxMode === nextProps.isCheckboxMode &&
+    prevProps.isChecked === nextProps.isChecked &&
+    prevProps.onSelect === nextProps.onSelect &&
+    prevProps.onCheckboxChange === nextProps.onCheckboxChange &&
+    prevProps.onRename === nextProps.onRename &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
