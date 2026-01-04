@@ -477,6 +477,51 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Bulk upsert books (insert new, update existing) for sync performance optimization
+   * 
+   * Uses INSERT OR REPLACE to handle both new books and updates in a single operation.
+   * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * 
+   * This is much more efficient than individual insert/update calls.
+   * For a library with 150k books, this reduces 150k-300k operations to ~150 operations.
+   * 
+   * @param booksData - Array of book data to upsert
+   * @returns Number of books processed
+   */
+  async bulkUpsert(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalProcessed = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          // INSERT OR REPLACE will update if calibreId exists, insert if not
+          tx.insert(books)
+            .values(bookData)
+            .onConflictDoUpdate({
+              target: books.calibreId,
+              set: bookData,
+            })
+            .run();
+        }
+      });
+
+      totalProcessed += batch.length;
+    }
+
+    return totalProcessed;
+  }
+
+  /**
    * Find books not in a list of calibreIds (for orphaning)
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
