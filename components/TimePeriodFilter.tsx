@@ -54,7 +54,7 @@ export function TimePeriodFilter({
             "appearance-none px-3 py-2 pr-10 rounded",
             "border border-[var(--border-color)] bg-[var(--background)]",
             "text-[var(--foreground)] font-medium cursor-pointer transition-colors",
-            "focus:outline-none focus:ring-2 focus:ring-[var(--accent)]",
+            "focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2",
             "hover:bg-[var(--card-bg)]",
             "min-w-[140px]",
 
