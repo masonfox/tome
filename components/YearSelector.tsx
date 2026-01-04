@@ -23,7 +23,7 @@ export function YearSelector({ years, selectedYear, onYearChange }: YearSelector
           id="year-select"
           value={selectedYear}
           onChange={(e) => onYearChange(parseInt(e.target.value))}
-          className="appearance-none bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-4 py-2 pr-10 text-[var(--foreground)] font-semibold text-sm hover:border-[var(--foreground)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors cursor-pointer"
+          className="appearance-none bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-4 py-2 pr-10 text-[var(--foreground)] font-semibold text-sm hover:border-[var(--foreground)]/30 focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent transition-colors cursor-pointer"
         >
           {years.map((year) => (
             <option key={year} value={year}>

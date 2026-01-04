@@ -114,7 +114,7 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
               max="9999"
               value={threshold}
               onChange={(e) => setThreshold(parseInt(e.target.value) || 1)}
-              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
               disabled={saving}
             />
             <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">

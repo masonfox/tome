@@ -80,7 +80,7 @@ export default function BookProgress({
                       min="0"
                       max={book.totalPages}
                       step="1"
-                      className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                      className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
                       placeholder="Current page"
                     />
                   ) : (
@@ -91,7 +91,7 @@ export default function BookProgress({
                       min="0"
                       max="100"
                       step="1"
-                      className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                      className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
                       placeholder="Percentage"
                     />
                   )}
@@ -165,7 +165,7 @@ export default function BookProgress({
                   value={progressDate}
                   onChange={(e) => onProgressDateChange(e.target.value)}
                   max={getTodayLocalDate()}
-                  className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent max-h-[42px] text-left"
+                  className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent max-h-[42px] text-left"
                 />
               </div>
             </div>

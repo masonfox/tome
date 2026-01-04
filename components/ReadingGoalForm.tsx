@@ -111,7 +111,7 @@ export function ReadingGoalForm({
               const val = e.target.value;
               setBooksGoal(val === "" ? "" : parseInt(val) || "");
             }}
-            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!canEdit || saving}
           />
           <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">

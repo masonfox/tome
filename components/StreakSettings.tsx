@@ -103,7 +103,7 @@ export function StreakSettings({ initialThreshold, initialTimezone }: StreakSett
               max="9999"
               value={threshold}
               onChange={(e) => setThreshold(parseInt(e.target.value) || 1)}
-              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
               disabled={saving}
             />
             <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">
@@ -149,7 +149,7 @@ export function StreakSettings({ initialThreshold, initialTimezone }: StreakSett
               id="timezone"
               value={timezone}
               onChange={(e) => handleTimezoneChange(e.target.value)}
-              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
               disabled={savingTimezone}
             >
               <optgroup label="Common Timezones">
