@@ -481,6 +481,7 @@ export class ProgressService {
       revalidatePath("/"); // Dashboard
       revalidatePath("/library"); // Library page
       revalidatePath("/stats"); // Stats page
+      revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
             const { getLogger } = require("@/lib/logger");
