@@ -446,6 +446,112 @@ describe("ProgressService", () => {
         progressService.updateProgress(99999, { currentPage: 100 })
       ).rejects.toThrow("Progress entry not found");
     });
+
+    test("should correctly calculate pagesRead when editing middle progress entry", async () => {
+      // Regression test for bug where editing a progress entry would use the wrong
+      // "previous" entry for calculating pagesRead. The bug was using Array.find()
+      // which returns the FIRST matching entry (oldest), not the LAST (most recent).
+      
+      // Create three progress entries on different dates
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 50,
+        currentPercentage: 4.81,  // 50/1040 * 100
+        pagesRead: 50,
+        progressDate: new Date("2025-11-10"),
+      }));
+
+      const middleEntry = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 80,
+        currentPercentage: 7.69,  // 80/1040 * 100
+        pagesRead: 30,  // 80 - 50
+        progressDate: new Date("2025-11-15"),
+      }));
+
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 100,
+        currentPercentage: 9.62,  // 100/1040 * 100
+        pagesRead: 20,  // 100 - 80
+        progressDate: new Date("2025-11-20"),
+      }));
+
+      // Now edit the middle entry, bumping it from 80% to 81% (80 pages to 84 pages)
+      const result = await progressService.updateProgress(middleEntry.id, {
+        currentPercentage: 8.0,  // Should calculate to 83 pages (Math.floor(8.0% of 1040))
+      });
+
+      // The key assertion: pagesRead should be calculated from the IMMEDIATELY
+      // previous entry (50 pages on Nov 10), not the oldest entry
+      expect(result.currentPage).toBe(83);  // Math.floor(8.0 * 1040 / 100)
+      expect(result.currentPercentage).toBe(8);
+      expect(result.pagesRead).toBe(33);  // Should be 83 - 50 = 33, NOT 83 - 50 = 33
+      // If the bug existed, it would incorrectly calculate: 83 - 50 = 33 (using first entry)
+      // The correct calculation is: 83 - 50 = 33 (using immediately previous entry)
+      
+      // In this case both are the same because there's only one entry before it.
+      // Let's verify the logic more thoroughly with a 4-entry scenario below.
+    });
+
+    test("should correctly calculate pagesRead with multiple previous entries", async () => {
+      // More comprehensive regression test with 4 entries to really show the bug
+      
+      // Entry 1: Nov 10, page 50
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 50,
+        currentPercentage: 4.81,
+        pagesRead: 50,
+        progressDate: new Date("2025-11-10"),
+      }));
+
+      // Entry 2: Nov 12, page 70
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 70,
+        currentPercentage: 6.73,
+        pagesRead: 20,  // 70 - 50
+        progressDate: new Date("2025-11-12"),
+      }));
+
+      // Entry 3: Nov 15, page 80 (this is the one we'll edit)
+      const targetEntry = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 80,
+        currentPercentage: 7.69,
+        pagesRead: 10,  // 80 - 70
+        progressDate: new Date("2025-11-15"),
+      }));
+
+      // Entry 4: Nov 20, page 100
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 100,
+        currentPercentage: 9.62,
+        pagesRead: 20,  // 100 - 80
+        progressDate: new Date("2025-11-20"),
+      }));
+
+      // Edit entry 3, bumping it from page 80 to page 85
+      const result = await progressService.updateProgress(targetEntry.id, {
+        currentPage: 85,
+      });
+
+      // CRITICAL: pagesRead should be 85 - 70 = 15 (using Nov 12 entry)
+      // If the bug existed with Array.find(), it would incorrectly use Nov 10 entry (page 50)
+      // and calculate: 85 - 50 = 35 (WRONG!)
+      expect(result.currentPage).toBe(85);
+      expect(result.pagesRead).toBe(15);  // Correct: 85 - 70 (immediately previous entry)
+      // NOT 35 (which would be 85 - 50, using the first/oldest entry)
+    });
   });
 
   describe("deleteProgress", () => {
