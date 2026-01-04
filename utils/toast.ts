@@ -10,9 +10,7 @@ export const toast = {
    * @param message - The message to display
    */
   success: (message: string) => {
-    return sonnerToast.success(message, {
-      duration: 3000,
-    });
+    return sonnerToast.success(message);
   },
 
   /**
@@ -20,9 +18,7 @@ export const toast = {
    * @param message - The error message to display
    */
   error: (message: string) => {
-    return sonnerToast.error(message, {
-      duration: 4000,
-    });
+    return sonnerToast.error(message);
   },
 
   /**
@@ -30,9 +26,7 @@ export const toast = {
    * @param message - The info message to display
    */
   info: (message: string) => {
-    return sonnerToast.info(message, {
-      duration: 3000,
-    });
+    return sonnerToast.info(message);
   },
 
   /**
@@ -40,9 +34,7 @@ export const toast = {
    * @param message - The warning message to display
    */
   warning: (message: string) => {
-    return sonnerToast.warning(message, {
-      duration: 3500,
-    });
+    return sonnerToast.warning(message);
   },
 
   /**
