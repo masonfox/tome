@@ -123,7 +123,7 @@ export function getAllBooks(options?: PaginationOptions): CalibreBook[] {
     GROUP BY b.id
     ORDER BY b.id
     ${options?.limit ? `LIMIT ${options.limit}` : ''}
-    ${options?.offset ? `OFFSET ${options.offset}` : ''}
+    ${options?.offset && options.limit ? `OFFSET ${options.offset}` : ''}
   `;
 
   const books = db.prepare(query).all() as CalibreBook[];
@@ -304,6 +304,9 @@ export function getAllBookTags(bookIds?: number[]): Map<number, string[]> {
       ORDER BY btl.book, t.name
     `;
     results = db.prepare(query).all(...bookIds) as Array<{ bookId: number; tagName: string }>;
+  } else if (bookIds && bookIds.length === 0) {
+    // Empty array - return empty map
+    return new Map<number, string[]>();
   } else {
     // Fetch all tags for all books
     query = `

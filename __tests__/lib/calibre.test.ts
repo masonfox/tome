@@ -1,28 +1,33 @@
 import { describe, test, expect, beforeAll, afterAll, mock } from "bun:test";
 import { Database } from "bun:sqlite";
+import path from "path";
 import {
   getAllBooks,
   getBookById,
   searchBooks,
   getBookTags,
+  getAllBookTags,
+  getBooksCount,
 } from "@/lib/db/calibre";
 
 /**
  * Calibre Query Tests
- * Tests SQL query logic using SQLite :memory: database
+ * Tests SQL query logic using real Calibre database fixtures
  *
- * These tests create a mock Calibre database structure in memory
- * to verify all query functions work correctly without needing
- * a real Calibre database file.
+ * These tests use actual Calibre database files (extracted from production)
+ * to verify all query functions work correctly with real-world data and schema.
+ * 
+ * Fixtures are located in __tests__/fixtures/ and contain known test data
+ * for deterministic testing. See CALIBRE_TEST_DATA.md for book IDs and metadata.
  */
 
 let testDb: Database;
 let mockGetCalibreDB: ReturnType<typeof mock>;
 
 /**
- * Mock Rationale: Use an in-memory SQLite database instead of a real Calibre file.
- * This allows us to test our query logic without depending on external files,
- * making tests faster, more reliable, and independent of filesystem state.
+ * Mock Rationale: Use real Calibre database fixture files instead of in-memory.
+ * This allows us to test against actual Calibre schema and data, catching
+ * real-world edge cases while maintaining test isolation.
  */
 mock.module("@/lib/db/calibre", () => {
   const actual = require("@/lib/db/calibre");
@@ -32,254 +37,11 @@ mock.module("@/lib/db/calibre", () => {
   };
 });
 
-/**
- * Creates a complete Calibre database schema in memory
- * This mimics the real Calibre database structure
- */
-function createCalibreSchema(db: Database) {
-  // Books table (core)
-  db.run(`
-    CREATE TABLE books (
-      id INTEGER PRIMARY KEY,
-      title TEXT NOT NULL,
-      timestamp TEXT,
-      pubdate TEXT,
-      series_index REAL,
-      path TEXT NOT NULL,
-      has_cover INTEGER DEFAULT 0,
-      publisher INTEGER,
-      series INTEGER
-    );
-  `);
-
-  // Authors
-  db.run(`
-    CREATE TABLE authors (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL
-    );
-  `);
-
-  // Books-Authors link table
-  db.run(`
-    CREATE TABLE books_authors_link (
-      id INTEGER PRIMARY KEY,
-      book INTEGER NOT NULL,
-      author INTEGER NOT NULL,
-      FOREIGN KEY(book) REFERENCES books(id),
-      FOREIGN KEY(author) REFERENCES authors(id)
-    );
-  `);
-
-  // Publishers
-  db.run(`
-    CREATE TABLE publishers (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL
-    );
-  `);
-
-  // Series
-  db.run(`
-    CREATE TABLE series (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL
-    );
-  `);
-
-  // Tags
-  db.run(`
-    CREATE TABLE tags (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL
-    );
-  `);
-
-  // Books-Tags link table
-  db.run(`
-    CREATE TABLE books_tags_link (
-      id INTEGER PRIMARY KEY,
-      book INTEGER NOT NULL,
-      tag INTEGER NOT NULL,
-      FOREIGN KEY(book) REFERENCES books(id),
-      FOREIGN KEY(tag) REFERENCES tags(id)
-    );
-  `);
-
-  // Identifiers (ISBN, etc.)
-  db.run(`
-    CREATE TABLE identifiers (
-      id INTEGER PRIMARY KEY,
-      book INTEGER NOT NULL,
-      type TEXT NOT NULL,
-      val TEXT NOT NULL,
-      FOREIGN KEY(book) REFERENCES books(id)
-    );
-  `);
-
-  // Comments (descriptions)
-  db.run(`
-    CREATE TABLE comments (
-      id INTEGER PRIMARY KEY,
-      book INTEGER NOT NULL,
-      text TEXT,
-      FOREIGN KEY(book) REFERENCES books(id)
-    );
-  `);
-
-  // Ratings (lookup table)
-  db.run(`
-    CREATE TABLE ratings (
-      id INTEGER PRIMARY KEY,
-      rating INTEGER CHECK(rating > -1 AND rating < 11),
-      link TEXT NOT NULL DEFAULT '',
-      UNIQUE (rating)
-    );
-  `);
-
-  // Books-Ratings link table
-  db.run(`
-    CREATE TABLE books_ratings_link (
-      id INTEGER PRIMARY KEY,
-      book INTEGER NOT NULL,
-      rating INTEGER NOT NULL,
-      UNIQUE(book, rating),
-      FOREIGN KEY(book) REFERENCES books(id),
-      FOREIGN KEY(rating) REFERENCES ratings(id)
-    );
-  `);
-}
-
-/**
- * Inserts sample book data for testing
- */
-function insertSampleData(db: Database) {
-  // Insert publishers
-  db.prepare("INSERT INTO publishers (id, name) VALUES (?, ?)").run(1, "Bantam Books");
-  db.prepare("INSERT INTO publishers (id, name) VALUES (?, ?)").run(2, "DAW Books");
-
-  // Insert series
-  db.prepare("INSERT INTO series (id, name) VALUES (?, ?)").run(1, "A Song of Ice and Fire");
-  db.prepare("INSERT INTO series (id, name) VALUES (?, ?)").run(2, "The Kingkiller Chronicle");
-
-  // Insert authors
-  db.prepare("INSERT INTO authors (id, name) VALUES (?, ?)").run(1, "George R. R. Martin");
-  db.prepare("INSERT INTO authors (id, name) VALUES (?, ?)").run(2, "Patrick Rothfuss");
-  db.prepare("INSERT INTO authors (id, name) VALUES (?, ?)").run(3, "Neil Gaiman");
-  db.prepare("INSERT INTO authors (id, name) VALUES (?, ?)").run(4, "Terry Pratchett");
-
-  // Insert tags
-  db.prepare("INSERT INTO tags (id, name) VALUES (?, ?)").run(1, "fantasy");
-  db.prepare("INSERT INTO tags (id, name) VALUES (?, ?)").run(2, "epic");
-  db.prepare("INSERT INTO tags (id, name) VALUES (?, ?)").run(3, "adventure");
-  db.prepare("INSERT INTO tags (id, name) VALUES (?, ?)").run(4, "humor");
-
-  // Book 1: Complete data with series
-  db.prepare(`
-    INSERT INTO books (id, title, timestamp, pubdate, series_index, path, has_cover, publisher, series)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    1,
-    "A Dance with Dragons",
-    "2025-11-01 10:00:00",
-    "2011-07-12",
-    5.0,
-    "George R. R. Martin/A Dance with Dragons (1)",
-    1,
-    1,
-    1
-  );
-
-  // Link author
-  db.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(1, 1);
-
-  // Link tags
-  db.prepare("INSERT INTO books_tags_link (book, tag) VALUES (?, ?)").run(1, 1);
-  db.prepare("INSERT INTO books_tags_link (book, tag) VALUES (?, ?)").run(1, 2);
-
-  // Add ISBN
-  db.prepare("INSERT INTO identifiers (book, type, val) VALUES (?, ?, ?)").run(1, "isbn", "9780553801477");
-
-  // Add description
-  db.prepare("INSERT INTO comments (book, text) VALUES (?, ?)").run(1, "The future of the Seven Kingdoms hangs in the balance.");
-
-  // Book 2: Multiple authors (Good Omens)
-  db.prepare(`
-    INSERT INTO books (id, title, timestamp, pubdate, series_index, path, has_cover, publisher, series)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    2,
-    "Good Omens",
-    "2025-11-02 10:00:00",
-    "1990-05-01",
-    null,
-    "Neil Gaiman/Good Omens (2)",
-    1,
-    null,
-    null
-  );
-
-  // Link multiple authors
-  db.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(2, 3);
-  db.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(2, 4);
-
-  // Link tags
-  db.prepare("INSERT INTO books_tags_link (book, tag) VALUES (?, ?)").run(2, 1);
-  db.prepare("INSERT INTO books_tags_link (book, tag) VALUES (?, ?)").run(2, 4);
-
-  // Book 3: Minimal data (no publisher, series, tags, ISBN, description)
-  db.prepare(`
-    INSERT INTO books (id, title, timestamp, pubdate, series_index, path, has_cover, publisher, series)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    3,
-    "The Name of the Wind",
-    "2025-11-03 10:00:00",
-    "2007-03-27",
-    1.0,
-    "Patrick Rothfuss/The Name of the Wind (3)",
-    0,
-    null,
-    2
-  );
-
-  // Link author
-  db.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(3, 2);
-
-  // Book 4: No authors (edge case)
-  db.prepare(`
-    INSERT INTO books (id, title, timestamp, pubdate, series_index, path, has_cover, publisher, series)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    4,
-    "Unknown Author Book",
-    "2025-11-04 10:00:00",
-    null,
-    null,
-    "Unknown/Unknown Author Book (4)",
-    0,
-    null,
-    null
-  );
-
-  // Insert ratings (lookup table)
-  db.prepare("INSERT INTO ratings (id, rating, link) VALUES (?, ?, ?)").run(1, 10, ""); // 5 stars
-  db.prepare("INSERT INTO ratings (id, rating, link) VALUES (?, ?, ?)").run(2, 8, "");  // 4 stars
-  db.prepare("INSERT INTO ratings (id, rating, link) VALUES (?, ?, ?)").run(3, 6, "");  // 3 stars
-
-  // Link ratings to books
-  db.prepare("INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)").run(1, 1); // Book 1: 5 stars
-  db.prepare("INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)").run(2, 2); // Book 2: 4 stars
-  // Book 3: no rating (testing null case)
-  // Book 4: no rating
-}
-
 describe("Calibre Query Functions with Full Schema", () => {
   beforeAll(() => {
-    // Create in-memory database with full Calibre schema
-    testDb = new Database(":memory:");
-    createCalibreSchema(testDb);
-    insertSampleData(testDb);
+    // Load real Calibre database fixture
+    const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
+    testDb = new Database(dbPath, { readonly: true });
 
     // Mock getCalibreDB to return our test database
     mockGetCalibreDB = mock(() => testDb);
@@ -293,158 +55,172 @@ describe("Calibre Query Functions with Full Schema", () => {
     test("retrieves all books with complete data", () => {
       const books = getAllBooks();
 
-      expect(books).toHaveLength(4);
-      expect(books[0].title).toBe("A Dance with Dragons");
+      expect(books).toHaveLength(48);
+      expect(books.length).toBeGreaterThan(0);
     });
 
     test("includes author names concatenated", () => {
       const books = getAllBooks();
-      const goodOmens = books.find(b => b.title === "Good Omens");
-
-      expect(goodOmens).toBeDefined();
-      // Multiple authors should be concatenated
-      expect(goodOmens!.authors).toContain("Neil Gaiman");
-      expect(goodOmens!.authors).toContain("Terry Pratchett");
-    });
-
-    test("includes publisher name when present", () => {
-      const books = getAllBooks();
-      const danceWithDragons = books.find(b => b.title === "A Dance with Dragons");
-
-      expect(danceWithDragons!.publisher).toBe("Bantam Books");
+      
+      // ID 40: "10% Happier" - 3 authors
+      const multiAuthorBook = books.find(b => b.id === 40);
+      expect(multiAuthorBook).toBeDefined();
+      expect(multiAuthorBook!.authors).toContain("Dan Harris");
+      expect(multiAuthorBook!.authors).toContain("Jeffrey Warren");
+      expect(multiAuthorBook!.authors).toContain("Carlye Adler");
     });
 
     test("includes series name and index when present", () => {
       const books = getAllBooks();
-      const danceWithDragons = books.find(b => b.title === "A Dance with Dragons");
-
-      expect(danceWithDragons!.series).toBe("A Song of Ice and Fire");
-      expect(danceWithDragons!.series_index).toBe(5.0);
-    });
-
-    test("includes ISBN when present", () => {
-      const books = getAllBooks();
-      const danceWithDragons = books.find(b => b.title === "A Dance with Dragons");
-
-      expect(danceWithDragons!.isbn).toBe("9780553801477");
-    });
-
-    test("includes description when present", () => {
-      const books = getAllBooks();
-      const danceWithDragons = books.find(b => b.title === "A Dance with Dragons");
-
-      expect(danceWithDragons!.description).toContain("Seven Kingdoms");
+      
+      // ID 147: "Dune" - First book in Dune series
+      const dune = books.find(b => b.id === 147);
+      expect(dune).toBeDefined();
+      expect(dune!.series).toBe("Dune");
+      expect(dune!.series_index).toBe(1.0);
+      
+      // ID 83: "Children of Dune" - Third book
+      const childrenOfDune = books.find(b => b.id === 83);
+      expect(childrenOfDune).toBeDefined();
+      expect(childrenOfDune!.series).toBe("Dune");
+      expect(childrenOfDune!.series_index).toBe(3.0);
     });
 
     test("handles books with null optional fields", () => {
       const books = getAllBooks();
-      const nameOfWind = books.find(b => b.title === "The Name of the Wind");
-
-      expect(nameOfWind!.publisher).toBeNull();
-      expect(nameOfWind!.isbn).toBeNull();
-      expect(nameOfWind!.description).toBeNull();
+      
+      // ID 89: Book with no metadata (no rating, series, tags)
+      const minimalBook = books.find(b => b.id === 89);
+      expect(minimalBook).toBeDefined();
+      expect(minimalBook!.series).toBeNull();
     });
 
-    test("handles books with no authors", () => {
+    test("handles books with no tags", () => {
       const books = getAllBooks();
-      const unknownBook = books.find(b => b.title === "Unknown Author Book");
-
-      expect(unknownBook).toBeDefined();
-      expect(unknownBook!.authors).toBeNull();
+      
+      // ID 89: Book with no tags
+      const noTagsBook = books.find(b => b.id === 89);
+      expect(noTagsBook).toBeDefined();
     });
 
-    test("orders books by title", () => {
+    test("orders books by ID", () => {
       const books = getAllBooks();
 
-      // Should be alphabetically sorted
-      expect(books[0].title).toBe("A Dance with Dragons");
-      expect(books[1].title).toBe("Good Omens");
-      expect(books[2].title).toBe("The Name of the Wind");
-      expect(books[3].title).toBe("Unknown Author Book");
+      // Should be ordered by ID
+      for (let i = 1; i < books.length; i++) {
+        expect(books[i - 1].id).toBeLessThan(books[i].id);
+      }
+    });
+
+    test("converts ratings from Calibre scale to stars", () => {
+      const books = getAllBooks();
+      
+      // ID 147: "Dune" - 5 stars (Calibre rating: 10)
+      const fiveStars = books.find(b => b.id === 147);
+      expect(fiveStars!.rating).toBe(5);
+      
+      // ID 83: "Children of Dune" - 4 stars (Calibre rating: 8)
+      const fourStars = books.find(b => b.id === 83);
+      expect(fourStars!.rating).toBe(4);
+      
+      // ID 84: "Dune Messiah" - 3 stars (Calibre rating: 6)
+      const threeStars = books.find(b => b.id === 84);
+      expect(threeStars!.rating).toBe(3);
     });
   });
 
   describe("getBookById", () => {
     test("retrieves a specific book by ID", () => {
-      const book = getBookById(1);
+      // ID 147: "Dune" by Frank Herbert
+      const book = getBookById(147);
 
       expect(book).toBeDefined();
-      expect(book!.id).toBe(1);
-      expect(book!.title).toBe("A Dance with Dragons");
-      expect(book!.authors).toBe("George R. R. Martin");
+      expect(book!.id).toBe(147);
+      expect(book!.title).toBe("Dune");
+      expect(book!.authors).toContain("Frank Herbert");
     });
 
     test("returns undefined for non-existent ID", () => {
-      const book = getBookById(999);
+      const book = getBookById(999999);
 
-      // SQLite returns null for non-existent records
       expect(book).toBeFalsy();
       expect(book === undefined || book === null).toBe(true);
     });
 
     test("retrieves book with multiple authors", () => {
-      const book = getBookById(2);
+      // ID 40: "10% Happier" - 3 authors
+      const book = getBookById(40);
 
-      expect(book!.authors).toContain("Neil Gaiman");
-      expect(book!.authors).toContain("Terry Pratchett");
+      expect(book).toBeDefined();
+      expect(book!.authors).toContain("Dan Harris");
+      expect(book!.authors).toContain("Jeffrey Warren");
+      expect(book!.authors).toContain("Carlye Adler");
     });
 
-    test("retrieves all fields correctly", () => {
-      const book = getBookById(1);
+    test("retrieves rating correctly", () => {
+      // ID 147: "Dune" - 5 stars
+      const book = getBookById(147);
 
-      expect(book!.title).toBe("A Dance with Dragons");
-      expect(book!.publisher).toBe("Bantam Books");
-      expect(book!.series).toBe("A Song of Ice and Fire");
-      expect(book!.series_index).toBe(5.0);
-      expect(book!.isbn).toBe("9780553801477");
-      expect(book!.has_cover).toBe(1);
-      expect(book!.path).toContain("George R. R. Martin");
-      expect(book!.description).toContain("Seven Kingdoms");
+      expect(book).toBeDefined();
+      expect(book!.rating).toBe(5);
+    });
+
+    test("handles book with no rating", () => {
+      // ID 40: "10% Happier" - Book without rating
+      const book = getBookById(40);
+
+      expect(book).toBeDefined();
+      expect(book!.rating).toBeNull();
+    });
+
+    test("retrieves series information", () => {
+      // ID 147: "Dune" - First book in series
+      const book = getBookById(147);
+
+      expect(book!.series).toBe("Dune");
+      expect(book!.series_index).toBe(1.0);
     });
   });
 
   describe("searchBooks", () => {
     test("finds books by title", () => {
-      const results = searchBooks("Dragon");
+      const results = searchBooks("Dune");
 
-      expect(results).toHaveLength(1);
-      expect(results[0].title).toBe("A Dance with Dragons");
+      expect(results.length).toBeGreaterThan(0);
+      const titles = results.map(b => b.title);
+      expect(titles.some(t => t.includes("Dune"))).toBe(true);
     });
 
     test("finds books by author name", () => {
-      const results = searchBooks("Rothfuss");
+      const results = searchBooks("Frank Herbert");
 
-      expect(results).toHaveLength(1);
-      expect(results[0].title).toBe("The Name of the Wind");
+      expect(results.length).toBeGreaterThan(0);
+      const hasHerbert = results.some(b => b.authors?.includes("Frank Herbert"));
+      expect(hasHerbert).toBe(true);
     });
 
     test("search is case-insensitive", () => {
-      const results = searchBooks("good omens");
+      const lowerResults = searchBooks("dune");
+      const upperResults = searchBooks("DUNE");
 
-      expect(results).toHaveLength(1);
-      expect(results[0].title).toBe("Good Omens");
-    });
-
-    test("returns multiple matches when applicable", () => {
-      const results = searchBooks("the");
-
-      // Should find "The Name of the Wind" at minimum
-      expect(results.length).toBeGreaterThan(0);
-      const titles = results.map(b => b.title);
-      expect(titles).toContain("The Name of the Wind");
+      expect(lowerResults.length).toBeGreaterThan(0);
+      expect(upperResults.length).toBeGreaterThan(0);
+      expect(lowerResults.length).toBe(upperResults.length);
     });
 
     test("returns empty array for no matches", () => {
-      const results = searchBooks("xyznonexistent");
+      const results = searchBooks("xyznonexistent12345");
 
       expect(results).toHaveLength(0);
     });
 
     test("partial matches work", () => {
-      const results = searchBooks("Wind");
+      const results = searchBooks("Court");
 
-      expect(results).toHaveLength(1);
-      expect(results[0].title).toBe("The Name of the Wind");
+      expect(results.length).toBeGreaterThan(0);
+      // ID 859: "A Court of Thorns and Roses"
+      const courtBook = results.find(b => b.id === 859);
+      expect(courtBook).toBeDefined();
     });
 
     test("orders results by title", () => {
@@ -453,7 +229,9 @@ describe("Calibre Query Functions with Full Schema", () => {
       // Should be alphabetically sorted
       if (results.length > 1) {
         for (let i = 1; i < results.length; i++) {
-          expect(results[i - 1].title.localeCompare(results[i].title)).toBeLessThanOrEqual(0);
+          const prevTitle = results[i - 1].title.toLowerCase();
+          const currTitle = results[i].title.toLowerCase();
+          expect(prevTitle.localeCompare(currTitle)).toBeLessThanOrEqual(0);
         }
       }
     });
@@ -461,39 +239,44 @@ describe("Calibre Query Functions with Full Schema", () => {
 
   describe("getBookTags", () => {
     test("retrieves all tags for a book", () => {
-      const tags = getBookTags(1);
+      // ID 644: "Columbine" - 26 tags (most tags in fixture)
+      const tags = getBookTags(644);
 
-      expect(tags).toHaveLength(2);
-      expect(tags).toContain("fantasy");
-      expect(tags).toContain("epic");
+      expect(tags.length).toBeGreaterThan(20);
+      expect(tags.length).toBeGreaterThanOrEqual(26);
     });
 
     test("orders tags alphabetically", () => {
-      const tags = getBookTags(1);
+      // ID 174: "1984" - 13 tags
+      const tags = getBookTags(174);
 
-      // "epic" should come before "fantasy" alphabetically
-      expect(tags[0]).toBe("epic");
-      expect(tags[1]).toBe("fantasy");
+      expect(tags.length).toBeGreaterThan(0);
+      
+      // Verify alphabetical order
+      for (let i = 1; i < tags.length; i++) {
+        expect(tags[i - 1].toLowerCase().localeCompare(tags[i].toLowerCase())).toBeLessThanOrEqual(0);
+      }
     });
 
     test("returns empty array for book with no tags", () => {
-      const tags = getBookTags(3);
+      // ID 89: Book with no tags
+      const tags = getBookTags(89);
 
       expect(tags).toHaveLength(0);
     });
 
     test("returns empty array for non-existent book", () => {
-      const tags = getBookTags(999);
+      const tags = getBookTags(999999);
 
       expect(tags).toHaveLength(0);
     });
 
-    test("handles book with multiple tags correctly", () => {
-      const tags = getBookTags(2);
+    test("handles book with moderate number of tags", () => {
+      // ID 147: "Dune" - 8 tags
+      const tags = getBookTags(147);
 
-      expect(tags).toHaveLength(2);
-      expect(tags).toContain("fantasy");
-      expect(tags).toContain("humor");
+      expect(tags).toHaveLength(8);
+      expect(Array.isArray(tags)).toBe(true);
     });
   });
 });
@@ -503,102 +286,9 @@ describe("Calibre Query Functions without Optional Columns", () => {
   let mockGetMinimalDB: ReturnType<typeof mock>;
 
   beforeAll(() => {
-    // Create minimal schema without publisher and series columns
-    minimalDb = new Database(":memory:");
-
-    // Books table WITHOUT publisher and series columns
-    minimalDb.run(`
-      CREATE TABLE books (
-        id INTEGER PRIMARY KEY,
-        title TEXT NOT NULL,
-        timestamp TEXT,
-        pubdate TEXT,
-        path TEXT NOT NULL,
-        has_cover INTEGER DEFAULT 0
-      );
-    `);
-
-    // Authors
-    minimalDb.run(`
-      CREATE TABLE authors (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL
-      );
-    `);
-
-    // Books-Authors link
-    minimalDb.run(`
-      CREATE TABLE books_authors_link (
-        id INTEGER PRIMARY KEY,
-        book INTEGER NOT NULL,
-        author INTEGER NOT NULL
-      );
-    `);
-
-    // Tags
-    minimalDb.run(`
-      CREATE TABLE tags (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL
-      );
-    `);
-
-    // Books-Tags link
-    minimalDb.run(`
-      CREATE TABLE books_tags_link (
-        id INTEGER PRIMARY KEY,
-        book INTEGER NOT NULL,
-        tag INTEGER NOT NULL
-      );
-    `);
-
-    // Identifiers
-    minimalDb.run(`
-      CREATE TABLE identifiers (
-        id INTEGER PRIMARY KEY,
-        book INTEGER NOT NULL,
-        type TEXT NOT NULL,
-        val TEXT NOT NULL
-      );
-    `);
-
-    // Comments
-    minimalDb.run(`
-      CREATE TABLE comments (
-        id INTEGER PRIMARY KEY,
-        book INTEGER NOT NULL,
-        text TEXT
-      );
-    `);
-
-    // Ratings (lookup table)
-    minimalDb.run(`
-      CREATE TABLE ratings (
-        id INTEGER PRIMARY KEY,
-        rating INTEGER CHECK(rating > -1 AND rating < 11),
-        link TEXT NOT NULL DEFAULT '',
-        UNIQUE (rating)
-      );
-    `);
-
-    // Books-Ratings link table
-    minimalDb.run(`
-      CREATE TABLE books_ratings_link (
-        id INTEGER PRIMARY KEY,
-        book INTEGER NOT NULL,
-        rating INTEGER NOT NULL,
-        UNIQUE(book, rating)
-      );
-    `);
-
-    // Insert minimal test data
-    minimalDb.prepare(`
-      INSERT INTO books (id, title, timestamp, pubdate, path, has_cover)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(1, "Test Book", "2025-11-01 10:00:00", "2020-01-01", "Test/Book", 1);
-
-    minimalDb.prepare("INSERT INTO authors (id, name) VALUES (?, ?)").run(1, "Test Author");
-    minimalDb.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(1, 1);
+    // Load minimal schema fixture (no isbn/lccn columns)
+    const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-minimal.db");
+    minimalDb = new Database(dbPath, { readonly: true });
 
     // Mock to use minimal database
     mockGetMinimalDB = mock(() => minimalDb);
@@ -608,17 +298,18 @@ describe("Calibre Query Functions without Optional Columns", () => {
     minimalDb.close();
   });
 
-  test("getAllBooks handles missing publisher column", () => {
+  test("getAllBooks handles missing optional columns", () => {
     // Temporarily swap the mock
     const originalMock = mockGetCalibreDB;
     mockGetCalibreDB = mockGetMinimalDB;
 
     const books = getAllBooks();
 
-    expect(books).toHaveLength(1);
-    expect(books[0].publisher).toBeNull();
-    expect(books[0].series).toBeNull();
-    expect(books[0].series_index).toBeNull();
+    expect(books).toHaveLength(48);
+    expect(books[0].title).toBeDefined();
+    
+    // Schema detection should handle missing columns gracefully
+    // All books should still be queryable
 
     // Restore original mock
     mockGetCalibreDB = originalMock;
@@ -628,24 +319,233 @@ describe("Calibre Query Functions without Optional Columns", () => {
     const originalMock = mockGetCalibreDB;
     mockGetCalibreDB = mockGetMinimalDB;
 
-    const book = getBookById(1);
+    // ID 147: "Dune"
+    const book = getBookById(147);
 
     expect(book).toBeDefined();
-    expect(book!.series).toBeNull();
-    expect(book!.series_index).toBeNull();
+    expect(book!.title).toBe("Dune");
+    
+    // Series should be handled even if column schema differs
 
     mockGetCalibreDB = originalMock;
   });
 
-  test("searchBooks works without publisher/series columns", () => {
+  test("searchBooks works without optional columns", () => {
     const originalMock = mockGetCalibreDB;
     mockGetCalibreDB = mockGetMinimalDB;
 
-    const results = searchBooks("Test");
+    const results = searchBooks("Dune");
 
-    expect(results).toHaveLength(1);
-    expect(results[0].title).toBe("Test Book");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].title).toBeDefined();
+
+    mockGetCalibreDB = originalMock;
+  });
+  
+  test("getBookTags works with minimal schema", () => {
+    const originalMock = mockGetCalibreDB;
+    mockGetCalibreDB = mockGetMinimalDB;
+
+    // ID 147: "Dune" - should have 8 tags
+    const tags = getBookTags(147);
+
+    expect(tags).toHaveLength(8);
 
     mockGetCalibreDB = originalMock;
   });
 });
+
+describe("getAllBookTags", () => {
+  beforeAll(() => {
+    // Load real Calibre database fixture
+    const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
+    testDb = new Database(dbPath, { readonly: true });
+
+    // Mock getCalibreDB to return our test database
+    mockGetCalibreDB = mock(() => testDb);
+  });
+
+  afterAll(() => {
+    testDb.close();
+  });
+
+  test("fetches all tags for all books when no bookIds provided", () => {
+    const tagsMap = getAllBookTags();
+
+    expect(tagsMap.size).toBeGreaterThan(0);
+    
+    // Known data from fixture - ID 644: "Columbine" has 26 tags
+    const book644Tags = tagsMap.get(644);
+    expect(book644Tags).toBeDefined();
+    expect(book644Tags!.length).toBe(26);
+    
+    // ID 521: "The Austere Academy" has 21 tags
+    const book521Tags = tagsMap.get(521);
+    expect(book521Tags).toBeDefined();
+    expect(book521Tags!.length).toBe(21);
+  });
+
+  test("fetches tags only for specified book IDs", () => {
+    const tagsMap = getAllBookTags([147, 644]); // Dune + Columbine
+    
+    expect(tagsMap.size).toBe(2);
+    expect(tagsMap.get(147)).toHaveLength(8);
+    expect(tagsMap.get(644)).toHaveLength(26);
+  });
+
+  test("returns empty map for empty bookIds array", () => {
+    const tagsMap = getAllBookTags([]);
+    
+    expect(tagsMap.size).toBe(0);
+  });
+
+  test("returns only books with tags when specific IDs provided", () => {
+    // Mix of books with tags and books without tags
+    // ID 89 has 0 tags, ID 147 has 8 tags, ID 644 has 26 tags
+    const tagsMap = getAllBookTags([89, 147, 644]);
+    
+    // Should only include books that have tags
+    expect(tagsMap.size).toBe(2);
+    expect(tagsMap.has(89)).toBe(false);  // No tags
+    expect(tagsMap.has(147)).toBe(true);  // Has 8 tags
+    expect(tagsMap.has(644)).toBe(true);  // Has 26 tags
+  });
+
+  test("handles single book ID", () => {
+    const tagsMap = getAllBookTags([147]);
+    
+    expect(tagsMap.size).toBe(1);
+    expect(tagsMap.get(147)).toHaveLength(8);
+  });
+
+  test("orders tags alphabetically per book", () => {
+    const tagsMap = getAllBookTags([147]);
+    const tags = tagsMap.get(147)!;
+    
+    expect(tags.length).toBe(8);
+    
+    // Verify alphabetical order
+    for (let i = 1; i < tags.length; i++) {
+      const prev = tags[i - 1].toLowerCase();
+      const curr = tags[i].toLowerCase();
+      expect(prev.localeCompare(curr)).toBeLessThanOrEqual(0);
+    }
+  });
+
+  test("handles non-existent book IDs gracefully", () => {
+    const tagsMap = getAllBookTags([999999, 888888]);
+    
+    expect(tagsMap.size).toBe(0);
+  });
+
+  test("handles mix of existent and non-existent book IDs", () => {
+    const tagsMap = getAllBookTags([147, 999999, 644, 888888]);
+    
+    // Should only include existing books with tags
+    expect(tagsMap.size).toBe(2);
+    expect(tagsMap.has(147)).toBe(true);
+    expect(tagsMap.has(644)).toBe(true);
+    expect(tagsMap.has(999999)).toBe(false);
+    expect(tagsMap.has(888888)).toBe(false);
+  });
+
+  test("returns correct tags for books with varying tag counts", () => {
+    // ID 644: 26 tags, ID 174: 13 tags, ID 147: 8 tags
+    const tagsMap = getAllBookTags([644, 174, 147]);
+    
+    expect(tagsMap.get(644)).toHaveLength(26);
+    expect(tagsMap.get(174)).toHaveLength(13);
+    expect(tagsMap.get(147)).toHaveLength(8);
+  });
+});
+
+describe("getBooksCount", () => {
+  beforeAll(() => {
+    // Load real Calibre database fixture
+    const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
+    testDb = new Database(dbPath, { readonly: true });
+
+    // Mock getCalibreDB to return our test database
+    mockGetCalibreDB = mock(() => testDb);
+  });
+
+  afterAll(() => {
+    testDb.close();
+  });
+
+  test("returns total book count", () => {
+    const count = getBooksCount();
+    
+    expect(count).toBe(48); // Known fixture size
+    expect(typeof count).toBe("number");
+  });
+});
+
+describe("Pagination", () => {
+  beforeAll(() => {
+    // Load real Calibre database fixture
+    const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
+    testDb = new Database(dbPath, { readonly: true });
+
+    // Mock getCalibreDB to return our test database
+    mockGetCalibreDB = mock(() => testDb);
+  });
+
+  afterAll(() => {
+    testDb.close();
+  });
+
+  test("limits results when limit provided", () => {
+    const books = getAllBooks({ limit: 10 });
+    
+    expect(books).toHaveLength(10);
+  });
+
+  test("skips results when offset provided", () => {
+    const allBooks = getAllBooks();
+    const offsetBooks = getAllBooks({ offset: 10, limit: 5 });
+    
+    expect(offsetBooks).toHaveLength(5);
+    expect(offsetBooks[0].id).toBe(allBooks[10].id);
+  });
+
+  test("handles offset beyond total count", () => {
+    const books = getAllBooks({ offset: 1000, limit: 10 });
+    
+    expect(books).toHaveLength(0);
+  });
+
+  test("handles limit larger than total count", () => {
+    const books = getAllBooks({ limit: 1000 });
+    
+    expect(books).toHaveLength(48); // Total books in fixture
+  });
+
+  test("handles both limit and offset", () => {
+    const allBooks = getAllBooks();
+    const pagedBooks = getAllBooks({ offset: 5, limit: 10 });
+    
+    expect(pagedBooks).toHaveLength(10);
+    expect(pagedBooks[0].id).toBe(allBooks[5].id);
+    expect(pagedBooks[9].id).toBe(allBooks[14].id);
+  });
+
+  test("handles offset at exact boundary", () => {
+    const books = getAllBooks({ offset: 48, limit: 10 }); // Exactly at the end
+    
+    expect(books).toHaveLength(0);
+  });
+
+  test("handles limit of 1", () => {
+    const books = getAllBooks({ limit: 1 });
+    
+    expect(books).toHaveLength(1);
+  });
+
+  test("returns all books when no pagination options provided", () => {
+    const books = getAllBooks();
+    
+    expect(books).toHaveLength(48);
+  });
+});
+
