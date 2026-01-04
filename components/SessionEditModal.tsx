@@ -149,7 +149,7 @@ export default function SessionEditModal({
               value={startedDate}
               onChange={(e) => setStartedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
             />
           </div>
 
@@ -166,7 +166,7 @@ export default function SessionEditModal({
               value={completedDate}
               onChange={(e) => setCompletedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
             />
           </div>
 
