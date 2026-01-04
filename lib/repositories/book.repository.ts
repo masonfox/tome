@@ -80,6 +80,36 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Find all books by their Calibre IDs in a single query (performance optimization for bulk sync)
+   * Returns a Map of calibreId to Book for O(1) lookup
+   * 
+   * This is much more efficient than calling findByCalibreId() for each book individually.
+   * For a library with 150k books, this reduces 150k queries to 1 query.
+   * 
+   * @param calibreIds - Array of Calibre book IDs to look up
+   * @returns Map of calibreId to Book object
+   */
+  async findAllByCalibreIds(calibreIds: number[]): Promise<Map<number, Book>> {
+    if (calibreIds.length === 0) {
+      return new Map();
+    }
+
+    const results = this.getDatabase()
+      .select()
+      .from(books)
+      .where(inArray(books.calibreId, calibreIds))
+      .all();
+
+    // Build map: calibreId -> Book
+    const booksMap = new Map<number, Book>();
+    for (const book of results) {
+      booksMap.set(book.calibreId, book);
+    }
+
+    return booksMap;
+  }
+
+  /**
    * Find a book by ID with enriched details (session, progress, read count) - OPTIMIZED
    * Uses a single query with LEFT JOINs and subqueries instead of 3 separate queries
    */
