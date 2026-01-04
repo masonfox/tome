@@ -256,3 +256,34 @@ export function getBookTags(bookId: number): string[] {
   const tags = db.prepare(query).all(bookId) as { name: string }[];
   return tags.map((tag) => tag.name);
 }
+
+/**
+ * Get all tags for all books in a single query (performance optimization for bulk sync)
+ * Returns a Map of book ID to array of tag names
+ * 
+ * This is much more efficient than calling getBookTags() for each book individually.
+ * For a library with 150k books, this reduces 150k queries to 1 query.
+ */
+export function getAllBookTags(): Map<number, string[]> {
+  const db = getCalibreDB();
+
+  const query = `
+    SELECT btl.book as bookId, t.name as tagName
+    FROM books_tags_link btl
+    JOIN tags t ON btl.tag = t.id
+    ORDER BY btl.book, t.name
+  `;
+
+  const results = db.prepare(query).all() as Array<{ bookId: number; tagName: string }>;
+  
+  // Build map: bookId -> [tag1, tag2, ...]
+  const tagsMap = new Map<number, string[]>();
+  
+  for (const row of results) {
+    const tags = tagsMap.get(row.bookId) || [];
+    tags.push(row.tagName);
+    tagsMap.set(row.bookId, tags);
+  }
+  
+  return tagsMap;
+}
