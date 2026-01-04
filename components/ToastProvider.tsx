@@ -9,7 +9,7 @@ export function ToastProvider() {
       position="top-center"
       expand={false}
       richColors={false}
-      closeButton
+      closeButton={false}
       icons={{
         success: <BookCheck className="w-5 h-5" />,
         error: <BookX className="w-5 h-5" />,
@@ -19,19 +19,19 @@ export function ToastProvider() {
       toastOptions={{
         classNames: {
           toast:
-            "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--foreground)] shadow-lg font-serif",
+            "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--foreground)] shadow-lg font-sans",
           title: "font-semibold text-[var(--foreground)]",
-          description: "text-[var(--foreground)]/70",
+          description: "text-[var(--foreground)]/70 font-medium",
           actionButton: "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
           cancelButton: "bg-[var(--border-color)] text-[var(--foreground)]",
-          closeButton: "bg-[var(--border-color)] text-[var(--foreground)] hover:bg-[var(--accent)] hover:text-white",
           success: "tome-toast-success",
           error: "tome-toast-error",
           info: "tome-toast-info",
           warning: "tome-toast-warning",
         },
         style: {
-          fontFamily: "'Lora', 'Crimson Text', serif",
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+          fontWeight: "500",
         },
       }}
     />

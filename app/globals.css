@@ -79,16 +79,6 @@ body {
   }
 }
 
-/* Toast close button positioning */
-[data-sonner-toast] [data-close-button] {
-  left: unset !important;
-  right: 8px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  border-radius: 4px !important;
-  padding: 4px !important;
-}
-
 /* Warm theme toast styling - Light mode */
 /* Success toast - Warm green */
 .tome-toast-success {
@@ -99,15 +89,6 @@ body {
 
 .tome-toast-success [data-icon] {
   color: #5a8a5d !important; /* darker green for icon */
-}
-
-.tome-toast-success [data-close-button] {
-  background-color: #7aa57d !important; /* darker warm green */
-  color: white !important;
-}
-
-.tome-toast-success [data-close-button]:hover {
-  background-color: #5a8a5d !important; /* even darker on hover */
 }
 
 /* Error toast - Warm burgundy/rose */
@@ -121,15 +102,6 @@ body {
   color: #8b3a3a !important; /* darker burgundy for icon */
 }
 
-.tome-toast-error [data-close-button] {
-  background-color: #a87a7a !important; /* darker burgundy */
-  color: white !important;
-}
-
-.tome-toast-error [data-close-button]:hover {
-  background-color: #8b3a3a !important; /* even darker on hover */
-}
-
 /* Info toast - Neutral with accent */
 .tome-toast-info {
   background-color: #f5f1e8 !important; /* card-bg */
@@ -139,15 +111,6 @@ body {
 
 .tome-toast-info [data-icon] {
   color: #8b6f47 !important; /* accent color for icon */
-}
-
-.tome-toast-info [data-close-button] {
-  background-color: #8b6f47 !important; /* accent */
-  color: white !important;
-}
-
-.tome-toast-info [data-close-button]:hover {
-  background-color: #6b5437 !important; /* darker accent on hover */
 }
 
 /* Warning toast - Warm amber */
@@ -161,16 +124,6 @@ body {
   color: #8b6f47 !important; /* accent color for icon */
 }
 
-.tome-toast-warning [data-close-button] {
-  background-color: #c9a876 !important; /* light-accent */
-  color: #4a3a20 !important;
-}
-
-.tome-toast-warning [data-close-button]:hover {
-  background-color: #8b6f47 !important; /* accent on hover */
-  color: white !important;
-}
-
 /* Dark mode toast styling */
 html[data-theme="dark"] .tome-toast-success {
   background-color: #5a8a5d !important; /* darker warm green */
@@ -180,15 +133,6 @@ html[data-theme="dark"] .tome-toast-success {
 
 html[data-theme="dark"] .tome-toast-success [data-icon] {
   color: #a5c9a8 !important; /* lighter green for icon */
-}
-
-html[data-theme="dark"] .tome-toast-success [data-close-button] {
-  background-color: #7aa57d !important;
-  color: white !important;
-}
-
-html[data-theme="dark"] .tome-toast-success [data-close-button]:hover {
-  background-color: #a5c9a8 !important; /* lighter on hover */
 }
 
 html[data-theme="dark"] .tome-toast-error {
@@ -201,15 +145,6 @@ html[data-theme="dark"] .tome-toast-error [data-icon] {
   color: #d4a5a5 !important; /* lighter burgundy for icon */
 }
 
-html[data-theme="dark"] .tome-toast-error [data-close-button] {
-  background-color: #a87a7a !important;
-  color: white !important;
-}
-
-html[data-theme="dark"] .tome-toast-error [data-close-button]:hover {
-  background-color: #d4a5a5 !important; /* lighter on hover */
-}
-
 html[data-theme="dark"] .tome-toast-info {
   background-color: #3d3935 !important; /* dark card-bg */
   border-color: #a89968 !important; /* dark mode accent */
@@ -220,15 +155,6 @@ html[data-theme="dark"] .tome-toast-info [data-icon] {
   color: #c9a876 !important; /* light-accent for icon */
 }
 
-html[data-theme="dark"] .tome-toast-info [data-close-button] {
-  background-color: #a89968 !important;
-  color: white !important;
-}
-
-html[data-theme="dark"] .tome-toast-info [data-close-button]:hover {
-  background-color: #c9a876 !important; /* lighter on hover */
-}
-
 html[data-theme="dark"] .tome-toast-warning {
   background-color: #8b6f47 !important; /* darker amber */
   border-color: #a89968 !important; /* accent border */
@@ -237,15 +163,6 @@ html[data-theme="dark"] .tome-toast-warning {
 
 html[data-theme="dark"] .tome-toast-warning [data-icon] {
   color: #c9a876 !important; /* light-accent for icon */
-}
-
-html[data-theme="dark"] .tome-toast-warning [data-close-button] {
-  background-color: #a89968 !important;
-  color: white !important;
-}
-
-html[data-theme="dark"] .tome-toast-warning [data-close-button]:hover {
-  background-color: #c9a876 !important; /* lighter on hover */
 }
 
 /* Date input calendar icon styling */
