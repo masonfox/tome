@@ -17,6 +17,7 @@ export function ToastProvider() {
         warning: <AlertTriangle className="w-5 h-5" />,
       }}
       toastOptions={{
+        duration: 3000, // Default duration for all toasts (can be overridden per toast)
         classNames: {
           toast:
             "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--foreground)] shadow-lg font-sans",
