@@ -28,6 +28,11 @@ import type { NextRequest } from "next/server";
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
 let mockUpdateCalibreTags = mock(() => {});
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+  totalAttempted: updates.length,
+  successCount: updates.length,
+  failures: []
+}));
 let mockCalibreShouldFail = false;
 
 mock.module("@/lib/services/calibre.service", () => ({
@@ -38,11 +43,39 @@ mock.module("@/lib/services/calibre.service", () => ({
       }
       mockUpdateCalibreTags(calibreId, tags);
     },
+    batchUpdateTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      return mockBatchUpdateCalibreTags(updates);
+    },
     updateRating: mock(() => {}),
     readTags: mock(() => []),
     readRating: mock(() => null),
   },
   CalibreService: class {},
+}));
+
+// Mock Calibre watcher to track suspend/resume calls
+let mockWatcherSuspendCalled = false;
+let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
+
+mock.module("@/lib/calibre-watcher", () => ({
+  calibreWatcher: {
+    suspend: () => {
+      mockWatcherSuspendCalled = true;
+    },
+    resume: () => {
+      mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
+    },
+    start: mock(() => {}),
+    stop: mock(() => {}),
+  },
 }));
 
 // Import after mock is set up
@@ -59,7 +92,11 @@ afterAll(async () => {
 beforeEach(async () => {
   await clearTestDatabase(__filename);
   mockUpdateCalibreTags.mockClear();
+  mockBatchUpdateCalibreTags.mockClear();
   mockCalibreShouldFail = false;
+  mockWatcherSuspendCalled = false;
+  mockWatcherResumeCalled = false;
+  mockWatcherResumeIgnorePeriod = 0;
 });
 
 describe("PATCH /api/books/[id]/tags", () => {
@@ -75,11 +112,20 @@ describe("PATCH /api/books/[id]/tags", () => {
 
       expect(response.status).toBe(200);
       expect(data.tags).toEqual(["Fiction", "Fantasy", "Classic"]);
-      expect(mockUpdateCalibreTags).toHaveBeenCalledWith(book.calibreId, ["Fiction", "Fantasy", "Classic"]);
+      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      const syncCall = mockBatchUpdateCalibreTags.mock.calls[0][0];
+      expect(syncCall).toHaveLength(1);
+      expect(syncCall[0].calibreId).toBe(book.calibreId);
+      expect(syncCall[0].tags).toEqual(["Fiction", "Fantasy", "Classic"]);
 
       // Verify in database
       const updatedBook = await bookRepository.findById(book.id);
       expect(updatedBook?.tags).toEqual(["Fiction", "Fantasy", "Classic"]);
+      
+      // Verify watcher suspend/resume was called
+      expect(mockWatcherSuspendCalled).toBe(true);
+      expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
 
     test("should update with single tag", async () => {
@@ -160,9 +206,12 @@ describe("PATCH /api/books/[id]/tags", () => {
       });
       await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
 
-      // Verify Calibre was called
-      expect(mockUpdateCalibreTags).toHaveBeenCalledWith(book.calibreId, ["Fiction"]);
-      expect(mockUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      // Verify Calibre batch update was called
+      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      const syncCall = mockBatchUpdateCalibreTags.mock.calls[0][0];
+      expect(syncCall).toHaveLength(1);
+      expect(syncCall[0].calibreId).toBe(book.calibreId);
+      expect(syncCall[0].tags).toEqual(["Fiction"]);
     });
 
     test("should handle tags with special characters", async () => {
@@ -269,7 +318,7 @@ describe("PATCH /api/books/[id]/tags", () => {
       expect(data.error).toContain("not found");
     });
 
-    test("should handle Calibre sync failure gracefully", async () => {
+    test("should fail when Calibre sync fails (fail fast)", async () => {
       const book = await bookRepository.create(mockBook1);
       mockCalibreShouldFail = true;
 
@@ -277,13 +326,19 @@ describe("PATCH /api/books/[id]/tags", () => {
         tags: ["Fiction"],
       });
       const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
 
-      // Should still succeed (best-effort sync)
-      expect(response.status).toBe(200);
+      // Should fail with 500 error (fail fast - not best effort)
+      expect(response.status).toBe(500);
+      expect(data.error).toContain("Failed to update tags");
 
-      // But tags should still be updated in local DB
-      const updatedBook = await bookRepository.findById(book.id);
-      expect(updatedBook?.tags).toEqual(["Fiction"]);
+      // Tags should NOT be updated in local DB (transaction rolled back)
+      const unchangedBook = await bookRepository.findById(book.id);
+      expect(unchangedBook?.tags).toEqual(mockBook1.tags);
+      
+      // Verify watcher was still resumed with ignore period
+      expect(mockWatcherResumeCalled).toBe(true);
+      expect(mockWatcherResumeIgnorePeriod).toBe(3000);
     });
   });
 

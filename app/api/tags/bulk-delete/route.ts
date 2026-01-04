@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookService } from "@/lib/services";
+import { tagService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,16 +36,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await bookService.bulkDeleteTags(body.tagNames);
+    const result = await tagService.bulkDeleteTags(body.tagNames);
 
     return NextResponse.json({
+      success: result.failureCount === 0,
+      partialSuccess: result.successCount > 0 && result.failureCount > 0,
       deletedTags: body.tagNames,
       tagsDeleted: result.tagsDeleted,
-      booksUpdated: result.booksUpdated,
+      totalBooks: result.totalBooks,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      calibreFailures: result.calibreFailures,
+      tomeFailures: result.tomeFailures,
     });
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error bulk deleting tags");
-    return NextResponse.json({ error: "Failed to delete tags" }, { status: 500 });
+    
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete tags";
+    return NextResponse.json({ 
+      error: errorMessage,
+      success: false,
+      partialSuccess: false,
+      totalBooks: 0,
+      successCount: 0,
+      failureCount: 0,
+      tagsDeleted: 0,
+    }, { status: 500 });
   }
 }

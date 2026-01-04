@@ -93,11 +93,15 @@ describe("Stats API - GET /api/stats/overview", () => {
   });
 
   test("counts books read correctly", async () => {
+    const now = new Date();
+    const thisYear = new Date(now.getFullYear(), 5, 15); // June 15 this year
+    const lastYear = new Date(now.getFullYear() - 1, 4, 10); // May 10 last year
+
     // Create reading sessions
     await sessionRepository.create({
       bookId: testBook1.id,
       status: "read",
-      completedDate: new Date("2025-11-15"),
+      completedDate: thisYear,
       sessionNumber: 1,
       isActive: false, // Completed books are archived
     });
@@ -105,7 +109,7 @@ describe("Stats API - GET /api/stats/overview", () => {
     await sessionRepository.create({
       bookId: testBook2.id,
       status: "read",
-      completedDate: new Date("2024-05-10"),
+      completedDate: lastYear,
       sessionNumber: 1,
       isActive: false, // Completed books are archived
     });
@@ -121,7 +125,7 @@ describe("Stats API - GET /api/stats/overview", () => {
     const data = await response.json();
 
     expect(data.booksRead.total).toBe(2);
-    expect(data.booksRead.thisYear).toBe(1); // Only 2025 book
+    expect(data.booksRead.thisYear).toBe(1); // Only this year's book
     expect(data.currentlyReading).toBe(1);
   });
 

@@ -51,6 +51,7 @@ export function StreakEditModal({
       onClose={onClose}
       title="Edit Daily Reading Goal"
       subtitle="Set how many pages you want to read each day to maintain your streak"
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3">
           <button
@@ -91,7 +92,7 @@ export function StreakEditModal({
               const val = parseInt(e.target.value);
               setThreshold(isNaN(val) ? 1 : val);
             }}
-            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
             disabled={isUpdatingThreshold}
             autoFocus
           />

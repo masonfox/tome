@@ -284,6 +284,23 @@ Some \`inline code\` here.
       expect(within(container).getByText(/Level 1/)).toBeDefined();
       expect(within(container).getByText(/Level 2/)).toBeDefined();
     });
+
+    it("does not add decorative quotes around blockquote content", () => {
+      const { container } = render(<MarkdownRenderer content="> This is a quote" />);
+      const blockquote = container.querySelector("blockquote");
+      expect(blockquote).toBeDefined();
+      
+      // Verify the blockquote exists and contains the expected text
+      const textContent = blockquote?.textContent?.trim() || "";
+      expect(textContent).toBe("This is a quote");
+      
+      // Verify no curly quotes or extra quote characters are added
+      // The Tailwind Typography plugin by default adds decorative quotes via CSS pseudo-elements
+      // This test ensures our CSS override is working to remove them
+      expect(textContent).not.toContain("\u201C");
+      expect(textContent).not.toContain("\u201D");
+      expect(textContent).not.toContain('"');
+    });
   });
 
   describe("Code Blocks", () => {

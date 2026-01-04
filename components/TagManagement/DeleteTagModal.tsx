@@ -2,6 +2,8 @@
 
 import BaseModal from "@/components/BaseModal";
 import { AlertTriangle } from "lucide-react";
+import { TagOperationResults } from "./TagOperationResults";
+import type { TagOperationResult } from "@/types/tag-operations";
 
 interface DeleteTagModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface DeleteTagModalProps {
   bookCount: number;
   onConfirm: () => void;
   loading?: boolean;
+  result?: TagOperationResult | null;  // Add result prop
 }
 
 export function DeleteTagModal({
@@ -19,41 +22,66 @@ export function DeleteTagModal({
   bookCount,
   onConfirm,
   loading = false,
+  result = null,
 }: DeleteTagModalProps) {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
   };
+
+  // Show results mode if we have results
+  const showingResults = !!result;
 
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Delete Tag"
-      subtitle={`"${tagName}"`}
+      title={showingResults ? "Delete Results" : "Delete Tag"}
+      subtitle={showingResults ? undefined : `"${tagName}"`}
       size="md"
       loading={loading}
       actions={
-        <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={loading}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Delete Tag
-          </button>
-        </div>
+        showingResults ? (
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={loading}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Deleting..." : "Delete Tag"}
+            </button>
+          </div>
+        )
       }
     >
-      <div className="space-y-4">
+      {showingResults ? (
+        <TagOperationResults
+          operation="delete"
+          result={result}
+          operationDetails={{
+            deletedTag: tagName,
+          }}
+        />
+      ) : (
+        <div className="space-y-4">
         <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
           <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -71,6 +99,7 @@ export function DeleteTagModal({
           Are you sure you want to delete this tag?
         </p>
       </div>
+      )}
     </BaseModal>
   );
 }

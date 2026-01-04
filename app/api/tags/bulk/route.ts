@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookService } from "@/lib/services";
+import { tagService } from "@/lib/services";
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await bookService.bulkUpdateTags(
+    const result = await tagService.bulkUpdateTags(
       body.bookIds,
       body.action,
       body.tags
