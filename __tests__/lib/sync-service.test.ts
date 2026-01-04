@@ -848,4 +848,116 @@ describe("Sync Service - Orphaning Safety Checks", () => {
     // Assert - Should return empty (book 2 is already orphaned)
     expect(result).toEqual([]);
   });
+
+  test("skips orphan detection when detectOrphans option is false", async () => {
+    // Arrange - Create an existing book
+    const existingBook = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Existing Book",
+      authors: ["Author 1"],
+      tags: [],
+      path: "Author1/Book1",
+      orphaned: false,
+    }));
+
+    // Mock Calibre source that doesn't include the existing book (simulating removal)
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          id: 2, // Different book, not book 1
+          title: "New Book",
+        },
+      ],
+      getBookTags: () => ["fantasy"],
+    };
+
+    // Act - Sync with detectOrphans = false
+    const result = await syncCalibreLibrary(testCalibreSource, { detectOrphans: false });
+
+    // Assert - Sync should succeed
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(1); // New book created
+    expect(result.removedCount).toBe(0); // No orphan detection
+
+    // Assert - Existing book should NOT be marked as orphaned
+    const book = await bookRepository.findById(existingBook.id);
+    expect(book?.orphaned).toBe(false);
+  });
+
+  test("uses getAllBookTags for batch tag fetching when available", async () => {
+    // Arrange - Track which method was called
+    let getAllBookTagsCalled = false;
+    let getBookTagsCallCount = 0;
+
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        { ...mockCalibreBook, id: 1, title: "Book 1" },
+        { ...mockCalibreBook, id: 2, title: "Book 2" },
+        { ...mockCalibreBook, id: 3, title: "Book 3" },
+      ],
+      getBookTags: (bookId: number) => {
+        getBookTagsCallCount++;
+        return ["tag1", "tag2"];
+      },
+      getAllBookTags: () => {
+        getAllBookTagsCalled = true;
+        return new Map([
+          [1, ["tag1", "tag2"]],
+          [2, ["tag3"]],
+          [3, ["tag4", "tag5"]],
+        ]);
+      },
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - getAllBookTags should be called, not individual getBookTags
+    expect(getAllBookTagsCalled).toBe(true);
+    expect(getBookTagsCallCount).toBe(0); // Should not be called when getAllBookTags exists
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(3);
+
+    // Verify books have correct tags
+    const book1 = await bookRepository.findByCalibreId(1);
+    const book2 = await bookRepository.findByCalibreId(2);
+    const book3 = await bookRepository.findByCalibreId(3);
+    
+    expect(book1?.tags).toEqual(["tag1", "tag2"]);
+    expect(book2?.tags).toEqual(["tag3"]);
+    expect(book3?.tags).toEqual(["tag4", "tag5"]);
+  });
+
+  test("falls back to individual getBookTags when getAllBookTags is not available", async () => {
+    // Arrange - Track getBookTags calls
+    let getBookTagsCallCount = 0;
+
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        { ...mockCalibreBook, id: 1, title: "Book 1" },
+        { ...mockCalibreBook, id: 2, title: "Book 2" },
+      ],
+      getBookTags: (bookId: number) => {
+        getBookTagsCallCount++;
+        return bookId === 1 ? ["tag1"] : ["tag2"];
+      },
+      // No getAllBookTags provided
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - getBookTags should be called for each book
+    expect(getBookTagsCallCount).toBe(2);
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(2);
+
+    // Verify books have correct tags
+    const book1 = await bookRepository.findByCalibreId(1);
+    const book2 = await bookRepository.findByCalibreId(2);
+    
+    expect(book1?.tags).toEqual(["tag1"]);
+    expect(book2?.tags).toEqual(["tag2"]);
+  });
 });
