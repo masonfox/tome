@@ -10,7 +10,6 @@ export function ToastProvider() {
       expand={false}
       richColors={false}
       closeButton={false}
-      duration={3000}
       icons={{
         success: <CheckCircle2 className="w-5 h-5" />,
         error: <XCircle className="w-5 h-5" />,
@@ -18,7 +17,6 @@ export function ToastProvider() {
         warning: <AlertTriangle className="w-5 h-5" />,
       }}
       toastOptions={{
-        duration: 3000,
         classNames: {
           toast:
             "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--foreground)] shadow-lg font-sans",
