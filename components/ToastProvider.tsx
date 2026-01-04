@@ -8,7 +8,7 @@ export function ToastProvider() {
     <Toaster
       position="top-center"
       expand={false}
-      richColors={false}
+      richColors
       closeButton={false}
       icons={{
         success: <CheckCircle2 className="w-5 h-5" />,
