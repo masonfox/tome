@@ -54,11 +54,30 @@ export default function RootLayout({
             __html: `
               (function() {
                 // Set theme before page loads to prevent flicker
-                const savedMode = localStorage.getItem("darkMode");
-                const theme = savedMode !== null
-                  ? (savedMode === "true" ? "dark" : "light")
-                  : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-
+                const savedPreference = localStorage.getItem("themePreference");
+                const oldSavedMode = localStorage.getItem("darkMode");
+                
+                let preference = "auto"; // NEW DEFAULT
+                
+                // Check new format first
+                if (savedPreference && ["light", "dark", "auto"].includes(savedPreference)) {
+                  preference = savedPreference;
+                } 
+                // Migrate old format
+                else if (oldSavedMode !== null) {
+                  preference = oldSavedMode === "true" ? "dark" : "light";
+                  localStorage.setItem("themePreference", preference);
+                  localStorage.removeItem("darkMode");
+                }
+                
+                // Determine effective theme
+                let theme;
+                if (preference === "auto") {
+                  theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                } else {
+                  theme = preference;
+                }
+                
                 document.documentElement.setAttribute("data-theme", theme);
                 document.documentElement.setAttribute("data-color-mode", theme);
               })();

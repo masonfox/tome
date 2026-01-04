@@ -2,20 +2,23 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MoreHorizontal, LogOut, Sun, Moon } from "lucide-react";
+import { MoreHorizontal, LogOut } from "lucide-react";
 import { clsx } from "clsx";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BottomSheet } from "./BottomSheet";
 import { NAV_LINKS, BOTTOM_SHEET_LINKS, isActiveRoute } from "@/lib/navigation-config";
-import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
 export function BottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const { darkMode, toggleDarkMode, mounted } = useDarkMode();
+  const [mounted, setMounted] = useState(false);
   const { authEnabled } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -161,15 +164,6 @@ export function BottomNavigation() {
 
           {/* Action Items */}
           <div className="space-y-2">
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[var(--foreground)] hover:bg-[var(--border-color)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              <span className="font-medium">{darkMode ? "Light Mode" : "Dark Mode"}</span>
-            </button>
-
             {/* Logout */}
             {authEnabled && (
               <button
