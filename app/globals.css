@@ -89,49 +89,163 @@ body {
   padding: 4px !important;
 }
 
-/* Default close button background */
-[data-sonner-toast] [data-close-button] {
-  background-color: rgba(0, 0, 0, 0.1) !important;
+/* Warm theme toast styling - Light mode */
+/* Success toast - Warm green */
+.tome-toast-success {
+  background-color: #a5c9a8 !important; /* warm green */
+  border-color: #7aa57d !important; /* darker warm green border */
+  color: #2d4a2f !important; /* dark green text for contrast */
 }
 
-/* Success toast close button */
-[data-sonner-toast][data-type="success"] [data-close-button] {
-  background-color: rgb(21, 128, 61) !important; /* darker green */
+.tome-toast-success [data-icon] {
+  color: #5a8a5d !important; /* darker green for icon */
+}
+
+.tome-toast-success [data-close-button] {
+  background-color: #7aa57d !important; /* darker warm green */
   color: white !important;
 }
 
-[data-sonner-toast][data-type="success"] [data-close-button]:hover {
-  background-color: rgb(22, 101, 52) !important; /* even darker green */
+.tome-toast-success [data-close-button]:hover {
+  background-color: #5a8a5d !important; /* even darker on hover */
 }
 
-/* Error toast close button */
-[data-sonner-toast][data-type="error"] [data-close-button] {
-  background-color: rgb(185, 28, 28) !important; /* darker red */
+/* Error toast - Warm burgundy/rose */
+.tome-toast-error {
+  background-color: #d4a5a5 !important; /* warm rose/burgundy */
+  border-color: #a87a7a !important; /* darker burgundy border */
+  color: #4a2828 !important; /* dark burgundy text */
+}
+
+.tome-toast-error [data-icon] {
+  color: #8b3a3a !important; /* darker burgundy for icon */
+}
+
+.tome-toast-error [data-close-button] {
+  background-color: #a87a7a !important; /* darker burgundy */
   color: white !important;
 }
 
-[data-sonner-toast][data-type="error"] [data-close-button]:hover {
-  background-color: rgb(153, 27, 27) !important; /* even darker red */
+.tome-toast-error [data-close-button]:hover {
+  background-color: #8b3a3a !important; /* even darker on hover */
 }
 
-/* Info toast close button */
-[data-sonner-toast][data-type="info"] [data-close-button] {
-  background-color: rgb(29, 78, 216) !important; /* darker blue */
+/* Info toast - Neutral with accent */
+.tome-toast-info {
+  background-color: #f5f1e8 !important; /* card-bg */
+  border-color: #8b6f47 !important; /* accent border */
+  color: #3a3a3a !important; /* foreground */
+}
+
+.tome-toast-info [data-icon] {
+  color: #8b6f47 !important; /* accent color for icon */
+}
+
+.tome-toast-info [data-close-button] {
+  background-color: #8b6f47 !important; /* accent */
   color: white !important;
 }
 
-[data-sonner-toast][data-type="info"] [data-close-button]:hover {
-  background-color: rgb(30, 64, 175) !important; /* even darker blue */
+.tome-toast-info [data-close-button]:hover {
+  background-color: #6b5437 !important; /* darker accent on hover */
 }
 
-/* Warning toast close button */
-[data-sonner-toast][data-type="warning"] [data-close-button] {
-  background-color: rgb(180, 83, 9) !important; /* darker amber */
+/* Warning toast - Warm amber */
+.tome-toast-warning {
+  background-color: #e8c89f !important; /* warm amber */
+  border-color: #c9a876 !important; /* light-accent border */
+  color: #4a3a20 !important; /* dark amber text */
+}
+
+.tome-toast-warning [data-icon] {
+  color: #8b6f47 !important; /* accent color for icon */
+}
+
+.tome-toast-warning [data-close-button] {
+  background-color: #c9a876 !important; /* light-accent */
+  color: #4a3a20 !important;
+}
+
+.tome-toast-warning [data-close-button]:hover {
+  background-color: #8b6f47 !important; /* accent on hover */
   color: white !important;
 }
 
-[data-sonner-toast][data-type="warning"] [data-close-button]:hover {
-  background-color: rgb(146, 64, 14) !important; /* even darker amber */
+/* Dark mode toast styling */
+html[data-theme="dark"] .tome-toast-success {
+  background-color: #5a8a5d !important; /* darker warm green */
+  border-color: #7aa57d !important; /* lighter border for contrast */
+  color: #d4ead5 !important; /* light green text */
+}
+
+html[data-theme="dark"] .tome-toast-success [data-icon] {
+  color: #a5c9a8 !important; /* lighter green for icon */
+}
+
+html[data-theme="dark"] .tome-toast-success [data-close-button] {
+  background-color: #7aa57d !important;
+  color: white !important;
+}
+
+html[data-theme="dark"] .tome-toast-success [data-close-button]:hover {
+  background-color: #a5c9a8 !important; /* lighter on hover */
+}
+
+html[data-theme="dark"] .tome-toast-error {
+  background-color: #8b3a3a !important; /* darker burgundy */
+  border-color: #a87a7a !important; /* lighter border */
+  color: #f5d4d4 !important; /* light rose text */
+}
+
+html[data-theme="dark"] .tome-toast-error [data-icon] {
+  color: #d4a5a5 !important; /* lighter burgundy for icon */
+}
+
+html[data-theme="dark"] .tome-toast-error [data-close-button] {
+  background-color: #a87a7a !important;
+  color: white !important;
+}
+
+html[data-theme="dark"] .tome-toast-error [data-close-button]:hover {
+  background-color: #d4a5a5 !important; /* lighter on hover */
+}
+
+html[data-theme="dark"] .tome-toast-info {
+  background-color: #3d3935 !important; /* dark card-bg */
+  border-color: #a89968 !important; /* dark mode accent */
+  color: #e8dcc4 !important; /* dark mode foreground */
+}
+
+html[data-theme="dark"] .tome-toast-info [data-icon] {
+  color: #c9a876 !important; /* light-accent for icon */
+}
+
+html[data-theme="dark"] .tome-toast-info [data-close-button] {
+  background-color: #a89968 !important;
+  color: white !important;
+}
+
+html[data-theme="dark"] .tome-toast-info [data-close-button]:hover {
+  background-color: #c9a876 !important; /* lighter on hover */
+}
+
+html[data-theme="dark"] .tome-toast-warning {
+  background-color: #8b6f47 !important; /* darker amber */
+  border-color: #a89968 !important; /* accent border */
+  color: #f5ecd4 !important; /* light amber text */
+}
+
+html[data-theme="dark"] .tome-toast-warning [data-icon] {
+  color: #c9a876 !important; /* light-accent for icon */
+}
+
+html[data-theme="dark"] .tome-toast-warning [data-close-button] {
+  background-color: #a89968 !important;
+  color: white !important;
+}
+
+html[data-theme="dark"] .tome-toast-warning [data-close-button]:hover {
+  background-color: #c9a876 !important; /* lighter on hover */
 }
 
 /* Date input calendar icon styling */

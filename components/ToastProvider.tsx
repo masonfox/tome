@@ -1,14 +1,21 @@
 "use client";
 
 import { Toaster } from "sonner";
+import { BookCheck, BookX, BookOpen, AlertTriangle } from "lucide-react";
 
 export function ToastProvider() {
   return (
     <Toaster
       position="top-center"
       expand={false}
-      richColors
+      richColors={false}
       closeButton
+      icons={{
+        success: <BookCheck className="w-5 h-5" />,
+        error: <BookX className="w-5 h-5" />,
+        info: <BookOpen className="w-5 h-5" />,
+        warning: <AlertTriangle className="w-5 h-5" />,
+      }}
       toastOptions={{
         classNames: {
           toast:
@@ -18,10 +25,10 @@ export function ToastProvider() {
           actionButton: "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
           cancelButton: "bg-[var(--border-color)] text-[var(--foreground)]",
           closeButton: "bg-[var(--border-color)] text-[var(--foreground)] hover:bg-[var(--accent)] hover:text-white",
-          success: "border-green-600/30 bg-green-50 dark:bg-green-950/30",
-          error: "border-red-600/30 bg-red-50 dark:bg-red-950/30",
-          info: "border-blue-600/30 bg-blue-50 dark:bg-blue-950/30",
-          warning: "border-amber-600/30 bg-amber-50 dark:bg-amber-950/30",
+          success: "tome-toast-success",
+          error: "tome-toast-error",
+          info: "tome-toast-info",
+          warning: "tome-toast-warning",
         },
         style: {
           fontFamily: "'Lora', 'Crimson Text', serif",
