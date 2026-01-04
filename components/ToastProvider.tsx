@@ -1,7 +1,7 @@
 "use client";
 
 import { Toaster } from "sonner";
-import { BookCheck, BookX, BookOpen, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Info, AlertTriangle } from "lucide-react";
 
 export function ToastProvider() {
   return (
@@ -11,9 +11,9 @@ export function ToastProvider() {
       richColors={false}
       closeButton={false}
       icons={{
-        success: <BookCheck className="w-5 h-5" />,
-        error: <BookX className="w-5 h-5" />,
-        info: <BookOpen className="w-5 h-5" />,
+        success: <CheckCircle2 className="w-5 h-5" />,
+        error: <XCircle className="w-5 h-5" />,
+        info: <Info className="w-5 h-5" />,
         warning: <AlertTriangle className="w-5 h-5" />,
       }}
       toastOptions={{
