@@ -88,7 +88,7 @@ describe("useBookRating", () => {
         expect(global.fetch).toHaveBeenCalledWith(
           "/api/books/123/rating",
           expect.objectContaining({
-            method: "POST",
+            method: "PATCH",
             body: JSON.stringify({ rating: 5 }),
           })
         );
@@ -116,7 +116,7 @@ describe("useBookRating", () => {
         expect(global.fetch).toHaveBeenCalledWith(
           "/api/books/123/rating",
           expect.objectContaining({
-            method: "POST",
+            method: "PATCH",
             body: JSON.stringify({ rating: null }),
           })
         );
@@ -186,7 +186,7 @@ describe("useBookRating", () => {
         expect(global.fetch).toHaveBeenCalledWith(
           "/api/books/123/rating",
           expect.objectContaining({
-            method: "POST",
+            method: "PATCH",
             body: JSON.stringify({ rating: 3 }),
           })
         );

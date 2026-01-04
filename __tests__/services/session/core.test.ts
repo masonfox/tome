@@ -1,3 +1,6 @@
+// Import shared mock setup (must be first to properly mock modules)
+import "./setup";
+
 import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -6,23 +9,12 @@ import { mockBook1, mockSessionToRead, mockSessionReading, mockProgressLog1 , cr
 import type { Book } from "@/lib/db/schema/books";
 
 /**
- * Mock Rationale: Isolate session service tests from streak calculation complexity.
- * Streak logic involves complex date/time calculations and database queries that
- * aren't relevant to testing session lifecycle. We mock with reasonable return
- * values to verify session service integrates with streaks without testing streak logic.
+ * Additional mock for core tests: updateStreaks
+ * The shared setup already mocks rebuildStreak, revalidatePath, and calibreService
  */
 mock.module("@/lib/streaks", () => ({
   rebuildStreak: mock(() => Promise.resolve()),
   updateStreaks: mock(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
-}));
-
-/**
- * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
- * Session operations may trigger cache invalidation, but we don't need to test
- * Next.js's caching behavior - just our business logic.
- */
-mock.module("next/cache", () => ({
-  revalidatePath: mock(() => {}),
 }));
 
 describe("SessionService", () => {

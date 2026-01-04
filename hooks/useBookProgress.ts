@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { parseISO, startOfDay } from "date-fns";
-import { getTodayLocalDate } from "@/utils/dateFormatting";
+import { getTodayLocalDate } from '@/utils/dateHelpers';
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger().child({ hook: "useBookProgress" });
@@ -29,12 +29,13 @@ export interface UseBookProgressReturn {
   showEditProgressModal: boolean;
   selectedProgressEntry: ProgressEntry | null;
   showCompletionModal: boolean;
+  completedSessionId?: number; // Session ID when auto-completed
   setCurrentPage: (value: string) => void;
   setCurrentPercentage: (value: string) => void;
   setProgressInputMode: (mode: "page" | "percentage") => void;
   setNotes: (value: string) => void;
   setProgressDate: (value: string) => void;
-  handleLogProgress: (e: React.FormEvent) => Promise<{ success: boolean; shouldShowCompletionModal?: boolean }>;
+  handleLogProgress: (e: React.FormEvent) => Promise<{ success: boolean; shouldShowCompletionModal?: boolean; completedSessionId?: number }>;
   handleEditProgress: (entry: ProgressEntry) => void;
   handleConfirmEditProgress: (updatedData: {
     currentPage?: number;
@@ -74,6 +75,7 @@ export function useBookProgress(
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [selectedProgressEntry, setSelectedProgressEntry] = useState<ProgressEntry | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completedSessionId, setCompletedSessionId] = useState<number | undefined>();
 
   // Fetch progress entries with TanStack Query
   const { data: progress = [], isLoading } = useQuery({
@@ -118,6 +120,7 @@ export function useBookProgress(
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -165,6 +168,7 @@ export function useBookProgress(
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -200,6 +204,7 @@ export function useBookProgress(
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -287,7 +292,7 @@ export function useBookProgress(
     }
   }, [book?.latestProgress]);
 
-  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<{ success: boolean; shouldShowCompletionModal?: boolean }> => {
+  const handleLogProgress = useCallback(async (e: React.FormEvent): Promise<{ success: boolean; shouldShowCompletionModal?: boolean; completedSessionId?: number }> => {
     e.preventDefault();
 
     const payload: any = {};
@@ -332,11 +337,13 @@ export function useBookProgress(
       if (result.shouldShowCompletionModal) {
         logger.info({ bookId }, 'Setting showCompletionModal to true');
         setShowCompletionModal(true);
+        setCompletedSessionId(result.completedSessionId);
       }
       
       return { 
         success: true, 
-        shouldShowCompletionModal: result.shouldShowCompletionModal 
+        shouldShowCompletionModal: result.shouldShowCompletionModal,
+        completedSessionId: result.completedSessionId
       };
     } catch (error) {
       return { success: false };
@@ -411,6 +418,7 @@ export function useBookProgress(
     showEditProgressModal,
     selectedProgressEntry,
     showCompletionModal,
+    completedSessionId,
     setCurrentPage,
     setCurrentPercentage,
     setProgressInputMode,

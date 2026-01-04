@@ -13,9 +13,10 @@ const logger = getLogger().child({ component: "FinishBookModal" });
 interface FinishBookModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (rating: number, review?: string) => void;
+  onConfirm: (rating?: number, review?: string) => void;
   bookTitle: string;
   bookId: string;
+  sessionId?: number; // Session ID to update with review (when auto-completed)
 }
 
 export default function FinishBookModal({
@@ -24,6 +25,7 @@ export default function FinishBookModal({
   onConfirm,
   bookTitle,
   bookId,
+  sessionId,
 }: FinishBookModalProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -67,12 +69,20 @@ export default function FinishBookModal({
     logger.debug({ isOpen, bookId }, 'FinishBookModal state changed');
   }, [isOpen, bookId]);
 
-  const handleSubmit = () => {
-    onConfirm(rating, review || undefined);
+  const handleSubmit = async () => {
+    // Only pass rating if it's > 0 (user actually selected a rating)
+    await onConfirm(rating > 0 ? rating : undefined, review || undefined);
     clearDraft(); // Clear draft after successful submission
+    onClose(); // Explicitly close the modal after successful confirmation
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    // If this is a manual mark-as-read flow (no sessionId), we should still mark the book as read
+    // Otherwise, clicking Skip cancels the entire status change
+    if (!sessionId) {
+      await onConfirm(undefined, undefined); // Mark as read without rating/review
+      clearDraft();
+    }
     setRating(0);
     setHoverRating(0);
     setReview("");
@@ -83,29 +93,35 @@ export default function FinishBookModal({
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Finished Reading?"
+      title="Book Completed!"
       size="2xl"
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
           <button
             onClick={handleClose}
             className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
           >
-            Cancel
+            Skip
           </button>
           <button
             onClick={handleSubmit}
             className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
           >
-            Mark as Read
+            Save Rating & Review
           </button>
         </div>
       }
     >
+      {/* Subtitle explaining the book is already completed */}
+      <p className="text-sm text-[var(--subheading-text)] mb-6">
+        You&apos;ve finished reading <i>{bookTitle}</i>! Would you like to rate and review it?
+      </p>
+
       {/* Rating */}
       <div className="mb-6">
         <label className="block text-sm text-[var(--foreground)] mb-3">
-          Rate <i>{bookTitle}</i>:
+          Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((star) => (

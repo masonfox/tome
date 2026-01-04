@@ -51,6 +51,7 @@ export function StreakEditModal({
       onClose={onClose}
       title="Edit Daily Reading Goal"
       subtitle="Set how many pages you want to read each day to maintain your streak"
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3">
           <button

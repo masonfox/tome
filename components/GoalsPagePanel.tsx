@@ -25,10 +25,11 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
 
-  const availableYears = useMemo(() => 
-    Array.from(new Set(allGoals.map(g => g.year))).sort((a, b) => b - a),
-    [allGoals]
-  );
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from(new Set([...allGoals.map(g => g.year), currentYear])).sort((a, b) => b - a);
+    return years;
+  }, [allGoals]);
 
   // Goal data query
   const { data: currentGoalData, isLoading: goalLoading, error: goalError } = useQuery({
@@ -209,6 +210,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         <ReadingGoalForm
           mode={modalMode}
           existingGoal={modalMode === "edit" ? currentGoalData?.goal : undefined}
+          selectedYear={selectedYear}
           onSuccess={handleSuccess}
           onCancel={handleCloseModal}
         />

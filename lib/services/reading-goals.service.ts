@@ -51,6 +51,28 @@ export class ReadingGoalsService {
   }
 
   /**
+   * Get the most appropriate goal for initial display
+   * Returns the most recent year's goal, or current year if no goals exist
+   * This ensures users see relevant data when landing on the goals page
+   */
+  async getDefaultGoal(userId: number | null): Promise<ReadingGoalWithProgress | null> {
+    const allGoals = await this.getAllGoals(userId);
+    
+    // If no goals exist, return null (triggers onboarding)
+    if (allGoals.length === 0) {
+      return null;
+    }
+
+    // Goals are already sorted by year descending from the repository
+    // Get the most recent goal (first in the list)
+    const mostRecentGoal = allGoals[0];
+    
+    // Get progress for this goal
+    const progress = await this.calculateProgress(userId, mostRecentGoal.year, mostRecentGoal.booksGoal);
+    return { goal: mostRecentGoal, progress };
+  }
+
+  /**
    * Get all goals for a user
    */
   async getAllGoals(userId: number | null): Promise<ReadingGoal[]> {

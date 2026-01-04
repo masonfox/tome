@@ -112,6 +112,7 @@ export default function PageCountEditModal({
       onClose={handleClose}
       title="Edit Page Count"
       subtitle={currentPageCount ? `Current: ${currentPageCount} pages` : undefined}
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-2">
           <button

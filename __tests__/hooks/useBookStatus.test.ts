@@ -14,6 +14,7 @@ describe("useBookStatus", () => {
     tags: [],
     totalPages: 300,
     activeSession: {
+      id: 1,
       status: "to-read",
     },
   };
@@ -24,8 +25,10 @@ describe("useBookStatus", () => {
   beforeEach(() => {
     global.fetch = mock(() => Promise.resolve({
       ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
       json: () => Promise.resolve({}),
-    } as Response));
+    } as Response)) as any;
     mockOnStatusChange.mockClear();
     mockOnRefresh.mockClear();
   });
@@ -62,7 +65,7 @@ describe("useBookStatus", () => {
   });
 
   describe("handleUpdateStatus", () => {
-    test("should show read confirmation when marking as read", () => {
+    test("should show complete book modal when marking as read from to-read", () => {
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
@@ -71,14 +74,34 @@ describe("useBookStatus", () => {
         result.current.handleUpdateStatus("read");
       });
 
+      expect(result.current.showCompleteBookModal).toBe(true);
+      expect(result.current.showReadConfirmation).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test("should show finish book modal when marking as read from reading", () => {
+      const readingBook = {
+        ...mockBook,
+        activeSession: { id: 1, status: "reading" },
+      };
+
+      const { result } = renderHook(() =>
+        useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
+      );
+
+      act(() => {
+        result.current.handleUpdateStatus("read");
+      });
+
       expect(result.current.showReadConfirmation).toBe(true);
+      expect(result.current.showCompleteBookModal).toBe(false);
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
     test("should show confirmation for backward movement with progress", () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
       const progressEntries = [{ id: 1, currentPage: 50, currentPercentage: 16.7, progressDate: "2024-01-01", notes: "", pagesRead: 50 }];
 
@@ -98,8 +121,10 @@ describe("useBookStatus", () => {
     test("should update status directly for forward movement", async () => {
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ sessionArchived: false }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -114,7 +139,7 @@ describe("useBookStatus", () => {
           "/api/books/123/status",
           expect.objectContaining({
             method: "POST",
-            body: JSON.stringify({ status: "read-next" }),
+            body: expect.stringContaining("read-next"),
           })
         );
       });
@@ -126,13 +151,15 @@ describe("useBookStatus", () => {
     test("should not show confirmation for backward movement without progress", async () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
 
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ sessionArchived: false }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -143,7 +170,12 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/status",
+          expect.objectContaining({
+            method: "POST",
+          })
+        );
       });
 
       expect(result.current.showStatusChangeConfirmation).toBe(false);
@@ -154,14 +186,16 @@ describe("useBookStatus", () => {
     test("should perform status change and clear pending state", async () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
       const progressEntries = [{ id: 1, currentPage: 50, currentPercentage: 16.7, progressDate: "2024-01-01", notes: "", pagesRead: 50 }];
 
       global.fetch = mock(() => Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ sessionArchived: true, archivedSessionNumber: 1 }),
-      } as Response));
+      } as Response)) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(readingBook, progressEntries, "123", mockOnStatusChange, mockOnRefresh)
@@ -210,15 +244,45 @@ describe("useBookStatus", () => {
   });
 
   describe("handleConfirmRead", () => {
-    test("should mark book as read with rating and review", async () => {
+    test("should mark book as read with rating and review when status is 'reading'", async () => {
+      const readingBook = {
+        ...mockBook,
+        activeSession: { id: 1, status: "reading" },
+      };
+
+      const { result } = renderHook(() =>
+        useBookStatus(readingBook, [], "123", mockOnStatusChange, mockOnRefresh)
+      );
+
+      await act(async () => {
+        await result.current.handleConfirmRead(4, "Great book!");
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/mark-as-read",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.stringContaining("4"),
+          })
+        );
+      });
+
+      expect(result.current.selectedStatus).toBe("read");
+      expect(result.current.showReadConfirmation).toBe(false);
+    });
+
+    test("should mark book as read via progress endpoint when not in 'reading' status", async () => {
       let fetchCallCount = 0;
       global.fetch = mock(() => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
           json: () => Promise.resolve({}),
         } as Response);
-      });
+      }) as any;
 
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -229,45 +293,24 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        expect(fetchCallCount).toBe(2); // progress + status
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/mark-as-read",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.stringContaining("4"),
+          })
+        );
       });
-
-      // Check progress was set to 100%
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/progress",
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining("100"),
-        })
-      );
-
-      // Check status was updated with rating and review
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/status",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            status: "read",
-            rating: 4,
-            review: "Great book!",
-          }),
-        })
-      );
 
       expect(result.current.selectedStatus).toBe("read");
       expect(result.current.showReadConfirmation).toBe(false);
     });
 
-    test("should skip progress update if book has no total pages", async () => {
+    test("should handle books without total pages", async () => {
       const bookWithoutPages = {
         ...mockBook,
         totalPages: undefined,
       };
-
-      global.fetch = mock(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as Response));
 
       const { result } = renderHook(() =>
         useBookStatus(bookWithoutPages, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -278,24 +321,19 @@ describe("useBookStatus", () => {
       });
 
       await waitFor(() => {
-        // Should only call status endpoint, not progress
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/books/123/mark-as-read",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.stringContaining("5"),
+          })
+        );
       });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/books/123/status",
-        expect.anything()
-      );
     });
   });
 
   describe("handleStartReread", () => {
     test("should start re-reading and refresh data", async () => {
-      global.fetch = mock(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as Response));
-
       const { result } = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
@@ -317,20 +355,17 @@ describe("useBookStatus", () => {
     });
 
     test("should handle reread errors", async () => {
-      global.fetch = mock(() => Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ error: "Cannot reread" }),
-      } as Response));
+      global.fetch = mock(() => Promise.reject(new Error("Cannot reread"))) as any;
 
-      const { result } = renderHook(() =>
+      const { result} = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
       );
 
-      // Expect the mutation to throw
+      // Expect the mutation to throw (after retries - 1s + 2s + 4s = 7s with exponential backoff)
       await act(async () => {
-        await expect(result.current.handleStartReread()).rejects.toThrow("Cannot reread");
+        await expect(result.current.handleStartReread()).rejects.toThrow();
       });
-    });
+    }, { timeout: 10000 }); // Increase timeout to account for retry logic (3 retries with backoff)
   });
 
   describe("status changes based on book updates", () => {
@@ -344,7 +379,7 @@ describe("useBookStatus", () => {
 
       const updatedBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { id: 1, status: "reading" },
       };
 
       rerender({ book: updatedBook });

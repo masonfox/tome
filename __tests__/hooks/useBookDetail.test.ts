@@ -203,6 +203,414 @@ describe("useBookDetail", () => {
     });
   });
 
+  describe("updateTags", () => {
+    test("should optimistically update book tags", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["old-tag"],
+      };
+
+      let patchCalled = false;
+      let bookData = { ...mockBook }; // Track current book state
+      
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH" && url.includes("/tags")) {
+          patchCalled = true;
+          // Update bookData when PATCH succeeds
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, tags: body.tags };
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          } as Response);
+        }
+        // GET requests return current book state
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(bookData),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.tags).toEqual(["old-tag"]);
+
+      // Update tags
+      const newTags = ["fiction", "fantasy"];
+      await act(async () => {
+        await result.current.updateTags(newTags);
+      });
+
+      // Wait for update to complete (mutation + refetch)
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual(newTags);
+      }, { timeout: 2000 });
+
+      // Verify PATCH was called with correct payload
+      expect(patchCalled).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/tags",
+        expect.objectContaining({
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: newTags }),
+        })
+      );
+    });
+
+    test("should rollback on error", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["original-tag"],
+      };
+
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH") {
+          return Promise.reject(new Error("Update failed"));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockBook),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.tags).toEqual(["original-tag"]);
+
+      // Attempt update - expect it to throw
+      await expect(result.current.updateTags(["new-tag"])).rejects.toThrow("Update failed");
+
+      // Verify tags reverted to original value
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual(["original-tag"]);
+      });
+    });
+
+    test("should handle empty tags array", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["tag1", "tag2"],
+      };
+
+      let bookData = { ...mockBook };
+      
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH" && url.includes("/tags")) {
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, tags: body.tags };
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          } as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(bookData),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.tags).toEqual(["tag1", "tag2"]);
+
+      // Clear all tags by passing empty array
+      await act(async () => {
+        await result.current.updateTags([]);
+      });
+
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual([]);
+      }, { timeout: 2000 });
+
+      // Verify PATCH was called with empty array
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/tags",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ tags: [] }),
+        })
+      );
+    });
+
+    test("should refetch book data after successful update", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["old-tag"],
+      };
+
+      let fetchCount = 0;
+      let bookData = { ...mockBook };
+      
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH" && url.includes("/tags")) {
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, tags: body.tags };
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          } as Response);
+        }
+        // Count GET requests
+        if (!options || options.method === "GET" || !options.method) {
+          fetchCount++;
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(bookData),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const initialFetchCount = fetchCount;
+
+      // Update tags
+      await act(async () => {
+        await result.current.updateTags(["new-tag"]);
+      });
+
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual(["new-tag"]);
+      });
+
+      // Verify that book was refetched after update (fetchCount increased)
+      expect(fetchCount).toBeGreaterThan(initialFetchCount);
+    });
+  });
+
+  describe("updateTags", () => {
+    test("should optimistically update book tags", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["old-tag"],
+      };
+
+      let patchCalled = false;
+      let bookData = { ...mockBook }; // Track current book state
+      
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH" && url.includes("/tags")) {
+          patchCalled = true;
+          // Update bookData when PATCH succeeds
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, tags: body.tags };
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          } as Response);
+        }
+        // GET requests return current book state
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(bookData),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.tags).toEqual(["old-tag"]);
+
+      // Update tags
+      const newTags = ["fiction", "fantasy"];
+      await act(async () => {
+        await result.current.updateTags(newTags);
+      });
+
+      // Wait for update to complete (mutation + refetch)
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual(newTags);
+      }, { timeout: 2000 });
+
+      // Verify PATCH was called with correct payload
+      expect(patchCalled).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/tags",
+        expect.objectContaining({
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: newTags }),
+        })
+      );
+    });
+
+    test("should rollback on error", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["original-tag"],
+      };
+
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH") {
+          return Promise.reject(new Error("Update failed"));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockBook),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.tags).toEqual(["original-tag"]);
+
+      // Attempt update - expect it to throw
+      await expect(result.current.updateTags(["new-tag"])).rejects.toThrow("Update failed");
+
+      // Verify tags reverted to original value
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual(["original-tag"]);
+      });
+    });
+
+    test("should handle empty tags array", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["tag1", "tag2"],
+      };
+
+      let bookData = { ...mockBook };
+      
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH" && url.includes("/tags")) {
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, tags: body.tags };
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          } as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(bookData),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.tags).toEqual(["tag1", "tag2"]);
+
+      // Clear all tags by passing empty array
+      await act(async () => {
+        await result.current.updateTags([]);
+      });
+
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual([]);
+      }, { timeout: 2000 });
+
+      // Verify PATCH was called with empty array
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/books/123/tags",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ tags: [] }),
+        })
+      );
+    });
+
+    test("should refetch book data after successful update", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["old-tag"],
+      };
+
+      let fetchCount = 0;
+      let bookData = { ...mockBook };
+      
+      global.fetch = mock((url: string, options?: any) => {
+        if (options?.method === "PATCH" && url.includes("/tags")) {
+          const body = JSON.parse(options.body);
+          bookData = { ...bookData, tags: body.tags };
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          } as Response);
+        }
+        // Count GET requests
+        if (!options || options.method === "GET" || !options.method) {
+          fetchCount++;
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(bookData),
+        } as Response);
+      });
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const initialFetchCount = fetchCount;
+
+      // Update tags
+      await act(async () => {
+        await result.current.updateTags(["new-tag"]);
+      });
+
+      await waitFor(() => {
+        expect(result.current.book?.tags).toEqual(["new-tag"]);
+      });
+
+      // Verify that book was refetched after update (fetchCount increased)
+      expect(fetchCount).toBeGreaterThan(initialFetchCount);
+    });
+  });
+
   describe("imageError", () => {
     test("should provide setImageError function", () => {
       const { result } = renderHook(() => useBookDetail("123"));

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BookService } from "@/lib/services/book.service";
+import { bookService } from "@/lib/services/book.service";
 
 export const dynamic = 'force-dynamic';
-
-const bookService = new BookService();
 
 export async function GET(
   request: NextRequest,

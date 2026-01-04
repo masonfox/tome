@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { formatDateOnly } from "@/utils/dateFormatting";
+import { formatDateOnly } from '@/utils/dateHelpers';
 
 describe("formatDateOnly", () => {
   test("should format ISO date string correctly regardless of timezone", () => {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readingGoalsService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
 
+export const dynamic = 'force-dynamic';
+
 const logger = getLogger();
 
 /**

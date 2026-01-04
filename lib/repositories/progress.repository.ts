@@ -29,8 +29,9 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Find progress logs for a specific session
    */
-  async findBySessionId(sessionId: number): Promise<ProgressLog[]> {
-    return this.getDatabase()
+  async findBySessionId(sessionId: number, tx?: any): Promise<ProgressLog[]> {
+    const database = tx || this.getDatabase();
+    return database
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))
@@ -54,8 +55,9 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Find latest progress for a session
    */
-  async findLatestBySessionId(sessionId: number): Promise<ProgressLog | undefined> {
-    return this.getDatabase()
+  async findLatestBySessionId(sessionId: number, tx?: any): Promise<ProgressLog | undefined> {
+    const database = tx || this.getDatabase();
+    return database
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))
@@ -341,8 +343,9 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Check if there's progress logged for a session
    */
-  async hasProgressForSession(sessionId: number): Promise<boolean> {
-    const result = this.getDatabase()
+  async hasProgressForSession(sessionId: number, tx?: any): Promise<boolean> {
+    const database = tx || this.getDatabase();
+    const result = database
       .select({ count: sql<number>`count(*)` })
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))

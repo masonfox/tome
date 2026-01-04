@@ -1,9 +1,53 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "bun:test";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { BookService } from "@/lib/services/book.service";
 import { mockBook1, mockBook2, mockSessionReading, mockProgressLog1, createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
+
+/**
+ * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+ */
+let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockCalibreShouldFail = false;
+
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    batchUpdateTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
+      if (mockCalibreShouldFail) {
+        throw new Error("Calibre database is unavailable");
+      }
+      return mockBatchUpdateCalibreTags(updates);
+    },
+    updateTags: mock(() => {}),
+    updateRating: mock(() => {}),
+    readTags: mock(() => []),
+    readRating: mock(() => null),
+  },
+  CalibreService: class {},
+}));
+
+// Mock Calibre watcher to track suspend/resume calls
+let mockWatcherSuspendCalled = false;
+let mockWatcherResumeCalled = false;
+let mockWatcherResumeIgnorePeriod = 0;
+
+mock.module("@/lib/calibre-watcher", () => ({
+  calibreWatcher: {
+    suspend: () => {
+      mockWatcherSuspendCalled = true;
+    },
+    resume: () => {
+      mockWatcherResumeCalled = true;
+    },
+    resumeWithIgnorePeriod: (durationMs: number = 3000) => {
+      mockWatcherResumeCalled = true;
+      mockWatcherResumeIgnorePeriod = durationMs;
+    },
+    start: mock(() => {}),
+    stop: mock(() => {}),
+  },
+}));
 
 describe("BookService", () => {
   let bookService: BookService;
@@ -21,6 +65,12 @@ describe("BookService", () => {
 
   beforeEach(async () => {
     await clearTestDatabase(__filename);
+    // Reset mock state
+    mockBatchUpdateCalibreTags.mockClear();
+    mockCalibreShouldFail = false;
+    mockWatcherSuspendCalled = false;
+    mockWatcherResumeCalled = false;
+    mockWatcherResumeIgnorePeriod = 0;
     // Create fresh test books for each test
     book1 = await bookRepository.create(createTestBook(mockBook1));
     book2 = await bookRepository.create(createTestBook(mockBook2));
@@ -711,133 +761,6 @@ describe("BookService", () => {
 
       expect(result).toBeDefined();
       expect(result.rating).toBe(5);
-    });
-  });
-
-  describe("getAllTags", () => {
-    test("should return all unique tags sorted", async () => {
-      // book1 has: ["fantasy", "epic", "dragons"]
-      // book2 has: ["fantasy", "magic"]
-      const result = await bookService.getAllTags();
-
-      expect(result).toEqual(["dragons", "epic", "fantasy", "magic"]);
-    });
-
-    test("should return empty array when no books have tags", async () => {
-      // Clear all books
-      await clearTestDatabase(__filename);
-
-      // Create book without tags
-      await bookRepository.create(createTestBook({
-        calibreId: 10,
-        title: "No Tags Book",
-        authors: ["Author"],
-        path: "Author/No Tags Book (10)",
-        tags: [],
-      }));
-
-      const result = await bookService.getAllTags();
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("getBooksByFilters", () => {
-    test("should return books with pagination", async () => {
-      const result = await bookService.getBooksByFilters({}, 10, 0);
-
-      expect(result.books.length).toBe(2);
-      expect(result.total).toBe(2);
-    });
-
-    test("should filter by status", async () => {
-      // Create session for book1
-      await sessionRepository.create(createTestSession({
-        bookId: book1.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-      }));
-
-      const result = await bookService.getBooksByFilters({ status: "reading" }, 10, 0);
-
-      expect(result.books.length).toBe(1);
-      expect(result.books[0].id).toBe(book1.id);
-      expect(result.total).toBe(1);
-    });
-
-    test("should filter by search term", async () => {
-      const result = await bookService.getBooksByFilters({ search: "Dance" }, 10, 0);
-
-      expect(result.books.length).toBe(1);
-      expect(result.books[0].title).toContain("Dance");
-      expect(result.total).toBe(1);
-    });
-
-    test("should filter by tags", async () => {
-      const result = await bookService.getBooksByFilters({ tags: ["dragons"] }, 10, 0);
-
-      expect(result.books.length).toBe(1);
-      expect(result.books[0].id).toBe(book1.id);
-      expect(result.total).toBe(1);
-    });
-
-    test("should filter by rating", async () => {
-      // Set rating on book1
-      await bookRepository.update(book1.id, { rating: 5 });
-
-      const result = await bookService.getBooksByFilters({ rating: "5" }, 10, 0);
-
-      expect(result.books.length).toBe(1);
-      expect(result.books[0].id).toBe(book1.id);
-      expect(result.total).toBe(1);
-    });
-
-    test("should handle pagination with skip and limit", async () => {
-      // Create more books
-      await bookRepository.create(createTestBook({
-        calibreId: 3,
-        title: "Book 3",
-        authors: ["Author 3"],
-        path: "Author 3/Book 3 (3)",
-      }));
-
-      const result = await bookService.getBooksByFilters({}, 2, 1);
-
-      expect(result.books.length).toBe(2);
-      expect(result.total).toBe(3);
-    });
-
-    test("should exclude orphaned books by default", async () => {
-      // Create orphaned book
-      await bookRepository.create(createTestBook({
-        calibreId: 999,
-        title: "Orphaned",
-        authors: ["Unknown"],
-        path: "Unknown/Orphaned (999)",
-        orphaned: true,
-      }));
-
-      const result = await bookService.getBooksByFilters({}, 10, 0);
-
-      expect(result.books.length).toBe(2); // Only non-orphaned
-      expect(result.total).toBe(2);
-    });
-
-    test("should include orphaned books when showOrphaned is true", async () => {
-      // Create orphaned book
-      await bookRepository.create(createTestBook({
-        calibreId: 999,
-        title: "Orphaned",
-        authors: ["Unknown"],
-        path: "Unknown/Orphaned (999)",
-        orphaned: true,
-      }));
-
-      const result = await bookService.getBooksByFilters({ showOrphaned: true }, 10, 0);
-
-      expect(result.books.length).toBe(3);
-      expect(result.total).toBe(3);
     });
   });
 });

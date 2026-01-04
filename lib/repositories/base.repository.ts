@@ -28,8 +28,9 @@ export abstract class BaseRepository<
   /**
    * Find a single record by ID
    */
-  async findById(id: number): Promise<T | undefined> {
-    return this.getDatabase()
+  async findById(id: number, tx?: any): Promise<T | undefined> {
+    const database = tx || this.getDatabase();
+    return database
       .select()
       .from(this.tableSchema)
       .where(eq(this.tableSchema.id, id))
@@ -83,16 +84,18 @@ export abstract class BaseRepository<
    /**
     * Create a new record
     */
-   async create(data: InsertT): Promise<T> {
-     const result = this.getDatabase().insert(this.tableSchema).values(data).returning().all() as unknown as T[];
+   async create(data: InsertT, tx?: any): Promise<T> {
+     const database = tx || this.getDatabase();
+     const result = database.insert(this.tableSchema).values(data).returning().all() as unknown as T[];
      return result[0];
    }
 
    /**
     * Update a record by ID
     */
-   async update(id: number, data: Partial<InsertT>): Promise<T | undefined> {
-     const result = this.getDatabase()
+   async update(id: number, data: Partial<InsertT>, tx?: any): Promise<T | undefined> {
+     const database = tx || this.getDatabase();
+     const result = database
        .update(this.tableSchema)
        .set(data)
        .where(eq(this.tableSchema.id, id))

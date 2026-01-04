@@ -5,6 +5,15 @@ import { ProgressService } from "@/lib/services/progress.service";
 import { mockBook1, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
+import { formatInTimeZone } from "date-fns-tz";
+
+/**
+ * Helper function to get date in EST timezone (for test assertions)
+ * Extracts just the date part (YYYY-MM-DD) from a UTC timestamp stored in the database.
+ */
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 /**
  * Mock Rationale: Isolate progress service tests from streak calculation complexity.
@@ -258,7 +267,7 @@ describe("ProgressService", () => {
   });
 
   describe("logProgress - auto-completion", () => {
-    test("should return completion flag at 100% progress", async () => {
+    test("should auto-complete book at 100% progress", async () => {
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 100,
       });
@@ -266,13 +275,59 @@ describe("ProgressService", () => {
       // Check that completion flag is returned
       expect(result.shouldShowCompletionModal).toBe(true);
       
-      // Session should NOT be auto-completed
+      // Session SHOULD be auto-completed with status "read"
       const updatedSession = await sessionRepository.findById(session.id);
-      expect(updatedSession?.status).toBe("reading");
-      expect(updatedSession?.completedDate).toBeNull();
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate).not.toBeNull();
     });
 
-    test("should not return completion flag below 100%", async () => {
+    test("should use progress date as completion date for backdated 100% progress", async () => {
+      const backdatedDate = new Date("2025-11-10T14:30:00.000Z");
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        progressDate: backdatedDate,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      // Completion date should match the backdated progress date
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate?.getTime()).toBe(backdatedDate.getTime());
+    });
+
+    test("should use today's date as completion date for current 100% progress", async () => {
+      const todayEST = formatInTimeZone(new Date(), "America/New_York", "yyyy-MM-dd");
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        // No progressDate provided, uses today
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate).not.toBeNull();
+      
+      // Should be today's date (midnight in user's timezone)
+      expect(getDateInEST(updatedSession!.completedDate!)).toBe(todayEST);
+    });
+
+    test("should auto-complete when logging 100% by page number", async () => {
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 1040, // 100% of totalPages
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate).not.toBeNull();
+    });
+
+    test("should not auto-complete below 100%", async () => {
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 99.9,
       });
@@ -280,6 +335,37 @@ describe("ProgressService", () => {
       expect(result.shouldShowCompletionModal).toBe(false);
       const updatedSession = await sessionRepository.findById(session.id);
       expect(updatedSession?.status).toBe("reading");
+      expect(updatedSession?.completedDate).toBeNull();
+    });
+
+    test("should preserve completion date when logging 100% with historical date", async () => {
+      // Simulate logging completion for a book finished weeks ago
+      const historicalDate = new Date("2025-10-15T10:00:00.000Z");
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        progressDate: historicalDate,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate?.toISOString()).toBe(historicalDate.toISOString());
+    });
+
+    test("should log info message when auto-completing", async () => {
+      // This test verifies logging behavior (useful for debugging)
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      // If we had a way to capture logs, we'd verify the log message here
+      // For now, just verify the side effect (auto-completion) happened
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
     });
   });
 

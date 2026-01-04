@@ -3,11 +3,11 @@ coverage:
     project:
       default:
         target: auto
-        threshold: 1%
+        threshold: 0.3%
     patch:
       default:
-        target: auto
-        threshold: 1%
+        target: 80%
+        threshold: 0%
 
 comment:
   layout: "reach, diff, flags, files"
