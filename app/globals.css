@@ -797,6 +797,12 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable ol li::marker {
   border-left-color: var(--border-color) !important;
 }
 
+/* Remove decorative quotes added by Tailwind Typography plugin */
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none !important;
+}
+
 .prose ul, .prose ol, .prose li {
   color: var(--foreground) !important;
 }
