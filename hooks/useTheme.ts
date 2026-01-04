@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 
 export type ThemePreference = "light" | "dark" | "auto";
 export type Theme = "light" | "dark";
@@ -56,6 +57,31 @@ export function useTheme() {
     html.setAttribute("data-theme", effectiveTheme);
     html.setAttribute("data-color-mode", effectiveTheme);
   }, [effectiveTheme, mounted]);
+
+  // Cross-tab sync via storage events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Only handle themePreference changes from other tabs
+      if (e.key === "themePreference") {
+        if (e.newValue && ["light", "dark", "auto"].includes(e.newValue)) {
+          // Valid new preference - update state
+          setPreference(e.newValue as ThemePreference);
+        } else if (e.newValue === null) {
+          // Key was deleted - revert to default
+          setPreference("auto");
+        } else if (e.newValue) {
+          // Invalid value - keep current theme and notify user
+          toast.error(
+            "Theme preference was corrupted. Keeping your current theme.",
+            { duration: 5000 }
+          );
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   // Update preference
   const setThemePreference = useCallback((newPreference: ThemePreference) => {
