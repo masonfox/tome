@@ -84,85 +84,85 @@ body {
 .tome-toast-success {
   background-color: #a5c9a8 !important; /* warm green */
   border-color: #7aa57d !important; /* darker warm green border */
-  color: #2d4a2f !important; /* dark green text for contrast */
+  color: #1a2e1b !important; /* very dark green text for strong contrast */
 }
 
 .tome-toast-success [data-icon] {
-  color: #5a8a5d !important; /* darker green for icon */
+  color: #1a2e1b !important; /* match text color for consistency */
 }
 
 /* Error toast - Warm burgundy/rose */
 .tome-toast-error {
   background-color: #d4a5a5 !important; /* warm rose/burgundy */
   border-color: #a87a7a !important; /* darker burgundy border */
-  color: #4a2828 !important; /* dark burgundy text */
+  color: #3a1515 !important; /* very dark burgundy text for strong contrast */
 }
 
 .tome-toast-error [data-icon] {
-  color: #8b3a3a !important; /* darker burgundy for icon */
+  color: #3a1515 !important; /* match text color for consistency */
 }
 
 /* Info toast - Neutral with accent */
 .tome-toast-info {
   background-color: #f5f1e8 !important; /* card-bg */
   border-color: #8b6f47 !important; /* accent border */
-  color: #3a3a3a !important; /* foreground */
+  color: #2a2a2a !important; /* very dark gray for strong contrast */
 }
 
 .tome-toast-info [data-icon] {
-  color: #8b6f47 !important; /* accent color for icon */
+  color: #2a2a2a !important; /* match text color for consistency */
 }
 
 /* Warning toast - Warm amber */
 .tome-toast-warning {
   background-color: #e8c89f !important; /* warm amber */
   border-color: #c9a876 !important; /* light-accent border */
-  color: #4a3a20 !important; /* dark amber text */
+  color: #2d2410 !important; /* very dark brown text for strong contrast */
 }
 
 .tome-toast-warning [data-icon] {
-  color: #8b6f47 !important; /* accent color for icon */
+  color: #2d2410 !important; /* match text color for consistency */
 }
 
 /* Dark mode toast styling */
 html[data-theme="dark"] .tome-toast-success {
   background-color: #5a8a5d !important; /* darker warm green */
   border-color: #7aa57d !important; /* lighter border for contrast */
-  color: #d4ead5 !important; /* light green text */
+  color: #e8fae9 !important; /* very light green-white text for strong contrast */
 }
 
 html[data-theme="dark"] .tome-toast-success [data-icon] {
-  color: #a5c9a8 !important; /* lighter green for icon */
+  color: #e8fae9 !important; /* match text color for consistency */
 }
 
 html[data-theme="dark"] .tome-toast-error {
   background-color: #8b3a3a !important; /* darker burgundy */
   border-color: #a87a7a !important; /* lighter border */
-  color: #f5d4d4 !important; /* light rose text */
+  color: #fde8e8 !important; /* very light rose-white text for strong contrast */
 }
 
 html[data-theme="dark"] .tome-toast-error [data-icon] {
-  color: #d4a5a5 !important; /* lighter burgundy for icon */
+  color: #fde8e8 !important; /* match text color for consistency */
 }
 
 html[data-theme="dark"] .tome-toast-info {
   background-color: #3d3935 !important; /* dark card-bg */
   border-color: #a89968 !important; /* dark mode accent */
-  color: #e8dcc4 !important; /* dark mode foreground */
+  color: #f5f1e8 !important; /* brighter cream-white text for strong contrast */
 }
 
 html[data-theme="dark"] .tome-toast-info [data-icon] {
-  color: #c9a876 !important; /* light-accent for icon */
+  color: #f5f1e8 !important; /* match text color for consistency */
 }
 
 html[data-theme="dark"] .tome-toast-warning {
   background-color: #8b6f47 !important; /* darker amber */
   border-color: #a89968 !important; /* accent border */
-  color: #f5ecd4 !important; /* light amber text */
+  color: #fdf5e8 !important; /* very light amber-white text for strong contrast */
 }
 
 html[data-theme="dark"] .tome-toast-warning [data-icon] {
-  color: #c9a876 !important; /* light-accent for icon */
+  color: #fdf5e8 !important; /* match text color for consistency */
 }
 
 /* Date input calendar icon styling */
