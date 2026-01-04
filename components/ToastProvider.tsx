@@ -9,7 +9,6 @@ export function ToastProvider() {
       position="top-center"
       expand={false}
       richColors
-      closeButton={false}
       icons={{
         success: <CheckCircle2 className="w-5 h-5" />,
         error: <XCircle className="w-5 h-5" />,
