@@ -30,6 +30,9 @@ A self-hosted book tracking web application that integrates directly with Calibr
 **Goals**
 ![Goals UI](./docs/assets/goals.png)
 
+**Tag Manager**
+![Tag Manager UI](./docs/assets/tags.png)
+
 </details>
 
 ## What is Tome?
