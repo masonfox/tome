@@ -1,7 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { PATCH as PATCH_BOOK } from "@/app/api/books/[id]/route";
-import { POST as UPDATE_STATUS } from "@/app/api/books/[id]/status/route";
 import { createMockRequest, createTestBook, createTestSession, createTestProgress } from "../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import type { NextRequest } from "next/server";
@@ -32,15 +30,29 @@ mock.module("next/cache", () => ({
 // Track Calibre rating sync calls
 let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
 
-// Mock Calibre database writes
-mock.module("@/lib/db/calibre-write", () => ({
-  updateCalibreRating: (calibreId: number, rating: number | null) => {
-    calibreRatingCalls.push({ calibreId, rating });
+/**
+ * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
+ * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
+ * our code correctly attempts to sync ratings, without actually writing to disk.
+ *
+ * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
+ * This prevents mock leakage to calibre-write.test.ts since they're different modules.
+ */
+mock.module("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
+      calibreRatingCalls.push({ calibreId, rating });
+    },
+    updateTags: mock(() => {}),
+    readRating: mock(() => null),
+    readTags: mock(() => []),
   },
-  readCalibreRating: () => null,
-  getCalibreWriteDB: () => ({}),
-  closeCalibreWriteDB: () => {},
+  CalibreService: class {},
 }));
+
+// IMPORTANT: Import route handlers AFTER mocks are set up
+import { PATCH as PATCH_BOOK } from "@/app/api/books/[id]/route";
+import { POST as UPDATE_STATUS } from "@/app/api/books/[id]/status/route";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);

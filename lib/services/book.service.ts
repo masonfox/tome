@@ -3,7 +3,7 @@ import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
-import { updateCalibreRating } from "@/lib/db/calibre-write";
+import type { ICalibreService } from "@/lib/services/calibre.service";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -22,10 +22,30 @@ export interface BookWithDetails extends Book {
  * - Book retrieval with enriched details
  * - Metadata updates (totalPages, rating)
  * - Book filtering and search
- * - Tags management
  * - Calibre rating sync
+ * 
+ * Note: Tag management has been extracted to TagService
  */
 export class BookService {
+  private calibre?: ICalibreService;
+  
+  constructor(calibre?: ICalibreService) {
+    this.calibre = calibre;
+  }
+  
+  /**
+   * Get the Calibre service instance (lazy loaded to support test mocking)
+   * Always re-imports to ensure test mocks are applied correctly
+   */
+  private getCalibreService(): ICalibreService {
+    if (this.calibre) {
+      return this.calibre;
+    }
+    // Lazy import to ensure mocks are applied before the module is loaded
+    // Don't cache the result - always get fresh reference to support test mocking
+    const { calibreService } = require("@/lib/services/calibre.service");
+    return calibreService;
+  }
   /**
    * Get a book by ID with enriched details (session, progress, read count)
    * 
@@ -81,22 +101,6 @@ export class BookService {
     sortBy?: string
   ): Promise<{ books: Book[]; total: number }> {
     return bookRepository.findWithFilters(filters, limit, skip, sortBy);
-  }
-
-  /**
-   * Get all unique tags from all books in the library
-   * 
-   * Tags are extracted from the books.tags array field and deduplicated.
-   * Useful for filter dropdowns and tag clouds.
-   * 
-   * @returns Promise resolving to array of unique tag strings, sorted alphabetically
-   * 
-   * @example
-   * const tags = await bookService.getAllTags();
-   * // returns: ['fiction', 'non-fiction', 'sci-fi', ...]
-   */
-  async getAllTags(): Promise<string[]> {
-    return bookRepository.getAllTags();
   }
 
   /**
@@ -248,7 +252,7 @@ export class BookService {
    */
   private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
     try {
-      updateCalibreRating(calibreId, rating);
+      this.getCalibreService().updateRating(calibreId, rating);
       const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
@@ -258,3 +262,9 @@ export class BookService {
     }
   }
 }
+
+/**
+ * Default BookService instance
+ * Use this in API routes and other application code
+ */
+export const bookService = new BookService();

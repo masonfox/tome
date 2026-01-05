@@ -1,5 +1,13 @@
 import { format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+
+/**
+ * Date Helpers Utility Library (Client-Safe)
+ * 
+ * These functions can be used on both client and server.
+ * For server-only functions (that access database), use '@/utils/dateHelpers.server'
+ * 
+ * Follows ADR-006 "The Right Way™" pattern for date handling.
+ */
 
 /**
  * Formats an ISO date string for display, avoiding timezone conversion issues.
@@ -31,17 +39,21 @@ export function formatDateOnly(isoString: string, formatString = "MMM d, yyyy"):
 }
 
 /**
- * Returns today's date in YYYY-MM-DD format using the user's timezone.
+ * Get today's date in YYYY-MM-DD format in the user's local timezone.
  * 
- * Uses the browser's detected timezone via Intl API and date-fns-tz
- * to ensure the date is correct for the user's actual location.
+ * This is useful for setting default values in date inputs on the client.
+ * Returns a string that can be used directly with HTML <input type="date">.
  * 
- * @returns Today's date in YYYY-MM-DD format for use in date inputs
+ * @returns Date string in YYYY-MM-DD format
  * 
  * @example
- * getTodayLocalDate() // "2025-12-02" (based on user's actual timezone)
+ * getTodayLocalDate() // "2025-12-30"
+ * <input type="date" value={getTodayLocalDate()} />
  */
 export function getTodayLocalDate(): string {
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

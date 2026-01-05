@@ -11,6 +11,7 @@ interface ReadingGoalFormProps {
   onCancel: () => void;
   existingGoal?: ReadingGoal;
   mode: "create" | "edit";
+  selectedYear?: number; // The year context from the parent (for create mode)
 }
 
 export function ReadingGoalForm({
@@ -18,12 +19,14 @@ export function ReadingGoalForm({
   onCancel,
   existingGoal,
   mode,
+  selectedYear,
 }: ReadingGoalFormProps) {
   const { createGoalAsync, updateGoalAsync } = useReadingGoals();
   
   const currentYear = new Date().getFullYear();
   
-  const year = existingGoal?.year || currentYear;
+  // Use existingGoal year for edit mode, selectedYear for create mode (to respect user's year selection), fallback to currentYear
+  const year = existingGoal?.year || selectedYear || currentYear;
   const [booksGoal, setBooksGoal] = useState<number | "">(
     existingGoal?.booksGoal ?? ""
   );
@@ -57,9 +60,9 @@ export function ReadingGoalForm({
       return;
     }
 
-    // Year validation - only allow current year for new goals
-    if (!Number.isInteger(year) || year !== currentYear) {
-      toast.error("Goals can only be created for the current year");
+    // Year validation - only allow current year or past years for new goals (no future years)
+    if (mode === "create" && year > currentYear) {
+      toast.error("Goals can only be created for the current year or past years");
       return;
     }
 
@@ -108,7 +111,7 @@ export function ReadingGoalForm({
               const val = e.target.value;
               setBooksGoal(val === "" ? "" : parseInt(val) || "");
             }}
-            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!canEdit || saving}
           />
           <p className="text-xs text-[var(--subheading-text)] mt-2 font-medium">

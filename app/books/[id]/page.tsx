@@ -2,16 +2,18 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import ReadingHistoryTab from "@/components/ReadingHistoryTab";
 import FinishBookModal from "@/components/FinishBookModal";
+import CompleteBookModal from "@/components/CompleteBookModal";
 import RatingModal from "@/components/RatingModal";
 import ProgressEditModal from "@/components/ProgressEditModal";
 import RereadConfirmModal from "@/components/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/ArchiveSessionModal";
 import PageCountEditModal from "@/components/PageCountEditModal";
+import TagEditor from "@/components/BookDetail/TagEditor";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
@@ -21,11 +23,12 @@ import BookProgress from "@/components/BookDetail/BookProgress";
 import Journal from "@/components/BookDetail/Journal";
 import SessionDetails from "@/components/BookDetail/SessionDetails";
 import { useBookDetail } from "@/hooks/useBookDetail";
-import { useBookStatus } from "@/hooks/useBookStatus";
+import { useBookStatus, invalidateBookQueries } from "@/hooks/useBookStatus";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
+import { Spinner } from "@/components/ui/Spinner";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
@@ -40,6 +43,7 @@ export default function BookDetailPage() {
     loading,
     imageError,
     setImageError,
+    updateTags,
   } = useBookDetail(bookId);
 
   const bookProgressHook = useBookProgress(bookId, book, async () => {
@@ -51,19 +55,64 @@ export default function BookDetailPage() {
     selectedStatus,
     showReadConfirmation,
     showStatusChangeConfirmation,
+    showCompleteBookModal,
     pendingStatusChange,
     handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange,
     handleCancelStatusChange,
     handleConfirmRead: handleConfirmReadFromHook,
+    handleCompleteBook,
     handleStartReread,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
-  // Wrap handleConfirmRead to clear form state after marking as read
-  async function handleConfirmRead(rating: number, review?: string) {
-    await handleConfirmReadFromHook(rating, review);
-    bookProgressHook.clearFormState();
-    clearDraft(); // Clear the draft note
+  // Handle finishing book from auto-completion modal (when progress reaches 100%)
+  // Note: Book status is already "read" at this point (auto-completed by progress service)
+  // We only need to update rating/review, not status
+  async function handleConfirmReadAfterAutoCompletion(rating?: number, review?: string) {
+    try {
+      // Update rating to the book table if provided
+      if (rating && rating > 0) {
+        const ratingBody = { rating };
+        const ratingResponse = await fetch(`/api/books/${bookId}/rating`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(ratingBody),
+        });
+
+        if (!ratingResponse.ok) {
+          throw new Error("Failed to update rating");
+        }
+      }
+
+      // Update review to the session if provided and we have a session ID
+      // Check both bookProgressHook.completedSessionId (from auto-completion) and book.activeSession.id (from manual mark as read)
+      const sessionId = bookProgressHook.completedSessionId || book?.activeSession?.id;
+      if (review && sessionId) {
+        const sessionBody = { review };
+        const sessionResponse = await fetch(`/api/books/${bookId}/sessions/${sessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionBody),
+        });
+
+        if (!sessionResponse.ok) {
+          throw new Error("Failed to update review");
+        }
+      }
+
+      // Clear form state and draft
+      bookProgressHook.clearFormState();
+      clearDraft();
+
+      // Refresh data
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['library-books'] });
+    } catch (error) {
+      logger.error({ error }, "Failed to finish book");
+      throw error;
+    }
   }
 
   const {
@@ -103,7 +152,25 @@ export default function BookDetailPage() {
   const [showProgressModeDropdown, setShowProgressModeDropdown] = useState(false);
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
+  const [showTagEditor, setShowTagEditor] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
+
+  // Fetch available tags for the tag editor
+  const { data: availableTagsData } = useQuery<{ tags: string[] }>({
+    queryKey: ['availableTags'],
+    queryFn: async () => {
+      const response = await fetch('/api/tags');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tags');
+      }
+      return response.json();
+    },
+    staleTime: 60000, // Cache for 1 minute
+    gcTime: 300000, // 5 minutes - match other queries
+    refetchOnMount: false, // Don't refetch when mounting if data exists
+    retry: 1, // Reduce retry attempts to prevent blocking
+  });
+  const availableTags = availableTagsData?.tags || [];
 
   // Refs for dropdowns and MDXEditor
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -112,9 +179,9 @@ export default function BookDetailPage() {
 
   // Wrapper for log progress that clears draft and resets editor
   async function handleLogProgress(e: React.FormEvent) {
-    const success = await bookProgressHook.handleLogProgress(e);
+    const result = await bookProgressHook.handleLogProgress(e);
     // Only clear draft and reset editor if submission was successful
-    if (success) {
+    if (result.success) {
       clearDraft();
       // Reset MDXEditor using the documented setMarkdown method
       try {
@@ -128,8 +195,9 @@ export default function BookDetailPage() {
 
   // Wrapper for status updates with optimistic page count validation
   async function handleUpdateStatus(newStatus: string) {
-    // Optimistic check: if trying to change to reading/read without pages, show modal immediately
-    if ((newStatus === "reading" || newStatus === "read") && !book?.totalPages) {
+    // Optimistic check: if trying to change to "reading" without pages, show modal immediately
+    // Note: "read" transitions from Want to Read/Read Next are handled by CompleteBookModal
+    if (newStatus === "reading" && !book?.totalPages) {
       setPendingStatusForPageCount(newStatus);
       setShowPageCountModal(true);
       return;
@@ -139,7 +207,7 @@ export default function BookDetailPage() {
     try {
       await handleUpdateStatusFromHook(newStatus);
     } catch (error: any) {
-      // Defense in depth: Handle API validation error
+      // Defense in depth: Handle API validation error for "reading" status
       if (error?.code === "PAGES_REQUIRED" || error?.response?.data?.code === "PAGES_REQUIRED") {
         setPendingStatusForPageCount(newStatus);
         setShowPageCountModal(true);
@@ -172,11 +240,9 @@ export default function BookDetailPage() {
   async function handlePageCountUpdateSuccess() {
     setShowPageCountModal(false);
     setPendingStatusForPageCount(null);
-    
-    // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-    await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+
+    // Use shared invalidation helper to ensure consistency across all code paths
+    invalidateBookQueries(queryClient, bookId);
   }
   
   function handlePageCountModalClose() {
@@ -219,7 +285,7 @@ export default function BookDetailPage() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+        <Spinner size="md" />
       </div>
     );
   }
@@ -402,11 +468,20 @@ export default function BookDetailPage() {
           )}
 
           {/* Tags */}
-          {book.tags.length > 0 && (
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-3 font-semibold">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
                 Tags
               </label>
+              <button
+                onClick={() => setShowTagEditor(true)}
+                className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold"
+              >
+                Edit
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+            {book.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {book.tags.map((tag) => (
                   <Link
@@ -418,8 +493,12 @@ export default function BookDetailPage() {
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-[var(--foreground)]/50">
+                No tags yet. Click Edit to add some!
+              </p>
+            )}
+          </div>
 
           {/* Current Reading Progress History */}
           {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
@@ -441,21 +520,35 @@ export default function BookDetailPage() {
       </div>
 
       {/* Modals */}
+      {/* Manual completion from non-reading status (Want to Read / Read Next → Read) */}
+      <CompleteBookModal
+        isOpen={showCompleteBookModal}
+        onClose={() => handleCancelStatusChange()}
+        onConfirm={handleCompleteBook}
+        bookTitle={book.title}
+        bookId={bookId}
+        currentPageCount={book.totalPages ?? null}
+        currentRating={book.rating}
+        defaultStartDate={book.activeSession?.startedDate ? new Date(book.activeSession.startedDate) : undefined}
+      />
+
+      {/* Manual status change from "reading" to "read" - uses mark-as-read API */}
       <FinishBookModal
         isOpen={showReadConfirmation}
         onClose={() => handleCancelStatusChange()}
-        onConfirm={handleConfirmRead}
+        onConfirm={handleConfirmReadFromHook}
         bookTitle={book.title}
         bookId={bookId}
       />
 
-      {/* Completion Modal (shown when progress reaches 100%) */}
+      {/* Auto-completion modal (shown when progress reaches 100%) - book already marked as read */}
       <FinishBookModal
         isOpen={bookProgressHook.showCompletionModal}
         onClose={bookProgressHook.closeCompletionModal}
-        onConfirm={handleConfirmRead}
+        onConfirm={handleConfirmReadAfterAutoCompletion}
         bookTitle={book.title}
         bookId={bookId}
+        sessionId={bookProgressHook.completedSessionId}
       />
 
       <RatingModal
@@ -504,6 +597,15 @@ export default function BookDetailPage() {
           totalPages={book.totalPages}
         />
       )}
+
+      <TagEditor
+        isOpen={showTagEditor}
+        onClose={() => setShowTagEditor(false)}
+        onSave={updateTags}
+        bookTitle={book.title}
+        currentTags={book.tags}
+        availableTags={availableTags}
+      />
     </div>
   );
 }

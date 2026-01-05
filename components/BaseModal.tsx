@@ -3,6 +3,8 @@
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface BaseModalProps {
   children: React.ReactNode;
   actions: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  loading?: boolean;
+  allowBackdropClose?: boolean;
 }
 
 const sizeClasses = {
@@ -30,8 +34,16 @@ export default function BaseModal({
   children,
   actions,
   size = "md",
+  loading = false,
+  allowBackdropClose = true,
 }: BaseModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,15 +56,15 @@ export default function BaseModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const modalContent = (
     <div 
       className={cn(
-        "fixed inset-0 bg-black flex items-center justify-center z-50 p-4 transition-opacity duration-200",
+        "fixed top-0 left-0 right-0 bottom-0 bg-black flex items-center justify-center z-50 p-4 transition-opacity duration-200",
         isAnimating ? "bg-opacity-50" : "bg-opacity-0"
       )}
-      onClick={onClose}
+      onClick={allowBackdropClose ? onClose : undefined}
     >
       <div 
         className={cn(
@@ -76,7 +88,8 @@ export default function BaseModal({
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors"
+            disabled={loading}
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -85,7 +98,13 @@ export default function BaseModal({
 
         {/* Content */}
         <div className="mb-6">
-          {children}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner size="md" />
+            </div>
+          ) : (
+            children
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -95,4 +114,6 @@ export default function BaseModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "@/utils/toast";
-import { getTodayLocalDate } from "@/utils/dateFormatting";
+import { getTodayLocalDate } from '@/utils/dateHelpers';
 
 interface Session {
   id: number;

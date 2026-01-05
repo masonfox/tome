@@ -2,11 +2,12 @@ import { bookRepository, sessionRepository, progressRepository } from "@/lib/rep
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { validateProgressTimeline, validateProgressEdit } from "./progress-validation";
 import { streakService } from "@/lib/services/streak.service";
-import { revalidatePath } from "next/cache";
-import { 
-  calculatePercentage, 
+import { SessionService } from "@/lib/services/session.service";
+import {
+  calculatePercentage,
   calculatePageFromPercentage
 } from "@/lib/utils/progress-calculations";
+import { getCurrentDateInUserTimezone } from "@/utils/dateHelpers.server";
 
 /**
  * Progress log data for creating new entries
@@ -43,6 +44,7 @@ interface ProgressMetrics {
 export interface ProgressLogResult {
   progressLog: ProgressLog;
   shouldShowCompletionModal: boolean;
+  completedSessionId?: number; // Session ID when auto-completed (for updating review)
 }
 
 /**
@@ -137,7 +139,7 @@ export class ProgressService {
    *   currentPercentage: 75
    * });
    */
-  async logProgress(bookId: number, progressData: ProgressLogData): Promise<ProgressLogResult> {
+  async logProgress(bookId: number, progressData: ProgressLogData, tx?: any): Promise<ProgressLogResult> {
     const { currentPage, currentPercentage, notes, progressDate } = progressData;
 
     // Validate input
@@ -146,13 +148,13 @@ export class ProgressService {
     }
 
     // Verify book exists
-    const book = await bookRepository.findById(bookId);
+    const book = await bookRepository.findById(bookId, tx);
     if (!book) {
       throw new Error("Book not found");
     }
 
     // Get the active reading session
-    const activeSession = await sessionRepository.findActiveByBookId(bookId);
+    const activeSession = await sessionRepository.findActiveByBookId(bookId, tx);
     if (!activeSession) {
       throw new Error("No active reading session found. Please set a reading status first.");
     }
@@ -163,16 +165,16 @@ export class ProgressService {
     }
 
     // Get the last progress entry for this session to calculate pages read
-    const lastProgress = await progressRepository.findLatestBySessionId(activeSession.id);
+    const lastProgress = await progressRepository.findLatestBySessionId(activeSession.id, tx);
 
     // Calculate progress metrics
     const metrics = await this.calculateProgressMetrics(book, progressData, lastProgress);
 
     // Temporal validation: Check if progress is consistent with existing timeline
-    const requestedDate = progressDate || new Date();
+    const requestedDate = progressDate || await getCurrentDateInUserTimezone();
     const usePercentage = currentPercentage !== undefined;
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
-    
+
     const validationResult = await validateProgressTimeline(
       activeSession.id,
       requestedDate,
@@ -193,25 +195,49 @@ export class ProgressService {
       progressDate: requestedDate,
       notes,
       pagesRead: metrics.pagesRead,
-    });
+    }, tx);
 
     // Touch the session to update its updatedAt timestamp (for sorting on dashboard)
     await sessionRepository.update(activeSession.id, {
       updatedAt: new Date(),
-    } as any);
+    } as any, tx);
 
-    // Update streak system
-    await this.updateStreakSystem();
+    // Update streak system (only if not in transaction)
+    if (!tx) {
+      await this.updateStreakSystem();
+    }
 
-    // Check if book is completed (100% progress) but DON'T auto-complete
+    // Check if book is completed (100% progress) and auto-transition to "read" status
     const shouldShowCompletionModal = this.shouldShowCompletionModal(activeSession.status, metrics.currentPercentage);
 
-    // Invalidate cache
-    await this.invalidateCache(bookId);
+    let completedSessionId: number | undefined;
+    if (shouldShowCompletionModal) {
+      // Auto-complete the book with the progress date as the completion date
+      const { getLogger } = require("@/lib/logger");
+      const logger = getLogger();
+      logger.info({ bookId, progressDate: requestedDate }, 'Auto-completing book at 100% progress');
+
+      // IMPORTANT: Use direct repository call instead of creating new SessionService
+      // to avoid circular dependency and maintain transaction context
+      await sessionRepository.update(activeSession.id, {
+        status: "read",
+        completedDate: requestedDate,  // Use the progress date, including backdated entries!
+        isActive: false,
+      } as any, tx);
+
+      // Return the session ID so the completion modal can update the review on this session
+      completedSessionId = activeSession.id;
+    }
+
+    // Invalidate cache (only if not in transaction)
+    if (!tx) {
+      await this.invalidateCache(bookId);
+    }
 
     return {
       progressLog,
       shouldShowCompletionModal,
+      completedSessionId,
     };
   }
 
@@ -308,8 +334,8 @@ export class ProgressService {
       .filter(p => p.id !== progressId) // Exclude the entry being edited
       .sort((a, b) => new Date(a.progressDate).getTime() - new Date(b.progressDate).getTime());
     
-    // Find the entry immediately before this one by date
-    const previousProgress = sortedProgress.find(
+    // Find the entry immediately before this one by date (use findLast to get the closest previous entry)
+    const previousProgress = sortedProgress.findLast(
       p => new Date(p.progressDate).getTime() < requestedDate.getTime()
     );
     
@@ -450,9 +476,12 @@ export class ProgressService {
    */
   private async invalidateCache(bookId: number): Promise<void> {
     try {
+      // Lazy import to avoid mock pollution in tests
+      const { revalidatePath } = await import("next/cache");
       revalidatePath("/"); // Dashboard
       revalidatePath("/library"); // Library page
       revalidatePath("/stats"); // Stats page
+      revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
             const { getLogger } = require("@/lib/logger");
@@ -461,3 +490,9 @@ export class ProgressService {
     }
   }
 }
+
+/**
+ * Default ProgressService instance
+ * Use this in API routes, services, and other application code
+ */
+export const progressService = new ProgressService();

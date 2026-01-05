@@ -1,5 +1,5 @@
 import { Calendar, Pencil } from "lucide-react";
-import { formatDateOnly, getTodayLocalDate } from "@/utils/dateFormatting";
+import { formatDateOnly, getTodayLocalDate } from '@/utils/dateHelpers';
 
 interface SessionDetailsProps {
   startedDate: string | null | undefined;
@@ -31,7 +31,7 @@ export default function SessionDetails({
             value={editStartDate}
             onChange={(e) => onEditStartDateChange(e.target.value)}
             max={getTodayLocalDate()}
-            className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
+            className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
           />
           <button
             onClick={onCancelEdit}

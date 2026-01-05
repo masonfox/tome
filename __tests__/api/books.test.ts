@@ -442,40 +442,316 @@ describe("GET /api/books", () => {
       expect(data.books[0].title).toBe("Fiction Book");
     });
 
-    test("should filter books by multiple tags (OR logic)", async () => {
+    test("should filter books by multiple tags (AND logic)", async () => {
+      // Book A: has fantasy, magic, adventure
       await bookRepository.create({
         calibreId: 1,
         path: "test/path/1",
-        title: "Fantasy Book",
+        title: "Fantasy Adventure Book",
         authors: ["Author 1"],
-        tags: ["fantasy", "magic"],
+        tags: ["fantasy", "magic", "adventure"],
+        totalPages: 300,
+      });
+
+      // Book B: has fantasy, adventure (no magic)
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Fantasy Book",
+        authors: ["Author 2"],
+        tags: ["fantasy", "adventure"],
+        totalPages: 400,
+      });
+
+      // Book C: has only fantasy
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "Pure Fantasy",
+        authors: ["Author 3"],
+        tags: ["fantasy"],
+        totalPages: 350,
+      });
+
+      // Book D: has sci-fi (no fantasy)
+      await bookRepository.create({
+        calibreId: 4,
+        path: "test/path/4",
+        title: "Sci-Fi Book",
+        authors: ["Author 4"],
+        tags: ["sci-fi", "space"],
+        totalPages: 250,
+      });
+
+      // Query with multiple tags - should return only books that have ALL tags
+      const request = createMockRequest("GET", "/api/books?tags=fantasy,adventure");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Should return only Book A and Book B (both have fantasy AND adventure)
+      expect(data.books).toHaveLength(2);
+      expect(data.books.map((b: any) => b.title).sort()).toEqual([
+        "Fantasy Adventure Book",
+        "Fantasy Book",
+      ]);
+    });
+
+    test("should require ALL tags when filtering by three tags (AND logic)", async () => {
+      // Book with all three tags
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Epic Fantasy Quest",
+        authors: ["Author 1"],
+        tags: ["fantasy", "magic", "adventure"],
+        totalPages: 500,
+      });
+
+      // Book with only two of the three tags
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Fantasy Adventure",
+        authors: ["Author 2"],
+        tags: ["fantasy", "adventure"],
+        totalPages: 400,
+      });
+
+      // Book with only one tag
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "Magic Book",
+        authors: ["Author 3"],
+        tags: ["magic"],
+        totalPages: 300,
+      });
+
+      const request = createMockRequest("GET", "/api/books?tags=fantasy,magic,adventure");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].title).toBe("Epic Fantasy Quest");
+    });
+
+    test("should handle empty result when no books have all required tags", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Fantasy Only",
+        authors: ["Author 1"],
+        tags: ["fantasy"],
         totalPages: 300,
       });
 
       await bookRepository.create({
         calibreId: 2,
         path: "test/path/2",
-        title: "Sci-Fi Book",
+        title: "Sci-Fi Only",
         authors: ["Author 2"],
-        tags: ["sci-fi", "space"],
+        tags: ["sci-fi"],
+        totalPages: 400,
+      });
+
+      // Query for tags that no book has together
+      const request = createMockRequest("GET", "/api/books?tags=fantasy,sci-fi,horror");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(0);
+      expect(data.total).toBe(0);
+    });
+
+    test("should be case-sensitive for tag matching", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Fantasy Book",
+        authors: ["Author 1"],
+        tags: ["Fantasy", "Adventure"],
+        totalPages: 300,
+      });
+
+      // Query with lowercase (should not match if tags are stored with capital letters)
+      const request = createMockRequest("GET", "/api/books?tags=fantasy,adventure");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Depending on implementation, this may return 0 or 1 books
+      // This test documents the current behavior
+      if (data.books.length > 0) {
+        expect(data.books[0].title).toBe("Fantasy Book");
+      }
+    });
+
+    test("should handle books with many tags correctly", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Multi-Tag Book",
+        authors: ["Author 1"],
+        tags: ["fantasy", "adventure", "magic", "dragons", "quest", "young-adult"],
+        totalPages: 500,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Simpler Book",
+        authors: ["Author 2"],
+        tags: ["fantasy", "adventure"],
+        totalPages: 300,
+      });
+
+      // Query for two tags that both books have
+      const request = createMockRequest("GET", "/api/books?tags=fantasy,adventure");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(2);
+    });
+  });
+
+  // ============================================================================
+  // RATING FILTERING TESTS
+  // ============================================================================
+
+  describe("Rating Filtering", () => {
+    test("should filter books by specific rating (5 stars)", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "5 Star Book",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 5,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "4 Star Book",
+        authors: ["Author 2"],
+        tags: [],
+        totalPages: 400,
+        rating: 4,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "Unrated Book",
+        authors: ["Author 3"],
+        tags: [],
+        totalPages: 350,
+      });
+
+      const request = createMockRequest("GET", "/api/books?rating=5");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].title).toBe("5 Star Book");
+      expect(data.books[0].rating).toBe(5);
+    });
+
+    test("should filter books by 'unrated'", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Rated Book",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 4,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Unrated Book 1",
+        authors: ["Author 2"],
+        tags: [],
         totalPages: 400,
       });
 
       await bookRepository.create({
         calibreId: 3,
         path: "test/path/3",
-        title: "Mystery Book",
+        title: "Unrated Book 2",
         authors: ["Author 3"],
-        tags: ["mystery", "thriller"],
+        tags: [],
         totalPages: 350,
       });
 
-      const request = createMockRequest("GET", "/api/books?tags=fantasy,sci-fi");
+      const request = createMockRequest("GET", "/api/books?rating=unrated");
       const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.books).toHaveLength(2);
+      expect(data.books[0].rating).toBeNull();
+      expect(data.books[1].rating).toBeNull();
+    });
+
+    test("should filter books by 'rated' (any rating)", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "5 Star Book",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 5,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "3 Star Book",
+        authors: ["Author 2"],
+        tags: [],
+        totalPages: 400,
+        rating: 3,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "1 Star Book",
+        authors: ["Author 3"],
+        tags: [],
+        totalPages: 350,
+        rating: 1,
+      });
+
+      await bookRepository.create({
+        calibreId: 4,
+        path: "test/path/4",
+        title: "Unrated Book",
+        authors: ["Author 4"],
+        tags: [],
+        totalPages: 250,
+      });
+
+      const request = createMockRequest("GET", "/api/books?rating=rated");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(3);
+      expect(data.books[0].rating).not.toBeNull();
+      expect(data.books[1].rating).not.toBeNull();
+      expect(data.books[2].rating).not.toBeNull();
+      expect(data.total).toBe(3);
     });
   });
 

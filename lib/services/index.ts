@@ -10,3 +10,4 @@ export * from "./progress.service";
 export * from "./progress-validation";
 export * from "./series.service";
 export * from "./reading-goals.service";
+export * from "./tag.service";

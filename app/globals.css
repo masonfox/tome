@@ -79,59 +79,90 @@ body {
   }
 }
 
-/* Toast close button positioning */
-[data-sonner-toast] [data-close-button] {
-  left: unset !important;
-  right: 8px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  border-radius: 4px !important;
-  padding: 4px !important;
+/* Warm theme toast styling - Light mode */
+/* Success toast - Warm green */
+.tome-toast-success {
+  background-color: #a5c9a8 !important; /* warm green */
+  border-color: #7aa57d !important; /* darker warm green border */
+  color: #1a2e1b !important; /* very dark green text for strong contrast */
 }
 
-/* Default close button background */
-[data-sonner-toast] [data-close-button] {
-  background-color: rgba(0, 0, 0, 0.1) !important;
+.tome-toast-success [data-icon] {
+  color: #1a2e1b !important; /* match text color for consistency */
 }
 
-/* Success toast close button */
-[data-sonner-toast][data-type="success"] [data-close-button] {
-  background-color: rgb(21, 128, 61) !important; /* darker green */
-  color: white !important;
+/* Error toast - Warm burgundy/rose */
+.tome-toast-error {
+  background-color: #d4a5a5 !important; /* warm rose/burgundy */
+  border-color: #a87a7a !important; /* darker burgundy border */
+  color: #3a1515 !important; /* very dark burgundy text for strong contrast */
 }
 
-[data-sonner-toast][data-type="success"] [data-close-button]:hover {
-  background-color: rgb(22, 101, 52) !important; /* even darker green */
+.tome-toast-error [data-icon] {
+  color: #3a1515 !important; /* match text color for consistency */
 }
 
-/* Error toast close button */
-[data-sonner-toast][data-type="error"] [data-close-button] {
-  background-color: rgb(185, 28, 28) !important; /* darker red */
-  color: white !important;
+/* Info toast - Neutral with accent */
+.tome-toast-info {
+  background-color: #f5f1e8 !important; /* card-bg */
+  border-color: #8b6f47 !important; /* accent border */
+  color: #2a2a2a !important; /* very dark gray for strong contrast */
 }
 
-[data-sonner-toast][data-type="error"] [data-close-button]:hover {
-  background-color: rgb(153, 27, 27) !important; /* even darker red */
+.tome-toast-info [data-icon] {
+  color: #2a2a2a !important; /* match text color for consistency */
 }
 
-/* Info toast close button */
-[data-sonner-toast][data-type="info"] [data-close-button] {
-  background-color: rgb(29, 78, 216) !important; /* darker blue */
-  color: white !important;
+/* Warning toast - Warm amber */
+.tome-toast-warning {
+  background-color: #e8c89f !important; /* warm amber */
+  border-color: #c9a876 !important; /* light-accent border */
+  color: #2d2410 !important; /* very dark brown text for strong contrast */
 }
 
-[data-sonner-toast][data-type="info"] [data-close-button]:hover {
-  background-color: rgb(30, 64, 175) !important; /* even darker blue */
+.tome-toast-warning [data-icon] {
+  color: #2d2410 !important; /* match text color for consistency */
 }
 
-/* Warning toast close button */
-[data-sonner-toast][data-type="warning"] [data-close-button] {
-  background-color: rgb(180, 83, 9) !important; /* darker amber */
-  color: white !important;
+/* Dark mode toast styling */
+html[data-theme="dark"] .tome-toast-success {
+  background-color: #5a8a5d !important; /* darker warm green */
+  border-color: #7aa57d !important; /* lighter border for contrast */
+  color: #e8fae9 !important; /* very light green-white text for strong contrast */
 }
 
-[data-sonner-toast][data-type="warning"] [data-close-button]:hover {
-  background-color: rgb(146, 64, 14) !important; /* even darker amber */
+html[data-theme="dark"] .tome-toast-success [data-icon] {
+  color: #e8fae9 !important; /* match text color for consistency */
+}
+
+html[data-theme="dark"] .tome-toast-error {
+  background-color: #8b3a3a !important; /* darker burgundy */
+  border-color: #a87a7a !important; /* lighter border */
+  color: #fde8e8 !important; /* very light rose-white text for strong contrast */
+}
+
+html[data-theme="dark"] .tome-toast-error [data-icon] {
+  color: #fde8e8 !important; /* match text color for consistency */
+}
+
+html[data-theme="dark"] .tome-toast-info {
+  background-color: #3d3935 !important; /* dark card-bg */
+  border-color: #a89968 !important; /* dark mode accent */
+  color: #f5f1e8 !important; /* brighter cream-white text for strong contrast */
+}
+
+html[data-theme="dark"] .tome-toast-info [data-icon] {
+  color: #f5f1e8 !important; /* match text color for consistency */
+}
+
+html[data-theme="dark"] .tome-toast-warning {
+  background-color: #8b6f47 !important; /* darker amber */
+  border-color: #a89968 !important; /* accent border */
+  color: #fdf5e8 !important; /* very light amber-white text for strong contrast */
+}
+
+html[data-theme="dark"] .tome-toast-warning [data-icon] {
+  color: #fdf5e8 !important; /* match text color for consistency */
 }
 
 /* Date input calendar icon styling */
@@ -766,6 +797,12 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable ol li::marker {
   border-left-color: var(--border-color) !important;
 }
 
+/* Remove decorative quotes added by Tailwind Typography plugin */
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none !important;
+}
+
 .prose ul, .prose ol, .prose li {
   color: var(--foreground) !important;
 }
@@ -778,5 +815,47 @@ html[data-theme="dark"] .mdxeditor-root-contenteditable ol li::marker {
   color: var(--foreground) !important;
   text-decoration: underline;
   text-decoration-color: var(--foreground);
+}
+
+/* Custom scrollbar utility for tag management views */
+.custom-scrollbar {
+  /* Custom scrollbar styling for Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #d4cbbe #F0EAE3;
+}
+
+html[data-theme="dark"] .custom-scrollbar {
+  scrollbar-color: #4a4640 #1f1c19;
+}
+
+/* Custom scrollbar styling for WebKit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #F0EAE3;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d4cbbe;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #c9a876;
+}
+
+html[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1f1c19;
+}
+
+html[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4a4640;
+}
+
+html[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a89968;
 }
 

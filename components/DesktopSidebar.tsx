@@ -2,28 +2,27 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Sun, Moon, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
-import { NAV_LINKS, JOURNAL_LINK, SERIES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, JOURNAL_LINK, SERIES_LINK, TAGS_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
-import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
 export function DesktopSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { darkMode, toggleDarkMode } = useDarkMode();
   const { authEnabled } = useAuth();
   const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
 
   // Combine all navigation links into one flat list
-  // Order: Dashboard, Library, Journal, Series, Streak, Goals, Stats
+  // Order: Dashboard, Library, Journal, Series, Tags, Streak, Goals, Stats
   const allNavLinks = [
     NAV_LINKS[0], // Dashboard
     NAV_LINKS[1], // Library
     JOURNAL_LINK, // Journal (after Library)
     SERIES_LINK,  // Series (after Journal)
+    TAGS_LINK,    // Tags (after Series)
     NAV_LINKS[2], // Streak
     ...MORE_MENU_LINKS,
   ];
@@ -149,28 +148,6 @@ export function DesktopSidebar() {
               )}
             >
               Collapse
-            </span>
-          </button>
-
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={toggleDarkMode}
-            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--border-color)] w-full"
-            title={collapsed ? (darkMode ? "Light mode" : "Dark mode") : undefined}
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <Sun className="w-5 h-5 flex-shrink-0" />
-            ) : (
-              <Moon className="w-5 h-5 flex-shrink-0" />
-            )}
-            <span
-              className={clsx(
-                "transition-all whitespace-nowrap overflow-hidden",
-                collapsed ? "opacity-0 w-0" : "opacity-100"
-              )}
-            >
-              {darkMode ? "Light Mode" : "Dark Mode"}
             </span>
           </button>
 

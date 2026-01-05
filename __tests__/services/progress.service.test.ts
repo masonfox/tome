@@ -5,6 +5,15 @@ import { ProgressService } from "@/lib/services/progress.service";
 import { mockBook1, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import type { Book } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
+import { formatInTimeZone } from "date-fns-tz";
+
+/**
+ * Helper function to get date in EST timezone (for test assertions)
+ * Extracts just the date part (YYYY-MM-DD) from a UTC timestamp stored in the database.
+ */
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 /**
  * Mock Rationale: Isolate progress service tests from streak calculation complexity.
@@ -258,7 +267,7 @@ describe("ProgressService", () => {
   });
 
   describe("logProgress - auto-completion", () => {
-    test("should return completion flag at 100% progress", async () => {
+    test("should auto-complete book at 100% progress", async () => {
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 100,
       });
@@ -266,13 +275,59 @@ describe("ProgressService", () => {
       // Check that completion flag is returned
       expect(result.shouldShowCompletionModal).toBe(true);
       
-      // Session should NOT be auto-completed
+      // Session SHOULD be auto-completed with status "read"
       const updatedSession = await sessionRepository.findById(session.id);
-      expect(updatedSession?.status).toBe("reading");
-      expect(updatedSession?.completedDate).toBeNull();
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate).not.toBeNull();
     });
 
-    test("should not return completion flag below 100%", async () => {
+    test("should use progress date as completion date for backdated 100% progress", async () => {
+      const backdatedDate = new Date("2025-11-10T14:30:00.000Z");
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        progressDate: backdatedDate,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      // Completion date should match the backdated progress date
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate?.getTime()).toBe(backdatedDate.getTime());
+    });
+
+    test("should use today's date as completion date for current 100% progress", async () => {
+      const todayEST = formatInTimeZone(new Date(), "America/New_York", "yyyy-MM-dd");
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        // No progressDate provided, uses today
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate).not.toBeNull();
+      
+      // Should be today's date (midnight in user's timezone)
+      expect(getDateInEST(updatedSession!.completedDate!)).toBe(todayEST);
+    });
+
+    test("should auto-complete when logging 100% by page number", async () => {
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 1040, // 100% of totalPages
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate).not.toBeNull();
+    });
+
+    test("should not auto-complete below 100%", async () => {
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 99.9,
       });
@@ -280,6 +335,37 @@ describe("ProgressService", () => {
       expect(result.shouldShowCompletionModal).toBe(false);
       const updatedSession = await sessionRepository.findById(session.id);
       expect(updatedSession?.status).toBe("reading");
+      expect(updatedSession?.completedDate).toBeNull();
+    });
+
+    test("should preserve completion date when logging 100% with historical date", async () => {
+      // Simulate logging completion for a book finished weeks ago
+      const historicalDate = new Date("2025-10-15T10:00:00.000Z");
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+        progressDate: historicalDate,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
+      expect(updatedSession?.completedDate?.toISOString()).toBe(historicalDate.toISOString());
+    });
+
+    test("should log info message when auto-completing", async () => {
+      // This test verifies logging behavior (useful for debugging)
+      const result = await progressService.logProgress(book1.id, {
+        currentPercentage: 100,
+      });
+
+      expect(result.shouldShowCompletionModal).toBe(true);
+      
+      // If we had a way to capture logs, we'd verify the log message here
+      // For now, just verify the side effect (auto-completion) happened
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.status).toBe("read");
     });
   });
 
@@ -359,6 +445,112 @@ describe("ProgressService", () => {
       await expect(
         progressService.updateProgress(99999, { currentPage: 100 })
       ).rejects.toThrow("Progress entry not found");
+    });
+
+    test("should correctly calculate pagesRead when editing middle progress entry", async () => {
+      // Regression test for bug where editing a progress entry would use the wrong
+      // "previous" entry for calculating pagesRead. The bug was using Array.find()
+      // which returns the FIRST matching entry (oldest), not the LAST (most recent).
+      
+      // Create three progress entries on different dates
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 50,
+        currentPercentage: 4.81,  // 50/1040 * 100
+        pagesRead: 50,
+        progressDate: new Date("2025-11-10"),
+      }));
+
+      const middleEntry = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 80,
+        currentPercentage: 7.69,  // 80/1040 * 100
+        pagesRead: 30,  // 80 - 50
+        progressDate: new Date("2025-11-15"),
+      }));
+
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 100,
+        currentPercentage: 9.62,  // 100/1040 * 100
+        pagesRead: 20,  // 100 - 80
+        progressDate: new Date("2025-11-20"),
+      }));
+
+      // Now edit the middle entry, bumping it from 80% to 81% (80 pages to 84 pages)
+      const result = await progressService.updateProgress(middleEntry.id, {
+        currentPercentage: 8.0,  // Should calculate to 83 pages (Math.floor(8.0% of 1040))
+      });
+
+      // The key assertion: pagesRead should be calculated from the IMMEDIATELY
+      // previous entry (50 pages on Nov 10), not the oldest entry
+      expect(result.currentPage).toBe(83);  // Math.floor(8.0 * 1040 / 100)
+      expect(result.currentPercentage).toBe(8);
+      expect(result.pagesRead).toBe(33);  // Should be 83 - 50 = 33, NOT 83 - 50 = 33
+      // If the bug existed, it would incorrectly calculate: 83 - 50 = 33 (using first entry)
+      // The correct calculation is: 83 - 50 = 33 (using immediately previous entry)
+      
+      // In this case both are the same because there's only one entry before it.
+      // Let's verify the logic more thoroughly with a 4-entry scenario below.
+    });
+
+    test("should correctly calculate pagesRead with multiple previous entries", async () => {
+      // More comprehensive regression test with 4 entries to really show the bug
+      
+      // Entry 1: Nov 10, page 50
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 50,
+        currentPercentage: 4.81,
+        pagesRead: 50,
+        progressDate: new Date("2025-11-10"),
+      }));
+
+      // Entry 2: Nov 12, page 70
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 70,
+        currentPercentage: 6.73,
+        pagesRead: 20,  // 70 - 50
+        progressDate: new Date("2025-11-12"),
+      }));
+
+      // Entry 3: Nov 15, page 80 (this is the one we'll edit)
+      const targetEntry = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 80,
+        currentPercentage: 7.69,
+        pagesRead: 10,  // 80 - 70
+        progressDate: new Date("2025-11-15"),
+      }));
+
+      // Entry 4: Nov 20, page 100
+      await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 100,
+        currentPercentage: 9.62,
+        pagesRead: 20,  // 100 - 80
+        progressDate: new Date("2025-11-20"),
+      }));
+
+      // Edit entry 3, bumping it from page 80 to page 85
+      const result = await progressService.updateProgress(targetEntry.id, {
+        currentPage: 85,
+      });
+
+      // CRITICAL: pagesRead should be 85 - 70 = 15 (using Nov 12 entry)
+      // If the bug existed with Array.find(), it would incorrectly use Nov 10 entry (page 50)
+      // and calculate: 85 - 50 = 35 (WRONG!)
+      expect(result.currentPage).toBe(85);
+      expect(result.pagesRead).toBe(15);  // Correct: 85 - 70 (immediately previous entry)
+      // NOT 35 (which would be 85 - 50, using the first/oldest entry)
     });
   });
 

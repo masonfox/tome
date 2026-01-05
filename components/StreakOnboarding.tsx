@@ -113,7 +113,7 @@ export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
                   const val = parseInt(e.target.value);
                   setDailyGoal(isNaN(val) ? 1 : val);
                 }}
-                className="flex-1 px-4 py-3 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                className="flex-1 px-4 py-3 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] text-lg font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
                 disabled={isEnabling}
               />
             </div>

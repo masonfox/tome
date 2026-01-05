@@ -41,7 +41,7 @@ export function useBookRating(
   const ratingMutation = useMutation({
     mutationFn: async (newRating: number | null) => {
       const response = await fetch(`/api/books/${bookId}/rating`, {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating: newRating }),
       });
