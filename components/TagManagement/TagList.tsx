@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
-import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, X } from "lucide-react";
+import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, X, CheckCheck } from "lucide-react";
 import { TagItem, type TagWithStats } from "./TagItem";
 import { TagListSkeleton } from "./TagListSkeleton";
 import { cn } from "@/utils/cn";
@@ -157,6 +157,36 @@ export const TagList = forwardRef<TagListRef, TagListProps>(function TagList({
     setCheckedTags(new Set());
   };
 
+  // Check if all filtered tags are currently checked
+  const allFilteredChecked = useMemo(() => {
+    if (filteredAndSortedTags.length === 0) return false;
+    return filteredAndSortedTags.every(tag => checkedTags.has(tag.name));
+  }, [filteredAndSortedTags, checkedTags]);
+
+  // Handle check all / uncheck all toggle
+  const handleToggleAllFiltered = () => {
+    const newChecked = new Set(checkedTags);
+    
+    if (allFilteredChecked) {
+      // Uncheck all filtered tags
+      filteredAndSortedTags.forEach(tag => {
+        newChecked.delete(tag.name);
+      });
+    } else {
+      // Add all filtered tags to selection
+      filteredAndSortedTags.forEach(tag => {
+        newChecked.add(tag.name);
+      });
+    }
+    
+    setCheckedTags(newChecked);
+    
+    // Auto-enter checkbox mode if not already in it
+    if (!checkboxMode) {
+      setCheckboxMode(true);
+    }
+  };
+
   // Show loading skeleton if loading
   if (loading) {
     return <TagListSkeleton />;
@@ -249,13 +279,36 @@ export const TagList = forwardRef<TagListRef, TagListProps>(function TagList({
 
           {/* Bulk operations toggle */}
           {!checkboxMode ? (
-            <button
-              onClick={() => setCheckboxMode(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] hover:bg-[var(--foreground)]/5 transition-colors font-medium"
-            >
-              <CheckSquare className="w-4 h-4" />
-              Select Multiple
-            </button>
+            searchQuery.trim() ? (
+              // Show split buttons when actively filtering
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCheckboxMode(true)}
+                  className="flex-[2] flex items-center justify-center gap-2 px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] hover:bg-[var(--foreground)]/5 transition-colors font-medium"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  Select Multiple
+                </button>
+                <button
+                  onClick={handleToggleAllFiltered}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white border border-[var(--accent)] rounded-lg hover:bg-[var(--light-accent)] hover:border-[var(--light-accent)] transition-colors font-medium"
+                  title={allFilteredChecked ? "Uncheck all filtered tags" : "Check all filtered tags"}
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  <span className="hidden sm:inline">{allFilteredChecked ? "Uncheck" : "Check"} All</span>
+                  <span className="sm:hidden">All</span>
+                </button>
+              </div>
+            ) : (
+              // Show single button when not filtering
+              <button
+                onClick={() => setCheckboxMode(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--heading-text)] hover:border-[var(--accent)] hover:bg-[var(--foreground)]/5 transition-colors font-medium"
+              >
+                <CheckSquare className="w-4 h-4" />
+                Select Multiple
+              </button>
+            )
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm text-[var(--subheading-text)]">

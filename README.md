@@ -1,6 +1,6 @@
 # 📚 Tome
 
-[![Tome - ghcr.io](https://img.shields.io/badge/ghcr.io-tome%3Alatest-blue)](https://github.com/users/masonfox/packages/container/tome/latest) [![codecov](https://codecov.io/gh/masonfox/tome/graph/badge.svg?token=LRN9NISAZ6)](https://codecov.io/gh/masonfox/tome)
+[![Tome - ghcr.io](https://img.shields.io/badge/ghcr.io-tome%3Alatest-blue)](https://github.com/masonfox/tome/pkgs/container/tome) [![codecov](https://codecov.io/gh/masonfox/tome/graph/badge.svg?token=LRN9NISAZ6)](https://codecov.io/gh/masonfox/tome)
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
 
@@ -29,6 +29,9 @@ A self-hosted book tracking web application that integrates directly with Calibr
 
 **Goals**
 ![Goals UI](./docs/assets/goals.png)
+
+**Tag Manager**
+![Tag Manager UI](./docs/assets/tags.png)
 
 </details>
 

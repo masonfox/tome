@@ -1,4 +1,5 @@
 import { Settings as SettingsIcon } from "lucide-react";
+import { ThemeSettings } from "@/components/ThemeSettings";
 import { TimezoneSettings } from "@/components/TimezoneSettings";
 import { PageHeader } from "@/components/PageHeader";
 import { streakService } from "@/lib/services/streak.service";
@@ -17,6 +18,9 @@ export default async function SettingsPage() {
         subtitle="Configure your book tracker"
         icon={SettingsIcon}
       />
+
+      {/* Theme Settings */}
+      <ThemeSettings />
 
       {/* Timezone Settings */}
       <TimezoneSettings initialTimezone={initialTimezone} />

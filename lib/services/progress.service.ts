@@ -334,8 +334,8 @@ export class ProgressService {
       .filter(p => p.id !== progressId) // Exclude the entry being edited
       .sort((a, b) => new Date(a.progressDate).getTime() - new Date(b.progressDate).getTime());
     
-    // Find the entry immediately before this one by date
-    const previousProgress = sortedProgress.find(
+    // Find the entry immediately before this one by date (use findLast to get the closest previous entry)
+    const previousProgress = sortedProgress.findLast(
       p => new Date(p.progressDate).getTime() < requestedDate.getTime()
     );
     
@@ -481,6 +481,7 @@ export class ProgressService {
       revalidatePath("/"); // Dashboard
       revalidatePath("/library"); // Library page
       revalidatePath("/stats"); // Stats page
+      revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
             const { getLogger } = require("@/lib/logger");
