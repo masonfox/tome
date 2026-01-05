@@ -1,4 +1,4 @@
-import pino, { LoggerOptions, Logger, DestinationStream } from 'pino';
+import type { LoggerOptions, Logger } from 'pino';
 
 // Edge-compatible UUID generator
 function generateReqId(): string {
@@ -78,32 +78,48 @@ if (LOG_PRETTY) {
   };
 }
 
-// Configure multi-stream to write to both stdout and file (server-side only)
-// This ensures logs are visible in container logs (Portainer) AND persisted to file
-let baseLogger: Logger;
+// Lazy initialization of logger to avoid loading pino during build phase
+let baseLogger: Logger | null = null;
 
-if (isServer && LOG_DEST) {
-  // Server-side with file destination: use multi-stream for both stdout and file
-  const streams: pino.StreamEntry[] = [
-    { stream: process.stdout },
-    { stream: pino.destination({ dest: LOG_DEST, sync: false }) }
-  ];
-  baseLogger = pino({ ...baseOptions, transport }, pino.multistream(streams));
-} else if (isServer) {
-  // Server-side without file destination: default to stdout
-  baseLogger = pino({ ...baseOptions, transport });
-} else {
-  // Client-side: create a minimal logger (browser console fallback)
-  baseLogger = pino({ ...baseOptions, browser: { asObject: true } });
+function initializeLogger(): Logger {
+  if (baseLogger) return baseLogger;
+  
+  // Dynamic import of pino to avoid bundling issues during instrumentation
+  const pino = require('pino');
+  
+  // Configure multi-stream to write to both stdout and file (server-side only)
+  // This ensures logs are visible in container logs (Portainer) AND persisted to file
+  if (isServer && LOG_DEST) {
+    // Server-side with file destination: use multi-stream for both stdout and file
+    const streams: any[] = [
+      { stream: process.stdout },
+      { stream: pino.destination({ dest: LOG_DEST, sync: false }) }
+    ];
+    baseLogger = pino({ ...baseOptions, transport }, pino.multistream(streams));
+  } else if (isServer) {
+    // Server-side without file destination: default to stdout
+    baseLogger = pino({ ...baseOptions, transport });
+  } else {
+    // Client-side: create a minimal logger (browser console fallback)
+    baseLogger = pino({ ...baseOptions, browser: { asObject: true } });
+  }
+  
+  return baseLogger!;
 }
 
-export function getBaseLogger(): Logger { return baseLogger; }
-export function createLogger(bindings?: Record<string, any>): Logger { return baseLogger.child(bindings || {}); }
+export function getBaseLogger(): Logger { 
+  return initializeLogger();
+}
+
+export function createLogger(bindings?: Record<string, any>): Logger { 
+  return initializeLogger().child(bindings || {}); 
+}
 
 export function getLogger(): Logger {
+  const logger = initializeLogger();
   const store = contextStore.getStore();
-  if (store) return baseLogger.child({ reqId: store.reqId });
-  return baseLogger;
+  if (store) return logger.child({ reqId: store.reqId });
+  return logger;
 }
 
 export function withRequestContext<T>(fn: (ctx: RequestContext) => Promise<T> | T, existingId?: string): Promise<T> | T {
