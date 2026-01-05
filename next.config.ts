@@ -20,7 +20,8 @@ const nextConfig: NextConfig = {
   // Turbopack configuration (empty for now, may need future migration)
   turbopack: {},
   // Externalize native modules for server-side rendering
-  serverExternalPackages: ['better-sqlite3', 'bun:sqlite', 'pino', 'pino-pretty'],
+  // Note: pino and pino-pretty are already in Next.js default external packages list
+  serverExternalPackages: ['better-sqlite3', 'bun:sqlite'],
   webpack: (config, { isServer, dev }) => {
     if (isServer) {
       // Additional webpack externals configuration for Next.js 16
@@ -33,8 +34,9 @@ const nextConfig: NextConfig = {
       const externals = Array.isArray(config.externals) ? config.externals : [config.externals];
       
       // Add our native modules to externals
+      // Note: pino and pino-pretty are already in Next.js default external packages list
       externals.push(({ request }: any, callback: any) => {
-        if (request === 'better-sqlite3' || request === 'bun:sqlite' || request === 'pino' || request === 'pino-pretty') {
+        if (request === 'better-sqlite3' || request === 'bun:sqlite') {
           return callback(null, `commonjs ${request}`);
         }
         callback();
