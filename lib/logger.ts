@@ -65,18 +65,15 @@ const baseOptions: LoggerOptions = {
 // Check if we're in a server environment (Node.js/Bun) vs browser
 const isServer = typeof process !== 'undefined' && process.versions?.node;
 
-// Pretty transport only in development (for stdout)
-let transport: any = undefined;
-if (LOG_PRETTY) {
-  transport = {
-    target: 'pino-pretty',
-    options: {
-      ignore: 'pid,hostname',
-      translateTime: 'UTC:yyyy-mm-dd HH:MM:ss.l',
-      colorize: true,
-    }
-  };
-}
+// Note: pino-pretty transport removed due to Turbopack bundling issues in Next.js 16
+// Turbopack performs static analysis and tries to bundle 'pino-pretty' even when the
+// condition is false, causing EISDIR errors during instrumentation phase.
+// 
+// Logs now output as structured JSON (pino's default), which is production-appropriate.
+// For pretty logs in local development, pipe output through pino-pretty externally:
+//   bun run dev | bunx pino-pretty
+//
+// Multi-stream logging (stdout + file) is preserved and unaffected by this change.
 
 // Lazy initialization of logger to avoid loading pino during build phase
 let baseLogger: Logger | null = null;
@@ -95,10 +92,10 @@ function initializeLogger(): Logger {
       { stream: process.stdout },
       { stream: pino.destination({ dest: LOG_DEST, sync: false }) }
     ];
-    baseLogger = pino({ ...baseOptions, transport }, pino.multistream(streams));
+    baseLogger = pino({ ...baseOptions }, pino.multistream(streams));
   } else if (isServer) {
     // Server-side without file destination: default to stdout
-    baseLogger = pino({ ...baseOptions, transport });
+    baseLogger = pino({ ...baseOptions });
   } else {
     // Client-side: create a minimal logger (browser console fallback)
     baseLogger = pino({ ...baseOptions, browser: { asObject: true } });
