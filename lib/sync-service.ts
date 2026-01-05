@@ -102,13 +102,6 @@ export async function syncCalibreLibrary(
     // ========================================
     // PHASE 0: Initialization & Count
     // ========================================
-    logger.info(
-      { chunkSize, detectOrphans },
-      "╔════════════════════════════════════════════════════════════════════════╗"
-    );
-    logger.info("║ CALIBRE SYNC START - Phase 2: Chunked Batch Processing            ║");
-    logger.info("╚════════════════════════════════════════════════════════════════════════╝");
-    logger.info({ chunkSize, detectOrphans }, "[Sync:Init] Starting with chunked processing...");
     
     // Get total count of books from Calibre
     let totalBooks: number;
@@ -120,11 +113,9 @@ export async function syncCalibreLibrary(
       totalBooks = allBooks.length;
     }
     
-    logger.info({ totalBooks, chunkSize }, `[Sync:Init] Found ${totalBooks} books in Calibre database`);
-    
     // SAFETY CHECK: Abort if Calibre returns no books
     if (totalBooks === 0) {
-      logger.error("[Sync:Init] CRITICAL: No books found in Calibre database. Aborting sync.");
+      logger.error("[Sync] Error: No books found in Calibre database. Aborting sync.");
       return {
         success: false,
         syncedCount: 0,
@@ -136,15 +127,14 @@ export async function syncCalibreLibrary(
     }
 
     const numChunks = Math.ceil(totalBooks / chunkSize);
-    logger.info({ totalBooks, chunkSize, numChunks }, `[Sync:Init] Will process ${numChunks} chunk(s) of ${chunkSize} books each`);
+    logger.info(
+      { totalBooks, chunkSize, numChunks, detectOrphans },
+      `[Sync] Starting: ${totalBooks} books, ${numChunks} chunk(s), orphan detection ${detectOrphans ? 'enabled' : 'disabled'}`
+    );
 
     // ========================================
     // PHASE 1: Chunked Processing
     // ========================================
-    logger.info("─────────────────────────────────────────────────────────────────────────");
-    logger.info("║ PHASE 1: Chunked Book Processing                                    ║");
-    logger.info("─────────────────────────────────────────────────────────────────────────");
-    
     let syncedCount = 0;
     let updatedCount = 0;
     const allCalibreIds: number[] = []; // Track all Calibre IDs for orphan detection
@@ -154,13 +144,12 @@ export async function syncCalibreLibrary(
       const offset = chunkIndex * chunkSize;
       const chunkNumber = chunkIndex + 1;
       
-      logger.info(
-        { chunk: chunkNumber, totalChunks: numChunks, offset, chunkSize },
-        `┌─ [Sync:Chunk ${chunkNumber}/${numChunks}] Starting chunk at offset ${offset}`
+      logger.debug(
+        { chunk: chunkNumber, totalChunks: numChunks, offset, size: chunkSize },
+        `[Sync:Chunk] Starting chunk ${chunkNumber}/${numChunks} at offset ${offset}`
       );
 
       // Step 1: Fetch chunk of books from Calibre
-      logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Fetching books ${offset + 1}-${Math.min(offset + chunkSize, totalBooks)}...`);
       
       let calibreBooks: CalibreBook[];
       if (calibreSource.getBooksCount) {
@@ -172,13 +161,13 @@ export async function syncCalibreLibrary(
         calibreBooks = allBooks.slice(offset, offset + chunkSize);
       }
       
-      logger.info(
+      logger.debug(
         { chunk: chunkNumber, booksInChunk: calibreBooks.length },
-        `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Fetched ${calibreBooks.length} books`
+        `[Sync:Chunk] Fetched ${calibreBooks.length} books from Calibre`
       );
 
       if (calibreBooks.length === 0) {
-        logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] No books in chunk, skipping...`);
+        logger.debug({ chunk: chunkNumber }, `[Sync:Chunk] No books in chunk, skipping...`);
         continue;
       }
 
@@ -187,8 +176,6 @@ export async function syncCalibreLibrary(
       allCalibreIds.push(...chunkCalibreIds);
 
       // Step 2: Fetch tags for this chunk of books
-      logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Fetching tags...`);
-      
       let allTagsMap: Map<number, string[]>;
       if (calibreSource.getAllBookTags) {
         // Use optimized bulk fetch with book IDs (Phase 2 optimization)
@@ -202,21 +189,19 @@ export async function syncCalibreLibrary(
         }
       }
       
-      logger.info(
+      logger.debug(
         { chunk: chunkNumber, booksWithTags: allTagsMap.size },
-        `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Fetched tags for ${allTagsMap.size} books`
+        `[Sync:Chunk] Fetched tags for ${allTagsMap.size} books`
       );
 
       // Step 3: Fetch existing books from Tome database for this chunk
-      logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Checking for existing books in Tome database...`);
       const existingBooksMap = await bookRepository.findAllByCalibreIds(chunkCalibreIds);
-      logger.info(
+      logger.debug(
         { chunk: chunkNumber, existingBooks: existingBooksMap.size, newBooks: calibreBooks.length - existingBooksMap.size },
-        `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Found ${existingBooksMap.size} existing, ${calibreBooks.length - existingBooksMap.size} new`
+        `[Sync:Chunk] Found ${existingBooksMap.size} existing, ${calibreBooks.length - existingBooksMap.size} new in Tome database`
       );
 
       // Step 4: Build arrays of books to insert/update
-      logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Processing book data...`);
       const booksToUpsert: NewBook[] = [];
       let chunkSyncedCount = 0;
       let chunkUpdatedCount = 0;
@@ -257,18 +242,17 @@ export async function syncCalibreLibrary(
       }
 
       // Step 5: Bulk upsert books for this chunk
-      logger.info(
+      logger.debug(
         { chunk: chunkNumber, booksToUpsert: booksToUpsert.length },
-        `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Upserting ${booksToUpsert.length} books...`
+        `[Sync:Chunk] Upserting ${booksToUpsert.length} books`
       );
       await bookRepository.bulkUpsert(booksToUpsert);
-      logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] ✓ Books upserted`);
 
       // Step 6: Create sessions for new books
       if (chunkSyncedCount > 0) {
-        logger.info(
+        logger.debug(
           { chunk: chunkNumber, newBooks: chunkSyncedCount },
-          `│  [Sync:Chunk ${chunkNumber}/${numChunks}] Creating sessions for ${chunkSyncedCount} new books...`
+          `[Sync:Chunk] Creating sessions for ${chunkSyncedCount} new books`
         );
         
         const newCalibreIds = booksToUpsert
@@ -288,39 +272,48 @@ export async function syncCalibreLibrary(
         }
 
         await sessionRepository.bulkCreate(sessionsToCreate);
-        logger.info({ chunk: chunkNumber }, `│  [Sync:Chunk ${chunkNumber}/${numChunks}] ✓ Sessions created`);
+        logger.debug({ chunk: chunkNumber }, `[Sync:Chunk] Sessions created`);
       }
 
       // Update totals
       syncedCount += chunkSyncedCount;
       updatedCount += chunkUpdatedCount;
 
-      // Chunk summary
-      const chunkDuration = ((Date.now() - chunkStartTime) / 1000).toFixed(2);
-      const overallProgress = ((chunkNumber / numChunks) * 100).toFixed(1);
-      const booksProcessed = Math.min(offset + chunkSize, totalBooks);
-      const overallElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      const estimatedRemaining = numChunks > chunkNumber 
-        ? (((Date.now() - startTime) / chunkNumber) * (numChunks - chunkNumber) / 1000).toFixed(0)
-        : 0;
-      
-      logger.info(
-        {
-          chunk: chunkNumber,
-          chunkDurationSec: chunkDuration,
-          chunkNew: chunkSyncedCount,
-          chunkUpdated: chunkUpdatedCount,
-          overallProgress,
-          booksProcessed,
-          totalBooks,
-          elapsedSec: overallElapsed,
-          etaSec: estimatedRemaining,
-        },
-        `└─ [Sync:Chunk ${chunkNumber}/${numChunks}] ✓ Chunk complete in ${chunkDuration}s (${chunkSyncedCount} new, ${chunkUpdatedCount} updated) | Overall: ${booksProcessed}/${totalBooks} (${overallProgress}%) | ETA: ${estimatedRemaining}s`
-      );
+      // Chunk progress (only log for multi-chunk syncs)
+      if (numChunks > 1) {
+        const chunkDuration = ((Date.now() - chunkStartTime) / 1000).toFixed(2);
+        const overallProgress = ((chunkNumber / numChunks) * 100).toFixed(1);
+        const booksProcessed = Math.min(offset + chunkSize, totalBooks);
+        const estimatedRemaining = numChunks > chunkNumber 
+          ? (((Date.now() - startTime) / chunkNumber) * (numChunks - chunkNumber) / 1000).toFixed(0)
+          : 0;
+        
+        logger.info(
+          {
+            chunk: chunkNumber,
+            chunkNew: chunkSyncedCount,
+            chunkUpdated: chunkUpdatedCount,
+            booksProcessed,
+            totalBooks,
+            percentComplete: overallProgress,
+            etaSec: estimatedRemaining,
+          },
+          `[Sync:Progress] Chunk ${chunkNumber}/${numChunks} complete (${chunkSyncedCount} new, ${chunkUpdatedCount} updated) | ${booksProcessed}/${totalBooks} (${overallProgress}%) | ETA: ${estimatedRemaining}s`
+        );
+      }
     }
 
-    logger.info({ totalNew: syncedCount, totalUpdated: updatedCount }, "[Sync:Phase1] ✓ All chunks processed successfully");
+    const bookProcessingDuration = ((Date.now() - startTime) / 1000).toFixed(2);
+    logger.info(
+      { 
+        booksProcessed: syncedCount + updatedCount, 
+        totalBooks, 
+        durationSec: bookProcessingDuration, 
+        newBooks: syncedCount, 
+        updatedBooks: updatedCount 
+      },
+      `[Sync:Books] Processed ${syncedCount + updatedCount}/${totalBooks} books in ${bookProcessingDuration}s (${syncedCount} new, ${updatedCount} updated)`
+    );
 
     // ========================================
     // PHASE 2: Orphan Detection (Optional)
@@ -329,31 +322,22 @@ export async function syncCalibreLibrary(
     const orphanedBooks: string[] = [];
 
     if (detectOrphans) {
-      logger.info("─────────────────────────────────────────────────────────────────────────");
-      logger.info("║ PHASE 2: Orphan Detection                                           ║");
-      logger.info("─────────────────────────────────────────────────────────────────────────");
-      logger.info("[Sync:Orphans] Detecting books removed from Calibre...");
-      
       const removedBooks = await bookRepository.findNotInCalibreIds(allCalibreIds);
-      logger.info(
-        { potentialOrphans: removedBooks.length },
-        `[Sync:Orphans] Found ${removedBooks.length} book(s) not in Calibre`
-      );
 
       // SAFETY CHECK: Prevent mass orphaning (>10% of library)
       if (removedBooks.length > 0) {
         const totalBooksInDb = await bookRepository.count();
         const orphanPercentage = (removedBooks.length / totalBooksInDb) * 100;
         
-        logger.info(
-          { orphanPercentage: orphanPercentage.toFixed(1), removedBooks: removedBooks.length, totalBooksInDb },
-          `[Sync:Orphans] Would orphan ${removedBooks.length}/${totalBooksInDb} books (${orphanPercentage.toFixed(1)}%)`
+        logger.warn(
+          { orphanPercentage: orphanPercentage.toFixed(1), potentialOrphans: removedBooks.length, totalBooksInDb },
+          `[Sync:Safety] High orphan rate detected: would orphan ${removedBooks.length}/${totalBooksInDb} books (${orphanPercentage.toFixed(1)}%)`
         );
         
         if (orphanPercentage > 10) {
           logger.error(
             { orphanPercentage: orphanPercentage.toFixed(1), removedBooks: removedBooks.length },
-            `[Sync:Orphans] CRITICAL: Would orphan ${orphanPercentage.toFixed(1)}% of library. Aborting.`
+            `[Sync] Error: Sync aborted - would orphan ${orphanPercentage.toFixed(1)}% of library`
           );
           return {
             success: false,
@@ -374,13 +358,17 @@ export async function syncCalibreLibrary(
       }
       
       if (removedCount > 0) {
-        logger.info({ removedCount }, `[Sync:Orphans] ✓ Marked ${removedCount} book(s) as orphaned`);
+        const totalBooksInDb = await bookRepository.count();
+        const orphanPercentage = ((removedCount / totalBooksInDb) * 100).toFixed(2);
+        logger.info(
+          { removedCount, orphanPercentage },
+          `[Sync:Orphans] Marked ${removedCount} book(s) as orphaned (${orphanPercentage}% of library)`
+        );
       } else {
-        logger.info("[Sync:Orphans] ✓ No books to orphan");
+        logger.info({ potentialOrphans: 0, removedCount: 0 }, `[Sync:Orphans] No orphaned books found`);
       }
     } else {
-      logger.info("─────────────────────────────────────────────────────────────────────────");
-      logger.info("[Sync:Orphans] Skipping orphan detection (disabled via options)");
+      // Orphan detection disabled - skip this phase
     }
 
     // ========================================
@@ -390,9 +378,6 @@ export async function syncCalibreLibrary(
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     const booksPerSecond = (totalBooks / parseFloat(duration)).toFixed(0);
 
-    logger.info("═════════════════════════════════════════════════════════════════════════");
-    logger.info("║ CALIBRE SYNC COMPLETE                                                ║");
-    logger.info("═════════════════════════════════════════════════════════════════════════");
     logger.info(
       {
         totalBooks,
@@ -402,11 +387,7 @@ export async function syncCalibreLibrary(
         durationSec: duration,
         booksPerSec: booksPerSecond,
       },
-      `[Sync:Complete] ✓ Synced ${totalBooks} books in ${duration}s (${booksPerSecond} books/sec)`
-    );
-    logger.info(
-      { syncedCount, updatedCount, removedCount },
-      `[Sync:Complete] Summary: ${syncedCount} new, ${updatedCount} updated, ${removedCount} orphaned`
+      `[Sync] Complete: ${totalBooks} books in ${duration}s (${booksPerSecond} books/sec) - ${syncedCount} new, ${updatedCount} updated, ${removedCount} orphaned`
     );
 
     return {
@@ -419,7 +400,7 @@ export async function syncCalibreLibrary(
     };
   } catch (error) {
     const { getLogger } = require("@/lib/logger");
-    getLogger().error({ err: error }, "[Sync:Error] Calibre sync failed");
+    getLogger().error({ err: error }, "[Sync] Error: Calibre sync failed");
     return {
       success: false,
       syncedCount: 0,
