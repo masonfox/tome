@@ -900,11 +900,13 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   /**
    * Get tag statistics with book counts
    * Returns all tags with their book counts
+   * Excludes orphaned books to prevent Calibre sync failures
    */
   async getTagStats(): Promise<Array<{ name: string; bookCount: number }>> {
     try {
       // Query to get all unique tags with their book counts
       // Uses json_each to extract individual tag values from JSON arrays
+      // Excludes orphaned books
       const results = this.getDatabase()
         .all(sql`
           SELECT 
@@ -912,6 +914,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
             COUNT(DISTINCT books.id) as bookCount
           FROM books, json_each(books.tags)
           WHERE json_array_length(books.tags) > 0
+            AND books.orphaned = 0
           GROUP BY json_each.value
           ORDER BY json_each.value ASC
         `);
@@ -930,13 +933,17 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   /**
    * Get count of unique books that have at least one tag
+   * Excludes orphaned books
    */
   async countBooksWithTags(): Promise<number> {
     try {
       const result = this.getDatabase()
         .select({ count: sql<number>`COUNT(*)` })
         .from(books)
-        .where(sql`json_array_length(${books.tags}) > 0`)
+        .where(and(
+          sql`json_array_length(${books.tags}) > 0`,
+          eq(books.orphaned, false)
+        ))
         .get();
       
       return result?.count || 0;
@@ -949,6 +956,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   /**
    * Find books by a specific tag with pagination
+   * Excludes orphaned books to prevent Calibre sync failures
    */
   async findByTag(
     tag: string,
@@ -956,11 +964,14 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     skip: number = 0
   ): Promise<{ books: Book[]; total: number }> {
     try {
-      // Build the tag filter condition
-      const tagCondition = sql`EXISTS (
-        SELECT 1 FROM json_each(${books.tags})
-        WHERE json_each.value = ${tag}
-      )`;
+      // Build the tag filter condition with orphaned exclusion
+      const tagCondition = and(
+        sql`EXISTS (
+          SELECT 1 FROM json_each(${books.tags})
+          WHERE json_each.value = ${tag}
+        )`,
+        eq(books.orphaned, false)
+      );
 
       // Get total count
       const countResult = this.getDatabase()
