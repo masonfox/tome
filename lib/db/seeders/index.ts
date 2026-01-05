@@ -6,7 +6,6 @@
 import { syncCalibreLibrary } from "@/lib/sync-service";
 import { bookRepository, sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
 import { rebuildStreak } from "@/lib/streaks";
-import { getLogger } from "@/lib/logger";
 import {
   generateActiveStreak,
   generateHistoricalProgress,
@@ -19,7 +18,15 @@ import {
   generateCompletionDatesForYear,
 } from "./fixtures/goals";
 
-const logger = getLogger();
+// Lazy logger initialization to prevent pino from loading during instrumentation phase
+let logger: any = null;
+function getLoggerSafe() {
+  if (!logger) {
+    const { getLogger } = require("@/lib/logger");
+    logger = getLogger();
+  }
+  return logger;
+}
 
 export interface SeedResult {
   success: boolean;
@@ -42,18 +49,18 @@ export interface SeedResult {
  * - Creates sessions and progress logs for realistic testing
  */
 export async function seedDatabase(): Promise<SeedResult> {
-  logger.info("Starting database seeding process...");
+  getLoggerSafe().info("Starting database seeding process...");
 
   try {
     // Phase 1: Sync Calibre
-    logger.info("Phase 1: Syncing Calibre library...");
+    getLoggerSafe().info("Phase 1: Syncing Calibre library...");
     const syncResult = await syncCalibreLibrary();
 
     if (!syncResult.success) {
       throw new Error(`Calibre sync failed: ${syncResult.error || "Unknown error"}`);
     }
 
-    logger.info({
+    getLoggerSafe().info({
       synced: syncResult.syncedCount,
       updated: syncResult.updatedCount,
       removed: syncResult.removedCount,
@@ -65,7 +72,7 @@ export async function seedDatabase(): Promise<SeedResult> {
     }
 
     // Phase 2: Select books for seeding
-    logger.info("Phase 2: Selecting books for seeding...");
+    getLoggerSafe().info("Phase 2: Selecting books for seeding...");
     const allBooks = await bookRepository.findAll();
 
     if (allBooks.length === 0) {
@@ -81,14 +88,14 @@ export async function seedDatabase(): Promise<SeedResult> {
       throw new Error("No books found to seed");
     }
 
-    logger.info({
+    getLoggerSafe().info({
       totalBooks: allBooks.length,
       selectedBooks: booksToUse.length,
       titles: booksToUse.map(b => `${b.title} (${b.totalPages || 'no pages'})`),
     }, "Selected books for seeding");
 
     // Phase 3: Seed reading sessions
-    logger.info("Phase 3: Creating reading sessions...");
+    getLoggerSafe().info("Phase 3: Creating reading sessions...");
     let sessionsCreated = 0;
 
     const sessionPlans = [
@@ -122,7 +129,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         // Update book with generated page count
         await bookRepository.update(book.id, { totalPages });
 
-        logger.info({
+        getLoggerSafe().info({
           bookId: book.id,
           title: book.title,
           generatedPages: totalPages
@@ -141,7 +148,7 @@ export async function seedDatabase(): Promise<SeedResult> {
             completedDate: plan.status === "read" ? new Date() : existingSession.completedDate,
           });
 
-          logger.info({
+          getLoggerSafe().info({
             bookId: book.id,
             title: book.title,
             sessionId: existingSession.id,
@@ -149,7 +156,7 @@ export async function seedDatabase(): Promise<SeedResult> {
             newStatus: plan.status,
           }, "Updated existing session status");
         } else {
-          logger.info({
+          getLoggerSafe().info({
             bookId: book.id,
             title: book.title,
             sessionId: existingSession.id,
@@ -187,7 +194,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       });
 
       sessionsCreated++;
-      logger.info({
+      getLoggerSafe().info({
         bookId: book.id,
         title: book.title,
         status: plan.status,
@@ -196,7 +203,7 @@ export async function seedDatabase(): Promise<SeedResult> {
     }
 
     // Phase 4: Seed progress logs
-    logger.info("Phase 4: Generating progress logs...");
+    getLoggerSafe().info("Phase 4: Generating progress logs...");
     let progressLogsCreated = 0;
 
     for (const session of sessions) {
@@ -280,7 +287,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         }
 
         progressLogsCreated += logs.length;
-        logger.info({
+        getLoggerSafe().info({
           bookId: session.bookId,
           logsCreated: logs.length,
         }, "Created progress logs");
@@ -288,10 +295,10 @@ export async function seedDatabase(): Promise<SeedResult> {
     }
 
     // Phase 5: Rebuild streak from progress logs and enable tracking
-    logger.info("Phase 5: Rebuilding streak from progress logs...");
+    getLoggerSafe().info("Phase 5: Rebuilding streak from progress logs...");
     const rebuiltStreak = await rebuildStreak(null, undefined, true); // Enable streak tracking for seeded data
     
-    logger.info({
+    getLoggerSafe().info({
       currentStreak: rebuiltStreak.currentStreak,
       longestStreak: rebuiltStreak.longestStreak,
       totalDaysActive: rebuiltStreak.totalDaysActive,
@@ -300,7 +307,7 @@ export async function seedDatabase(): Promise<SeedResult> {
     }, "Streak rebuilt and enabled successfully");
 
     // Phase 6: Create reading goals for multiple years
-    logger.info("Phase 6: Creating reading goals for multiple years...");
+    getLoggerSafe().info("Phase 6: Creating reading goals for multiple years...");
     const currentYear = new Date().getFullYear();
     const goalsToCreate = generateMultiYearGoals(currentYear, 2); // Current year + 2 past years + 1 future year
     
@@ -312,7 +319,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       const existing = await readingGoalRepository.findByUserAndYear(null, goalData.year);
       
       if (existing) {
-        logger.info({
+        getLoggerSafe().info({
           year: goalData.year,
           existingGoal: existing.booksGoal,
         }, "Goal already exists for year");
@@ -329,14 +336,14 @@ export async function seedDatabase(): Promise<SeedResult> {
       
       goalsCreated++;
       createdGoals.push(goal);
-      logger.info({
+      getLoggerSafe().info({
         year: goalData.year,
         booksGoal: goalData.booksGoal,
       }, "Created reading goal");
     }
 
     // Phase 7: Create historical completed books to match goals
-    logger.info("Phase 7: Creating historical completed book sessions...");
+    getLoggerSafe().info("Phase 7: Creating historical completed book sessions...");
     let booksCompletedHistorically = 0;
     
     // Get additional books from library for historical completions
@@ -348,7 +355,7 @@ export async function seedDatabase(): Promise<SeedResult> {
     for (const goal of createdGoals) {
       // Only create historical completions for past years
       if (goal.year >= currentYear) {
-        logger.info({
+        getLoggerSafe().info({
           year: goal.year,
           reason: "current or future year",
         }, "Skipping historical completions");
@@ -360,7 +367,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         currentYear
       );
       
-      logger.info({
+      getLoggerSafe().info({
         year: goal.year,
         targetCompletions,
         booksGoal: goal.booksGoal,
@@ -373,7 +380,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       for (const completionDate of completionDates) {
         // Use next available book
         if (bookIndex >= additionalBooks.length) {
-          logger.warn({
+          getLoggerSafe().warn({
             year: goal.year,
             completed: booksCompletedHistorically,
             target: targetCompletions,
@@ -403,7 +410,7 @@ export async function seedDatabase(): Promise<SeedResult> {
           });
           
           booksCompletedHistorically++;
-          logger.info({
+          getLoggerSafe().info({
             bookId: book.id,
             title: book.title,
             year: goal.year,
@@ -422,7 +429,7 @@ export async function seedDatabase(): Promise<SeedResult> {
           });
           
           booksCompletedHistorically++;
-          logger.info({
+          getLoggerSafe().info({
             bookId: book.id,
             title: book.title,
             year: goal.year,
@@ -432,7 +439,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       }
     }
 
-    logger.info({
+    getLoggerSafe().info({
       sessionsCreated,
       progressLogsCreated,
       goalsCreated,
@@ -453,7 +460,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       totalDaysActive: rebuiltStreak.totalDaysActive,
     };
   } catch (error) {
-    logger.error({ error }, "Seeding failed");
+    getLoggerSafe().error({ error }, "Seeding failed");
     return {
       success: false,
       booksFromSync: 0,
