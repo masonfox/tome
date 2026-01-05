@@ -5,10 +5,8 @@ import { seriesService } from "@/lib/services/series.service";
  * GET /api/series/:name
  * Get all books in a specific series
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: { name: string } }
-) {
+export async function GET(_request: Request, props: { params: Promise<{ name: string }> }) {
+  const params = await props.params;
   const { getLogger } = require("@/lib/logger");
   const logger = getLogger();
 

@@ -141,7 +141,7 @@ export const TagDetailPanel = memo(function TagDetailPanel({
 }: TagDetailPanelProps) {
   const observerTarget = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Reset scroll position when tag changes
   useEffect(() => {

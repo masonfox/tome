@@ -19,10 +19,8 @@ export const dynamic = 'force-dynamic';
  * - 404: Book not found
  * - 500: Update failed
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     
