@@ -131,11 +131,7 @@ docker-compose logs -f tome
 If you encounter permission errors with the data volume:
 
 ```bash
-# Let the container handle permissions (recommended)
-docker-compose up
-
-# Or run with specific user
-docker-compose run --user 1001:1001 tome
+sudo chown -R 1001:1001 your-tome-directory/
 ```
 
 The entrypoint script automatically fixes permissions on first run.
