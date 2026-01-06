@@ -610,14 +610,14 @@ describe("StreakService - Auto-initialization", () => {
 
       it("should validate dailyThreshold when enabling", async () => {
         // Invalid threshold (too low)
-        await expect(async () => {
-          await streakService.setStreakEnabled(null, true, 0);
-        }).toThrow();
+        await expect(
+          streakService.setStreakEnabled(null, true, 0)
+        ).rejects.toThrow();
 
         // Invalid threshold (too high)
-        await expect(async () => {
-          await streakService.setStreakEnabled(null, true, 10000);
-        }).toThrow();
+        await expect(
+          streakService.setStreakEnabled(null, true, 10000)
+        ).rejects.toThrow();
       });
 
       it("should not validate dailyThreshold when disabling", async () => {

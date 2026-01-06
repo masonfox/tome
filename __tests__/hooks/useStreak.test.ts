@@ -4,9 +4,9 @@ import { useStreak } from "@/hooks/useStreak";
 
 const originalFetch = global.fetch;
 
-// Mock sonner toast
-const mockToastSuccess = vi.fn(() => {});
-const mockToastError = vi.fn(() => {});
+// Mock sonner toast - hoist the mock functions
+const mockToastSuccess = vi.hoisted(() => vi.fn(() => {}));
+const mockToastError = vi.hoisted(() => vi.fn(() => {}));
 
 vi.mock("sonner", () => ({
   toast: {

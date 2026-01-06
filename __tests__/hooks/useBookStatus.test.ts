@@ -354,7 +354,7 @@ describe("useBookStatus", () => {
       expect(mockOnRefresh).toHaveBeenCalled();
     });
 
-    test("should handle reread errors", async () => {
+    test("should handle reread errors", { timeout: 10000 }, async () => {
       global.fetch = vi.fn(() => Promise.reject(new Error("Cannot reread"))) as any;
 
       const { result} = renderHook(() =>
@@ -365,7 +365,7 @@ describe("useBookStatus", () => {
       await act(async () => {
         await expect(result.current.handleStartReread()).rejects.toThrow();
       });
-    }, { timeout: 10000 }); // Increase timeout to account for retry logic (3 retries with backoff)
+    }); // Increase timeout to account for retry logic (3 retries with backoff)
   });
 
   describe("status changes based on book updates", () => {

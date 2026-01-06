@@ -1,5 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { Database } from "bun:sqlite";
+// Conditionally import bun:sqlite only in Bun runtime
+// @ts-ignore - bun:sqlite only exists in Bun
+const Database = typeof Bun !== 'undefined' ? require("bun:sqlite").Database : class MockDatabase {};
 
 // Import real production functions
 import { 
@@ -37,14 +39,20 @@ import {
  * These gaps are infrastructure concerns tested manually in development
  * and monitored in production. Logger calls are intentionally excluded to
  * avoid vi.mock() which is global in Bun and leaks between test files.
+ * 
+ * NOTE: These tests require Bun runtime (bun:sqlite) and are skipped in Vitest/Node
  */
 
-let testDb: Database;
+// Skip these tests in Vitest - they require Bun's SQLite implementation
+const isBun = typeof Bun !== 'undefined';
+const describeIf = isBun ? describe : describe.skip;
+
+let testDb: any;
 
 /**
  * Creates Calibre ratings schema in memory
  */
-function createCalibreRatingsSchema(db: Database) {
+function createCalibreRatingsSchema(db: any) {
   // Books table (minimal - just for FK testing)
   db.run(`
     CREATE TABLE books (
@@ -127,7 +135,7 @@ function createCalibreRatingsSchema(db: Database) {
 /**
  * Insert test books
  */
-function insertTestBooks(db: Database) {
+function insertTestBooks(db: any) {
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(1, "Test Book 1");
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(2, "Test Book 2");
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(3, "Test Book 3");
@@ -135,7 +143,7 @@ function insertTestBooks(db: Database) {
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(5, "Test Book 5");
 }
 
-describe("Calibre Write Operations - Rating Management", () => {
+describeIf("Calibre Write Operations - Rating Management", () => {
   beforeAll(() => {
     // Create in-memory test database
     testDb = new Database(":memory:");
@@ -495,8 +503,8 @@ describe("Calibre Write Operations - Rating Management", () => {
   });
 });
 
-describe("Calibre Write Operations - Tag Management", () => {
-  let tagTestDb: Database;
+describeIf("Calibre Write Operations - Tag Management", () => {
+  let tagTestDb: any;
   
   beforeAll(() => {
     // Create a new in-memory test database for tag tests
@@ -732,8 +740,8 @@ describe("Calibre Write Operations - Tag Management", () => {
 
 
 
-describe("Calibre Write Operations - Batch Tag Updates", () => {
-  let batchTestDb: Database;
+describeIf("Calibre Write Operations - Batch Tag Updates", () => {
+  let batchTestDb: any;
 
   beforeAll(() => {
     batchTestDb = new Database(":memory:");
