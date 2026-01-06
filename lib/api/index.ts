@@ -24,9 +24,11 @@ export { bookApi } from "./domains/book";
 export { goalsApi } from "./domains/goals";
 export { streakApi } from "./domains/streak";
 export { dashboardApi } from "./domains/dashboard";
+export { statsApi } from "./domains/stats";
 
 // Re-export all types (type-only imports)
 export type * from "./domains/book";
 export type * from "./domains/goals";
 export type * from "./domains/streak";
 export type * from "./domains/dashboard";
+export type * from "./domains/stats";
