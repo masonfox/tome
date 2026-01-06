@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { shelfService } from "@/lib/services/shelf.service";
 import { getLogger } from "@/lib/logger";
+import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
 const logger = getLogger();
 
@@ -10,7 +11,8 @@ const logger = getLogger();
  * Get a specific shelf, optionally with its books
  * Query params:
  *  - withBooks: (optional) Include books in response
- *  - orderBy: (optional) Book ordering: sortOrder | title | dateAdded | recentlyAdded
+ *  - orderBy: (optional) Book ordering: sortOrder | title | author | series | rating | pages | dateAdded
+ *  - direction: (optional) Sort direction: asc | desc (default: asc)
  */
 export async function GET(
   request: NextRequest,
@@ -34,14 +36,11 @@ export async function GET(
 
     const searchParams = request.nextUrl.searchParams;
     const withBooks = searchParams.get("withBooks") === "true";
-    const orderBy = (searchParams.get("orderBy") || "sortOrder") as
-      | "sortOrder"
-      | "title"
-      | "dateAdded"
-      | "recentlyAdded";
+    const orderBy = (searchParams.get("orderBy") || "sortOrder") as ShelfOrderBy;
+    const direction = (searchParams.get("direction") || "asc") as ShelfSortDirection;
 
     if (withBooks) {
-      const shelf = await shelfService.getShelfWithBooks(shelfId, orderBy);
+      const shelf = await shelfService.getShelfWithBooks(shelfId, orderBy, direction);
       if (!shelf) {
         return NextResponse.json(
           {

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { toast } from "@/utils/toast";
 import type { Shelf } from "@/lib/db/schema/shelves";
-import type { BookWithStatus } from "@/lib/repositories/shelf.repository";
+import type { BookWithStatus, ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
 export interface ShelfWithBooks extends Shelf {
   books: BookWithStatus[];
@@ -16,7 +16,7 @@ export function useShelfBooks(shelfId: number | null) {
    * Fetch shelf with its books
    */
   const fetchShelfBooks = useCallback(
-    async (orderBy: "sortOrder" | "title" | "dateAdded" | "recentlyAdded" = "sortOrder") => {
+    async (orderBy: ShelfOrderBy = "sortOrder", direction: ShelfSortDirection = "asc") => {
       if (!shelfId) {
         return;
       }
@@ -25,7 +25,7 @@ export function useShelfBooks(shelfId: number | null) {
       setError(null);
       try {
         const response = await fetch(
-          `/api/shelves/${shelfId}?withBooks=true&orderBy=${orderBy}`
+          `/api/shelves/${shelfId}?withBooks=true&orderBy=${orderBy}&direction=${direction}`
         );
         const data = await response.json();
 

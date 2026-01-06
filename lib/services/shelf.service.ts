@@ -2,7 +2,7 @@ import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { bookRepository } from "@/lib/repositories";
 import type { Shelf, NewShelf } from "@/lib/db/schema/shelves";
 import type { Book } from "@/lib/db/schema/books";
-import type { BookWithStatus } from "@/lib/repositories/shelf.repository";
+import type { BookWithStatus, ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 import { getLogger } from "@/lib/logger";
 import { DATABASE_LIMITS } from "@/lib/constants";
 
@@ -58,10 +58,11 @@ export class ShelfService {
    */
   async getShelfWithBooks(
     shelfId: number,
-    orderBy?: "sortOrder" | "title" | "dateAdded" | "recentlyAdded"
+    orderBy: ShelfOrderBy = "sortOrder",
+    direction: ShelfSortDirection = "asc"
   ): Promise<ShelfWithBooks | null> {
-    logger.debug({ shelfId, orderBy }, "Fetching shelf with books");
-    return shelfRepository.findByIdWithBooks(shelfId, orderBy);
+    logger.debug({ shelfId, orderBy, direction }, "Fetching shelf with books");
+    return shelfRepository.findByIdWithBooks(shelfId, orderBy, direction);
   }
 
   /**

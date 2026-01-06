@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 
-type SortDirection = "asc" | "desc" | null;
+type SortDirection = "asc" | "desc";
 
 interface BookTableBook {
   id: number;
@@ -23,16 +23,18 @@ interface BookTableBook {
   addedToLibrary?: Date | null;
   dateAddedToShelf?: Date | null;
   status?: string | null;
+  sortOrder?: number;
 }
 
 interface BookTableProps {
   books: BookTableBook[];
   sortBy?: string;
   sortDirection?: SortDirection;
-  onSortChange?: (column: string) => void;
+  onSortChange?: (column: string, direction: SortDirection) => void;
   onRemoveBook?: (bookId: number) => void;
   loading?: boolean;
   className?: string;
+  showOrderColumn?: boolean;
 }
 
 export function BookTable({
@@ -43,11 +45,25 @@ export function BookTable({
   onRemoveBook,
   loading = false,
   className,
+  showOrderColumn = false,
 }: BookTableProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
   const handleImageError = (calibreId: number) => {
     setImageErrors((prev) => new Set(prev).add(calibreId));
+  };
+
+  const handleColumnClick = (column: string) => {
+    if (!onSortChange) return;
+    
+    // If clicking the same column, toggle direction
+    if (sortBy === column) {
+      const newDirection = sortDirection === "asc" ? "desc" : "asc";
+      onSortChange(column, newDirection);
+    } else {
+      // New column, default to ascending
+      onSortChange(column, "asc");
+    }
   };
 
   const renderSortIcon = (column: string) => {
@@ -75,7 +91,7 @@ export function BookTable({
         "px-4 py-3 text-left text-sm font-semibold text-[var(--heading-text)] cursor-pointer hover:bg-[var(--hover-bg)] transition-colors select-none",
         headerClassName
       )}
-      onClick={() => onSortChange?.(column)}
+      onClick={() => handleColumnClick(column)}
     >
       <div className="flex items-center gap-2">
         {children}
@@ -85,7 +101,7 @@ export function BookTable({
   );
 
   if (loading) {
-    return <BookTableSkeleton />;
+    return <BookTableSkeleton showOrderColumn={showOrderColumn} />;
   }
 
   if (books.length === 0) {
@@ -116,6 +132,11 @@ export function BookTable({
             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--heading-text)] w-[60px]">
               Cover
             </th>
+            {showOrderColumn && (
+              <SortableHeader column="sortOrder" className="w-[80px]">
+                Order
+              </SortableHeader>
+            )}
             <SortableHeader column="title" className="min-w-[200px]">
               Title
             </SortableHeader>
@@ -176,6 +197,13 @@ export function BookTable({
                     </div>
                   </Link>
                 </td>
+
+                {/* Order */}
+                {showOrderColumn && (
+                  <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm text-center">
+                    {book.sortOrder !== undefined ? book.sortOrder + 1 : "-"}
+                  </td>
+                )}
 
                 {/* Title */}
                 <td className="px-4 py-3">
@@ -301,7 +329,7 @@ export function BookTable({
 }
 
 // Skeleton component for loading state
-function BookTableSkeleton() {
+function BookTableSkeleton({ showOrderColumn = false }: { showOrderColumn?: boolean }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-[var(--border-color)]">
       <table className="w-full bg-[var(--card-bg)]">
@@ -310,6 +338,11 @@ function BookTableSkeleton() {
             <th className="px-4 py-3 w-[60px]">
               <div className="h-4 bg-[var(--hover-bg)] rounded w-12" />
             </th>
+            {showOrderColumn && (
+              <th className="px-4 py-3 w-[80px]">
+                <div className="h-4 bg-[var(--hover-bg)] rounded w-12" />
+              </th>
+            )}
             <th className="px-4 py-3 min-w-[200px]">
               <div className="h-4 bg-[var(--hover-bg)] rounded w-16" />
             </th>
@@ -348,6 +381,11 @@ function BookTableSkeleton() {
               <td className="px-4 py-3">
                 <div className="w-10 h-[60px] bg-[var(--hover-bg)] rounded" />
               </td>
+              {showOrderColumn && (
+                <td className="px-4 py-3">
+                  <div className="h-4 bg-[var(--hover-bg)] rounded w-8 mx-auto" />
+                </td>
+              )}
               <td className="px-4 py-3">
                 <div className="h-4 bg-[var(--hover-bg)] rounded w-3/4" />
               </td>

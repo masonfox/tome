@@ -30,9 +30,11 @@ export interface BookWithShelfInfo extends Book {
 
 export interface BookWithStatus extends Book {
   status: string | null;
+  sortOrder?: number;
 }
 
-export type ShelfOrderBy = "sortOrder" | "title" | "dateAdded" | "recentlyAdded";
+export type ShelfOrderBy = "sortOrder" | "title" | "author" | "series" | "rating" | "pages" | "dateAdded";
+export type ShelfSortDirection = "asc" | "desc";
 
 export class ShelfRepository extends BaseRepository<
   Shelf,
@@ -118,14 +120,15 @@ export class ShelfRepository extends BaseRepository<
    */
   async findByIdWithBooks(
     shelfId: number,
-    orderBy: ShelfOrderBy = "sortOrder"
+    orderBy: ShelfOrderBy = "sortOrder",
+    direction: ShelfSortDirection = "asc"
   ): Promise<ShelfWithBooks | null> {
     const shelf = await this.findById(shelfId);
     if (!shelf) {
       return null;
     }
 
-    const booksOnShelf = await this.getBooksOnShelf(shelfId, orderBy);
+    const booksOnShelf = await this.getBooksOnShelf(shelfId, orderBy, direction);
 
     return {
       ...shelf,
@@ -139,27 +142,52 @@ export class ShelfRepository extends BaseRepository<
    */
   async getBooksOnShelf(
     shelfId: number,
-    orderBy: ShelfOrderBy = "sortOrder"
+    orderBy: ShelfOrderBy = "sortOrder",
+    direction: ShelfSortDirection = "asc"
   ): Promise<BookWithStatus[]> {
+    const db = this.getDatabase();
+    const sortFn = direction === "asc" ? asc : desc;
+    
+    // Build the order clause based on the orderBy parameter
     let orderClause;
 
     switch (orderBy) {
       case "title":
-        orderClause = asc(books.title);
+        orderClause = sortFn(books.title);
+        break;
+      case "author":
+        // Sort by first author (authors is stored as JSON array)
+        orderClause = sortFn(sql`json_extract(${books.authors}, '$[0]')`);
+        break;
+      case "series":
+        // Sort by series name first, then by series index
+        // Books without series go to the end (NULL values)
+        orderClause = direction === "asc"
+          ? sql`${books.series} IS NULL, ${books.series} ASC, ${books.seriesIndex} ASC`
+          : sql`${books.series} IS NULL, ${books.series} DESC, ${books.seriesIndex} DESC`;
+        break;
+      case "rating":
+        // Books without rating go to the end (NULL values)
+        orderClause = direction === "asc"
+          ? sql`${books.rating} IS NULL, ${books.rating} ASC`
+          : sql`${books.rating} IS NULL, ${books.rating} DESC`;
+        break;
+      case "pages":
+        // Books without page count go to the end (NULL values)
+        orderClause = direction === "asc"
+          ? sql`${books.totalPages} IS NULL, ${books.totalPages} ASC`
+          : sql`${books.totalPages} IS NULL, ${books.totalPages} DESC`;
         break;
       case "dateAdded":
-        orderClause = asc(bookShelves.addedAt);
-        break;
-      case "recentlyAdded":
-        orderClause = desc(bookShelves.addedAt);
+        orderClause = sortFn(bookShelves.addedAt);
         break;
       case "sortOrder":
       default:
-        orderClause = asc(bookShelves.sortOrder);
+        orderClause = sortFn(bookShelves.sortOrder);
         break;
     }
 
-    const result = await this.getDatabase()
+    const result = await db
       .select({
         id: books.id,
         calibreId: books.calibreId,
@@ -182,6 +210,7 @@ export class ShelfRepository extends BaseRepository<
         createdAt: books.createdAt,
         updatedAt: books.updatedAt,
         status: readingSessions.status,
+        sortOrder: bookShelves.sortOrder,
       })
       .from(bookShelves)
       .innerJoin(books, eq(bookShelves.bookId, books.id))

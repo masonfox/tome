@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, FolderOpen, Trash2, Search, X } from "lucide-react";
+import { ArrowLeft, FolderOpen, Trash2, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
 import { BookTable } from "@/components/BookTable";
@@ -11,8 +11,10 @@ import { BookListItemSkeleton } from "@/components/BookListItemSkeleton";
 import BaseModal from "@/components/Modals/BaseModal";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
-type SortOption = "sortOrder" | "title" | "dateAdded" | "recentlyAdded";
+type SortOption = ShelfOrderBy;
+type SortDirection = ShelfSortDirection;
 
 export default function ShelfDetailPage() {
   const params = useParams();
@@ -27,6 +29,7 @@ export default function ShelfDetailPage() {
   } = useShelfBooks(shelfId);
 
   const [sortBy, setSortBy] = useState<SortOption>("sortOrder");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -46,27 +49,20 @@ export default function ShelfDetailPage() {
   // Fetch shelf and books on mount
   useEffect(() => {
     if (shelfId) {
-      fetchShelfBooks(sortBy);
+      fetchShelfBooks(sortBy, sortDirection);
     }
-  }, [shelfId, sortBy, fetchShelfBooks]);
+  }, [shelfId, sortBy, sortDirection, fetchShelfBooks]);
 
-  // Handle sort change
+  // Handle sort change from dropdown (mobile only)
   const handleSortChange = (newSort: SortOption) => {
     setSortBy(newSort);
+    setSortDirection("asc");
   };
 
-  // Handle table column sort
-  const handleTableSort = (column: string) => {
-    // Map table columns to our sort options
-    const columnToSort: Record<string, SortOption> = {
-      title: "title",
-      dateAdded: "dateAdded",
-    };
-
-    const newSort = columnToSort[column];
-    if (newSort) {
-      setSortBy(newSort);
-    }
+  // Handle table column sort (desktop only)
+  const handleTableSort = (column: string, direction: SortDirection) => {
+    setSortBy(column as SortOption);
+    setSortDirection(direction);
   };
 
   // Handle remove book
@@ -170,49 +166,63 @@ export default function ShelfDetailPage() {
         {/* Filter and Sort Controls */}
         {books.length > 0 && (
           <div className="mb-6">
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between">
-              {/* Filter Input */}
-              <div className="relative sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-                <input
-                  type="text"
-                  placeholder="Filter by title, author, or series..."
-                  value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
-                  className={`w-full pl-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
-                    filterText ? "pr-10" : "pr-4"
-                  }`}
-                />
-                {filterText && (
-                  <button
-                    type="button"
-                    onClick={() => setFilterText("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+            {/* Filter Input */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+              <input
+                type="text"
+                placeholder="Filter by title, author, or series..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className={`w-full pl-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+                  filterText ? "pr-10" : "pr-4"
+                }`}
+              />
+              {filterText && (
+                <button
+                  type="button"
+                  onClick={() => setFilterText("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
 
-              {/* Sort Controls - Only show on desktop for table view */}
-              {!isMobile && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-[var(--foreground)] whitespace-nowrap">
-                    Sort by:
-                  </label>
+            {/* Sort Controls - Only show on mobile for list view */}
+            {isMobile && (
+              <div className="flex gap-2 mt-2">
+                {/* Sort By Dropdown */}
+                <div className="flex-1">
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                    className="px-3 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    className="w-full h-[42px] px-3 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   >
                     <option value="sortOrder">Custom Order</option>
-                    <option value="title">Title (A-Z)</option>
-                    <option value="dateAdded">Date Added (Oldest)</option>
-                    <option value="recentlyAdded">Date Added (Newest)</option>
+                    <option value="title">Title</option>
+                    <option value="author">Author</option>
+                    <option value="series">Series</option>
+                    <option value="rating">Rating</option>
+                    <option value="pages">Pages</option>
+                    <option value="dateAdded">Date Added</option>
                   </select>
                 </div>
-              )}
-            </div>
+                
+                {/* Direction Toggle Button */}
+                <button
+                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                  className="h-[42px] px-3 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] transition-colors flex items-center justify-center"
+                  aria-label={sortDirection === "asc" ? "Sort ascending" : "Sort descending"}
+                >
+                  {sortDirection === "asc" ? (
+                    <ArrowUp className="w-5 h-5" />
+                  ) : (
+                    <ArrowDown className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            )}
             
             {/* Filter Results Count */}
             {filterText && (
@@ -313,7 +323,7 @@ export default function ShelfDetailPage() {
               dateAddedToShelf: book.addedToLibrary,
             }))}
             sortBy={sortBy}
-            sortDirection="asc"
+            sortDirection={sortDirection}
             onSortChange={handleTableSort}
             onRemoveBook={(bookId) => {
               const book = filteredBooks.find((b) => b.id === bookId);
@@ -321,6 +331,7 @@ export default function ShelfDetailPage() {
                 setRemovingBook({ id: book.id, title: book.title });
               }
             }}
+            showOrderColumn={true}
           />
         )}
       </div>
