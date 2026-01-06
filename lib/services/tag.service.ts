@@ -237,7 +237,8 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[MERGE] Writing merged tags to Calibre (source of truth)");
-      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreService = await this.getCalibreService();
+      const calibreResult = await calibreService.batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -378,7 +379,8 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[RENAME] Writing renamed tags to Calibre (source of truth)");
-      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreService = await this.getCalibreService();
+      const calibreResult = await calibreService.batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -511,7 +513,8 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[DELETE] Writing tag deletion to Calibre (source of truth)");
-      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreService = await this.getCalibreService();
+      const calibreResult = await calibreService.batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -659,7 +662,8 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length, tagCount: tagNames.length }, "[BULK_DELETE] Writing tag deletions to Calibre (source of truth)");
-      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreService = await this.getCalibreService();
+      const calibreResult = await calibreService.batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -815,7 +819,8 @@ export class TagService {
     const logger = getLogger();
 
     try {
-      const result = await this.getCalibreService().batchUpdateTags(books);
+      const calibreService = await this.getCalibreService();
+      const result = await calibreService.batchUpdateTags(books);
       logger.info(
         { totalBooks: books.length, successCount: result.successCount, failureCount: result.failures.length },
         "[TagService] Batch synced tags to Calibre"
@@ -867,7 +872,8 @@ export class TagService {
       // Write to Calibre FIRST (source of truth - required, not best effort)
       logger.info({ bookCount: calibreUpdates.length }, `[${operationName}] Writing to Calibre (source of truth)`);
       try {
-        const result = await this.getCalibreService().batchUpdateTags(calibreUpdates);
+        const calibreService = await this.getCalibreService();
+      const result = await calibreService.batchUpdateTags(calibreUpdates);
         
         if (result.successCount !== calibreUpdates.length) {
           throw new Error(
