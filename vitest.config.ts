@@ -18,6 +18,30 @@ export default defineConfig({
       provider: 'istanbul',
       reporter: ['lcov', 'text'],
       reportsDirectory: './coverage',
+      
+      // Only include files that are imported by tests (similar to Bun's behavior)
+      // But exclude test files themselves
+      exclude: [
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        '__tests__/**',
+        '__mocks__/**',
+        'test-setup.ts',
+        'scripts/**',
+        'drizzle/**',
+        '*.config.*',
+        'coverage/**',
+        '.next/**',
+        'node_modules/**',
+        'instrumentation.ts',
+        // Exclude Next.js app files that aren't tested
+        'app/**/layout.tsx',
+        'app/**/page.tsx',
+        'app/**/error.tsx',
+        'app/**/not-found.tsx',
+        'app/**/global-error.tsx',
+        'app/providers.tsx',
+      ],
     },
     // Enable parallel execution (this is what we want!)
     pool: 'threads',
