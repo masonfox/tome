@@ -18,7 +18,7 @@ const CLOSE_ANIMATION_MS = 300;
 
 const sizeClasses = {
   default: "max-h-[80vh] rounded-t-2xl",
-  large: "max-h-[90vh] rounded-t-2xl",
+  large: "h-[75vh] rounded-t-3xl",
   full: "h-screen rounded-none",
 };
 
@@ -86,6 +86,8 @@ export function BottomSheet({
         {/* Header - fixed for full/large size, sticky for default */}
         <div className={`bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between ${
           size === "full" || size === "large" ? "flex-shrink-0" : "sticky top-0 z-10"
+        } ${
+          size === "large" ? "rounded-t-3xl" : ""
         }`}>
           <div className="flex items-center gap-2">
             {icon && <span className="text-[var(--accent)]">{icon}</span>}
