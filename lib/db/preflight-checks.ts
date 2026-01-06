@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { existsSync, statSync, accessSync, constants } from "fs";
 import { dirname } from "path";
 import { detectRuntime } from "./factory";
@@ -170,7 +171,6 @@ export function runPreflightChecks(): PreflightCheckResult {
  * @throws Error if critical checks fail
  */
 export function validatePreflightChecks(): void {
-  const { getLogger } = require("@/lib/logger");
   const logger = getLogger();
   logger.info("Running pre-flight checks...");
   const result = runPreflightChecks();

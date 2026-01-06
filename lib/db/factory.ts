@@ -7,6 +7,8 @@
  * This module eliminates duplicated runtime detection across the codebase.
  */
 
+import { getLogger } from "@/lib/logger";
+
 export interface DatabaseConfig {
   /** Path to database file, or ":memory:" for in-memory database */
   path: string;
@@ -152,7 +154,6 @@ export function testDatabaseConnection(sqlite: any): boolean {
       sqlite.prepare('SELECT 1 as test').get(); // better-sqlite3
     return (result as any).test === 1;
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, 'Database connection test failed');
     return false;
   }
@@ -164,10 +165,8 @@ export function testDatabaseConnection(sqlite: any): boolean {
 export function closeDatabaseConnection(sqlite: any): void {
   try {
     sqlite.close();
-    const { getLogger } = require("@/lib/logger");
     getLogger().info('Database connection closed');
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, 'Error closing database connection');
   }
 }

@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { journalService } from "@/lib/services/journal.service";
 import { API_LIMITS } from "@/lib/constants";
@@ -22,7 +23,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching journal entries");
     return NextResponse.json(
       { error: "Failed to fetch journal entries" },

@@ -2,6 +2,7 @@ import { getAllBooks, getBookTags, getAllBookTags, getBooksCount, CalibreBook, P
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
+import { getLogger } from "@/lib/logger";
 
 export interface SyncResult {
   success: boolean;
@@ -95,7 +96,6 @@ export async function syncCalibreLibrary(
 
   isSyncing = true;
   const startTime = Date.now();
-  const { getLogger } = require("./logger");
   const logger = getLogger();
 
   try {
@@ -399,7 +399,6 @@ export async function syncCalibreLibrary(
       orphanedBooks: orphanedBooks.length > 0 ? orphanedBooks : undefined,
     };
   } catch (error) {
-    const { getLogger } = require("./logger");
     getLogger().error({ err: error }, "[Sync] Error: Calibre sync failed");
     return {
       success: false,

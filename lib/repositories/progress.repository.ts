@@ -431,7 +431,7 @@ export class ProgressRepository extends BaseRepository<
    * Ordered by date descending (most recent first)
    */
   async getAllProgressWithBooks(): Promise<Array<ProgressLog & { book: { id: number; title: string; authors: string[] } }>> {
-    const { books } = require("@/lib/db/schema/books");
+    const { books } = require("../db/schema/books");
     
     return this.getDatabase()
       .select({
@@ -490,7 +490,7 @@ export class ProgressRepository extends BaseRepository<
     tx?: any
   ): number {
     // Import synchronously since we're in a transaction callback
-    const { calculatePercentage } = require("@/lib/utils/progress-calculations");
+    const { calculatePercentage } = require("../utils/progress-calculations");
     const database = tx || this.getDatabase();
 
     // 1. Find active sessions for this book

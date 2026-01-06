@@ -27,6 +27,7 @@
  */
 
 import { createDatabase } from "./factory";
+import { getLogger } from "@/lib/logger";
 
 // Type definition for SQLite database interface
 type SQLiteDatabase = any;
@@ -54,7 +55,6 @@ function getLoggerSafe() {
       warn: () => {},
     };
   }
-  const { getLogger } = require("@/lib/logger");
   return getLogger();
 }
 

@@ -1,6 +1,7 @@
 import { watch } from "fs";
 import { stat } from "fs/promises";
 import type { SyncResult } from "./sync-service";
+import { getLogger } from "@/lib/logger";
 
 type SyncCallback = () => Promise<SyncResult>;
 
@@ -14,7 +15,6 @@ class CalibreWatcher {
   private ignorePeriodEnd: number = 0; // Timestamp until which to ignore changes
 
   async start(calibreDbPath: string, onSync: SyncCallback) {
-    const { getLogger } = require("./logger");
     const logger = getLogger();
 
     if (this.watcher) {
@@ -62,7 +62,6 @@ class CalibreWatcher {
   }
 
   private async triggerSync() {
-    const { getLogger } = require("./logger");
     const logger = getLogger();
 
     if (this.suspended) {
@@ -99,7 +98,6 @@ class CalibreWatcher {
   }
 
   suspend() {
-    const { getLogger } = require("./logger");
     const logger = getLogger();
     
     this.suspended = true;
@@ -115,7 +113,6 @@ class CalibreWatcher {
   }
 
   resume() {
-    const { getLogger } = require("./logger");
     const logger = getLogger();
     
     this.suspended = false;
@@ -128,7 +125,6 @@ class CalibreWatcher {
    * @param durationMs - Duration in milliseconds to ignore changes (default: 3000ms / 3 seconds)
    */
   resumeWithIgnorePeriod(durationMs: number = 3000) {
-    const { getLogger } = require("./logger");
     const logger = getLogger();
     
     this.suspended = false;
@@ -140,7 +136,6 @@ class CalibreWatcher {
   }
 
   stop() {
-    const { getLogger } = require("./logger");
     const logger = getLogger();
 
     if (this.watcher) {

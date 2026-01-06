@@ -4,6 +4,7 @@ import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
 import type { ICalibreService } from "@/lib/services/calibre.service";
+import { getLogger } from "@/lib/logger";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -43,7 +44,7 @@ export class BookService {
     }
     // Lazy import to ensure mocks are applied before the module is loaded
     // Don't cache the result - always get fresh reference to support test mocking
-    const { calibreService } = require("@/lib/services/calibre.service");
+    const { calibreService } = require("./calibre.service");
     return calibreService;
   }
   /**
@@ -206,7 +207,6 @@ export class BookService {
       await this.syncRatingToCalibre(book.calibreId, rating);
     } catch (error) {
       // Log error but continue - rating will be out of sync until next Calibre sync
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error }, `[BookService] Failed to sync rating to Calibre for book ${bookId}`);
     }
 
@@ -253,10 +253,8 @@ export class BookService {
   private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
     try {
       this.getCalibreService().updateRating(calibreId, rating);
-      const { getLogger } = require("../logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error, calibreId }, `[BookService] Failed to sync rating to Calibre`);
       throw error;
     }

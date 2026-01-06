@@ -17,6 +17,7 @@ import {
 } from "./migration-lock";
 import { validatePreflightChecks } from "./preflight-checks";
 import { readdirSync } from "fs";
+import { getLogger } from "@/lib/logger";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
 let logger: any = null;
@@ -26,7 +27,6 @@ function getLoggerSafe() {
     return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
   if (!logger) {
-    const { getLogger } = require("@/lib/logger");
     logger = getLogger();
   }
   return logger;

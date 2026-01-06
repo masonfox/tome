@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { seriesService } from "@/lib/services/series.service";
 
@@ -7,7 +8,6 @@ import { seriesService } from "@/lib/services/series.service";
  */
 export async function GET(_request: Request, props: { params: Promise<{ name: string }> }) {
   const params = await props.params;
-  const { getLogger } = require("@/lib/logger");
   const logger = getLogger();
 
   try {

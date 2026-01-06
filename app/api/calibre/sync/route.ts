@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress } from "@/lib/sync-service";
 
@@ -35,7 +36,6 @@ export async function GET() {
       );
     }
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Calibre sync error");
     return NextResponse.json(
       {

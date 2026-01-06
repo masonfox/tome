@@ -1,3 +1,5 @@
+import { getLogger } from "@/lib/logger";
+
 export interface LibraryFilters {
   status?: string;
   search?: string;
@@ -112,7 +114,6 @@ export class LibraryService {
 
       return result;
     } catch (error) {
-      const { getLogger } = require("./logger");
       getLogger().error({ err: error }, "LibraryService: Failed to fetch books");
       throw new Error("Failed to fetch books");
     }
@@ -139,7 +140,6 @@ export class LibraryService {
 
       return sortedTags;
     } catch (error) {
-      const { getLogger } = require("./logger");
       getLogger().error({ err: error }, "LibraryService: Failed to fetch tags");
       throw new Error("Failed to fetch tags");
     }
@@ -165,7 +165,6 @@ export class LibraryService {
 
       return result;
     } catch (error) {
-      const { getLogger } = require("./logger");
       getLogger().error({ err: error }, "LibraryService: Failed to sync Calibre");
       throw new Error("Failed to sync with Calibre");
     }

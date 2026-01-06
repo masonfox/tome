@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
@@ -163,7 +164,6 @@ export default function JournalPage() {
 
   // Archive navigation handler
   const handleArchiveNavigate = useCallback(async (dateKey: string) => {
-    const { getLogger } = require("@/lib/logger");
 
     try {
       setNavigating(true);

@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionService } from "@/lib/services";
 
@@ -52,7 +53,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     return NextResponse.json(result);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error marking book as read");
 
     // Handle specific errors

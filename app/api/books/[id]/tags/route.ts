@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { tagService } from "@/lib/services/tag.service";
@@ -66,7 +67,6 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     
     return NextResponse.json(updatedBook);
    } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "[Tags API] Error");
     
     // Handle specific errors

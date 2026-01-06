@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 /**
  * Database seeding orchestrator
  * Syncs Calibre and generates realistic development data for testing
@@ -26,7 +27,6 @@ function getLoggerSafe() {
     return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
   if (!logger) {
-    const { getLogger } = require("@/lib/logger");
     logger = getLogger();
   }
   return logger;

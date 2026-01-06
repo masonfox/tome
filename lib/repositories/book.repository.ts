@@ -4,6 +4,7 @@ import { books, Book, NewBook } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { db } from "@/lib/db/sqlite";
+import { getLogger } from "@/lib/logger";
 
 export interface BookFilter {
   status?: string;
@@ -573,7 +574,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return results.map((r) => r.tag);
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error }, "Error fetching tags");
       return [];
     }
@@ -925,7 +925,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         bookCount: Number(row.bookCount),
       }));
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error }, "Error fetching tag statistics");
       return [];
     }
@@ -945,10 +944,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           eq(books.orphaned, false)
         ))
         .get();
-      
+
       return result?.count || 0;
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error }, "Error counting books with tags");
       return 0;
     }
@@ -994,7 +992,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return { books: results, total };
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error, tag }, "Error finding books by tag");
       return { books: [], total: 0 };
     }
@@ -1010,7 +1007,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async renameTag(oldName: string, newName: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("../logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1045,7 +1041,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error, oldName, newName }, "Error renaming tag");
       throw error;
     }
@@ -1061,7 +1056,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async deleteTag(tagName: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("../logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1096,7 +1090,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error, tagName }, "Error deleting tag");
       throw error;
     }
@@ -1112,7 +1105,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async mergeTags(sourceTags: string[], targetTag: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("../logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1171,7 +1163,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error, sourceTags, targetTag }, "Error merging tags");
       throw error;
     }
@@ -1195,7 +1186,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
 
       const db = this.getDatabase();
-      const { getLogger } = require("../logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1234,7 +1224,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("../logger");
       getLogger().error({ err: error, bookIds, tagsToAdd, tagsToRemove }, "Error bulk updating tags");
       throw error;
     }

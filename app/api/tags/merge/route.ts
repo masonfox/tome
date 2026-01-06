@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { tagService } from "@/lib/services";
 
@@ -49,7 +50,6 @@ export async function POST(request: NextRequest) {
       tomeFailures: result.tomeFailures,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error merging tags");
     
     // Return detailed error message

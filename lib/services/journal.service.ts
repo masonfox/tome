@@ -5,6 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { buildArchiveHierarchy, type ArchiveNode } from "@/lib/utils/archive-builder";
 import { toZonedTime } from "date-fns-tz";
 import { format } from "date-fns";
+import { getLogger } from "@/lib/logger";
 
 export interface JournalEntry {
   id: number;
@@ -184,7 +185,6 @@ export class JournalService {
     const dates = entries.map((entry: { progressDate: Date }) => entry.progressDate);
 
     // Debug: Log date range and sample dates
-    const { getLogger } = require("../logger");
     if (dates.length > 0) {
       const dateStrings = dates.map((d: Date) => d.toISOString().split('T')[0]);
       const uniqueMonths = Array.from(new Set(dateStrings.map((d: string) => d.substring(0, 7)))).sort();

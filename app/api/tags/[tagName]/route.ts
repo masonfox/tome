@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { tagService } from "@/lib/services";
 
@@ -21,7 +22,6 @@ export async function GET(request: NextRequest, props: { params: Promise<{ tagNa
 
     return NextResponse.json({ tag: tagName, books, total });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error fetching books by tag");
     return NextResponse.json({ error: "Failed to fetch books" }, { status: 500 });
   }
@@ -75,7 +75,6 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ tag
       tomeFailures: result.tomeFailures,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error renaming tag");
     
     const errorMessage = error instanceof Error ? error.message : "Failed to rename tag";
@@ -112,7 +111,6 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ ta
       tomeFailures: result.tomeFailures,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error deleting tag");
     
     const errorMessage = error instanceof Error ? error.message : "Failed to delete tag";

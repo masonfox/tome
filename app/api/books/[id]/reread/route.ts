@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
 import { sessionRepository } from "@/lib/repositories";
@@ -61,7 +62,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       } : undefined,
     });
   } catch (error: any) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error starting re-read");
 
     // Handle specific errors

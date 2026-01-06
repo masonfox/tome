@@ -1,6 +1,7 @@
 import { bookRepository } from "@/lib/repositories";
 import type { Book } from "@/lib/db/schema/books";
 import type { ICalibreService } from "@/lib/services/calibre.service";
+import { getLogger } from "@/lib/logger";
 
 /**
  * Result of a tag operation with detailed success/failure information
@@ -47,7 +48,7 @@ export class TagService {
     }
     // Lazy import to ensure mocks are applied before the module is loaded
     // Don't cache the result - always get fresh reference to support test mocking
-    const { calibreService } = require("@/lib/services/calibre.service");
+    const { calibreService } = require("./calibre.service");
     return calibreService;
   }
 
@@ -128,7 +129,6 @@ export class TagService {
       throw new Error("Tags must be an array");
     }
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ bookId, tags }, "[UPDATE_TAGS] Starting tag update operation");
@@ -185,13 +185,12 @@ export class TagService {
       throw new Error("Target tag cannot be empty");
     }
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
 
     // Suspend the Calibre watcher during merge to prevent interference
-    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    const { calibreWatcher } = require("../calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[MERGE] Calibre watcher suspended");
     
@@ -340,13 +339,12 @@ export class TagService {
       throw new Error("Old and new tag names must be different");
     }
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ oldName, newName }, "[RENAME] Starting tag rename operation");
 
     // Suspend the Calibre watcher during rename to prevent race conditions
-    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    const { calibreWatcher } = require("../calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[RENAME] Calibre watcher suspended");
     
@@ -475,13 +473,12 @@ export class TagService {
       throw new Error("Tag name cannot be empty");
     }
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ tagName }, "[DELETE] Starting tag deletion");
 
     // Suspend the Calibre watcher during delete to prevent interference
-    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    const { calibreWatcher } = require("../calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[DELETE] Calibre watcher suspended");
 
@@ -614,13 +611,12 @@ export class TagService {
       throw new Error("Tag names must be a non-empty array");
     }
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ tagNames, count: tagNames.length }, "[BULK_DELETE] Starting bulk tag deletion");
 
     // Suspend the Calibre watcher during bulk delete to prevent interference
-    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    const { calibreWatcher } = require("../calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[BULK_DELETE] Calibre watcher suspended");
     
@@ -773,7 +769,6 @@ export class TagService {
       throw new Error("Action must be 'add' or 'remove'");
     }
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Bulk update in Tome database
@@ -817,7 +812,6 @@ export class TagService {
   private async batchSyncTagsToCalibre(books: Array<{ calibreId: number; tags: string[] }>): Promise<void> {
     if (books.length === 0) return;
 
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     try {
@@ -854,11 +848,10 @@ export class TagService {
     calculateCalibreUpdates: (books: Book[]) => Array<{ calibreId: number; tags: string[] }>,
     updateTomeDatabase: () => Promise<T>
   ): Promise<T> {
-    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Suspend the Calibre watcher during operation to prevent race conditions
-    const { calibreWatcher } = require("@/lib/calibre-watcher");
+    const { calibreWatcher } = require("../calibre-watcher");
     calibreWatcher.suspend();
     logger.info(`[${operationName}] Calibre watcher suspended`);
     
