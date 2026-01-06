@@ -1,18 +1,21 @@
 /**
  * Logging interceptor for API requests
  * 
- * Provides structured logging for API requests, responses, and errors
- * using the project's Pino-based logger. Only active in development mode.
+ * Provides structured logging for API requests, responses, and errors.
+ * In the browser, uses console.log for visibility. On the server, uses Pino logger.
+ * Only active in development mode.
  */
 
-import { getLogger } from '@/lib/logger';
 import type { RequestInterceptor, RequestConfig, ApiError } from '../base-client';
+
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
 /**
  * Logging interceptor that logs all API requests, responses, and errors
  * 
  * Only logs in development mode to avoid noise in production.
- * Follows the project's LOGGING_GUIDE.md conventions.
+ * Uses console.log in browser for immediate visibility.
  * 
  * @example
  * import { loggingInterceptor } from './interceptors/logging';
@@ -28,16 +31,29 @@ export const loggingInterceptor: RequestInterceptor = {
       return config;
     }
 
-    const logger = getLogger();
-    logger.debug(
-      { 
-        method: config.method, 
-        endpoint: config.endpoint, 
+    if (isBrowser) {
+      // Browser: use console.log for visibility
+      console.log('[API Request]', {
+        method: config.method,
+        endpoint: config.endpoint,
         hasData: !!config.data,
-        hasSignal: !!config.options?.signal
-      }, 
-      'API request'
-    );
+        hasSignal: !!config.options?.signal,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Server: use Pino logger
+      const { getLogger } = require('@/lib/logger');
+      const logger = getLogger();
+      logger.debug(
+        { 
+          method: config.method, 
+          endpoint: config.endpoint, 
+          hasData: !!config.data,
+          hasSignal: !!config.options?.signal
+        }, 
+        'API request'
+      );
+    }
     
     return config;
   },
@@ -48,8 +64,18 @@ export const loggingInterceptor: RequestInterceptor = {
       return response;
     }
 
-    const logger = getLogger();
-    logger.debug({ response }, 'API response');
+    if (isBrowser) {
+      // Browser: use console.log for visibility
+      console.log('[API Response]', {
+        response,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Server: use Pino logger
+      const { getLogger } = require('@/lib/logger');
+      const logger = getLogger();
+      logger.debug({ response }, 'API response');
+    }
     
     return response;
   },
@@ -60,15 +86,28 @@ export const loggingInterceptor: RequestInterceptor = {
       return error;
     }
 
-    const logger = getLogger();
-    logger.error(
-      { 
-        err: error, 
-        endpoint: error.endpoint, 
-        statusCode: error.statusCode 
-      }, 
-      'API error'
-    );
+    if (isBrowser) {
+      // Browser: use console.error for visibility
+      console.error('[API Error]', {
+        message: error.message,
+        endpoint: error.endpoint,
+        statusCode: error.statusCode,
+        details: error.details,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Server: use Pino logger
+      const { getLogger } = require('@/lib/logger');
+      const logger = getLogger();
+      logger.error(
+        { 
+          err: error, 
+          endpoint: error.endpoint, 
+          statusCode: error.statusCode 
+        }, 
+        'API error'
+      );
+    }
     
     return error;
   },
