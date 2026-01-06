@@ -4,6 +4,7 @@ import { vi } from "vitest";
 // Set test environment
 (process.env as any).NODE_ENV = "test";
 (process.env as any).LOG_LEVEL = "silent";
+(process.env as any).TZ = "UTC"; // Force UTC timezone for consistent date handling
 
 // Mock logger globally for all tests - we don't need real logging in tests
 // Using manual mock from lib/__mocks__/logger.ts

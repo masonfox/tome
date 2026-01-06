@@ -25,9 +25,9 @@
     "db:studio": "DATABASE_PATH=./data/tome.db bunx drizzle-kit studio",
     "db:seed": "bun run scripts/seed.ts",
     "sync-calibre": "bun run scripts/sync-calibre.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
+    "test": "TZ=UTC vitest run",
+    "test:watch": "TZ=UTC vitest",
+    "test:ui": "TZ=UTC vitest --ui",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {

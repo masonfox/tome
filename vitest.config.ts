@@ -11,6 +11,9 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./test-setup.ts'],
+    env: {
+      TZ: 'UTC', // Force UTC timezone for consistent date handling across all tests
+    },
     coverage: {
       provider: 'v8',
       reporter: ['lcov', 'text'],
