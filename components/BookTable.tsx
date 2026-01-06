@@ -6,7 +6,7 @@ import { BookOpen, Star, ArrowUpDown, ArrowUp, ArrowDown, Trash2, ExternalLink }
 import { cn } from "@/utils/cn";
 import { useState, ReactNode } from "react";
 import { format } from "date-fns";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 
 type SortDirection = "asc" | "desc" | null;

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BookOpen, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo, ReactNode } from "react";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 
 interface BookListItemProps {
