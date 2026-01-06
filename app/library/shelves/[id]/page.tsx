@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, FolderOpen, Trash2 } from "lucide-react";
+import { ArrowLeft, FolderOpen, Trash2, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
 import { BookTable } from "@/components/BookTable";
@@ -30,6 +30,7 @@ export default function ShelfDetailPage() {
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [filterText, setFilterText] = useState("");
 
   // Detect mobile/tablet vs desktop
   useEffect(() => {
@@ -83,6 +84,20 @@ export default function ShelfDetailPage() {
       setRemoveLoading(false);
     }
   };
+
+  // Filter books based on search text
+  const filteredBooks = books.filter((book) => {
+    if (!filterText.trim()) return true;
+    
+    const searchLower = filterText.toLowerCase();
+    const titleMatch = book.title.toLowerCase().includes(searchLower);
+    const authorMatch = book.authors.some((author) =>
+      author.toLowerCase().includes(searchLower)
+    );
+    const seriesMatch = book.series?.toLowerCase().includes(searchLower);
+    
+    return titleMatch || authorMatch || seriesMatch;
+  });
 
   if (loading && !shelf) {
     return (
@@ -152,24 +167,59 @@ export default function ShelfDetailPage() {
 
       {/* Content */}
       <div>
-        {/* Sort Controls - Only show on desktop for table view */}
-        {books.length > 0 && !isMobile && (
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-[var(--foreground)]">
-                Sort by:
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                className="px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              >
-                <option value="sortOrder">Custom Order</option>
-                <option value="title">Title (A-Z)</option>
-                <option value="dateAdded">Date Added (Oldest)</option>
-                <option value="recentlyAdded">Date Added (Newest)</option>
-              </select>
+        {/* Filter and Sort Controls */}
+        {books.length > 0 && (
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between">
+              {/* Filter Input */}
+              <div className="relative sm:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+                <input
+                  type="text"
+                  placeholder="Filter by title, author, or series..."
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  className={`w-full pl-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+                    filterText ? "pr-10" : "pr-4"
+                  }`}
+                />
+                {filterText && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterText("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Sort Controls - Only show on desktop for table view */}
+              {!isMobile && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-[var(--foreground)] whitespace-nowrap">
+                    Sort by:
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                    className="px-3 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  >
+                    <option value="sortOrder">Custom Order</option>
+                    <option value="title">Title (A-Z)</option>
+                    <option value="dateAdded">Date Added (Oldest)</option>
+                    <option value="recentlyAdded">Date Added (Newest)</option>
+                  </select>
+                </div>
+              )}
             </div>
+            
+            {/* Filter Results Count */}
+            {filterText && (
+              <p className="text-sm text-[var(--foreground)]/60 mt-2">
+                Showing {filteredBooks.length} of {books.length} {books.length === 1 ? "book" : "books"}
+              </p>
+            )}
           </div>
         )}
 
@@ -184,49 +234,7 @@ export default function ShelfDetailPage() {
           ) : (
             <BookTable books={[]} loading={true} />
           )
-        ) : books.length > 0 ? (
-          isMobile ? (
-            // Mobile/Tablet: List View
-            <div className="space-y-4">
-              {books.map((book) => (
-                <BookListItem
-                  key={book.id}
-                  book={book}
-                  actions={
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setRemovingBook({ id: book.id, title: book.title });
-                      }}
-                      className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                      title="Remove from shelf"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  }
-                />
-              ))}
-            </div>
-          ) : (
-            // Desktop: Table View
-            <BookTable
-              books={books.map((book) => ({
-                ...book,
-                dateAddedToShelf: book.addedToLibrary,
-              }))}
-              sortBy={sortBy}
-              sortDirection="asc"
-              onSortChange={handleTableSort}
-              onRemoveBook={(bookId) => {
-                const book = books.find((b) => b.id === bookId);
-                if (book) {
-                  setRemovingBook({ id: book.id, title: book.title });
-                }
-              }}
-            />
-          )
-        ) : (
+        ) : books.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-[var(--foreground)]/40 mb-4">
               <svg
@@ -256,6 +264,64 @@ export default function ShelfDetailPage() {
               Go to Library
             </Link>
           </div>
+        ) : filteredBooks.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-[var(--foreground)]/40 mb-4">
+              <Search className="w-24 h-24 mx-auto" />
+            </div>
+            <h3 className="text-xl font-serif font-semibold text-[var(--heading-text)] mb-2">
+              No matching books
+            </h3>
+            <p className="text-[var(--foreground)]/60 mb-6">
+              No books match your filter. Try a different search term.
+            </p>
+            <button
+              onClick={() => setFilterText("")}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            >
+              Clear Filter
+            </button>
+          </div>
+        ) : isMobile ? (
+          // Mobile/Tablet: List View
+          <div className="space-y-4">
+            {filteredBooks.map((book) => (
+              <BookListItem
+                key={book.id}
+                book={book}
+                actions={
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setRemovingBook({ id: book.id, title: book.title });
+                    }}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                    title="Remove from shelf"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          // Desktop: Table View
+          <BookTable
+            books={filteredBooks.map((book) => ({
+              ...book,
+              dateAddedToShelf: book.addedToLibrary,
+            }))}
+            sortBy={sortBy}
+            sortDirection="asc"
+            onSortChange={handleTableSort}
+            onRemoveBook={(bookId) => {
+              const book = filteredBooks.find((b) => b.id === bookId);
+              if (book) {
+                setRemovingBook({ id: book.id, title: book.title });
+              }
+            }}
+          />
         )}
       </div>
 
