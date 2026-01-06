@@ -1,12 +1,12 @@
 /**
  * Database Factory Module
  *
- * Centralizes SQLite driver selection and configuration logic.
- * Supports both bun:sqlite (Bun runtime) and better-sqlite3 (Node.js runtime).
- *
- * This module eliminates duplicated runtime detection across the codebase.
+ * Centralizes SQLite database configuration using better-sqlite3.
+ * Provides a consistent interface for creating database connections.
  */
 
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { getLogger } from "@/lib/logger";
 
 export interface DatabaseConfig {
@@ -26,35 +26,13 @@ export interface DatabaseConfig {
 
 export interface DatabaseInstance<TSchema = any> {
   /** Drizzle ORM instance */
-  db: TSchema extends undefined ? any : ReturnType<typeof createDrizzle<TSchema>>;
-  /** Raw SQLite instance (bun:sqlite Database or better-sqlite3) */
-  sqlite: any;
-  /** Runtime being used */
-  runtime: 'bun' | 'node';
+  db: any;
+  /** Raw SQLite instance (better-sqlite3) */
+  sqlite: Database.Database;
 }
 
 /**
- * Detect the current JavaScript runtime
- */
-export function detectRuntime(): 'bun' | 'node' {
-  return typeof Bun !== 'undefined' ? 'bun' : 'node';
-}
-
-/**
- * Create a drizzle instance with the appropriate adapter
- */
-function createDrizzle<TSchema>(sqlite: any, schema: TSchema | undefined, runtime: 'bun' | 'node') {
-  if (runtime === 'bun') {
-    const { drizzle } = require('drizzle-orm/bun-sqlite');
-    return schema ? drizzle(sqlite, { schema }) : drizzle(sqlite);
-  } else {
-    const { drizzle } = require('drizzle-orm/better-sqlite3');
-    return schema ? drizzle(sqlite, { schema }) : drizzle(sqlite);
-  }
-}
-
-/**
- * Create a SQLite database instance with appropriate driver for current runtime
+ * Create a SQLite database instance with better-sqlite3
  *
  * @param config - Database configuration
  * @returns Database instance with drizzle ORM and raw sqlite connection
@@ -77,10 +55,11 @@ function createDrizzle<TSchema>(sqlite: any, schema: TSchema | undefined, runtim
  * @example
  * // Calibre database (read-only, no schema)
  * const { db, sqlite } = createDatabase({
- *   path: '/calibre/metadata.db'
+ *   path: '/calibre/metadata.db',
+ *   readonly: true
  * });
  */
-export function createDatabase<TSchema = undefined>(
+export function createDatabase<TSchema = any>(
   config: DatabaseConfig
 ): DatabaseInstance<TSchema> {
   const {
@@ -88,71 +67,42 @@ export function createDatabase<TSchema = undefined>(
     schema,
     wal = path !== ':memory:', // WAL mode for file-based, DELETE for in-memory
     foreignKeys = true,
-    create = true,
     readonly = false,
   } = config;
 
-  const runtime = detectRuntime();
-  let sqlite: any;
+  // Create database instance using better-sqlite3
+  const options: Database.Options = {};
+  if (readonly) {
+    options.readonly = true;
+  }
+  
+  const sqlite = new Database(path, options);
 
-  // Create database instance based on runtime
-  if (runtime === 'bun') {
-    const { Database } = require('bun:sqlite');
-    const options: any = {};
-    if (readonly) {
-      options.readonly = true;
+  // Configure PRAGMA settings (skip for readonly)
+  if (!readonly) {
+    if (foreignKeys) {
+      sqlite.pragma('foreign_keys = ON');
+    }
+    if (wal) {
+      sqlite.pragma('journal_mode = WAL');
     } else {
-      options.create = create;
-    }
-    sqlite = new Database(path, options);
-
-    // Configure PRAGMA settings using exec (skip for readonly)
-    if (!readonly) {
-      if (foreignKeys) {
-        sqlite.exec('PRAGMA foreign_keys = ON');
-      }
-      if (wal) {
-        sqlite.exec('PRAGMA journal_mode = WAL');
-      } else {
-        sqlite.exec('PRAGMA journal_mode = DELETE');
-      }
-    }
-  } else {
-    const Database = require('better-sqlite3');
-    const options: any = {};
-    if (readonly) {
-      options.readonly = true;
-    }
-    sqlite = new Database(path, options);
-
-    // Configure PRAGMA settings using pragma method (skip for readonly)
-    if (!readonly) {
-      if (foreignKeys) {
-        sqlite.pragma('foreign_keys = ON');
-      }
-      if (wal) {
-        sqlite.pragma('journal_mode = WAL');
-      } else {
-        sqlite.pragma('journal_mode = DELETE');
-      }
+      sqlite.pragma('journal_mode = DELETE');
     }
   }
 
   // Create drizzle instance
-  const db = createDrizzle(sqlite, schema, runtime);
+  const db = schema ? drizzle(sqlite, { schema }) : drizzle(sqlite);
 
-  return { db, sqlite, runtime };
+  return { db, sqlite };
 }
 
 /**
  * Test database connection
  */
-export function testDatabaseConnection(sqlite: any): boolean {
+export function testDatabaseConnection(sqlite: Database.Database): boolean {
   try {
-    const result = sqlite.query ?
-      sqlite.query('SELECT 1 as test').get() : // bun:sqlite
-      sqlite.prepare('SELECT 1 as test').get(); // better-sqlite3
-    return (result as any).test === 1;
+    const result = sqlite.prepare('SELECT 1 as test').get() as { test: number };
+    return result.test === 1;
   } catch (error) {
     getLogger().error({ err: error }, 'Database connection test failed');
     return false;
@@ -162,7 +112,7 @@ export function testDatabaseConnection(sqlite: any): boolean {
 /**
  * Close database connection gracefully
  */
-export function closeDatabaseConnection(sqlite: any): void {
+export function closeDatabaseConnection(sqlite: Database.Database): void {
   try {
     sqlite.close();
     getLogger().info('Database connection closed');

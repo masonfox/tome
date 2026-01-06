@@ -1,22 +1,24 @@
-# Use Bun image
-FROM oven/bun:1.3.0 AS base
+# Use Node.js LTS image
+FROM node:22-alpine AS base
 WORKDIR /app
+
+# Install build dependencies for better-sqlite3 native module
+RUN apk add --no-cache python3 make g++
 
 # Install dependencies
 FROM base AS deps
-COPY package.json bun.lock ./
-# Skip postinstall scripts to avoid building better-sqlite3 native module
-# (Docker uses bun:sqlite at runtime, better-sqlite3 only needed for Turbopack resolution)
-RUN bun install --frozen-lockfile --ignore-scripts
+COPY package.json package-lock.json ./
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
 # Install production dependencies only
 FROM base AS prod-deps
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production --ignore-scripts
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # Install migration dependencies only (drizzle-orm and pino for migration scripts)
 FROM base AS migration-deps
-RUN bun add drizzle-orm@^0.44.7 pino@^9.3.1
+RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1
 
 # Build the application
 FROM base AS builder
@@ -29,7 +31,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Create data directory for SQLite database
 RUN mkdir -p data
 
-RUN bun run build
+RUN npm run build
 
 # Production image
 FROM base AS runner
