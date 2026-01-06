@@ -5,8 +5,6 @@ import { getLogger } from "@/lib/logger";
 // Both bun:sqlite and better-sqlite3 have compatible APIs
 type SQLiteDatabase = any;
 
-const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
-
 // Removed module-level logger call to prevent pino from loading during instrumentation phase
 // The warning is now logged when getCalibreDB() is first called (see below)
 
@@ -14,6 +12,9 @@ let dbInstance: ReturnType<typeof createDatabase> | null = null;
 let hasLoggedWarning = false;
 
 export function getCalibreDB() {
+  // Read CALIBRE_DB_PATH lazily to allow tests to set it before first call
+  const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
+  
   if (!CALIBRE_DB_PATH) {
     // Log warning once when function is actually called (not at module load time)
     if (!hasLoggedWarning) {
@@ -39,6 +40,22 @@ export function getCalibreDB() {
   }
 
   return dbInstance.sqlite;
+}
+
+/**
+ * Reset the Calibre DB singleton instance (for testing purposes)
+ * @internal
+ */
+export function resetCalibreDB() {
+  if (dbInstance) {
+    try {
+      dbInstance.sqlite.close();
+    } catch (e) {
+      // Ignore close errors
+    }
+    dbInstance = null;
+  }
+  hasLoggedWarning = false;
 }
 
 export interface CalibreBook {
