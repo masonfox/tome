@@ -112,7 +112,7 @@ run_migrations() {
   while [ $attempt -le $MAX_RETRIES ]; do
     echo "Migration attempt $attempt of $MAX_RETRIES..."
 
-    if node lib/db/migrate.ts; then
+    if npx tsx lib/db/migrate.ts; then
       echo "Migrations completed successfully"
       return 0
     else

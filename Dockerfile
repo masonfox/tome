@@ -17,9 +17,9 @@ FROM base AS prod-deps
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
-# Install migration dependencies only (drizzle-orm and pino for migration scripts)
+# Install migration dependencies only (drizzle-orm, pino, and tsx for TypeScript execution)
 FROM base AS migration-deps
-RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1
+RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1 tsx@^4.7.0
 
 # Build the application
 FROM base AS builder
