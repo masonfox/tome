@@ -128,7 +128,7 @@ export default function ShelfDetailPage() {
           subtitle="This shelf doesn't exist or has been deleted."
           icon={FolderOpen}
           backLink={{
-            href: "/library/shelves",
+            href: "/shelves",
             label: "Back to Shelves"
           }}
         />
@@ -160,7 +160,7 @@ export default function ShelfDetailPage() {
         subtitle={subtitle}
         customIcon={customIcon}
         backLink={{
-          href: "/library/shelves",
+          href: "/shelves",
           label: "Back to Shelves"
         }}
       />

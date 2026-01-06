@@ -589,7 +589,7 @@ export default function BookDetailPage() {
                   return (
                     <Link
                       key={shelf.id}
-                      href={`/library/shelves/${shelf.id}`}
+                      href={`/shelves/${shelf.id}`}
                       className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium flex items-center gap-2"
                     >
                       <div

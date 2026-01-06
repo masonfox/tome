@@ -183,7 +183,7 @@ export default function ShelfEditor({
             No shelves available. Create a shelf first.
           </p>
           <a
-            href="/library/shelves"
+            href="/shelves"
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium text-sm"
           >
             <Plus className="w-4 h-4" />

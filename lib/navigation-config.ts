@@ -24,7 +24,7 @@ export const SERIES_LINK: NavLink = { href: "/series", label: "Series", icon: Bo
 export const TAGS_LINK: NavLink = { href: "/tags", label: "Tags", icon: Tag };
 
 // Shelves link (shown in desktop sidebar and bottom sheet menu)
-export const SHELVES_LINK: NavLink = { href: "/library/shelves", label: "Shelves", icon: FolderOpen };
+export const SHELVES_LINK: NavLink = { href: "/shelves", label: "Shelves", icon: FolderOpen };
 
 // Desktop dropdown "More" menu links (shown in dropdown on desktop, bottom sheet on mobile)
 export const MORE_MENU_LINKS: NavLink[] = [

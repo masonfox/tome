@@ -41,7 +41,7 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
 
   return (
     <div className="group relative bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-md hover:shadow-xl hover:border-[var(--accent)] transition-all duration-300 overflow-hidden">
-      <Link href={`/library/shelves/${shelf.id}`} className="block">
+      <Link href={`/shelves/${shelf.id}`} className="block">
         {/* Cover Preview Section */}
         <div className="relative h-[200px] overflow-hidden bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30">
           {hasCovers ? (

@@ -124,9 +124,9 @@ export async function PUT(
 
     // Revalidate relevant paths
     revalidatePath(`/books/${bookId}`);
-    revalidatePath("/library/shelves");
+    revalidatePath("/shelves");
     shelfIds.forEach((shelfId) => {
-      revalidatePath(`/library/shelves/${shelfId}`);
+      revalidatePath(`/shelves/${shelfId}`);
     });
 
     return NextResponse.json({
