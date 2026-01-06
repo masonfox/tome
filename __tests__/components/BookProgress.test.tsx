@@ -1,12 +1,21 @@
-import { test, expect, describe, afterEach, mock } from 'vitest';
+import { test, expect, describe, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import BookProgress from "@/components/BookDetail/BookProgress";
+import { forwardRef } from "react";
 
 // Mock MarkdownEditor to avoid browser API dependencies
 vi.mock("@/components/MarkdownEditor", () => ({
-  default: require("../../__mocks__/components/MarkdownEditor").default,
+  default: forwardRef(({ value, onChange, placeholder }: any, ref) => (
+    <textarea 
+      data-testid="markdown-editor-mock" 
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  )),
 }));
+
+import BookProgress from "@/components/BookDetail/BookProgress";
 
 afterEach(() => {
   cleanup();

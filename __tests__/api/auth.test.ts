@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach } from 'vitest';
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 
 describe("Auth API Routes Logic", () => {
   const originalEnv = process.env;
@@ -6,13 +6,13 @@ describe("Auth API Routes Logic", () => {
   beforeEach(() => {
     // Reset process.env before each test
     process.env = { ...originalEnv };
+    // Reset modules to ensure fresh imports
+    vi.resetModules();
   });
 
   afterEach(() => {
     // Restore original env
     process.env = originalEnv;
-    // Clear module cache to reload with new env
-    delete require.cache[require.resolve("@/lib/auth")];
   });
 
   describe("Login Logic", () => {

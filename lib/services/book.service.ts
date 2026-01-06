@@ -44,7 +44,7 @@ export class BookService {
     }
     // Lazy import to ensure mocks are applied before the module is loaded
     // Don't cache the result - always get fresh reference to support test mocking
-    const { calibreService } = require("./calibre.service");
+    const { calibreService } = require("@/lib/services/calibre.service");
     return calibreService;
   }
   /**

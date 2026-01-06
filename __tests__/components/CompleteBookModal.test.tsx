@@ -1,7 +1,8 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
+import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import CompleteBookModal from "@/components/CompleteBookModal";
+import { forwardRef, useImperativeHandle, useState, useEffect } from "react";
+import type { MDXEditorMethods } from "@mdxeditor/editor";
 
 /**
  * CompleteBookModal Component Tests
@@ -23,12 +24,61 @@ import CompleteBookModal from "@/components/CompleteBookModal";
  * - Edge cases
  */
 
-// Use shared mock to avoid conflicts with other test files
-import { MarkdownEditorMock } from "../mocks/createMarkdownEditorMock";
+// Mock MarkdownEditor - define the mock inside the factory function
+vi.mock("@/components/MarkdownEditor", () => {
+  const { forwardRef, useImperativeHandle, useState, useEffect } = require("react");
+  
+  const MarkdownEditorMock = forwardRef(
+    (props: any, ref: any) => {
+      const { value, onChange, placeholder, height, id, autoFocus, editorRef } = props;
+      const [internalValue, setInternalValue] = useState(value);
+      const actualRef = editorRef || ref;
 
-vi.mock("@/components/MarkdownEditor", () => ({
-  default: MarkdownEditorMock
-}));
+      useEffect(() => {
+        if (value !== internalValue) {
+          setInternalValue(value);
+        }
+      }, [value, internalValue]);
+
+      useImperativeHandle(actualRef, () => ({
+        setMarkdown: (markdown: string) => {
+          setInternalValue(markdown);
+          onChange(markdown);
+        },
+        getMarkdown: () => internalValue,
+        focus: () => {},
+        insertMarkdown: () => {},
+        getContentEditableHTML: () => internalValue,
+        getSelectionMarkdown: () => "",
+      }));
+
+      return require("react").createElement(
+        "div",
+        { "data-testid": "markdown-editor-mock" },
+        require("react").createElement("textarea", {
+          value: internalValue,
+          onChange: (e: any) => {
+            setInternalValue(e.target.value);
+            onChange(e.target.value);
+          },
+          placeholder,
+          id,
+          autoFocus,
+          "data-testid": "markdown-editor",
+          style: height !== undefined ? { height: `${height}px` } : undefined,
+        })
+      );
+    }
+  );
+
+  MarkdownEditorMock.displayName = "MarkdownEditor";
+
+  return {
+    default: MarkdownEditorMock
+  };
+});
+
+import CompleteBookModal from "@/components/CompleteBookModal";
 
 // Mock lucide-react icons
 vi.mock("lucide-react", () => ({

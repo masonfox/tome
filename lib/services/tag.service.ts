@@ -48,7 +48,7 @@ export class TagService {
     }
     // Lazy import to ensure mocks are applied before the module is loaded
     // Don't cache the result - always get fresh reference to support test mocking
-    const { calibreService } = require("./calibre.service");
+    const { calibreService } = require("@/lib/services/calibre.service");
     return calibreService;
   }
 
@@ -190,7 +190,7 @@ export class TagService {
     logger.info({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
 
     // Suspend the Calibre watcher during merge to prevent interference
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[MERGE] Calibre watcher suspended");
     
@@ -344,7 +344,7 @@ export class TagService {
     logger.info({ oldName, newName }, "[RENAME] Starting tag rename operation");
 
     // Suspend the Calibre watcher during rename to prevent race conditions
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[RENAME] Calibre watcher suspended");
     
@@ -478,7 +478,7 @@ export class TagService {
     logger.info({ tagName }, "[DELETE] Starting tag deletion");
 
     // Suspend the Calibre watcher during delete to prevent interference
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[DELETE] Calibre watcher suspended");
 
@@ -616,7 +616,7 @@ export class TagService {
     logger.info({ tagNames, count: tagNames.length }, "[BULK_DELETE] Starting bulk tag deletion");
 
     // Suspend the Calibre watcher during bulk delete to prevent interference
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[BULK_DELETE] Calibre watcher suspended");
     
@@ -851,7 +851,7 @@ export class TagService {
     const logger = getLogger();
 
     // Suspend the Calibre watcher during operation to prevent race conditions
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = require("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info(`[${operationName}] Calibre watcher suspended`);
     
