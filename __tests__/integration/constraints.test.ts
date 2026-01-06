@@ -33,15 +33,15 @@ describe("Database Constraints", () => {
       });
 
       // Attempt to create duplicate
-      expect(async () => {
-        await bookRepository.create({
+      await expect(
+        bookRepository.create({
           calibreId: 1,
           title: "Another Book",
           authors: ["Author 2"],
           tags: [],
           path: "/path/to/another",
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
   });
 
@@ -65,14 +65,14 @@ describe("Database Constraints", () => {
       });
 
       // Attempt to create second active session - should fail
-      expect(async () => {
-        await sessionRepository.create({
+      await expect(
+        sessionRepository.create({
           bookId: book.id,
           sessionNumber: 2,
           status: "reading",
           isActive: true,
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
 
     test("should allow multiple inactive sessions for same book", async () => {
@@ -125,14 +125,14 @@ describe("Database Constraints", () => {
       await sessionRepository.archive(sessions[0].id);
 
       // Attempt to create another with same bookId + sessionNumber - should fail
-      expect(async () => {
-        await sessionRepository.create({
+      await expect(
+        sessionRepository.create({
           bookId: book.id,
           sessionNumber: 1,
           status: "reading",
           isActive: true,
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
   });
 
@@ -147,16 +147,16 @@ describe("Database Constraints", () => {
       });
 
       // Attempt to create progress log with non-existent sessionId
-      expect(async () => {
-        await progressRepository.create({
+      await expect(
+        progressRepository.create({
           bookId: book.id,
           sessionId: 99999, // Non-existent
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
           progressDate: new Date(),
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
 
     test("should cascade delete sessions when book deleted", async () => {
