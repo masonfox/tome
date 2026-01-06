@@ -5,6 +5,22 @@
  */
 
 /**
+ * Latest progress entry for a book
+ */
+export interface LatestProgress {
+  id: number;
+  userId: number | null;
+  bookId: number;
+  sessionId: number | null;
+  currentPage: number;
+  currentPercentage: number;
+  progressDate: Date;
+  notes: string | null;
+  pagesRead: number;
+  createdAt: Date;
+}
+
+/**
  * Dashboard statistics
  */
 export interface DashboardStats {
@@ -41,7 +57,7 @@ export interface BookWithStatus {
   calibreId: number;
   status?: string | null;
   rating?: number | null;
-  latestProgress?: any;
+  latestProgress?: LatestProgress | null;
 }
 
 /**
