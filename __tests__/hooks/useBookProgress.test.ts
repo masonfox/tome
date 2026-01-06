@@ -3,8 +3,18 @@ import { renderHook, waitFor, act } from "../test-utils";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import type { Book } from "@/hooks/useBookDetail";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
+import { bookApi } from "@/lib/api";
 
-const originalFetch = global.fetch;
+// Mock the bookApi module
+vi.mock("@/lib/api", () => ({
+  bookApi: {
+    listProgress: vi.fn(),
+    createProgress: vi.fn(),
+    updateProgress: vi.fn(),
+    deleteProgress: vi.fn(),
+  },
+}));
+
 const originalLocalStorage = global.localStorage;
 
 describe("useBookProgress", () => {
@@ -16,6 +26,7 @@ describe("useBookProgress", () => {
     tags: [],
     totalPages: 300,
     activeSession: {
+      id: 1,
       status: "reading",
       startedDate: "2024-01-01",
     },
@@ -27,17 +38,28 @@ describe("useBookProgress", () => {
   };
 
   const mockProgressEntries = [
-    { id: 1, currentPage: 30, currentPercentage: 10, progressDate: "2024-01-01", pagesRead: 30, notes: "Day 1" },
-    { id: 2, currentPage: 50, currentPercentage: 16.67, progressDate: "2024-01-02", pagesRead: 20, notes: "" },
+    { id: 1, bookId: 123, sessionId: 1, currentPage: 30, currentPercentage: 10, progressDate: "2024-01-01", pagesRead: 30, notes: "Day 1" },
+    { id: 2, bookId: 123, sessionId: 1, currentPage: 50, currentPercentage: 16.67, progressDate: "2024-01-02", pagesRead: 20, notes: "" },
   ];
 
   const mockOnRefresh = vi.fn(() => {});
 
   beforeEach(() => {
-    global.fetch = vi.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(mockProgressEntries),
-    } as Response));
+    // Reset all mocks
+    vi.clearAllMocks();
+    
+    // Setup default mock implementations
+    vi.mocked(bookApi.listProgress).mockResolvedValue(mockProgressEntries);
+    vi.mocked(bookApi.createProgress).mockResolvedValue({
+      progressLog: mockProgressEntries[0],
+      shouldShowCompletionModal: false,
+    });
+    vi.mocked(bookApi.updateProgress).mockResolvedValue({
+      progressLog: mockProgressEntries[0],
+    });
+    vi.mocked(bookApi.deleteProgress).mockResolvedValue({
+      success: true,
+    });
 
     // Mock localStorage
     const storage: { [key: string]: string } = {};
@@ -54,7 +76,6 @@ describe("useBookProgress", () => {
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
     global.localStorage = originalLocalStorage;
   });
 
@@ -66,12 +87,7 @@ describe("useBookProgress", () => {
         expect(result.current.progress.length).toBe(2);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/books/123/progress", {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      });
+      expect(bookApi.listProgress).toHaveBeenCalledWith("123");
     });
 
     test("should initialize with latest progress values", async () => {
@@ -100,7 +116,11 @@ describe("useBookProgress", () => {
     test("should set progress date to today for reading books", async () => {
       const readingBook = {
         ...mockBook,
-        activeSession: { status: "reading" },
+        activeSession: { 
+          id: 1,
+          status: "reading",
+          startedDate: "2024-01-01",
+        },
       };
 
       const { result } = renderHook(() => useBookProgress("123", readingBook, mockOnRefresh));
@@ -139,15 +159,18 @@ describe("useBookProgress", () => {
 
   describe("handleLogProgress", () => {
     test("should log progress with page number", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
+      vi.mocked(bookApi.createProgress).mockResolvedValue({
+        progressLog: {
           id: 3,
+          bookId: 123,
+          sessionId: 1,
           currentPage: 100,
           currentPercentage: 33.33,
           progressDate: "2024-01-03",
-        }),
-      } as Response));
+          pagesRead: 50,
+        },
+        shouldShowCompletionModal: false,
+      });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -161,11 +184,11 @@ describe("useBookProgress", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/progress",
+        expect(bookApi.createProgress).toHaveBeenCalledWith(
+          "123",
           expect.objectContaining({
-            method: "POST",
-            body: expect.stringContaining('"currentPage":100'),
+            currentPage: 100,
+            notes: "Halfway through!",
           })
         );
       });
@@ -175,15 +198,18 @@ describe("useBookProgress", () => {
     });
 
     test("should log progress with percentage", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
+      vi.mocked(bookApi.createProgress).mockResolvedValue({
+        progressLog: {
           id: 3,
+          bookId: 123,
+          sessionId: 1,
           currentPage: 150,
           currentPercentage: 50,
           progressDate: "2024-01-03",
-        }),
-      } as Response));
+          pagesRead: 100,
+        },
+        shouldShowCompletionModal: false,
+      });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -197,11 +223,10 @@ describe("useBookProgress", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/progress",
+        expect(bookApi.createProgress).toHaveBeenCalledWith(
+          "123",
           expect.objectContaining({
-            method: "POST",
-            body: expect.stringContaining('"currentPercentage":50'),
+            currentPercentage: 50,
           })
         );
       });
@@ -219,22 +244,22 @@ describe("useBookProgress", () => {
       });
 
       // Should not call API
-      expect(global.fetch).not.toHaveBeenCalledWith(
-        "/api/books/123/progress",
-        expect.objectContaining({ method: "POST" })
-      );
+      expect(bookApi.createProgress).not.toHaveBeenCalled();
     });
 
     test("should include progress date in payload if provided", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
+      vi.mocked(bookApi.createProgress).mockResolvedValue({
+        progressLog: {
           id: 3,
+          bookId: 123,
+          sessionId: 1,
           currentPage: 100,
           currentPercentage: 33.33,
           progressDate: "2024-01-15",
-        }),
-      } as Response));
+          pagesRead: 50,
+        },
+        shouldShowCompletionModal: false,
+      });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -248,11 +273,11 @@ describe("useBookProgress", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/progress",
+        expect(bookApi.createProgress).toHaveBeenCalledWith(
+          "123",
           expect.objectContaining({
-            method: "POST",
-            body: expect.stringContaining("2024-01-15"),
+            currentPage: 100,
+            progressDate: expect.stringContaining("2024-01-15"),
           })
         );
       });
@@ -262,10 +287,7 @@ describe("useBookProgress", () => {
       const consoleErrorSpy = vi.fn(console.error);
       console.error = consoleErrorSpy;
 
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ error: "Temporal validation failed" }),
-      } as Response));
+      vi.mocked(bookApi.createProgress).mockRejectedValue(new Error("Temporal validation failed"));
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -296,10 +318,14 @@ describe("useBookProgress", () => {
 
   describe("handleConfirmEditProgress", () => {
     test("should update progress entry", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      } as Response));
+      vi.mocked(bookApi.updateProgress).mockResolvedValue({
+        progressLog: {
+          ...mockProgressEntries[0],
+          currentPage: 35,
+          currentPercentage: 11.67,
+          notes: "Updated notes",
+        },
+      });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -319,12 +345,15 @@ describe("useBookProgress", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/progress/1",
-          expect.objectContaining({
-            method: "PATCH",
-            body: expect.stringContaining('"currentPage":35'),
-          })
+        expect(bookApi.updateProgress).toHaveBeenCalledWith(
+          "123",
+          1,
+          {
+            currentPage: 35,
+            currentPercentage: 11.67,
+            progressDate: "2024-01-01",
+            notes: "Updated notes",
+          }
         );
       });
 
@@ -336,10 +365,9 @@ describe("useBookProgress", () => {
 
   describe("handleDeleteProgress", () => {
     test("should delete progress entry", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      } as Response));
+      vi.mocked(bookApi.deleteProgress).mockResolvedValue({
+        success: true,
+      });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -354,10 +382,7 @@ describe("useBookProgress", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/progress/1",
-          expect.objectContaining({ method: "DELETE" })
-        );
+        expect(bookApi.deleteProgress).toHaveBeenCalledWith("123", 1);
       });
 
       expect(result.current.showEditProgressModal).toBe(false);
@@ -371,10 +396,7 @@ describe("useBookProgress", () => {
         await result.current.handleDeleteProgress();
       });
 
-      expect(global.fetch).not.toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ method: "DELETE" })
-      );
+      expect(bookApi.deleteProgress).not.toHaveBeenCalled();
     });
   });
 
@@ -408,15 +430,18 @@ describe("useBookProgress", () => {
     });
 
     test("should clear unsaved flag after successful submission", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
+      vi.mocked(bookApi.createProgress).mockResolvedValue({
+        progressLog: {
           id: 3,
+          bookId: 123,
+          sessionId: 1,
           currentPage: 100,
           currentPercentage: 33.33,
           progressDate: "2024-01-03",
-        }),
-      } as Response));
+          pagesRead: 50,
+        },
+        shouldShowCompletionModal: false,
+      });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));
 
@@ -442,16 +467,13 @@ describe("useBookProgress", () => {
     test("should refetch progress entries", async () => {
       const updatedProgress = [
         ...mockProgressEntries,
-        { id: 3, currentPage: 100, currentPercentage: 33.33, progressDate: "2024-01-03", pagesRead: 50, notes: "" },
+        { id: 3, bookId: 123, sessionId: 1, currentPage: 100, currentPercentage: 33.33, progressDate: "2024-01-03", pagesRead: 50, notes: "" },
       ];
 
       let callCount = 0;
-      global.fetch = vi.fn(() => {
+      vi.mocked(bookApi.listProgress).mockImplementation(() => {
         callCount++;
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(callCount === 1 ? mockProgressEntries : updatedProgress),
-        } as Response);
+        return Promise.resolve(callCount === 1 ? mockProgressEntries : updatedProgress);
       });
 
       const { result } = renderHook(() => useBookProgress("123", mockBook, mockOnRefresh));

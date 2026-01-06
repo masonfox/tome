@@ -5,6 +5,7 @@ import { toast } from "@/utils/toast";
 import { parseISO, startOfDay } from "date-fns";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import { getLogger } from "@/lib/logger";
+import { bookApi } from "@/lib/api";
 
 const logger = getLogger().child({ hook: "useBookProgress" });
 
@@ -81,16 +82,7 @@ export function useBookProgress(
   const { data: progress = [], isLoading } = useQuery({
     queryKey: ['progress', bookId],
     queryFn: async () => {
-      const response = await fetch(`/api/books/${bookId}/progress`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch progress');
-      }
-      return response.json() as Promise<ProgressEntry[]>;
+      return bookApi.listProgress(bookId);
     },
     staleTime: 30000, // 30 seconds
   });
@@ -103,18 +95,7 @@ export function useBookProgress(
       notes: string;
       progressDate?: string;
     }) => {
-      const response = await fetch(`/api/books/${bookId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to log progress");
-      }
-
-      return response.json();
+      return bookApi.createProgress(bookId, payload);
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -151,18 +132,7 @@ export function useBookProgress(
         notes?: string;
       };
     }) => {
-      const response = await fetch(`/api/books/${bookId}/progress/${params.progressId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params.data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update progress");
-      }
-
-      return response.json();
+      return bookApi.updateProgress(bookId, params.progressId, params.data);
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -190,15 +160,7 @@ export function useBookProgress(
   // Mutation for deleting progress
   const deleteProgressMutation = useMutation({
     mutationFn: async (progressId: number) => {
-      const response = await fetch(`/api/books/${bookId}/progress/${progressId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete progress entry");
-      }
-
-      return response.json();
+      return bookApi.deleteProgress(bookId, progressId);
     },
     onSuccess: () => {
       // Invalidate relevant queries

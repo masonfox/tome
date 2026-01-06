@@ -62,6 +62,37 @@ export interface CreateProgressResponse {
   completedSessionId?: number;
 }
 
+/**
+ * Query parameters for listing progress entries
+ */
+export interface ListProgressParams {
+  sessionId?: number;
+}
+
+/**
+ * Request to update existing progress entry
+ */
+export interface UpdateProgressRequest {
+  currentPage?: number;
+  currentPercentage?: number;
+  progressDate?: string;
+  notes?: string;
+}
+
+/**
+ * Response from updating progress
+ */
+export interface UpdateProgressResponse {
+  progressLog: ProgressLog;
+}
+
+/**
+ * Response from deleting progress entry
+ */
+export interface DeleteProgressResponse {
+  success: boolean;
+}
+
 // ============================================================================
 // Rating API Types
 // ============================================================================
