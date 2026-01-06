@@ -9,12 +9,13 @@ RUN apk add --no-cache python3 make g++
 FROM base AS deps
 COPY package.json package-lock.json ./
 # Install all dependencies (including devDependencies for build)
-RUN npm ci
+# Use --legacy-peer-deps due to eslint-config-next@16.1.1 requiring eslint@>=9.0.0
+RUN npm ci --legacy-peer-deps
 
 # Install production dependencies only
 FROM base AS prod-deps
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Install migration dependencies only (drizzle-orm and pino for migration scripts)
 FROM base AS migration-deps
