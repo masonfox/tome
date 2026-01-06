@@ -5,7 +5,8 @@ import { ReactNode } from "react";
 interface PageHeaderProps {
   title: string;
   subtitle: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  customIcon?: ReactNode;
   backLink?: {
     href: string;
     label: string;
@@ -17,6 +18,7 @@ export function PageHeader({
   title,
   subtitle,
   icon: Icon,
+  customIcon,
   backLink,
   actions,
 }: PageHeaderProps) {
@@ -34,7 +36,11 @@ export function PageHeader({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-5xl font-serif font-bold flex items-center gap-3">
-            <Icon className="w-8 h-8 text-[var(--subheading-text)]" />
+            {customIcon ? (
+              customIcon
+            ) : Icon ? (
+              <Icon className="w-8 h-8 text-[var(--subheading-text)]" />
+            ) : null}
             <span className="text-[var(--heading-text)]">{title}</span>
           </h1>
           <p className="text-[var(--subheading-text)] mt-2 font-medium">

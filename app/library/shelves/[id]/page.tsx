@@ -10,6 +10,7 @@ import { BookListItem } from "@/components/BookListItem";
 import { BookListItemSkeleton } from "@/components/BookListItemSkeleton";
 import BaseModal from "@/components/Modals/BaseModal";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
+import { PageHeader } from "@/components/Layout/PageHeader";
 
 type SortOption = "sortOrder" | "title" | "dateAdded" | "recentlyAdded";
 
@@ -85,99 +86,72 @@ export default function ShelfDetailPage() {
 
   if (loading && !shelf) {
     return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-[var(--card-bg)] rounded w-48 mb-4"></div>
-            <div className="h-12 bg-[var(--card-bg)] rounded w-96 mb-2"></div>
-            <div className="h-6 bg-[var(--card-bg)] rounded w-64 mb-8"></div>
-            {isMobile ? (
-              <div className="space-y-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <BookListItemSkeleton key={i} />
-                ))}
-              </div>
-            ) : (
-              <BookTable books={[]} loading={true} />
-            )}
-          </div>
+      <div className="space-y-10">
+        <div className="animate-pulse">
+          <div className="h-8 bg-[var(--card-bg)] rounded w-48 mb-4"></div>
+          <div className="h-12 bg-[var(--card-bg)] rounded w-96 mb-2"></div>
+          <div className="h-6 bg-[var(--card-bg)] rounded w-64 mb-8"></div>
         </div>
+        {isMobile ? (
+          <div className="space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <BookListItemSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <BookTable books={[]} loading={true} />
+        )}
       </div>
     );
   }
 
   if (!shelf) {
     return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center py-16">
-            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-2">
-              Shelf not found
-            </h2>
-            <p className="text-[var(--foreground)]/60 mb-6">
-              This shelf doesn&apos;t exist or has been deleted.
-            </p>
-            <Link
-              href="/library/shelves"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Shelves
-            </Link>
-          </div>
-        </div>
+      <div className="space-y-10">
+        <PageHeader
+          title="Shelf not found"
+          subtitle="This shelf doesn't exist or has been deleted."
+          icon={FolderOpen}
+          backLink={{
+            href: "/library/shelves",
+            label: "Back to Shelves"
+          }}
+        />
       </div>
     );
   }
 
+  // Build subtitle with description and book count
+  const subtitle = shelf.description 
+    ? `${shelf.description} • ${books.length} ${books.length === 1 ? "book" : "books"}`
+    : `${books.length} ${books.length === 1 ? "book" : "books"}`;
+
+  // Build custom icon with shelf color
+  const ShelfIcon = (shelf.icon ? getShelfIcon(shelf.icon) : null) || FolderOpen;
+  const customIcon = (
+    <div
+      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+      style={{ backgroundColor: shelf.color || "#3b82f6" }}
+    >
+      <ShelfIcon className="w-5 h-5 text-white" />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="space-y-10">
       {/* Header */}
-      <div className="border-b border-[var(--border-color)] bg-[var(--card-bg)]">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <Link
-            href="/library/shelves"
-            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-4 font-medium transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Shelves
-          </Link>
-          
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: shelf.color || "#3b82f6" }}
-                >
-                  {(() => {
-                    const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
-                    return Icon ? (
-                      <Icon className="w-6 h-6 text-white" />
-                    ) : (
-                      <FolderOpen className="w-6 h-6 text-white" />
-                    );
-                  })()}
-                </div>
-                <h1 className="text-4xl font-serif font-bold text-[var(--heading-text)]">
-                  {shelf.name}
-                </h1>
-              </div>
-              {shelf.description && (
-                <p className="text-[var(--foreground)]/70 mt-2">
-                  {shelf.description}
-                </p>
-              )}
-              <p className="text-[var(--foreground)]/60 mt-2 text-sm">
-                {books.length} {books.length === 1 ? "book" : "books"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={shelf.name}
+        subtitle={subtitle}
+        customIcon={customIcon}
+        backLink={{
+          href: "/library/shelves",
+          label: "Back to Shelves"
+        }}
+      />
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div>
         {/* Sort Controls - Only show on desktop for table view */}
         {books.length > 0 && !isMobile && (
           <div className="flex items-center justify-between mb-6">
