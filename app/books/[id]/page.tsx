@@ -157,6 +157,15 @@ export default function BookDetailPage() {
   const [showTagEditor, setShowTagEditor] = useState(false);
   const [showShelfEditor, setShowShelfEditor] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fetch available tags for the tag editor
   const { data: availableTagsData } = useQuery<{ tags: string[] }>({
@@ -706,6 +715,7 @@ export default function BookDetailPage() {
         bookTitle={book.title}
         currentTags={book.tags}
         availableTags={availableTags}
+        isMobile={isMobile}
       />
 
       <ShelfEditor
@@ -715,6 +725,7 @@ export default function BookDetailPage() {
         bookTitle={book.title}
         currentShelfIds={currentShelfIds}
         availableShelves={availableShelves}
+        isMobile={isMobile}
       />
     </div>
   );
