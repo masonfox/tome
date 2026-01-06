@@ -177,7 +177,7 @@ export default function TagEditor({
       </div>
 
       {/* Current Tags */}
-      <div className="mb-6">
+      <div className="mb-20">
         <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
           Current Tags {tags.length > 0 && `(${tags.length})`}
         </label>
@@ -203,8 +203,8 @@ export default function TagEditor({
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 justify-end pt-4 border-t border-[var(--border-color)]">
+      {/* Action Buttons - Sticky */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
         <button
           onClick={handleClose}
           disabled={saving}

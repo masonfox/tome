@@ -183,7 +183,7 @@ export default function ShelfEditor({
 
       {/* Summary */}
       {availableShelves.length > 0 && (
-        <div className="mb-6 px-4 py-3 bg-[var(--background)] rounded-lg">
+        <div className="mb-20 px-4 py-3 bg-[var(--background)] rounded-lg">
           <p className="text-sm text-[var(--foreground)]/70">
             {selectedShelfIds.length === 0 ? (
               "No shelves selected"
@@ -200,9 +200,9 @@ export default function ShelfEditor({
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Sticky */}
       {availableShelves.length > 0 && (
-        <div className="flex gap-3 justify-end pt-4 border-t border-[var(--border-color)]">
+        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
           <button
             onClick={handleClose}
             disabled={saving}
