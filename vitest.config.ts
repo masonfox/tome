@@ -15,7 +15,7 @@ export default defineConfig({
       TZ: 'UTC', // Force UTC timezone for consistent date handling across all tests
     },
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['lcov', 'text'],
       reportsDirectory: './coverage',
     },
