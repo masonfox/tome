@@ -26,6 +26,7 @@ export { streakApi } from "./domains/streak";
 export { dashboardApi } from "./domains/dashboard";
 export { statsApi } from "./domains/stats";
 export { sessionApi } from "./domains/session";
+export { tagApi } from "./domains/tag";
 
 // Re-export all types (type-only imports)
 export type * from "./domains/book";
@@ -34,3 +35,4 @@ export type * from "./domains/streak";
 export type * from "./domains/dashboard";
 export type * from "./domains/stats";
 export type * from "./domains/session";
+export type * from "./domains/tag";
