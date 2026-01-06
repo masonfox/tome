@@ -1,7 +1,7 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { StreakSettings } from "@/components/StreakSettings";
+import { StreakSettings } from "@/components/Streaks/StreakSettings";
 
 afterEach(() => {
   cleanup();
@@ -11,7 +11,7 @@ afterEach(() => {
 let mockFetch: ReturnType<typeof mock>;
 
 beforeEach(() => {
-  mockFetch = mock(() =>
+  mockFetch = vi.fn(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve({ success: true }),
@@ -107,7 +107,7 @@ describe("StreakSettings", () => {
   describe("Form Submission", () => {
     test("should show loading state when saving", async () => {
       // Mock slow fetch
-      mockFetch = mock(
+      mockFetch = vi.fn(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -156,7 +156,7 @@ describe("StreakSettings", () => {
 
     test("should disable input and button while saving", async () => {
       // Mock slow fetch
-      mockFetch = mock(
+      mockFetch = vi.fn(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -241,7 +241,7 @@ describe("StreakSettings", () => {
 
   describe("API Response Handling", () => {
     test("should handle successful API response", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ success: true }),
@@ -263,7 +263,7 @@ describe("StreakSettings", () => {
     });
 
     test("should handle API error response", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () =>
@@ -289,7 +289,7 @@ describe("StreakSettings", () => {
     });
 
     test("should handle network error", async () => {
-      mockFetch = mock(() => Promise.reject(new Error("Network error")));
+      mockFetch = vi.fn(() => Promise.reject(new Error("Network error")));
       global.fetch = mockFetch as any;
 
       render(<StreakSettings initialThreshold={10} />);

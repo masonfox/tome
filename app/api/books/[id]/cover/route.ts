@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
@@ -119,15 +120,12 @@ function servePlaceholderImage() {
   });
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
     if (!CALIBRE_DB_PATH) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ envVar: "CALIBRE_DB_PATH" }, "CALIBRE_DB_PATH not configured");
       return servePlaceholderImage();
     }
@@ -139,7 +137,6 @@ export async function GET(
     const bookId = parseInt(params.id, 10);
 
     if (isNaN(bookId)) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ bookId: params.id }, "Invalid book ID");
       return servePlaceholderImage();
     }
@@ -173,7 +170,6 @@ export async function GET(
       const calibreBook = getBookById(bookId);
 
       if (!calibreBook) {
-        const { getLogger } = require("@/lib/logger");
         getLogger().error({ bookId }, "Book not found in Calibre");
         return servePlaceholderImage();
       }
@@ -185,7 +181,6 @@ export async function GET(
       bookPathCache.set(bookId, bookPath, hasCover);
 
       if (!hasCover) {
-        const { getLogger } = require("@/lib/logger");
         getLogger().warn({ bookId }, "Book has no cover");
         return servePlaceholderImage();
       }
@@ -199,7 +194,6 @@ export async function GET(
     const resolvedLibrary = path.resolve(libraryPath);
 
     if (!resolvedPath.startsWith(resolvedLibrary)) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({
         resolvedPath,
         resolvedLibrary,
@@ -212,7 +206,6 @@ export async function GET(
 
     // Check if file exists
     if (!existsSync(resolvedPath)) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ resolvedPath }, "Image not found");
       return servePlaceholderImage();
     }
@@ -244,7 +237,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error serving cover image");
     return servePlaceholderImage();
   }

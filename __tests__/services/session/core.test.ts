@@ -1,7 +1,7 @@
 // Import shared mock setup (must be first to properly mock modules)
 import "./setup";
 
-import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "bun:test";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { SessionService } from "@/lib/services/session.service";
@@ -12,9 +12,9 @@ import type { Book } from "@/lib/db/schema/books";
  * Additional mock for core tests: updateStreaks
  * The shared setup already mocks rebuildStreak, revalidatePath, and calibreService
  */
-mock.module("@/lib/streaks", () => ({
-  rebuildStreak: mock(() => Promise.resolve()),
-  updateStreaks: mock(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
+vi.mock("@/lib/streaks", () => ({
+  rebuildStreak: vi.fn(() => Promise.resolve()),
+  updateStreaks: vi.fn(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
 }));
 
 describe("SessionService", () => {

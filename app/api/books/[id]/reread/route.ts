@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
 import { sessionRepository } from "@/lib/repositories";
@@ -6,10 +7,8 @@ export const dynamic = 'force-dynamic';
 
 const sessionService = new SessionService();
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -63,7 +62,6 @@ export async function POST(
       } : undefined,
     });
   } catch (error: any) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error starting re-read");
 
     // Handle specific errors

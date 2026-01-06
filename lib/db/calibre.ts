@@ -1,20 +1,25 @@
 import { createDatabase } from "./factory";
+import { getLogger } from "@/lib/logger";
 
 // Type definition for SQLite database interface
-// Both bun:sqlite and better-sqlite3 have compatible APIs
 type SQLiteDatabase = any;
 
-const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
-
-if (!CALIBRE_DB_PATH) {
-  const { getLogger } = require("../logger");
-  getLogger().warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
-}
+// Removed module-level logger call to prevent pino from loading during instrumentation phase
+// The warning is now logged when getCalibreDB() is first called (see below)
 
 let dbInstance: ReturnType<typeof createDatabase> | null = null;
+let hasLoggedWarning = false;
 
 export function getCalibreDB() {
+  // Read CALIBRE_DB_PATH lazily to allow tests to set it before first call
+  const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
+  
   if (!CALIBRE_DB_PATH) {
+    // Log warning once when function is actually called (not at module load time)
+    if (!hasLoggedWarning) {
+      getLogger().warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
+      hasLoggedWarning = true;
+    }
     throw new Error("CALIBRE_DB_PATH environment variable is not set");
   }
 
@@ -27,14 +32,29 @@ export function getCalibreDB() {
         foreignKeys: false, // Calibre DB manages its own schema
         wal: false, // Don't modify journal mode on read-only DB
       });
-      const { getLogger } = require("../logger");
-      getLogger().debug(`Calibre DB: Using ${dbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
+      getLogger().debug('Calibre DB: Using better-sqlite3');
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database: ${error}`);
     }
   }
 
   return dbInstance.sqlite;
+}
+
+/**
+ * Reset the Calibre DB singleton instance (for testing purposes)
+ * @internal
+ */
+export function resetCalibreDB() {
+  if (dbInstance) {
+    try {
+      dbInstance.sqlite.close();
+    } catch (e) {
+      // Ignore close errors
+    }
+    dbInstance = null;
+  }
+  hasLoggedWarning = false;
 }
 
 export interface CalibreBook {
@@ -53,7 +73,26 @@ export interface CalibreBook {
   rating: number | null; // 1-5 stars (converted from Calibre's 0-10 scale)
 }
 
-export function getAllBooks(): CalibreBook[] {
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Get total count of books in Calibre library
+ */
+export function getBooksCount(): number {
+  const db = getCalibreDB();
+  const result = db.prepare("SELECT COUNT(*) as count FROM books").get() as { count: number };
+  return result.count;
+}
+
+/**
+ * Get all books from Calibre library with optional pagination
+ * @param options - Pagination options (limit/offset)
+ * @returns Array of CalibreBook objects
+ */
+export function getAllBooks(options?: PaginationOptions): CalibreBook[] {
   const db = getCalibreDB();
 
   // First, check what columns exist in the books table
@@ -102,7 +141,9 @@ export function getAllBooks(): CalibreBook[] {
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
     LEFT JOIN ratings r ON brl.rating = r.id
     GROUP BY b.id
-    ORDER BY b.title
+    ORDER BY b.id
+    ${options?.limit ? `LIMIT ${options.limit}` : ''}
+    ${options?.offset && options.limit ? `OFFSET ${options.offset}` : ''}
   `;
 
   const books = db.prepare(query).all() as CalibreBook[];
@@ -255,4 +296,56 @@ export function getBookTags(bookId: number): string[] {
 
   const tags = db.prepare(query).all(bookId) as { name: string }[];
   return tags.map((tag) => tag.name);
+}
+
+/**
+ * Get all tags for all books (or specific book IDs) in a single query
+ * Returns a Map of book ID to array of tag names
+ * 
+ * This is much more efficient than calling getBookTags() for each book individually.
+ * For a library with 150k books, this reduces 150k queries to 1 query.
+ * 
+ * @param bookIds - Optional array of book IDs to fetch tags for. If not provided, fetches tags for all books.
+ */
+export function getAllBookTags(bookIds?: number[]): Map<number, string[]> {
+  const db = getCalibreDB();
+
+  let query: string;
+  let results: Array<{ bookId: number; tagName: string }>;
+
+  if (bookIds && bookIds.length > 0) {
+    // Fetch tags only for specified book IDs
+    const placeholders = bookIds.map(() => '?').join(',');
+    query = `
+      SELECT btl.book as bookId, t.name as tagName
+      FROM books_tags_link btl
+      JOIN tags t ON btl.tag = t.id
+      WHERE btl.book IN (${placeholders})
+      ORDER BY btl.book, t.name
+    `;
+    results = db.prepare(query).all(...bookIds) as Array<{ bookId: number; tagName: string }>;
+  } else if (bookIds && bookIds.length === 0) {
+    // Empty array - return empty map
+    return new Map<number, string[]>();
+  } else {
+    // Fetch all tags for all books
+    query = `
+      SELECT btl.book as bookId, t.name as tagName
+      FROM books_tags_link btl
+      JOIN tags t ON btl.tag = t.id
+      ORDER BY btl.book, t.name
+    `;
+    results = db.prepare(query).all() as Array<{ bookId: number; tagName: string }>;
+  }
+  
+  // Build map: bookId -> [tag1, tag2, ...]
+  const tagsMap = new Map<number, string[]>();
+  
+  for (const row of results) {
+    const tags = tagsMap.get(row.bookId) || [];
+    tags.push(row.tagName);
+    tagsMap.set(row.bookId, tags);
+  }
+  
+  return tagsMap;
 }

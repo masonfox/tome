@@ -408,6 +408,46 @@ export class SessionRepository extends BaseRepository<
 
      return result?.count ?? 0;
    }
+
+   /**
+    * Bulk create reading sessions for sync performance optimization
+    * 
+    * Creates multiple "to-read" sessions in batches for newly synced books.
+    * Processes sessions in batches of 1000 to avoid SQLite limits.
+    * 
+    * This is much more efficient than individual create() calls.
+    * For a library with 150k new books, this reduces 150k operations to ~150 operations.
+    * 
+    * @param sessionsData - Array of session data to create
+    * @returns Number of sessions created
+    */
+   async bulkCreate(sessionsData: NewReadingSession[]): Promise<number> {
+     if (sessionsData.length === 0) {
+       return 0;
+     }
+
+     const db = this.getDatabase();
+     const BATCH_SIZE = 1000;
+     let totalCreated = 0;
+
+     // Process in batches to avoid SQLite limits
+     for (let i = 0; i < sessionsData.length; i += BATCH_SIZE) {
+       const batch = sessionsData.slice(i, i + BATCH_SIZE);
+       
+       // Use a transaction for each batch
+       await db.transaction((tx) => {
+         for (const sessionData of batch) {
+           tx.insert(readingSessions)
+             .values(sessionData)
+             .run();
+         }
+       });
+
+       totalCreated += batch.length;
+     }
+
+     return totalCreated;
+   }
 }
 
 // Singleton instance

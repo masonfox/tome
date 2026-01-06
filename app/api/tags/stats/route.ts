@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { tagService } from "@/lib/services";
 
@@ -13,7 +14,6 @@ export async function GET() {
 
     return NextResponse.json({ tags, totalBooks });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching tag statistics");
     return NextResponse.json({ error: "Failed to fetch tag statistics" }, { status: 500 });
   }

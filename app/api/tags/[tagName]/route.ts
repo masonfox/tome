@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { tagService } from "@/lib/services";
 
@@ -7,10 +8,8 @@ export const dynamic = 'force-dynamic';
  * GET /api/tags/:tagName
  * Get all books with a specific tag
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { tagName: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ tagName: string }> }) {
+  const params = await props.params;
   try {
     const tagName = decodeURIComponent(params.tagName);
     
@@ -23,7 +22,6 @@ export async function GET(
 
     return NextResponse.json({ tag: tagName, books, total });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error fetching books by tag");
     return NextResponse.json({ error: "Failed to fetch books" }, { status: 500 });
   }
@@ -33,10 +31,8 @@ export async function GET(
  * PATCH /api/tags/:tagName
  * Rename a tag across all books
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { tagName: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ tagName: string }> }) {
+  const params = await props.params;
   try {
     const tagName = decodeURIComponent(params.tagName);
     const body = await request.json();
@@ -79,7 +75,6 @@ export async function PATCH(
       tomeFailures: result.tomeFailures,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error renaming tag");
     
     const errorMessage = error instanceof Error ? error.message : "Failed to rename tag";
@@ -98,10 +93,8 @@ export async function PATCH(
  * DELETE /api/tags/:tagName
  * Delete a tag from all books
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { tagName: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ tagName: string }> }) {
+  const params = await props.params;
   try {
     const tagName = decodeURIComponent(params.tagName);
 
@@ -118,7 +111,6 @@ export async function DELETE(
       tomeFailures: result.tomeFailures,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, tagName: params.tagName }, "Error deleting tag");
     
     const errorMessage = error instanceof Error ? error.message : "Failed to delete tag";

@@ -2,7 +2,7 @@
  * Tests for useBookStatus helper functions
  * These functions are extracted from the main hook to reduce duplication
  */
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 
 // Since the helper functions are not exported, we'll test them through the hook's behavior
 // This is integration testing rather than unit testing, but ensures the helpers work correctly

@@ -3,7 +3,7 @@
 import { ChevronDown, Check, TrendingUp } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
-import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { useRef, useEffect } from "react";
 
@@ -13,7 +13,7 @@ interface BookProgressProps {
     latestProgress?: {
       currentPage: number;
       currentPercentage: number;
-    };
+    } | null;
   };
   currentPage: string;
   currentPercentage: string;
@@ -29,7 +29,7 @@ interface BookProgressProps {
   onEditorReady?: (methods: MDXEditorMethods) => void;
   showProgressModeDropdown: boolean;
   setShowProgressModeDropdown: (show: boolean) => void;
-  progressModeDropdownRef?: React.RefObject<HTMLDivElement>;
+  progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function BookProgress({

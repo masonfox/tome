@@ -4,10 +4,10 @@ import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLibraryData } from "@/hooks/useLibraryData";
 import { libraryService } from "@/lib/library-service";
-import { LibraryHeader } from "@/components/LibraryHeader";
-import { LibraryFilters } from "@/components/LibraryFilters";
-import { BookGrid } from "@/components/BookGrid";
-import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { LibraryHeader } from "@/components/Library/LibraryHeader";
+import { LibraryFilters } from "@/components/Library/LibraryFilters";
+import { BookGrid } from "@/components/Books/BookGrid";
+import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
 import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {

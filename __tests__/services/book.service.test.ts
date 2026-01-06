@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "bun:test";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { BookService } from "@/lib/services/book.service";
@@ -8,10 +8,10 @@ import type { Book } from "@/lib/db/schema/books";
 /**
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
  */
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
+let mockBatchUpdateCalibreTags = vi.fn((updates: Array<{ calibreId: number; tags: string[] }>) => updates.length);
 let mockCalibreShouldFail = false;
 
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     batchUpdateTags: (updates: Array<{ calibreId: number; tags: string[] }>) => {
       if (mockCalibreShouldFail) {
@@ -19,10 +19,10 @@ mock.module("@/lib/services/calibre.service", () => ({
       }
       return mockBatchUpdateCalibreTags(updates);
     },
-    updateTags: mock(() => {}),
-    updateRating: mock(() => {}),
-    readTags: mock(() => []),
-    readRating: mock(() => null),
+    updateTags: vi.fn(() => {}),
+    updateRating: vi.fn(() => {}),
+    readTags: vi.fn(() => []),
+    readRating: vi.fn(() => null),
   },
   CalibreService: class {},
 }));
@@ -32,7 +32,7 @@ let mockWatcherSuspendCalled = false;
 let mockWatcherResumeCalled = false;
 let mockWatcherResumeIgnorePeriod = 0;
 
-mock.module("@/lib/calibre-watcher", () => ({
+vi.mock("@/lib/calibre-watcher", () => ({
   calibreWatcher: {
     suspend: () => {
       mockWatcherSuspendCalled = true;
@@ -44,8 +44,8 @@ mock.module("@/lib/calibre-watcher", () => ({
       mockWatcherResumeCalled = true;
       mockWatcherResumeIgnorePeriod = durationMs;
     },
-    start: mock(() => {}),
-    stop: mock(() => {}),
+    start: vi.fn(() => {}),
+    stop: vi.fn(() => {}),
   },
 }));
 

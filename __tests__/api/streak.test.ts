@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET, PATCH } from "@/app/api/streak/route";
 import { streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -195,7 +195,7 @@ describe("Streak API - GET /api/streak", () => {
     test("returns 500 on internal error", async () => {
       // Mock the service to throw an error
       const originalGetStreak = streakRepository.findByUserId;
-      streakRepository.findByUserId = mock(() => {
+      streakRepository.findByUserId = vi.fn(() => {
         throw new Error("Database connection failed");
       });
 
@@ -423,7 +423,7 @@ describe("Streak API - PATCH /api/streak (dailyThreshold)", () => {
     test("returns 500 on internal error", async () => {
       // Mock the service to throw an unexpected error
       const originalUpdate = streakRepository.update;
-      streakRepository.update = mock(() => {
+      streakRepository.update = vi.fn(() => {
         throw new Error("Database connection failed");
       });
 

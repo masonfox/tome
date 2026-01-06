@@ -1,6 +1,6 @@
 "use client";
 
-import BaseModal from "@/components/BaseModal";
+import BaseModal from "@/components/Modals/BaseModal";
 import { AlertTriangle } from "lucide-react";
 
 interface RemoveTagFromBookModalProps {

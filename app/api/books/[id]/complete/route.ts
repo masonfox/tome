@@ -35,10 +35,8 @@ interface CompleteBookRequest {
  * - If no pages: Directly marks session as read with dates
  * - Rating and review updates are best-effort (won't fail the operation)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 

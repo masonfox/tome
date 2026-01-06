@@ -4,6 +4,7 @@ import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
 import type { ICalibreService } from "@/lib/services/calibre.service";
+import { getLogger } from "@/lib/logger";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -143,7 +144,7 @@ export class BookService {
     // NOTE: better-sqlite3 requires synchronous transaction callbacks (no async/await)
     // Bun's sqlite supports async, but Drizzle handles the difference
     try {
-      return await db.transaction((tx) => {
+      const result = db.transaction((tx) => {
         // 1. Update book's totalPages using repository method with transaction
         const updated = bookRepository.updateTotalPagesWithRecalculation(
           bookId,
@@ -167,6 +168,7 @@ export class BookService {
 
         return updated;
       });
+      return result;
     } catch (error) {
       const { getLogger } = await import("@/lib/logger");
       getLogger().error({ err: error, bookId }, "[BookService] Failed to update total pages");
@@ -206,7 +208,6 @@ export class BookService {
       await this.syncRatingToCalibre(book.calibreId, rating);
     } catch (error) {
       // Log error but continue - rating will be out of sync until next Calibre sync
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, `[BookService] Failed to sync rating to Calibre for book ${bookId}`);
     }
 
@@ -253,10 +254,8 @@ export class BookService {
   private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
     try {
       this.getCalibreService().updateRating(calibreId, rating);
-      const { getLogger } = require("@/lib/logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, calibreId }, `[BookService] Failed to sync rating to Calibre`);
       throw error;
     }

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { createMockRequest, createTestBook, createTestSession, createTestProgress } from "../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -23,7 +23,7 @@ import type { NextRequest } from "next/server";
  */
 
 // Mock Next.js cache revalidation
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
@@ -38,14 +38,14 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: (calibreId: number, rating: number | null) => {
       calibreRatingCalls.push({ calibreId, rating });
     },
-    updateTags: mock(() => {}),
-    readRating: mock(() => null),
-    readTags: mock(() => []),
+    updateTags: vi.fn(() => {}),
+    readRating: vi.fn(() => null),
+    readTags: vi.fn(() => []),
   },
   CalibreService: class {},
 }));

@@ -1,12 +1,10 @@
-import { test, expect, describe, afterEach, mock } from "bun:test";
+import { test, expect, describe, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import BookProgress from "@/components/BookDetail/BookProgress";
 
-// Mock MarkdownEditor to avoid browser API dependencies
-mock.module("@/components/MarkdownEditor", () => ({
-  default: require("../../__mocks__/components/MarkdownEditor").default,
-}));
+// MarkdownEditor is mocked globally in test-setup.ts
+
+import BookProgress from "@/components/BookDetail/BookProgress";
 
 afterEach(() => {
   cleanup();

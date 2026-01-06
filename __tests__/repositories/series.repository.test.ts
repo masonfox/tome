@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { seriesRepository } from "@/lib/repositories/series.repository";
 import { bookRepository } from "@/lib/repositories/book.repository";
 import { sessionRepository } from "@/lib/repositories/session.repository";

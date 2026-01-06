@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionService } from "@/lib/services";
 
@@ -13,10 +14,8 @@ export const dynamic = 'force-dynamic';
  * - Updates review
  * - Handles books without totalPages
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -54,7 +53,6 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error marking book as read");
 
     // Handle specific errors

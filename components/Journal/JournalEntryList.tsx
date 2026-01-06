@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Calendar, ChevronRight, Pencil, FileText, Plus, TrendingUp } from "lucide-react";
 import { format, parse } from "date-fns";
-import MarkdownRenderer from "@/components/MarkdownRenderer";
+import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 
 export interface JournalEntry {
   id: number;

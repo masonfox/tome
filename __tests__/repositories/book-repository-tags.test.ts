@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { bookRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createTestBook } from "../fixtures/test-data";
@@ -450,8 +450,9 @@ describe("BookRepository.findByTag()", () => {
       // Assert
       expect(result.total).toBe(2);
       expect(result.books).toHaveLength(2);
-      expect(result.books[0].id).toBe(book1.id);
-      expect(result.books[1].id).toBe(book2.id);
+      // Books are sorted by createdAt DESC, so book2 (created later) comes first
+      expect(result.books[0].id).toBe(book2.id);
+      expect(result.books[1].id).toBe(book1.id);
     });
 
     test("should return empty result for non-existent tag", async () => {
@@ -691,5 +692,301 @@ describe("BookRepository.findByTag()", () => {
       expect(result.total).toBe(0);
       expect(result.books).toHaveLength(0);
     });
+  });
+
+  describe("Orphaned Books Filtering", () => {
+    test("should exclude orphaned books from tag search results", async () => {
+      // Arrange: Create a normal book and an orphaned book with same tag
+      const normalBook = await bookRepository.create(createTestBook({
+        calibreId: 1,
+        title: "Normal Book",
+        authors: ["Author"],
+        path: "Author/Normal Book (1)",
+        tags: ["Fantasy"],
+        orphaned: false,
+      }));
+
+      const orphanedBook = await bookRepository.create(createTestBook({
+        calibreId: 2,
+        title: "Orphaned Book",
+        authors: ["Author"],
+        path: "Author/Orphaned Book (2)",
+        tags: ["Fantasy"],
+        orphaned: true,
+        orphanedAt: new Date(),
+      }));
+
+      // Act
+      const result = await bookRepository.findByTag("Fantasy", 50, 0);
+
+      // Assert: Should only return the normal book, not the orphaned one
+      expect(result.total).toBe(1);
+      expect(result.books).toHaveLength(1);
+      expect(result.books[0].id).toBe(normalBook.id);
+      expect(result.books[0].orphaned).toBe(false);
+      
+      // Verify orphaned book is not in results
+      const orphanedBookInResults = result.books.find(b => b.id === orphanedBook.id);
+      expect(orphanedBookInResults).toBeUndefined();
+    });
+
+    test("should exclude orphaned books from tag count", async () => {
+      // Arrange: Create multiple books with same tag, some orphaned
+      await bookRepository.create(createTestBook({
+        calibreId: 1,
+        title: "Normal Book 1",
+        authors: ["Author"],
+        path: "Author/Normal Book 1 (1)",
+        tags: ["Sci-Fi"],
+        orphaned: false,
+      }));
+
+      await bookRepository.create(createTestBook({
+        calibreId: 2,
+        title: "Normal Book 2",
+        authors: ["Author"],
+        path: "Author/Normal Book 2 (2)",
+        tags: ["Sci-Fi"],
+        orphaned: false,
+      }));
+
+      await bookRepository.create(createTestBook({
+        calibreId: 3,
+        title: "Orphaned Book 1",
+        authors: ["Author"],
+        path: "Author/Orphaned Book 1 (3)",
+        tags: ["Sci-Fi"],
+        orphaned: true,
+        orphanedAt: new Date(),
+      }));
+
+      await bookRepository.create(createTestBook({
+        calibreId: 4,
+        title: "Orphaned Book 2",
+        authors: ["Author"],
+        path: "Author/Orphaned Book 2 (4)",
+        tags: ["Sci-Fi"],
+        orphaned: true,
+        orphanedAt: new Date(),
+      }));
+
+      // Act
+      const result = await bookRepository.findByTag("Sci-Fi", 50, 0);
+
+      // Assert: Should only count and return the 2 normal books
+      expect(result.total).toBe(2);
+      expect(result.books).toHaveLength(2);
+      expect(result.books.every(b => !b.orphaned)).toBe(true);
+    });
+
+    test("should return empty result if all books with tag are orphaned", async () => {
+      // Arrange: Create only orphaned books with a tag
+      await bookRepository.create(createTestBook({
+        calibreId: 1,
+        title: "Orphaned Book 1",
+        authors: ["Author"],
+        path: "Author/Orphaned Book 1 (1)",
+        tags: ["Horror"],
+        orphaned: true,
+        orphanedAt: new Date(),
+      }));
+
+      await bookRepository.create(createTestBook({
+        calibreId: 2,
+        title: "Orphaned Book 2",
+        authors: ["Author"],
+        path: "Author/Orphaned Book 2 (2)",
+        tags: ["Horror"],
+        orphaned: true,
+        orphanedAt: new Date(),
+      }));
+
+      // Act
+      const result = await bookRepository.findByTag("Horror", 50, 0);
+
+      // Assert: Should return no books
+      expect(result.total).toBe(0);
+      expect(result.books).toHaveLength(0);
+    });
+
+    test("should work with pagination when filtering orphaned books", async () => {
+      // Arrange: Create 10 normal books and 5 orphaned books with same tag
+      for (let i = 1; i <= 10; i++) {
+        await bookRepository.create(createTestBook({
+          calibreId: i,
+          title: `Normal Book ${i}`,
+          authors: ["Author"],
+          path: `Author/Normal Book ${i} (${i})`,
+          tags: ["Adventure"],
+          orphaned: false,
+        }));
+      }
+
+      for (let i = 11; i <= 15; i++) {
+        await bookRepository.create(createTestBook({
+          calibreId: i,
+          title: `Orphaned Book ${i}`,
+          authors: ["Author"],
+          path: `Author/Orphaned Book ${i} (${i})`,
+          tags: ["Adventure"],
+          orphaned: true,
+          orphanedAt: new Date(),
+        }));
+      }
+
+      // Act: Get first 5 results
+      const result = await bookRepository.findByTag("Adventure", 5, 0);
+
+      // Assert: Should return 5 normal books out of total 10 normal books
+      expect(result.total).toBe(10); // Total non-orphaned books
+      expect(result.books).toHaveLength(5); // First page of 5
+      expect(result.books.every(b => !b.orphaned)).toBe(true);
+    });
+  });
+});
+
+describe("BookRepository.getTagStats() - Orphaned Books Filtering", () => {
+  test("should exclude orphaned books from tag statistics", async () => {
+    // Arrange: Create normal and orphaned books with tags
+    await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Normal Book 1",
+      authors: ["Author"],
+      path: "Author/Normal Book 1 (1)",
+      tags: ["Fantasy", "Magic"],
+      orphaned: false,
+    }));
+
+    await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Normal Book 2",
+      authors: ["Author"],
+      path: "Author/Normal Book 2 (2)",
+      tags: ["Fantasy"],
+      orphaned: false,
+    }));
+
+    await bookRepository.create(createTestBook({
+      calibreId: 3,
+      title: "Orphaned Book",
+      authors: ["Author"],
+      path: "Author/Orphaned Book (3)",
+      tags: ["Fantasy", "Dark"],
+      orphaned: true,
+      orphanedAt: new Date(),
+    }));
+
+    // Act
+    const stats = await bookRepository.getTagStats();
+
+    // Assert: Should only count non-orphaned books
+    const fantasyTag = stats.find(s => s.name === "Fantasy");
+    expect(fantasyTag).toBeDefined();
+    expect(fantasyTag?.bookCount).toBe(2); // Only the 2 normal books
+
+    const magicTag = stats.find(s => s.name === "Magic");
+    expect(magicTag?.bookCount).toBe(1); // Only in normal book 1
+
+    // Dark tag should not appear (only in orphaned book)
+    const darkTag = stats.find(s => s.name === "Dark");
+    expect(darkTag).toBeUndefined();
+  });
+
+  test("should not show tags that only exist on orphaned books", async () => {
+    // Arrange: Create only orphaned book with a unique tag
+    await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Normal Book",
+      authors: ["Author"],
+      path: "Author/Normal Book (1)",
+      tags: ["Normal"],
+      orphaned: false,
+    }));
+
+    await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Orphaned Book",
+      authors: ["Author"],
+      path: "Author/Orphaned Book (2)",
+      tags: ["OrphanedOnly"],
+      orphaned: true,
+      orphanedAt: new Date(),
+    }));
+
+    // Act
+    const stats = await bookRepository.getTagStats();
+
+    // Assert: Should only show "Normal" tag, not "OrphanedOnly"
+    expect(stats).toHaveLength(1);
+    expect(stats[0].name).toBe("Normal");
+    expect(stats[0].bookCount).toBe(1);
+  });
+});
+
+describe("BookRepository.countBooksWithTags() - Orphaned Books Filtering", () => {
+  test("should exclude orphaned books from count", async () => {
+    // Arrange: Create normal and orphaned books with tags
+    await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Normal Book 1",
+      authors: ["Author"],
+      path: "Author/Normal Book 1 (1)",
+      tags: ["Fantasy"],
+      orphaned: false,
+    }));
+
+    await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Normal Book 2",
+      authors: ["Author"],
+      path: "Author/Normal Book 2 (2)",
+      tags: ["Sci-Fi"],
+      orphaned: false,
+    }));
+
+    await bookRepository.create(createTestBook({
+      calibreId: 3,
+      title: "Orphaned Book",
+      authors: ["Author"],
+      path: "Author/Orphaned Book (3)",
+      tags: ["Horror"],
+      orphaned: true,
+      orphanedAt: new Date(),
+    }));
+
+    // Act
+    const count = await bookRepository.countBooksWithTags();
+
+    // Assert: Should only count the 2 normal books
+    expect(count).toBe(2);
+  });
+
+  test("should return 0 if all books with tags are orphaned", async () => {
+    // Arrange: Create only orphaned books with tags
+    await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Orphaned Book 1",
+      authors: ["Author"],
+      path: "Author/Orphaned Book 1 (1)",
+      tags: ["Tag1"],
+      orphaned: true,
+      orphanedAt: new Date(),
+    }));
+
+    await bookRepository.create(createTestBook({
+      calibreId: 2,
+      title: "Orphaned Book 2",
+      authors: ["Author"],
+      path: "Author/Orphaned Book 2 (2)",
+      tags: ["Tag2"],
+      orphaned: true,
+      orphanedAt: new Date(),
+    }));
+
+    // Act
+    const count = await bookRepository.countBooksWithTags();
+
+    // Assert: Should return 0
+    expect(count).toBe(0);
   });
 });

@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories";
 
@@ -22,8 +23,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; sessionId: string } }
+  props: { params: Promise<{ id: string; sessionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     const sessionId = parseInt(params.sessionId);
@@ -90,13 +92,11 @@ export async function PATCH(
     }
     
     {
-      const { getLogger } = require("@/lib/logger");
       getLogger().info({ sessionId, bookId, sessionNumber: session.sessionNumber }, "[Session API] Updated session");
     }
     
     return NextResponse.json(updatedSession);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "[Session API] Unexpected error");
     return NextResponse.json(
       { 

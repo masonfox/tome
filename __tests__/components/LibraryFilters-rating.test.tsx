@@ -1,36 +1,36 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { LibraryFilters } from "@/components/LibraryFilters";
+import { LibraryFilters } from "@/components/Library/LibraryFilters";
 
 describe("LibraryFilters - Rating Filter with Visual Stars", () => {
   const defaultProps = {
     search: "",
-    onSearchChange: mock(() => {}),
-    onSearchSubmit: mock(() => {}),
-    onSearchClear: mock(() => {}),
+    onSearchChange: vi.fn(() => {}),
+    onSearchSubmit: vi.fn(() => {}),
+    onSearchClear: vi.fn(() => {}),
     statusFilter: "all",
-    onStatusFilterChange: mock(() => {}),
+    onStatusFilterChange: vi.fn(() => {}),
     ratingFilter: "all",
-    onRatingFilterChange: mock(() => {}),
+    onRatingFilterChange: vi.fn(() => {}),
     selectedTags: [],
-    onTagsChange: mock(() => {}),
+    onTagsChange: vi.fn(() => {}),
     availableTags: [],
     sortBy: "created",
-    onSortChange: mock(() => {}),
+    onSortChange: vi.fn(() => {}),
     loading: false,
     loadingTags: false,
-    onClearAll: mock(() => {}),
+    onClearAll: vi.fn(() => {}),
   };
 
   beforeEach(() => {
-    defaultProps.onSearchChange = mock(() => {});
-    defaultProps.onSearchSubmit = mock(() => {});
-    defaultProps.onSearchClear = mock(() => {});
-    defaultProps.onStatusFilterChange = mock(() => {});
-    defaultProps.onRatingFilterChange = mock(() => {});
-    defaultProps.onTagsChange = mock(() => {});
-    defaultProps.onSortChange = mock(() => {});
-    defaultProps.onClearAll = mock(() => {});
+    defaultProps.onSearchChange = vi.fn(() => {});
+    defaultProps.onSearchSubmit = vi.fn(() => {});
+    defaultProps.onSearchClear = vi.fn(() => {});
+    defaultProps.onStatusFilterChange = vi.fn(() => {});
+    defaultProps.onRatingFilterChange = vi.fn(() => {});
+    defaultProps.onTagsChange = vi.fn(() => {});
+    defaultProps.onSortChange = vi.fn(() => {});
+    defaultProps.onClearAll = vi.fn(() => {});
   });
 
   afterEach(() => {

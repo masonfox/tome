@@ -1,29 +1,12 @@
-# tome Development Guidelines
+# Claude Code Instructions for Tome
 
-Auto-generated from all feature plans. Last updated: 2025-11-27
+**See [`AGENTS.md`](./AGENTS.md) for all project instructions and guidelines.**
 
-## Active Technologies
+This project uses a centralized instruction file that covers:
+- Beads workflow (issue tracking)
+- Documentation hierarchy and reading order
+- Essential rules and patterns
+- Tool-specific features (including SpecKit commands, TodoWrite, and Task tools)
+- Git workflow and session completion
 
-- TypeScript 5 with Bun runtime + Next.js 14, React 18, Drizzle ORM 0.44, date-fns 3.3, Pino 9.3 (002-annual-reading-goals)
-
-## Project Structure
-
-```text
-src/
-tests/
-```
-
-## Commands
-
-npm test && npm run lint
-
-## Code Style
-
-TypeScript 5 with Bun runtime: Follow standard conventions
-
-## Recent Changes
-
-- 002-annual-reading-goals: Added TypeScript 5 with Bun runtime + Next.js 14, React 18, Drizzle ORM 0.44, date-fns 3.3, Pino 9.3
-
-<!-- MANUAL ADDITIONS START -->
-<!-- MANUAL ADDITIONS END -->
+All AI assistants should reference `AGENTS.md` as the single source of truth.

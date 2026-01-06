@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/books/[id]/complete/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -37,14 +37,14 @@ import { formatInTimeZone } from "date-fns-tz";
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
 /**
  * Mock Rationale: Prevent Calibre sync during tests (file system I/O).
  */
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: () => {},
     readRating: () => null,
@@ -57,8 +57,8 @@ mock.module("@/lib/services/calibre.service", () => ({
 /**
  * Mock Rationale: Prevent streak rebuilding side effects during tests.
  */
-mock.module("@/lib/streaks", () => ({
-  rebuildStreak: mock(() => Promise.resolve()),
+vi.mock("@/lib/streaks", () => ({
+  rebuildStreak: vi.fn(() => Promise.resolve()),
 }));
 
 // Helper function to extract date in EST timezone from a stored UTC date

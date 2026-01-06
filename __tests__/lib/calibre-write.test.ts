@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
-import { Database } from "bun:sqlite";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import Database from "better-sqlite3";
 
 // Import real production functions
 import { 
@@ -36,17 +36,19 @@ import {
  * 
  * These gaps are infrastructure concerns tested manually in development
  * and monitored in production. Logger calls are intentionally excluded to
- * avoid mock.module() which is global in Bun and leaks between test files.
+ * avoid vi.mock() which is global in Bun and leaks between test files.
+ * 
+ * NOTE: Uses better-sqlite3 for cross-platform compatibility with Vitest
  */
 
-let testDb: Database;
+let testDb: Database.Database;
 
 /**
  * Creates Calibre ratings schema in memory
  */
-function createCalibreRatingsSchema(db: Database) {
+function createCalibreRatingsSchema(db: Database.Database) {
   // Books table (minimal - just for FK testing)
-  db.run(`
+  db.exec(`
     CREATE TABLE books (
       id INTEGER PRIMARY KEY,
       title TEXT NOT NULL
@@ -54,7 +56,7 @@ function createCalibreRatingsSchema(db: Database) {
   `);
 
   // Ratings lookup table
-  db.run(`
+  db.exec(`
     CREATE TABLE ratings (
       id INTEGER PRIMARY KEY,
       rating INTEGER CHECK(rating > -1 AND rating < 11),
@@ -64,7 +66,7 @@ function createCalibreRatingsSchema(db: Database) {
   `);
 
   // Books-Ratings link table (junction)
-  db.run(`
+  db.exec(`
     CREATE TABLE books_ratings_link (
       id INTEGER PRIMARY KEY,
       book INTEGER NOT NULL,
@@ -76,7 +78,7 @@ function createCalibreRatingsSchema(db: Database) {
   `);
 
   // Tags table
-  db.run(`
+  db.exec(`
     CREATE TABLE tags (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
@@ -85,7 +87,7 @@ function createCalibreRatingsSchema(db: Database) {
   `);
 
   // Books-Tags link table (junction)
-  db.run(`
+  db.exec(`
     CREATE TABLE books_tags_link (
       id INTEGER PRIMARY KEY,
       book INTEGER NOT NULL,
@@ -97,7 +99,7 @@ function createCalibreRatingsSchema(db: Database) {
   `);
 
   // FK enforcement triggers (Calibre uses triggers instead of PRAGMA foreign_keys)
-  db.run(`
+  db.exec(`
     CREATE TRIGGER fk_brl_book_insert
     BEFORE INSERT ON books_ratings_link
     BEGIN
@@ -110,7 +112,7 @@ function createCalibreRatingsSchema(db: Database) {
     END;
   `);
 
-  db.run(`
+  db.exec(`
     CREATE TRIGGER fk_brl_book_update
     BEFORE UPDATE ON books_ratings_link
     BEGIN
@@ -127,7 +129,7 @@ function createCalibreRatingsSchema(db: Database) {
 /**
  * Insert test books
  */
-function insertTestBooks(db: Database) {
+function insertTestBooks(db: Database.Database) {
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(1, "Test Book 1");
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(2, "Test Book 2");
   db.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(3, "Test Book 3");
@@ -149,10 +151,10 @@ describe("Calibre Write Operations - Rating Management", () => {
 
   beforeEach(() => {
     // Clear ratings and tags data before each test
-    testDb.run("DELETE FROM books_ratings_link");
-    testDb.run("DELETE FROM ratings");
-    testDb.run("DELETE FROM books_tags_link");
-    testDb.run("DELETE FROM tags");
+    testDb.exec("DELETE FROM books_ratings_link");
+    testDb.exec("DELETE FROM ratings");
+    testDb.exec("DELETE FROM books_tags_link");
+    testDb.exec("DELETE FROM tags");
   });
 
   describe("Rating Creation", () => {
@@ -284,13 +286,13 @@ describe("Calibre Write Operations - Rating Management", () => {
 
       // Verify removed
       const rating = readCalibreRating(1, testDb);
-      expect(rating).toBeNull();
+      expect(rating).toBeFalsy(); // better-sqlite3 returns undefined, bun:sqlite returns null
 
-      // Verify link is deleted (SQLite returns null, not undefined)
+      // Verify link is deleted
       const link = testDb.prepare(
         "SELECT * FROM books_ratings_link WHERE book = ?"
       ).get(1);
-      expect(link).toBeNull();
+      expect(link).toBeFalsy(); // better-sqlite3 returns undefined, bun:sqlite returns null
     });
 
     test("should not delete rating value from ratings table when removing link", () => {
@@ -308,7 +310,7 @@ describe("Calibre Write Operations - Rating Management", () => {
       expect(ratingRecord).toBeDefined();
 
       // But link for book 1 should be gone
-      expect(readCalibreRating(1, testDb)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeFalsy();
       
       // And link for book 2 should remain
       expect(readCalibreRating(2, testDb)).toBe(5);
@@ -321,7 +323,7 @@ describe("Calibre Write Operations - Rating Management", () => {
       }).not.toThrow();
 
       // Verify still no rating
-      expect(readCalibreRating(1, testDb)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeFalsy();
     });
   });
 
@@ -437,11 +439,11 @@ describe("Calibre Write Operations - Rating Management", () => {
     });
 
     test("should return null for book with no rating", () => {
-      expect(readCalibreRating(1, testDb)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeFalsy();
     });
 
     test("should return null for non-existent book", () => {
-      expect(readCalibreRating(999, testDb)).toBeNull();
+      expect(readCalibreRating(999, testDb)).toBeFalsy();
     });
 
     test("should read different ratings for different books", () => {
@@ -484,19 +486,19 @@ describe("Calibre Write Operations - Rating Management", () => {
       expect(readCalibreRating(1, testDb)).toBe(5);
 
       updateCalibreRating(1, null, testDb);
-      expect(readCalibreRating(1, testDb)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeFalsy();
 
       updateCalibreRating(1, 3, testDb);
       expect(readCalibreRating(1, testDb)).toBe(3);
 
       updateCalibreRating(1, null, testDb);
-      expect(readCalibreRating(1, testDb)).toBeNull();
+      expect(readCalibreRating(1, testDb)).toBeFalsy();
     });
   });
 });
 
 describe("Calibre Write Operations - Tag Management", () => {
-  let tagTestDb: Database;
+  let tagTestDb: Database.Database;
   
   beforeAll(() => {
     // Create a new in-memory test database for tag tests
@@ -511,8 +513,8 @@ describe("Calibre Write Operations - Tag Management", () => {
 
   beforeEach(() => {
     // Clear tags data before each test
-    tagTestDb.run("DELETE FROM books_tags_link");
-    tagTestDb.run("DELETE FROM tags");
+    tagTestDb.exec("DELETE FROM books_tags_link");
+    tagTestDb.exec("DELETE FROM tags");
   });
 
   describe("Tag Creation", () => {
@@ -702,24 +704,51 @@ describe("Calibre Write Operations - Tag Management", () => {
       expect(tags).toContain(longTag);
       expect(tags).toContain("Short");
     });
+
+    test("should update tag name case when tag exists with different case", () => {
+      // Setup: Create tag with lowercase for book 1
+      updateCalibreTags(1, ["science fiction"], tagTestDb);
+      
+      // Verify initial state
+      let tags = readCalibreTags(1, tagTestDb);
+      expect(tags).toEqual(["science fiction"]);
+      
+      // Update: Use same tag with different case for book 2
+      updateCalibreTags(2, ["Science Fiction"], tagTestDb);
+      
+      // Verify case was updated in the tags table (affects ALL books with this tag)
+      tags = readCalibreTags(1, tagTestDb);
+      expect(tags).toEqual(["Science Fiction"]);  // Case updated for book 1!
+      
+      tags = readCalibreTags(2, tagTestDb);
+      expect(tags).toEqual(["Science Fiction"]);  // Book 2 has the updated case
+      
+      // Verify the tags table only has one entry (not duplicated)
+      const tagCount = tagTestDb.prepare(
+        "SELECT COUNT(*) as count FROM tags WHERE name LIKE 'science fiction' COLLATE NOCASE"
+      ).get() as { count: number };
+      expect(tagCount.count).toBe(1);
+    });
   });
 });
 
 
 
 describe("Calibre Write Operations - Batch Tag Updates", () => {
-  let batchTestDb: Database;
+  let batchTestDb: Database.Database;
 
   beforeAll(() => {
     batchTestDb = new Database(":memory:");
+    // Disable foreign key enforcement for tag tests (Calibre doesn't enforce FKs on tags)
+    batchTestDb.pragma('foreign_keys = OFF');
     createCalibreRatingsSchema(batchTestDb);
     
     // Create test books
-    batchTestDb.run("INSERT INTO books (id, title) VALUES (1, 'Book 1')");
-    batchTestDb.run("INSERT INTO books (id, title) VALUES (2, 'Book 2')");
-    batchTestDb.run("INSERT INTO books (id, title) VALUES (3, 'Book 3')");
-    batchTestDb.run("INSERT INTO books (id, title) VALUES (4, 'Book 4')");
-    batchTestDb.run("INSERT INTO books (id, title) VALUES (5, 'Book 5')");
+    batchTestDb.exec("INSERT INTO books (id, title) VALUES (1, 'Book 1')");
+    batchTestDb.exec("INSERT INTO books (id, title) VALUES (2, 'Book 2')");
+    batchTestDb.exec("INSERT INTO books (id, title) VALUES (3, 'Book 3')");
+    batchTestDb.exec("INSERT INTO books (id, title) VALUES (4, 'Book 4')");
+    batchTestDb.exec("INSERT INTO books (id, title) VALUES (5, 'Book 5')");
   });
 
   afterAll(() => {
@@ -728,8 +757,8 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
 
   beforeEach(() => {
     // Clear tags between tests
-    batchTestDb.run("DELETE FROM books_tags_link");
-    batchTestDb.run("DELETE FROM tags");
+    batchTestDb.exec("DELETE FROM books_tags_link");
+    batchTestDb.exec("DELETE FROM tags");
   });
 
   describe("Basic Batch Operations", () => {

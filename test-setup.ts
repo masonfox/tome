@@ -1,8 +1,69 @@
 import { Window } from "happy-dom";
+import { vi } from "vitest";
 
 // Set test environment
 (process.env as any).NODE_ENV = "test";
 (process.env as any).LOG_LEVEL = "silent";
+(process.env as any).TZ = "UTC"; // Force UTC timezone for consistent date handling
+
+// Mock logger globally for all tests - we don't need real logging in tests
+// Using manual mock from lib/__mocks__/logger.ts
+vi.mock("@/lib/logger");
+
+// Mock MarkdownEditor globally to avoid duplication in component tests
+// This avoids browser API dependencies (MDXEditor uses lexical which needs DOM APIs)
+vi.mock("@/components/Markdown/MarkdownEditor", () => {
+  const { forwardRef, useImperativeHandle, useState, useEffect } = require("react");
+  
+  const MarkdownEditorMock = forwardRef(
+    (props: any, ref: any) => {
+      const { value, onChange, placeholder, height, id, autoFocus, editorRef } = props;
+      const [internalValue, setInternalValue] = useState(value);
+      const actualRef = editorRef || ref;
+
+      useEffect(() => {
+        if (value !== internalValue) {
+          setInternalValue(value);
+        }
+      }, [value, internalValue]);
+
+      useImperativeHandle(actualRef, () => ({
+        setMarkdown: (markdown: string) => {
+          setInternalValue(markdown);
+          onChange(markdown);
+        },
+        getMarkdown: () => internalValue,
+        focus: () => {},
+        insertMarkdown: () => {},
+        getContentEditableHTML: () => internalValue,
+        getSelectionMarkdown: () => "",
+      }));
+
+      return require("react").createElement(
+        "div",
+        { "data-testid": "markdown-editor-mock" },
+        require("react").createElement("textarea", {
+          value: internalValue,
+          onChange: (e: any) => {
+            setInternalValue(e.target.value);
+            onChange(e.target.value);
+          },
+          placeholder,
+          id,
+          autoFocus,
+          "data-testid": "markdown-editor",
+          style: height !== undefined ? { height: `${height}px` } : undefined,
+        })
+      );
+    }
+  );
+
+  MarkdownEditorMock.displayName = "MarkdownEditor";
+
+  return {
+    default: MarkdownEditorMock
+  };
+});
 
 // Ensure requestAnimationFrame and cancelAnimationFrame are defined early
 // This prevents "ReferenceError: requestAnimationFrame is not defined" in CI
@@ -56,3 +117,15 @@ global.MutationObserver = class MutationObserver {
     return [];
   }
 } as any;
+
+// Suppress React 18 act() warnings in tests - these are caused by animations and async state updates
+// that don't affect test correctness. The warnings occur when BaseModal uses requestAnimationFrame
+// for entrance/exit animations, which are implementation details we don't need to test.
+const originalError = console.error;
+console.error = (...args: any[]) => {
+  const message = typeof args[0] === 'string' ? args[0] : '';
+  if (message.includes('An update to') && message.includes('inside a test was not wrapped in act')) {
+    return;
+  }
+  originalError.call(console, ...args);
+};

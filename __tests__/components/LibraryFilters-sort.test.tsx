@@ -1,37 +1,37 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { LibraryFilters } from "@/components/LibraryFilters";
+import { LibraryFilters } from "@/components/Library/LibraryFilters";
 
 describe("LibraryFilters - Sort Functionality", () => {
   const defaultProps = {
     search: "",
-    onSearchChange: mock(() => {}),
-    onSearchSubmit: mock(() => {}),
-    onSearchClear: mock(() => {}),
+    onSearchChange: vi.fn(() => {}),
+    onSearchSubmit: vi.fn(() => {}),
+    onSearchClear: vi.fn(() => {}),
     statusFilter: "all",
-    onStatusFilterChange: mock(() => {}),
+    onStatusFilterChange: vi.fn(() => {}),
     ratingFilter: "all",
-    onRatingFilterChange: mock(() => {}),
+    onRatingFilterChange: vi.fn(() => {}),
     selectedTags: [],
-    onTagsChange: mock(() => {}),
+    onTagsChange: vi.fn(() => {}),
     availableTags: ["fiction", "non-fiction", "science"],
     sortBy: "created",
-    onSortChange: mock(() => {}),
+    onSortChange: vi.fn(() => {}),
     loading: false,
     loadingTags: false,
-    onClearAll: mock(() => {}),
+    onClearAll: vi.fn(() => {}),
   };
 
   beforeEach(() => {
     // Reset mocks before each test
-    defaultProps.onSearchChange = mock(() => {});
-    defaultProps.onSearchSubmit = mock(() => {});
-    defaultProps.onSearchClear = mock(() => {});
-    defaultProps.onStatusFilterChange = mock(() => {});
-    defaultProps.onRatingFilterChange = mock(() => {});
-    defaultProps.onTagsChange = mock(() => {});
-    defaultProps.onSortChange = mock(() => {});
-    defaultProps.onClearAll = mock(() => {});
+    defaultProps.onSearchChange = vi.fn(() => {});
+    defaultProps.onSearchSubmit = vi.fn(() => {});
+    defaultProps.onSearchClear = vi.fn(() => {});
+    defaultProps.onStatusFilterChange = vi.fn(() => {});
+    defaultProps.onRatingFilterChange = vi.fn(() => {});
+    defaultProps.onTagsChange = vi.fn(() => {});
+    defaultProps.onSortChange = vi.fn(() => {});
+    defaultProps.onClearAll = vi.fn(() => {});
   });
 
   afterEach(() => {
@@ -117,7 +117,7 @@ describe("LibraryFilters - Sort Functionality", () => {
     });
 
     test("should call onSortChange with correct value when option is clicked", () => {
-      const onSortChange = mock(() => {});
+      const onSortChange = vi.fn(() => {});
       render(<LibraryFilters {...defaultProps} onSortChange={onSortChange} />);
       
       // Open dropdown
@@ -139,7 +139,7 @@ describe("LibraryFilters - Sort Functionality", () => {
     });
 
     test("should call onSortChange when different sort options are selected", () => {
-      const onSortChange = mock(() => {});
+      const onSortChange = vi.fn(() => {});
       
       // Test multiple sort options
       const sortTests = [
@@ -200,7 +200,7 @@ describe("LibraryFilters - Sort Functionality", () => {
     });
 
     test("should not call onSortChange when loading", () => {
-      const onSortChange = mock(() => {});
+      const onSortChange = vi.fn(() => {});
       render(<LibraryFilters {...defaultProps} loading={true} onSortChange={onSortChange} />);
       
       const buttons = screen.getAllByRole("button");
@@ -265,7 +265,7 @@ describe("LibraryFilters - Sort Functionality", () => {
     });
 
     test("should call onClearAll when Clear All button is clicked", () => {
-      const onClearAll = mock(() => {});
+      const onClearAll = vi.fn(() => {});
       render(<LibraryFilters {...defaultProps} search="test" onClearAll={onClearAll} />);
       
       const clearButton = screen.getByText("Clear All");
@@ -324,7 +324,7 @@ describe("LibraryFilters - Sort Functionality", () => {
 
       newSortTests.forEach(({ label, value }) => {
         cleanup();
-        const onSortChange = mock(() => {});
+        const onSortChange = vi.fn(() => {});
         
         render(<LibraryFilters {...defaultProps} onSortChange={onSortChange} />);
         
@@ -362,7 +362,7 @@ describe("LibraryFilters - Sort Functionality", () => {
 
   describe("Edge Cases", () => {
     test("should handle rapid sort option changes", () => {
-      const onSortChange = mock(() => {});
+      const onSortChange = vi.fn(() => {});
       render(<LibraryFilters {...defaultProps} onSortChange={onSortChange} />);
       
       // Open dropdown

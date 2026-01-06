@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthPassword, isAuthEnabled, createAuthResponse } from "@/lib/auth";
 
@@ -22,7 +23,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Login error");
     return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }

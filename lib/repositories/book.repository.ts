@@ -5,6 +5,7 @@ import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
+import { getLogger } from "@/lib/logger";
 
 export interface BookFilter {
   status?: string;
@@ -79,6 +80,36 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .from(books)
       .where(inArray(books.id, bookIds))
       .all();
+  }
+
+  /**
+   * Find all books by their Calibre IDs in a single query (performance optimization for bulk sync)
+   * Returns a Map of calibreId to Book for O(1) lookup
+   * 
+   * This is much more efficient than calling findByCalibreId() for each book individually.
+   * For a library with 150k books, this reduces 150k queries to 1 query.
+   * 
+   * @param calibreIds - Array of Calibre book IDs to look up
+   * @returns Map of calibreId to Book object
+   */
+  async findAllByCalibreIds(calibreIds: number[]): Promise<Map<number, Book>> {
+    if (calibreIds.length === 0) {
+      return new Map();
+    }
+
+    const results = this.getDatabase()
+      .select()
+      .from(books)
+      .where(inArray(books.calibreId, calibreIds))
+      .all();
+
+    // Build map: calibreId -> Book
+    const booksMap = new Map<number, Book>();
+    for (const book of results) {
+      booksMap.set(book.calibreId, book);
+    }
+
+    return booksMap;
   }
 
   /**
@@ -466,6 +497,51 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Bulk upsert books (insert new, update existing) for sync performance optimization
+   * 
+   * Uses INSERT OR REPLACE to handle both new books and updates in a single operation.
+   * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * 
+   * This is much more efficient than individual insert/update calls.
+   * For a library with 150k books, this reduces 150k-300k operations to ~150 operations.
+   * 
+   * @param booksData - Array of book data to upsert
+   * @returns Number of books processed
+   */
+  async bulkUpsert(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalProcessed = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          // INSERT OR REPLACE will update if calibreId exists, insert if not
+          tx.insert(books)
+            .values(bookData)
+            .onConflictDoUpdate({
+              target: books.calibreId,
+              set: bookData,
+            })
+            .run();
+        }
+      });
+
+      totalProcessed += batch.length;
+    }
+
+    return totalProcessed;
+  }
+
+  /**
    * Find books not in a list of calibreIds (for orphaning)
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
@@ -517,7 +593,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return results.map((r) => r.tag);
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error fetching tags");
       return [];
     }
@@ -861,11 +936,13 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   /**
    * Get tag statistics with book counts
    * Returns all tags with their book counts
+   * Excludes orphaned books to prevent Calibre sync failures
    */
   async getTagStats(): Promise<Array<{ name: string; bookCount: number }>> {
     try {
       // Query to get all unique tags with their book counts
       // Uses json_each to extract individual tag values from JSON arrays
+      // Excludes orphaned books
       const results = this.getDatabase()
         .all(sql`
           SELECT 
@@ -873,6 +950,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
             COUNT(DISTINCT books.id) as bookCount
           FROM books, json_each(books.tags)
           WHERE json_array_length(books.tags) > 0
+            AND books.orphaned = 0
           GROUP BY json_each.value
           ORDER BY json_each.value ASC
         `);
@@ -883,7 +961,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         bookCount: Number(row.bookCount),
       }));
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error fetching tag statistics");
       return [];
     }
@@ -891,18 +968,21 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   /**
    * Get count of unique books that have at least one tag
+   * Excludes orphaned books
    */
   async countBooksWithTags(): Promise<number> {
     try {
       const result = this.getDatabase()
         .select({ count: sql<number>`COUNT(*)` })
         .from(books)
-        .where(sql`json_array_length(${books.tags}) > 0`)
+        .where(and(
+          sql`json_array_length(${books.tags}) > 0`,
+          eq(books.orphaned, false)
+        ))
         .get();
-      
+
       return result?.count || 0;
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error counting books with tags");
       return 0;
     }
@@ -910,6 +990,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   /**
    * Find books by a specific tag with pagination
+   * Excludes orphaned books to prevent Calibre sync failures
    */
   async findByTag(
     tag: string,
@@ -917,11 +998,14 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     skip: number = 0
   ): Promise<{ books: Book[]; total: number }> {
     try {
-      // Build the tag filter condition
-      const tagCondition = sql`EXISTS (
-        SELECT 1 FROM json_each(${books.tags})
-        WHERE json_each.value = ${tag}
-      )`;
+      // Build the tag filter condition with orphaned exclusion
+      const tagCondition = and(
+        sql`EXISTS (
+          SELECT 1 FROM json_each(${books.tags})
+          WHERE json_each.value = ${tag}
+        )`,
+        eq(books.orphaned, false)
+      );
 
       // Get total count
       const countResult = this.getDatabase()
@@ -944,7 +1028,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return { books: results, total };
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, tag }, "Error finding books by tag");
       return { books: [], total: 0 };
     }
@@ -960,7 +1043,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async renameTag(oldName: string, newName: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -995,7 +1077,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, oldName, newName }, "Error renaming tag");
       throw error;
     }
@@ -1011,7 +1092,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async deleteTag(tagName: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1046,7 +1126,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, tagName }, "Error deleting tag");
       throw error;
     }
@@ -1062,7 +1141,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async mergeTags(sourceTags: string[], targetTag: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1121,7 +1199,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, sourceTags, targetTag }, "Error merging tags");
       throw error;
     }
@@ -1145,7 +1222,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
 
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1184,7 +1260,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, bookIds, tagsToAdd, tagsToRemove }, "Error bulk updating tags");
       throw error;
     }

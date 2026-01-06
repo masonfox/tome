@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress, CalibreDataSource } from "@/lib/sync-service";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -847,5 +847,386 @@ describe("Sync Service - Orphaning Safety Checks", () => {
 
     // Assert - Should return empty (book 2 is already orphaned)
     expect(result).toEqual([]);
+  });
+
+  test("skips orphan detection when detectOrphans option is false", async () => {
+    // Arrange - Create an existing book
+    const existingBook = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Existing Book",
+      authors: ["Author 1"],
+      tags: [],
+      path: "Author1/Book1",
+      orphaned: false,
+    }));
+
+    // Mock Calibre source that doesn't include the existing book (simulating removal)
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          id: 2, // Different book, not book 1
+          title: "New Book",
+        },
+      ],
+      getBookTags: () => ["fantasy"],
+    };
+
+    // Act - Sync with detectOrphans = false
+    const result = await syncCalibreLibrary(testCalibreSource, { detectOrphans: false });
+
+    // Assert - Sync should succeed
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(1); // New book created
+    expect(result.removedCount).toBe(0); // No orphan detection
+
+    // Assert - Existing book should NOT be marked as orphaned
+    const book = await bookRepository.findById(existingBook.id);
+    expect(book?.orphaned).toBe(false);
+  });
+
+  test("uses getAllBookTags for batch tag fetching when available", async () => {
+    // Arrange - Track which method was called
+    let getAllBookTagsCalled = false;
+    let getBookTagsCallCount = 0;
+
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        { ...mockCalibreBook, id: 1, title: "Book 1" },
+        { ...mockCalibreBook, id: 2, title: "Book 2" },
+        { ...mockCalibreBook, id: 3, title: "Book 3" },
+      ],
+      getBookTags: (bookId: number) => {
+        getBookTagsCallCount++;
+        return ["tag1", "tag2"];
+      },
+      getAllBookTags: () => {
+        getAllBookTagsCalled = true;
+        return new Map([
+          [1, ["tag1", "tag2"]],
+          [2, ["tag3"]],
+          [3, ["tag4", "tag5"]],
+        ]);
+      },
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - getAllBookTags should be called, not individual getBookTags
+    expect(getAllBookTagsCalled).toBe(true);
+    expect(getBookTagsCallCount).toBe(0); // Should not be called when getAllBookTags exists
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(3);
+
+    // Verify books have correct tags
+    const book1 = await bookRepository.findByCalibreId(1);
+    const book2 = await bookRepository.findByCalibreId(2);
+    const book3 = await bookRepository.findByCalibreId(3);
+    
+    expect(book1?.tags).toEqual(["tag1", "tag2"]);
+    expect(book2?.tags).toEqual(["tag3"]);
+    expect(book3?.tags).toEqual(["tag4", "tag5"]);
+  });
+
+  test("falls back to individual getBookTags when getAllBookTags is not available", async () => {
+    // Arrange - Track getBookTags calls
+    let getBookTagsCallCount = 0;
+
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        { ...mockCalibreBook, id: 1, title: "Book 1" },
+        { ...mockCalibreBook, id: 2, title: "Book 2" },
+      ],
+      getBookTags: (bookId: number) => {
+        getBookTagsCallCount++;
+        return bookId === 1 ? ["tag1"] : ["tag2"];
+      },
+      // No getAllBookTags provided
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert - getBookTags should be called for each book
+    expect(getBookTagsCallCount).toBe(2);
+    expect(result.success).toBe(true);
+    expect(result.syncedCount).toBe(2);
+
+    // Verify books have correct tags
+    const book1 = await bookRepository.findByCalibreId(1);
+    const book2 = await bookRepository.findByCalibreId(2);
+    
+    expect(book1?.tags).toEqual(["tag1"]);
+    expect(book2?.tags).toEqual(["tag2"]);
+  });
+
+  describe("Phase 2: Chunked Processing", () => {
+    test("processes books in chunks when getBooksCount and pagination are available", async () => {
+      // Arrange - Create 10 books, chunk size of 3 = 4 chunks (3+3+3+1)
+      const books: any[] = [];
+      for (let i = 1; i <= 10; i++) {
+        books.push({
+          ...mockCalibreBook,
+          id: i,
+          title: `Book ${i}`,
+        });
+      }
+
+      // Track which methods are called and with what parameters
+      let getBooksCountCalled = false;
+      let getAllBooksCallCount = 0;
+      const getAllBooksParams: any[] = [];
+      let getAllBookTagsCallCount = 0;
+      const getAllBookTagsParams: any[] = [];
+
+      const testCalibreSource: CalibreDataSource = {
+        getBooksCount: () => {
+          getBooksCountCalled = true;
+          return books.length; // 10 books
+        },
+        getAllBooks: (options?: any) => {
+          getAllBooksCallCount++;
+          getAllBooksParams.push(options);
+          
+          // Simulate pagination
+          const limit = options?.limit || books.length;
+          const offset = options?.offset || 0;
+          return books.slice(offset, offset + limit);
+        },
+        getBookTags: () => ["tag"],
+        getAllBookTags: (bookIds?: number[]) => {
+          getAllBookTagsCallCount++;
+          getAllBookTagsParams.push(bookIds);
+          
+          // Return tags only for the requested book IDs
+          const map = new Map<number, string[]>();
+          if (bookIds) {
+            bookIds.forEach(id => map.set(id, [`tag${id}`]));
+          }
+          return map;
+        },
+      };
+
+      // Act - Sync with chunk size of 3
+      const result = await syncCalibreLibrary(testCalibreSource, { chunkSize: 3 });
+
+      // Assert - Sync should succeed
+      expect(result.success).toBe(true);
+      expect(result.syncedCount).toBe(10);
+      expect(result.totalBooks).toBe(10);
+
+      // Assert - getBooksCount should be called
+      expect(getBooksCountCalled).toBe(true);
+
+      // Assert - getAllBooks should be called 4 times (4 chunks)
+      expect(getAllBooksCallCount).toBe(4);
+      expect(getAllBooksParams[0]).toEqual({ limit: 3, offset: 0 });  // Chunk 1
+      expect(getAllBooksParams[1]).toEqual({ limit: 3, offset: 3 });  // Chunk 2
+      expect(getAllBooksParams[2]).toEqual({ limit: 3, offset: 6 });  // Chunk 3
+      expect(getAllBooksParams[3]).toEqual({ limit: 3, offset: 9 });  // Chunk 4
+
+      // Assert - getAllBookTags should be called 4 times with book IDs for each chunk
+      expect(getAllBookTagsCallCount).toBe(4);
+      expect(getAllBookTagsParams[0]).toEqual([1, 2, 3]);     // Chunk 1 book IDs
+      expect(getAllBookTagsParams[1]).toEqual([4, 5, 6]);     // Chunk 2 book IDs
+      expect(getAllBookTagsParams[2]).toEqual([7, 8, 9]);     // Chunk 3 book IDs
+      expect(getAllBookTagsParams[3]).toEqual([10]);          // Chunk 4 book IDs (last chunk with 1 book)
+
+      // Verify all books were created with correct tags
+      for (let i = 1; i <= 10; i++) {
+        const book = await bookRepository.findByCalibreId(i);
+        expect(book).toBeDefined();
+        expect(book?.title).toBe(`Book ${i}`);
+        expect(book?.tags).toEqual([`tag${i}`]);
+      }
+    });
+
+    test("handles last chunk with fewer books than chunkSize", async () => {
+      // Arrange - 7 books with chunk size 3 = 3 chunks (3+3+1)
+      const books: any[] = [];
+      for (let i = 1; i <= 7; i++) {
+        books.push({
+          ...mockCalibreBook,
+          id: i,
+          title: `Book ${i}`,
+        });
+      }
+
+      let getAllBooksCallCount = 0;
+
+      const testCalibreSource: CalibreDataSource = {
+        getBooksCount: () => books.length,
+        getAllBooks: (options?: any) => {
+          getAllBooksCallCount++;
+          const limit = options?.limit || books.length;
+          const offset = options?.offset || 0;
+          return books.slice(offset, offset + limit);
+        },
+        getBookTags: () => [],
+        getAllBookTags: (bookIds?: number[]) => {
+          const map = new Map<number, string[]>();
+          if (bookIds) {
+            bookIds.forEach(id => map.set(id, []));
+          }
+          return map;
+        },
+      };
+
+      // Act
+      const result = await syncCalibreLibrary(testCalibreSource, { chunkSize: 3 });
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.syncedCount).toBe(7);
+      expect(getAllBooksCallCount).toBe(3); // 3 chunks
+
+      // Verify all 7 books were created
+      for (let i = 1; i <= 7; i++) {
+        const book = await bookRepository.findByCalibreId(i);
+        expect(book).toBeDefined();
+      }
+    });
+
+    test("verifies getAllBookTags receives only book IDs from current chunk", async () => {
+      // Arrange - 5 books, chunk size 2 = 3 chunks (2+2+1)
+      const books: any[] = [];
+      for (let i = 1; i <= 5; i++) {
+        books.push({
+          ...mockCalibreBook,
+          id: i * 10, // Use non-sequential IDs to verify exact IDs passed
+          title: `Book ${i}`,
+        });
+      }
+
+      const receivedBookIds: number[][] = [];
+
+      const testCalibreSource: CalibreDataSource = {
+        getBooksCount: () => books.length,
+        getAllBooks: (options?: any) => {
+          const limit = options?.limit || books.length;
+          const offset = options?.offset || 0;
+          return books.slice(offset, offset + limit);
+        },
+        getBookTags: () => [],
+        getAllBookTags: (bookIds?: number[]) => {
+          if (bookIds) {
+            receivedBookIds.push([...bookIds]);
+          }
+          const map = new Map<number, string[]>();
+          if (bookIds) {
+            bookIds.forEach(id => map.set(id, [`tag-${id}`]));
+          }
+          return map;
+        },
+      };
+
+      // Act
+      const result = await syncCalibreLibrary(testCalibreSource, { chunkSize: 2 });
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(receivedBookIds.length).toBe(3); // 3 chunks
+
+      // Verify exact book IDs passed to each chunk
+      expect(receivedBookIds[0]).toEqual([10, 20]);  // Chunk 1
+      expect(receivedBookIds[1]).toEqual([30, 40]);  // Chunk 2
+      expect(receivedBookIds[2]).toEqual([50]);      // Chunk 3
+
+      // Verify books have correct tags based on their IDs
+      const book1 = await bookRepository.findByCalibreId(10);
+      const book5 = await bookRepository.findByCalibreId(50);
+      expect(book1?.tags).toEqual(["tag-10"]);
+      expect(book5?.tags).toEqual(["tag-50"]);
+    });
+
+    test("handles empty chunks gracefully (edge case)", async () => {
+      // Arrange - Test with exact multiple of chunk size
+      const books: any[] = [];
+      for (let i = 1; i <= 6; i++) {
+        books.push({
+          ...mockCalibreBook,
+          id: i,
+          title: `Book ${i}`,
+        });
+      }
+
+      const testCalibreSource: CalibreDataSource = {
+        getBooksCount: () => books.length,
+        getAllBooks: (options?: any) => {
+          const limit = options?.limit || books.length;
+          const offset = options?.offset || 0;
+          const chunk = books.slice(offset, offset + limit);
+          return chunk; // May return empty array if offset >= books.length
+        },
+        getBookTags: () => [],
+        getAllBookTags: (bookIds?: number[]) => {
+          const map = new Map<number, string[]>();
+          if (bookIds) {
+            bookIds.forEach(id => map.set(id, []));
+          }
+          return map;
+        },
+      };
+
+      // Act - 6 books with chunk size 3 = exactly 2 chunks, no partial chunk
+      const result = await syncCalibreLibrary(testCalibreSource, { chunkSize: 3 });
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.syncedCount).toBe(6);
+
+      // Verify all books created
+      for (let i = 1; i <= 6; i++) {
+        const book = await bookRepository.findByCalibreId(i);
+        expect(book).toBeDefined();
+      }
+    });
+
+    test("falls back to non-paginated method when getBooksCount is not available", async () => {
+      // Arrange - Source without getBooksCount (backward compatibility)
+      const books: any[] = [];
+      for (let i = 1; i <= 5; i++) {
+        books.push({
+          ...mockCalibreBook,
+          id: i,
+          title: `Book ${i}`,
+        });
+      }
+
+      let getAllBooksCalledWithOptions = false;
+
+      const testCalibreSource: CalibreDataSource = {
+        // No getBooksCount provided
+        getAllBooks: (options?: any) => {
+          if (options) {
+            getAllBooksCalledWithOptions = true;
+          }
+          // Fallback behavior: return all books, ignore pagination
+          return books;
+        },
+        getBookTags: () => [],
+        getAllBookTags: (bookIds?: number[]) => {
+          const map = new Map<number, string[]>();
+          if (bookIds) {
+            bookIds.forEach(id => map.set(id, []));
+          }
+          return map;
+        },
+      };
+
+      // Act
+      const result = await syncCalibreLibrary(testCalibreSource, { chunkSize: 2 });
+
+      // Assert - Should still succeed using fallback
+      expect(result.success).toBe(true);
+      expect(result.syncedCount).toBe(5);
+
+      // Verify all books created
+      for (let i = 1; i <= 5; i++) {
+        const book = await bookRepository.findByCalibreId(i);
+        expect(book).toBeDefined();
+      }
+    });
   });
 });

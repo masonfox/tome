@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/books/[id]/status/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -30,10 +30,27 @@ function getDateInEST(date: Date): string {
  * The status API calls revalidatePath to update cached pages, but we don't need
  * to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
+
+/**
+ * Mock Calibre service for rating sync tests
+ * Track calls to verify sync behavior without file I/O
+ */
+let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
+vi.mock("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (calibreId: number, rating: number | null) => {
+      calibreRatingCalls.push({ calibreId, rating });
+    },
+    readRating: () => null,
+    updateTags: () => {},
+    readTags: () => [],
+  },
+  CalibreService: class {},
+}));
 beforeAll(async () => {
   await setupTestDatabase(__filename);
 });
@@ -611,28 +628,6 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
 });
 
 describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
-  // Track calls to updateCalibreRating for verification
-  let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
-  
-  beforeAll(async () => {
-    /**
-     * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
-     * We use a spy pattern (capturing calls to calibreRatingCalls) to verify that
-     * our code correctly attempts to sync ratings, without actually writing to disk.
-     */
-    mock.module("@/lib/services/calibre.service", () => ({
-      calibreService: {
-        updateRating: (calibreId: number, rating: number | null) => {
-          calibreRatingCalls.push({ calibreId, rating });
-        },
-        readRating: () => null,
-        updateTags: () => {},
-        readTags: () => [],
-      },
-      CalibreService: class {},
-    }));
-  });
-  
   beforeEach(() => {
     // Clear tracking array before each test
     calibreRatingCalls = [];

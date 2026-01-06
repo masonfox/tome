@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/Layout/PageHeader";
 import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { format, parse } from "date-fns";
 import Link from "next/link";
@@ -13,31 +13,7 @@ import { JournalArchiveDrawer } from "@/components/Journal/JournalArchiveDrawer"
 import { JournalEntryCard } from "@/components/Journal/JournalEntryList";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
 import { matchesDateKey } from "@/lib/utils/archive-builder";
-
-interface JournalEntry {
-  id: number;
-  bookId: number;
-  bookTitle: string;
-  bookAuthors: string[];
-  bookCalibreId: number;
-  sessionId: number | null;
-  currentPage: number;
-  currentPercentage: number;
-  progressDate: Date;
-  notes: string | null;
-  pagesRead: number;
-}
-
-interface GroupedJournalEntry {
-  date: string;
-  books: {
-    bookId: number;
-    bookTitle: string;
-    bookAuthors: string[];
-    bookCalibreId: number;
-    entries: JournalEntry[];
-  }[];
-}
+import { journalApi, type GroupedJournalEntry, type JournalEntry } from "@/lib/api";
 
 export default function JournalPage() {
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
@@ -72,15 +48,11 @@ export default function JournalPage() {
   } = useInfiniteQuery({
     queryKey: ['journal-entries', timezone],
     queryFn: async ({ pageParam = 0 }) => {
-      const response = await fetch(
-        `/api/journal?timezone=${encodeURIComponent(timezone)}&limit=${LIMIT}&skip=${pageParam}`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch journal entries");
-      }
-
-      return response.json();
+      return journalApi.listEntries({
+        timezone,
+        limit: LIMIT,
+        skip: pageParam,
+      });
     },
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.hasMore) return undefined;
@@ -93,14 +65,8 @@ export default function JournalPage() {
 
   // Fetch archive data
   const { data: archiveData = [], isLoading: archiveLoading } = useQuery({
-    queryKey: ['journal-archive'],
-    queryFn: async () => {
-      const response = await fetch('/api/journal/archive');
-      if (!response.ok) {
-        throw new Error("Failed to fetch archive data");
-      }
-      return response.json() as Promise<ArchiveNode[]>;
-    },
+    queryKey: ['journal-archive', timezone],
+    queryFn: () => journalApi.getArchive({ timezone }),
     staleTime: 60000, // 1 minute
   });
 
@@ -163,7 +129,6 @@ export default function JournalPage() {
 
   // Archive navigation handler
   const handleArchiveNavigate = useCallback(async (dateKey: string) => {
-    const { getLogger } = require("@/lib/logger");
 
     try {
       setNavigating(true);
@@ -173,8 +138,6 @@ export default function JournalPage() {
 
       // If not found and we have more entries, keep loading
       if (!matchingEntry && hasNextPage) {
-        getLogger().debug({ dateKey, currentEntries: entriesRef.current.length }, "Date not loaded, fetching more entries");
-
         // Keep loading until we find the date or run out of entries
         let attempts = 0;
         const maxAttempts = 20;
@@ -191,13 +154,6 @@ export default function JournalPage() {
           // Check again with updated entries
           matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
 
-          getLogger().debug({
-            dateKey,
-            attempt: attempts,
-            totalEntries: entriesRef.current.length,
-            found: !!matchingEntry
-          }, "Loading more entries");
-
           // Check if we've loaded everything
           if (entriesRef.current.length >= total || !hasNextPage) {
             break;
@@ -206,11 +162,8 @@ export default function JournalPage() {
       }
 
       if (!matchingEntry) {
-        getLogger().warn({ dateKey, totalEntries: entriesRef.current.length }, "Date not found after loading all entries");
         return;
       }
-
-      getLogger().debug({ dateKey, matchedDate: matchingEntry.date }, "Found matching entry");
 
       // Auto-expand the section if it's collapsed BEFORE scrolling
       if (collapsedDates.has(matchingEntry.date)) {
@@ -227,10 +180,7 @@ export default function JournalPage() {
       // Find the date section to scroll to
       const element = document.querySelector(`[data-date-key="${matchingEntry.date}"]`);
       if (element) {
-        getLogger().debug({ matchedDate: matchingEntry.date }, "Scrolling to element");
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        getLogger().warn({ dateKey, matchedDate: matchingEntry.date }, "Element not found in DOM");
       }
     } finally {
       setNavigating(false);

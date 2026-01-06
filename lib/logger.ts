@@ -1,4 +1,4 @@
-import pino, { LoggerOptions, Logger, DestinationStream } from 'pino';
+import type { LoggerOptions, Logger } from 'pino';
 
 // Edge-compatible UUID generator
 function generateReqId(): string {
@@ -65,45 +65,70 @@ const baseOptions: LoggerOptions = {
 // Check if we're in a server environment (Node.js/Bun) vs browser
 const isServer = typeof process !== 'undefined' && process.versions?.node;
 
-// Pretty transport only in development (for stdout)
-let transport: any = undefined;
-if (LOG_PRETTY) {
-  transport = {
-    target: 'pino-pretty',
-    options: {
-      ignore: 'pid,hostname',
-      translateTime: 'UTC:yyyy-mm-dd HH:MM:ss.l',
-      colorize: true,
-    }
-  };
+// Note: pino-pretty transport removed due to Turbopack bundling issues in Next.js 16
+// Turbopack performs static analysis and tries to bundle 'pino-pretty' even when the
+// condition is false, causing EISDIR errors during instrumentation phase.
+// 
+// Logs now output as structured JSON (pino's default), which is production-appropriate.
+// For pretty logs in local development, pipe output through pino-pretty externally:
+//   bun run dev | bunx pino-pretty
+//
+// Multi-stream logging (stdout + file) is preserved and unaffected by this change.
+
+// Lazy initialization of logger to avoid loading pino during build phase
+let baseLogger: Logger | null = null;
+
+function initializeLogger(): Logger {
+  if (baseLogger) return baseLogger;
+  
+  // Dynamic import of pino to avoid bundling issues during instrumentation
+  const pino = require('pino');
+  
+  // Configure multi-stream to write to both stdout and file (server-side only)
+  // This ensures logs are visible in container logs (Portainer) AND persisted to file
+  if (isServer && LOG_DEST) {
+    // Server-side with file destination: use multi-stream for both stdout and file
+    const streams: any[] = [
+      { stream: process.stdout },
+      { stream: pino.destination({ dest: LOG_DEST, sync: false }) }
+    ];
+    baseLogger = pino({ ...baseOptions }, pino.multistream(streams));
+  } else if (isServer) {
+    // Server-side without file destination: default to stdout
+    baseLogger = pino({ ...baseOptions });
+  } else {
+    // Client-side: create a minimal logger (browser console fallback)
+    baseLogger = pino({ ...baseOptions, browser: { asObject: true } });
+  }
+  
+  return baseLogger!;
 }
 
-// Configure multi-stream to write to both stdout and file (server-side only)
-// This ensures logs are visible in container logs (Portainer) AND persisted to file
-let baseLogger: Logger;
-
-if (isServer && LOG_DEST) {
-  // Server-side with file destination: use multi-stream for both stdout and file
-  const streams: pino.StreamEntry[] = [
-    { stream: process.stdout },
-    { stream: pino.destination({ dest: LOG_DEST, sync: false }) }
-  ];
-  baseLogger = pino({ ...baseOptions, transport }, pino.multistream(streams));
-} else if (isServer) {
-  // Server-side without file destination: default to stdout
-  baseLogger = pino({ ...baseOptions, transport });
-} else {
-  // Client-side: create a minimal logger (browser console fallback)
-  baseLogger = pino({ ...baseOptions, browser: { asObject: true } });
+export function getBaseLogger(): Logger { 
+  return initializeLogger();
 }
 
-export function getBaseLogger(): Logger { return baseLogger; }
-export function createLogger(bindings?: Record<string, any>): Logger { return baseLogger.child(bindings || {}); }
+export function createLogger(bindings?: Record<string, any>): Logger { 
+  return initializeLogger().child(bindings || {}); 
+}
 
 export function getLogger(): Logger {
+  // In test mode, return a no-op logger to avoid pino initialization issues
+  if (process.env.NODE_ENV === 'test') {
+    return {
+      info: () => {},
+      error: () => {},
+      warn: () => {},
+      debug: () => {},
+      fatal: () => {},
+      child: () => getLogger(),
+    } as any;
+  }
+
+  const logger = initializeLogger();
   const store = contextStore.getStore();
-  if (store) return baseLogger.child({ reqId: store.reqId });
-  return baseLogger;
+  if (store) return logger.child({ reqId: store.reqId });
+  return logger;
 }
 
 export function withRequestContext<T>(fn: (ctx: RequestContext) => Promise<T> | T, existingId?: string): Promise<T> | T {

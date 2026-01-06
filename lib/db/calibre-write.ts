@@ -27,6 +27,7 @@
  */
 
 import { createDatabase } from "./factory";
+import { getLogger } from "@/lib/logger";
 
 // Type definition for SQLite database interface
 type SQLiteDatabase = any;
@@ -41,16 +42,10 @@ const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
  * which also has test-specific behavior.
  */
 function getLoggerSafe() {
+  // In test mode, return no-op logger to avoid require() issues in Vitest
   if (process.env.NODE_ENV === 'test') {
-    // Return a no-op logger for tests to avoid module mocking issues
-    return {
-      info: () => {},
-      error: () => {},
-      debug: () => {},
-      warn: () => {},
-    };
+    return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
-  const { getLogger } = require("../logger");
   return getLogger();
 }
 
@@ -83,7 +78,7 @@ export function getCalibreWriteDB(): SQLiteDatabase {
         foreignKeys: false, // Calibre DB manages its own schema
         wal: false, // Don't modify journal mode on Calibre DB
       });
-      getLoggerSafe().debug(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
+      getLoggerSafe().debug('Calibre Write DB: Using better-sqlite3 - WRITE ENABLED');
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }

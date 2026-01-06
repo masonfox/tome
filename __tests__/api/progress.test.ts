@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET, POST } from "@/app/api/books/[id]/progress/route";
 import { bookRepository, progressRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, getTestSqlite } from "@/__tests__/helpers/db-setup";
@@ -30,7 +30,7 @@ function getDateInEST(date: Date): string {
  * The progress API calls revalidatePath to update cached pages, but we don't need
  * to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 

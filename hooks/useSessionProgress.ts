@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { bookApi } from "@/lib/api";
 
 export interface SessionProgressEntry {
   id: number;
@@ -23,15 +24,7 @@ export function useSessionProgress(bookId: string, sessionId: number | null) {
     queryFn: async () => {
       if (!sessionId) return [];
       
-      const response = await fetch(
-        `/api/books/${bookId}/progress?sessionId=${sessionId}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch session progress');
-      }
-      
-      return response.json();
+      return bookApi.listProgress(bookId, { sessionId });
     },
     enabled: !!sessionId, // Only fetch when sessionId is provided
     staleTime: 30000, // Cache for 30 seconds

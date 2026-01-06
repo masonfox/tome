@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest, createTestBook, createTestSession } from "../fixtures/test-data";
@@ -9,12 +9,9 @@ import type { NextRequest } from "next/server";
  * The status API calls revalidatePath to update cached pages, but we don't need
  * to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
-
-// Track calls to updateCalibreRating for verification
-let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
 
 /**
  * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
@@ -23,15 +20,25 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  *
  * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
+ *
+ * Using vi.hoisted() to ensure the tracking array is accessible in the mock factory.
  */
-mock.module("@/lib/services/calibre.service", () => ({
+const { calibreRatingCalls, resetCalibreRatingCalls } = vi.hoisted(() => {
+  const calls: Array<{ calibreId: number; rating: number | null }> = [];
+  return {
+    calibreRatingCalls: calls,
+    resetCalibreRatingCalls: () => calls.splice(0, calls.length),
+  };
+});
+
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: (calibreId: number, rating: number | null) => {
       calibreRatingCalls.push({ calibreId, rating });
     },
-    updateTags: mock(() => {}),
-    readRating: mock(() => null),
-    readTags: mock(() => []),
+    updateTags: vi.fn(() => {}),
+    readRating: vi.fn(() => null),
+    readTags: vi.fn(() => []),
   },
   CalibreService: class {},
 }));
@@ -49,7 +56,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await clearTestDatabase(__filename);
-  calibreRatingCalls = [];
+  resetCalibreRatingCalls();
 });
 
 describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
@@ -209,7 +216,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       expect(calibreRatingCalls[0].calibreId).toBe(testCase.calibreId);
 
       // Reset for next iteration
-      calibreRatingCalls = [];
+      resetCalibreRatingCalls();
     }
   });
 
@@ -232,41 +239,43 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       isActive: true,
     }));
 
-    // Mock Calibre write to throw error
+    // Temporarily override the mock to throw an error for this test
+    const { calibreService } = await import("@/lib/services/calibre.service");
+    const originalUpdateRating = calibreService.updateRating;
     let calibreSyncAttempted = false;
-    mock.module("@/lib/services/calibre.service", () => ({
-      calibreService: {
-        updateRating: (calibreId: number, rating: number | null) => {
-          calibreSyncAttempted = true;
-          throw new Error("Calibre database unavailable");
-        },
-        readRating: () => null,
-        updateTags: () => {},
-        readTags: () => [],
-      },
-      CalibreService: class {},
-    }));
+    
+    // Replace updateRating with error-throwing version
+    calibreService.updateRating = (calibreId: number, rating: number | null) => {
+      calibreSyncAttempted = true;
+      calibreRatingCalls.push({ calibreId, rating });
+      throw new Error("Calibre database unavailable");
+    };
 
-    // Act
-    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
-      status: "read",
-      rating: 5,
-    });
-    const response = await POST(request as NextRequest, {
-      params: { id: book.id.toString() },
-    });
-    const data = await response.json();
+    try {
+      // Act
+      const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+        status: "read",
+        rating: 5,
+      });
+      const response = await POST(request as NextRequest, {
+        params: { id: book.id.toString() },
+      });
+      const data = await response.json();
 
-    // Assert - Status update still succeeded
-    expect(response.status).toBe(200);
-    expect(data.status).toBe("read");
-    expect(data.isActive).toBe(false);
+      // Assert - Status update still succeeded
+      expect(response.status).toBe(200);
+      expect(data.status).toBe("read");
+      expect(data.isActive).toBe(false);
 
-    // Assert - Tome DB was still updated with rating
-    const updatedBook = await bookRepository.findById(book.id);
-    expect(updatedBook?.rating).toBe(5);
+      // Assert - Tome DB was still updated with rating
+      const updatedBook = await bookRepository.findById(book.id);
+      expect(updatedBook?.rating).toBe(5);
 
-    // Assert - Calibre sync was attempted
-    expect(calibreSyncAttempted).toBe(true);
+      // Assert - Calibre sync was attempted
+      expect(calibreSyncAttempted).toBe(true);
+    } finally {
+      // Restore original mock
+      calibreService.updateRating = originalUpdateRating;
+    }
   });
 });

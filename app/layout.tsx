@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { LayoutWrapper } from "@/components/LayoutWrapper";
-import { ToastProvider } from "@/components/ToastProvider";
-import { TimezoneDetector } from "@/components/TimezoneDetector";
+import { LayoutWrapper } from "@/components/Layout/LayoutWrapper";
+import { ToastProvider } from "@/components/Utilities/ToastProvider";
+import { TimezoneDetector } from "@/components/Utilities/TimezoneDetector";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {

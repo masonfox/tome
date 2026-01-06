@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useLibraryData } from "@/hooks/useLibraryData";
 
@@ -31,7 +31,7 @@ describe("useLibraryData - Sort Functionality", () => {
   };
 
   beforeEach(() => {
-    global.fetch = mock(() =>
+    global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockBooksResponse),
@@ -99,7 +99,7 @@ describe("useLibraryData - Sort Functionality", () => {
 
     test("should trigger refetch when sortBy changes", async () => {
       let fetchCallCount = 0;
-      global.fetch = mock(() => {
+      global.fetch = vi.fn(() => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,

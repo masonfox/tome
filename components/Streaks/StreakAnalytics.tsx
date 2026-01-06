@@ -1,0 +1,192 @@
+"use client";
+
+import { useState } from "react";
+import { Flame, Calendar, Target, TrendingUp, TrendingDown, Pencil } from "lucide-react";
+import { StreakEditModal } from "@/components/Modals/StreakEditModal";
+
+interface StreakAnalyticsProps {
+  currentStreak: number;
+  longestStreak: number;
+  totalDaysActive: number;
+  dailyThreshold: number;
+  booksAheadOrBehind?: number;
+  daysOfData: number;
+}
+
+export function StreakAnalytics({
+  currentStreak,
+  longestStreak,
+  totalDaysActive,
+  dailyThreshold,
+  booksAheadOrBehind,
+  daysOfData,
+}: StreakAnalyticsProps) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  // Show encouraging message for new users with < 7 days of data
+  const showEncouragingMessage = daysOfData < 7;
+
+  const handleEditSuccess = () => {
+    // Refresh the page to get updated data
+    window.location.reload();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Encouraging message for new users */}
+      {showEncouragingMessage && (
+        <div className="bg-[var(--accent)] rounded-md p-4 text-white">
+          <p className="text-sm font-semibold">
+            🌱 Keep going! You&apos;re just getting started. Come back after a week to
+            see more detailed insights about your reading habits.
+          </p>
+        </div>
+      )}
+
+      {/* Streak Stats */}
+      <div>
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+          Reading Streaks
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          {/* Current Streak - Vibrant Orange */}
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                Current Streak
+              </p>
+              <div className="opacity-80">
+                <Flame className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-4xl font-serif font-bold text-center">
+              {currentStreak}
+            </p>
+            <p className="text-xs mt-2 font-medium opacity-80 text-center">
+              {currentStreak === 1 ? "day" : "consecutive days"}
+            </p>
+          </div>
+
+          {/* Longest Streak - Pantone Green */}
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                Longest Streak
+              </p>
+              <div className="opacity-80">
+                <Flame className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-4xl font-serif font-bold text-center">
+              {longestStreak}
+            </p>
+            <p className="text-xs mt-2 font-medium opacity-80 text-center">
+              {longestStreak === 1 ? "day" : "all-time best"}
+            </p>
+          </div>
+
+          {/* Total Days Active - Purple */}
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                Days Active
+              </p>
+              <div className="opacity-80">
+                <Calendar className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-4xl font-serif font-bold text-center">
+              {totalDaysActive}
+            </p>
+            <p className="text-xs mt-2 font-medium opacity-80 text-center">
+              days with reading
+            </p>
+          </div>
+
+          {/* Daily Goal - Blue with hover effect */}
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="block hover:scale-[1.02] transition-transform w-full text-left"
+          >
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-md p-6 hover:shadow-lg transition-shadow text-white cursor-pointer">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <p className="text-xs uppercase tracking-wide font-semibold opacity-90">
+                  Daily Goal
+                </p>
+                <div className="opacity-80">
+                  <Pencil className="w-5 h-5" />
+                </div>
+              </div>
+              <p className="text-4xl font-serif font-bold text-center">
+                {dailyThreshold}
+              </p>
+              <p className="text-xs mt-2 font-medium opacity-80 text-center">
+                pages per day • edit
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Books Ahead/Behind (conditional) */}
+      {booksAheadOrBehind !== undefined && (
+        <div>
+          <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+            Reading Goal Progress
+          </h2>
+          {booksAheadOrBehind > 0 ? (
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-md p-6 text-white">
+              <div className="flex items-center gap-4">
+                <TrendingUp className="w-10 h-10 opacity-90" />
+                <div>
+                  <p className="text-3xl font-serif font-bold">
+                    {Math.abs(booksAheadOrBehind)} {Math.abs(booksAheadOrBehind) === 1 ? "book" : "books"} ahead
+                  </p>
+                  <p className="text-sm mt-1 font-medium opacity-90">
+                    Great job! You&apos;re exceeding your annual reading goal 🎉
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : booksAheadOrBehind < 0 ? (
+            <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-md p-6 text-white">
+              <div className="flex items-center gap-4">
+                <TrendingDown className="w-10 h-10 opacity-90" />
+                <div>
+                  <p className="text-3xl font-serif font-bold">
+                    {Math.abs(booksAheadOrBehind)} {Math.abs(booksAheadOrBehind) === 1 ? "book" : "books"} behind
+                  </p>
+                  <p className="text-sm mt-1 font-medium opacity-90">
+                    You can catch up! Keep reading to reach your annual goal 📚
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-md p-6 text-white">
+              <div className="flex items-center gap-4">
+                <Target className="w-10 h-10 opacity-90" />
+                <div>
+                  <p className="text-3xl font-serif font-bold">
+                    Right on pace! 🎯
+                  </p>
+                  <p className="text-sm mt-1 font-medium opacity-90">
+                    You&apos;re perfectly aligned with your annual reading goal
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      <StreakEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialThreshold={dailyThreshold}
+        onSuccess={handleEditSuccess}
+      />
+    </div>
+  );
+}

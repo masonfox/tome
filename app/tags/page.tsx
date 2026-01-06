@@ -9,7 +9,7 @@ import { RenameTagModal } from "@/components/TagManagement/RenameTagModal";
 import { DeleteTagModal } from "@/components/TagManagement/DeleteTagModal";
 import { MergeTagsModal } from "@/components/TagManagement/MergeTagsModal";
 import { BulkDeleteTagsModal } from "@/components/TagManagement/BulkDeleteTagsModal";
-import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
 import { useTagManagement } from "@/hooks/useTagManagement";
 import { useTagBooks } from "@/hooks/useTagBooks";
 import { useTagModals } from "@/hooks/useTagModals";

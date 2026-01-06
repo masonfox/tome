@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { journalService } from "@/lib/services/journal.service";
 
@@ -12,7 +13,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(archiveData);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching journal archive metadata");
     return NextResponse.json(
       { error: "Failed to fetch archive metadata" },

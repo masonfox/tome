@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/tags/bulk-delete/route";
 import { bookRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -26,15 +26,15 @@ import type { NextRequest } from "next/server";
  * (2) attempts to sync tags in batch for each affected book
  * (3) resumes the watcher after deletion
  */
-let mockUpdateCalibreTags = mock(() => {});
-let mockBatchUpdateCalibreTags = mock((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+let mockUpdateCalibreTags = vi.fn(() => {});
+let mockBatchUpdateCalibreTags = vi.fn((updates: Array<{ calibreId: number; tags: string[] }>) => ({
   totalAttempted: updates.length,
   successCount: updates.length,
   failures: [] as Array<{ calibreId: number; error: string }>
 }));
 let mockCalibreShouldFail = false;
 
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateTags: (calibreId: number, tags: string[]) => {
       if (mockCalibreShouldFail) {
@@ -48,9 +48,9 @@ mock.module("@/lib/services/calibre.service", () => ({
       }
       return mockBatchUpdateCalibreTags(updates);
     },
-    updateRating: mock(() => {}),
-    readTags: mock(() => []),
-    readRating: mock(() => null),
+    updateRating: vi.fn(() => {}),
+    readTags: vi.fn(() => []),
+    readRating: vi.fn(() => null),
   },
   CalibreService: class {},
 }));
@@ -60,7 +60,7 @@ let mockWatcherSuspendCalled = false;
 let mockWatcherResumeCalled = false;
 let mockWatcherResumeIgnorePeriod = 0;
 
-mock.module("@/lib/calibre-watcher", () => ({
+vi.mock("@/lib/calibre-watcher", () => ({
   calibreWatcher: {
     suspend: () => {
       mockWatcherSuspendCalled = true;
@@ -72,8 +72,8 @@ mock.module("@/lib/calibre-watcher", () => ({
       mockWatcherResumeCalled = true;
       mockWatcherResumeIgnorePeriod = durationMs;
     },
-    start: mock(() => {}),
-    stop: mock(() => {}),
+    start: vi.fn(() => {}),
+    stop: vi.fn(() => {}),
   },
 }));
 
@@ -199,9 +199,10 @@ describe("POST /api/tags/bulk-delete", () => {
 
       // Assert: Batch Calibre sync was called with correct data
       expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      // Note: Books are ordered by createdAt DESC, so book 21 (created second) comes first
       expect(mockBatchUpdateCalibreTags).toHaveBeenCalledWith([
-        { calibreId: 20, tags: [] },
-        { calibreId: 21, tags: [] }
+        { calibreId: 21, tags: [] },
+        { calibreId: 20, tags: [] }
       ]);
     });
 
