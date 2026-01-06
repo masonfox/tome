@@ -8,7 +8,7 @@ import { useShelfBooks } from "@/hooks/useShelfBooks";
 import { BookTable } from "@/components/BookTable";
 import { BookListItem } from "@/components/BookListItem";
 import { BookListItemSkeleton } from "@/components/BookListItemSkeleton";
-import BaseModal from "@/components/BaseModal";
+import BaseModal from "@/components/Modals/BaseModal";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
 
 type SortOption = "sortOrder" | "title" | "dateAdded" | "recentlyAdded";
