@@ -42,13 +42,13 @@ export class TagService {
    * Get the Calibre service instance (lazy loaded to support test mocking)
    * Always re-imports to ensure test mocks are applied correctly
    */
-  private getCalibreService(): ICalibreService {
+  private async getCalibreService(): Promise<ICalibreService> {
     if (this.calibre) {
       return this.calibre;
     }
     // Lazy import to ensure mocks are applied before the module is loaded
     // Don't cache the result - always get fresh reference to support test mocking
-    const { calibreService } = require("./calibre.service");
+    const { calibreService } = await import("@/lib/services/calibre.service");
     return calibreService;
   }
 
@@ -190,7 +190,7 @@ export class TagService {
     logger.info({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
 
     // Suspend the Calibre watcher during merge to prevent interference
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = await import("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[MERGE] Calibre watcher suspended");
     
@@ -237,7 +237,7 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[MERGE] Writing merged tags to Calibre (source of truth)");
-      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -344,7 +344,7 @@ export class TagService {
     logger.info({ oldName, newName }, "[RENAME] Starting tag rename operation");
 
     // Suspend the Calibre watcher during rename to prevent race conditions
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = await import("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[RENAME] Calibre watcher suspended");
     
@@ -378,7 +378,7 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[RENAME] Writing renamed tags to Calibre (source of truth)");
-      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -478,7 +478,7 @@ export class TagService {
     logger.info({ tagName }, "[DELETE] Starting tag deletion");
 
     // Suspend the Calibre watcher during delete to prevent interference
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = await import("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[DELETE] Calibre watcher suspended");
 
@@ -511,7 +511,7 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length }, "[DELETE] Writing tag deletion to Calibre (source of truth)");
-      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -616,7 +616,7 @@ export class TagService {
     logger.info({ tagNames, count: tagNames.length }, "[BULK_DELETE] Starting bulk tag deletion");
 
     // Suspend the Calibre watcher during bulk delete to prevent interference
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = await import("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info("[BULK_DELETE] Calibre watcher suspended");
     
@@ -659,7 +659,7 @@ export class TagService {
 
       // STEP 3: Write to Calibre FIRST (source of truth)
       logger.info({ bookCount: calibreUpdates.length, tagCount: tagNames.length }, "[BULK_DELETE] Writing tag deletions to Calibre (source of truth)");
-      const calibreResult = this.getCalibreService().batchUpdateTags(calibreUpdates);
+      const calibreResult = await this.getCalibreService().batchUpdateTags(calibreUpdates);
       
       logger.info(
         { 
@@ -815,7 +815,7 @@ export class TagService {
     const logger = getLogger();
 
     try {
-      const result = this.getCalibreService().batchUpdateTags(books);
+      const result = await this.getCalibreService().batchUpdateTags(books);
       logger.info(
         { totalBooks: books.length, successCount: result.successCount, failureCount: result.failures.length },
         "[TagService] Batch synced tags to Calibre"
@@ -851,7 +851,7 @@ export class TagService {
     const logger = getLogger();
 
     // Suspend the Calibre watcher during operation to prevent race conditions
-    const { calibreWatcher } = require("../calibre-watcher");
+    const { calibreWatcher } = await import("@/lib/calibre-watcher");
     calibreWatcher.suspend();
     logger.info(`[${operationName}] Calibre watcher suspended`);
     
@@ -867,7 +867,7 @@ export class TagService {
       // Write to Calibre FIRST (source of truth - required, not best effort)
       logger.info({ bookCount: calibreUpdates.length }, `[${operationName}] Writing to Calibre (source of truth)`);
       try {
-        const result = this.getCalibreService().batchUpdateTags(calibreUpdates);
+        const result = await this.getCalibreService().batchUpdateTags(calibreUpdates);
         
         if (result.successCount !== calibreUpdates.length) {
           throw new Error(

@@ -30,11 +30,11 @@ import { createTestBook } from "../fixtures/test-data";
  * (2) handles Calibre sync failures gracefully (best effort)
  * (3) suspends/resumes watcher for bulk operations
  */
-let mockBatchUpdateCalibreTags = vi.fn((updates: Array<{ calibreId: number; tags: string[] }>) => ({
+const mockBatchUpdateCalibreTags = vi.hoisted(() => vi.fn((updates: Array<{ calibreId: number; tags: string[] }>) => ({
   totalAttempted: updates.length,
   successCount: updates.length,
   failures: [] as Array<{ calibreId: number; error: string }>
-}));
+})));
 let mockCalibreShouldFail = false;
 
 vi.mock("@/lib/services/calibre.service", () => ({
