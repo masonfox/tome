@@ -106,8 +106,19 @@ export default function ShelfEditor({
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="Filter shelves..."
             disabled={saving}
-            className="w-full pl-10 pr-4 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+            className="w-full pl-10 pr-10 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
           />
+          {filterQuery && (
+            <button
+              type="button"
+              onClick={() => setFilterQuery("")}
+              disabled={saving}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+              aria-label="Clear filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
       
