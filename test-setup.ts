@@ -117,3 +117,15 @@ global.MutationObserver = class MutationObserver {
     return [];
   }
 } as any;
+
+// Suppress React 18 act() warnings in tests - these are caused by animations and async state updates
+// that don't affect test correctness. The warnings occur when BaseModal uses requestAnimationFrame
+// for entrance/exit animations, which are implementation details we don't need to test.
+const originalError = console.error;
+console.error = (...args: any[]) => {
+  const message = typeof args[0] === 'string' ? args[0] : '';
+  if (message.includes('An update to') && message.includes('inside a test was not wrapped in act')) {
+    return;
+  }
+  originalError.call(console, ...args);
+};
