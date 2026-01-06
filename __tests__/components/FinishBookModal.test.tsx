@@ -4,7 +4,7 @@ import "@testing-library/jest-dom";
 
 // MarkdownEditor is mocked globally in test-setup.ts
 
-import FinishBookModal from "@/components/FinishBookModal";
+import FinishBookModal from "@/components/Modals/FinishBookModal";
 
 // Mock lucide-react icons
 vi.mock("lucide-react", () => ({

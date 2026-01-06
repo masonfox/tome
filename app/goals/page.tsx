@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/PageHeader";
-import { GoalsPagePanel } from "@/components/GoalsPagePanel";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import { GoalsPagePanel } from "@/components/ReadingGoals/GoalsPagePanel";
 import { Target } from "lucide-react";
 import { readingGoalsService } from "@/lib/services";
 

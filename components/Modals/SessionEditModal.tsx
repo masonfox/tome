@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
-import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 
 interface SessionEditModalProps {

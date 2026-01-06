@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, BookOpen, Pencil, ChevronRight } from "lucide-react";
-import SessionEditModal from "./SessionEditModal";
-import SessionProgressModal from "./SessionProgressModal";
+import SessionEditModal from "@/components/Modals/SessionEditModal";
+import SessionProgressModal from "@/components/Modals/SessionProgressModal";
 import { toast } from "@/utils/toast";
 import { formatDateOnly } from '@/utils/dateHelpers';
-import MarkdownRenderer from "@/components/MarkdownRenderer";
+import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 
 interface ReadingSession {
   id: number;

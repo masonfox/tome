@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { BookOpen } from "lucide-react";
 import BaseModal from "./BaseModal";
-import { BottomSheet } from "./BottomSheet";
-import { JournalEntryList } from "./Journal/JournalEntryList";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
+import { JournalEntryList } from "@/components/Journal/JournalEntryList";
 import { useSessionProgress } from "@/hooks/useSessionProgress";
 
 interface SessionProgressModalProps {

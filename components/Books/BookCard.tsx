@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo } from "react";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 
 interface BookCardProps {

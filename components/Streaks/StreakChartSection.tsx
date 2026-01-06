@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { StreakChart } from "@/components/StreakChart";
-import { TimePeriodFilter, TimePeriod } from "@/components/TimePeriodFilter";
+import { StreakChart } from "@/components/Streaks/StreakChart";
+import { TimePeriodFilter, TimePeriod } from "@/components/Utilities/TimePeriodFilter";
 import { TrendingUp } from "lucide-react";
 import { getLogger } from "@/lib/logger";
 

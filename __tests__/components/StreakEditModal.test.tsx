@@ -1,7 +1,7 @@
 import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { StreakEditModal } from "@/components/StreakEditModal";
+import { StreakEditModal } from "@/components/Modals/StreakEditModal";
 import { createTestQueryClient } from "../test-utils";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { streakApi } from "@/lib/api";

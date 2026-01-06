@@ -1,7 +1,7 @@
 import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { StreakOnboarding } from "@/components/StreakOnboarding";
+import { StreakOnboarding } from "@/components/Streaks/StreakOnboarding";
 
 afterEach(() => {
   cleanup();

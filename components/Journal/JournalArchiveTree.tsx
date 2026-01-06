@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Archive } from "lucide-react";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
-import { ArchiveTreeNode } from "../ArchiveTreeNode";
+import { ArchiveTreeNode } from "@/components/Utilities/ArchiveTreeNode";
 
 interface JournalArchiveTreeProps {
   archiveData: ArchiveNode[];

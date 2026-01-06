@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
-import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getLogger } from "@/lib/logger";
 import { toast } from "@/utils/toast";

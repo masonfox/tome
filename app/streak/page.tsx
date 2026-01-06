@@ -1,8 +1,8 @@
-import { StreakAnalytics } from "@/components/StreakAnalytics";
-import { StreakChartSection } from "@/components/StreakChartSection";
-import { StreakRebuildSection } from "@/components/StreakRebuildSection";
-import { StreakOnboarding } from "@/components/StreakOnboarding";
-import { PageHeader } from "@/components/PageHeader";
+import { StreakAnalytics } from "@/components/Streaks/StreakAnalytics";
+import { StreakChartSection } from "@/components/Streaks/StreakChartSection";
+import { StreakRebuildSection } from "@/components/Streaks/StreakRebuildSection";
+import { StreakOnboarding } from "@/components/Streaks/StreakOnboarding";
+import { PageHeader } from "@/components/Layout/PageHeader";
 import { getLogger } from "@/lib/logger";
 import { Flame } from "lucide-react";
 import { streakService } from "@/lib/services/streak.service";
