@@ -450,8 +450,9 @@ describe("BookRepository.findByTag()", () => {
       // Assert
       expect(result.total).toBe(2);
       expect(result.books).toHaveLength(2);
-      expect(result.books[0].id).toBe(book1.id);
-      expect(result.books[1].id).toBe(book2.id);
+      // Books are sorted by createdAt DESC, so book2 (created later) comes first
+      expect(result.books[0].id).toBe(book2.id);
+      expect(result.books[1].id).toBe(book1.id);
     });
 
     test("should return empty result for non-existent tag", async () => {
