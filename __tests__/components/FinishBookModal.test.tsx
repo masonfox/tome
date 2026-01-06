@@ -2,59 +2,7 @@ import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-// Mock MarkdownEditor - define the mock inside the factory function
-vi.mock("@/components/MarkdownEditor", () => {
-  const { forwardRef, useImperativeHandle, useState, useEffect } = require("react");
-  
-  const MarkdownEditorMock = forwardRef(
-    (props: any, ref: any) => {
-      const { value, onChange, placeholder, height, id, autoFocus, editorRef } = props;
-      const [internalValue, setInternalValue] = useState(value);
-      const actualRef = editorRef || ref;
-
-      useEffect(() => {
-        if (value !== internalValue) {
-          setInternalValue(value);
-        }
-      }, [value, internalValue]);
-
-      useImperativeHandle(actualRef, () => ({
-        setMarkdown: (markdown: string) => {
-          setInternalValue(markdown);
-          onChange(markdown);
-        },
-        getMarkdown: () => internalValue,
-        focus: () => {},
-        insertMarkdown: () => {},
-        getContentEditableHTML: () => internalValue,
-        getSelectionMarkdown: () => "",
-      }));
-
-      return require("react").createElement(
-        "div",
-        { "data-testid": "markdown-editor-mock" },
-        require("react").createElement("textarea", {
-          value: internalValue,
-          onChange: (e: any) => {
-            setInternalValue(e.target.value);
-            onChange(e.target.value);
-          },
-          placeholder,
-          id,
-          autoFocus,
-          "data-testid": "markdown-editor",
-          style: height !== undefined ? { height: `${height}px` } : undefined,
-        })
-      );
-    }
-  );
-
-  MarkdownEditorMock.displayName = "MarkdownEditor";
-
-  return {
-    default: MarkdownEditorMock
-  };
-});
+// MarkdownEditor is mocked globally in test-setup.ts
 
 import FinishBookModal from "@/components/FinishBookModal";
 

@@ -1,19 +1,8 @@
 import { test, expect, describe, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { forwardRef } from "react";
 
-// Mock MarkdownEditor to avoid browser API dependencies
-vi.mock("@/components/MarkdownEditor", () => ({
-  default: forwardRef(({ value, onChange, placeholder }: any, ref) => (
-    <textarea 
-      data-testid="markdown-editor-mock" 
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-    />
-  )),
-}));
+// MarkdownEditor is mocked globally in test-setup.ts
 
 import BookProgress from "@/components/BookDetail/BookProgress";
 
