@@ -28,7 +28,7 @@
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest",
     "test:ui": "TZ=UTC vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "TZ=UTC vitest run --coverage"
   },
   "dependencies": {
     "@mdxeditor/editor": "^3.52.1",
