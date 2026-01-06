@@ -6,15 +6,20 @@ type SQLiteDatabase = any;
 
 const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
 
-if (!CALIBRE_DB_PATH) {
-  const { getLogger } = require("../logger");
-  getLogger().warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
-}
+// Removed module-level logger call to prevent pino from loading during instrumentation phase
+// The warning is now logged when getCalibreDB() is first called (see below)
 
 let dbInstance: ReturnType<typeof createDatabase> | null = null;
+let hasLoggedWarning = false;
 
 export function getCalibreDB() {
   if (!CALIBRE_DB_PATH) {
+    // Log warning once when function is actually called (not at module load time)
+    if (!hasLoggedWarning) {
+      const { getLogger } = require("../logger");
+      getLogger().warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
+      hasLoggedWarning = true;
+    }
     throw new Error("CALIBRE_DB_PATH environment variable is not set");
   }
 

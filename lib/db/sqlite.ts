@@ -2,8 +2,16 @@ import * as schema from "./schema";
 import { mkdirSync, readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { createDatabase, detectRuntime, testDatabaseConnection, closeDatabaseConnection } from "./factory";
-import { getLogger } from "../logger";
-const logger = getLogger();
+
+// Lazy logger initialization to prevent pino from loading during instrumentation phase
+let logger: any = null;
+function getLoggerSafe() {
+  if (!logger) {
+    const { getLogger } = require("../logger");
+    logger = getLogger();
+  }
+  return logger;
+}
 
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 
@@ -21,7 +29,7 @@ if (isTest) {
   db = null;
 } else if (isBuild) {
   // In build mode, use an in-memory database to allow API routes to execute
-  logger.info('Build phase: Using in-memory database');
+  getLoggerSafe().info('Build phase: Using in-memory database');
   const instance = createDatabase({
     path: ':memory:',
     schema,
@@ -57,9 +65,9 @@ if (isTest) {
         }
       }
     }
-    logger.info({ migrationsApplied: migrationFiles.length }, `Build phase: Applied ${migrationFiles.length} migrations to in-memory database`);
+    getLoggerSafe().info({ migrationsApplied: migrationFiles.length }, `Build phase: Applied ${migrationFiles.length} migrations to in-memory database`);
   } catch (err: any) {
-    logger.error({ err }, 'Build phase: Failed to apply migrations');
+    getLoggerSafe().error({ err }, 'Build phase: Failed to apply migrations');
     // Don't throw - allow build to continue even if migrations fail
   }
 } else {
@@ -68,11 +76,11 @@ if (isTest) {
   const dataDir = dirname(DATABASE_PATH);
   try {
     mkdirSync(dataDir, { recursive: true });
-    logger.debug({ dataDir }, `Data directory verified: ${dataDir}`);
+    getLoggerSafe().debug({ dataDir }, `Data directory verified: ${dataDir}`);
   } catch (err: any) {
-    logger.fatal({ dataDir, err }, `CRITICAL: Failed to create data directory: ${dataDir}`);
-    logger.fatal({ err }, `Error creating data directory: ${err.message}`);
-    logger.warn({ dataDir }, 'This usually indicates a permission problem.');
+    getLoggerSafe().fatal({ dataDir, err }, `CRITICAL: Failed to create data directory: ${dataDir}`);
+    getLoggerSafe().fatal({ err }, `Error creating data directory: ${err.message}`);
+    getLoggerSafe().warn({ dataDir }, 'This usually indicates a permission problem.');
     throw new Error(`Cannot initialize database - data directory creation failed: ${err.message}`);
   }
 
@@ -88,7 +96,7 @@ if (isTest) {
   sqlite = instance.sqlite;
   db = instance.db;
 
-  logger.debug({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
+  getLoggerSafe().debug({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
 }
 
 export { db, sqlite };

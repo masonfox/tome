@@ -1,6 +1,12 @@
 // Track if cleanup listeners are registered to prevent duplicates
 let cleanupListenersRegistered = false;
 
+// Simple console logger for instrumentation phase (before pino is available)
+function log(level: 'info' | 'warn' | 'error', message: string) {
+  const timestamp = new Date().toISOString();
+  console.log(JSON.stringify({ level, time: timestamp, msg: message }));
+}
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     // Calibre automatic sync works in both dev and production
@@ -12,27 +18,23 @@ export async function register() {
     const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
     if (CALIBRE_DB_PATH) {
-      const { getLogger } = await import("@/lib/logger");
-      getLogger().info(`Initializing Calibre automatic sync (${runtime} runtime)...`);
+      log('info', `Initializing Calibre automatic sync (${runtime} runtime)...`);
 
       // Start watching the Calibre database for changes
       await calibreWatcher.start(CALIBRE_DB_PATH, syncCalibreLibrary);
     } else {
-      const { getLogger } = await import("@/lib/logger");
-      getLogger().warn("CALIBRE_DB_PATH not configured. Automatic sync is disabled.");
+      log('warn', "CALIBRE_DB_PATH not configured. Automatic sync is disabled.");
     }
 
     // Cleanup on shutdown - only register once to prevent memory leak warnings
     if (!cleanupListenersRegistered) {
       process.on("SIGTERM", () => {
-        const { getLogger } = require("@/lib/logger");
-        getLogger().info("Shutting down Calibre watcher...");
+        log('info', "Shutting down Calibre watcher...");
         calibreWatcher.stop();
       });
 
       process.on("SIGINT", () => {
-        const { getLogger } = require("@/lib/logger");
-        getLogger().info("Shutting down Calibre watcher...");
+        log('info', "Shutting down Calibre watcher...");
         calibreWatcher.stop();
       });
       
