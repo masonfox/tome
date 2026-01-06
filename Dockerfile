@@ -38,15 +38,15 @@ FROM base AS runner
 WORKDIR /app
 
 # Install sqlite3 CLI for debugging
-RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache sqlite
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_PATH=/app/data/tome.db
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create a non-root user (Alpine syntax)
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -u 1001 -S nextjs -G nodejs
 
 # Create data directory and set permissions
 RUN mkdir -p data && chown -R nextjs:nodejs data
