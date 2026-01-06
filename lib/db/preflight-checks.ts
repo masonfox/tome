@@ -1,7 +1,6 @@
 import { getLogger } from "@/lib/logger";
 import { existsSync, statSync, accessSync, constants } from "fs";
 import { dirname } from "path";
-import { detectRuntime } from "./factory";
 
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 const DATA_DIR = dirname(DATABASE_PATH);
@@ -88,31 +87,13 @@ export function runPreflightChecks(): PreflightCheckResult {
   }
 
   // Check 4: Disk space
-  try {
-    // Use statfs to check available space (Bun-specific)
-    const runtime = detectRuntime();
-    if (runtime === 'bun') {
-      // Bun doesn't have statfs, so we'll skip this check in Bun
-      checks.push({
-        name: "Disk space",
-        passed: true,
-        message: "Disk space check skipped (Bun runtime)",
-      });
-    } else {
-      // In Node.js, we could use statfs, but for simplicity, we'll skip
-      checks.push({
-        name: "Disk space",
-        passed: true,
-        message: "Disk space check skipped (not critical)",
-      });
-    }
-  } catch (err) {
-    checks.push({
-      name: "Disk space",
-      passed: true,
-      message: "Disk space check skipped (error checking)",
-    });
-  }
+  // Note: Disk space checking would require platform-specific code
+  // For simplicity, we'll skip this check as it's not critical for operation
+  checks.push({
+    name: "Disk space",
+    passed: true,
+    message: "Disk space check skipped (not critical)",
+  });
 
   // Check 5: Migration metadata file exists
   const metaJournalPath = `${MIGRATIONS_DIR}/meta/_journal.json`;

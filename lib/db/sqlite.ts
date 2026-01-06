@@ -1,7 +1,7 @@
 import * as schema from "./schema";
 import { mkdirSync, readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
-import { createDatabase, detectRuntime, testDatabaseConnection, closeDatabaseConnection } from "./factory";
+import { createDatabase, testDatabaseConnection, closeDatabaseConnection } from "./factory";
 import { getLogger } from "@/lib/logger";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
@@ -20,8 +20,7 @@ function getLoggerSafe() {
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 
 // Check if we're in test mode or build mode
-const isBun = detectRuntime() === 'bun';
-const isTest = isBun ? Bun.env.BUN_ENV === 'test' : process.env.NODE_ENV === 'test';
+const isTest = process.env.NODE_ENV === 'test';
 const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
 let sqlite: any;
@@ -61,11 +60,7 @@ if (isTest) {
 
       for (const statement of statements) {
         if (statement.trim()) {
-          if (instance.runtime === 'bun') {
-            sqlite.run(statement);
-          } else {
-            sqlite.exec(statement);
-          }
+          sqlite.exec(statement);
         }
       }
     }
@@ -100,7 +95,7 @@ if (isTest) {
   sqlite = instance.sqlite;
   db = instance.db;
 
-  getLoggerSafe().debug({ runtime: instance.runtime }, `Using ${instance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} for Tome database`);
+  getLoggerSafe().debug({ dbPath: DATABASE_PATH }, `Using better-sqlite3 for Tome database`);
 }
 
 export { db, sqlite };
