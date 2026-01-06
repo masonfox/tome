@@ -134,7 +134,7 @@ vi.mock("lucide-react", () => ({
 // Use shared mock to avoid conflicts with other test files
 import { MarkdownEditorMock } from "../mocks/createMarkdownEditorMock";
 
-vi.mock("@/components/MarkdownEditor", () => ({
+vi.mock("@/components/Markdown/MarkdownEditor", () => ({
   default: MarkdownEditorMock
 }));
 
@@ -148,7 +148,7 @@ describe("MarkdownEditor", () => {
 
   describe("Basic Rendering", () => {
     test("should render the editor mock", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -162,7 +162,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should render with initial value", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -176,7 +176,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should apply custom height", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -191,7 +191,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should use default height when not specified", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -206,7 +206,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should apply autoFocus prop", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -222,7 +222,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should apply id prop", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -239,7 +239,7 @@ describe("MarkdownEditor", () => {
 
   describe("Content Updates", () => {
     test("should call onChange when content is edited", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -255,7 +255,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle empty content", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -269,7 +269,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle multi-line markdown content", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const multilineContent = `# Title\n\n## Subtitle\n\n- Item 1\n- Item 2`;
       render(
@@ -284,7 +284,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should update internal state when user types", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -305,7 +305,7 @@ describe("MarkdownEditor", () => {
 
   describe("ForwardRef Implementation", () => {
     test("should support ref creation without errors", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const ref = { current: null as MDXEditorMethods | null };
       
@@ -323,7 +323,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should work with ref callbacks", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       let refValue: MDXEditorMethods | null = null;
       const refCallback = (ref: MDXEditorMethods | null) => {
@@ -343,7 +343,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should maintain ref methods interface", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       // The component should maintain the MDXEditorMethods interface
       // This is a type-level test that the component exports the right type
@@ -351,7 +351,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should have displayName set", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       expect(MarkdownEditor.displayName).toBe("MarkdownEditor");
     });
@@ -359,7 +359,7 @@ describe("MarkdownEditor", () => {
 
   describe("Placeholder", () => {
     test("should render with custom placeholder", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -374,7 +374,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should accept placeholder prop", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -393,7 +393,7 @@ describe("MarkdownEditor", () => {
 
   describe("Edge Cases", () => {
     test("should handle very long content", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const longContent = "A".repeat(10000);
       render(
@@ -408,7 +408,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle special markdown characters", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const specialContent = "# *Bold* **Italic** [Link](url) `code` > quote";
       render(
@@ -423,7 +423,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle height of 0", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -438,7 +438,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle very large height values", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -453,7 +453,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle null or undefined values gracefully", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       // Should not crash with empty/undefined values
       render(
@@ -474,7 +474,7 @@ describe("MarkdownEditor", () => {
 
   describe("Component Integration", () => {
     test("should handle onChange callback correctly", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const customOnChange = vi.fn(() => {});
       
@@ -493,7 +493,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should not break when onChange is called multiple times", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const customOnChange = vi.fn(() => {});
       
@@ -515,7 +515,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should integrate with form submission", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const handleSubmit = vi.fn((e: any) => {
         e.preventDefault();
@@ -540,7 +540,7 @@ describe("MarkdownEditor", () => {
 
   describe("Accessibility", () => {
     test("should be keyboard accessible", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <MarkdownEditor
@@ -557,7 +557,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should be part of tab order for navigation", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       render(
         <div>
@@ -578,7 +578,7 @@ describe("MarkdownEditor", () => {
 
   describe("Performance", () => {
     test("should not re-render unnecessarily with same props", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const renderSpy = vi.fn(() => {});
       
@@ -603,7 +603,7 @@ describe("MarkdownEditor", () => {
     });
 
     test("should handle multiple onChange calls without errors", async () => {
-      const { default: MarkdownEditor } = await import("@/components/MarkdownEditor");
+      const { default: MarkdownEditor } = await import("@/components/Markdown/MarkdownEditor");
       
       const customOnChange = vi.fn(() => {});
       

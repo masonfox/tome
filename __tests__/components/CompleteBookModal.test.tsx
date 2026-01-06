@@ -43,6 +43,12 @@ vi.mock("lucide-react", () => ({
   X: ({ className }: any) => (
     <span className={className} data-testid="x-icon">×</span>
   ),
+  Maximize2: ({ className }: any) => (
+    <span className={className} data-testid="maximize-icon">⛶</span>
+  ),
+  Minimize2: ({ className }: any) => (
+    <span className={className} data-testid="minimize-icon">⛶</span>
+  ),
 }));
 
 describe("CompleteBookModal", () => {
