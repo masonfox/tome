@@ -702,6 +702,31 @@ describe("Calibre Write Operations - Tag Management", () => {
       expect(tags).toContain(longTag);
       expect(tags).toContain("Short");
     });
+
+    test("should update tag name case when tag exists with different case", () => {
+      // Setup: Create tag with lowercase for book 1
+      updateCalibreTags(1, ["science fiction"], tagTestDb);
+      
+      // Verify initial state
+      let tags = readCalibreTags(1, tagTestDb);
+      expect(tags).toEqual(["science fiction"]);
+      
+      // Update: Use same tag with different case for book 2
+      updateCalibreTags(2, ["Science Fiction"], tagTestDb);
+      
+      // Verify case was updated in the tags table (affects ALL books with this tag)
+      tags = readCalibreTags(1, tagTestDb);
+      expect(tags).toEqual(["Science Fiction"]);  // Case updated for book 1!
+      
+      tags = readCalibreTags(2, tagTestDb);
+      expect(tags).toEqual(["Science Fiction"]);  // Book 2 has the updated case
+      
+      // Verify the tags table only has one entry (not duplicated)
+      const tagCount = tagTestDb.prepare(
+        "SELECT COUNT(*) as count FROM tags WHERE name LIKE 'science fiction' COLLATE NOCASE"
+      ).get() as { count: number };
+      expect(tagCount.count).toBe(1);
+    });
   });
 });
 
