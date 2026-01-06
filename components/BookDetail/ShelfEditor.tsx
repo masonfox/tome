@@ -262,15 +262,15 @@ export default function ShelfEditor({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={handleClose}
     >
       <div 
-        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-2xl w-full my-8"
+        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        {/* Header - Fixed */}
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-[var(--border-color)] flex-shrink-0">
           <div className="flex-1 min-w-0 pr-4">
             <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
               Add to Shelves
@@ -292,11 +292,17 @@ export default function ShelfEditor({
           </button>
         </div>
 
-        {/* Content */}
-        {shelfContent}
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {shelfContent}
+        </div>
 
-        {/* Action Buttons */}
-        {desktopButtons}
+        {/* Action Buttons - Fixed at bottom */}
+        {desktopButtons && (
+          <div className="p-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end flex-shrink-0">
+            {buttons}
+          </div>
+        )}
       </div>
     </div>
   );
