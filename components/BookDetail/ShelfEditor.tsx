@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, FolderOpen, Plus, Check } from "lucide-react";
+import { X, FolderOpen, Plus, CheckCircle, Check } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
@@ -122,22 +122,17 @@ export default function ShelfEditor({
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all text-left",
                       isSelected
-                        ? "border-[var(--accent-color)] bg-[var(--accent-color)]/10"
+                        ? "bg-[var(--accent-color)]/15 shadow-sm"
                         : "border-[var(--border-color)] hover:border-[var(--accent-color)]/50 hover:bg-[var(--border-color)]",
                       saving && "opacity-50 cursor-not-allowed"
                     )}
+                    style={isSelected ? { borderColor: shelf.color || "#3b82f6" } : undefined}
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: shelf.color || "#3b82f6" }}
                     >
-                      {Icon ? (
-                        <Icon className="w-5 h-5 text-white" />
-                      ) : isSelected ? (
-                        <Check className="w-5 h-5 text-white" />
-                      ) : (
-                        <Plus className="w-5 h-5 text-white" />
-                      )}
+                      {Icon && <Icon className="w-5 h-5 text-white" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[var(--heading-text)] truncate">
@@ -149,6 +144,11 @@ export default function ShelfEditor({
                         </div>
                       )}
                     </div>
+                    {isSelected && (
+                      <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-white stroke-[3]" />
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -202,12 +202,7 @@ export default function ShelfEditor({
             <button
               onClick={handleSave}
               disabled={saving}
-              className={cn(
-                "px-5 py-2.5 rounded-lg transition-colors font-semibold",
-                saving
-                  ? "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"
-                  : "bg-[var(--accent-color)] text-white hover:bg-[var(--accent-hover)]"
-              )}
+              className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>
