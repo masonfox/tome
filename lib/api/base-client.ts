@@ -420,9 +420,10 @@ export class BaseApiClient {
  */
 export const baseApiClient = new BaseApiClient();
 
-// Add logging interceptor in development mode
+// Add logging interceptor in development mode (synchronous to avoid race conditions)
 if (process.env.NODE_ENV === 'development') {
-  import('./interceptors/logging').then(({ loggingInterceptor }) => {
-    baseApiClient.addInterceptor(loggingInterceptor);
-  });
+  // Use require for synchronous loading to ensure interceptor is registered
+  // before any API calls are made
+  const { loggingInterceptor } = require('./interceptors/logging');
+  baseApiClient.addInterceptor(loggingInterceptor);
 }
