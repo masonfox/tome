@@ -1,10 +1,9 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
+import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import PageCountEditModal from "@/components/PageCountEditModal";
 
-// Mock toast utility
-const mockToast = {
+// Mock toast utility - hoist the mock object
+const mockToast = vi.hoisted(() => ({
   success: vi.fn(() => {}),
   error: vi.fn(() => {}),
   info: vi.fn(() => {}),
@@ -12,7 +11,7 @@ const mockToast = {
   loading: vi.fn(() => {}),
   promise: vi.fn(() => {}),
   dismiss: vi.fn(() => {}),
-};
+}));
 
 vi.mock("@/utils/toast", () => ({
   toast: mockToast,
@@ -25,6 +24,8 @@ vi.mock("lucide-react", () => ({
   ),
 }));
 
+import PageCountEditModal from "@/components/PageCountEditModal";
+
 afterEach(() => {
   cleanup();
   mockToast.success.mockClear();
@@ -32,7 +33,7 @@ afterEach(() => {
 });
 
 // Mock fetch globally
-let mockFetch: ReturnType<typeof mock>;
+let mockFetch: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   mockFetch = vi.fn(() =>
