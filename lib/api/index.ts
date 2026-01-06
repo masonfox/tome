@@ -22,7 +22,9 @@ export { baseApiClient, BaseApiClient, ApiError } from "./base-client";
 // Re-export domain API helpers
 export { bookApi } from "./domains/book";
 export { goalsApi } from "./domains/goals";
+export { streakApi } from "./domains/streak";
 
 // Re-export all types (type-only imports)
 export type * from "./domains/book";
 export type * from "./domains/goals";
+export type * from "./domains/streak";
