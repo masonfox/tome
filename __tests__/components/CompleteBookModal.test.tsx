@@ -230,28 +230,26 @@ describe("CompleteBookModal", () => {
       }, { timeout: 100 });
     });
 
-    // NOTE: Skipping this test due to testing environment limitations
-    // React Testing Library has difficulty properly updating controlled date input values
-    // The validation logic itself is sound (see CompleteBookModal.tsx lines 122-127)
-    // and is covered by the integration tests which test the full workflow
-    test.skip("should validate end date is not before start date", async () => {
+    test("should validate end date is not before start date", async () => {
       const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const startDateInput = screen.getByLabelText("Start Date") as HTMLInputElement;
       const endDateInput = screen.getByLabelText("End Date") as HTMLInputElement;
       
-      // Attempting to set start date to Jan 15, 2024
+      // Set start date to Jan 15, 2024
       fireEvent.change(startDateInput, { target: { value: "2024-01-15" } });
+      await waitFor(() => expect(startDateInput.value).toBe("2024-01-15"));
       
-      // Attempting to set end date to Jan 10, 2024 (5 days before start date)
+      // Set end date to Jan 10, 2024 (5 days before start date)
       fireEvent.change(endDateInput, { target: { value: "2024-01-10" } });
+      await waitFor(() => expect(endDateInput.value).toBe("2024-01-10"));
       
       // Try to submit with invalid dates
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
       fireEvent.click(completeButton);
       
-      // Validation should prevent submission
+      // Validation should prevent submission because end date is before start date
       await waitFor(() => {
         expect(onConfirm).not.toHaveBeenCalled();
       }, { timeout: 500 });
