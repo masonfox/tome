@@ -1,8 +1,15 @@
 import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from "../test-utils";
 import { useStats } from "@/hooks/useStats";
+import { statsApi } from "@/lib/api";
 
-const originalFetch = global.fetch;
+// Mock the statsApi module
+vi.mock("@/lib/api", () => ({
+  statsApi: {
+    getOverview: vi.fn(),
+    getStreak: vi.fn(),
+  },
+}));
 
 describe("useStats", () => {
   const mockStatsOverview = {
@@ -32,25 +39,13 @@ describe("useStats", () => {
   };
 
   beforeEach(() => {
-    global.fetch = vi.fn((url: string) => {
-      if (url === "/api/stats/overview") {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockStatsOverview),
-        } as Response);
-      }
-      if (url === "/api/streaks") {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockStreakData),
-        } as Response);
-      }
-      return Promise.reject(new Error("Unknown URL"));
-    }) as any;
+    vi.clearAllMocks();
+    vi.mocked(statsApi.getOverview).mockResolvedValue(mockStatsOverview);
+    vi.mocked(statsApi.getStreak).mockResolvedValue(mockStreakData);
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.clearAllMocks();
   });
 
   describe("initialization", () => {
@@ -69,12 +64,8 @@ describe("useStats", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/stats/overview", {
-        cache: "no-store",
-      });
-      expect(global.fetch).toHaveBeenCalledWith("/api/streaks", {
-        cache: "no-store",
-      });
+      expect(statsApi.getOverview).toHaveBeenCalledTimes(1);
+      expect(statsApi.getStreak).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -91,21 +82,7 @@ describe("useStats", () => {
     });
 
     test("should handle null stats", async () => {
-      global.fetch = vi.fn((url: string) => {
-        if (url === "/api/stats/overview") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(null),
-          } as Response);
-        }
-        if (url === "/api/streaks") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockStreakData),
-          } as Response);
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      }) as any;
+      vi.mocked(statsApi.getOverview).mockResolvedValue(null as any);
 
       const { result } = renderHook(() => useStats());
 
@@ -118,21 +95,7 @@ describe("useStats", () => {
     });
 
     test("should handle null streak", async () => {
-      global.fetch = vi.fn((url: string) => {
-        if (url === "/api/stats/overview") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockStatsOverview),
-          } as Response);
-        }
-        if (url === "/api/streaks") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(null),
-          } as Response);
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      }) as any;
+      vi.mocked(statsApi.getStreak).mockResolvedValue(null as any);
 
       const { result } = renderHook(() => useStats());
 
@@ -152,18 +115,7 @@ describe("useStats", () => {
         resolveStats = resolve;
       });
 
-      global.fetch = vi.fn((url: string) => {
-        if (url === "/api/stats/overview") {
-          return statsPromise;
-        }
-        if (url === "/api/streaks") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockStreakData),
-          } as Response);
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      }) as any;
+      vi.mocked(statsApi.getOverview).mockReturnValue(statsPromise as any);
 
       const { result } = renderHook(() => useStats());
 
@@ -171,10 +123,7 @@ describe("useStats", () => {
       expect(result.current.isLoading).toBe(true);
 
       // Resolve stats
-      resolveStats!({
-        ok: true,
-        json: () => Promise.resolve(mockStatsOverview),
-      });
+      resolveStats!(mockStatsOverview);
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -198,18 +147,7 @@ describe("useStats", () => {
 
   describe("error handling", () => {
     test("should handle stats fetch error", async () => {
-      global.fetch = vi.fn((url: string) => {
-        if (url === "/api/stats/overview") {
-          return Promise.reject(new Error("Stats error"));
-        }
-        if (url === "/api/streaks") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockStreakData),
-          } as Response);
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      }) as any;
+      vi.mocked(statsApi.getOverview).mockRejectedValue(new Error("Stats error"));
 
       const { result } = renderHook(() => useStats());
 
@@ -222,18 +160,7 @@ describe("useStats", () => {
     });
 
     test("should handle streak fetch error", async () => {
-      global.fetch = vi.fn((url: string) => {
-        if (url === "/api/stats/overview") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockStatsOverview),
-          } as Response);
-        }
-        if (url === "/api/streaks") {
-          return Promise.reject(new Error("Streak error"));
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      }) as any;
+      vi.mocked(statsApi.getStreak).mockRejectedValue(new Error("Streak error"));
 
       const { result } = renderHook(() => useStats());
 
@@ -246,9 +173,8 @@ describe("useStats", () => {
     });
 
     test("should handle both queries failing", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.reject(new Error("Network error"))
-      ) as any;
+      vi.mocked(statsApi.getOverview).mockRejectedValue(new Error("Network error"));
+      vi.mocked(statsApi.getStreak).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useStats());
 
@@ -261,14 +187,9 @@ describe("useStats", () => {
       expect(result.current.streak).toBeNull();
     });
 
-    test("should handle non-ok responses", async () => {
-      global.fetch = vi.fn((url: string) => {
-        return Promise.resolve({
-          ok: false,
-          status: 500,
-          json: () => Promise.resolve({ error: "Server error" }),
-        } as Response);
-      }) as any;
+    test("should handle API errors", async () => {
+      vi.mocked(statsApi.getOverview).mockRejectedValue(new Error("Server error"));
+      vi.mocked(statsApi.getStreak).mockRejectedValue(new Error("Server error"));
 
       const { result } = renderHook(() => useStats());
 
@@ -281,30 +202,22 @@ describe("useStats", () => {
   });
 
   describe("query configuration", () => {
-    test("should fetch with no-store cache directive", async () => {
+    test("should call both API methods", async () => {
       const { result } = renderHook(() => useStats());
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/stats/overview", {
-        cache: "no-store",
-      });
-      expect(global.fetch).toHaveBeenCalledWith("/api/streaks", {
-        cache: "no-store",
-      });
+      expect(statsApi.getOverview).toHaveBeenCalledTimes(1);
+      expect(statsApi.getStreak).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("default values", () => {
     test("should return null for undefined data", async () => {
-      global.fetch = vi.fn((url: string) => {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(undefined),
-        } as Response);
-      }) as any;
+      vi.mocked(statsApi.getOverview).mockResolvedValue(undefined as any);
+      vi.mocked(statsApi.getStreak).mockResolvedValue(undefined as any);
 
       const { result } = renderHook(() => useStats());
 

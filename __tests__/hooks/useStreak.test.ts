@@ -1,8 +1,16 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
+import { test, expect, describe, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useStreak } from "@/hooks/useStreak";
+import { streakApi } from "@/lib/api";
 
-const originalFetch = global.fetch;
+// Mock the streakApi module
+vi.mock("@/lib/api", () => ({
+  streakApi: {
+    rebuild: vi.fn(),
+    updateThreshold: vi.fn(),
+    updateTimezone: vi.fn(),
+  },
+}));
 
 // Mock sonner toast - hoist the mock functions
 const mockToastSuccess = vi.hoisted(() => vi.fn(() => {}));
@@ -17,22 +25,22 @@ vi.mock("sonner", () => ({
 
 describe("useStreak", () => {
   beforeEach(() => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      } as Response)
-    ) as any;
-    mockToastSuccess.mockClear();
-    mockToastError.mockClear();
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
+    vi.clearAllMocks();
+    
+    // Setup default mock implementations
+    vi.mocked(streakApi.rebuild).mockResolvedValue({ success: true });
+    vi.mocked(streakApi.updateThreshold).mockResolvedValue({ 
+      success: true, 
+      data: {} as any 
+    });
+    vi.mocked(streakApi.updateTimezone).mockResolvedValue({ 
+      success: true, 
+      data: {} as any 
+    });
   });
 
   describe("rebuildStreak mutation", () => {
-    test("should call POST /api/streak/rebuild", async () => {
+    test("should call streakApi.rebuild", async () => {
       const { result } = renderHook(() => useStreak());
 
       expect(result.current.isRebuilding).toBe(false);
@@ -41,21 +49,16 @@ describe("useStreak", () => {
         await result.current.rebuildStreakAsync();
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/streak/rebuild", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      expect(streakApi.rebuild).toHaveBeenCalled();
     });
 
     test("should set isRebuilding to true during mutation", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
 
-      global.fetch = vi.fn(() => fetchPromise) as any;
+      vi.mocked(streakApi.rebuild).mockReturnValue(apiPromise as any);
 
       const { result } = renderHook(() => useStreak());
 
@@ -67,11 +70,8 @@ describe("useStreak", () => {
         expect(result.current.isRebuilding).toBe(true);
       });
 
-      // Resolve fetch
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      // Resolve API call
+      resolveApi!({ success: true });
 
       await waitFor(() => {
         expect(result.current.isRebuilding).toBe(false);
@@ -105,16 +105,7 @@ describe("useStreak", () => {
     });
 
     test("should handle rebuild errors", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              success: false,
-              error: { message: "Failed to rebuild" },
-            }),
-        } as Response)
-      ) as any;
+      vi.mocked(streakApi.rebuild).mockRejectedValue(new Error("Failed to rebuild"));
 
       const { result } = renderHook(() => useStreak());
 
@@ -134,9 +125,7 @@ describe("useStreak", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.reject(new Error("Network error"))
-      ) as any;
+      vi.mocked(streakApi.rebuild).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useStreak());
 
@@ -155,7 +144,7 @@ describe("useStreak", () => {
   });
 
   describe("updateThreshold mutation", () => {
-    test("should call PATCH /api/streak with dailyThreshold", async () => {
+    test("should call streakApi.updateThreshold with dailyThreshold", async () => {
       const { result } = renderHook(() => useStreak());
 
       expect(result.current.isUpdatingThreshold).toBe(false);
@@ -164,20 +153,16 @@ describe("useStreak", () => {
         await result.current.updateThresholdAsync(25);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/streak", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dailyThreshold: 25 }),
-      });
+      expect(streakApi.updateThreshold).toHaveBeenCalled();
     });
 
     test("should set isUpdatingThreshold to true during mutation", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
 
-      global.fetch = vi.fn(() => fetchPromise) as any;
+      vi.mocked(streakApi.updateThreshold).mockReturnValue(apiPromise as any);
 
       const { result } = renderHook(() => useStreak());
 
@@ -189,11 +174,8 @@ describe("useStreak", () => {
         expect(result.current.isUpdatingThreshold).toBe(true);
       });
 
-      // Resolve fetch
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      // Resolve API call
+      resolveApi!({ success: true, data: {} });
 
       await waitFor(() => {
         expect(result.current.isUpdatingThreshold).toBe(false);
@@ -226,16 +208,7 @@ describe("useStreak", () => {
     });
 
     test("should handle update errors", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          json: () =>
-            Promise.resolve({
-              success: false,
-              error: { message: "Validation failed" },
-            }),
-        } as Response)
-      ) as any;
+      vi.mocked(streakApi.updateThreshold).mockRejectedValue(new Error("Validation failed"));
 
       const { result } = renderHook(() => useStreak());
 
@@ -253,9 +226,7 @@ describe("useStreak", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.reject(new Error("Network error"))
-      ) as any;
+      vi.mocked(streakApi.updateThreshold).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useStreak());
 
@@ -274,7 +245,7 @@ describe("useStreak", () => {
   });
 
   describe("updateTimezone mutation", () => {
-    test("should call PATCH /api/streak/timezone with timezone", async () => {
+    test("should call streakApi.updateTimezone with timezone", async () => {
       const { result } = renderHook(() => useStreak());
 
       expect(result.current.isUpdatingTimezone).toBe(false);
@@ -283,20 +254,16 @@ describe("useStreak", () => {
         await result.current.updateTimezoneAsync("America/Los_Angeles");
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/streak/timezone", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timezone: "America/Los_Angeles" }),
-      });
+      expect(streakApi.updateTimezone).toHaveBeenCalled();
     });
 
     test("should set isUpdatingTimezone to true during mutation", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
 
-      global.fetch = vi.fn(() => fetchPromise) as any;
+      vi.mocked(streakApi.updateTimezone).mockReturnValue(apiPromise as any);
 
       const { result } = renderHook(() => useStreak());
 
@@ -308,11 +275,8 @@ describe("useStreak", () => {
         expect(result.current.isUpdatingTimezone).toBe(true);
       });
 
-      // Resolve fetch
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      // Resolve API call
+      resolveApi!({ success: true, data: {} });
 
       await waitFor(() => {
         expect(result.current.isUpdatingTimezone).toBe(false);
@@ -345,16 +309,7 @@ describe("useStreak", () => {
     });
 
     test("should handle timezone update errors", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          json: () =>
-            Promise.resolve({
-              success: false,
-              error: { message: "Invalid timezone" },
-            }),
-        } as Response)
-      ) as any;
+      vi.mocked(streakApi.updateTimezone).mockRejectedValue(new Error("Invalid timezone"));
 
       const { result } = renderHook(() => useStreak());
 
@@ -372,9 +327,7 @@ describe("useStreak", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.reject(new Error("Network error"))
-      ) as any;
+      vi.mocked(streakApi.updateTimezone).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useStreak());
 

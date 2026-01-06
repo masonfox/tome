@@ -33,6 +33,14 @@ export interface RequestInterceptor {
 }
 
 /**
+ * Request options
+ */
+export interface RequestOptions {
+  /** AbortSignal for cancelling requests */
+  signal?: AbortSignal;
+}
+
+/**
  * Request configuration
  */
 export interface RequestConfig {
@@ -40,6 +48,7 @@ export interface RequestConfig {
   endpoint: string;
   data?: any;
   headers: Record<string, string>;
+  options?: RequestOptions;
 }
 
 /**
@@ -143,8 +152,8 @@ export class BaseApiClient {
   /**
    * Make a typed GET request
    */
-  protected async get<TResponse>(endpoint: string): Promise<TResponse> {
-    return this.request<TResponse>("GET", endpoint);
+  protected async get<TResponse>(endpoint: string, options?: RequestOptions): Promise<TResponse> {
+    return this.request<TResponse>("GET", endpoint, undefined, options);
   }
 
   /**
@@ -152,9 +161,10 @@ export class BaseApiClient {
    */
   protected async post<TRequest, TResponse>(
     endpoint: string,
-    data?: TRequest
+    data?: TRequest,
+    options?: RequestOptions
   ): Promise<TResponse> {
-    return this.request<TResponse>("POST", endpoint, data);
+    return this.request<TResponse>("POST", endpoint, data, options);
   }
 
   /**
@@ -162,16 +172,17 @@ export class BaseApiClient {
    */
   protected async patch<TRequest, TResponse>(
     endpoint: string,
-    data?: TRequest
+    data?: TRequest,
+    options?: RequestOptions
   ): Promise<TResponse> {
-    return this.request<TResponse>("PATCH", endpoint, data);
+    return this.request<TResponse>("PATCH", endpoint, data, options);
   }
 
   /**
    * Make a typed DELETE request
    */
-  protected async delete<TResponse>(endpoint: string): Promise<TResponse> {
-    return this.request<TResponse>("DELETE", endpoint);
+  protected async delete<TResponse>(endpoint: string, options?: RequestOptions): Promise<TResponse> {
+    return this.request<TResponse>("DELETE", endpoint, undefined, options);
   }
 
   /**
@@ -182,9 +193,10 @@ export class BaseApiClient {
   private async request<TResponse>(
     method: string,
     endpoint: string,
-    data?: any
+    data?: any,
+    options?: RequestOptions
   ): Promise<TResponse> {
-    return this.requestWithRetry<TResponse>(method, endpoint, data, 0);
+    return this.requestWithRetry<TResponse>(method, endpoint, data, options, 0);
   }
 
   /**
@@ -194,6 +206,7 @@ export class BaseApiClient {
     method: string,
     endpoint: string,
     data: any,
+    options: RequestOptions | undefined,
     attemptNumber: number
   ): Promise<TResponse> {
     try {
@@ -203,6 +216,7 @@ export class BaseApiClient {
         endpoint,
         data,
         headers: { ...this.defaultHeaders },
+        options,
       };
 
       for (const interceptor of this.interceptors) {
@@ -216,7 +230,8 @@ export class BaseApiClient {
         config.method,
         config.endpoint,
         config.data,
-        config.headers
+        config.headers,
+        config.options?.signal
       );
 
       // Run response interceptors
@@ -247,7 +262,7 @@ export class BaseApiClient {
         await this.sleep(delay);
 
         // Retry the request
-        return this.requestWithRetry<TResponse>(method, endpoint, data, attemptNumber + 1);
+        return this.requestWithRetry<TResponse>(method, endpoint, data, options, attemptNumber + 1);
       }
 
       throw finalError;
@@ -261,13 +276,19 @@ export class BaseApiClient {
     method: string,
     endpoint: string,
     data: any,
-    headers: Record<string, string>
+    headers: Record<string, string>,
+    externalSignal?: AbortSignal
   ): Promise<TResponse> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    // Setup timeout
+    // Setup timeout with combined signal support
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    // Listen to external abort signal if provided
+    if (externalSignal) {
+      externalSignal.addEventListener('abort', () => controller.abort());
+    }
 
     try {
       const response = await fetch(url, {
@@ -398,3 +419,11 @@ export class BaseApiClient {
  * Singleton instance of BaseApiClient for general use
  */
 export const baseApiClient = new BaseApiClient();
+
+// Add logging interceptor in development mode (synchronous to avoid race conditions)
+if (process.env.NODE_ENV === 'development') {
+  // Use require for synchronous loading to ensure interceptor is registered
+  // before any API calls are made
+  const { loggingInterceptor } = require('./interceptors/logging');
+  baseApiClient.addInterceptor(loggingInterceptor);
+}

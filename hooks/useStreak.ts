@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { streakApi } from "@/lib/api";
 
 /**
  * Custom hook for managing streak operations
@@ -11,20 +12,7 @@ export function useStreak() {
   // Mutation for rebuilding streak from reading history
   const rebuildMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/streak/rebuild", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error?.message || "Failed to recalculate streak");
-      }
-
-      return data;
+      return streakApi.rebuild();
     },
     onSuccess: () => {
       // Invalidate all streak-related queries
@@ -42,19 +30,7 @@ export function useStreak() {
   // Mutation for updating daily threshold
   const updateThresholdMutation = useMutation({
     mutationFn: async (dailyThreshold: number) => {
-      const response = await fetch("/api/streak", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dailyThreshold }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to update goal");
-      }
-
-      return data;
+      return streakApi.updateThreshold({ dailyThreshold });
     },
     onSuccess: () => {
       // Invalidate streak-related queries
@@ -72,19 +48,7 @@ export function useStreak() {
   // Mutation for updating timezone
   const updateTimezoneMutation = useMutation({
     mutationFn: async (timezone: string) => {
-      const response = await fetch("/api/streak/timezone", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timezone }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to update timezone");
-      }
-
-      return data;
+      return streakApi.updateTimezone({ timezone });
     },
     onSuccess: () => {
       // Invalidate all queries since timezone affects date boundaries

@@ -2,8 +2,14 @@ import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from "../test-utils";
 import { useDashboard } from "@/hooks/useDashboard";
 import type { DashboardData } from "@/hooks/useDashboard";
+import { dashboardApi } from "@/lib/api";
 
-const originalFetch = global.fetch;
+// Mock the dashboardApi module
+vi.mock("@/lib/api", () => ({
+  dashboardApi: {
+    get: vi.fn(),
+  },
+}));
 
 describe("useDashboard", () => {
   const mockDashboardData: DashboardData = {
@@ -53,16 +59,12 @@ describe("useDashboard", () => {
   };
 
   beforeEach(() => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockDashboardData),
-      } as Response)
-    ) as any;
+    vi.clearAllMocks();
+    vi.mocked(dashboardApi.get).mockResolvedValue(mockDashboardData);
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.clearAllMocks();
   });
 
   describe("initialization", () => {
@@ -83,9 +85,7 @@ describe("useDashboard", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/dashboard", {
-        cache: "no-store",
-      });
+      expect(dashboardApi.get).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -108,16 +108,10 @@ describe("useDashboard", () => {
     });
 
     test("should handle null stats gracefully", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              ...mockDashboardData,
-              stats: null,
-            }),
-        } as Response)
-      ) as any;
+      vi.mocked(dashboardApi.get).mockResolvedValue({
+        ...mockDashboardData,
+        stats: null,
+      });
 
       const { result } = renderHook(() => useDashboard());
 
@@ -130,16 +124,10 @@ describe("useDashboard", () => {
     });
 
     test("should handle null streak gracefully", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              ...mockDashboardData,
-              streak: null,
-            }),
-        } as Response)
-      ) as any;
+      vi.mocked(dashboardApi.get).mockResolvedValue({
+        ...mockDashboardData,
+        streak: null,
+      });
 
       const { result } = renderHook(() => useDashboard());
 
@@ -152,19 +140,13 @@ describe("useDashboard", () => {
     });
 
     test("should handle empty arrays", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              ...mockDashboardData,
-              currentlyReading: [],
-              currentlyReadingTotal: 0,
-              readNext: [],
-              readNextTotal: 0,
-            }),
-        } as Response)
-      ) as any;
+      vi.mocked(dashboardApi.get).mockResolvedValue({
+        ...mockDashboardData,
+        currentlyReading: [],
+        currentlyReadingTotal: 0,
+        readNext: [],
+        readNextTotal: 0,
+      });
 
       const { result } = renderHook(() => useDashboard());
 
@@ -181,7 +163,7 @@ describe("useDashboard", () => {
 
   describe("error handling", () => {
     test("should handle fetch errors", async () => {
-      global.fetch = vi.fn(() => Promise.reject(new Error("Network error"))) as any;
+      vi.mocked(dashboardApi.get).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useDashboard());
 
@@ -194,14 +176,8 @@ describe("useDashboard", () => {
       expect(result.current.streak).toBeNull();
     });
 
-    test("should handle non-ok response", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          json: () => Promise.resolve({ error: "Server error" }),
-        } as Response)
-      ) as any;
+    test("should handle API errors", async () => {
+      vi.mocked(dashboardApi.get).mockRejectedValue(new Error("Server error"));
 
       const { result } = renderHook(() => useDashboard());
 
@@ -216,23 +192,19 @@ describe("useDashboard", () => {
   describe("refetch", () => {
     test("should refetch data when refetch is called", async () => {
       let callCount = 0;
-      global.fetch = vi.fn(() => {
+      vi.mocked(dashboardApi.get).mockImplementation(() => {
         callCount++;
         return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              ...mockDashboardData,
-              stats: {
-                ...mockDashboardData.stats!,
-                booksRead: {
-                  thisYear: callCount === 1 ? 10 : 15,
-                  total: 25,
-                },
-              },
-            }),
-        } as Response);
-      }) as any;
+          ...mockDashboardData,
+          stats: {
+            ...mockDashboardData.stats!,
+            booksRead: {
+              thisYear: callCount === 1 ? 10 : 15,
+              total: 25,
+            },
+          },
+        });
+      });
 
       const { result } = renderHook(() => useDashboard());
 
@@ -254,28 +226,21 @@ describe("useDashboard", () => {
   });
 
   describe("query configuration", () => {
-    test("should fetch with no-store cache directive", async () => {
+    test("should call dashboardApi.get", async () => {
       const { result } = renderHook(() => useDashboard());
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Verify fetch was called with correct cache directive
-      expect(global.fetch).toHaveBeenCalledWith("/api/dashboard", {
-        cache: "no-store",
-      });
+      // Verify API was called
+      expect(dashboardApi.get).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("default values", () => {
     test("should return default values when data is undefined", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      ) as any;
+      vi.mocked(dashboardApi.get).mockResolvedValue({} as DashboardData);
 
       const { result } = renderHook(() => useDashboard());
 

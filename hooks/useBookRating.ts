@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
+import { bookApi } from "@/lib/api";
 
 export interface UseBookRatingReturn {
   showRatingModal: boolean;
@@ -40,17 +41,7 @@ export function useBookRating(
   // Mutation for updating rating
   const ratingMutation = useMutation({
     mutationFn: async (newRating: number | null) => {
-      const response = await fetch(`/api/books/${bookId}/rating`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: newRating }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update rating");
-      }
-
+      await bookApi.updateRating(bookId, { rating: newRating });
       return { rating: newRating };
     },
     onMutate: async (newRating) => {

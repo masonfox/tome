@@ -1,6 +1,7 @@
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 import { getLogger } from "@/lib/logger";
+import type { ProgressLog } from "@/lib/db/schema";
 
 export interface DashboardStats {
   booksRead: {
@@ -30,7 +31,7 @@ export interface BookWithStatus {
   calibreId: number;
   status?: string | null;
   rating?: number | null;
-  latestProgress?: any;
+  latestProgress?: ProgressLog | null;
 }
 
 export interface DashboardData {

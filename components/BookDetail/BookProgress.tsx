@@ -13,7 +13,7 @@ interface BookProgressProps {
     latestProgress?: {
       currentPage: number;
       currentPercentage: number;
-    };
+    } | null;
   };
   currentPage: string;
   currentPercentage: string;

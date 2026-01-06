@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ReadingGoal } from "@/lib/db/schema";
+import { goalsApi } from "@/lib/api";
 
 interface CreateGoalPayload {
   year: number;
@@ -23,12 +24,8 @@ export function useReadingGoals() {
   const { data: goals = [], isLoading, error } = useQuery({
     queryKey: ['reading-goals'],
     queryFn: async () => {
-      const response = await fetch('/api/reading-goals');
-      if (!response.ok) {
-        throw new Error('Failed to fetch reading goals');
-      }
-      const data = await response.json();
-      return data.success ? data.data as ReadingGoal[] : [];
+      const response = await goalsApi.list();
+      return response.success ? response.data : [];
     },
     staleTime: 30000, // 30 seconds
   });
@@ -36,21 +33,7 @@ export function useReadingGoals() {
   // Mutation: Create new reading goal
   const createGoal = useMutation({
     mutationFn: async (payload: CreateGoalPayload) => {
-      const response = await fetch('/api/reading-goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = typeof errorData.error === 'object' 
-          ? errorData.error.message 
-          : errorData.error || 'Failed to create reading goal';
-        throw new Error(errorMessage);
-      }
-
-      return response.json();
+      return goalsApi.create(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reading-goals'] });
@@ -64,21 +47,7 @@ export function useReadingGoals() {
   // Mutation: Update existing reading goal
   const updateGoal = useMutation({
     mutationFn: async (params: { id: number; data: UpdateGoalPayload }) => {
-      const response = await fetch(`/api/reading-goals/${params.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params.data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = typeof errorData.error === 'object' 
-          ? errorData.error.message 
-          : errorData.error || 'Failed to update reading goal';
-        throw new Error(errorMessage);
-      }
-
-      return response.json();
+      return goalsApi.update(params.id, params.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reading-goals'] });
@@ -92,19 +61,7 @@ export function useReadingGoals() {
   // Mutation: Delete reading goal
   const deleteGoal = useMutation({
     mutationFn: async (goalId: number) => {
-      const response = await fetch(`/api/reading-goals/${goalId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = typeof errorData.error === 'object' 
-          ? errorData.error.message 
-          : errorData.error || 'Failed to delete reading goal';
-        throw new Error(errorMessage);
-      }
-
-      return response.json();
+      return goalsApi.delete(goalId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reading-goals'] });

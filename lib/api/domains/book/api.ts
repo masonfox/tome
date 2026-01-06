@@ -11,6 +11,11 @@ import type {
   UpdateStatusResponse,
   CreateProgressRequest,
   CreateProgressResponse,
+  ListProgressParams,
+  ProgressLog,
+  UpdateProgressRequest,
+  UpdateProgressResponse,
+  DeleteProgressResponse,
   UpdateRatingRequest,
   UpdateSessionReviewRequest,
   ReadingSession,
@@ -19,6 +24,11 @@ import type {
   StartRereadResponse,
   CompleteBookRequest,
   CompleteBookResponse,
+  BookDetail,
+  UpdateBookRequest,
+  UpdateBookResponse,
+  UpdateTagsRequest,
+  UpdateTagsResponse,
 } from "./types";
 
 /**
@@ -86,6 +96,84 @@ export const bookApi = {
     return baseApiClient["post"]<CreateProgressRequest, CreateProgressResponse>(
       `/api/books/${bookId}/progress`,
       request
+    );
+  },
+
+  /**
+   * List progress entries for a book
+   * 
+   * @param bookId - The ID of the book
+   * @param params - Optional query parameters (e.g., sessionId filter)
+   * @returns Array of progress log entries
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * // Get all progress for a book
+   * const progress = await bookApi.listProgress('123');
+   * 
+   * @example
+   * // Get progress for a specific session
+   * const sessionProgress = await bookApi.listProgress('123', { sessionId: 456 });
+   */
+  listProgress: (
+    bookId: string | number,
+    params?: ListProgressParams
+  ): Promise<ProgressLog[]> => {
+    const queryParams = new URLSearchParams();
+    if (params?.sessionId) {
+      queryParams.append('sessionId', params.sessionId.toString());
+    }
+    
+    const url = `/api/books/${bookId}/progress${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
+    
+    return baseApiClient["get"]<ProgressLog[]>(url);
+  },
+
+  /**
+   * Update an existing progress entry
+   * 
+   * @param bookId - The ID of the book
+   * @param progressId - The ID of the progress entry
+   * @param request - Updated progress data
+   * @returns Updated progress log entry
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * await bookApi.updateProgress('123', 789, {
+   *   currentPage: 160,
+   *   notes: 'Updated notes'
+   * });
+   */
+  updateProgress: (
+    bookId: string | number,
+    progressId: number,
+    request: UpdateProgressRequest
+  ): Promise<UpdateProgressResponse> => {
+    return baseApiClient["patch"]<UpdateProgressRequest, UpdateProgressResponse>(
+      `/api/books/${bookId}/progress/${progressId}`,
+      request
+    );
+  },
+
+  /**
+   * Delete a progress entry
+   * 
+   * @param bookId - The ID of the book
+   * @param progressId - The ID of the progress entry to delete
+   * @returns Success response
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * await bookApi.deleteProgress('123', 789);
+   */
+  deleteProgress: (
+    bookId: string | number,
+    progressId: number
+  ): Promise<DeleteProgressResponse> => {
+    return baseApiClient["delete"]<DeleteProgressResponse>(
+      `/api/books/${bookId}/progress/${progressId}`
     );
   },
 
@@ -244,6 +332,63 @@ export const bookApi = {
   ): Promise<CompleteBookResponse> => {
     return baseApiClient["post"]<CompleteBookRequest, CompleteBookResponse>(
       `/api/books/${bookId}/complete`,
+      request
+    );
+  },
+
+  /**
+   * Get book details
+   * 
+   * @param bookId - The ID of the book
+   * @returns Book detail response with all book info
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * const book = await bookApi.getDetail('123');
+   * console.log(`Book: ${book.title} by ${book.authors.join(', ')}`);
+   */
+  getDetail: (bookId: string | number): Promise<BookDetail> => {
+    return baseApiClient["get"]<BookDetail>(`/api/books/${bookId}`);
+  },
+
+  /**
+   * Update book details (e.g., total pages)
+   * 
+   * @param bookId - The ID of the book
+   * @param request - Book update request
+   * @returns Updated book response
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * await bookApi.updateBook('123', { totalPages: 350 });
+   */
+  updateBook: (
+    bookId: string | number,
+    request: UpdateBookRequest
+  ): Promise<UpdateBookResponse> => {
+    return baseApiClient["patch"]<UpdateBookRequest, UpdateBookResponse>(
+      `/api/books/${bookId}`,
+      request
+    );
+  },
+
+  /**
+   * Update book tags
+   * 
+   * @param bookId - The ID of the book
+   * @param request - Tags update request
+   * @returns Updated book response
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * await bookApi.updateTags('123', { tags: ['fiction', 'fantasy'] });
+   */
+  updateTags: (
+    bookId: string | number,
+    request: UpdateTagsRequest
+  ): Promise<UpdateTagsResponse> => {
+    return baseApiClient["patch"]<UpdateTagsRequest, UpdateTagsResponse>(
+      `/api/books/${bookId}/tags`,
       request
     );
   },

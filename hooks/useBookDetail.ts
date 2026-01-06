@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/utils/toast";
+import { bookApi } from "@/lib/api";
 
 export interface Book {
   id: number;
@@ -62,31 +63,14 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     refetch,
   } = useQuery<Book>({
     queryKey: ['book', bookId],
-    queryFn: async () => {
-      const response = await fetch(`/api/books/${bookId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch book');
-      }
-      return response.json();
-    },
+    queryFn: () => bookApi.getDetail(bookId),
     staleTime: 5000, // Data is fresh for 5 seconds
   });
 
   // Mutation for updating total pages
   const updateTotalPagesMutation = useMutation({
-    mutationFn: async (totalPages: number) => {
-      const response = await fetch(`/api/books/${bookId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ totalPages }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update total pages');
-      }
-
-      return response.json();
-    },
+    mutationFn: (totalPages: number) => 
+      bookApi.updateBook(bookId, { totalPages }),
     onMutate: async (totalPages) => {
       // Cancel outgoing queries to prevent them from overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
@@ -118,19 +102,8 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
 
   // Mutation for updating tags
   const updateTagsMutation = useMutation({
-    mutationFn: async (tags: string[]) => {
-      const response = await fetch(`/api/books/${bookId}/tags`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tags }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update tags');
-      }
-
-      return response.json();
-    },
+    mutationFn: (tags: string[]) => 
+      bookApi.updateTags(bookId, { tags }),
     onMutate: async (tags) => {
       // Cancel outgoing queries to prevent them from overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
