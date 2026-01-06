@@ -35,11 +35,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# bun
+# bun (no longer used)
 bun.lockb
+bun.lock
 
 # npm
-package-lock.json
+# package-lock.json is now tracked (needed for Docker builds)
 
 # database
 /data/*
