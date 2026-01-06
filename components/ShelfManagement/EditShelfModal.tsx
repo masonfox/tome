@@ -3,12 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { ShelfIconPicker } from "@/components/ShelfIconPicker";
-import type { UpdateShelfData, ShelfWithBookCount } from "@/hooks/useShelfManagement";
+import type { UpdateShelfRequest, ShelfWithBookCount } from "@/lib/api";
 
 interface EditShelfModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdateShelf: (shelfId: number, data: UpdateShelfData) => Promise<void>;
+  onUpdateShelf: (shelfId: number, data: UpdateShelfRequest) => Promise<unknown>;
   shelf: ShelfWithBookCount | null;
 }
 

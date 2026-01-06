@@ -3,12 +3,12 @@
 import { useState, useCallback } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { ShelfIconPicker } from "@/components/ShelfIconPicker";
-import type { CreateShelfData } from "@/hooks/useShelfManagement";
+import type { CreateShelfRequest } from "@/lib/api";
 
 interface CreateShelfModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateShelf: (data: CreateShelfData) => Promise<void>;
+  onCreateShelf: (data: CreateShelfRequest) => Promise<unknown>;
 }
 
 export function CreateShelfModal({

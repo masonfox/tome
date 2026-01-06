@@ -1,28 +1,11 @@
 import { useState, useCallback } from "react";
 import { toast } from "@/utils/toast";
-import type { Shelf } from "@/lib/db/schema/shelves";
-
-export interface ShelfWithBookCount extends Shelf {
-  bookCount: number;
-}
-
-export interface ShelfWithBookCountAndCovers extends ShelfWithBookCount {
-  bookCoverIds: number[];
-}
-
-export interface CreateShelfData {
-  name: string;
-  description?: string;
-  color?: string;
-  icon?: string;
-}
-
-export interface UpdateShelfData {
-  name?: string;
-  description?: string;
-  color?: string;
-  icon?: string;
-}
+import { shelfApi, ApiError } from "@/lib/api";
+import type {
+  ShelfWithBookCountAndCovers,
+  CreateShelfRequest,
+  UpdateShelfRequest,
+} from "@/lib/api";
 
 export function useShelfManagement() {
   const [shelves, setShelves] = useState<ShelfWithBookCountAndCovers[]>([]);
@@ -36,19 +19,19 @@ export function useShelfManagement() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/shelves?withCovers=true");
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error?.message || "Failed to fetch shelves");
-      }
-
-      setShelves(data.data);
-      return data.data;
+      const data = await shelfApi.list({ withCovers: true });
+      setShelves(data as ShelfWithBookCountAndCovers[]);
+      return data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
-      toast.error(`Failed to load shelves: ${error.message}`);
+      
+      // Extract user-friendly message from ApiError
+      const message = err instanceof ApiError 
+        ? err.message 
+        : error.message;
+      
+      toast.error(`Failed to load shelves: ${message}`);
       throw error;
     } finally {
       setLoading(false);
@@ -59,38 +42,32 @@ export function useShelfManagement() {
    * Create a new shelf
    */
   const createShelf = useCallback(
-    async (shelfData: CreateShelfData) => {
+    async (shelfData: CreateShelfRequest) => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/shelves", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(shelfData),
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to create shelf");
-        }
+        const shelf = await shelfApi.create(shelfData);
 
         // Add the new shelf to the list with 0 books and empty cover array
         const newShelf: ShelfWithBookCountAndCovers = {
-          ...data.data,
+          ...shelf,
           bookCount: 0,
           bookCoverIds: [],
         };
         setShelves((prev) => [...prev, newShelf]);
 
         toast.success(`Shelf "${shelfData.name}" created successfully`);
-        return data.data;
+        return shelf;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to create shelf: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError 
+          ? err.message 
+          : error.message;
+        
+        toast.error(`Failed to create shelf: ${message}`);
         throw error;
       } finally {
         setLoading(false);
@@ -103,39 +80,33 @@ export function useShelfManagement() {
    * Update an existing shelf
    */
   const updateShelf = useCallback(
-    async (shelfId: number, updates: UpdateShelfData) => {
+    async (shelfId: number, updates: UpdateShelfRequest) => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/shelves/${shelfId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updates),
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to update shelf");
-        }
+        const shelf = await shelfApi.update(shelfId, updates);
 
         // Update the shelf in the list
         setShelves((prev) =>
-          prev.map((shelf) =>
-            shelf.id === shelfId
-              ? { ...shelf, ...data.data }
-              : shelf
+          prev.map((s) =>
+            s.id === shelfId
+              ? { ...s, ...shelf }
+              : s
           )
         );
 
         toast.success("Shelf updated successfully");
-        return data.data;
+        return shelf;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to update shelf: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError 
+          ? err.message 
+          : error.message;
+        
+        toast.error(`Failed to update shelf: ${message}`);
         throw error;
       } finally {
         setLoading(false);
@@ -152,15 +123,7 @@ export function useShelfManagement() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/shelves/${shelfId}`, {
-          method: "DELETE",
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to delete shelf");
-        }
+        await shelfApi.delete(shelfId);
 
         // Remove the shelf from the list
         setShelves((prev) => prev.filter((shelf) => shelf.id !== shelfId));
@@ -170,7 +133,13 @@ export function useShelfManagement() {
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to delete shelf: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError 
+          ? err.message 
+          : error.message;
+        
+        toast.error(`Failed to delete shelf: ${message}`);
         throw error;
       } finally {
         setLoading(false);

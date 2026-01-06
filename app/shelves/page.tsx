@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Library } from "lucide-react";
-import { useShelfManagement, type ShelfWithBookCountAndCovers } from "@/hooks/useShelfManagement";
+import { useShelfManagement } from "@/hooks/useShelfManagement";
+import type { ShelfWithBookCountAndCovers } from "@/lib/api";
 import { ShelfItem, ShelfItemSkeleton } from "@/components/ShelfManagement/ShelfItem";
 import { CreateShelfModal } from "@/components/ShelfManagement/CreateShelfModal";
 import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
