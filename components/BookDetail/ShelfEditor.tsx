@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, FolderOpen, Plus, CheckCircle, Check } from "lucide-react";
+import { X, FolderOpen, Plus, CheckCircle, Check, Search } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
@@ -33,12 +33,14 @@ export default function ShelfEditor({
 }: ShelfEditorProps) {
   const [selectedShelfIds, setSelectedShelfIds] = useState<number[]>(currentShelfIds);
   const [saving, setSaving] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedShelfIds(currentShelfIds);
       setSaving(false);
+      setFilterQuery("");
     }
   }, [isOpen, currentShelfIds]);
 
@@ -66,9 +68,20 @@ export default function ShelfEditor({
   const handleClose = () => {
     if (!saving) {
       setSelectedShelfIds(currentShelfIds);
+      setFilterQuery("");
       onClose();
     }
   };
+
+  // Filter shelves based on search query
+  const filteredShelves = availableShelves.filter((shelf) => {
+    if (!filterQuery) return true;
+    const query = filterQuery.toLowerCase();
+    return (
+      shelf.name.toLowerCase().includes(query) ||
+      shelf.description?.toLowerCase().includes(query)
+    );
+  });
 
   if (!isOpen) return null;
 
@@ -106,10 +119,25 @@ export default function ShelfEditor({
           <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
             Select Shelves
           </label>
+
+          {/* Filter Input */}
+          {availableShelves.length > 0 && (
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 pointer-events-none" />
+              <input
+                type="text"
+                value={filterQuery}
+                onChange={(e) => setFilterQuery(e.target.value)}
+                placeholder="Filter shelves..."
+                disabled={saving}
+                className="w-full pl-10 pr-4 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+              />
+            </div>
+          )}
           
-          {availableShelves.length > 0 ? (
+          {filteredShelves.length > 0 ? (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 -mr-2">
-              {availableShelves.map((shelf) => {
+              {filteredShelves.map((shelf) => {
                 const isSelected = selectedShelfIds.includes(shelf.id);
                 const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
                 
@@ -152,6 +180,13 @@ export default function ShelfEditor({
                   </button>
                 );
               })}
+            </div>
+          ) : availableShelves.length > 0 ? (
+            <div className="text-center py-8">
+              <Search className="w-12 h-12 mx-auto mb-3 text-[var(--foreground)]/30" />
+              <p className="text-sm text-[var(--foreground)]/70">
+                No shelves match &quot;{filterQuery}&quot;
+              </p>
             </div>
           ) : (
             <div className="text-center py-8">
