@@ -46,15 +46,6 @@ function getLoggerSafe() {
   if (process.env.NODE_ENV === 'test') {
     return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
-  if (process.env.NODE_ENV === 'test') {
-    // Return a no-op logger for tests to avoid module mocking issues
-    return {
-      info: () => {},
-      error: () => {},
-      debug: () => {},
-      warn: () => {},
-    };
-  }
   return getLogger();
 }
 

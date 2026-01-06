@@ -1,4 +1,3 @@
-import { getLogger } from "@/lib/logger";
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
@@ -173,8 +172,6 @@ export default function JournalPage() {
 
       // If not found and we have more entries, keep loading
       if (!matchingEntry && hasNextPage) {
-        getLogger().debug({ dateKey, currentEntries: entriesRef.current.length }, "Date not loaded, fetching more entries");
-
         // Keep loading until we find the date or run out of entries
         let attempts = 0;
         const maxAttempts = 20;
@@ -191,13 +188,6 @@ export default function JournalPage() {
           // Check again with updated entries
           matchingEntry = entriesRef.current.find(entry => matchesDateKey(entry.date, dateKey));
 
-          getLogger().debug({
-            dateKey,
-            attempt: attempts,
-            totalEntries: entriesRef.current.length,
-            found: !!matchingEntry
-          }, "Loading more entries");
-
           // Check if we've loaded everything
           if (entriesRef.current.length >= total || !hasNextPage) {
             break;
@@ -206,11 +196,8 @@ export default function JournalPage() {
       }
 
       if (!matchingEntry) {
-        getLogger().warn({ dateKey, totalEntries: entriesRef.current.length }, "Date not found after loading all entries");
         return;
       }
-
-      getLogger().debug({ dateKey, matchedDate: matchingEntry.date }, "Found matching entry");
 
       // Auto-expand the section if it's collapsed BEFORE scrolling
       if (collapsedDates.has(matchingEntry.date)) {
@@ -227,10 +214,7 @@ export default function JournalPage() {
       // Find the date section to scroll to
       const element = document.querySelector(`[data-date-key="${matchingEntry.date}"]`);
       if (element) {
-        getLogger().debug({ matchedDate: matchingEntry.date }, "Scrolling to element");
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        getLogger().warn({ dateKey, matchedDate: matchingEntry.date }, "Element not found in DOM");
       }
     } finally {
       setNavigating(false);

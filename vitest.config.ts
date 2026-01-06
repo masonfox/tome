@@ -36,10 +36,4 @@ export default defineConfig({
   ssr: {
     noExternal: true,
   },
-  // Ensure Node's module resolution works for CommonJS requires
-  server: {
-    deps: {
-      inline: ['@/lib/logger'],
-    },
-  },
 });

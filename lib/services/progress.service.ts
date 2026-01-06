@@ -458,11 +458,11 @@ export class ProgressService {
       const logger = getLogger();
       logger.info("[ProgressService] Rebuilding streak after progress log change");
       const updatedStreak = await streakService.rebuildStreak();
-      logger.info("[ProgressService] Streak rebuilt:", {
+      logger.info({
         currentStreak: updatedStreak.currentStreak,
         longestStreak: updatedStreak.longestStreak,
         totalDaysActive: updatedStreak.totalDaysActive,
-      });
+      }, "[ProgressService] Streak rebuilt");
     } catch (streakError) {
       getLogger().error({ err: streakError }, "[ProgressService] Failed to rebuild streak");
       // Don't fail the entire request if streak rebuild fails

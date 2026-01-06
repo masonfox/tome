@@ -107,8 +107,8 @@ export function runMigrationsOnDatabase(database: any) {
       // Split by statement breakpoint and execute each statement
       const statements = sql
         .split('--> statement-breakpoint')
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0);
 
       for (const statement of statements) {
         if (statement.trim()) {
