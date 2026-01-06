@@ -4,7 +4,7 @@
  * Domain API for managing tags and tag-related operations.
  */
 
-import { baseApiClient } from "../../base-client";
+import { baseApiClient, type RequestOptions } from "../../base-client";
 import type {
   TagStatsResponse,
   RenameTagRequest,
@@ -104,26 +104,33 @@ export const tagApi = {
    * List books that have a specific tag
    * 
    * @param tagName - The tag name to filter by
-   * @param options - Pagination options (limit, skip)
+   * @param paginationOptions - Pagination options (limit, skip)
+   * @param requestOptions - Request options (e.g., AbortSignal for cancellation)
    * @returns Books with the tag and total count
    * @throws {ApiError} When request fails
    * 
    * @example
    * const response = await tagApi.listBooks("fantasy", { limit: 50, skip: 0 });
    * console.log(`Found ${response.total} fantasy books`);
+   * 
+   * @example
+   * // With abort signal for cancellation
+   * const controller = new AbortController();
+   * const response = await tagApi.listBooks("fantasy", { limit: 50 }, { signal: controller.signal });
    */
   listBooks: (
     tagName: string,
-    options?: { limit?: number; skip?: number }
+    paginationOptions?: { limit?: number; skip?: number },
+    requestOptions?: RequestOptions
   ): Promise<TagBooksResponse> => {
     const params = new URLSearchParams();
-    if (options?.limit) params.append("limit", options.limit.toString());
-    if (options?.skip) params.append("skip", options.skip.toString());
+    if (paginationOptions?.limit) params.append("limit", paginationOptions.limit.toString());
+    if (paginationOptions?.skip) params.append("skip", paginationOptions.skip.toString());
     
     const queryString = params.toString();
     const endpoint = `/api/tags/${encodeURIComponent(tagName)}${queryString ? `?${queryString}` : ""}`;
     
-    return baseApiClient["get"]<TagBooksResponse>(endpoint);
+    return baseApiClient["get"]<TagBooksResponse>(endpoint, requestOptions);
   },
 
   /**

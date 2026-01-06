@@ -54,16 +54,12 @@ export function useTagBooks(tagName: string | null) {
       setError(null);
       skipRef.current = 0;
       
-      const response = await fetch(
-        `/api/tags/${encodeURIComponent(tagName)}?limit=${BOOKS_PER_PAGE}&skip=0`,
+      const data = await tagApi.listBooks(
+        tagName,
+        { limit: BOOKS_PER_PAGE, skip: 0 },
         { signal: abortController.signal }
       );
       
-      if (!response.ok) {
-        throw new Error("Failed to fetch books");
-      }
-
-      const data = await response.json();
       setBooks(data.books || []);
       setTotal(data.total || 0);
       skipRef.current = BOOKS_PER_PAGE;
@@ -106,16 +102,12 @@ export function useTagBooks(tagName: string | null) {
       setLoadingMore(true);
       setError(null);
       
-      const response = await fetch(
-        `/api/tags/${encodeURIComponent(tagName)}?limit=${BOOKS_PER_PAGE}&skip=${skipRef.current}`,
+      const data = await tagApi.listBooks(
+        tagName,
+        { limit: BOOKS_PER_PAGE, skip: skipRef.current },
         { signal: abortController.signal }
       );
       
-      if (!response.ok) {
-        throw new Error("Failed to fetch more books");
-      }
-
-      const data = await response.json();
       setBooks(prev => [...prev, ...(data.books || [])]);
       setTotal(data.total || 0);
       skipRef.current += BOOKS_PER_PAGE;
