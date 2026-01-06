@@ -144,13 +144,16 @@ export class BookService {
     // NOTE: better-sqlite3 requires synchronous transaction callbacks (no async/await)
     // Bun's sqlite supports async, but Drizzle handles the difference
     try {
+      console.log('[DEBUG] Starting transaction for bookId:', bookId, 'totalPages:', totalPages);
       const result = db.transaction((tx) => {
+        console.log('[DEBUG] Inside transaction callback, tx:', typeof tx);
         // 1. Update book's totalPages using repository method with transaction
         const updated = bookRepository.updateTotalPagesWithRecalculation(
           bookId,
           totalPages,
           tx
         );
+        console.log('[DEBUG] Updated book:', updated?.id);
 
         // 2. Recalculate progress percentages for all active sessions using repository method
         const logsUpdated = progressRepository.recalculatePercentagesForBook(
@@ -158,6 +161,7 @@ export class BookService {
           totalPages,
           tx
         );
+        console.log('[DEBUG] Logs updated:', logsUpdated);
 
         // Log for debugging/monitoring
         logger.info({
@@ -168,8 +172,10 @@ export class BookService {
 
         return updated;
       });
+      console.log('[DEBUG] Transaction completed, result:', result?.id);
       return result;
     } catch (error) {
+      console.error('[DEBUG] Transaction error:', error);
       const { getLogger } = await import("@/lib/logger");
       getLogger().error({ err: error, bookId }, "[BookService] Failed to update total pages");
       
