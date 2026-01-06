@@ -229,9 +229,9 @@ export default function TagEditor({
       <BottomSheet
         isOpen={isOpen}
         onClose={handleClose}
-        title="Edit Tags"
+        title="Manage Tags"
         icon={<TagIcon className="w-5 h-5" />}
-        size="full"
+        size="large"
         allowBackdropClose={!saving}
       >
         {tagContent}
