@@ -1,9 +1,15 @@
-import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
+import { test, expect, describe, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookRating } from "@/hooks/useBookRating";
 import type { Book } from "@/hooks/useBookDetail";
+import { bookApi } from "@/lib/api";
 
-const originalFetch = global.fetch;
+// Mock bookApi
+vi.mock("@/lib/api", () => ({
+  bookApi: {
+    updateRating: vi.fn(),
+  },
+}));
 
 describe("useBookRating", () => {
   const mockBook: Book = {
@@ -18,15 +24,8 @@ describe("useBookRating", () => {
   const mockOnRefresh = vi.fn(() => {});
 
   beforeEach(() => {
-    global.fetch = vi.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(mockBook),
-    } as Response));
+    vi.clearAllMocks();
     mockOnRefresh.mockClear();
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
   });
 
   describe("initialization", () => {
@@ -67,12 +66,7 @@ describe("useBookRating", () => {
 
   describe("handleUpdateRating", () => {
     test("should update rating and close modal", async () => {
-      const updatedBook = { ...mockBook, rating: 5 };
-
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(updatedBook),
-      } as Response));
+      vi.mocked(bookApi.updateRating).mockResolvedValue();
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
@@ -85,13 +79,7 @@ describe("useBookRating", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/rating",
-          expect.objectContaining({
-            method: "PATCH",
-            body: JSON.stringify({ rating: 5 }),
-          })
-        );
+        expect(bookApi.updateRating).toHaveBeenCalledWith("123", { rating: 5 });
       });
 
       expect(result.current.showRatingModal).toBe(false);
@@ -99,12 +87,7 @@ describe("useBookRating", () => {
     });
 
     test("should remove rating", async () => {
-      const updatedBook = { ...mockBook, rating: null };
-
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(updatedBook),
-      } as Response));
+      vi.mocked(bookApi.updateRating).mockResolvedValue();
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
@@ -113,13 +96,7 @@ describe("useBookRating", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/rating",
-          expect.objectContaining({
-            method: "PATCH",
-            body: JSON.stringify({ rating: null }),
-          })
-        );
+        expect(bookApi.updateRating).toHaveBeenCalledWith("123", { rating: null });
       });
     });
 
@@ -134,15 +111,14 @@ describe("useBookRating", () => {
         await result.current.handleUpdateRating(4); // Same as current rating
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(bookApi.updateRating).not.toHaveBeenCalled();
       expect(result.current.showRatingModal).toBe(false);
     });
 
     test("should handle API errors", async () => {
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ error: "Failed to update rating" }),
-      } as Response));
+      vi.mocked(bookApi.updateRating).mockRejectedValue(
+        new Error("Failed to update rating")
+      );
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
@@ -156,7 +132,9 @@ describe("useBookRating", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = vi.fn(() => Promise.reject(new Error("Network error")));
+      vi.mocked(bookApi.updateRating).mockRejectedValue(
+        new Error("Network error")
+      );
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
@@ -171,10 +149,7 @@ describe("useBookRating", () => {
     test("should handle book with no initial rating", async () => {
       const bookWithoutRating = { ...mockBook, rating: undefined };
 
-      global.fetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ ...bookWithoutRating, rating: 3 }),
-      } as Response));
+      vi.mocked(bookApi.updateRating).mockResolvedValue();
 
       const { result } = renderHook(() => useBookRating(bookWithoutRating, "123", mockOnRefresh));
 
@@ -183,13 +158,7 @@ describe("useBookRating", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "/api/books/123/rating",
-          expect.objectContaining({
-            method: "PATCH",
-            body: JSON.stringify({ rating: 3 }),
-          })
-        );
+        expect(bookApi.updateRating).toHaveBeenCalledWith("123", { rating: 3 });
       });
     });
   });
