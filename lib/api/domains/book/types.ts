@@ -101,7 +101,7 @@ export interface DeleteProgressResponse {
  * Request to update rating
  */
 export interface UpdateRatingRequest {
-  rating: number; // 1-5
+  rating: number | null; // 1-5 or null to remove rating
 }
 
 // ============================================================================
@@ -186,4 +186,70 @@ export interface CompleteBookRequest {
  */
 export interface CompleteBookResponse {
   success: boolean;
+}
+
+// ============================================================================
+// Book Detail API Types
+// ============================================================================
+
+/**
+ * Book detail response
+ */
+export interface BookDetail {
+  id: number;
+  calibreId: number;
+  title: string;
+  authors: string[];
+  totalPages?: number;
+  publisher?: string;
+  pubDate?: string;
+  series?: string;
+  seriesIndex?: number | null;
+  description?: string;
+  tags: string[];
+  totalReads?: number;
+  hasCompletedReads?: boolean;
+  activeSession?: {
+    id: number;
+    status: string;
+    startedDate?: string;
+    completedDate?: string;
+    review?: string;
+  };
+  rating?: number | null;
+  latestProgress?: {
+    currentPage: number;
+    currentPercentage: number;
+    progressDate: string;
+  };
+}
+
+/**
+ * Request to update book details (e.g., total pages)
+ */
+export interface UpdateBookRequest {
+  totalPages?: number;
+}
+
+/**
+ * Response from updating book details
+ */
+export interface UpdateBookResponse {
+  success: boolean;
+  book: BookDetail;
+}
+
+/**
+ * Request to update book tags
+ */
+export interface UpdateTagsRequest {
+  tags: string[];
+}
+
+/**
+ * Response from updating book tags
+ */
+export interface UpdateTagsResponse {
+  success: boolean;
+  book: BookDetail;
 }

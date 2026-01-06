@@ -1,9 +1,16 @@
 import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookDetail } from "@/hooks/useBookDetail";
+import { bookApi } from "@/lib/api";
 
-// Mock fetch globally
-const originalFetch = global.fetch;
+// Mock bookApi
+vi.mock("@/lib/api", () => ({
+  bookApi: {
+    getDetail: vi.fn(),
+    updateBook: vi.fn(),
+    updateTags: vi.fn(),
+  },
+}));
 
 describe("useBookDetail", () => {
   beforeEach(() => {
