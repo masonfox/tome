@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import BaseModal from "@/components/BaseModal";
+import BaseModal from "@/components/Modals/BaseModal";
 import { TagOperationResults } from "./TagOperationResults";
 import type { TagOperationResult } from "@/types/tag-operations";
 

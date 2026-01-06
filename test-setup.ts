@@ -12,7 +12,7 @@ vi.mock("@/lib/logger");
 
 // Mock MarkdownEditor globally to avoid duplication in component tests
 // This avoids browser API dependencies (MDXEditor uses lexical which needs DOM APIs)
-vi.mock("@/components/MarkdownEditor", () => {
+vi.mock("@/components/Markdown/MarkdownEditor", () => {
   const { forwardRef, useImperativeHandle, useState, useEffect } = require("react");
   
   const MarkdownEditorMock = forwardRef(

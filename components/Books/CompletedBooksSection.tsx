@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, BookCheck } from "lucide-react";
-import { BookGrid } from "@/components/BookGrid";
+import { BookGrid } from "@/components/Books/BookGrid";
 import { cn } from "@/utils/cn";
 
 interface CompletedBooksSectionProps {

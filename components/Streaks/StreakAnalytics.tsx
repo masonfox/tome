@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Flame, Calendar, Target, TrendingUp, TrendingDown, Pencil } from "lucide-react";
-import { StreakEditModal } from "./StreakEditModal";
+import { StreakEditModal } from "@/components/Modals/StreakEditModal";
 
 interface StreakAnalyticsProps {
   currentStreak: number;

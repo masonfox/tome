@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/Layout/PageHeader";
 import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { format, parse } from "date-fns";
 import Link from "next/link";

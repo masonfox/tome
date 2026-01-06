@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Pencil } from "lucide-react";
-import LogProgressModal from "./LogProgressModal";
+import LogProgressModal from "@/components/Modals/LogProgressModal";
 
 interface Book {
   id: number;

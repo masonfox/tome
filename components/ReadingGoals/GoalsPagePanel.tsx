@@ -5,12 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
-import { YearSelector } from "./YearSelector";
+import { YearSelector } from "@/components/Utilities/YearSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";
 import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
-import { CompletedBooksSection } from "./CompletedBooksSection";
+import { CompletedBooksSection } from "@/components/Books/CompletedBooksSection";
 import { GoalsOnboarding } from "./GoalsOnboarding";
-import BaseModal from "./BaseModal";
+import BaseModal from "@/components/Modals/BaseModal";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 

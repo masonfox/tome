@@ -1,6 +1,6 @@
 "use client";
 
-import { BottomSheet } from "../BottomSheet";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { JournalArchiveTree } from "./JournalArchiveTree";
 import { Archive } from "lucide-react";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";

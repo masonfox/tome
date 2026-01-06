@@ -1,7 +1,7 @@
 "use client";
 
-import { BottomNavigation } from "@/components/BottomNavigation";
-import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { BottomNavigation } from "@/components/Layout/BottomNavigation";
+import { DesktopSidebar } from "@/components/Layout/DesktopSidebar";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { usePathname } from "next/navigation";
 

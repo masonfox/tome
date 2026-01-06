@@ -1,6 +1,6 @@
 import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { LibraryFilters } from "@/components/LibraryFilters";
+import { LibraryFilters } from "@/components/Library/LibraryFilters";
 
 describe("LibraryFilters - Sort Functionality", () => {
   const defaultProps = {

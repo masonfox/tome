@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { BottomSheet } from "./BottomSheet";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 import BaseModal from "./BaseModal";
-import BookProgress from "./BookDetail/BookProgress";
+import BookProgress from "@/components/BookDetail/BookProgress";
 import FinishBookModal from "./FinishBookModal";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import { useDraftNote } from "@/hooks/useDraftNote";

@@ -24,7 +24,7 @@ vi.mock("lucide-react", () => ({
   ),
 }));
 
-import PageCountEditModal from "@/components/PageCountEditModal";
+import PageCountEditModal from "@/components/Modals/PageCountEditModal";
 
 afterEach(() => {
   cleanup();

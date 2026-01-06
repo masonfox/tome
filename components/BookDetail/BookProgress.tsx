@@ -3,7 +3,7 @@
 import { ChevronDown, Check, TrendingUp } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
-import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { useRef, useEffect } from "react";
 

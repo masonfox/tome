@@ -1,11 +1,11 @@
 "use client";
 
 import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
-import { StatsCard } from "@/components/ui/StatsCard";
-import { StreakDisplay } from "@/components/StreakDisplay";
-import { BookCard } from "@/components/BookCard";
-import { BookCardSkeleton } from "@/components/BookCardSkeleton";
-import CurrentlyReadingSection from "@/components/CurrentlyReadingSection";
+import { StatsCard } from "@/components/Utilities/StatsCard";
+import { StreakDisplay } from "@/components/Streaks/StreakDisplay";
+import { BookCard } from "@/components/Books/BookCard";
+import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
+import CurrentlyReadingSection from "@/components/CurrentlyReading/CurrentlyReadingSection";
 import Link from "next/link";
 import { useDashboard } from "@/hooks/useDashboard";
 
