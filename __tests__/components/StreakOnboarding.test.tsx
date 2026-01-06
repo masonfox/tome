@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { StreakOnboarding } from "@/components/StreakOnboarding";
@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 describe("StreakOnboarding", () => {
-  const mockOnEnable = mock(() => Promise.resolve());
+  const mockOnEnable = vi.fn(() => Promise.resolve());
 
   beforeEach(() => {
     mockOnEnable.mockClear();
@@ -93,7 +93,7 @@ describe("StreakOnboarding", () => {
     });
 
     test("should disable button and show loading state while enabling", async () => {
-      const slowOnEnable = mock(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      const slowOnEnable = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 100)));
       render(<StreakOnboarding onEnable={slowOnEnable} />);
 
       const button = screen.getByRole("button", { name: /enable streak tracking/i });
@@ -109,7 +109,7 @@ describe("StreakOnboarding", () => {
     });
 
     test("should disable input while enabling", async () => {
-      const slowOnEnable = mock(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      const slowOnEnable = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 100)));
       render(<StreakOnboarding onEnable={slowOnEnable} />);
 
       const input = screen.getByLabelText("Pages per day");
@@ -167,7 +167,7 @@ describe("StreakOnboarding", () => {
 
   describe("Error Handling", () => {
     test("should call onEnable even when it fails", async () => {
-      const failingOnEnable = mock(() => Promise.reject(new Error("Network error")));
+      const failingOnEnable = vi.fn(() => Promise.reject(new Error("Network error")));
       render(<StreakOnboarding onEnable={failingOnEnable} />);
 
       const button = screen.getByRole("button", { name: /enable streak tracking/i });
@@ -179,7 +179,7 @@ describe("StreakOnboarding", () => {
     });
 
     test("should re-enable button after error", async () => {
-      const failingOnEnable = mock(() => Promise.reject(new Error("Network error")));
+      const failingOnEnable = vi.fn(() => Promise.reject(new Error("Network error")));
       render(<StreakOnboarding onEnable={failingOnEnable} />);
 
       const button = screen.getByRole("button", { name: /enable streak tracking/i });

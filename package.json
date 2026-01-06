@@ -25,9 +25,10 @@
     "db:studio": "DATABASE_PATH=./data/tome.db bunx drizzle-kit studio",
     "db:seed": "bun run scripts/seed.ts",
     "sync-calibre": "bun run scripts/sync-calibre.ts",
-    "test": "bun test",
-    "test:watch": "bun test --watch",
-    "test:coverage": "bun test --coverage"
+    "test": "TZ=UTC vitest run",
+    "test:watch": "TZ=UTC vitest",
+    "test:ui": "TZ=UTC vitest --ui",
+    "test:coverage": "TZ=UTC vitest run --coverage"
   },
   "dependencies": {
     "@mdxeditor/editor": "^3.52.1",
@@ -54,6 +55,7 @@
   },
   "devDependencies": {
     "@tanstack/react-query-devtools": "^5.91.1",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/better-sqlite3": "^7.6.13",
@@ -61,6 +63,9 @@
     "@types/node": "^20",
     "@types/react": "19",
     "@types/react-dom": "19",
+    "@vitest/coverage-istanbul": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.0.1",
     "drizzle-kit": "^0.31.7",
     "eslint": "^8",
@@ -69,7 +74,8 @@
     "pino-pretty": "^11.2.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.16"
   },
   "overrides": {
     "pino": "^9.3.1"

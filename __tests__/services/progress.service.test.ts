@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll, mock } from "bun:test";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { ProgressService } from "@/lib/services/progress.service";
@@ -21,8 +21,8 @@ function getDateInEST(date: Date): string {
  * aren't relevant to testing progress tracking. We mock with reasonable return
  * values to verify progress service integrates with streaks without testing streak logic.
  */
-mock.module("@/lib/streaks", () => ({
-  updateStreaks: mock(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
+vi.mock("@/lib/streaks", () => ({
+  updateStreaks: vi.fn(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
 }));
 
 /**
@@ -30,8 +30,8 @@ mock.module("@/lib/streaks", () => ({
  * Progress operations may trigger cache invalidation, but we don't need to test
  * Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
-  revalidatePath: mock(() => {}),
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(() => {}),
 }));
 
 describe("ProgressService", () => {

@@ -113,6 +113,18 @@ export function createLogger(bindings?: Record<string, any>): Logger {
 }
 
 export function getLogger(): Logger {
+  // In test mode, return a no-op logger to avoid pino initialization issues
+  if (process.env.NODE_ENV === 'test') {
+    return {
+      info: () => {},
+      error: () => {},
+      warn: () => {},
+      debug: () => {},
+      fatal: () => {},
+      child: () => getLogger(),
+    } as any;
+  }
+
   const logger = initializeLogger();
   const store = contextStore.getStore();
   if (store) return logger.child({ reqId: store.reqId });

@@ -27,6 +27,7 @@
  */
 
 import { createDatabase } from "./factory";
+import { getLogger } from "@/lib/logger";
 
 // Type definition for SQLite database interface
 type SQLiteDatabase = any;
@@ -41,16 +42,10 @@ const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
  * which also has test-specific behavior.
  */
 function getLoggerSafe() {
+  // In test mode, return no-op logger to avoid require() issues in Vitest
   if (process.env.NODE_ENV === 'test') {
-    // Return a no-op logger for tests to avoid module mocking issues
-    return {
-      info: () => {},
-      error: () => {},
-      debug: () => {},
-      warn: () => {},
-    };
+    return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
-  const { getLogger } = require("../logger");
   return getLogger();
 }
 

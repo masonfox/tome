@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { NextRequest } from "next/server";
 import { PATCH } from "@/app/api/streak/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";

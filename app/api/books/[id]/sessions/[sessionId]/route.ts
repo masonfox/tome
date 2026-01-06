@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories";
 
@@ -91,13 +92,11 @@ export async function PATCH(
     }
     
     {
-      const { getLogger } = require("@/lib/logger");
       getLogger().info({ sessionId, bookId, sessionNumber: session.sessionNumber }, "[Session API] Updated session");
     }
     
     return NextResponse.json(updatedSession);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "[Session API] Unexpected error");
     return NextResponse.json(
       { 

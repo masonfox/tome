@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET } from "@/app/api/reading-goals/monthly/route";
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -111,7 +111,7 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
       expect(data.data.goal.booksGoal).toBe(50);
       
       // Check monthly data contains entries
-      expect(data.data.monthlyData).toBeArray();
+      expect(data.data.monthlyData).toBeInstanceOf(Array);
       expect(data.data.monthlyData.length).toBeGreaterThan(0);
       
       // Verify monthly counts (month is 1-indexed: 1 = January, 2 = February, etc.)
@@ -149,7 +149,7 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.data.goal).toBeNull();
-      expect(data.data.monthlyData).toBeArray();
+      expect(data.data.monthlyData).toBeInstanceOf(Array);
     });
 
     test("returns empty monthly data when no books completed", async () => {
@@ -163,7 +163,7 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.data.goal).not.toBeNull();
-      expect(data.data.monthlyData).toBeArray();
+      expect(data.data.monthlyData).toBeInstanceOf(Array);
       // All months should have 0 count if no books completed
       expect(data.data.monthlyData.length).toBe(12);
       expect(data.data.monthlyData.every((m: any) => m.count === 0)).toBe(true);
@@ -351,7 +351,7 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
     test("returns 500 on internal error", async () => {
       // Mock the service to throw an unexpected error
       const originalGetMonthlyBreakdown = readingGoalRepository.getBooksCompletedByMonth;
-      readingGoalRepository.getBooksCompletedByMonth = mock(() => {
+      readingGoalRepository.getBooksCompletedByMonth = vi.fn(() => {
         throw new Error("Database connection failed");
       });
 

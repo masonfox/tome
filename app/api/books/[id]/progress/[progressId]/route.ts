@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { ProgressService } from "@/lib/services/progress.service";
 import { progressRepository } from "@/lib/repositories";
@@ -47,7 +48,6 @@ export async function PATCH(
 
     return NextResponse.json(updatedEntry);
   } catch (error: any) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error updating progress");
     
     // Handle specific errors
@@ -111,7 +111,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: "Progress entry deleted" });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error deleting progress");
     return NextResponse.json({ error: "Failed to delete progress" }, { status: 500 });
   }

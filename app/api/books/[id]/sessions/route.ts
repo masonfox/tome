@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 
@@ -29,7 +30,6 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       },
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching reading sessions");
     return NextResponse.json(
       { error: "Failed to fetch reading sessions" },

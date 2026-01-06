@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach, mock } from "bun:test";
+import { test, expect, describe, afterEach, mock } from 'vitest';
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BookHeader from "@/components/BookDetail/BookHeader";
@@ -9,7 +9,7 @@ import BookHeader from "@/components/BookDetail/BookHeader";
  * tests. We replace it with a simple <img> tag to test our rendering logic without
  * Next.js image optimization concerns.
  */
-mock.module("next/image", () => ({
+vi.mock("next/image", () => ({
   default: ({ alt, ...props }: any) => <img alt={alt} {...props} />,
 }));
 

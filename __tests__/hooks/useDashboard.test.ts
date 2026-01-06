@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from "../test-utils";
 import { useDashboard } from "@/hooks/useDashboard";
 import type { DashboardData } from "@/hooks/useDashboard";
@@ -53,7 +53,7 @@ describe("useDashboard", () => {
   };
 
   beforeEach(() => {
-    global.fetch = mock(() =>
+    global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockDashboardData),
@@ -108,7 +108,7 @@ describe("useDashboard", () => {
     });
 
     test("should handle null stats gracefully", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () =>
@@ -130,7 +130,7 @@ describe("useDashboard", () => {
     });
 
     test("should handle null streak gracefully", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () =>
@@ -152,7 +152,7 @@ describe("useDashboard", () => {
     });
 
     test("should handle empty arrays", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () =>
@@ -181,7 +181,7 @@ describe("useDashboard", () => {
 
   describe("error handling", () => {
     test("should handle fetch errors", async () => {
-      global.fetch = mock(() => Promise.reject(new Error("Network error"))) as any;
+      global.fetch = vi.fn(() => Promise.reject(new Error("Network error"))) as any;
 
       const { result } = renderHook(() => useDashboard());
 
@@ -195,7 +195,7 @@ describe("useDashboard", () => {
     });
 
     test("should handle non-ok response", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           status: 500,
@@ -216,7 +216,7 @@ describe("useDashboard", () => {
   describe("refetch", () => {
     test("should refetch data when refetch is called", async () => {
       let callCount = 0;
-      global.fetch = mock(() => {
+      global.fetch = vi.fn(() => {
         callCount++;
         return Promise.resolve({
           ok: true,
@@ -270,7 +270,7 @@ describe("useDashboard", () => {
 
   describe("default values", () => {
     test("should return default values when data is undefined", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),

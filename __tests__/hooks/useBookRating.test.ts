@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookRating } from "@/hooks/useBookRating";
 import type { Book } from "@/hooks/useBookDetail";
@@ -15,10 +15,10 @@ describe("useBookRating", () => {
     rating: 4,
   };
 
-  const mockOnRefresh = mock(() => {});
+  const mockOnRefresh = vi.fn(() => {});
 
   beforeEach(() => {
-    global.fetch = mock(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve(mockBook),
     } as Response));
@@ -69,7 +69,7 @@ describe("useBookRating", () => {
     test("should update rating and close modal", async () => {
       const updatedBook = { ...mockBook, rating: 5 };
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve(updatedBook),
       } as Response));
@@ -101,7 +101,7 @@ describe("useBookRating", () => {
     test("should remove rating", async () => {
       const updatedBook = { ...mockBook, rating: null };
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve(updatedBook),
       } as Response));
@@ -139,7 +139,7 @@ describe("useBookRating", () => {
     });
 
     test("should handle API errors", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: "Failed to update rating" }),
       } as Response));
@@ -156,7 +156,7 @@ describe("useBookRating", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = mock(() => Promise.reject(new Error("Network error")));
+      global.fetch = vi.fn(() => Promise.reject(new Error("Network error")));
 
       const { result } = renderHook(() => useBookRating(mockBook, "123", mockOnRefresh));
 
@@ -171,7 +171,7 @@ describe("useBookRating", () => {
     test("should handle book with no initial rating", async () => {
       const bookWithoutRating = { ...mockBook, rating: undefined };
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ ...bookWithoutRating, rating: 3 }),
       } as Response));

@@ -1,5 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, mock } from "bun:test";
-import { Database } from "bun:sqlite";
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import path from "path";
 import {
   getAllBooks,
@@ -8,6 +7,7 @@ import {
   getBookTags,
   getAllBookTags,
   getBooksCount,
+  resetCalibreDB,
 } from "@/lib/db/calibre";
 
 /**
@@ -19,36 +19,30 @@ import {
  * 
  * Fixtures are located in __tests__/fixtures/ and contain known test data
  * for deterministic testing. See CALIBRE_TEST_DATA.md for book IDs and metadata.
+ * 
+ * Uses better-sqlite3 for cross-platform compatibility with Vitest.
+ * 
+ * Test Approach: Set CALIBRE_DB_PATH environment variable to point to fixture files.
+ * This allows the real getCalibreDB() function to open the test database, avoiding
+ * complex mocking while maintaining test isolation.
  */
-
-let testDb: Database;
-let mockGetCalibreDB: ReturnType<typeof mock>;
-
-/**
- * Mock Rationale: Use real Calibre database fixture files instead of in-memory.
- * This allows us to test against actual Calibre schema and data, catching
- * real-world edge cases while maintaining test isolation.
- */
-mock.module("@/lib/db/calibre", () => {
-  const actual = require("@/lib/db/calibre");
-  return {
-    ...actual,
-    getCalibreDB: () => mockGetCalibreDB(),
-  };
-});
 
 describe("Calibre Query Functions with Full Schema", () => {
   beforeAll(() => {
-    // Load real Calibre database fixture
+    // Set CALIBRE_DB_PATH to use the comprehensive test fixture
     const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
-    testDb = new Database(dbPath, { readonly: true });
-
-    // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    process.env.CALIBRE_DB_PATH = dbPath;
   });
 
   afterAll(() => {
-    testDb.close();
+    // Clean up environment variable and reset singleton
+    delete process.env.CALIBRE_DB_PATH;
+    resetCalibreDB();
+  });
+
+  afterAll(() => {
+    // Clean up environment variable
+    delete process.env.CALIBRE_DB_PATH;
   });
 
   describe("getAllBooks", () => {
@@ -282,27 +276,19 @@ describe("Calibre Query Functions with Full Schema", () => {
 });
 
 describe("Calibre Query Functions without Optional Columns", () => {
-  let minimalDb: Database;
-  let mockGetMinimalDB: ReturnType<typeof mock>;
-
   beforeAll(() => {
-    // Load minimal schema fixture (no isbn/lccn columns)
+    // Set CALIBRE_DB_PATH to use the minimal schema fixture
     const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-minimal.db");
-    minimalDb = new Database(dbPath, { readonly: true });
-
-    // Mock to use minimal database
-    mockGetMinimalDB = mock(() => minimalDb);
+    process.env.CALIBRE_DB_PATH = dbPath;
   });
 
   afterAll(() => {
-    minimalDb.close();
+    // Clean up environment variable and reset singleton
+    delete process.env.CALIBRE_DB_PATH;
+    resetCalibreDB();
   });
 
   test("getAllBooks handles missing optional columns", () => {
-    // Temporarily swap the mock
-    const originalMock = mockGetCalibreDB;
-    mockGetCalibreDB = mockGetMinimalDB;
-
     const books = getAllBooks();
 
     expect(books).toHaveLength(48);
@@ -310,15 +296,9 @@ describe("Calibre Query Functions without Optional Columns", () => {
     
     // Schema detection should handle missing columns gracefully
     // All books should still be queryable
-
-    // Restore original mock
-    mockGetCalibreDB = originalMock;
   });
 
   test("getBookById handles missing series column", () => {
-    const originalMock = mockGetCalibreDB;
-    mockGetCalibreDB = mockGetMinimalDB;
-
     // ID 147: "Dune"
     const book = getBookById(147);
 
@@ -326,47 +306,34 @@ describe("Calibre Query Functions without Optional Columns", () => {
     expect(book!.title).toBe("Dune");
     
     // Series should be handled even if column schema differs
-
-    mockGetCalibreDB = originalMock;
   });
 
   test("searchBooks works without optional columns", () => {
-    const originalMock = mockGetCalibreDB;
-    mockGetCalibreDB = mockGetMinimalDB;
-
     const results = searchBooks("Dune");
 
     expect(results.length).toBeGreaterThan(0);
     expect(results[0].title).toBeDefined();
-
-    mockGetCalibreDB = originalMock;
   });
   
   test("getBookTags works with minimal schema", () => {
-    const originalMock = mockGetCalibreDB;
-    mockGetCalibreDB = mockGetMinimalDB;
-
     // ID 147: "Dune" - should have 8 tags
     const tags = getBookTags(147);
 
     expect(tags).toHaveLength(8);
-
-    mockGetCalibreDB = originalMock;
   });
 });
 
 describe("getAllBookTags", () => {
   beforeAll(() => {
-    // Load real Calibre database fixture
+    // Set CALIBRE_DB_PATH to use the comprehensive test fixture
     const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
-    testDb = new Database(dbPath, { readonly: true });
-
-    // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    process.env.CALIBRE_DB_PATH = dbPath;
   });
 
   afterAll(() => {
-    testDb.close();
+    // Clean up environment variable and reset singleton
+    delete process.env.CALIBRE_DB_PATH;
+    resetCalibreDB();
   });
 
   test("fetches all tags for all books when no bookIds provided", () => {
@@ -461,16 +428,15 @@ describe("getAllBookTags", () => {
 
 describe("getBooksCount", () => {
   beforeAll(() => {
-    // Load real Calibre database fixture
+    // Set CALIBRE_DB_PATH to use the comprehensive test fixture
     const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
-    testDb = new Database(dbPath, { readonly: true });
-
-    // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    process.env.CALIBRE_DB_PATH = dbPath;
   });
 
   afterAll(() => {
-    testDb.close();
+    // Clean up environment variable and reset singleton
+    delete process.env.CALIBRE_DB_PATH;
+    resetCalibreDB();
   });
 
   test("returns total book count", () => {
@@ -483,16 +449,15 @@ describe("getBooksCount", () => {
 
 describe("Pagination", () => {
   beforeAll(() => {
-    // Load real Calibre database fixture
+    // Set CALIBRE_DB_PATH to use the comprehensive test fixture
     const dbPath = path.join(__dirname, "..", "fixtures", "calibre-test-comprehensive.db");
-    testDb = new Database(dbPath, { readonly: true });
-
-    // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    process.env.CALIBRE_DB_PATH = dbPath;
   });
 
   afterAll(() => {
-    testDb.close();
+    // Clean up environment variable and reset singleton
+    delete process.env.CALIBRE_DB_PATH;
+    resetCalibreDB();
   });
 
   test("limits results when limit provided", () => {

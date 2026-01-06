@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET as GET_BOOKS } from "@/app/api/books/route";
 import { GET as GET_TAGS } from "@/app/api/tags/route";
@@ -11,7 +11,7 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
  * Library operations may trigger cache invalidation, but we don't need to test
  * Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 

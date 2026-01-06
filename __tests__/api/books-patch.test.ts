@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { PATCH } from "@/app/api/books/[id]/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -10,7 +10,7 @@ import type { NextRequest } from "next/server";
  * Book detail API calls revalidatePath on updates, but we don't need to test
  * Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);

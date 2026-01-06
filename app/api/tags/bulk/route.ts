@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { tagService } from "@/lib/services";
 
@@ -43,7 +44,6 @@ export async function POST(request: NextRequest) {
       booksUpdated: result.booksUpdated,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error bulk updating tags");
     return NextResponse.json({ error: "Failed to bulk update tags" }, { status: 500 });
   }

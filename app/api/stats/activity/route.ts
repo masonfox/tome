@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { getActivityCalendar } from "@/lib/streaks";
 import { progressRepository, streakRepository } from "@/lib/repositories";
@@ -46,7 +47,6 @@ export async function GET(request: NextRequest) {
       monthly: monthlyData,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching activity");
     return NextResponse.json(
       { error: "Failed to fetch activity" },

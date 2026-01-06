@@ -2,12 +2,16 @@ import * as schema from "./schema";
 import { mkdirSync, readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { createDatabase, detectRuntime, testDatabaseConnection, closeDatabaseConnection } from "./factory";
+import { getLogger } from "@/lib/logger";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
 let logger: any = null;
 function getLoggerSafe() {
+  // In test mode, return no-op logger to avoid require() issues in Vitest
+  if (process.env.NODE_ENV === 'test') {
+    return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
+  }
   if (!logger) {
-    const { getLogger } = require("../logger");
     logger = getLogger();
   }
   return logger;

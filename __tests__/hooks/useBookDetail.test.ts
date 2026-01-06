@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookDetail } from "@/hooks/useBookDetail";
 
@@ -8,7 +8,7 @@ const originalFetch = global.fetch;
 describe("useBookDetail", () => {
   beforeEach(() => {
     // Reset mocks before each test
-    global.fetch = mock(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({}),
     } as Response));
@@ -38,7 +38,7 @@ describe("useBookDetail", () => {
         totalPages: 300,
       };
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockBook),
       } as Response));
@@ -54,7 +54,7 @@ describe("useBookDetail", () => {
     });
 
     test("should handle fetch errors gracefully", async () => {
-      global.fetch = mock(() => Promise.reject(new Error("Network error")));
+      global.fetch = vi.fn(() => Promise.reject(new Error("Network error")));
 
       const { result } = renderHook(() => useBookDetail("123"));
 
@@ -85,7 +85,7 @@ describe("useBookDetail", () => {
       };
 
       let callCount = 0;
-      global.fetch = mock(() => {
+      global.fetch = vi.fn(() => {
         callCount++;
         return Promise.resolve({
           ok: true,
@@ -125,7 +125,7 @@ describe("useBookDetail", () => {
       let patchCalled = false;
       let bookData = { ...mockBook }; // Track current book state
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH") {
           patchCalled = true;
           // Update bookData when PATCH succeeds
@@ -182,7 +182,7 @@ describe("useBookDetail", () => {
         tags: [],
       };
 
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH") {
           return Promise.reject(new Error("Update failed"));
         }
@@ -216,7 +216,7 @@ describe("useBookDetail", () => {
       let patchCalled = false;
       let bookData = { ...mockBook }; // Track current book state
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH" && url.includes("/tags")) {
           patchCalled = true;
           // Update bookData when PATCH succeeds
@@ -274,7 +274,7 @@ describe("useBookDetail", () => {
         tags: ["original-tag"],
       };
 
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH") {
           return Promise.reject(new Error("Update failed"));
         }
@@ -312,7 +312,7 @@ describe("useBookDetail", () => {
 
       let bookData = { ...mockBook };
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH" && url.includes("/tags")) {
           const body = JSON.parse(options.body);
           bookData = { ...bookData, tags: body.tags };
@@ -366,7 +366,7 @@ describe("useBookDetail", () => {
       let fetchCount = 0;
       let bookData = { ...mockBook };
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH" && url.includes("/tags")) {
           const body = JSON.parse(options.body);
           bookData = { ...bookData, tags: body.tags };
@@ -420,7 +420,7 @@ describe("useBookDetail", () => {
       let patchCalled = false;
       let bookData = { ...mockBook }; // Track current book state
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH" && url.includes("/tags")) {
           patchCalled = true;
           // Update bookData when PATCH succeeds
@@ -478,7 +478,7 @@ describe("useBookDetail", () => {
         tags: ["original-tag"],
       };
 
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH") {
           return Promise.reject(new Error("Update failed"));
         }
@@ -516,7 +516,7 @@ describe("useBookDetail", () => {
 
       let bookData = { ...mockBook };
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH" && url.includes("/tags")) {
           const body = JSON.parse(options.body);
           bookData = { ...bookData, tags: body.tags };
@@ -570,7 +570,7 @@ describe("useBookDetail", () => {
       let fetchCount = 0;
       let bookData = { ...mockBook };
       
-      global.fetch = mock((url: string, options?: any) => {
+      global.fetch = vi.fn((url: string, options?: any) => {
         if (options?.method === "PATCH" && url.includes("/tags")) {
           const body = JSON.parse(options.body);
           bookData = { ...bookData, tags: body.tags };
@@ -643,7 +643,7 @@ describe("useBookDetail", () => {
         tags: [],
       };
 
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         if (url.includes("123")) {
           return Promise.resolve({
             ok: true,

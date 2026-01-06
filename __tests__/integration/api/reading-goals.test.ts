@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { GET as GET_GOALS, POST as CREATE_GOAL } from "@/app/api/reading-goals/route";
 import { PATCH as UPDATE_GOAL, DELETE as DELETE_GOAL } from "@/app/api/reading-goals/[id]/route";
@@ -7,7 +7,7 @@ import { createMockRequest } from "../../fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 // Mock Next.js cache revalidation - required for integration tests
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 

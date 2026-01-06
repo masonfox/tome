@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { seriesService } from "@/lib/services/series.service";
@@ -64,14 +64,14 @@ describe("GET /api/series", () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(data).toBeArray();
+      expect(data).toBeInstanceOf(Array);
       expect(data).toHaveLength(2);
       
       // Verify Foundation Series
       const foundationSeries = data.find((s: any) => s.name === "Foundation Series");
       expect(foundationSeries).toBeDefined();
       expect(foundationSeries.bookCount).toBe(2);
-      expect(foundationSeries.bookCoverIds).toBeArray();
+      expect(foundationSeries.bookCoverIds).toBeInstanceOf(Array);
       expect(foundationSeries.bookCoverIds).toHaveLength(2);
       expect(foundationSeries.bookCoverIds).toEqual([1, 2]);
 
@@ -100,7 +100,7 @@ describe("GET /api/series", () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(data).toBeArray();
+      expect(data).toBeInstanceOf(Array);
       expect(data).toHaveLength(0);
     });
 
@@ -333,7 +333,7 @@ describe("GET /api/series/:name", () => {
       expect(data.series).toBeDefined();
       expect(data.series.name).toBe("Dune Chronicles");
       expect(data.series.bookCount).toBe(3);
-      expect(data.books).toBeArray();
+      expect(data.books).toBeInstanceOf(Array);
       expect(data.books).toHaveLength(3);
 
       // Verify ordering by series index
@@ -479,7 +479,7 @@ describe("GET /api/series/:name", () => {
       // Assert
       expect(response.status).toBe(200);
       expect(data.books).toHaveLength(1);
-      expect(data.books[0].authors).toBeArray();
+      expect(data.books[0].authors).toBeInstanceOf(Array);
       expect(data.books[0].authors).toHaveLength(3);
       expect(data.books[0].authors).toEqual(["Author A", "Author B", "Author C"]);
     });
@@ -845,7 +845,7 @@ describe("GET /api/series/:name", () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(data.books[0].tags).toBeArray();
+      expect(data.books[0].tags).toBeInstanceOf(Array);
       expect(data.books[0].tags).toHaveLength(0);
     });
 

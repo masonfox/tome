@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 /**
  * Database seeding orchestrator
  * Syncs Calibre and generates realistic development data for testing
@@ -21,8 +22,11 @@ import {
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
 let logger: any = null;
 function getLoggerSafe() {
+  // In test mode, return no-op logger to avoid require() issues in Vitest
+  if (process.env.NODE_ENV === 'test') {
+    return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
+  }
   if (!logger) {
-    const { getLogger } = require("@/lib/logger");
     logger = getLogger();
   }
   return logger;

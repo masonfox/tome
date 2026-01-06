@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { readingGoalRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import type { TestDatabaseInstance } from "../helpers/db-setup";
@@ -41,7 +41,7 @@ describe("ReadingGoalRepository", () => {
       });
 
       // Attempt to create duplicate
-      expect(
+      await expect(
         readingGoalRepository.create({
           userId: null,
           year: 2026,
@@ -51,7 +51,7 @@ describe("ReadingGoalRepository", () => {
     });
 
     test("enforces minimum goal constraint", async () => {
-      expect(
+      await expect(
         readingGoalRepository.create({
           userId: null,
           year: 2026,
@@ -61,7 +61,7 @@ describe("ReadingGoalRepository", () => {
     });
 
     test("enforces year range constraint", async () => {
-      expect(
+      await expect(
         readingGoalRepository.create({
           userId: null,
           year: 1899,
@@ -69,7 +69,7 @@ describe("ReadingGoalRepository", () => {
         })
       ).rejects.toThrow();
 
-      expect(
+      await expect(
         readingGoalRepository.create({
           userId: null,
           year: 10000,

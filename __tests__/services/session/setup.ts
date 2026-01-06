@@ -1,4 +1,4 @@
-import { mock } from "bun:test";
+import { vi } from "vitest";
 
 /**
  * Shared mock setup for SessionService tests
@@ -6,17 +6,17 @@ import { mock } from "bun:test";
  */
 
 // Mock external dependencies
-mock.module("@/lib/streaks", () => ({
-  rebuildStreak: mock(() => Promise.resolve()),
+vi.mock("@/lib/streaks", () => ({
+  rebuildStreak: vi.fn(() => Promise.resolve()),
 }));
 
-mock.module("next/cache", () => ({
-  revalidatePath: mock(() => {}),
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(() => {}),
 }));
 
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
-    updateRating: mock(() => {}),
+    updateRating: vi.fn(() => {}),
   },
 }));
 

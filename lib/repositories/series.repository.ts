@@ -2,6 +2,7 @@ import { sql, asc, eq, and, isNotNull } from "drizzle-orm";
 import { books } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { BaseRepository } from "./base.repository";
+import { getLogger } from "@/lib/logger";
 
 export interface SeriesInfo {
   name: string;
@@ -50,7 +51,6 @@ export class SeriesRepository extends BaseRepository<
    * @returns Array of series info objects
    */
   async getAllSeries(): Promise<SeriesInfo[]> {
-    const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
     const db = this.getDatabase();
 

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { POST } from "@/app/api/books/[id]/reread/route";
 import {
@@ -17,7 +17,7 @@ import type { NextRequest } from "next/server";
  * The reread API calls revalidatePath to update cached pages, but we don't need
  * to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 

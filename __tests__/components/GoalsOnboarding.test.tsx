@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { GoalsOnboarding } from "@/components/GoalsOnboarding";
@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 describe("GoalsOnboarding", () => {
-  const mockOnCreateGoal = mock(() => Promise.resolve());
+  const mockOnCreateGoal = vi.fn(() => Promise.resolve());
   const currentYear = new Date().getFullYear();
 
   beforeEach(() => {
@@ -94,7 +94,7 @@ describe("GoalsOnboarding", () => {
     });
 
     test("should disable button and show loading state while creating", async () => {
-      const slowOnCreateGoal = mock(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      const slowOnCreateGoal = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 100)));
       render(<GoalsOnboarding onCreateGoal={slowOnCreateGoal} />);
 
       const button = screen.getByRole("button", { name: /create reading goal/i });
@@ -110,7 +110,7 @@ describe("GoalsOnboarding", () => {
     });
 
     test("should disable input while creating", async () => {
-      const slowOnCreateGoal = mock(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      const slowOnCreateGoal = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 100)));
       render(<GoalsOnboarding onCreateGoal={slowOnCreateGoal} />);
 
       const input = screen.getByLabelText("Books to read");
@@ -168,7 +168,7 @@ describe("GoalsOnboarding", () => {
 
   describe("Error Handling", () => {
     test("should call onCreateGoal even when it fails", async () => {
-      const failingOnCreateGoal = mock(() => Promise.reject(new Error("Network error")));
+      const failingOnCreateGoal = vi.fn(() => Promise.reject(new Error("Network error")));
       render(<GoalsOnboarding onCreateGoal={failingOnCreateGoal} />);
 
       const button = screen.getByRole("button", { name: /create reading goal/i });
@@ -180,7 +180,7 @@ describe("GoalsOnboarding", () => {
     });
 
     test("should re-enable button after error", async () => {
-      const failingOnCreateGoal = mock(() => Promise.reject(new Error("Network error")));
+      const failingOnCreateGoal = vi.fn(() => Promise.reject(new Error("Network error")));
       render(<GoalsOnboarding onCreateGoal={failingOnCreateGoal} />);
 
       const button = screen.getByRole("button", { name: /create reading goal/i });

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, beforeAll, afterAll, mock } from "bun:test";
+import { describe, test, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { createTestBook, createTestSession, createMockRequest } from "../fixtures/test-data";
@@ -39,11 +39,11 @@ function expectedUTCDate(dateString: string): Date {
  */
 
 // Mock external dependencies
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: () => {},
     readRating: () => null,
@@ -51,7 +51,7 @@ mock.module("@/lib/services/calibre.service", () => ({
   },
 }));
 
-mock.module("@/lib/streaks", () => ({
+vi.mock("@/lib/streaks", () => ({
   checkAndUpdateStreaks: () => Promise.resolve(),
 }));
 

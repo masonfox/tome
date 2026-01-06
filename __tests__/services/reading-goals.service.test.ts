@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { readingGoalsService } from "@/lib/services";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import type { TestDatabaseInstance } from "../helpers/db-setup";
@@ -31,43 +31,43 @@ describe("ReadingGoalsService", () => {
     test("rejects duplicate year", async () => {
       await readingGoalsService.createGoal(null, 2026, 40);
 
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 2026, 50)
       ).rejects.toThrow("already have a goal");
     });
 
     test("rejects goal less than 1", async () => {
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 2026, 0)
       ).rejects.toThrow("at least 1 book");
     });
 
     test("rejects goal greater than 9999", async () => {
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 2026, 10000)
       ).rejects.toThrow("less than 9,999 books");
     });
 
     test("rejects year less than 1900", async () => {
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 1899, 40)
       ).rejects.toThrow("between 1900 and 9999");
     });
 
     test("rejects year greater than 9999", async () => {
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 10000, 40)
       ).rejects.toThrow("between 1900 and 9999");
     });
 
     test("rejects non-integer year", async () => {
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 2026.5, 40)
       ).rejects.toThrow("between 1900 and 9999");
     });
 
     test("rejects non-integer goal", async () => {
-      expect(
+      await expect(
         readingGoalsService.createGoal(null, 2026, 40.5)
       ).rejects.toThrow("at least 1 book");
     });
@@ -88,13 +88,13 @@ describe("ReadingGoalsService", () => {
       const pastYear = new Date().getFullYear() - 1;
       const created = await readingGoalsService.createGoal(null, pastYear, 40);
 
-      expect(
+      await expect(
         readingGoalsService.updateGoal(created.id, 50)
       ).rejects.toThrow("past years");
     });
 
     test("rejects update for non-existent goal", async () => {
-      expect(
+      await expect(
         readingGoalsService.updateGoal(99999, 50)
       ).rejects.toThrow("not found");
     });
@@ -103,7 +103,7 @@ describe("ReadingGoalsService", () => {
       const currentYear = new Date().getFullYear();
       const created = await readingGoalsService.createGoal(null, currentYear, 40);
 
-      expect(
+      await expect(
         readingGoalsService.updateGoal(created.id, 0)
       ).rejects.toThrow("at least 1 book");
     });
@@ -124,13 +124,13 @@ describe("ReadingGoalsService", () => {
       const pastYear = new Date().getFullYear() - 1;
       const created = await readingGoalsService.createGoal(null, pastYear, 40);
 
-      expect(
+      await expect(
         readingGoalsService.deleteGoal(created.id)
       ).rejects.toThrow("past years");
     });
 
     test("rejects delete for non-existent goal", async () => {
-      expect(
+      await expect(
         readingGoalsService.deleteGoal(99999)
       ).rejects.toThrow("not found");
     });

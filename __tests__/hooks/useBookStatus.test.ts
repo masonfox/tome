@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookStatus } from "@/hooks/useBookStatus";
 import type { Book } from "@/hooks/useBookDetail";
@@ -19,11 +19,11 @@ describe("useBookStatus", () => {
     },
   };
 
-  const mockOnStatusChange = mock(() => {});
-  const mockOnRefresh = mock(() => {});
+  const mockOnStatusChange = vi.fn(() => {});
+  const mockOnRefresh = vi.fn(() => {});
 
   beforeEach(() => {
-    global.fetch = mock(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       status: 200,
       headers: new Headers({ "content-type": "application/json" }),
@@ -119,7 +119,7 @@ describe("useBookStatus", () => {
     });
 
     test("should update status directly for forward movement", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
@@ -154,7 +154,7 @@ describe("useBookStatus", () => {
         activeSession: { id: 1, status: "reading" },
       };
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
@@ -190,7 +190,7 @@ describe("useBookStatus", () => {
       };
       const progressEntries = [{ id: 1, currentPage: 50, currentPercentage: 16.7, progressDate: "2024-01-01", notes: "", pagesRead: 50 }];
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         status: 200,
         headers: new Headers({ "content-type": "application/json" }),
@@ -274,7 +274,7 @@ describe("useBookStatus", () => {
 
     test("should mark book as read via progress endpoint when not in 'reading' status", async () => {
       let fetchCallCount = 0;
-      global.fetch = mock(() => {
+      global.fetch = vi.fn(() => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,
@@ -354,8 +354,8 @@ describe("useBookStatus", () => {
       expect(mockOnRefresh).toHaveBeenCalled();
     });
 
-    test("should handle reread errors", async () => {
-      global.fetch = mock(() => Promise.reject(new Error("Cannot reread"))) as any;
+    test("should handle reread errors", { timeout: 10000 }, async () => {
+      global.fetch = vi.fn(() => Promise.reject(new Error("Cannot reread"))) as any;
 
       const { result} = renderHook(() =>
         useBookStatus(mockBook, [], "123", mockOnStatusChange, mockOnRefresh)
@@ -365,7 +365,7 @@ describe("useBookStatus", () => {
       await act(async () => {
         await expect(result.current.handleStartReread()).rejects.toThrow();
       });
-    }, { timeout: 10000 }); // Increase timeout to account for retry logic (3 retries with backoff)
+    }); // Increase timeout to account for retry logic (3 retries with backoff)
   });
 
   describe("status changes based on book updates", () => {

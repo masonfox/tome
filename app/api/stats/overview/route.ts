@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { startOfYear, startOfMonth, startOfDay, subDays } from "date-fns";
@@ -68,7 +69,6 @@ export async function GET() {
       avgPagesPerDay,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching stats");
     return NextResponse.json({ error: "Failed to fetch statistics" }, { status: 500 });
   }

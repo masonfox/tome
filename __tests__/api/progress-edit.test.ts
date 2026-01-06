@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import {
   setupTestDatabase,
   teardownTestDatabase,
@@ -14,8 +14,8 @@ import { createMockRequest , createTestBook, createTestSession, createTestProgre
  * The progress edit API calls revalidatePath to update cached pages, but we don't
  * need to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
-  revalidatePath: mock(() => {}),
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(() => {}),
 }));
 
 describe("Progress Edit API", () => {

@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { seriesService } from "@/lib/services/series.service";
 
@@ -9,7 +10,6 @@ export const dynamic = 'force-dynamic';
  * Get all series in the library
  */
 export async function GET() {
-  const { getLogger } = require("@/lib/logger");
   const logger = getLogger();
 
   try {

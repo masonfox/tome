@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useBookProgress } from "@/hooks/useBookProgress";
 import type { Book } from "@/hooks/useBookDetail";
@@ -31,10 +31,10 @@ describe("useBookProgress", () => {
     { id: 2, currentPage: 50, currentPercentage: 16.67, progressDate: "2024-01-02", pagesRead: 20, notes: "" },
   ];
 
-  const mockOnRefresh = mock(() => {});
+  const mockOnRefresh = vi.fn(() => {});
 
   beforeEach(() => {
-    global.fetch = mock(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve(mockProgressEntries),
     } as Response));
@@ -139,7 +139,7 @@ describe("useBookProgress", () => {
 
   describe("handleLogProgress", () => {
     test("should log progress with page number", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
           id: 3,
@@ -175,7 +175,7 @@ describe("useBookProgress", () => {
     });
 
     test("should log progress with percentage", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
           id: 3,
@@ -226,7 +226,7 @@ describe("useBookProgress", () => {
     });
 
     test("should include progress date in payload if provided", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
           id: 3,
@@ -259,10 +259,10 @@ describe("useBookProgress", () => {
     });
 
     test("should handle API errors gracefully", async () => {
-      const consoleErrorSpy = mock(console.error);
+      const consoleErrorSpy = vi.fn(console.error);
       console.error = consoleErrorSpy;
 
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: "Temporal validation failed" }),
       } as Response));
@@ -296,7 +296,7 @@ describe("useBookProgress", () => {
 
   describe("handleConfirmEditProgress", () => {
     test("should update progress entry", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ success: true }),
       } as Response));
@@ -336,7 +336,7 @@ describe("useBookProgress", () => {
 
   describe("handleDeleteProgress", () => {
     test("should delete progress entry", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ success: true }),
       } as Response));
@@ -408,7 +408,7 @@ describe("useBookProgress", () => {
     });
 
     test("should clear unsaved flag after successful submission", async () => {
-      global.fetch = mock(() => Promise.resolve({
+      global.fetch = vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
           id: 3,
@@ -446,7 +446,7 @@ describe("useBookProgress", () => {
       ];
 
       let callCount = 0;
-      global.fetch = mock(() => {
+      global.fetch = vi.fn(() => {
         callCount++;
         return Promise.resolve({
           ok: true,

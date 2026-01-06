@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { ProgressService } from "@/lib/services/progress.service";
 
@@ -32,7 +33,6 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       return NextResponse.json(progressLogs);
     }
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching progress");
     return NextResponse.json({ error: "Failed to fetch progress" }, { status: 500 });
   }
@@ -63,7 +63,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     return NextResponse.json(result);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error logging progress");
     
     // Handle specific errors

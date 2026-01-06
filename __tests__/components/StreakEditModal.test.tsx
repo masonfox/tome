@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { StreakEditModal } from "@/components/StreakEditModal";
@@ -13,7 +13,7 @@ afterEach(() => {
 let mockFetch: ReturnType<typeof mock>;
 
 beforeEach(() => {
-  mockFetch = mock(() =>
+  mockFetch = vi.fn(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve({ success: true }),
@@ -23,8 +23,8 @@ beforeEach(() => {
 });
 
 describe("StreakEditModal", () => {
-  const mockOnClose = mock(() => {});
-  const mockOnSuccess = mock(() => {});
+  const mockOnClose = vi.fn(() => {});
+  const mockOnSuccess = vi.fn(() => {});
   let queryClient: ReturnType<typeof createTestQueryClient>;
 
   beforeEach(() => {
@@ -125,7 +125,7 @@ describe("StreakEditModal", () => {
 
   describe("User Interaction", () => {
     test("should call onClose when close button is clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       renderModal(
         <StreakEditModal
           isOpen={true}
@@ -142,7 +142,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should call onClose when cancel button is clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       renderModal(
         <StreakEditModal
           isOpen={true}
@@ -243,8 +243,8 @@ describe("StreakEditModal", () => {
     });
 
     test("should call onSuccess and onClose on successful save", async () => {
-      const onClose = mock(() => {});
-      const onSuccess = mock(() => {});
+      const onClose = vi.fn(() => {});
+      const onSuccess = vi.fn(() => {});
 
       renderModal(
         <StreakEditModal
@@ -268,7 +268,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should show error message on API failure", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () => Promise.resolve({ error: { message: "Update failed" } }),
@@ -304,7 +304,7 @@ describe("StreakEditModal", () => {
       // may prevent entering 0 in some browsers. The validation is still present
       // as a safety net for programmatic changes or edge cases.
       let fetchCallCount = 0;
-      const fetchSpy = mock(() => {
+      const fetchSpy = vi.fn(() => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,
@@ -387,7 +387,7 @@ describe("StreakEditModal", () => {
         resolveFetch = resolve;
       });
 
-      mockFetch = mock(() => fetchPromise);
+      mockFetch = vi.fn(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -423,7 +423,7 @@ describe("StreakEditModal", () => {
         resolveFetch = resolve;
       });
 
-      mockFetch = mock(() => fetchPromise);
+      mockFetch = vi.fn(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -459,7 +459,7 @@ describe("StreakEditModal", () => {
         resolveFetch = resolve;
       });
 
-      mockFetch = mock(() => fetchPromise);
+      mockFetch = vi.fn(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(
@@ -495,7 +495,7 @@ describe("StreakEditModal", () => {
         resolveFetch = resolve;
       });
 
-      mockFetch = mock(() => fetchPromise);
+      mockFetch = vi.fn(() => fetchPromise);
       global.fetch = mockFetch as any;
 
       renderModal(

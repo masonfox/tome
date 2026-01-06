@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { getDashboardData } from "@/lib/dashboard-service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -8,7 +8,7 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
  * Dashboard service may trigger cache invalidation in some flows, but we don't
  * need to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 

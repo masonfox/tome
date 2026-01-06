@@ -1,14 +1,14 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from "../test-utils";
 import { useStreak } from "@/hooks/useStreak";
 
 const originalFetch = global.fetch;
 
-// Mock sonner toast
-const mockToastSuccess = mock(() => {});
-const mockToastError = mock(() => {});
+// Mock sonner toast - hoist the mock functions
+const mockToastSuccess = vi.hoisted(() => vi.fn(() => {}));
+const mockToastError = vi.hoisted(() => vi.fn(() => {}));
 
-mock.module("sonner", () => ({
+vi.mock("sonner", () => ({
   toast: {
     success: mockToastSuccess,
     error: mockToastError,
@@ -17,7 +17,7 @@ mock.module("sonner", () => ({
 
 describe("useStreak", () => {
   beforeEach(() => {
-    global.fetch = mock(() =>
+    global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -55,7 +55,7 @@ describe("useStreak", () => {
         resolveFetch = resolve;
       });
 
-      global.fetch = mock(() => fetchPromise) as any;
+      global.fetch = vi.fn(() => fetchPromise) as any;
 
       const { result } = renderHook(() => useStreak());
 
@@ -105,7 +105,7 @@ describe("useStreak", () => {
     });
 
     test("should handle rebuild errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () =>
@@ -134,7 +134,7 @@ describe("useStreak", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(new Error("Network error"))
       ) as any;
 
@@ -177,7 +177,7 @@ describe("useStreak", () => {
         resolveFetch = resolve;
       });
 
-      global.fetch = mock(() => fetchPromise) as any;
+      global.fetch = vi.fn(() => fetchPromise) as any;
 
       const { result } = renderHook(() => useStreak());
 
@@ -226,7 +226,7 @@ describe("useStreak", () => {
     });
 
     test("should handle update errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () =>
@@ -253,7 +253,7 @@ describe("useStreak", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(new Error("Network error"))
       ) as any;
 
@@ -296,7 +296,7 @@ describe("useStreak", () => {
         resolveFetch = resolve;
       });
 
-      global.fetch = mock(() => fetchPromise) as any;
+      global.fetch = vi.fn(() => fetchPromise) as any;
 
       const { result } = renderHook(() => useStreak());
 
@@ -345,7 +345,7 @@ describe("useStreak", () => {
     });
 
     test("should handle timezone update errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () =>
@@ -372,7 +372,7 @@ describe("useStreak", () => {
     });
 
     test("should handle network errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(new Error("Network error"))
       ) as any;
 
