@@ -29,7 +29,6 @@ const databases = new Map<string, TestDatabaseInstance>();
 export async function setupTestDatabase(testFilePath: string): Promise<TestDatabaseInstance> {
   // Check if already setup for this test file
   if (databases.has(testFilePath)) {
-    console.log(`Test database already exists for: ${testFilePath}`);
     return databases.get(testFilePath)!;
   }
 
@@ -48,8 +47,6 @@ export async function setupTestDatabase(testFilePath: string): Promise<TestDatab
   } else {
     testSqlite.pragma("synchronous = FULL");
   }
-
-  console.log(`Test database created for: ${testFilePath}`);
 
   const instance: TestDatabaseInstance = {
     db: testDb,
