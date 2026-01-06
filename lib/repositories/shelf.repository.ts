@@ -15,6 +15,10 @@ export interface ShelfWithBookCount extends Shelf {
   bookCount: number;
 }
 
+export interface ShelfWithBookCountAndCovers extends ShelfWithBookCount {
+  bookCoverIds: number[];
+}
+
 export interface ShelfWithBooks extends Shelf {
   books: BookWithStatus[];
 }
@@ -75,6 +79,38 @@ export class ShelfRepository extends BaseRepository<
       .all();
 
     return result as ShelfWithBookCount[];
+  }
+
+  /**
+   * Get all shelves with book counts and book cover IDs (up to 4 covers per shelf)
+   */
+  async findAllWithBookCountAndCovers(userId: number | null = null): Promise<ShelfWithBookCountAndCovers[]> {
+    // First get all shelves with book counts
+    const shelvesWithCounts = await this.findAllWithBookCount(userId);
+    
+    // For each shelf, get up to 4 book cover IDs
+    const result: ShelfWithBookCountAndCovers[] = [];
+    
+    for (const shelf of shelvesWithCounts) {
+      // Get up to 4 calibreIds for books on this shelf
+      const booksOnShelf = await this.getDatabase()
+        .select({
+          calibreId: books.calibreId,
+        })
+        .from(bookShelves)
+        .innerJoin(books, eq(bookShelves.bookId, books.id))
+        .where(eq(bookShelves.shelfId, shelf.id))
+        .orderBy(asc(bookShelves.sortOrder))
+        .limit(4)
+        .all();
+      
+      result.push({
+        ...shelf,
+        bookCoverIds: booksOnShelf.map(b => b.calibreId),
+      });
+    }
+    
+    return result;
   }
 
   /**

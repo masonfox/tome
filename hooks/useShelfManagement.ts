@@ -6,6 +6,10 @@ export interface ShelfWithBookCount extends Shelf {
   bookCount: number;
 }
 
+export interface ShelfWithBookCountAndCovers extends ShelfWithBookCount {
+  bookCoverIds: number[];
+}
+
 export interface CreateShelfData {
   name: string;
   description?: string;
@@ -21,18 +25,18 @@ export interface UpdateShelfData {
 }
 
 export function useShelfManagement() {
-  const [shelves, setShelves] = useState<ShelfWithBookCount[]>([]);
+  const [shelves, setShelves] = useState<ShelfWithBookCountAndCovers[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   /**
-   * Fetch all shelves with book counts
+   * Fetch all shelves with book counts and cover IDs
    */
   const fetchShelves = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/shelves?withCounts=true");
+      const response = await fetch("/api/shelves?withCovers=true");
       const data = await response.json();
 
       if (!data.success) {
@@ -73,10 +77,11 @@ export function useShelfManagement() {
           throw new Error(data.error?.message || "Failed to create shelf");
         }
 
-        // Add the new shelf to the list with 0 books
-        const newShelf: ShelfWithBookCount = {
+        // Add the new shelf to the list with 0 books and empty cover array
+        const newShelf: ShelfWithBookCountAndCovers = {
           ...data.data,
           bookCount: 0,
+          bookCoverIds: [],
         };
         setShelves((prev) => [...prev, newShelf]);
 

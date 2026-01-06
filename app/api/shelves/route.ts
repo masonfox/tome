@@ -7,16 +7,22 @@ const logger = getLogger();
 
 /**
  * GET /api/shelves
- * Get all shelves, optionally with book counts
+ * Get all shelves, optionally with book counts and/or covers
  * Query params:
  *  - withCounts: (optional) Include book counts in response
+ *  - withCovers: (optional) Include book cover IDs in response (up to 4 per shelf)
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const withCounts = searchParams.get("withCounts") === "true";
+    const withCovers = searchParams.get("withCovers") === "true";
 
-    if (withCounts) {
+    if (withCovers) {
+      // withCovers implies withCounts
+      const shelves = await shelfService.getAllShelvesWithBookCountAndCovers(null);
+      return NextResponse.json({ success: true, data: shelves });
+    } else if (withCounts) {
       const shelves = await shelfService.getAllShelvesWithBookCount(null);
       return NextResponse.json({ success: true, data: shelves });
     } else {

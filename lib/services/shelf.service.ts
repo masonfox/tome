@@ -20,6 +20,10 @@ export interface ShelfWithBookCount {
   bookCount: number;
 }
 
+export interface ShelfWithBookCountAndCovers extends ShelfWithBookCount {
+  bookCoverIds: number[];
+}
+
 export interface ShelfWithBooks extends Shelf {
   books: BookWithStatus[];
 }
@@ -39,6 +43,14 @@ export class ShelfService {
   async getAllShelvesWithBookCount(userId: number | null = null): Promise<ShelfWithBookCount[]> {
     logger.debug({ userId }, "Fetching all shelves with book counts");
     return shelfRepository.findAllWithBookCount(userId);
+  }
+
+  /**
+   * Get all shelves with book counts and cover IDs
+   */
+  async getAllShelvesWithBookCountAndCovers(userId: number | null = null): Promise<ShelfWithBookCountAndCovers[]> {
+    logger.debug({ userId }, "Fetching all shelves with book counts and covers");
+    return shelfRepository.findAllWithBookCountAndCovers(userId);
   }
 
   /**

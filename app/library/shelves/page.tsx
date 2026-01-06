@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Library } from "lucide-react";
-import { useShelfManagement, type ShelfWithBookCount } from "@/hooks/useShelfManagement";
+import { useShelfManagement, type ShelfWithBookCountAndCovers } from "@/hooks/useShelfManagement";
 import { ShelfItem, ShelfItemSkeleton } from "@/components/ShelfManagement/ShelfItem";
 import { CreateShelfModal } from "@/components/ShelfManagement/CreateShelfModal";
 import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
@@ -20,8 +20,8 @@ export default function ShelvesPage() {
   } = useShelfManagement();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingShelf, setEditingShelf] = useState<ShelfWithBookCount | null>(null);
-  const [deletingShelf, setDeletingShelf] = useState<ShelfWithBookCount | null>(null);
+  const [editingShelf, setEditingShelf] = useState<ShelfWithBookCountAndCovers | null>(null);
+  const [deletingShelf, setDeletingShelf] = useState<ShelfWithBookCountAndCovers | null>(null);
 
   // Delete loading
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -46,7 +46,7 @@ export default function ShelvesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="space-y-10">
       <PageHeader
         title="My Shelves"
         subtitle="Organize your books into custom collections"
@@ -62,7 +62,7 @@ export default function ShelvesPage() {
         }
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div>
         {/* Empty State */}
         {!loading && shelves.length === 0 && (
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-16 text-center rounded-lg">
@@ -85,8 +85,8 @@ export default function ShelvesPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
               <ShelfItemSkeleton key={i} />
             ))}
           </div>
@@ -94,7 +94,7 @@ export default function ShelvesPage() {
 
         {/* Shelves Grid */}
         {!loading && shelves.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {shelves.map((shelf) => (
               <ShelfItem
                 key={shelf.id}
