@@ -96,7 +96,7 @@ Contributions are welcome! Before contributing, please:
 1. Read the [Architecture Documentation](./docs/ARCHITECTURE.md) to understand the system design
 2. Review the [Constitution](./.specify/memory/constitution.md) for project principles
 3. Check the [Testing Guide](./__tests__/README.md) for testing best practices
-4. Ensure all tests pass: `bun test`
+4. Ensure all tests pass: `npm test`
 
 ## License
 
