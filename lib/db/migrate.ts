@@ -1,14 +1,4 @@
-import { detectRuntime } from "./factory";
-
-// Dynamically import the correct migrator based on runtime
-function getMigrator() {
-  const runtime = detectRuntime();
-  if (runtime === 'bun') {
-    return require("drizzle-orm/bun-sqlite/migrator");
-  } else {
-    return require("drizzle-orm/better-sqlite3/migrator");
-  }
-}
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db, sqlite } from "./sqlite";
 import {
   acquireMigrationLock,
@@ -16,7 +6,8 @@ import {
   setupLockCleanup,
 } from "./migration-lock";
 import { validatePreflightChecks } from "./preflight-checks";
-import { readdirSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
+import { join } from "path";
 import { getLogger } from "@/lib/logger";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
@@ -70,8 +61,7 @@ export function runMigrations() {
     // Drizzle's migrate() function will handle the actual detection and execution.
     getLoggerSafe().info("Checking for pending migrations...");
     
-    // Pass the Drizzle database instance (which contains dialect and session)
-    const { migrate } = getMigrator();
+    // Run migrations using better-sqlite3 migrator
     migrate(db, { migrationsFolder: "./drizzle" });
     getLoggerSafe().info("Migrations complete!");
   } finally {
@@ -88,38 +78,27 @@ export function runMigrationsOnDatabase(database: any) {
 
   // For better-sqlite3, we need to manually handle statement breakpoints
   // because its prepare() doesn't support multiple statements
-  const runtime = detectRuntime();
-  if (runtime === 'node') {
-    // Manual migration for better-sqlite3
-    const { readdirSync, readFileSync } = require('fs');
-    const { join } = require('path');
+  const migrationsPath = join(process.cwd(), 'drizzle');
+  const migrationFiles = readdirSync(migrationsPath)
+    .filter((file: string) => file.endsWith('.sql'))
+    .sort();
 
-    const migrationsPath = join(process.cwd(), 'drizzle');
-    const migrationFiles = readdirSync(migrationsPath)
-      .filter((file: string) => file.endsWith('.sql'))
-      .sort();
+  // Get the raw SQLite instance
+  const sqlite = database.$client;
 
-    // Get the raw SQLite instance
-    const sqlite = database.$client;
+  for (const file of migrationFiles) {
+    const sql = readFileSync(join(migrationsPath, file), 'utf-8');
+    // Split by statement breakpoint and execute each statement
+    const statements = sql
+      .split('--> statement-breakpoint')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
 
-    for (const file of migrationFiles) {
-      const sql = readFileSync(join(migrationsPath, file), 'utf-8');
-      // Split by statement breakpoint and execute each statement
-      const statements = sql
-        .split('--> statement-breakpoint')
-        .map((s: string) => s.trim())
-        .filter((s: string) => s.length > 0);
-
-      for (const statement of statements) {
-        if (statement.trim()) {
-          sqlite.exec(statement);
-        }
+    for (const statement of statements) {
+      if (statement.trim()) {
+        sqlite.exec(statement);
       }
     }
-  } else {
-    // Use Drizzle migrator for Bun
-    const { migrate } = getMigrator();
-    migrate(database, { migrationsFolder: "./drizzle" });
   }
 
   getLoggerSafe().info("Test migrations complete!");

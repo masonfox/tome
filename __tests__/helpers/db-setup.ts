@@ -40,13 +40,8 @@ export async function setupTestDatabase(testFilePath: string): Promise<TestDatab
     foreignKeys: true,
   });
 
-  // Set synchronous mode for test stability
-  const runtime = typeof Bun !== 'undefined' ? 'bun' : 'node';
-  if (runtime === 'bun') {
-    testSqlite.exec("PRAGMA synchronous = FULL");
-  } else {
-    testSqlite.pragma("synchronous = FULL");
-  }
+  // Set synchronous mode for test stability (better-sqlite3)
+  testSqlite.pragma("synchronous = FULL");
 
   const instance: TestDatabaseInstance = {
     db: testDb,

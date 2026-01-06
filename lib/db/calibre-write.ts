@@ -78,7 +78,7 @@ export function getCalibreWriteDB(): SQLiteDatabase {
         foreignKeys: false, // Calibre DB manages its own schema
         wal: false, // Don't modify journal mode on Calibre DB
       });
-      getLoggerSafe().debug(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
+      getLoggerSafe().debug('Calibre Write DB: Using better-sqlite3 - WRITE ENABLED');
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }

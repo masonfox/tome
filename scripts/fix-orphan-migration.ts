@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Fix orphaned migration entry in __drizzle_migrations table
  * 
@@ -6,23 +6,23 @@
  * This can happen when migrations are regenerated or deleted after being applied.
  */
 
-import { Database } from "bun:sqlite";
-import { readdirSync } from "fs";
+import Database from "better-sqlite3";
+import { readdirSync, readFileSync } from "fs";
 import { createHash } from "crypto";
+import * as readline from "readline";
 
 const DB_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 const MIGRATIONS_DIR = "./drizzle";
 
 // Get hashes of all SQL files
-async function getFileMigrationHashes(): Promise<Set<string>> {
+function getFileMigrationHashes(): Set<string> {
   const hashes = new Set<string>();
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((file) => file.endsWith(".sql"))
     .sort();
 
   for (const file of files) {
-    const content = Bun.file(`${MIGRATIONS_DIR}/${file}`);
-    const text = await content.text();
+    const text = readFileSync(`${MIGRATIONS_DIR}/${file}`, 'utf-8');
     const hash = createHash("sha256").update(text).digest("hex");
     hashes.add(hash);
   }
@@ -30,11 +30,25 @@ async function getFileMigrationHashes(): Promise<Set<string>> {
   return hashes;
 }
 
+async function promptUser(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
 async function main() {
   console.log("🔍 Checking for orphaned migrations...\n");
 
   const db = new Database(DB_PATH);
-  const fileHashes = await getFileMigrationHashes();
+  const fileHashes = getFileMigrationHashes();
 
   console.log(`Found ${fileHashes.size} migration files`);
 
@@ -68,7 +82,7 @@ async function main() {
   console.log("This will DELETE the orphaned migration entries from the database.");
   console.log("The actual database schema will NOT be affected.\n");
 
-  const response = prompt("Continue? (yes/no): ");
+  const response = await promptUser("Continue? (yes/no): ");
   if (response?.toLowerCase() !== "yes") {
     console.log("\n❌ Cancelled");
     db.close();
