@@ -1,7 +1,7 @@
 # Tome Testing Guidelines
 
-**Version**: 1.0.0  
-**Last Updated**: 2025-11-26  
+**Version**: 2.0.0  
+**Last Updated**: 2025-01-05  
 **Status**: Active
 
 > This document defines testing standards for the Tome project, aligned with the Constitution's principle of "Trust but Verify."
@@ -11,13 +11,15 @@
 ## Table of Contents
 
 1. [Philosophy](#philosophy)
-2. [Test Structure](#test-structure)
-3. [Naming Conventions](#naming-conventions)
-4. [Writing Tests](#writing-tests)
-5. [Test Types](#test-types)
-6. [Best Practices](#best-practices)
-7. [Common Patterns](#common-patterns)
-8. [Troubleshooting](#troubleshooting)
+2. [Test Environment Setup](#test-environment-setup)
+3. [Test Structure](#test-structure)
+4. [Naming Conventions](#naming-conventions)
+5. [Writing Tests](#writing-tests)
+6. [Test Types](#test-types)
+7. [Best Practices](#best-practices)
+8. [Common Patterns](#common-patterns)
+9. [Vitest-Specific Patterns](#vitest-specific-patterns)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -67,6 +69,67 @@ Tome's testing philosophy derives from the Constitution:
 - Configuration files
 - Simple pass-through functions
 - Third-party library functionality
+
+---
+
+## Test Environment Setup
+
+### Critical: Timezone Configuration
+
+**All tests MUST run with `TZ=UTC` to ensure consistent date/time behavior across environments.**
+
+#### Why TZ=UTC is Required
+
+Many tests involve date and time operations (reading sessions, streaks, journal entries, progress tracking). Without `TZ=UTC`, tests will run in your local timezone, causing:
+
+1. **Flaky tests** - Pass on one machine but fail on another
+2. **Date boundary issues** - A timestamp like `2024-01-05T23:00:00` is Jan 5 in UTC but Jan 6 in Tokyo
+3. **Inconsistent test data** - Test fixtures assume UTC, but comparisons use local time
+
+#### Example Failure Without UTC
+
+```bash
+# Running without TZ=UTC
+$ NODE_ENV=test bunx vitest run __tests__/api/session-edit.test.ts
+# ❌ FAIL: expected '2025-11-04' to be '2025-11-05'
+# 9 tests failed due to timezone mismatch
+
+# Running with TZ=UTC
+$ TZ=UTC NODE_ENV=test bunx vitest run __tests__/api/session-edit.test.ts
+# ✅ PASS: All 28 tests passed
+```
+
+#### How to Run Tests
+
+**Recommended: Use npm scripts** (automatically sets TZ=UTC)
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+```
+
+**Manual execution:**
+```bash
+TZ=UTC NODE_ENV=test bunx vitest run                    # All tests
+TZ=UTC NODE_ENV=test bunx vitest run path/to/test.ts   # Specific file
+TZ=UTC NODE_ENV=test bunx vitest                        # Watch mode
+```
+
+**⚠️ Warning**: Omitting `TZ=UTC` will cause date-related tests to fail intermittently depending on your system timezone.
+
+### Test Framework: Vitest
+
+Tome uses [Vitest](https://vitest.dev/) as its test runner, chosen for:
+- **Fast**: Native ESM support, parallel execution
+- **Compatible**: Jest-like API, works with existing test patterns
+- **Cross-platform**: Runs in both Bun and Node.js environments
+- **Better tooling**: Built-in coverage, watch mode, UI
+
+### Database: better-sqlite3
+
+For SQLite operations in tests, we use [better-sqlite3](https://github.com/WiseLibs/better-sqlite3):
+- **Cross-platform**: Works in Node.js and Bun
+- **Synchronous API**: Simpler test code, no await overhead for DB operations
+- **Compatible**: Similar API to bun:sqlite for easy migration
 
 ---
 
@@ -175,7 +238,7 @@ describe("updateStatus", () => {
 ### Test Structure Template
 
 ```typescript
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 describe("Feature Name", () => {
@@ -309,14 +372,21 @@ describe("Streak Calculations", () => {
 
 **Example**:
 ```typescript
+import { vi } from "vitest";
+
 describe("useBookDetail", () => {
+  const originalFetch = global.fetch;
+  
   beforeEach(() => {
-    global.fetch = mock(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({ id: 123, title: "Test" }),
-    }));
+    })) as any;
   });
-  afterEach(() => { global.fetch = originalFetch; });
+  
+  afterEach(() => { 
+    global.fetch = originalFetch; 
+  });
 
   test("should fetch book data on mount", async () => {
     const { result } = renderHook(() => useBookDetail("123"));
@@ -336,7 +406,9 @@ describe("useBookDetail", () => {
 
 **Example**:
 ```typescript
-mock.module("next/image", () => ({
+import { vi } from "vitest";
+
+vi.mock("next/image", () => ({
   default: ({ alt, ...props }: any) => <img alt={alt} {...props} />
 }));
 
@@ -383,7 +455,7 @@ describe("BookHeader", () => {
 When testing code that interacts with external dependencies (file systems, external databases, third-party APIs), use a **service layer abstraction** to enable clean mocking at integration boundaries while keeping unit tests pure.
 
 This pattern solves two problems:
-1. **Avoids `mock.module()` pollution** - Mocking implementation modules can leak to other tests
+1. **Avoids module mock pollution** - Mocking implementation modules can leak to other tests
 2. **Enables dependency injection** - Services can accept mock implementations for testing
 
 ### Architecture
@@ -521,12 +593,14 @@ describe("Calibre Write Operations", () => {
 ```typescript
 // __tests__/api/rating.test.ts
 
-import { mock } from "bun:test";
+import { vi } from "vitest";
 
 // Mock the service layer (not the implementation)
-let mockUpdateRating = mock(() => {});
+const { mockUpdateRating } = vi.hoisted(() => ({
+  mockUpdateRating: vi.fn(),
+}));
 
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: (calibreId: number, rating: number | null) => {
       mockUpdateRating(calibreId, rating);
@@ -576,7 +650,7 @@ test("should update book rating and sync to Calibre", async () => {
 
 ### Real-World Example: Calibre Integration
 
-**Problem**: Tests for `calibre-write` module were being polluted by `mock.module()` calls in API tests.
+**Problem**: Tests for `calibre-write` module were being polluted by module mocks in API tests.
 
 **Solution**: 
 1. Created `CalibreService` to wrap `calibre-write` functions
@@ -711,100 +785,180 @@ This pattern uses two complementary approaches:
 
 ---
 
-## Troubleshooting
+## Vitest-Specific Patterns
 
-### Problem: Tests fail in CI but pass locally (Bun Module Caching Bug)
+### Mock Hoisting with vi.hoisted()
 
-**Symptoms**:
-- Tests pass 100% locally
-- Tests fail in CI after 40+ serial test runs
-- Functions return `undefined` or use stale implementations
-- Dynamic `await import()` doesn't help
+**Problem**: Variables referenced in `vi.mock()` factory functions must be hoisted to module scope.
 
-**Cause**: Bun's transpiler cache returns stale/cached versions of ES6 module exports after many serial test runs in CI environments. This affects direct function imports from library modules.
+**Solution**: Use `vi.hoisted()` to create variables accessible in mock factories:
+
+```typescript
+import { vi } from "vitest";
+
+// ✅ CORRECT: Use vi.hoisted() for shared mock state
+const { mockCalibres, resetMockCalibres } = vi.hoisted(() => {
+  const calls: Array<{ id: number; rating: number }> = [];
+  return {
+    mockCalibres: calls,
+    resetMockCalibres: () => calls.splice(0, calls.length),
+  };
+});
+
+vi.mock("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: (id: number, rating: number) => {
+      mockCalibres.push({ id, rating }); // Now accessible!
+    },
+  },
+}));
+
+// Import AFTER mock is defined
+import { updateBookRating } from "@/lib/services/book.service";
+
+describe("Book Rating", () => {
+  beforeEach(() => {
+    resetMockCalibres();
+  });
+
+  test("should sync rating to Calibre", async () => {
+    await updateBookRating(1, 5);
+    expect(mockCalibres).toHaveLength(1);
+    expect(mockCalibres[0]).toEqual({ id: 1, rating: 5 });
+  });
+});
+```
+
+**Key Points**:
+- `vi.hoisted()` ensures variables are available during mock factory execution
+- Must be called before `vi.mock()`
+- Returns the values that will be accessible in the mock
+
+### better-sqlite3 API Differences
+
+When working with SQLite in tests, use `better-sqlite3` (cross-platform) instead of `bun:sqlite`:
+
+| Operation | better-sqlite3 | Notes |
+|-----------|----------------|-------|
+| **Import** | `import Database from "better-sqlite3"` | Default export |
+| **Type** | `Database.Database` | Namespace type |
+| **DDL statements** | `db.exec(sql)` | For CREATE, ALTER, etc. |
+| **Prepared statements** | `db.prepare(sql).run()` | ✅ Same API |
+| **No results** | Returns `undefined` | Use `toBeFalsy()` in assertions |
+| **Readonly mode** | `new Database(path, { readonly: true })` | ✅ Same API |
 
 **Example**:
 ```typescript
-// ❌ PROBLEMATIC: Direct function import (can be cached)
-import { rebuildStreak, updateStreaks } from "@/lib/streaks";
+import Database from "better-sqlite3";
 
-// In CI after 40+ tests:
-const result = await rebuildStreak(); // Returns undefined (stale version)
+describe("Calibre Integration", () => {
+  let testDb: Database.Database;
+
+  beforeAll(() => {
+    testDb = new Database(":memory:");
+    
+    // DDL: Use exec()
+    testDb.exec(`CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT)`);
+    
+    // DML: Use prepare().run()
+    testDb.prepare("INSERT INTO books (id, title) VALUES (?, ?)").run(1, "Test");
+  });
+
+  test("should query book", () => {
+    const book = testDb.prepare("SELECT * FROM books WHERE id = ?").get(1);
+    expect(book).toBeDefined();
+    
+    // No result returns undefined (not null)
+    const missing = testDb.prepare("SELECT * FROM books WHERE id = ?").get(999);
+    expect(missing).toBeFalsy(); // Works for both null and undefined
+  });
+});
 ```
 
-**Solution**: Use service layer pattern with inline implementations
+### Async Test Patterns
 
-**Step 1**: Create service class with inline method implementations
+**Waiting for state changes:**
 ```typescript
-// lib/services/streak.service.ts
-export class StreakService {
-  /**
-   * Rebuild streak from all progress data
-   * Inline implementation to avoid Bun module caching issues in tests
-   */
-  async rebuildStreak(userId: number | null = null): Promise<Streak> {
-    // Full implementation here (not delegating to another module)
-    const existingStreak = await streakRepository.findByUserId(userId);
-    const allProgress = await progressRepository.getAllProgressOrdered();
-    // ... rest of implementation
-  }
-}
+import { waitFor } from "@testing-library/react";
 
-export const streakService = new StreakService();
+test("should update after async operation", async () => {
+  const { result } = renderHook(() => useBookDetail("123"));
+  
+  // Wait for loading to finish
+  await waitFor(() => {
+    expect(result.current.loading).toBe(false);
+  });
+  
+  expect(result.current.data).toBeDefined();
+});
 ```
 
-**Step 2**: Update tests to use service layer
+**Testing error states:**
 ```typescript
-// ❌ Before (direct import - susceptible to caching)
-import { rebuildStreak } from "@/lib/streaks";
-await rebuildStreak();
-
-// ✅ After (service layer - cache-immune)
-import { streakService } from "@/lib/services/streak.service";
-await streakService.rebuildStreak();
+test("should handle fetch errors", async () => {
+  global.fetch = vi.fn(() => Promise.reject(new Error("Network error")));
+  
+  const { result } = renderHook(() => useBookDetail("123"));
+  
+  await waitFor(() => {
+    expect(result.current.error).toBeDefined();
+  });
+  
+  expect(result.current.error?.message).toBe("Network error");
+});
 ```
 
-**Why this works**:
-- Class methods are not affected by ES6 module caching
-- Test imports service once at start (method is "live")
-- Methods execute current code, not cached transpiled versions
-- Complete isolation from Bun's module cache
+### Environment Variables in Tests
 
-**When to apply this pattern**:
-- Functions that are called in many tests (40+ cumulative calls)
-- Functions that fail in CI but work locally
-- Functions that return `undefined` in CI
-- Integration/unit tests that run after many other tests
-
-**Reference**: See `docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md` for full investigation details and the 7-phase debugging process that led to this solution.
-
-**Alternative Solution**: Import service layer instead of direct functions
-
-For functions where inlining is not practical, use service layer imports instead of direct function imports:
-
+**Setting environment variables:**
 ```typescript
-// ❌ PROBLEMATIC: Direct function import
-import { rebuildStreak } from "@/lib/streaks";
-await rebuildStreak();
+describe("Environment Config", () => {
+  const originalEnv = process.env.CALIBRE_DB_PATH;
 
-// ✅ SOLUTION: Service layer import (bypasses module cache)
-import { streakService } from "@/lib/services/streak.service";
-await streakService.rebuildStreak();
+  beforeAll(() => {
+    process.env.CALIBRE_DB_PATH = "/test/path/metadata.db";
+  });
+
+  afterAll(() => {
+    if (originalEnv) {
+      process.env.CALIBRE_DB_PATH = originalEnv;
+    } else {
+      delete process.env.CALIBRE_DB_PATH;
+    }
+  });
+
+  test("should use test database path", () => {
+    expect(process.env.CALIBRE_DB_PATH).toBe("/test/path/metadata.db");
+  });
+});
 ```
 
-This works because:
-- Service layer is imported once, class methods remain "live"
-- Methods bypass ES6 module export caching
-- No need to inline entire implementation
-- Original library functions remain unchanged
+### Spy vs Mock vs Stub
 
-**Real-world example**:
-After 40+ tests in CI, `ProgressService.updateStreakSystem()` was calling `rebuildStreak()` which returned `undefined` due to stale cached exports. Changing to `streakService.rebuildStreak()` resolved all 4 failing tests.
+**Spy** - Track calls to real function:
+```typescript
+const spy = vi.spyOn(bookRepository, 'findById');
+await bookService.getBook(123);
+expect(spy).toHaveBeenCalledWith(123);
+spy.mockRestore(); // Restore original
+```
 
-**Related commits**:
-- `cd0c6b6` - Fix CI test failures by using StreakService instead of direct rebuildStreak import
-- `4910da0` - Fix Bun module caching by inlining rebuildStreak in StreakService
-- `d7a72ce` - Add updateStreaks and getStreakBasic to service layer for cache isolation
+**Mock** - Replace entire module:
+```typescript
+vi.mock("@/lib/db/calibre", () => ({
+  getCalibreDB: vi.fn(() => mockDb),
+}));
+```
+
+**Stub** - Replace function implementation:
+```typescript
+const stub = vi.fn(() => ({ id: 1, title: "Test" }));
+bookRepository.findById = stub;
+```
+
+---
+
+## Troubleshooting
 
 ---
 
@@ -841,7 +995,7 @@ import { bookRepository } from "@/lib/repositories";
 
 ### Problem: Mocks leak between test files
 
-**Cause**: Using `mock.module()` which is global and permanent in Bun
+**Cause**: Using `vi.mock()` without proper hoisting or cleanup
 
 **Symptoms**:
 - Test file A mocks a module, but Test file B (which doesn't mock) is affected
@@ -857,9 +1011,11 @@ Create a service layer to wrap external dependencies, then mock the service inst
 ```typescript
 // ✅ Good - Mock service layer (CalibreService pattern)
 // __tests__/api/rating.test.ts
-mock.module("@/lib/services/calibre.service", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
-    updateRating: mock(() => {}),
+    updateRating: vi.fn(() => {}),
   },
 }));
 
@@ -879,7 +1035,24 @@ import { updateCalibreRating } from "@/lib/db/calibre-write";
 - API tests mock `CalibreService` (no leakage to implementation tests)
 - Unit tests test `calibre-write` directly with test database
 
-#### 2. Use Dependency Injection
+#### 2. Use vi.hoisted() for Module-Level Variables
+
+```typescript
+// ✅ Correct: Use vi.hoisted() for shared mock state
+const { mockData } = vi.hoisted(() => {
+  return {
+    mockData: { id: 1, title: "Test" }
+  };
+});
+
+vi.mock("@/lib/services/book.service", () => ({
+  bookService: {
+    getBook: vi.fn(() => mockData),
+  },
+}));
+```
+
+#### 3. Use Dependency Injection
 
 ```typescript
 // Production code accepts optional dependencies
@@ -893,11 +1066,11 @@ export class BookService {
 }
 
 // Tests inject mocks
-const mockCalibre = { updateRating: mock(() => {}) };
+const mockCalibre = { updateRating: vi.fn(() => {}) };
 const bookService = new BookService(mockCalibre);
 ```
 
-#### 3. Add Test-Specific Behavior in Production Code
+#### 4. Add Test-Specific Behavior in Production Code
 
 ```typescript
 // lib/db/calibre-write.ts
@@ -909,28 +1082,27 @@ function getLoggerSafe() {
 }
 ```
 
-#### 4. Control Test Execution Order (Last Resort)
-
-If you must use `mock.module()`:
-- Tests that DON'T mock should run first (prefix with `000-`)
-- Tests that DO mock run later (their mocks won't affect earlier tests)
-- Example: `__tests__/000-calibre-write.test.ts` runs before API tests
-- Always run tests serially (`concurrency = 1` in bunfig.toml)
-
-**⚠️ Warning**: This is fragile and should be avoided. Use service layer pattern instead.
-
 **Related sections:**
 - See "Service Layer Testing Pattern" for architecture details
 - See Pattern 6 for testing external dependencies examples
+- See "Vitest-Specific Patterns" for vi.hoisted() usage
 
 ### Problem: Component tests fail with "ReferenceError: document is not defined"
 
 **Cause**: Missing test setup for DOM environment
 
-**Solution**: Ensure `test-setup.ts` is configured in `bunfig.toml`:
-```toml
-[test]
-preload = ["./test-setup.ts"]
+**Solution**: Ensure `test-setup.ts` is configured in `vitest.config.ts`:
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    setupFiles: ['./test-setup.ts'],
+    environment: 'jsdom',
+    globals: true,
+  },
+});
 ```
 
 ### Problem: Async tests timeout
@@ -987,7 +1159,7 @@ function createTestBook(overrides?: Partial<NewBook>): NewBook {
 ### Test File Template
 
 ```typescript
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 describe("Feature Name", () => {
@@ -1015,7 +1187,7 @@ describe("Feature Name", () => {
 
 ```typescript
 // Test framework
-import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 
 // Database helpers
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -1035,26 +1207,48 @@ import "@testing-library/jest-dom";
 ### Useful Commands
 
 ```bash
-# Run all tests
-bun test
+# Run all tests (automatically sets TZ=UTC via package.json script)
+npm test
 
 # Run tests in watch mode
-bun test --watch
+npm run test:watch
 
 # Run specific test file
-bun test __tests__/api/books.test.ts
+TZ=UTC NODE_ENV=test bunx vitest run __tests__/api/books.test.ts
 
 # Run tests matching pattern
-bun test --grep "should filter books"
+TZ=UTC NODE_ENV=test bunx vitest run -t "should filter books"
 
-# Run with coverage (if configured)
-bun test --coverage
+# Run with UI
+TZ=UTC NODE_ENV=test bunx vitest --ui
+
+# Run with coverage
+npm run test:coverage
+
+# Debug a specific test
+TZ=UTC NODE_ENV=test bunx vitest run __tests__/api/books.test.ts --reporter=verbose
 ```
 
 ---
 
 ## Version History
 
+- **2.0.0** (2025-01-05): Vitest migration
+  - Migrated from Bun Test to Vitest test runner
+  - Added TZ=UTC environment requirement and explanation in "Test Environment Setup" section
+  - Updated all code examples to use Vitest syntax (`vi.mock`, `vi.hoisted`, `vi.fn`)
+  - Replaced `bun:sqlite` with `better-sqlite3` in examples and actual tests
+  - Added comprehensive "Vitest-Specific Patterns" section covering:
+    - Mock hoisting with `vi.hoisted()`
+    - better-sqlite3 API differences table
+    - Async test patterns with `waitFor()`
+    - Environment variable handling
+    - Spy vs Mock vs Stub patterns
+  - Removed Bun-specific troubleshooting (module caching issue - lines 961-1053)
+  - Updated test commands to use npm scripts with automatic TZ=UTC handling
+  - Updated test setup references from `bunfig.toml` to `vitest.config.ts`
+  - Updated mock leakage troubleshooting with `vi.hoisted()` patterns
+  - All 103 test files passing in Vitest with cross-platform compatibility
 - **1.2.0** (2025-12-28): Optimized for AI consumption (19% reduction)
   - Condensed Pattern 6 to cross-reference Service Layer section (removed 140 lines of duplication)
   - Consolidated test structure templates into single authoritative template (removed 90 lines)
