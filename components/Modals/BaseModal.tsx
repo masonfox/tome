@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/Utilities/Spinner";
 
 interface BaseModalProps {
   isOpen: boolean;

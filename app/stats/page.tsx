@@ -1,6 +1,6 @@
 "use client";
 
-import { StatsCard } from "@/components/ui/StatsCard";
+import { StatsCard } from "@/components/Utilities/StatsCard";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import {
   BookOpen,

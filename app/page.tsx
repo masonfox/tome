@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
-import { StatsCard } from "@/components/ui/StatsCard";
+import { StatsCard } from "@/components/Utilities/StatsCard";
 import { StreakDisplay } from "@/components/Streaks/StreakDisplay";
 import { BookCard } from "@/components/Books/BookCard";
 import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";

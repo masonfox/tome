@@ -28,7 +28,7 @@ import { useBookProgress } from "@/hooks/useBookProgress";
 import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
-import { Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/Utilities/Spinner";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
