@@ -1,10 +1,10 @@
-import { test, expect, describe, afterEach, beforeEach, mock } from "bun:test";
+import { test, expect, describe, afterEach, beforeEach, mock } from 'vitest';
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 
 // Mock @mdxeditor/editor before importing the component
-const mockOnChange = mock(() => {});
+const mockOnChange = vi.fn(() => {});
 const capturedPlugins: any[] = [];
 let capturedToolbarContents: (() => JSX.Element) | null = null;
 
@@ -105,7 +105,7 @@ const mockToolbarPlugin = (config: any) => {
 };
 
 // Mock @mdxeditor/editor module
-mock.module("@mdxeditor/editor", () => ({
+vi.mock("@mdxeditor/editor", () => ({
   MDXEditor: MockMDXEditor,
   ButtonWithTooltip: MockButtonWithTooltip,
   UndoRedo: MockUndoRedo,
@@ -126,7 +126,7 @@ mock.module("@mdxeditor/editor", () => ({
 }));
 
 // Mock lucide-react
-mock.module("lucide-react", () => ({
+vi.mock("lucide-react", () => ({
   Maximize2: MockMaximize2,
   Minimize2: MockMinimize2,
 }));
@@ -134,7 +134,7 @@ mock.module("lucide-react", () => ({
 // Use shared mock to avoid conflicts with other test files
 import { MarkdownEditorMock } from "../mocks/createMarkdownEditorMock";
 
-mock.module("@/components/MarkdownEditor", () => ({
+vi.mock("@/components/MarkdownEditor", () => ({
   default: MarkdownEditorMock
 }));
 
@@ -476,7 +476,7 @@ describe("MarkdownEditor", () => {
     test("should handle onChange callback correctly", () => {
       const MarkdownEditor = require("@/components/MarkdownEditor").default;
       
-      const customOnChange = mock(() => {});
+      const customOnChange = vi.fn(() => {});
       
       render(
         <MarkdownEditor
@@ -495,7 +495,7 @@ describe("MarkdownEditor", () => {
     test("should not break when onChange is called multiple times", () => {
       const MarkdownEditor = require("@/components/MarkdownEditor").default;
       
-      const customOnChange = mock(() => {});
+      const customOnChange = vi.fn(() => {});
       
       render(
         <MarkdownEditor
@@ -517,7 +517,7 @@ describe("MarkdownEditor", () => {
     test("should integrate with form submission", () => {
       const MarkdownEditor = require("@/components/MarkdownEditor").default;
       
-      const handleSubmit = mock((e: any) => {
+      const handleSubmit = vi.fn((e: any) => {
         e.preventDefault();
       });
       
@@ -580,7 +580,7 @@ describe("MarkdownEditor", () => {
     test("should not re-render unnecessarily with same props", () => {
       const MarkdownEditor = require("@/components/MarkdownEditor").default;
       
-      const renderSpy = mock(() => {});
+      const renderSpy = vi.fn(() => {});
       
       const { rerender } = render(
         <MarkdownEditor
@@ -605,7 +605,7 @@ describe("MarkdownEditor", () => {
     test("should handle multiple onChange calls without errors", () => {
       const MarkdownEditor = require("@/components/MarkdownEditor").default;
       
-      const customOnChange = mock(() => {});
+      const customOnChange = vi.fn(() => {});
       
       render(
         <MarkdownEditor

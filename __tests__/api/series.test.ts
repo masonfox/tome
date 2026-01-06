@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { seriesService } from "@/lib/services/series.service";

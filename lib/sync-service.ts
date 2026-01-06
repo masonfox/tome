@@ -95,7 +95,7 @@ export async function syncCalibreLibrary(
 
   isSyncing = true;
   const startTime = Date.now();
-  const { getLogger } = require("@/lib/logger");
+  const { getLogger } = require("./logger");
   const logger = getLogger();
 
   try {
@@ -399,7 +399,7 @@ export async function syncCalibreLibrary(
       orphanedBooks: orphanedBooks.length > 0 ? orphanedBooks : undefined,
     };
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("./logger");
     getLogger().error({ err: error }, "[Sync] Error: Calibre sync failed");
     return {
       success: false,

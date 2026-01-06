@@ -206,7 +206,7 @@ export class BookService {
       await this.syncRatingToCalibre(book.calibreId, rating);
     } catch (error) {
       // Log error but continue - rating will be out of sync until next Calibre sync
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().error({ err: error }, `[BookService] Failed to sync rating to Calibre for book ${bookId}`);
     }
 
@@ -253,10 +253,10 @@ export class BookService {
   private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
     try {
       this.getCalibreService().updateRating(calibreId, rating);
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().error({ err: error, calibreId }, `[BookService] Failed to sync rating to Calibre`);
       throw error;
     }

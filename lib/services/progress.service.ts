@@ -213,7 +213,7 @@ export class ProgressService {
     let completedSessionId: number | undefined;
     if (shouldShowCompletionModal) {
       // Auto-complete the book with the progress date as the completion date
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       const logger = getLogger();
       logger.info({ bookId, progressDate: requestedDate }, 'Auto-completing book at 100% progress');
 
@@ -455,7 +455,7 @@ export class ProgressService {
    */
   private async updateStreakSystem(): Promise<void> {
     try {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       const logger = getLogger();
       logger.info("[ProgressService] Rebuilding streak after progress log change");
       const updatedStreak = await streakService.rebuildStreak();
@@ -465,7 +465,7 @@ export class ProgressService {
         totalDaysActive: updatedStreak.totalDaysActive,
       });
     } catch (streakError) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().error({ err: streakError }, "[ProgressService] Failed to rebuild streak");
       // Don't fail the entire request if streak rebuild fails
     }
@@ -484,7 +484,7 @@ export class ProgressService {
       revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
-            const { getLogger } = require("@/lib/logger");
+            const { getLogger } = require("../logger");
       getLogger().error({ err: error }, "[ProgressService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
     }

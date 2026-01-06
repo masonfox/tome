@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from "@testing-library/react";
 import { useDraftNote } from "@/hooks/useDraftNote";
 

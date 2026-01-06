@@ -106,7 +106,7 @@ export class SessionService {
       return await getCurrentDateInUserTimezone();
     } catch (error) {
       // Fallback to current UTC time if timezone conversion fails
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().warn({ err: error }, 'Failed to get current date in user timezone, using UTC');
       return new Date();
     }
@@ -257,7 +257,7 @@ export class SessionService {
 
     // If moving backward with progress, archive current session and create new one
     if (isBackwardMovement && hasProgress && readingSession) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().info(`[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`);
 
       // Get last progress date for completedDate (use last activity or current date)
@@ -429,7 +429,7 @@ export class SessionService {
    * // Now safe to log progress for this book
    */
   async ensureReadingStatus(bookId: number, tx?: any): Promise<ReadingSession> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Check if book already has reading status
@@ -469,7 +469,7 @@ export class SessionService {
    * // Book is now marked as "read" with 100% progress logged
    */
   async create100PercentProgress(bookId: number, totalPages: number, completedDate?: Date, tx?: any): Promise<void> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ bookId, totalPages, completedDate }, "Creating 100% progress entry");
@@ -506,7 +506,7 @@ export class SessionService {
    * // Rating removed
    */
   async updateBookRating(bookId: number, rating: number | null): Promise<void> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Verify book exists and get calibreId
@@ -545,7 +545,7 @@ export class SessionService {
    * console.log(session.review); // "Great book!"
    */
   async updateSessionReview(sessionId: number, review: string): Promise<ReadingSession> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     const session = await sessionRepository.findById(sessionId);
@@ -804,7 +804,7 @@ export class SessionService {
    */
   async markAsRead(params: MarkAsReadParams): Promise<MarkAsReadResult> {
     const { bookId, rating, review, completedDate } = params;
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ bookId, hasRating: !!rating, hasReview: !!review }, "Starting markAsRead workflow");
@@ -973,11 +973,11 @@ export class SessionService {
    */
   private async updateStreakSystem(): Promise<void> {
     try {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().info("[SessionService] Rebuilding streak after session change");
       await rebuildStreak();
     } catch (streakError) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().error({ err: streakError }, "[SessionService] Failed to rebuild streak");
       // Don't fail the request if streak rebuild fails
     }
@@ -996,7 +996,7 @@ export class SessionService {
       revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
+      const { getLogger } = require("../logger");
       getLogger().error({ err: error }, "[SessionService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
     }

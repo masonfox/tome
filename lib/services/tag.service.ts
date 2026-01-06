@@ -128,7 +128,7 @@ export class TagService {
       throw new Error("Tags must be an array");
     }
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ bookId, tags }, "[UPDATE_TAGS] Starting tag update operation");
@@ -185,7 +185,7 @@ export class TagService {
       throw new Error("Target tag cannot be empty");
     }
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ sourceTags, targetTag }, "[MERGE] Starting tag merge operation");
@@ -340,7 +340,7 @@ export class TagService {
       throw new Error("Old and new tag names must be different");
     }
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ oldName, newName }, "[RENAME] Starting tag rename operation");
@@ -475,7 +475,7 @@ export class TagService {
       throw new Error("Tag name cannot be empty");
     }
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ tagName }, "[DELETE] Starting tag deletion");
@@ -614,7 +614,7 @@ export class TagService {
       throw new Error("Tag names must be a non-empty array");
     }
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     logger.info({ tagNames, count: tagNames.length }, "[BULK_DELETE] Starting bulk tag deletion");
@@ -773,7 +773,7 @@ export class TagService {
       throw new Error("Action must be 'add' or 'remove'");
     }
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Bulk update in Tome database
@@ -817,7 +817,7 @@ export class TagService {
   private async batchSyncTagsToCalibre(books: Array<{ calibreId: number; tags: string[] }>): Promise<void> {
     if (books.length === 0) return;
 
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     try {
@@ -854,7 +854,7 @@ export class TagService {
     calculateCalibreUpdates: (books: Book[]) => Array<{ calibreId: number; tags: string[] }>,
     updateTomeDatabase: () => Promise<T>
   ): Promise<T> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Suspend the Calibre watcher during operation to prevent race conditions

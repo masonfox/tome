@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest, createTestBook, createTestSession } from "../fixtures/test-data";
@@ -9,7 +9,7 @@ import type { NextRequest } from "next/server";
  * The status API calls revalidatePath to update cached pages, but we don't need
  * to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
@@ -24,14 +24,14 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: (calibreId: number, rating: number | null) => {
       calibreRatingCalls.push({ calibreId, rating });
     },
-    updateTags: mock(() => {}),
-    readRating: mock(() => null),
-    readTags: mock(() => []),
+    updateTags: vi.fn(() => {}),
+    readRating: vi.fn(() => null),
+    readTags: vi.fn(() => []),
   },
   CalibreService: class {},
 }));
@@ -234,7 +234,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
 
     // Mock Calibre write to throw error
     let calibreSyncAttempted = false;
-    mock.module("@/lib/services/calibre.service", () => ({
+    vi.mock("@/lib/services/calibre.service", () => ({
       calibreService: {
         updateRating: (calibreId: number, rating: number | null) => {
           calibreSyncAttempted = true;

@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import CompleteBookModal from "@/components/CompleteBookModal";
@@ -26,12 +26,12 @@ import CompleteBookModal from "@/components/CompleteBookModal";
 // Use shared mock to avoid conflicts with other test files
 import { MarkdownEditorMock } from "../mocks/createMarkdownEditorMock";
 
-mock.module("@/components/MarkdownEditor", () => ({
+vi.mock("@/components/MarkdownEditor", () => ({
   default: MarkdownEditorMock
 }));
 
 // Mock lucide-react icons
-mock.module("lucide-react", () => ({
+vi.mock("lucide-react", () => ({
   Star: ({ className, onClick, onMouseEnter, onMouseLeave }: any) => (
     <span
       className={className}
@@ -52,8 +52,8 @@ mock.module("lucide-react", () => ({
 describe("CompleteBookModal", () => {
   const defaultProps = {
     isOpen: true,
-    onClose: mock(() => {}),
-    onConfirm: mock(() => Promise.resolve()),
+    onClose: vi.fn(() => {}),
+    onConfirm: vi.fn(() => Promise.resolve()),
     bookTitle: "Test Book",
     bookId: "123",
     currentPageCount: null,
@@ -239,7 +239,7 @@ describe("CompleteBookModal", () => {
     // The validation logic itself is sound (see CompleteBookModal.tsx lines 122-127)
     // and is covered by the integration tests which test the full workflow
     test.skip("should validate end date is not before start date", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const startDateInput = screen.getByLabelText("Start Date") as HTMLInputElement;
@@ -262,7 +262,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should allow same date for start and end", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const startDateInput = screen.getByLabelText("Start Date");
@@ -280,7 +280,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should accept valid page count", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={null} onConfirm={onConfirm} />);
       
       const pageInput = screen.getByLabelText("Total Pages");
@@ -381,7 +381,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should disable inputs during submission", async () => {
-      const onConfirm = mock(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const onConfirm = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
@@ -425,8 +425,8 @@ describe("CompleteBookModal", () => {
     test("should clear draft after successful submit", async () => {
       localStorage.setItem("draft-complete-review-123", "Draft to clear");
       
-      const onConfirm = mock(() => Promise.resolve());
-      const onClose = mock(() => {});
+      const onConfirm = vi.fn(() => Promise.resolve());
+      const onClose = vi.fn(() => {});
       
       render(<CompleteBookModal {...defaultProps} onConfirm={onConfirm} onClose={onClose} currentPageCount={350} />);
       
@@ -486,7 +486,7 @@ describe("CompleteBookModal", () => {
 
   describe("Form Submission", () => {
     test("should call onConfirm with complete data", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={null} onConfirm={onConfirm} />);
       
       // Fill out form
@@ -527,7 +527,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should include totalPages only when setting it", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
@@ -540,7 +540,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should include rating only when > 0", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       // Don't select any rating
@@ -554,7 +554,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should include review only when not empty", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       // Leave review empty
@@ -568,7 +568,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should disable submit during submission", async () => {
-      const onConfirm = mock(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const onConfirm = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
@@ -579,8 +579,8 @@ describe("CompleteBookModal", () => {
     });
 
     test("should close modal after successful submission", async () => {
-      const onConfirm = mock(() => Promise.resolve());
-      const onClose = mock(() => {});
+      const onConfirm = vi.fn(() => Promise.resolve());
+      const onClose = vi.fn(() => {});
       
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} onClose={onClose} />);
       
@@ -593,8 +593,8 @@ describe("CompleteBookModal", () => {
     });
 
     test("should not close modal on submission error", async () => {
-      const onConfirm = mock(() => Promise.reject(new Error("Submission failed")));
-      const onClose = mock(() => {});
+      const onConfirm = vi.fn(() => Promise.reject(new Error("Submission failed")));
+      const onClose = vi.fn(() => {});
       
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} onClose={onClose} />);
       
@@ -617,7 +617,7 @@ describe("CompleteBookModal", () => {
 
   describe("Cancel and Close Behavior", () => {
     test("should call onClose when Cancel clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       render(<CompleteBookModal {...defaultProps} onClose={onClose} />);
       
       const cancelButton = screen.getByText("Cancel");
@@ -627,7 +627,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should reset form state on close", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       render(<CompleteBookModal {...defaultProps} currentPageCount={null} onClose={onClose} />);
       
       // Fill out form
@@ -648,7 +648,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should clear rating on close", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       const { rerender } = render(<CompleteBookModal {...defaultProps} onClose={onClose} />);
       
       const stars = screen.getAllByTestId("star-icon");
@@ -666,7 +666,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should disable close during submission", async () => {
-      const onConfirm = mock(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const onConfirm = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
@@ -698,7 +698,7 @@ describe("CompleteBookModal", () => {
 
   describe("Edge Cases", () => {
     test("should handle submission error gracefully", async () => {
-      const onConfirm = mock(() => Promise.reject(new Error("Network error")));
+      const onConfirm = vi.fn(() => Promise.reject(new Error("Network error")));
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
@@ -716,7 +716,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should prevent double submission", async () => {
-      const onConfirm = mock(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const onConfirm = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const completeButton = screen.getByRole("button", { name: "Complete Book" });
@@ -729,7 +729,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should handle very large page counts", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={null} onConfirm={onConfirm} />);
       
       const pageInput = screen.getByLabelText("Total Pages");
@@ -746,7 +746,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should handle dates far in the past", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const startDateInput = screen.getByLabelText("Start Date");
@@ -764,7 +764,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should handle very long review text", async () => {
-      const onConfirm = mock(() => Promise.resolve());
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<CompleteBookModal {...defaultProps} currentPageCount={350} onConfirm={onConfirm} />);
       
       const longReview = "A".repeat(5000);

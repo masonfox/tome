@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET } from "@/app/api/reading-goals/monthly/route";
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -351,7 +351,7 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
     test("returns 500 on internal error", async () => {
       // Mock the service to throw an unexpected error
       const originalGetMonthlyBreakdown = readingGoalRepository.getBooksCompletedByMonth;
-      readingGoalRepository.getBooksCompletedByMonth = mock(() => {
+      readingGoalRepository.getBooksCompletedByMonth = vi.fn(() => {
         throw new Error("Database connection failed");
       });
 

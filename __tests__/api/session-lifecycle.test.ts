@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
@@ -7,7 +7,7 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
  * Session lifecycle tests trigger status changes that call revalidatePath, but we
  * don't need to test Next.js's caching behavior - just our business logic.
  */
-mock.module("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);

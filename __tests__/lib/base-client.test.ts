@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { BaseApiClient, ApiError } from "@/lib/api";
 
 describe("BaseApiClient", () => {
@@ -17,7 +17,7 @@ describe("BaseApiClient", () => {
     test("handles successful JSON response", async () => {
       const mockData = { id: 1, name: "Test Book" };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -39,7 +39,7 @@ describe("BaseApiClient", () => {
     });
 
     test("handles 204 No Content response", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 204,
@@ -59,7 +59,7 @@ describe("BaseApiClient", () => {
       const requestBody = { title: "New Book" };
       const mockResponse = { id: 123, ...requestBody };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 201,
@@ -87,7 +87,7 @@ describe("BaseApiClient", () => {
     test("handles POST with no request body", async () => {
       const mockResponse = { success: true };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -113,7 +113,7 @@ describe("BaseApiClient", () => {
     test("sends partial update and receives response", async () => {
       const updateData = { rating: 5 };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -137,7 +137,7 @@ describe("BaseApiClient", () => {
 
   describe("DELETE requests", () => {
     test("deletes resource and handles response", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -158,7 +158,7 @@ describe("BaseApiClient", () => {
     });
 
     test("handles 204 No Content on delete", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 204,
@@ -177,7 +177,7 @@ describe("BaseApiClient", () => {
     test("throws ApiError on 404 Not Found", async () => {
       const errorBody = { error: "Book not found" };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           status: 404,
@@ -206,7 +206,7 @@ describe("BaseApiClient", () => {
         fields: { rating: "Must be between 1 and 5" } 
       };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           status: 400,
@@ -229,7 +229,7 @@ describe("BaseApiClient", () => {
     test("throws ApiError on 500 Internal Server Error", async () => {
       const errorBody = { error: "Database connection failed" };
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           status: 500,
@@ -251,7 +251,7 @@ describe("BaseApiClient", () => {
     test("handles error response with plain text body", async () => {
       const textError = "Service temporarily unavailable";
       
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           status: 503,
@@ -275,7 +275,7 @@ describe("BaseApiClient", () => {
     });
 
     test("handles network errors", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(new Error("Network request failed"))
       ) as any;
 
@@ -291,7 +291,7 @@ describe("BaseApiClient", () => {
 
     test("handles timeout errors", async () => {
       // Mock an AbortError
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(Object.assign(new Error("The operation was aborted"), { name: "AbortError" }))
       ) as any;
 
@@ -308,7 +308,7 @@ describe("BaseApiClient", () => {
 
   describe("Response parsing", () => {
     test("handles non-JSON response gracefully", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -328,7 +328,7 @@ describe("BaseApiClient", () => {
     });
 
     test("handles empty response body", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -345,7 +345,7 @@ describe("BaseApiClient", () => {
 
   describe("Request headers", () => {
     test("includes Content-Type header in all requests", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           status: 200,

@@ -16,7 +16,7 @@ export function getCalibreDB() {
   if (!CALIBRE_DB_PATH) {
     // Log warning once when function is actually called (not at module load time)
     if (!hasLoggedWarning) {
-      const { getLogger } = require("../logger");
+      const { getLogger } = require("@/lib/logger");
       getLogger().warn("CALIBRE_DB_PATH not set. Calibre integration will not work.");
       hasLoggedWarning = true;
     }
@@ -32,7 +32,7 @@ export function getCalibreDB() {
         foreignKeys: false, // Calibre DB manages its own schema
         wal: false, // Don't modify journal mode on read-only DB
       });
-      const { getLogger } = require("../logger");
+      const { getLogger } = require("@/lib/logger");
       getLogger().debug(`Calibre DB: Using ${dbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'}`);
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database: ${error}`);

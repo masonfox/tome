@@ -41,6 +41,10 @@ const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
  * which also has test-specific behavior.
  */
 function getLoggerSafe() {
+  // In test mode, return no-op logger to avoid require() issues in Vitest
+  if (process.env.NODE_ENV === 'test') {
+    return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
+  }
   if (process.env.NODE_ENV === 'test') {
     // Return a no-op logger for tests to avoid module mocking issues
     return {
@@ -50,7 +54,7 @@ function getLoggerSafe() {
       warn: () => {},
     };
   }
-  const { getLogger } = require("../logger");
+  const { getLogger } = require("@/lib/logger");
   return getLogger();
 }
 

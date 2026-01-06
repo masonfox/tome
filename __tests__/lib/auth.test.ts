@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach } from 'vitest';
 
 describe("Authentication Utilities", () => {
   const originalEnv = process.env;

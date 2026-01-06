@@ -25,7 +25,7 @@ export class SeriesService {
    * @returns Array of series with book counts
    */
   async getAllSeries(): Promise<SeriesInfo[]> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     try {
@@ -50,7 +50,7 @@ export class SeriesService {
    * @throws {SeriesError} If series name is invalid or database error occurs
    */
   async getBooksBySeries(seriesName: string): Promise<SeriesBook[]> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Input validation
@@ -95,7 +95,7 @@ export class SeriesService {
    * @throws {SeriesError} If series name is invalid or database error occurs
    */
   async getSeriesByName(seriesName: string): Promise<SeriesInfo | null> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
 
     // Input validation

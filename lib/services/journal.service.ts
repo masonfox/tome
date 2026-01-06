@@ -184,7 +184,7 @@ export class JournalService {
     const dates = entries.map((entry: { progressDate: Date }) => entry.progressDate);
 
     // Debug: Log date range and sample dates
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     if (dates.length > 0) {
       const dateStrings = dates.map((d: Date) => d.toISOString().split('T')[0]);
       const uniqueMonths = Array.from(new Set(dateStrings.map((d: string) => d.substring(0, 7)))).sort();

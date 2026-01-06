@@ -50,7 +50,7 @@ export class SeriesRepository extends BaseRepository<
    * @returns Array of series info objects
    */
   async getAllSeries(): Promise<SeriesInfo[]> {
-    const { getLogger } = require("@/lib/logger");
+    const { getLogger } = require("../logger");
     const logger = getLogger();
     const db = this.getDatabase();
 

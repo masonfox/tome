@@ -1,8 +1,7 @@
 import { sqlite } from "@/lib/db/sqlite";
 import { runMigrationsOnDatabase } from "@/lib/db/migrate";
 import { __registerTestDatabase, __unregisterTestDatabase } from "@/lib/db/context";
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { createDatabase } from "@/lib/db/factory";
 import * as schema from "@/lib/db/schema";
 
 /**
@@ -35,13 +34,21 @@ export async function setupTestDatabase(testFilePath: string): Promise<TestDatab
   }
 
   // Create separate test database in memory for complete isolation
-  const testSqlite = new Database(":memory:");
-  testSqlite.exec("PRAGMA foreign_keys = ON");
-  // Use DELETE journal mode instead of WAL for better test isolation
-  testSqlite.exec("PRAGMA journal_mode = DELETE");
-  testSqlite.exec("PRAGMA synchronous = FULL");
+  const { db: testDb, sqlite: testSqlite } = createDatabase({
+    path: ":memory:",
+    schema,
+    wal: false, // Use DELETE journal mode for better test isolation
+    foreignKeys: true,
+  });
 
-  const testDb = drizzle(testSqlite, { schema });
+  // Set synchronous mode for test stability
+  const runtime = typeof Bun !== 'undefined' ? 'bun' : 'node';
+  if (runtime === 'bun') {
+    testSqlite.exec("PRAGMA synchronous = FULL");
+  } else {
+    testSqlite.pragma("synchronous = FULL");
+  }
+
   console.log(`Test database created for: ${testFilePath}`);
 
   const instance: TestDatabaseInstance = {

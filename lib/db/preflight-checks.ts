@@ -170,7 +170,7 @@ export function runPreflightChecks(): PreflightCheckResult {
  * @throws Error if critical checks fail
  */
 export function validatePreflightChecks(): void {
-  const { getLogger } = require("../logger");
+  const { getLogger } = require("@/lib/logger");
   const logger = getLogger();
   logger.info("Running pre-flight checks...");
   const result = runPreflightChecks();

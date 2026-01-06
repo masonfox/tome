@@ -5,7 +5,7 @@
  * consistent rounding behavior (Math.floor) across the application.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from 'vitest';
 import {
   calculatePercentage,
   calculatePageFromPercentage,

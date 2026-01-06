@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from "../test-utils";
 import { useStats } from "@/hooks/useStats";
 
@@ -32,7 +32,7 @@ describe("useStats", () => {
   };
 
   beforeEach(() => {
-    global.fetch = mock((url: string) => {
+    global.fetch = vi.fn((url: string) => {
       if (url === "/api/stats/overview") {
         return Promise.resolve({
           ok: true,
@@ -91,7 +91,7 @@ describe("useStats", () => {
     });
 
     test("should handle null stats", async () => {
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         if (url === "/api/stats/overview") {
           return Promise.resolve({
             ok: true,
@@ -118,7 +118,7 @@ describe("useStats", () => {
     });
 
     test("should handle null streak", async () => {
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         if (url === "/api/stats/overview") {
           return Promise.resolve({
             ok: true,
@@ -152,7 +152,7 @@ describe("useStats", () => {
         resolveStats = resolve;
       });
 
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         if (url === "/api/stats/overview") {
           return statsPromise;
         }
@@ -198,7 +198,7 @@ describe("useStats", () => {
 
   describe("error handling", () => {
     test("should handle stats fetch error", async () => {
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         if (url === "/api/stats/overview") {
           return Promise.reject(new Error("Stats error"));
         }
@@ -222,7 +222,7 @@ describe("useStats", () => {
     });
 
     test("should handle streak fetch error", async () => {
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         if (url === "/api/stats/overview") {
           return Promise.resolve({
             ok: true,
@@ -246,7 +246,7 @@ describe("useStats", () => {
     });
 
     test("should handle both queries failing", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(new Error("Network error"))
       ) as any;
 
@@ -262,7 +262,7 @@ describe("useStats", () => {
     });
 
     test("should handle non-ok responses", async () => {
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         return Promise.resolve({
           ok: false,
           status: 500,
@@ -299,7 +299,7 @@ describe("useStats", () => {
 
   describe("default values", () => {
     test("should return null for undefined data", async () => {
-      global.fetch = mock((url: string) => {
+      global.fetch = vi.fn((url: string) => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(undefined),

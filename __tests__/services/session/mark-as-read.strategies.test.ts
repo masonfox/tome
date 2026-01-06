@@ -1,7 +1,7 @@
 // Import shared mock setup (must be first to properly mock modules)
 import "./setup";
 
-import { describe, expect, test, beforeEach, afterAll } from "bun:test";
+import { describe, expect, test, beforeEach, afterAll } from 'vitest';
 import { SessionService } from "@/lib/services/session.service";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, clearTestDatabase, teardownTestDatabase } from "../../helpers/db-setup";

@@ -2,7 +2,7 @@
  * Tests for BaseApiClient retry logic and interceptors
  */
 
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { BaseApiClient, ApiError, type RequestInterceptor } from "@/lib/api/base-client";
 
 describe("BaseApiClient - Retry Logic", () => {
@@ -17,13 +17,13 @@ describe("BaseApiClient - Retry Logic", () => {
         retryableStatuses: [408, 429, 500, 502, 503, 504],
       },
     });
-    fetchMock = mock(() => Promise.resolve({ ok: true, json: async () => ({ success: true }) }));
+    fetchMock = vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ success: true }) }));
     global.fetch = fetchMock as any;
   });
 
   test("should retry on 500 error", async () => {
     let attempts = 0;
-    fetchMock = mock(() => {
+    fetchMock = vi.fn(() => {
       attempts++;
       if (attempts < 3) {
         return Promise.resolve({
@@ -49,7 +49,7 @@ describe("BaseApiClient - Retry Logic", () => {
 
   test("should retry on 503 Service Unavailable", async () => {
     let attempts = 0;
-    fetchMock = mock(() => {
+    fetchMock = vi.fn(() => {
       attempts++;
       if (attempts < 2) {
         return Promise.resolve({
@@ -75,7 +75,7 @@ describe("BaseApiClient - Retry Logic", () => {
 
   test("should retry on network errors (statusCode 0)", async () => {
     let attempts = 0;
-    fetchMock = mock(() => {
+    fetchMock = vi.fn(() => {
       attempts++;
       if (attempts < 2) {
         return Promise.reject(new Error("Network error"));
@@ -96,7 +96,7 @@ describe("BaseApiClient - Retry Logic", () => {
 
   test("should not retry on 4xx errors", async () => {
     let attempts = 0;
-    fetchMock = mock(() => {
+    fetchMock = vi.fn(() => {
       attempts++;
       return Promise.resolve({
         ok: false,
@@ -119,7 +119,7 @@ describe("BaseApiClient - Retry Logic", () => {
 
   test("should stop retrying after maxRetries", async () => {
     let attempts = 0;
-    fetchMock = mock(() => {
+    fetchMock = vi.fn(() => {
       attempts++;
       return Promise.resolve({
         ok: false,
@@ -152,7 +152,7 @@ describe("BaseApiClient - Retry Logic", () => {
     const startTime = Date.now();
     let attempts = 0;
 
-    fetchMock = mock(() => {
+    fetchMock = vi.fn(() => {
       attempts++;
       if (attempts < 3) {
         return Promise.resolve({
@@ -192,7 +192,7 @@ describe("BaseApiClient - Interceptors", () => {
         maxRetries: 0,
       },
     });
-    fetchMock = mock(() =>
+    fetchMock = vi.fn(() =>
       Promise.resolve({
         ok: true,
         status: 200,
@@ -243,7 +243,7 @@ describe("BaseApiClient - Interceptors", () => {
       },
     };
 
-    fetchMock = mock(() =>
+    fetchMock = vi.fn(() =>
       Promise.resolve({
         ok: false,
         status: 500,

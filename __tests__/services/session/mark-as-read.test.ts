@@ -1,7 +1,7 @@
 // Import shared mock setup (must be first to properly mock modules)
 import "./setup";
 
-import { describe, expect, test, beforeEach, afterAll, mock } from "bun:test";
+import { describe, expect, test, beforeEach, afterAll, vi } from 'vitest';
 import { SessionService } from "@/lib/services/session.service";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, clearTestDatabase, teardownTestDatabase } from "../../helpers/db-setup";
@@ -406,7 +406,7 @@ describe("SessionService - Mark as Read", () => {
 
       // Mock rating update to fail
       const originalUpdateRating = sessionService.updateBookRating;
-      sessionService.updateBookRating = mock(() => Promise.reject(new Error("Rating sync failed")));
+      sessionService.updateBookRating = vi.fn(() => Promise.reject(new Error("Rating sync failed")));
 
       const result = await sessionService.markAsRead({
         bookId: book.id,
@@ -426,7 +426,7 @@ describe("SessionService - Mark as Read", () => {
 
       // Mock review update to fail
       const originalUpdateReview = sessionService.updateSessionReview;
-      sessionService.updateSessionReview = mock(() => Promise.reject(new Error("Review update failed")));
+      sessionService.updateSessionReview = vi.fn(() => Promise.reject(new Error("Review update failed")));
 
       const result = await sessionService.markAsRead({
         bookId: book.id,

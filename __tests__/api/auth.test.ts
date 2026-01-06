@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach } from 'vitest';
 
 describe("Auth API Routes Logic", () => {
   const originalEnv = process.env;

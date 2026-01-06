@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Database } from "bun:sqlite";
 
 // Import real production functions
@@ -36,7 +36,7 @@ import {
  * 
  * These gaps are infrastructure concerns tested manually in development
  * and monitored in production. Logger calls are intentionally excluded to
- * avoid mock.module() which is global in Bun and leaks between test files.
+ * avoid vi.mock() which is global in Bun and leaks between test files.
  */
 
 let testDb: Database;

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Database } from "bun:sqlite";
 import path from "path";
 import {
@@ -29,7 +29,7 @@ let mockGetCalibreDB: ReturnType<typeof mock>;
  * This allows us to test against actual Calibre schema and data, catching
  * real-world edge cases while maintaining test isolation.
  */
-mock.module("@/lib/db/calibre", () => {
+vi.mock("@/lib/db/calibre", () => {
   const actual = require("@/lib/db/calibre");
   return {
     ...actual,
@@ -44,7 +44,7 @@ describe("Calibre Query Functions with Full Schema", () => {
     testDb = new Database(dbPath, { readonly: true });
 
     // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    mockGetCalibreDB = vi.fn(() => testDb);
   });
 
   afterAll(() => {
@@ -291,7 +291,7 @@ describe("Calibre Query Functions without Optional Columns", () => {
     minimalDb = new Database(dbPath, { readonly: true });
 
     // Mock to use minimal database
-    mockGetMinimalDB = mock(() => minimalDb);
+    mockGetMinimalDB = vi.fn(() => minimalDb);
   });
 
   afterAll(() => {
@@ -362,7 +362,7 @@ describe("getAllBookTags", () => {
     testDb = new Database(dbPath, { readonly: true });
 
     // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    mockGetCalibreDB = vi.fn(() => testDb);
   });
 
   afterAll(() => {
@@ -466,7 +466,7 @@ describe("getBooksCount", () => {
     testDb = new Database(dbPath, { readonly: true });
 
     // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    mockGetCalibreDB = vi.fn(() => testDb);
   });
 
   afterAll(() => {
@@ -488,7 +488,7 @@ describe("Pagination", () => {
     testDb = new Database(dbPath, { readonly: true });
 
     // Mock getCalibreDB to return our test database
-    mockGetCalibreDB = mock(() => testDb);
+    mockGetCalibreDB = vi.fn(() => testDb);
   });
 
   afterAll(() => {

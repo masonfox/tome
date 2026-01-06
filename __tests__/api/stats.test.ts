@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
@@ -24,7 +24,7 @@ import { startOfDay, subDays } from "date-fns";
  * structure without dependency on actual streak calculation logic.
  */
 let mockGetActivityCalendar: ReturnType<typeof mock>;
-mock.module("@/lib/streaks", () => ({
+vi.mock("@/lib/streaks", () => ({
   getActivityCalendar: (userId: any, year: number, month?: number) =>
     mockGetActivityCalendar(userId, year, month),
 }));
@@ -402,7 +402,7 @@ describe("Stats API - GET /api/stats/activity", () => {
     }));
 
     // Mock getActivityCalendar to return sample data
-    mockGetActivityCalendar = mock(() => [
+    mockGetActivityCalendar = vi.fn(() => [
       { date: "2025-11-01", pagesRead: 50, active: true },
       { date: "2025-11-02", pagesRead: 75, active: true },
       { date: "2025-11-03", pagesRead: 0, active: false },

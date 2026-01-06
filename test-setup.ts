@@ -1,8 +1,13 @@
 import { Window } from "happy-dom";
+import { vi } from "vitest";
 
 // Set test environment
 (process.env as any).NODE_ENV = "test";
 (process.env as any).LOG_LEVEL = "silent";
+
+// Mock logger globally for all tests - we don't need real logging in tests
+// Using manual mock from lib/__mocks__/logger.ts
+vi.mock("@/lib/logger");
 
 // Ensure requestAnimationFrame and cancelAnimationFrame are defined early
 // This prevents "ReferenceError: requestAnimationFrame is not defined" in CI

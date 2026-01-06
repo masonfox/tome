@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { PATCH, DELETE } from "@/app/api/reading-goals/[id]/route";
 import { readingGoalRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -22,7 +22,7 @@ import type { NextRequest } from "next/server";
  */
 
 // Mock Next.js cache revalidation
-mock.module("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 describe("Reading Goals [ID] API - PATCH /api/reading-goals/[id]", () => {
   beforeAll(async () => {
@@ -253,7 +253,7 @@ describe("Reading Goals [ID] API - PATCH /api/reading-goals/[id]", () => {
   describe("PATCH - Error handling", () => {
     test("returns 500 on internal error", async () => {
       const originalUpdate = readingGoalRepository.update;
-      readingGoalRepository.update = mock(() => {
+      readingGoalRepository.update = vi.fn(() => {
         throw new Error("Database connection failed");
       });
 
@@ -391,7 +391,7 @@ describe("Reading Goals [ID] API - DELETE /api/reading-goals/[id]", () => {
   describe("DELETE - Error handling", () => {
     test("returns 500 on internal error", async () => {
       const originalDelete = readingGoalRepository.delete;
-      readingGoalRepository.delete = mock(() => {
+      readingGoalRepository.delete = vi.fn(() => {
         throw new Error("Database connection failed");
       });
 
