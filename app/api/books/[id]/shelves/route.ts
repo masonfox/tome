@@ -12,9 +12,10 @@ const logger = getLogger();
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await props.params;
     const bookId = parseInt(params.id);
     if (isNaN(bookId)) {
       return NextResponse.json(
@@ -55,9 +56,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await props.params;
     const bookId = parseInt(params.id);
     if (isNaN(bookId)) {
       return NextResponse.json(
