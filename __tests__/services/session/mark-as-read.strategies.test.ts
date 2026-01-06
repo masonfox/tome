@@ -6,6 +6,7 @@ import { SessionService } from "@/lib/services/session.service";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, clearTestDatabase, teardownTestDatabase } from "../../helpers/db-setup";
 import { createTestBook } from "../../fixtures/test-data";
+import { getLogger } from "@/lib/logger";
 
 let instance: any;
 
@@ -127,7 +128,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         startedDate: new Date(),
       });
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -155,7 +156,7 @@ describe("SessionService - Mark as Read Strategies", () => {
     test("works when activeSession is null", async () => {
       const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -204,7 +205,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         pagesRead: 300,
       });
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -247,7 +248,7 @@ describe("SessionService - Mark as Read Strategies", () => {
 
       const customDate = new Date("2024-01-15");
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -285,7 +286,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         startedDate: new Date(),
       });
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -317,7 +318,7 @@ describe("SessionService - Mark as Read Strategies", () => {
     test("creates new session when no active session exists", async () => {
       const book = await bookRepository.create(createTestBook({ totalPages: null }));
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -352,7 +353,7 @@ describe("SessionService - Mark as Read Strategies", () => {
 
       const customDate = new Date("2024-06-15");
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -393,7 +394,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         completedDate: new Date("2024-01-15"),
       });
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -421,7 +422,7 @@ describe("SessionService - Mark as Read Strategies", () => {
     test("returns undefined sessionId when no completed sessions exist", async () => {
       const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {
@@ -468,7 +469,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         completedDate: new Date("2024-06-30"),
       });
 
-      const { getLogger } = require("@/lib/logger");
+      
       const logger = getLogger();
 
       const context = {

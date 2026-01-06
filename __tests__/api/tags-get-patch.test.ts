@@ -127,8 +127,8 @@ describe("GET /api/tags/[tagName]", () => {
       expect(data.tag).toBe("Fantasy");
       expect(data.books).toHaveLength(2);
       expect(data.total).toBe(2);
-      expect(data.books[0].id).toBe(book1.id);
-      expect(data.books[1].id).toBe(book2.id);
+      expect(data.books[0].id).toBe(book2.id);
+      expect(data.books[1].id).toBe(book1.id);
     });
 
     test("should handle URL-encoded tag names", async () => {
@@ -368,8 +368,8 @@ describe("PATCH /api/tags/[tagName]", () => {
       expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
       const syncCall = mockBatchUpdateCalibreTags.mock.calls[0][0];
       expect(syncCall).toHaveLength(2);
-      expect(syncCall[0].calibreId).toBe(1);
-      expect(syncCall[1].calibreId).toBe(2);
+      expect(syncCall[0].calibreId).toBe(2);
+      expect(syncCall[1].calibreId).toBe(1);
     });
 
     test("should handle URL-encoded tag names", async () => {

@@ -199,9 +199,10 @@ describe("POST /api/tags/bulk-delete", () => {
 
       // Assert: Batch Calibre sync was called with correct data
       expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
+      // Note: Books are ordered by createdAt DESC, so book 21 (created second) comes first
       expect(mockBatchUpdateCalibreTags).toHaveBeenCalledWith([
-        { calibreId: 20, tags: [] },
-        { calibreId: 21, tags: [] }
+        { calibreId: 21, tags: [] },
+        { calibreId: 20, tags: [] }
       ]);
     });
 
