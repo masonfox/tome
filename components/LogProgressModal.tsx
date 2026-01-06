@@ -28,7 +28,7 @@ interface LogProgressModalProps {
     latestProgress?: {
       currentPage: number;
       currentPercentage: number;
-    };
+    } | null;
     activeSession?: {
       status: string;
     };
