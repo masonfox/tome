@@ -6,8 +6,8 @@ import { useShelfManagement, type ShelfWithBookCount } from "@/hooks/useShelfMan
 import { ShelfItem, ShelfItemSkeleton } from "@/components/ShelfManagement/ShelfItem";
 import { CreateShelfModal } from "@/components/ShelfManagement/CreateShelfModal";
 import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
-import { PageHeader } from "@/components/PageHeader";
-import BaseModal from "@/components/BaseModal";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import BaseModal from "@/components/Modals/BaseModal";
 
 export default function ShelvesPage() {
   const {

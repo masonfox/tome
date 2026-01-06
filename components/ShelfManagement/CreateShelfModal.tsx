@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import BaseModal from "@/components/BaseModal";
+import BaseModal from "@/components/Modals/BaseModal";
 import { ShelfIconPicker } from "@/components/ShelfIconPicker";
 import type { CreateShelfData } from "@/hooks/useShelfManagement";
 
