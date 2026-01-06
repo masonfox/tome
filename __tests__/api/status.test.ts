@@ -611,9 +611,6 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
 });
 
 describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
-  // Track calls to updateCalibreRating for verification
-  let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = [];
-  
   beforeAll(async () => {
     /**
      * Mock Rationale: Avoid file system I/O to Calibre's SQLite database during tests.
