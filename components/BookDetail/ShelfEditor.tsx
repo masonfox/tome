@@ -86,16 +86,16 @@ export default function ShelfEditor({
     );
   });
 
+  // Summary text for header
+  const summaryText = selectedShelfIds.length === 0 
+    ? "No shelves selected"
+    : selectedShelfIds.length === 1
+    ? "On 1 shelf"
+    : `On ${selectedShelfIds.length} shelves`;
+
   // Shared content for both mobile and desktop
   const shelfContent = (
     <>
-      {/* Subtitle - only show on mobile in BottomSheet */}
-      {isMobile && (
-        <p className="text-sm text-[var(--foreground)]/70 font-medium mb-4">
-          {bookTitle}
-        </p>
-      )}
-
       {/* Filter Input */}
       {availableShelves.length > 0 && (
         <div className="relative mb-4">
@@ -192,45 +192,41 @@ export default function ShelfEditor({
         </div>
       )}
 
-      {/* Summary */}
-      {availableShelves.length > 0 && (
-        <div className="mb-20 px-4 py-3 bg-[var(--background)] rounded-lg">
-          <p className="text-sm text-[var(--foreground)]/70">
-            {selectedShelfIds.length === 0 ? (
-              "No shelves selected"
-            ) : selectedShelfIds.length === 1 ? (
-              <span>
-                On <span className="font-semibold text-[var(--foreground)]">1 shelf</span>
-              </span>
-            ) : (
-              <span>
-                On <span className="font-semibold text-[var(--foreground)]">{selectedShelfIds.length} shelves</span>
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-
-      {/* Action Buttons - Sticky */}
-      {availableShelves.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
-          <button
-            onClick={handleClose}
-            disabled={saving}
-            className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      )}
     </>
+  );
+
+  // Shared button elements
+  const buttons = availableShelves.length > 0 && (
+    <>
+      <button
+        onClick={handleClose}
+        disabled={saving}
+        className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {saving ? "Saving..." : "Save Changes"}
+      </button>
+    </>
+  );
+
+  // Mobile wrapper (fixed at bottom)
+  const mobileButtons = buttons && (
+    <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
+      {buttons}
+    </div>
+  );
+
+  // Desktop wrapper (relative positioning)
+  const desktopButtons = buttons && (
+    <div className="mt-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end">
+      {buttons}
+    </div>
   );
 
   // Mobile: Use BottomSheet
@@ -244,7 +240,19 @@ export default function ShelfEditor({
         size="full"
         allowBackdropClose={!saving}
       >
-        {shelfContent}
+        {/* Book Title and Summary */}
+        <div className="mb-4">
+          <p className="text-sm text-[var(--foreground)]/70 font-medium mb-1">
+            {bookTitle}
+          </p>
+          <p className="text-xs text-[var(--subheading-text)]">
+            {summaryText}
+          </p>
+        </div>
+        <div className="mb-20">
+          {shelfContent}
+        </div>
+        {mobileButtons}
       </BottomSheet>
     );
   }
@@ -267,8 +275,11 @@ export default function ShelfEditor({
             <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
               Add to Shelves
             </h2>
-            <p className="text-sm text-[var(--foreground)]/70 font-medium truncate">
+            <p className="text-sm text-[var(--foreground)]/70 font-medium truncate mb-1">
               {bookTitle}
+            </p>
+            <p className="text-xs text-[var(--subheading-text)]">
+              {summaryText}
             </p>
           </div>
           <button
@@ -283,6 +294,9 @@ export default function ShelfEditor({
 
         {/* Content */}
         {shelfContent}
+
+        {/* Action Buttons */}
+        {desktopButtons}
       </div>
     </div>
   );
