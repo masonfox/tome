@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, FolderOpen, Trash2, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { FolderOpen, Trash2, Search, X, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
 import { BookTable } from "@/components/BookTable";
 import { BookListItem } from "@/components/BookListItem";
 import { BookListItemSkeleton } from "@/components/BookListItemSkeleton";
+import { DraggableBookList } from "@/components/Books/DraggableBookList";
+import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
 import BaseModal from "@/components/Modals/BaseModal";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -27,6 +29,7 @@ export default function ShelfDetailPage() {
     hasInitialized,
     fetchShelfBooks,
     removeBookFromShelf,
+    reorderBooks,
   } = useShelfBooks(shelfId);
 
   const [sortBy, setSortBy] = useState<SortOption>("sortOrder");
@@ -254,6 +257,14 @@ export default function ShelfDetailPage() {
                 Showing {filteredBooks.length} of {books.length} {books.length === 1 ? "book" : "books"}
               </p>
             )}
+            
+            {/* Drag-and-Drop Hint */}
+            {sortBy === "sortOrder" && books.length > 1 && !filterText && (
+              <p className="text-sm text-[var(--accent)]/80 mt-2 flex items-center gap-2">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse"></span>
+                Drag and drop to reorder books
+              </p>
+            )}
           </div>
         )}
 
@@ -318,45 +329,86 @@ export default function ShelfDetailPage() {
           </div>
         ) : isMobile ? (
           // Mobile/Tablet: List View
-          <div className="space-y-4">
-            {filteredBooks.map((book) => (
-              <BookListItem
-                key={book.id}
-                book={book}
-                actions={
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setRemovingBook({ id: book.id, title: book.title });
-                    }}
-                    className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                    title="Remove from shelf"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                }
-              />
-            ))}
-          </div>
+          sortBy === "sortOrder" ? (
+            <DraggableBookList
+              books={filteredBooks}
+              onReorder={reorderBooks}
+              isDragEnabled={true}
+              renderActions={(book) => (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setRemovingBook({ id: book.id, title: book.title });
+                  }}
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                  title="Remove from shelf"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredBooks.map((book) => (
+                <BookListItem
+                  key={book.id}
+                  book={book}
+                  actions={
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setRemovingBook({ id: book.id, title: book.title });
+                      }}
+                      className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                      title="Remove from shelf"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  }
+                />
+              ))}
+            </div>
+          )
         ) : (
           // Desktop: Table View
-          <BookTable
-            books={filteredBooks.map((book) => ({
-              ...book,
-              dateAddedToShelf: book.addedToLibrary,
-            }))}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            onSortChange={handleTableSort}
-            onRemoveBook={(bookId) => {
-              const book = filteredBooks.find((b) => b.id === bookId);
-              if (book) {
-                setRemovingBook({ id: book.id, title: book.title });
-              }
-            }}
-            showOrderColumn={true}
-          />
+          sortBy === "sortOrder" ? (
+            <DraggableBookTable
+              books={filteredBooks.map((book) => ({
+                ...book,
+                dateAddedToShelf: book.addedToLibrary,
+              }))}
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              onSortChange={handleTableSort}
+              onRemoveBook={(bookId) => {
+                const book = filteredBooks.find((b) => b.id === bookId);
+                if (book) {
+                  setRemovingBook({ id: book.id, title: book.title });
+                }
+              }}
+              onReorder={reorderBooks}
+              isDragEnabled={true}
+            />
+          ) : (
+            <BookTable
+              books={filteredBooks.map((book) => ({
+                ...book,
+                dateAddedToShelf: book.addedToLibrary,
+              }))}
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              onSortChange={handleTableSort}
+              onRemoveBook={(bookId) => {
+                const book = filteredBooks.find((b) => b.id === bookId);
+                if (book) {
+                  setRemovingBook({ id: book.id, title: book.title });
+                }
+              }}
+              showOrderColumn={true}
+            />
+          )
         )}
       </div>
 

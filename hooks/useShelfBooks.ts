@@ -185,6 +185,60 @@ export function useShelfBooks(shelfId: number | null) {
     [shelfId, fetchShelfBooks]
   );
 
+  /**
+   * Batch reorder books on the shelf
+   */
+  const reorderBooks = useCallback(
+    async (bookIds: number[]) => {
+      if (!shelfId) {
+        return;
+      }
+
+      // Optimistic update
+      if (shelf) {
+        const reorderedBooks = bookIds
+          .map((id) => shelf.books.find((book) => book.id === id))
+          .filter((book): book is BookWithStatus => book !== undefined);
+        
+        setShelf({
+          ...shelf,
+          books: reorderedBooks,
+        });
+      }
+
+      setError(null);
+      try {
+        const response = await fetch(`/api/shelves/${shelfId}/books/reorder`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ bookIds }),
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error?.message || "Failed to reorder books");
+        }
+
+        // Refresh to get server state
+        await fetchShelfBooks();
+
+        toast.success("Book order updated");
+        return true;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Unknown error");
+        setError(error);
+        toast.error(`Failed to reorder books: ${error.message}`);
+        // Refresh to restore correct state
+        await fetchShelfBooks();
+        throw error;
+      }
+    },
+    [shelfId, shelf, fetchShelfBooks]
+  );
+
   return {
     shelf,
     books: shelf?.books || [],
@@ -195,5 +249,6 @@ export function useShelfBooks(shelfId: number | null) {
     addBookToShelf,
     removeBookFromShelf,
     updateBookOrder,
+    reorderBooks,
   };
 }
