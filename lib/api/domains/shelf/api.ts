@@ -16,6 +16,7 @@ import type {
   CreateShelfRequest,
   UpdateShelfRequest,
   AddBookToShelfRequest,
+  AddBooksToShelfRequest,
   UpdateBookOrderRequest,
   ReorderBooksRequest,
   ReorderBooksResponse,
@@ -25,6 +26,7 @@ import type {
   ListShelvesResponse,
   GetShelfResponse,
   AddBookToShelfResponse,
+  AddBooksToShelfResponse,
   RemoveBookFromShelfResponse,
   UpdateBookOrderResponse,
 } from "./types";
@@ -232,6 +234,30 @@ export const shelfApi = {
       AddBookToShelfRequest,
       AddBookToShelfResponse
     >(`/api/shelves/${shelfId}/books`, request);
+
+    return response.data;
+  },
+
+  /**
+   * Add multiple books to a shelf (bulk operation)
+   * 
+   * @param shelfId - The ID of the shelf
+   * @param request - Array of book IDs to add
+   * @returns Success indicator with count
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * const result = await shelfApi.addBooks(1, { bookIds: [42, 43, 44] });
+   * console.log(`Added ${result.count} books`);
+   */
+  addBooks: async (
+    shelfId: number,
+    request: AddBooksToShelfRequest
+  ): Promise<{ added: boolean; count: number }> => {
+    const response = await baseApiClient["post"]<
+      AddBooksToShelfRequest,
+      AddBooksToShelfResponse
+    >(`/api/shelves/${shelfId}/books/bulk`, request);
 
     return response.data;
   },
