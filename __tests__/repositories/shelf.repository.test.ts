@@ -212,4 +212,202 @@ describe("ShelfRepository - Status Display", () => {
       }
     });
   });
+
+  describe("getBooksOnShelf - Author Sorting by Last Name", () => {
+    it("should sort books by author last name in ascending order", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Author Sort Test Shelf",
+        userId: null,
+      });
+
+      // Create books with different author last names
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book by Sanderson",
+        authors: ["Brandon Sanderson"], // Last name: Sanderson
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book by Rothfuss",
+        authors: ["Patrick Rothfuss"], // Last name: Rothfuss
+        tags: [],
+        path: "/path/2",
+      });
+
+      const book3 = await bookRepository.create({
+        calibreId: 3,
+        title: "Book by Abercrombie",
+        authors: ["Joe Abercrombie"], // Last name: Abercrombie
+        tags: [],
+        path: "/path/3",
+      });
+
+      const book4 = await bookRepository.create({
+        calibreId: 4,
+        title: "Book by Le Guin",
+        authors: ["Ursula K. Le Guin"], // Last name: Guin (last word)
+        tags: [],
+        path: "/path/4",
+      });
+
+      const book5 = await bookRepository.create({
+        calibreId: 5,
+        title: "Book by Plato",
+        authors: ["Plato"], // Single name: Plato
+        tags: [],
+        path: "/path/5",
+      });
+
+      // Add books to shelf in random order
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book2!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book3!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book4!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book5!.id);
+
+      // Get books sorted by author ascending
+      const booksAsc = await shelfRepository.getBooksOnShelf(shelf.id, "author", "asc");
+
+      expect(booksAsc).toHaveLength(5);
+      
+      // Expected order by last name:
+      // Abercrombie, Guin, Plato, Rothfuss, Sanderson
+      expect(booksAsc[0].id).toBe(book3!.id); // Abercrombie
+      expect(booksAsc[1].id).toBe(book4!.id); // Guin (from Le Guin)
+      expect(booksAsc[2].id).toBe(book5!.id); // Plato
+      expect(booksAsc[3].id).toBe(book2!.id); // Rothfuss
+      expect(booksAsc[4].id).toBe(book1!.id); // Sanderson
+    });
+
+    it("should sort books by author last name in descending order", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Author Sort Desc Test Shelf",
+        userId: null,
+      });
+
+      // Create books with different author last names
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book by Sanderson",
+        authors: ["Brandon Sanderson"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book by Abercrombie",
+        authors: ["Joe Abercrombie"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      // Add books to shelf
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book2!.id);
+
+      // Get books sorted by author descending
+      const booksDesc = await shelfRepository.getBooksOnShelf(shelf.id, "author", "desc");
+
+      expect(booksDesc).toHaveLength(2);
+      
+      // Expected order by last name descending:
+      // Sanderson, Abercrombie
+      expect(booksDesc[0].id).toBe(book1!.id); // Sanderson
+      expect(booksDesc[1].id).toBe(book2!.id); // Abercrombie
+    });
+
+    it("should handle books with no authors when sorting by author", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "No Author Test Shelf",
+        userId: null,
+      });
+
+      // Create book with authors
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book with Author",
+        authors: ["Brandon Sanderson"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      // Create book with empty authors array
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book without Author",
+        authors: [],
+        tags: [],
+        path: "/path/2",
+      });
+
+      // Add books to shelf
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book2!.id);
+
+      // Get books sorted by author
+      const books = await shelfRepository.getBooksOnShelf(shelf.id, "author", "asc");
+
+      expect(books).toHaveLength(2);
+      
+      // Books with no author (empty string) should come first
+      expect(books[0].id).toBe(book2!.id); // No author (empty)
+      expect(books[1].id).toBe(book1!.id); // Sanderson
+    });
+
+    it("should handle multi-word last names correctly", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Multi-word Last Name Shelf",
+        userId: null,
+      });
+
+      // Create books with multi-word last names
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book by Le Guin",
+        authors: ["Ursula K. Le Guin"], // Last word: Guin
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book by King",
+        authors: ["Martin Luther King Jr."], // Last word: Jr.
+        tags: [],
+        path: "/path/2",
+      });
+
+      const book3 = await bookRepository.create({
+        calibreId: 3,
+        title: "Book by van Gogh",
+        authors: ["Vincent van Gogh"], // Last word: Gogh
+        tags: [],
+        path: "/path/3",
+      });
+
+      // Add books to shelf
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book2!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book3!.id);
+
+      // Get books sorted by author
+      const books = await shelfRepository.getBooksOnShelf(shelf.id, "author", "asc");
+
+      expect(books).toHaveLength(3);
+      
+      // Expected order by last word (simple implementation):
+      // Gogh, Guin, Jr.
+      expect(books[0].id).toBe(book3!.id); // Gogh
+      expect(books[1].id).toBe(book1!.id); // Guin
+      expect(books[2].id).toBe(book2!.id); // Jr.
+    });
+  });
 });

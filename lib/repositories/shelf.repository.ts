@@ -36,6 +36,29 @@ export interface BookWithStatus extends Book {
 export type ShelfOrderBy = "sortOrder" | "title" | "author" | "series" | "rating" | "pages" | "dateAdded";
 export type ShelfSortDirection = "asc" | "desc";
 
+/**
+ * Extract the last name from an author's full name.
+ * Handles common cases like "Brandon Sanderson" -> "Sanderson",
+ * single names like "Plato" -> "Plato", and empty/null values.
+ * 
+ * @param authorName - Full author name (e.g., "Brandon Sanderson")
+ * @returns Last name in lowercase for sorting
+ */
+function extractLastName(authorName: string | null | undefined): string {
+  if (!authorName || typeof authorName !== 'string') {
+    return '';
+  }
+  
+  const trimmed = authorName.trim();
+  if (!trimmed) {
+    return '';
+  }
+  
+  // Split by whitespace and get the last word
+  const parts = trimmed.split(/\s+/);
+  return parts[parts.length - 1].toLowerCase();
+}
+
 export class ShelfRepository extends BaseRepository<
   Shelf,
   NewShelf,
@@ -148,16 +171,19 @@ export class ShelfRepository extends BaseRepository<
     const db = this.getDatabase();
     const sortFn = direction === "asc" ? asc : desc;
     
-    // Build the order clause based on the orderBy parameter
+    // For author sorting, we'll handle it in JavaScript after fetching
+    // For all other sorts, build SQL order clause
     let orderClause;
+    const sortByAuthorInJS = orderBy === "author";
 
     switch (orderBy) {
       case "title":
         orderClause = sortFn(books.title);
         break;
       case "author":
-        // Sort by first author (authors is stored as JSON array)
-        orderClause = sortFn(sql`json_extract(${books.authors}, '$[0]')`);
+        // Fetch unsorted for JS sorting by last name
+        // Use a default sort to keep results consistent
+        orderClause = asc(books.id);
         break;
       case "series":
         // Sort by series name first, then by series index
@@ -225,7 +251,32 @@ export class ShelfRepository extends BaseRepository<
       .orderBy(orderClause)
       .all();
 
-    return result as BookWithStatus[];
+    const books_result = result as BookWithStatus[];
+
+    // If sorting by author, do it in JavaScript by last name
+    if (sortByAuthorInJS) {
+      books_result.sort((a, b) => {
+        // Extract first author from each book
+        const authorA = Array.isArray(a.authors) && a.authors.length > 0 
+          ? a.authors[0] 
+          : '';
+        const authorB = Array.isArray(b.authors) && b.authors.length > 0 
+          ? b.authors[0] 
+          : '';
+        
+        // Get last names
+        const lastNameA = extractLastName(authorA);
+        const lastNameB = extractLastName(authorB);
+        
+        // Compare last names
+        const comparison = lastNameA.localeCompare(lastNameB);
+        
+        // Apply sort direction
+        return direction === "asc" ? comparison : -comparison;
+      });
+    }
+
+    return books_result;
   }
 
   /**
