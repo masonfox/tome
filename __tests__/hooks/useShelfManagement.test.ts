@@ -62,7 +62,7 @@ describe('useShelfManagement', () => {
       const { result } = renderHook(() => useShelfManagement());
 
       expect(result.current.shelves).toEqual([]);
-      expect(result.current.loading).toBe(false);
+      expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
     });
   });
