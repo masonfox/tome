@@ -257,14 +257,6 @@ export default function ShelfDetailPage() {
                 Showing {filteredBooks.length} of {books.length} {books.length === 1 ? "book" : "books"}
               </p>
             )}
-            
-            {/* Drag-and-Drop Hint */}
-            {sortBy === "sortOrder" && books.length > 1 && !filterText && (
-              <p className="text-sm text-[var(--accent)]/80 mt-2 flex items-center gap-2">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse"></span>
-                Drag and drop to reorder books
-              </p>
-            )}
           </div>
         )}
 
@@ -329,7 +321,7 @@ export default function ShelfDetailPage() {
           </div>
         ) : isMobile ? (
           // Mobile/Tablet: List View
-          sortBy === "sortOrder" ? (
+          sortBy === "sortOrder" && sortDirection === "asc" && !filterText ? (
             <DraggableBookList
               books={filteredBooks}
               onReorder={reorderBooks}
@@ -373,7 +365,7 @@ export default function ShelfDetailPage() {
           )
         ) : (
           // Desktop: Table View
-          sortBy === "sortOrder" ? (
+          sortBy === "sortOrder" && sortDirection === "asc" && !filterText ? (
             <DraggableBookTable
               books={filteredBooks.map((book) => ({
                 ...book,

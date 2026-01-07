@@ -24,6 +24,14 @@ vi.mock("@/lib/logger", () => {
   };
 });
 
+// Mock Next.js Image component for tests
+vi.mock("next/image", () => ({
+  default: (props: any) => {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return require("react").createElement("img", { ...props });
+  },
+}));
+
 // Mock MarkdownEditor globally to avoid duplication in component tests
 // This avoids browser API dependencies (MDXEditor uses lexical which needs DOM APIs)
 vi.mock("@/components/Markdown/MarkdownEditor", () => {
