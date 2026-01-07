@@ -159,10 +159,16 @@ export default function ShelfDetailPage() {
     );
   }
 
-  // Build subtitle with description and book count
-  const subtitle = shelf.description 
-    ? `${shelf.description} • ${books.length} ${books.length === 1 ? "book" : "books"}`
-    : `${books.length} ${books.length === 1 ? "book" : "books"}`;
+  // Build title with book count (count is smaller)
+  const titleWithCount = (
+    <>
+      {shelf.name}
+      <span className="text-3xl text-[var(--accent)] ml-2">({books.length})</span>
+    </>
+  );
+
+  // Build subtitle (description only, without book count)
+  const subtitle = shelf.description || "";
 
   // Build custom icon with shelf color
   const ShelfIcon = (shelf.icon ? getShelfIcon(shelf.icon) : null) || FolderOpen;
@@ -179,7 +185,7 @@ export default function ShelfDetailPage() {
     <div className="space-y-10">
       {/* Header */}
       <PageHeader
-        title={shelf.name}
+        title={titleWithCount}
         subtitle={subtitle}
         customIcon={customIcon}
         backLink={{

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 
 interface PageHeaderProps {
-  title: string;
+  title: string | ReactNode;
   subtitle: string;
   icon?: LucideIcon;
   customIcon?: ReactNode;
@@ -41,7 +41,7 @@ export function PageHeader({
             ) : Icon ? (
               <Icon className="w-8 h-8 text-[var(--subheading-text)]" />
             ) : null}
-            <span className="text-[var(--heading-text)]">{title}</span>
+            <span className="text-[var(--heading-text)] flex items-center">{title}</span>
           </h1>
           <p className="text-[var(--subheading-text)] mt-2 font-medium">
             {subtitle}
