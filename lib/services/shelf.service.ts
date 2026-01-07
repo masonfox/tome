@@ -233,6 +233,65 @@ export class ShelfService {
   }
 
   /**
+   * Add multiple books to a shelf (bulk operation)
+   * Books are added in the order provided, skipping any that already exist or are invalid
+   */
+  async addBooksToShelf(
+    shelfId: number,
+    bookIds: number[]
+  ): Promise<{ count: number; addedBookIds: number[] }> {
+    // Validate shelf exists
+    const shelf = await shelfRepository.findById(shelfId);
+    if (!shelf) {
+      throw new Error(`Shelf with ID ${shelfId} not found`);
+    }
+
+    const addedBookIds: number[] = [];
+
+    logger.info({ shelfId, bookCount: bookIds.length }, "Adding multiple books to shelf");
+
+    for (const bookId of bookIds) {
+      try {
+        // Validate book exists
+        const book = await bookRepository.findById(bookId);
+        if (!book) {
+          logger.warn({ bookId }, "Book not found, skipping");
+          continue;
+        }
+
+        // Check if already on shelf (defensive check)
+        const isOnShelf = await shelfRepository.isBookOnShelf(shelfId, bookId);
+        if (isOnShelf) {
+          logger.warn({ shelfId, bookId }, "Book already on shelf, skipping");
+          continue;
+        }
+
+        // Add to shelf (sortOrder auto-calculated)
+        await shelfRepository.addBookToShelf(shelfId, bookId);
+        addedBookIds.push(bookId);
+      } catch (error) {
+        logger.error({ error, bookId, shelfId }, "Failed to add book to shelf");
+        // Continue with other books
+      }
+    }
+
+    // Reindex all books to ensure continuous sortOrder
+    if (addedBookIds.length > 0) {
+      await shelfRepository.reindexShelfBooks(shelfId);
+    }
+
+    logger.info(
+      { shelfId, totalRequested: bookIds.length, successfullyAdded: addedBookIds.length },
+      "Bulk add books to shelf completed"
+    );
+
+    return {
+      count: addedBookIds.length,
+      addedBookIds,
+    };
+  }
+
+  /**
    * Remove a book from a shelf
    */
   async removeBookFromShelf(shelfId: number, bookId: number): Promise<boolean> {
