@@ -171,10 +171,14 @@ export function useShelfBooks(shelfId: number | null) {
         return;
       }
 
-      // Optimistic update
+      // Optimistic update - reorder books and update sortOrder to match server behavior
       if (shelf) {
         const reorderedBooks = bookIds
-          .map((id) => shelf.books.find((book) => book.id === id))
+          .map((id, index) => {
+            const book = shelf.books.find((book) => book.id === id);
+            if (!book) return undefined;
+            return { ...book, sortOrder: index } as BookWithStatus;
+          })
           .filter((book): book is BookWithStatus => book !== undefined);
         
         setShelf({
@@ -187,10 +191,10 @@ export function useShelfBooks(shelfId: number | null) {
       try {
         await shelfApi.reorderBooks(shelfId, { bookIds });
         
-        // Refresh to get server state
-        await fetchShelfBooks();
+        // No need to refetch - optimistic update already reflects correct state
+        // This prevents the jarring page refresh after drag-and-drop
+        // No success toast - the visual feedback of reordering is confirmation enough
 
-        toast.success("Book order updated");
         return true;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
@@ -200,7 +204,7 @@ export function useShelfBooks(shelfId: number | null) {
         const message = err instanceof ApiError ? err.message : error.message;
         toast.error(`Failed to reorder books: ${message}`);
         
-        // Refresh to restore correct state
+        // Refresh to restore correct state on error
         await fetchShelfBooks();
         throw error;
       }

@@ -260,25 +260,33 @@ describe('useShelfBooks', () => {
 
       result.current.reorderBooks(bookIds);
 
-      // Check optimistic update happened (eventually after state updates)
+      // Check optimistic update happened (with updated sortOrder values)
       await waitFor(() => {
         expect(result.current.books.length).toBe(2);
-        // After reorder completes, it refreshes, so we get back the original order from mock
-        // But initially the optimistic update should have happened
+        // The optimistic update persists since we no longer refetch on success
       });
     });
 
-    test('should refresh after reorder to sync server state', async () => {
+    test('should not refresh after successful reorder (trusts optimistic update)', async () => {
       (shelfApi.get as any).mockResolvedValue(mockShelf);
       (shelfApi.reorderBooks as any).mockResolvedValue({ reordered: true });
 
       const { result } = renderHook(() => useShelfBooks(1));
+      
+      // Pre-populate shelf state with initial fetch
+      await result.current.fetchShelfBooks();
+      
+      // Clear the mock call history after initial fetch
+      (shelfApi.get as any).mockClear();
 
-      // Call reorderBooks which internally calls fetchShelfBooks after success
+      // Call reorderBooks - should NOT call fetchShelfBooks after success
       await result.current.reorderBooks([20, 10]);
 
-      // reorderBooks calls fetchShelfBooks internally, so get should be called at least once
-      expect(shelfApi.get).toHaveBeenCalled();
+      // Verify that get was NOT called again after the successful reorder
+      expect(shelfApi.get).not.toHaveBeenCalled();
+      
+      // Verify the API reorder was still called
+      expect(shelfApi.reorderBooks).toHaveBeenCalledWith(1, { bookIds: [20, 10] });
     });
 
     test('should restore state on error', async () => {
