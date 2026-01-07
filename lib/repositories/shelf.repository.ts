@@ -187,6 +187,7 @@ export class ShelfRepository extends BaseRepository<
         break;
     }
 
+    // Get the most recent session status for each book using a subquery
     const result = await db
       .select({
         id: books.id,
@@ -209,18 +210,17 @@ export class ShelfRepository extends BaseRepository<
         orphanedAt: books.orphanedAt,
         createdAt: books.createdAt,
         updatedAt: books.updatedAt,
-        status: readingSessions.status,
+        status: sql<string | null>`(
+          SELECT rs.status 
+          FROM ${readingSessions} rs 
+          WHERE rs.book_id = ${books.id}
+          ORDER BY rs.session_number DESC
+          LIMIT 1
+        )`,
         sortOrder: bookShelves.sortOrder,
       })
       .from(bookShelves)
       .innerJoin(books, eq(bookShelves.bookId, books.id))
-      .leftJoin(
-        readingSessions,
-        and(
-          eq(readingSessions.bookId, books.id),
-          eq(readingSessions.isActive, true)
-        )
-      )
       .where(eq(bookShelves.shelfId, shelfId))
       .orderBy(orderClause)
       .all();
