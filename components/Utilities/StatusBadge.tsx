@@ -43,7 +43,7 @@ export function StatusBadge({
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-md font-semibold shadow-sm hover:shadow-md transition-all",
+        "inline-flex items-center rounded-md font-semibold shadow-sm hover:shadow-md transition-all whitespace-nowrap",
         "bg-gradient-to-r",
         config.lightGradient,
         config.textColor,
