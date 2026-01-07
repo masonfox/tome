@@ -28,7 +28,7 @@ interface FannedBookCoversProps {
  * - Smart positioning based on number of covers
  * - Responsive container-based display
  * - Configurable size variants
- * - Optional hover animations
+ * - Hover animations that fan out covers
  * - Loading/skeleton state support
  * 
  * Usage:
@@ -50,6 +50,7 @@ export default function FannedBookCovers({
   height = 180,
 }: FannedBookCoversProps) {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+  const [isHovered, setIsHovered] = useState(false);
 
   // Cover dimensions based on size variant
   const dimensions = {
@@ -102,7 +103,7 @@ export default function FannedBookCovers({
     const zIndex = 10 + index;
 
     // Calculate hover translation - each cover spreads out proportionally
-    const hoverTranslateX = withHoverEffect ? index * 4 : 0;
+    const hoverTranslateX = withHoverEffect && isHovered ? index * 4 : 0;
 
     return {
       rotation,
@@ -120,6 +121,8 @@ export default function FannedBookCovers({
     <div 
       className={`relative overflow-hidden ${className}`}
       style={{ height: `${height}px` }}
+      onMouseEnter={() => withHoverEffect && setIsHovered(true)}
+      onMouseLeave={() => withHoverEffect && setIsHovered(false)}
     >
       <div className="absolute inset-0 flex items-center justify-start pl-4">
         {visibleCovers.map((item, index) => {
@@ -129,7 +132,7 @@ export default function FannedBookCovers({
           return (
             <div
               key={calibreId || `skeleton-${index}`}
-              className="absolute transition-all duration-300 group-hover:scale-105"
+              className={`absolute transition-all duration-300 ${isHovered ? 'scale-105' : ''}`}
               style={{
                 left: `${style.left}px`,
                 zIndex: style.zIndex,
@@ -138,43 +141,7 @@ export default function FannedBookCovers({
               <div 
                 className="transition-transform duration-300"
                 style={{
-                  transform: `rotate(${style.rotation}deg)`,
-                  willChange: 'transform',
-                }}
-                onTransitionEnd={(e) => {
-                  // Ensure smooth transitions complete
-                  e.currentTarget.style.willChange = 'auto';
-                }}
-                ref={(el) => {
-                  if (el && withHoverEffect) {
-                    // Store transform values for hover effect
-                    el.dataset.rotation = style.rotation.toString();
-                    el.dataset.hoverTranslate = style.hoverTranslateX.toString();
-                    
-                    // Add hover listener to parent group
-                    const parent = el.closest('.group');
-                    if (parent && !parent.dataset.hoverListenerAdded) {
-                      parent.dataset.hoverListenerAdded = 'true';
-                      
-                      parent.addEventListener('mouseenter', () => {
-                        const covers = parent.querySelectorAll('[data-rotation]');
-                        covers.forEach((cover) => {
-                          const rotation = parseFloat((cover as HTMLElement).dataset.rotation || '0');
-                          const translate = parseFloat((cover as HTMLElement).dataset.hoverTranslate || '0');
-                          (cover as HTMLElement).style.transform = `rotate(${rotation}deg) translateX(${translate}px)`;
-                          (cover as HTMLElement).style.willChange = 'transform';
-                        });
-                      });
-                      
-                      parent.addEventListener('mouseleave', () => {
-                        const covers = parent.querySelectorAll('[data-rotation]');
-                        covers.forEach((cover) => {
-                          const rotation = parseFloat((cover as HTMLElement).dataset.rotation || '0');
-                          (cover as HTMLElement).style.transform = `rotate(${rotation}deg) translateX(0px)`;
-                        });
-                      });
-                    }
-                  }
+                  transform: `rotate(${style.rotation}deg) translateX(${style.hoverTranslateX}px)`,
                 }}
               >
                 {isLoading ? (
