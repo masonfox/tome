@@ -64,6 +64,7 @@ export function CreateShelfModal({
       subtitle="Organize your books into custom shelves"
       size="md"
       loading={loading}
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
           <button

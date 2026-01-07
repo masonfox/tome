@@ -69,6 +69,7 @@ export function EditShelfModal({
       subtitle="Update your shelf details"
       size="md"
       loading={loading}
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
           <button
