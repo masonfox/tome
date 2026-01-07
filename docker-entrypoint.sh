@@ -112,7 +112,8 @@ run_migrations() {
   while [ $attempt -le $MAX_RETRIES ]; do
     echo "Migration attempt $attempt of $MAX_RETRIES..."
 
-    if npx tsx lib/db/migrate.ts; then
+    # Capture both stdout and stderr, display in real-time
+    if npx tsx lib/db/migrate.ts 2>&1; then
       echo "Migrations completed successfully"
       return 0
     else
@@ -126,6 +127,7 @@ run_migrations() {
         attempt=$((attempt + 1))
       else
         echo "All migration attempts failed"
+        echo "Last exit code: $exit_code"
         return 1
       fi
     fi
