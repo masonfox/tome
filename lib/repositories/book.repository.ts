@@ -15,7 +15,6 @@ export interface BookFilter {
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
-  excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
 }
 
 export interface BookWithStatus extends Book {
@@ -404,22 +403,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(inArray(books.id, shelfBookIds));
     }
 
-    // Exclude shelf filter (exclude books on specific shelf - used for "Add Books to Shelf" modal)
-    if (filters.excludeShelfId) {
-      const excludeQuery = this.getDatabase()
-        .select({ bookId: bookShelves.bookId })
-        .from(bookShelves)
-        .where(eq(bookShelves.shelfId, filters.excludeShelfId));
-
-      const excludedBooks = excludeQuery.all() as Array<{ bookId: number }>;
-      const excludedBookIds = excludedBooks.map((s) => s.bookId);
-
-      // Only add condition if there are books to exclude
-      if (excludedBookIds.length > 0) {
-        conditions.push(sql`${books.id} NOT IN (${sql.join(excludedBookIds.map(id => sql`${id}`), sql`, `)})`);
-      }
-    }
-
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
@@ -445,33 +428,47 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       case "author_desc":
         orderBy = desc(books.authors);
         break;
-      case "rating":
-        orderBy = desc(books.rating);
-        break;
-      case "rating_asc":
-        orderBy = asc(books.rating);
-        break;
-      case "pages":
-        orderBy = asc(books.totalPages);
-        break;
-      case "pages_desc":
-        orderBy = desc(books.totalPages);
-        break;
-      case "recently_read":
-        orderBy = desc(readingSessions.completedDate);
-        break;
       case "created":
-        orderBy = desc(books.createdAt);
+        // Sort by when the book was added to Calibre library (not tome database)
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created_desc":
-        orderBy = asc(books.createdAt);
+        // Oldest books first by Calibre library date
+        orderBy = asc(books.addedToLibrary);
+        break;
+      case "rating":
+        // Rating high to low (nulls last)
+        orderBy = sql`${books.rating} DESC NULLS LAST`;
+        break;
+      case "rating_asc":
+        // Rating low to high (nulls last)
+        orderBy = sql`${books.rating} ASC NULLS LAST`;
+        break;
+      case "pages":
+        // Shortest books first (nulls last)
+        orderBy = sql`${books.totalPages} ASC NULLS LAST`;
+        break;
+      case "pages_desc":
+        // Longest books first (nulls last)
+        orderBy = sql`${books.totalPages} DESC NULLS LAST`;
+        break;
+      case "recently_read":
+        // Most recently finished books first
+        // Uses subquery to get latest completed session date
+        orderBy = sql`(
+          SELECT MAX(rs.completed_date) 
+          FROM ${readingSessions} rs 
+          WHERE rs.book_id = ${books.id} 
+            AND rs.status = 'read'
+            AND rs.completed_date IS NOT NULL
+        ) DESC NULLS LAST`;
         break;
       default:
-        orderBy = desc(books.createdAt);
+        orderBy = desc(books.addedToLibrary);
     }
 
-    // Get books
-    const result = this.getDatabase()
+    // Get paginated results
+    const results = this.getDatabase()
       .select()
       .from(books)
       .where(whereClause)
@@ -480,10 +477,155 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .offset(skip)
       .all();
 
-    return {
-      books: result as Book[],
-      total,
-    };
+    return { books: results, total };
+  }
+
+  /**
+   * Update book by calibreId
+   */
+  async updateByCalibreId(
+    calibreId: number,
+    data: Partial<NewBook>
+  ): Promise<Book | undefined> {
+    const result = this.getDatabase()
+      .update(books)
+      .set(data)
+      .where(eq(books.calibreId, calibreId))
+      .returning()
+      .get();
+    return result;
+  }
+
+  /**
+   * Bulk upsert books (insert new, update existing) for sync performance optimization
+   * 
+   * Uses INSERT OR REPLACE to handle both new books and updates in a single operation.
+   * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * 
+   * This is much more efficient than individual insert/update calls.
+   * For a library with 150k books, this reduces 150k-300k operations to ~150 operations.
+   * 
+   * @param booksData - Array of book data to upsert
+   * @returns Number of books processed
+   */
+  async bulkUpsert(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalProcessed = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          // INSERT OR REPLACE will update if calibreId exists, insert if not
+          tx.insert(books)
+            .values(bookData)
+            .onConflictDoUpdate({
+              target: books.calibreId,
+              set: bookData,
+            })
+            .run();
+        }
+      });
+
+      totalProcessed += batch.length;
+    }
+
+    return totalProcessed;
+  }
+
+  /**
+   * Find books not in a list of calibreIds (for orphaning)
+   */
+  async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
+    // SAFETY: If calibreIds is empty, return empty array to prevent mass orphaning
+    // This prevents a catastrophic bug where an empty Calibre result would orphan ALL books
+    if (calibreIds.length === 0) {
+      return [];
+    }
+
+    return this.getDatabase()
+      .select()
+      .from(books)
+      .where(
+        and(
+          sql`${books.calibreId} NOT IN ${sql.raw(`(${calibreIds.join(",")})`)}`,
+          or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!
+        )
+      )
+      .all();
+  }
+
+  /**
+   * Mark book as orphaned
+   */
+  async markAsOrphaned(id: number): Promise<Book | undefined> {
+    return this.update(id, {
+      orphaned: true,
+      orphanedAt: new Date(),
+    } as any);
+  }
+
+  /**
+   * Get all unique tags from all books
+   * Optimized to use SQLite's json_each function instead of loading all books
+   */
+  async getAllTags(): Promise<string[]> {
+    try {
+      // Use json_each to extract tags directly in SQL
+      // This is much faster than loading all books into memory
+      const results = this.getDatabase()
+        .select({
+          tag: sql<string>`json_each.value`,
+        })
+        .from(sql`${books}, json_each(${books.tags})`)
+        .where(sql`json_array_length(${books.tags}) > 0`)
+        .groupBy(sql`json_each.value`)
+        .orderBy(sql`json_each.value`)
+        .all();
+
+      return results.map((r) => r.tag);
+    } catch (error) {
+      getLogger().error({ err: error }, "Error fetching tags");
+      return [];
+    }
+  }
+
+  /**
+   * Update book's totalPages within a transaction context
+   * Used when recalculating progress percentages atomically
+   * 
+   * @param bookId - The book ID
+   * @param totalPages - The new total page count
+   * @param tx - Optional transaction context (for use in transactions)
+   * @returns Updated book
+   */
+  updateTotalPagesWithRecalculation(
+    bookId: number,
+    totalPages: number,
+    tx?: any
+  ): Book {
+    const database = tx || this.getDatabase();
+
+    const [updated] = database
+      .update(books)
+      .set({ totalPages })
+      .where(eq(books.id, bookId))
+      .returning()
+      .all();
+
+    if (!updated) {
+      throw new Error("Failed to update total pages");
+    }
+
+    return updated;
   }
 
   /**
