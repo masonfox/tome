@@ -9,6 +9,7 @@ vi.mock('@/lib/api', () => ({
   shelfApi: {
     get: vi.fn(),
     addBook: vi.fn(),
+    addBooks: vi.fn(),
     removeBook: vi.fn(),
     updateBookOrder: vi.fn(),
     reorderBooks: vi.fn(),
@@ -414,6 +415,191 @@ describe('useShelfBooks', () => {
       await result.current.reorderBooks([10, 20]);
 
       expect(shelfApi.reorderBooks).toHaveBeenCalledWith(1, { bookIds: [10, 20] });
+    });
+  });
+
+  describe('addBooksToShelf (bulk operation)', () => {
+    test('should call shelfApi.addBooks with correct parameters', async () => {
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 3 });
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await waitFor(() => {
+        result.current.addBooksToShelf([10, 20, 30]);
+      });
+
+      await waitFor(() => {
+        expect(shelfApi.addBooks).toHaveBeenCalledWith(1, {
+          bookIds: [10, 20, 30],
+        });
+      });
+    });
+
+    test('should set loading state during operation', async () => {
+      (shelfApi.addBooks as any).mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve({ count: 2 }), 100))
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      const promise = result.current.addBooksToShelf([10, 20]);
+
+      // Wait for loading state to update
+      await waitFor(() => {
+        expect(result.current.loading).toBe(true);
+      });
+
+      await promise;
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+    });
+
+    test('should show success toast with correct count (single book)', async () => {
+      const { toast } = await import('@/utils/toast');
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 1 });
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.addBooksToShelf([10]);
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('1 book added to shelf');
+      });
+    });
+
+    test('should show success toast with correct count (multiple books)', async () => {
+      const { toast } = await import('@/utils/toast');
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 3 });
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.addBooksToShelf([10, 20, 30]);
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('3 books added to shelf');
+      });
+    });
+
+    test('should refresh shelf data after successful add', async () => {
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 2 });
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      // Clear initial fetch calls
+      (shelfApi.get as any).mockClear();
+
+      await result.current.addBooksToShelf([10, 20]);
+
+      await waitFor(() => {
+        // Should call fetchShelfBooks (which calls shelfApi.get)
+        expect(shelfApi.get).toHaveBeenCalled();
+      });
+    });
+
+    test('should handle API errors gracefully', async () => {
+      const error = new ApiError('Failed to add books', 500, '/api/shelves/1/books/bulk');
+      (shelfApi.addBooks as any).mockRejectedValue(error);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      try {
+        await result.current.addBooksToShelf([10, 20]);
+        expect.fail('Should have thrown an error');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        expect((err as Error).message).toBe('Failed to add books');
+      }
+
+      await waitFor(() => {
+        expect(result.current.error).toBeInstanceOf(Error);
+      });
+    });
+
+    test('should show error toast on failure', async () => {
+      const { toast } = await import('@/utils/toast');
+      const error = new ApiError('Server error', 500, '/api/shelves/1/books/bulk');
+      (shelfApi.addBooks as any).mockRejectedValue(error);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      try {
+        await result.current.addBooksToShelf([10, 20]);
+      } catch (err) {
+        // Expected
+      }
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to add books: Server error');
+      });
+    });
+
+    test('should clear loading state after completion', async () => {
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 2 });
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.addBooksToShelf([10, 20]);
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+    });
+
+    test('should handle network errors', async () => {
+      const networkError = new Error('Network request failed');
+      (shelfApi.addBooks as any).mockRejectedValue(networkError);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      try {
+        await result.current.addBooksToShelf([10, 20]);
+        expect.fail('Should have thrown an error');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+      }
+
+      await waitFor(() => {
+        expect(result.current.error).toBeInstanceOf(Error);
+      });
+    });
+
+    test('should not call API when shelfId is null', async () => {
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 2 });
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.addBooksToShelf([10, 20]);
+
+      expect(shelfApi.addBooks).not.toHaveBeenCalled();
+    });
+
+    test('should not call API when bookIds array is empty', async () => {
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 0 });
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.addBooksToShelf([]);
+
+      expect(shelfApi.addBooks).not.toHaveBeenCalled();
+    });
+
+    test('should return result with count', async () => {
+      (shelfApi.addBooks as any).mockResolvedValue({ count: 5 });
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      const addResult = await result.current.addBooksToShelf([10, 20, 30, 40, 50]);
+
+      expect(addResult).toEqual({ count: 5 });
     });
   });
 });
