@@ -31,6 +31,7 @@ export interface BookWithShelfInfo extends Book {
 export interface BookWithStatus extends Book {
   status: string | null;
   sortOrder?: number;
+  addedAt?: Date;
 }
 
 export type ShelfOrderBy = "sortOrder" | "title" | "author" | "series" | "rating" | "pages" | "dateAdded";
@@ -244,6 +245,7 @@ export class ShelfRepository extends BaseRepository<
           LIMIT 1
         )`,
         sortOrder: bookShelves.sortOrder,
+        addedAt: bookShelves.addedAt,
       })
       .from(bookShelves)
       .innerJoin(books, eq(bookShelves.bookId, books.id))

@@ -369,7 +369,7 @@ export default function ShelfDetailPage() {
             <DraggableBookTable
               books={filteredBooks.map((book) => ({
                 ...book,
-                dateAddedToShelf: book.addedToLibrary,
+                dateAddedToShelf: book.addedAt,
               }))}
               sortBy={sortBy}
               sortDirection={sortDirection}
@@ -387,7 +387,7 @@ export default function ShelfDetailPage() {
             <BookTable
               books={filteredBooks.map((book) => ({
                 ...book,
-                dateAddedToShelf: book.addedToLibrary,
+                dateAddedToShelf: book.addedAt,
               }))}
               sortBy={sortBy}
               sortDirection={sortDirection}
