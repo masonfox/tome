@@ -1,14 +1,15 @@
 import { useState, useCallback } from "react";
 import { toast } from "@/utils/toast";
-import type { Shelf } from "@/lib/db/schema/shelves";
+import { shelfApi, ApiError } from "@/lib/api";
+import type { ShelfWithBooks } from "@/lib/api";
 import type { BookWithStatus, ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
-export interface ShelfWithBooks extends Shelf {
+export interface ShelfWithBooksExtended extends Omit<ShelfWithBooks, 'books'> {
   books: BookWithStatus[];
 }
 
 export function useShelfBooks(shelfId: number | null) {
-  const [shelf, setShelf] = useState<ShelfWithBooks | null>(null);
+  const [shelf, setShelf] = useState<ShelfWithBooksExtended | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -26,21 +27,22 @@ export function useShelfBooks(shelfId: number | null) {
       setHasInitialized(true);
       setError(null);
       try {
-        const response = await fetch(
-          `/api/shelves/${shelfId}?withBooks=true&orderBy=${orderBy}&direction=${direction}`
-        );
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to fetch shelf books");
-        }
-
-        setShelf(data.data);
-        return data.data;
+        const shelf = await shelfApi.get(shelfId, {
+          withBooks: true,
+          orderBy,
+          direction,
+        });
+        
+        // Safe: API returns ShelfWithBooks when withBooks=true
+        setShelf(shelf as ShelfWithBooksExtended);
+        return shelf;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to load shelf books: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to load shelf books: ${message}`);
         throw error;
       } finally {
         setLoading(false);
@@ -61,20 +63,8 @@ export function useShelfBooks(shelfId: number | null) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/shelves/${shelfId}/books`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ bookId, sortOrder }),
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to add book to shelf");
-        }
-
+        await shelfApi.addBook(shelfId, { bookId, sortOrder });
+        
         // Refresh shelf books after adding
         await fetchShelfBooks();
 
@@ -83,7 +73,10 @@ export function useShelfBooks(shelfId: number | null) {
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to add book to shelf: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to add book to shelf: ${message}`);
         throw error;
       } finally {
         setLoading(false);
@@ -104,19 +97,8 @@ export function useShelfBooks(shelfId: number | null) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `/api/shelves/${shelfId}/books?bookId=${bookId}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to remove book from shelf");
-        }
-
+        await shelfApi.removeBook(shelfId, bookId);
+        
         // Update local state optimistically
         setShelf((prev) =>
           prev
@@ -132,7 +114,11 @@ export function useShelfBooks(shelfId: number | null) {
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to remove book from shelf: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to remove book from shelf: ${message}`);
+        
         // Refresh to ensure consistency
         await fetchShelfBooks();
         throw error;
@@ -155,20 +141,8 @@ export function useShelfBooks(shelfId: number | null) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/shelves/${shelfId}/books`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ bookId, sortOrder }),
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to update book order");
-        }
-
+        await shelfApi.updateBookOrder(shelfId, { bookId, sortOrder });
+        
         // Refresh shelf books after reordering
         await fetchShelfBooks();
 
@@ -176,7 +150,10 @@ export function useShelfBooks(shelfId: number | null) {
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to update book order: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to update book order: ${message}`);
         throw error;
       } finally {
         setLoading(false);
@@ -208,20 +185,8 @@ export function useShelfBooks(shelfId: number | null) {
 
       setError(null);
       try {
-        const response = await fetch(`/api/shelves/${shelfId}/books/reorder`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ bookIds }),
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error?.message || "Failed to reorder books");
-        }
-
+        await shelfApi.reorderBooks(shelfId, { bookIds });
+        
         // Refresh to get server state
         await fetchShelfBooks();
 
@@ -230,7 +195,11 @@ export function useShelfBooks(shelfId: number | null) {
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
-        toast.error(`Failed to reorder books: ${error.message}`);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to reorder books: ${message}`);
+        
         // Refresh to restore correct state
         await fetchShelfBooks();
         throw error;

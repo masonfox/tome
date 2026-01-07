@@ -135,6 +135,62 @@ describe("BaseApiClient", () => {
     });
   });
 
+  describe("PUT requests", () => {
+    test("should make PUT request with correct method", async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: () => Promise.resolve({ success: true }),
+        } as Response)
+      ) as any;
+
+      await client["put"]("/test", { data: "value" });
+      
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/test",
+        expect.objectContaining({
+          method: "PUT",
+        })
+      ) as any;
+    });
+
+    test("should include body data in PUT request", async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: () => Promise.resolve({ success: true }),
+        } as Response)
+      ) as any;
+
+      const data = { bookIds: [1, 2, 3] };
+      await client["put"]("/test", data);
+      
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/test",
+        expect.objectContaining({
+          body: JSON.stringify(data),
+        })
+      ) as any;
+    });
+
+    test("should handle PUT errors", async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 404,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: () => Promise.resolve({ error: "Not found" }),
+        } as Response)
+      ) as any;
+
+      await expect(client["put"]("/test", {})).rejects.toThrow(ApiError);
+    });
+  });
+
   describe("DELETE requests", () => {
     test("deletes resource and handles response", async () => {
       global.fetch = vi.fn(() =>

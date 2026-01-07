@@ -119,6 +119,13 @@ export interface UpdateBookOrderRequest {
   sortOrder: number;
 }
 
+/**
+ * Request to batch reorder books on a shelf
+ */
+export interface ReorderBooksRequest {
+  bookIds: number[];
+}
+
 // ============================================================================
 // Shelf API Response Types
 // ============================================================================
@@ -185,4 +192,12 @@ export interface RemoveBookFromShelfResponse {
 export interface UpdateBookOrderResponse {
   success: boolean;
   data: { updated: boolean };
+}
+
+/**
+ * Response from batch reordering books on a shelf
+ */
+export interface ReorderBooksResponse {
+  success: boolean;
+  data: { reordered: boolean };
 }

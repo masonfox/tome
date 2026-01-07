@@ -17,6 +17,8 @@ import type {
   UpdateShelfRequest,
   AddBookToShelfRequest,
   UpdateBookOrderRequest,
+  ReorderBooksRequest,
+  ReorderBooksResponse,
   CreateShelfResponse,
   UpdateShelfResponse,
   DeleteShelfResponse,
@@ -275,6 +277,36 @@ export const shelfApi = {
       UpdateBookOrderRequest,
       UpdateBookOrderResponse
     >(`/api/shelves/${shelfId}/books`, request);
+
+    return response.data;
+  },
+
+  /**
+   * Batch reorder books on a shelf
+   * 
+   * Updates the sort order of multiple books in one request by specifying
+   * the desired order of book IDs. More efficient than calling updateBookOrder
+   * for each book individually.
+   * 
+   * @param shelfId - The ID of the shelf
+   * @param request - Book IDs in desired order
+   * @returns Success indicator
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * // Reorder 4 books - first book gets sortOrder 0, second gets 1, etc.
+   * await shelfApi.reorderBooks(1, { 
+   *   bookIds: [42, 15, 89, 3] 
+   * });
+   */
+  reorderBooks: async (
+    shelfId: number,
+    request: ReorderBooksRequest
+  ): Promise<{ reordered: boolean }> => {
+    const response = await baseApiClient["put"]<
+      ReorderBooksRequest,
+      ReorderBooksResponse
+    >(`/api/shelves/${shelfId}/books/reorder`, request);
 
     return response.data;
   },

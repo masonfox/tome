@@ -712,6 +712,95 @@ describe('shelfApi', () => {
     });
   });
 
+  describe('reorderBooks', () => {
+    test('should call PUT with correct endpoint and payload', async () => {
+      const response = { success: true, data: { reordered: true } };
+      apiSpies.put.mockResolvedValue(response);
+
+      const request = { bookIds: [42, 15, 89, 3] };
+      const result = await shelfApi.reorderBooks(1, request);
+
+      expect(apiSpies.put).toHaveBeenCalledWith(
+        '/api/shelves/1/books/reorder',
+        request
+      );
+      expect(result).toEqual({ reordered: true });
+    });
+
+    test('should handle different shelf IDs', async () => {
+      const response = { success: true, data: { reordered: true } };
+      apiSpies.put.mockResolvedValue(response);
+
+      await shelfApi.reorderBooks(5, { bookIds: [1, 2, 3] });
+      expect(apiSpies.put).toHaveBeenCalledWith('/api/shelves/5/books/reorder', expect.any(Object));
+
+      await shelfApi.reorderBooks(999, { bookIds: [10, 20] });
+      expect(apiSpies.put).toHaveBeenCalledWith('/api/shelves/999/books/reorder', expect.any(Object));
+    });
+
+    test('should handle empty bookIds array', async () => {
+      const response = { success: true, data: { reordered: true } };
+      apiSpies.put.mockResolvedValue(response);
+
+      const request = { bookIds: [] };
+      await shelfApi.reorderBooks(5, request);
+
+      expect(apiSpies.put).toHaveBeenCalledWith(
+        '/api/shelves/5/books/reorder',
+        { bookIds: [] }
+      );
+    });
+
+    test('should handle single book reorder', async () => {
+      const response = { success: true, data: { reordered: true } };
+      apiSpies.put.mockResolvedValue(response);
+
+      const request = { bookIds: [42] };
+      await shelfApi.reorderBooks(1, request);
+
+      expect(apiSpies.put).toHaveBeenCalledWith(
+        '/api/shelves/1/books/reorder',
+        { bookIds: [42] }
+      );
+    });
+
+    test('should handle large batch of books', async () => {
+      const response = { success: true, data: { reordered: true } };
+      apiSpies.put.mockResolvedValue(response);
+
+      const bookIds = Array.from({ length: 100 }, (_, i) => i + 1);
+      const request = { bookIds };
+      
+      await shelfApi.reorderBooks(1, request);
+
+      expect(apiSpies.put).toHaveBeenCalledWith(
+        '/api/shelves/1/books/reorder',
+        { bookIds }
+      );
+      expect(bookIds).toHaveLength(100);
+    });
+
+    test('should propagate ApiError from baseApiClient', async () => {
+      const error = new ApiError('Shelf not found', 404, '/api/shelves/999/books/reorder');
+      apiSpies.put.mockRejectedValue(error);
+
+      await expect(shelfApi.reorderBooks(999, { bookIds: [1, 2, 3] }))
+        .rejects.toThrow(ApiError);
+      await expect(shelfApi.reorderBooks(999, { bookIds: [1, 2, 3] }))
+        .rejects.toThrow('Shelf not found');
+    });
+
+    test('should unwrap response and return data object', async () => {
+      const response = { success: true, data: { reordered: true } };
+      apiSpies.put.mockResolvedValue(response);
+
+      const result = await shelfApi.reorderBooks(1, { bookIds: [1, 2] });
+
+      expect(result).toEqual({ reordered: true });
+      expect(result).not.toHaveProperty('success');
+    });
+  });
+
   describe('error handling', () => {
     test('should handle network errors', async () => {
       const error = new ApiError('Network error', 0, '/api/shelves');

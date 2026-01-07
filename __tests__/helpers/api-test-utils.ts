@@ -4,7 +4,7 @@ import { baseApiClient } from '@/lib/api/base-client';
 /**
  * Spy on baseApiClient methods for domain API testing
  *
- * Returns spies for get, post, patch, delete methods.
+ * Returns spies for get, post, patch, put, delete methods.
  * Call restoreAll() after tests to clean up.
  *
  * @example
@@ -18,17 +18,20 @@ export function spyOnBaseApiClient() {
   const getSpy = vi.spyOn(baseApiClient as any, 'get');
   const postSpy = vi.spyOn(baseApiClient as any, 'post');
   const patchSpy = vi.spyOn(baseApiClient as any, 'patch');
+  const putSpy = vi.spyOn(baseApiClient as any, 'put');
   const deleteSpy = vi.spyOn(baseApiClient as any, 'delete');
 
   return {
     get: getSpy,
     post: postSpy,
     patch: patchSpy,
+    put: putSpy,
     delete: deleteSpy,
     restoreAll: () => {
       getSpy.mockRestore();
       postSpy.mockRestore();
       patchSpy.mockRestore();
+      putSpy.mockRestore();
       deleteSpy.mockRestore();
     },
   };
