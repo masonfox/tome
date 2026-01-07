@@ -137,13 +137,16 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
   try {
     const progressResult = rawDb.prepare("DELETE FROM progress_logs").run();
     const sessionsResult = rawDb.prepare("DELETE FROM reading_sessions").run();
+    const bookShelvesResult = rawDb.prepare("DELETE FROM book_shelves").run();
+    const shelvesResult = rawDb.prepare("DELETE FROM shelves").run();
     const booksResult = rawDb.prepare("DELETE FROM books").run();
     const streaksResult = rawDb.prepare("DELETE FROM streaks").run();
     const goalsResult = rawDb.prepare("DELETE FROM reading_goals").run();
 
     // console.log(
     //   `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
-    //   `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
+    //   `${sessionsResult.changes} sessions, ${bookShelvesResult.changes} book_shelves, ` +
+    //   `${shelvesResult.changes} shelves, ${booksResult.changes} books, ` +
     //   `${streaksResult.changes} streaks, ${goalsResult.changes} goals`
     // );
 
