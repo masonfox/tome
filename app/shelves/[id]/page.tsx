@@ -24,6 +24,7 @@ export default function ShelfDetailPage() {
     shelf,
     books,
     loading,
+    hasInitialized,
     fetchShelfBooks,
     removeBookFromShelf,
   } = useShelfBooks(shelfId);
@@ -95,23 +96,46 @@ export default function ShelfDetailPage() {
     return titleMatch || authorMatch || seriesMatch;
   });
 
-  if (loading && !shelf) {
+  if (!hasInitialized || (loading && !shelf)) {
     return (
       <div className="space-y-10">
-        <div className="animate-pulse">
-          <div className="h-8 bg-[var(--card-bg)] rounded w-48 mb-4"></div>
-          <div className="h-12 bg-[var(--card-bg)] rounded w-96 mb-2"></div>
-          <div className="h-6 bg-[var(--card-bg)] rounded w-64 mb-8"></div>
+        {/* Header Skeleton - Match PageHeader structure */}
+        <div className="border-b border-[var(--border-color)] pb-6 animate-pulse">
+          {/* Back Link Skeleton */}
+          <div className="h-6 bg-[var(--card-bg)] rounded w-36 mb-5"></div>
+          {/* Title with Icon Skeleton */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-[var(--card-bg)] rounded-full"></div>
+            <div className="h-12 bg-[var(--card-bg)] rounded w-64"></div>
+          </div>
+          {/* Subtitle Skeleton */}
+          <div className="h-6 bg-[var(--card-bg)] rounded w-48 mt-2"></div>
         </div>
-        {isMobile ? (
-          <div className="space-y-4">
+
+        {/* Content Skeleton */}
+        <div>
+          {/* Filter Controls Skeleton */}
+          <div className="mb-6 animate-pulse">
+            {/* Filter Input Skeleton */}
+            <div className="h-[42px] bg-[var(--card-bg)] rounded-lg mb-3"></div>
+            
+            {/* Sort Controls Skeleton - Only on mobile (using responsive classes) */}
+            <div className="flex gap-2 mt-2 lg:hidden">
+              <div className="flex-1 h-[42px] bg-[var(--card-bg)] rounded-lg"></div>
+              <div className="h-[42px] w-[42px] bg-[var(--card-bg)] rounded-lg"></div>
+            </div>
+          </div>
+
+          {/* Books List/Table Skeleton - Responsive */}
+          <div className="lg:hidden space-y-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <BookListItemSkeleton key={i} />
             ))}
           </div>
-        ) : (
-          <BookTable books={[]} loading={true} />
-        )}
+          <div className="hidden lg:block">
+            <BookTable books={[]} loading={true} />
+          </div>
+        </div>
       </div>
     );
   }

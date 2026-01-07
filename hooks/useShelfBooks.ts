@@ -11,6 +11,7 @@ export function useShelfBooks(shelfId: number | null) {
   const [shelf, setShelf] = useState<ShelfWithBooks | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   /**
    * Fetch shelf with its books
@@ -22,6 +23,7 @@ export function useShelfBooks(shelfId: number | null) {
       }
 
       setLoading(true);
+      setHasInitialized(true);
       setError(null);
       try {
         const response = await fetch(
@@ -188,6 +190,7 @@ export function useShelfBooks(shelfId: number | null) {
     books: shelf?.books || [],
     loading,
     error,
+    hasInitialized,
     fetchShelfBooks,
     addBookToShelf,
     removeBookFromShelf,
