@@ -332,4 +332,88 @@ describe('useShelfBooks', () => {
       });
     });
   });
+
+  describe('null shelfId handling', () => {
+    test('should not fetch when shelfId is null', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.fetchShelfBooks();
+
+      expect(shelfApi.get).not.toHaveBeenCalled();
+    });
+
+    test('should not add book when shelfId is null', async () => {
+      (shelfApi.addBook as any).mockResolvedValue({ added: true });
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.addBookToShelf(42);
+
+      expect(shelfApi.addBook).not.toHaveBeenCalled();
+    });
+
+    test('should not remove book when shelfId is null', async () => {
+      (shelfApi.removeBook as any).mockResolvedValue({ removed: true });
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.removeBookFromShelf(10);
+
+      expect(shelfApi.removeBook).not.toHaveBeenCalled();
+    });
+
+    test('should not update book order when shelfId is null', async () => {
+      (shelfApi.updateBookOrder as any).mockResolvedValue({ updated: true });
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.updateBookOrder(10, 5);
+
+      expect(shelfApi.updateBookOrder).not.toHaveBeenCalled();
+    });
+
+    test('should not reorder books when shelfId is null', async () => {
+      (shelfApi.reorderBooks as any).mockResolvedValue({ reordered: true });
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.reorderBooks([10, 20]);
+
+      expect(shelfApi.reorderBooks).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('optimistic updates', () => {
+    test('should handle optimistic reorder when no matching book found', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.reorderBooks as any).mockResolvedValue({ reordered: true });
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      // Pre-populate shelf state
+      await result.current.fetchShelfBooks();
+
+      // Try to reorder with non-existent book IDs
+      const bookIds = [999, 888];
+      await result.current.reorderBooks(bookIds);
+
+      await waitFor(() => {
+        // Should filter out undefined books
+        expect(result.current.books.length).toBe(0);
+      });
+    });
+
+    test('should handle reorder without pre-loaded shelf', async () => {
+      (shelfApi.reorderBooks as any).mockResolvedValue({ reordered: true });
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      // Reorder without fetching first (shelf is null)
+      await result.current.reorderBooks([10, 20]);
+
+      expect(shelfApi.reorderBooks).toHaveBeenCalledWith(1, { bookIds: [10, 20] });
+    });
+  });
 });

@@ -301,4 +301,293 @@ describe("DraggableBookTable", () => {
       expect(container.querySelector("table")).toBeInTheDocument();
     });
   });
+
+  describe("Sorting functionality", () => {
+    test("should call onSortChange when clicking a sortable header", () => {
+      const mockSortChange = vi.fn();
+
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+          onSortChange={mockSortChange}
+        />
+      );
+
+      // Click on the Title header
+      const titleHeader = screen.getByText("Title").closest("th");
+      if (titleHeader) {
+        titleHeader.click();
+      }
+
+      expect(mockSortChange).toHaveBeenCalled();
+    });
+
+    test("should toggle sort direction when clicking the same column", () => {
+      const mockSortChange = vi.fn();
+
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+          onSortChange={mockSortChange}
+        />
+      );
+
+      // Click on the Title header (should toggle to desc)
+      const titleHeader = screen.getByText("Title").closest("th");
+      if (titleHeader) {
+        titleHeader.click();
+      }
+
+      expect(mockSortChange).toHaveBeenCalledWith("title", "desc");
+    });
+
+    test("should not call onSortChange when it is not provided", () => {
+      const { container } = render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Click on the Title header - should not throw error
+      const titleHeader = screen.getByText("Title").closest("th");
+      if (titleHeader) {
+        titleHeader.click();
+      }
+
+      // Just verify the component still renders
+      expect(container.querySelector("table")).toBeInTheDocument();
+    });
+  });
+
+  describe("Book metadata rendering", () => {
+    test("should render book with no series as dash", () => {
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Book Three has no series, should show "-"
+      const rows = screen.getAllByRole("row");
+      // Find the row with Book Three
+      const bookThreeRow = rows.find((row) => row.textContent?.includes("Book Three"));
+      expect(bookThreeRow?.textContent).toContain("-");
+    });
+
+    test("should render book with no rating as dash", () => {
+      const booksWithoutRating = [
+        {
+          ...mockBooks[0],
+          rating: null,
+        },
+      ];
+
+      render(
+        <DraggableBookTable
+          books={booksWithoutRating}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Should show "-" for rating
+      const rows = screen.getAllByRole("row");
+      const dataRow = rows[1]; // Skip header row
+      expect(dataRow.textContent).toContain("-");
+    });
+
+    test("should render book with no pages as dash", () => {
+      const booksWithoutPages = [
+        {
+          ...mockBooks[0],
+          totalPages: null,
+        },
+      ];
+
+      render(
+        <DraggableBookTable
+          books={booksWithoutPages}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Should show "-" for pages
+      const rows = screen.getAllByRole("row");
+      const dataRow = rows[1]; // Skip header row
+      expect(dataRow.textContent).toContain("-");
+    });
+
+    test("should render book with no status as dash", () => {
+      const booksWithoutStatus = [
+        {
+          ...mockBooks[0],
+          status: null,
+        },
+      ];
+
+      render(
+        <DraggableBookTable
+          books={booksWithoutStatus}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Should show "-" for status
+      const rows = screen.getAllByRole("row");
+      const dataRow = rows[1]; // Skip header row
+      expect(dataRow.textContent).toContain("-");
+    });
+
+    test("should render multiple authors with comma separation", () => {
+      const booksWithMultipleAuthors = [
+        {
+          ...mockBooks[0],
+          authors: ["Author One", "Author Two", "Author Three"],
+        },
+      ];
+
+      render(
+        <DraggableBookTable
+          books={booksWithMultipleAuthors}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      expect(screen.getByText("Author One")).toBeInTheDocument();
+      expect(screen.getByText("Author Two")).toBeInTheDocument();
+      expect(screen.getByText("Author Three")).toBeInTheDocument();
+    });
+
+    test("should render book with no authors as dash", () => {
+      const booksWithoutAuthors = [
+        {
+          ...mockBooks[0],
+          authors: [],
+        },
+      ];
+
+      render(
+        <DraggableBookTable
+          books={booksWithoutAuthors}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Should show "-" for authors
+      const rows = screen.getAllByRole("row");
+      const dataRow = rows[1]; // Skip header row
+      expect(dataRow.textContent).toContain("-");
+    });
+
+    test("should render date when dateAddedToShelf is available", () => {
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // mockBooks[0] has dateAddedToShelf: 2024-01-02
+      // Should display date (format may vary)
+      const rows = screen.getAllByRole("row");
+      const bookOneRow = rows.find((row) => row.textContent?.includes("Book One"));
+      expect(bookOneRow?.textContent).toMatch(/2024/);
+    });
+
+    test("should render date when only addedToLibrary is available", () => {
+      const booksWithoutShelfDate = [
+        {
+          ...mockBooks[0],
+          dateAddedToShelf: null,
+          addedToLibrary: new Date("2024-03-15"),
+        },
+      ];
+
+      render(
+        <DraggableBookTable
+          books={booksWithoutShelfDate}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      // Should display addedToLibrary date (format may vary)
+      const rows = screen.getAllByRole("row");
+      const dataRow = rows[1]; // Skip header row
+      expect(dataRow.textContent).toMatch(/2024/);
+    });
+  });
+
+  describe("Action links", () => {
+    test("should render view details link for each book", () => {
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      const detailLinks = screen.getAllByTitle("View details");
+      expect(detailLinks).toHaveLength(mockBooks.length);
+
+      // Check hrefs
+      expect(detailLinks[0]).toHaveAttribute("href", "/books/1");
+      expect(detailLinks[1]).toHaveAttribute("href", "/books/2");
+      expect(detailLinks[2]).toHaveAttribute("href", "/books/3");
+    });
+
+    test("should render author search links", () => {
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      const authorOne = screen.getByText("Author One");
+      expect(authorOne.closest("a")).toHaveAttribute("href", "/library?search=Author%20One");
+    });
+
+    test("should render series links when series is present", () => {
+      render(
+        <DraggableBookTable
+          books={mockBooks}
+          isDragEnabled={false}
+          sortBy="title"
+          sortDirection="asc"
+        />
+      );
+
+      const seriesLink = screen.getByText("Series A #1");
+      expect(seriesLink.closest("a")).toHaveAttribute("href", "/series/Series%20A");
+    });
+  });
 });
