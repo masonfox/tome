@@ -9,7 +9,7 @@ import type {
 
 export function useShelfManagement() {
   const [shelves, setShelves] = useState<ShelfWithBookCountAndCovers[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   /**
