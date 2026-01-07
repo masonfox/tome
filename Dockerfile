@@ -17,7 +17,8 @@ FROM base AS prod-deps
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
-# Install migration dependencies only (drizzle-orm, pino, tsx, and better-sqlite3 for TypeScript execution)
+# Install migration dependencies (standalone build doesn't include all dependencies)
+# These packages are needed by lib/db/migrate.ts which runs before the app starts
 FROM base AS migration-deps
 RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1 tsx@^4.7.0 better-sqlite3@^12.4.1
 
