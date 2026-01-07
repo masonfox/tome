@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { BookOpen, Edit2, Trash2, MoreVertical, FolderOpen } from "lucide-react";
+import { Edit2, Trash2, MoreVertical, FolderOpen } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { ShelfWithBookCountAndCovers } from "@/lib/api";
 import { getShelfIcon } from "@/components/ShelfIconPicker";
+import FannedBookCovers from "@/components/Utilities/FannedBookCovers";
 
 interface ShelfItemProps {
   shelf: ShelfWithBookCountAndCovers;
@@ -15,7 +15,6 @@ interface ShelfItemProps {
 
 export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -35,76 +34,22 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
   const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
   const hasCovers = shelf.bookCoverIds && shelf.bookCoverIds.length > 0;
 
-  const handleImageError = (calibreId: number) => {
-    setImageErrors(prev => ({ ...prev, [calibreId]: true }));
-  };
-
   return (
     <div className="group relative bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-md hover:shadow-xl hover:border-[var(--accent)] transition-all duration-300 overflow-hidden">
       <Link href={`/shelves/${shelf.id}`} className="block">
         {/* Cover Preview Section */}
-        <div className="relative h-[200px] overflow-hidden bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30">
+        <div className="relative h-[200px] overflow-hidden">
           {hasCovers ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* Overlapping covers like Series cards */}
-              {shelf.bookCoverIds.slice(0, 3).map((calibreId, index) => {
-                // Define explicit positions and styles for each cover
-                const coverStyles = [
-                  { 
-                    rotation: '-rotate-6',
-                    left: 30,
-                    zIndex: 10,
-                    hoverClass: 'group-hover:translate-x-0'
-                  },
-                  { 
-                    rotation: 'rotate-0',
-                    left: 80,
-                    zIndex: 20,
-                    hoverClass: 'group-hover:translate-x-4'
-                  },
-                  { 
-                    rotation: 'rotate-6',
-                    left: 130,
-                    zIndex: 30,
-                    hoverClass: 'group-hover:translate-x-8'
-                  },
-                ];
-                
-                const style = coverStyles[index];
-                
-                return (
-                  <div
-                    key={calibreId}
-                    className="absolute transition-all duration-300 group-hover:scale-105"
-                    style={{
-                      left: `${style.left}px`,
-                      zIndex: style.zIndex,
-                    }}
-                  >
-                    <div className={`${style.rotation} transition-transform duration-300 ${style.hoverClass}`}>
-                      {!imageErrors[calibreId] ? (
-                        <Image
-                          src={`/api/books/${calibreId}/cover`}
-                          alt={`Cover ${index + 1}`}
-                          width={90}
-                          height={135}
-                          className="rounded shadow-xl border-2 border-[var(--card-bg)]"
-                          onError={() => handleImageError(calibreId)}
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-[90px] h-[135px] bg-[var(--hover-bg)] rounded border-2 border-[var(--card-bg)] flex items-center justify-center shadow-xl">
-                          <BookOpen className="w-8 h-8 text-[var(--foreground)]/30" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <FannedBookCovers
+              coverIds={shelf.bookCoverIds}
+              size="md"
+              maxCovers={12}
+              className="bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30"
+              height={200}
+            />
           ) : (
             // Empty state with shelf icon
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30">
               <div
                 className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
                 style={{ backgroundColor: shelf.color || "#3b82f6" }}

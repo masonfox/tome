@@ -108,17 +108,17 @@ export class ShelfRepository extends BaseRepository<
   }
 
   /**
-   * Get all shelves with book counts and book cover IDs (up to 4 covers per shelf)
+   * Get all shelves with book counts and book cover IDs (up to 12 covers per shelf)
    */
   async findAllWithBookCountAndCovers(userId: number | null = null): Promise<ShelfWithBookCountAndCovers[]> {
     // First get all shelves with book counts
     const shelvesWithCounts = await this.findAllWithBookCount(userId);
     
-    // For each shelf, get up to 4 book cover IDs
+    // For each shelf, get up to 12 book cover IDs (matches FannedBookCovers maxCovers default)
     const result: ShelfWithBookCountAndCovers[] = [];
     
     for (const shelf of shelvesWithCounts) {
-      // Get up to 4 calibreIds for books on this shelf
+      // Get up to 12 calibreIds for books on this shelf
       const booksOnShelf = await this.getDatabase()
         .select({
           calibreId: books.calibreId,
@@ -127,7 +127,7 @@ export class ShelfRepository extends BaseRepository<
         .innerJoin(books, eq(bookShelves.bookId, books.id))
         .where(eq(bookShelves.shelfId, shelf.id))
         .orderBy(asc(bookShelves.sortOrder))
-        .limit(4)
+        .limit(12)
         .all();
       
       result.push({
