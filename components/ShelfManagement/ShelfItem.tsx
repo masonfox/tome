@@ -152,16 +152,33 @@ export function ShelfItemSkeleton() {
   return (
     <div className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-md overflow-hidden animate-pulse">
       {/* Cover area skeleton */}
-      <div className="h-[200px] bg-[var(--hover-bg)]" />
+      <div className="relative h-[200px] bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30">
+        {/* Simulate fanned book covers or icon */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-[var(--hover-bg)]" />
+        </div>
+        {/* Colored accent stripe */}
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[var(--hover-bg)]" />
+      </div>
       
       {/* Info section skeleton */}
       <div className="p-4">
-        <div className="h-5 bg-[var(--hover-bg)] rounded w-2/3 mb-2" />
-        <div className="space-y-2 mb-3">
-          <div className="h-4 bg-[var(--hover-bg)] rounded w-full" />
-          <div className="h-4 bg-[var(--hover-bg)] rounded w-3/4" />
+        <div className="flex items-start gap-3">
+          {/* Icon badge skeleton */}
+          <div className="w-10 h-10 rounded-full bg-[var(--hover-bg)] flex-shrink-0" />
+          
+          {/* Content skeleton */}
+          <div className="flex-1 min-w-0 space-y-2">
+            {/* Title with count */}
+            <div className="h-6 bg-[var(--hover-bg)] rounded w-3/4" />
+            
+            {/* Description lines */}
+            <div className="space-y-1.5">
+              <div className="h-4 bg-[var(--hover-bg)] rounded w-full" />
+              <div className="h-4 bg-[var(--hover-bg)] rounded w-2/3" />
+            </div>
+          </div>
         </div>
-        <div className="h-5 bg-[var(--hover-bg)] rounded w-20" />
       </div>
     </div>
   );
