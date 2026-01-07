@@ -340,7 +340,7 @@ export function ShelfIconPicker({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search icons..."
               disabled={disabled}
-              className="w-full pl-10 pr-10 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full pl-10 pr-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
               autoFocus
             />
             {searchQuery && (
