@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BookMarked,
   Heart,
@@ -49,78 +49,187 @@ import {
   Leaf,
   Trees,
   Bird,
+  // New reading-related icons
+  Book,
+  BookA,
+  BookText,
+  BookType,
+  BookOpenCheck,
+  BookCopy,
+  BookHeart,
+  ScrollText,
+  FileText,
+  Eye,
+  EyeOff,
+  Repeat,
+  BookmarkCheck,
+  BookmarkPlus,
+  BookmarkMinus,
+  Ghost,
+  Telescope,
+  Castle,
+  Skull,
+  Laugh,
+  Scale,
+  Stethoscope,
+  Plane,
+  Utensils,
+  Baby,
+  Sunrise,
+  Sunset,
+  CloudRain,
+  Snowflake,
+  Waves,
+  Sofa,
+  BedDouble,
+  Armchair,
+  FolderOpen,
+  Archive,
+  Inbox,
+  CheckCircle,
+  Clock,
+  Timer,
+  Languages,
+  Quote,
+  Microscope,
+  History,
+  Map,
+  Compass,
+  Milestone,
+  Users,
+  Sparkle,
+  Package,
+  Search,
+  X,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 // Curated list of shelf icons - expanded selection
 export const SHELF_ICONS = {
-  // Books & Reading
+  // === BOOKS & READING (expanded) ===
   BookMarked: BookMarked,
+  Book: Book,
+  BookA: BookA,
+  BookText: BookText,
+  BookType: BookType,
   BookOpen: BookOpen,
+  BookOpenCheck: BookOpenCheck,
+  BookCopy: BookCopy,
+  BookHeart: BookHeart,
   Library: Library,
   Bookmark: Bookmark,
+  BookmarkCheck: BookmarkCheck,
+  BookmarkPlus: BookmarkPlus,
+  BookmarkMinus: BookmarkMinus,
   Glasses: Glasses,
   Feather: Feather,
   Pen: Pen,
+  ScrollText: ScrollText,
+  FileText: FileText,
   
-  // Achievement & Goals
+  // === READING ACTIVITIES ===
+  Eye: Eye,
+  EyeOff: EyeOff,
+  Repeat: Repeat,
+  
+  // === ACHIEVEMENT & GOALS ===
   Trophy: Trophy,
   Award: Award,
   Medal: Medal,
   Target: Target,
   Flag: Flag,
   Crown: Crown,
+  Milestone: Milestone,
   
-  // Energy & Emotion
+  // === ENERGY & EMOTION ===
   Heart: Heart,
   Star: Star,
   Flame: Flame,
   Sparkles: Sparkles,
+  Sparkle: Sparkle,
   Zap: Zap,
   Lightbulb: Lightbulb,
   Brain: Brain,
   
-  // Adventure & Travel
+  // === GENRES & THEMES ===
+  Ghost: Ghost,
+  Telescope: Telescope,
+  Castle: Castle,
+  Skull: Skull,
+  Laugh: Laugh,
+  Scale: Scale,
+  Stethoscope: Stethoscope,
+  Plane: Plane,
+  Utensils: Utensils,
+  Baby: Baby,
+  
+  // === MOOD & ATMOSPHERE ===
+  Sunrise: Sunrise,
+  Sunset: Sunset,
+  Moon: Moon,
+  Sun: Sun,
+  Cloud: Cloud,
+  CloudRain: CloudRain,
+  Snowflake: Snowflake,
+  Waves: Waves,
+  Sofa: Sofa,
+  BedDouble: BedDouble,
+  Armchair: Armchair,
+  Umbrella: Umbrella,
+  
+  // === ADVENTURE & TRAVEL ===
   Rocket: Rocket,
   MapPin: MapPin,
+  Map: Map,
+  Compass: Compass,
   Mountain: Mountain,
   Briefcase: Briefcase,
   Home: Home,
   
-  // Nature & Weather
-  Moon: Moon,
-  Sun: Sun,
-  Cloud: Cloud,
-  Umbrella: Umbrella,
+  // === NATURE & WEATHER ===
   Flower2: Flower2,
   Leaf: Leaf,
   Trees: Trees,
   Bird: Bird,
   
-  // Fantasy & Magic
+  // === FANTASY & MAGIC ===
   Sword: Sword,
   Shield: Shield,
   Wand2: Wand2,
   
-  // Creative & Art
+  // === CREATIVE & ART ===
   Music: Music,
   Camera: Camera,
   Palette: Palette,
   Puzzle: Puzzle,
   
-  // Gems & Precious
+  // === GEMS & PRECIOUS ===
   Diamond: Diamond,
   Gem: Gem,
   
-  // Learning & Science
+  // === LEARNING & SCIENCE ===
   GraduationCap: GraduationCap,
   Atom: Atom,
   Bug: Bug,
+  Microscope: Microscope,
+  History: History,
   
-  // Lifestyle
+  // === COLLECTIONS & ORGANIZATION ===
+  FolderOpen: FolderOpen,
+  Archive: Archive,
+  Inbox: Inbox,
+  CheckCircle: CheckCircle,
+  Clock: Clock,
+  Timer: Timer,
+  Package: Package,
+  
+  // === LIFESTYLE & MISC ===
   Coffee: Coffee,
   Gift: Gift,
+  Languages: Languages,
+  Quote: Quote,
+  Users: Users,
 } as const;
 
 export type ShelfIconName = keyof typeof SHELF_ICONS;
@@ -147,8 +256,19 @@ export function ShelfIconPicker({
   disabled = false,
 }: ShelfIconPickerProps) {
   const [showPicker, setShowPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const iconEntries = Object.entries(SHELF_ICONS) as [ShelfIconName, LucideIcon][];
+
+  // Filter icons based on search query
+  const filteredIcons = useMemo(() => {
+    if (!searchQuery.trim()) return iconEntries;
+    
+    const query = searchQuery.toLowerCase();
+    return iconEntries.filter(([name]) => 
+      name.toLowerCase().includes(query)
+    );
+  }, [searchQuery, iconEntries]);
 
   return (
     <div>
@@ -209,40 +329,76 @@ export function ShelfIconPicker({
       {/* Icon grid */}
       {showPicker && (
         <div className="mt-3 p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg max-h-[60vh] overflow-y-auto">
-          <div className="grid grid-cols-6 gap-2">
-            {iconEntries.map(([name, Icon]) => {
-              const isSelected = selectedIcon === name;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => {
-                    onSelectIcon(name);
-                    setShowPicker(false);
-                  }}
-                  disabled={disabled}
-                  className={cn(
-                    "group relative aspect-square flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-all",
-                    isSelected
-                      ? "bg-[var(--accent-color)]/20"
-                      : "hover:bg-[var(--hover-bg)]",
-                    disabled && "opacity-50 cursor-not-allowed"
-                  )}
-                  title={name}
-                >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: color }}
-                  >
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-[9px] text-[var(--foreground)]/60 text-center leading-tight truncate w-full">
-                    {name}
-                  </span>
-                </button>
-              );
-            })}
+          {/* Search input */}
+          <div className="mb-3 relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search icons..."
+              disabled={disabled}
+              className="w-full pl-10 pr-10 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+              autoFocus
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                disabled={disabled}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
+
+          {/* Icon grid */}
+          {filteredIcons.length > 0 ? (
+            <div className="grid grid-cols-7 gap-2">
+              {filteredIcons.map(([name, Icon]) => {
+                const isSelected = selectedIcon === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => {
+                      onSelectIcon(name);
+                      setShowPicker(false);
+                      setSearchQuery("");
+                    }}
+                    disabled={disabled}
+                    className={cn(
+                      "group relative aspect-square flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-all",
+                      isSelected
+                        ? "bg-[var(--accent-color)]/20"
+                        : "hover:bg-[var(--hover-bg)]",
+                      disabled && "opacity-50 cursor-not-allowed"
+                    )}
+                    title={name}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: color }}
+                    >
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-[9px] text-[var(--foreground)]/60 text-center leading-tight truncate w-full">
+                      {name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-[var(--foreground)]/60">
+              <p className="text-sm">No icons found</p>
+              <p className="text-xs mt-1">Try a different search term</p>
+            </div>
+          )}
         </div>
       )}
     </div>
