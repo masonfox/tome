@@ -121,7 +121,7 @@ Contains:
 2. **Use `.specify/memory/patterns.md`** for implementation patterns
 3. **Use repositories** for all Tome database access (`bookRepository`, etc.)
 4. **Use `setDatabase()` and `resetDatabase()`** in tests for isolation
-5. **Run `bun test`** before completing tasks (all 99+ tests must pass)
+5. **Run `npm test`** before completing tasks (all 99+ tests must pass)
 6. **Follow the Database Factory Pattern** (never import SQLite drivers directly)
 7. **Update docs** when making architectural or pattern changes
 8. **Ask for clarification** when documentation is unclear
@@ -295,7 +295,7 @@ When user asks for PR:
 
 ---
 
-## 🎬 Landing the Plane (Session Completion)
+## 🎬 Landing the Plane (Session Completion) - ALL AGENTS: Claude and Opencode
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
@@ -308,7 +308,7 @@ When user asks for PR:
 
 2. **Run quality gates** (if code changed) - Tests, linters, builds
    ```bash
-   bun test                 # All 99+ tests must pass
+   npm test                # All tests must pass
    bun run build           # Must build successfully
    ```
 
@@ -364,7 +364,7 @@ bd sync                            # Sync with git
 # Development
 bun install                        # Install dependencies
 bun run dev                        # Start dev server (auto-sync enabled)
-bun test                           # Run all tests (must pass 99+)
+npm test                           # Run all tests (must pass 2000+)
 bun run build                      # Build for production
 
 # Database
@@ -398,15 +398,15 @@ cat docs/REPOSITORY_PATTERN_GUIDE.md   # Repository guide
 
 ## 🏗️ Tech Stack Summary
 
-- **Framework:** Next.js 14 (App Router)
-- **Runtime:** Node.js (dev) / Bun (production)
-- **Package Manager:** Bun
+- **Framework:** Next.js 16 (App Router)
+- **Runtime:** Node.js
+- **Package Manager:** npm
 - **Databases:**
   - **Tome DB:** SQLite + Drizzle ORM (tracking data: books, sessions, progress, streaks)
   - **Calibre DB:** SQLite (read-only metadata.db from Calibre library)
 - **Data Access:** Repository Pattern (lib/repositories/)
-- **SQLite Libraries:** better-sqlite3 (Node.js) / bun:sqlite (Bun) - via Database Factory Pattern
-- **Testing:** Bun test runner (99+ tests)
+- **SQLite Libraries:** better-sqlite3 (Node.js) via Database Factory Pattern
+- **Testing:** Vitest test runner (2000+ tests)
 - **Test Isolation:** setDatabase() / resetDatabase() pattern
 
 **See `docs/ARCHITECTURE.md` for complete details.**
@@ -451,7 +451,7 @@ If unsure about:
 - **Documentation is the source of truth** - Follow it unless explicitly asked to change
 - **Constitution defines principles** - Read `.specify/memory/constitution.md` first
 - **Patterns provide implementations** - Use `.specify/memory/patterns.md` for code
-- **Tests must pass** - No exceptions (run `bun test`)
+- **Tests must pass** - No exceptions (run `npm test`)
 - **Land the plane** - Always push to remote before ending session
 - **Ask when uncertain** - Better to clarify than to guess
 
