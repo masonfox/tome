@@ -15,6 +15,7 @@ export interface BookFilter {
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
+  excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
 }
 
 export interface BookWithStatus extends Book {
@@ -403,6 +404,22 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(inArray(books.id, shelfBookIds));
     }
 
+    // Exclude shelf filter (exclude books on specific shelf - used for "Add Books to Shelf" modal)
+    if (filters.excludeShelfId) {
+      const excludeQuery = this.getDatabase()
+        .select({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(eq(bookShelves.shelfId, filters.excludeShelfId));
+
+      const excludedBooks = excludeQuery.all() as Array<{ bookId: number }>;
+      const excludedBookIds = excludedBooks.map((s) => s.bookId);
+
+      // Only add condition if there are books to exclude
+      if (excludedBookIds.length > 0) {
+        conditions.push(sql`${books.id} NOT IN (${sql.join(excludedBookIds.map(id => sql`${id}`), sql`, `)})`);
+      }
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
@@ -720,6 +737,22 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
 
       conditions.push(inArray(books.id, shelfBookIds));
+    }
+
+    // Exclude shelf filter (exclude books on specific shelf - used for "Add Books to Shelf" modal)
+    if (filters.excludeShelfId) {
+      const excludeQuery = this.getDatabase()
+        .select({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(eq(bookShelves.shelfId, filters.excludeShelfId));
+
+      const excludedBooks = excludeQuery.all() as Array<{ bookId: number }>;
+      const excludedBookIds = excludedBooks.map((s) => s.bookId);
+
+      // Only add condition if there are books to exclude
+      if (excludedBookIds.length > 0) {
+        conditions.push(sql`${books.id} NOT IN (${sql.join(excludedBookIds.map(id => sql`${id}`), sql`, `)})`);
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
