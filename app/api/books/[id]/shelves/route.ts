@@ -117,11 +117,9 @@ export async function PUT(
       await shelfRepository.addBookToShelf(shelfId, bookId);
     }
 
-    // Remove book from old shelves and reindex each shelf
+    // Remove book from old shelves (reindexing happens automatically)
     for (const shelfId of shelfIdsToRemove) {
       await shelfRepository.removeBookFromShelf(shelfId, bookId);
-      // Reindex remaining books to eliminate gaps in sortOrder
-      await shelfRepository.reindexShelfBooks(shelfId);
     }
 
     // Revalidate relevant paths

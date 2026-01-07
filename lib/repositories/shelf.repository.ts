@@ -387,6 +387,7 @@ export class ShelfRepository extends BaseRepository<
 
   /**
    * Remove a book from a shelf
+   * Automatically reindexes remaining books to eliminate sortOrder gaps
    */
   async removeBookFromShelf(shelfId: number, bookId: number): Promise<boolean> {
     const result = await this.getDatabase()
@@ -394,7 +395,14 @@ export class ShelfRepository extends BaseRepository<
       .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
       .run();
 
-    return (result as any).changes > 0;
+    const removed = (result as any).changes > 0;
+
+    // Reindex remaining books to ensure continuous sortOrder (0, 1, 2, ...)
+    if (removed) {
+      await this.reindexShelfBooks(shelfId);
+    }
+
+    return removed;
   }
 
   /**

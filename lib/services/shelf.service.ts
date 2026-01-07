@@ -246,9 +246,7 @@ export class ShelfService {
     const removed = await shelfRepository.removeBookFromShelf(shelfId, bookId);
 
     if (removed) {
-      // Reindex remaining books to eliminate gaps in sortOrder
-      await shelfRepository.reindexShelfBooks(shelfId);
-      logger.info({ shelfId, bookId }, "Book removed from shelf successfully and remaining books reindexed");
+      logger.info({ shelfId, bookId }, "Book removed from shelf successfully");
     } else {
       logger.warn({ shelfId, bookId }, "Book was not on shelf");
     }

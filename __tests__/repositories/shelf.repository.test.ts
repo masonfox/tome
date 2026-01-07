@@ -554,4 +554,152 @@ describe("ShelfRepository - Status Display", () => {
       expect(books[0].id).toBe(book!.id);
     });
   });
+
+  describe("removeBookFromShelf - Auto Reindexing", () => {
+    it("should automatically reindex remaining books after removal", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Auto Reindex Test Shelf",
+        userId: null,
+      });
+
+      // Create books
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "First Book",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Second Book",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      const book3 = await bookRepository.create({
+        calibreId: 3,
+        title: "Third Book",
+        authors: ["Author 3"],
+        tags: [],
+        path: "/path/3",
+      });
+
+      // Add books to shelf
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book2!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book3!.id);
+
+      // Verify initial sortOrder (0, 1, 2)
+      let books = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(books).toHaveLength(3);
+      expect(books[0].sortOrder).toBe(0);
+      expect(books[1].sortOrder).toBe(1);
+      expect(books[2].sortOrder).toBe(2);
+
+      // Remove the middle book
+      const removed = await shelfRepository.removeBookFromShelf(shelf.id, book2!.id);
+      expect(removed).toBe(true);
+
+      // Verify remaining books are automatically reindexed (0, 1)
+      books = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(books).toHaveLength(2);
+      expect(books[0].sortOrder).toBe(0);
+      expect(books[0].id).toBe(book1!.id);
+      expect(books[1].sortOrder).toBe(1);
+      expect(books[1].id).toBe(book3!.id);
+    });
+
+    it("should handle removal when book is not on shelf", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Empty Removal Test Shelf",
+        userId: null,
+      });
+
+      // Create a book
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Book Not On Shelf",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      // Try to remove book that's not on shelf
+      const removed = await shelfRepository.removeBookFromShelf(shelf.id, book!.id);
+      expect(removed).toBe(false);
+
+      // Shelf should still be empty
+      const books = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(books).toHaveLength(0);
+    });
+
+    it("should maintain order when removing first book", async () => {
+      // Create shelf and books
+      const shelf = await shelfRepository.create({
+        name: "Remove First Book Shelf",
+        userId: null,
+      });
+
+      const books = [];
+      for (let i = 0; i < 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Remove first book
+      await shelfRepository.removeBookFromShelf(shelf.id, books[0].id);
+
+      // Verify remaining books are reindexed starting from 0
+      const remaining = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(remaining).toHaveLength(2);
+      expect(remaining[0].sortOrder).toBe(0);
+      expect(remaining[0].id).toBe(books[1].id);
+      expect(remaining[1].sortOrder).toBe(1);
+      expect(remaining[1].id).toBe(books[2].id);
+    });
+
+    it("should maintain order when removing last book", async () => {
+      // Create shelf and books
+      const shelf = await shelfRepository.create({
+        name: "Remove Last Book Shelf",
+        userId: null,
+      });
+
+      const books = [];
+      for (let i = 0; i < 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Remove last book
+      await shelfRepository.removeBookFromShelf(shelf.id, books[2].id);
+
+      // Verify remaining books maintain proper sortOrder
+      const remaining = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(remaining).toHaveLength(2);
+      expect(remaining[0].sortOrder).toBe(0);
+      expect(remaining[0].id).toBe(books[0].id);
+      expect(remaining[1].sortOrder).toBe(1);
+      expect(remaining[1].id).toBe(books[1].id);
+    });
+  });
 });
