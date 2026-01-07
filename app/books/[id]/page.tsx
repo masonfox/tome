@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 import ReadingHistoryTab from "@/components/CurrentlyReading/ReadingHistoryTab";
 import FinishBookModal from "@/components/Modals/FinishBookModal";
 import CompleteBookModal from "@/components/Modals/CompleteBookModal";
@@ -14,6 +15,7 @@ import RereadConfirmModal from "@/components/Modals/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/Modals/ArchiveSessionModal";
 import PageCountEditModal from "@/components/Modals/PageCountEditModal";
 import TagEditor from "@/components/BookDetail/TagEditor";
+import ShelfEditor from "@/components/BookDetail/ShelfEditor";
 import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
@@ -153,7 +155,17 @@ export default function BookDetailPage() {
   const [showRereadConfirmation, setShowRereadConfirmation] = useState(false);
   const [showPageCountModal, setShowPageCountModal] = useState(false);
   const [showTagEditor, setShowTagEditor] = useState(false);
+  const [showShelfEditor, setShowShelfEditor] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fetch available tags for the tag editor
   const { data: availableTagsData } = useQuery<{ tags: string[] }>({
@@ -171,6 +183,62 @@ export default function BookDetailPage() {
     retry: 1, // Reduce retry attempts to prevent blocking
   });
   const availableTags = availableTagsData?.tags || [];
+
+  // Fetch available shelves for the shelf editor
+  const { data: availableShelvesData } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
+    queryKey: ['availableShelves'],
+    queryFn: async () => {
+      const response = await fetch('/api/shelves');
+      if (!response.ok) {
+        throw new Error('Failed to fetch shelves');
+      }
+      return response.json();
+    },
+    staleTime: 60000, // Cache for 1 minute
+  });
+  const availableShelves = availableShelvesData?.data || [];
+
+  // Fetch current shelves for this book
+  const { data: bookShelvesData, refetch: refetchBookShelves } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
+    queryKey: ['bookShelves', bookId],
+    queryFn: async () => {
+      const response = await fetch(`/api/books/${bookId}/shelves`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch book shelves');
+      }
+      return response.json();
+    },
+    enabled: !!bookId,
+    staleTime: 60000, // Cache for 1 minute
+  });
+  const currentShelves = bookShelvesData?.data || [];
+  const currentShelfIds = currentShelves.map((s) => s.id);
+
+  // Function to update book shelves
+  async function updateShelves(shelfIds: number[]) {
+    try {
+      const response = await fetch(`/api/books/${bookId}/shelves`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shelfIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update shelves');
+      }
+
+      // Refetch shelf data
+      await refetchBookShelves();
+      
+      const { toast } = await import('@/utils/toast');
+      toast.success('Shelves updated successfully');
+    } catch (error) {
+      logger.error({ err: error }, 'Failed to update shelves');
+      const { toast } = await import('@/utils/toast');
+      toast.error('Failed to update shelves');
+      throw error;
+    }
+  }
 
   // Refs for dropdowns and MDXEditor
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -500,6 +568,48 @@ export default function BookDetailPage() {
             )}
           </div>
 
+          {/* Shelves */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 font-semibold">
+                Shelves
+              </label>
+              <button
+                onClick={() => setShowShelfEditor(true)}
+                className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold"
+              >
+                Edit
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+            {currentShelves.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {currentShelves.map((shelf) => {
+                  const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
+                  return (
+                    <Link
+                      key={shelf.id}
+                      href={`/shelves/${shelf.id}`}
+                      className="px-3 py-2 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium flex items-center gap-2"
+                    >
+                      <div
+                        className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center"
+                        style={{ backgroundColor: shelf.color || '#3b82f6' }}
+                      >
+                        {Icon && <Icon className="w-3 h-3 text-white" />}
+                      </div>
+                      {shelf.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--foreground)]/50">
+                Not on any shelves. Click Edit to add to shelves!
+              </p>
+            )}
+          </div>
+
           {/* Current Reading Progress History */}
           {bookProgressHook.progress.length > 0 && selectedStatus === "reading" && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6">
@@ -605,6 +715,17 @@ export default function BookDetailPage() {
         bookTitle={book.title}
         currentTags={book.tags}
         availableTags={availableTags}
+        isMobile={isMobile}
+      />
+
+      <ShelfEditor
+        isOpen={showShelfEditor}
+        onClose={() => setShowShelfEditor(false)}
+        onSave={updateShelves}
+        bookTitle={book.title}
+        currentShelfIds={currentShelfIds}
+        availableShelves={availableShelves}
+        isMobile={isMobile}
       />
     </div>
   );

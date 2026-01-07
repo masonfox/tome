@@ -9,7 +9,7 @@ interface BottomSheetProps {
   children: React.ReactNode;
   title?: string;
   icon?: React.ReactNode;
-  size?: "default" | "full";
+  size?: "default" | "large" | "full";
   allowBackdropClose?: boolean;
 }
 
@@ -18,6 +18,7 @@ const CLOSE_ANIMATION_MS = 300;
 
 const sizeClasses = {
   default: "max-h-[80vh] rounded-t-2xl",
+  large: "h-[75vh] rounded-t-3xl",
   full: "h-screen rounded-none",
 };
 
@@ -80,11 +81,13 @@ export function BottomSheet({
       } ${
         isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
       } ${
-        size === "full" ? "flex flex-col" : "overflow-y-auto pb-safe"
+        size === "full" || size === "large" ? "flex flex-col" : "overflow-y-auto pb-safe"
       }`}>
-        {/* Header - fixed for full size, sticky for default */}
+        {/* Header - fixed for full/large size, sticky for default */}
         <div className={`bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between ${
-          size === "full" ? "flex-shrink-0" : "sticky top-0 z-10"
+          size === "full" || size === "large" ? "flex-shrink-0" : "sticky top-0 z-10"
+        } ${
+          size === "large" ? "rounded-t-3xl" : ""
         }`}>
           <div className="flex items-center gap-2">
             {icon && <span className="text-[var(--accent)]">{icon}</span>}
@@ -101,8 +104,8 @@ export function BottomSheet({
             <X className="w-5 h-5" />
           </button>
         </div>
-        {/* Content - scrollable for full size, regular for default */}
-        <div className={size === "full" ? "flex-1 overflow-y-auto p-4 pb-12" : "p-4 pb-12"}>
+        {/* Content - scrollable for full/large size, regular for default */}
+        <div className={size === "full" || size === "large" ? "flex-1 overflow-y-auto p-4 pb-12" : "p-4 pb-12"}>
           {children}
         </div>
       </div>

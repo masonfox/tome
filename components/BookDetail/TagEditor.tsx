@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { X, Tag as TagIcon } from "lucide-react";
-import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 
 interface TagEditorProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface TagEditorProps {
   bookTitle: string;
   currentTags: string[];
   availableTags: string[];
+  isMobile?: boolean;
 }
 
 export default function TagEditor({
@@ -21,6 +22,7 @@ export default function TagEditor({
   bookTitle,
   currentTags,
   availableTags,
+  isMobile = false,
 }: TagEditorProps) {
   const [tags, setTags] = useState<string[]>(currentTags);
   const [tagInput, setTagInput] = useState("");
@@ -104,6 +106,140 @@ export default function TagEditor({
     }
   };
 
+  // Shared content for both mobile and desktop
+  const tagContent = (
+    <>
+      {/* Subtitle - only show on mobile in BottomSheet */}
+      {isMobile && (
+        <p className="text-sm text-[var(--foreground)]/70 font-medium mb-4">
+          {bookTitle}
+        </p>
+      )}
+
+      {/* Tag Input */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
+          Add Tags
+        </label>
+        <div className="relative">
+          <TagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 pointer-events-none z-10" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search or create tags..."
+            value={tagInput}
+            onChange={(e) => {
+              setTagInput(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => {
+              // Delay to allow clicking on suggestions
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+            disabled={saving}
+            className="w-full pl-10 pr-4 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+          />
+
+          {/* Tag suggestions dropdown - Uses fixed positioning to avoid modal scroll interference */}
+          {showSuggestions && tagInput.trim() && (
+            <div className="fixed z-[60] mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-[40vh] overflow-y-auto shadow-xl rounded-md"
+              style={{
+                width: inputRef.current?.offsetWidth || 'auto',
+                top: inputRef.current ? inputRef.current.getBoundingClientRect().bottom + 4 : 0,
+                left: inputRef.current?.getBoundingClientRect().left || 0,
+              }}
+            >
+              {filteredSuggestions.length > 0 ? (
+                filteredSuggestions.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleAddTag(tag)}
+                    disabled={saving}
+                    className="w-full px-4 py-3 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-b border-[var(--border-color)] last:border-b-0"
+                  >
+                    {tag}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-sm text-[var(--foreground)]/70">
+                  Press Enter to create &quot;{tagInput.trim()}&quot;
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-[var(--foreground)]/50 mt-2">
+          Type and press Enter to add a tag, or select from suggestions
+        </p>
+      </div>
+
+      {/* Current Tags */}
+      <div className="mb-20">
+        <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
+          Current Tags {tags.length > 0 && `(${tags.length})`}
+        </label>
+        {tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleRemoveTag(tag)}
+                disabled={saving}
+                className="px-3 py-1.5 text-sm bg-[var(--accent)] text-white rounded flex items-center gap-2 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {tag}
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--foreground)]/50">
+            No tags added yet
+          </p>
+        )}
+      </div>
+
+      {/* Action Buttons - Sticky */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
+        <button
+          onClick={handleClose}
+          disabled={saving}
+          className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </>
+  );
+
+  // Mobile: Use BottomSheet
+  if (isMobile) {
+    return (
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="Manage Tags"
+        icon={<TagIcon className="w-5 h-5" />}
+        size="large"
+        allowBackdropClose={!saving}
+      >
+        {tagContent}
+      </BottomSheet>
+    );
+  }
+
+  // Desktop: Use centered modal
   if (!isOpen) return null;
 
   return (
@@ -115,7 +251,7 @@ export default function TagEditor({
         className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-4xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Fixed at top */}
+        {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1 min-w-0 pr-4">
             <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
@@ -135,115 +271,8 @@ export default function TagEditor({
           </button>
         </div>
 
-        {/* Tag Input - No nested scrolling */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
-            Add Tags
-          </label>
-          <div className="relative">
-            <TagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 pointer-events-none z-10" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search or create tags..."
-              value={tagInput}
-              onChange={(e) => {
-                setTagInput(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => {
-                // Delay to allow clicking on suggestions
-                setTimeout(() => setShowSuggestions(false), 200);
-              }}
-              disabled={saving}
-              className="w-full pl-10 pr-4 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
-            />
-
-            {/* Tag suggestions dropdown - Uses fixed positioning to avoid modal scroll interference */}
-            {showSuggestions && tagInput.trim() && (
-              <div className="fixed z-[60] mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-[40vh] overflow-y-auto shadow-xl rounded-md"
-                style={{
-                  width: inputRef.current?.offsetWidth || 'auto',
-                  top: inputRef.current ? inputRef.current.getBoundingClientRect().bottom + 4 : 0,
-                  left: inputRef.current?.getBoundingClientRect().left || 0,
-                }}
-              >
-                {filteredSuggestions.length > 0 ? (
-                  filteredSuggestions.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => handleAddTag(tag)}
-                      disabled={saving}
-                      className="w-full px-4 py-3 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-b border-[var(--border-color)] last:border-b-0"
-                    >
-                      {tag}
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-sm text-[var(--foreground)]/70">
-                    Press Enter to create &quot;{tagInput.trim()}&quot;
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-[var(--foreground)]/50 mt-2">
-            Type and press Enter to add a tag, or select from suggestions
-          </p>
-        </div>
-
-        {/* Current Tags - Scrollable if many tags */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
-            Current Tags {tags.length > 0 && `(${tags.length})`}
-          </label>
-          {tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2 max-h-[40vh] overflow-y-auto pr-2 -mr-2">
-              {tags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm bg-[var(--accent)] text-white rounded flex items-center gap-2 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {tag}
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--foreground)]/50">
-              No tags added yet
-            </p>
-          )}
-        </div>
-
-        {/* Action Buttons - Fixed at bottom */}
-        <div className="flex gap-3 justify-end pt-4 border-t border-[var(--border-color)]">
-          <button
-            onClick={handleClose}
-            disabled={saving}
-            className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={cn(
-              "px-5 py-2.5 rounded-lg transition-colors font-semibold",
-              saving
-                ? "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"
-                : "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
-            )}
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
+        {/* Content */}
+        {tagContent}
       </div>
     </div>
   );

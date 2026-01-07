@@ -170,8 +170,8 @@ describe("GET /api/series", () => {
       expect(response.status).toBe(200);
       expect(data).toHaveLength(1);
       expect(data[0].bookCount).toBe(5);
-      expect(data[0].bookCoverIds).toHaveLength(3);
-      expect(data[0].bookCoverIds).toEqual([1, 2, 3]);
+      expect(data[0].bookCoverIds).toHaveLength(5); // Now returns up to 12 covers
+      expect(data[0].bookCoverIds).toEqual([1, 2, 3, 4, 5]);
     });
   });
 

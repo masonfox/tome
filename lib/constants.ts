@@ -95,6 +95,9 @@ export const DATABASE_LIMITS = {
   
   /** Maximum books goal for annual reading goals */
   MAX_BOOKS_GOAL: 9999,
+  
+  /** Maximum length for shelf names (characters) */
+  SHELF_NAME_MAX_LENGTH: 100,
 } as const;
 
 /**

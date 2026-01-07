@@ -7,8 +7,30 @@ import { vi } from "vitest";
 (process.env as any).TZ = "UTC"; // Force UTC timezone for consistent date handling
 
 // Mock logger globally for all tests - we don't need real logging in tests
-// Using manual mock from lib/__mocks__/logger.ts
-vi.mock("@/lib/logger");
+vi.mock("@/lib/logger", () => {
+  const createMockLogger = (): any => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    fatal: vi.fn(),
+    child: vi.fn(() => createMockLogger()),
+  });
+
+  return {
+    getLogger: createMockLogger,
+    getBaseLogger: createMockLogger,
+    createLogger: vi.fn(createMockLogger),
+  };
+});
+
+// Mock Next.js Image component for tests
+vi.mock("next/image", () => ({
+  default: (props: any) => {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return require("react").createElement("img", { ...props });
+  },
+}));
 
 // Mock MarkdownEditor globally to avoid duplication in component tests
 // This avoids browser API dependencies (MDXEditor uses lexical which needs DOM APIs)

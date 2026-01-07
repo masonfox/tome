@@ -5,6 +5,7 @@ export interface LibraryFilters {
   search?: string;
   tags?: string[];
   rating?: string;
+  shelf?: number;
   pagination: {
     limit: number;
     skip: number;
@@ -49,6 +50,7 @@ export class LibraryService {
       search: filters.search,
       tags: filters.tags?.sort(),
       rating: filters.rating,
+      shelf: filters.shelf,
       limit: filters.pagination.limit,
       skip: filters.pagination.skip,
       showOrphaned: filters.showOrphaned,
@@ -75,7 +77,7 @@ export class LibraryService {
     }
 
     try {
-      const { status, search, tags, rating, pagination, showOrphaned } = filters;
+      const { status, search, tags, rating, shelf, pagination, showOrphaned } = filters;
       const { limit, skip } = pagination;
 
       // Build query params for API call
@@ -84,6 +86,7 @@ export class LibraryService {
       if (search) params.set("search", search);
       if (tags && tags.length > 0) params.set("tags", tags.join(","));
       if (rating && rating !== "all") params.set("rating", rating);
+      if (shelf) params.set("shelf", shelf.toString());
       if (showOrphaned) params.set("showOrphaned", "true");
       if (filters.sortBy) params.set("sortBy", filters.sortBy);
       params.set("limit", limit.toString());

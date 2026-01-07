@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
+import { getShelfIcon } from "@/components/ShelfIconPicker";
 
 // Helper function to render star ratings
 function renderStars(rating: number) {
@@ -100,6 +101,10 @@ interface LibraryFiltersProps {
   onStatusFilterChange: (status: string) => void;
   ratingFilter: string;
   onRatingFilterChange: (rating: string) => void;
+  shelfFilter?: number | null;
+  onShelfFilterChange?: (shelfId: number | null) => void;
+  availableShelves?: Array<{ id: number; name: string; color: string | null; icon?: string | null }>;
+  loadingShelves?: boolean;
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   availableTags: string[];
@@ -119,6 +124,10 @@ export function LibraryFilters({
   onStatusFilterChange,
   ratingFilter,
   onRatingFilterChange,
+  shelfFilter,
+  onShelfFilterChange,
+  availableShelves = [],
+  loadingShelves = false,
   selectedTags,
   onTagsChange,
   availableTags,
@@ -132,10 +141,12 @@ export function LibraryFilters({
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [showShelfDropdown, setShowShelfDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const ratingDropdownRef = useRef<HTMLDivElement>(null);
+  const shelfDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +159,9 @@ export function LibraryFilters({
       }
       if (ratingDropdownRef.current && !ratingDropdownRef.current.contains(event.target as Node)) {
         setShowRatingDropdown(false);
+      }
+      if (shelfDropdownRef.current && !shelfDropdownRef.current.contains(event.target as Node)) {
+        setShowShelfDropdown(false);
       }
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
         setShowSortDropdown(false);
@@ -196,8 +210,8 @@ export function LibraryFilters({
 
   // Memoize filter check
   const hasActiveFilters = useMemo(() => 
-    search || statusFilter !== "all" || ratingFilter !== "all" || selectedTags.length > 0,
-    [search, statusFilter, ratingFilter, selectedTags.length]
+    search || statusFilter !== "all" || ratingFilter !== "all" || shelfFilter || selectedTags.length > 0,
+    [search, statusFilter, ratingFilter, shelfFilter, selectedTags.length]
   );
 
   // Clear all filters on Escape key
@@ -516,7 +530,7 @@ export function LibraryFilters({
                     setTimeout(() => setShowTagSuggestions(false), 200);
                   }}
                   disabled={loading || loadingTags}
-                  className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50`}
+                  className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 min-h-[42px]`}
                 />
 
                 {/* Tag suggestions dropdown */}
@@ -572,6 +586,109 @@ export function LibraryFilters({
                 <X className="w-3 h-3" />
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Shelf Filter Row */}
+        {onShelfFilterChange && (
+          <div className="w-full">
+            <div className="relative" ref={shelfDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowShelfDropdown(!showShelfDropdown)}
+                disabled={loading || loadingShelves}
+                className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 min-h-[42px]`}
+              >
+                <FolderOpen className="w-4 h-4 shrink-0" />
+                <span className="flex-1 truncate text-left text-sm">
+                  {shelfFilter
+                    ? availableShelves.find((s) => s.id === shelfFilter)?.name || "All Shelves"
+                    : "All Shelves"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 transition-transform shrink-0",
+                    showShelfDropdown && "rotate-180"
+                  )}
+                />
+              </button>
+
+              {showShelfDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden max-h-[70vh] overflow-y-auto">
+                  {/* All Shelves Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onShelfFilterChange(null);
+                      setShowShelfDropdown(false);
+                    }}
+                    disabled={loading}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                      "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                      !shelfFilter && "bg-[var(--accent)]/10",
+                      loading && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <FolderOpen className="w-4 h-4 text-[var(--foreground)]/60" />
+                    <span className="font-medium flex-1">All Shelves</span>
+                    {!shelfFilter && (
+                      <Check className="w-5 h-5 text-[var(--accent)]" />
+                    )}
+                  </button>
+
+                  {/* Divider */}
+                  {availableShelves.length > 0 && (
+                    <div className="h-px bg-[var(--border-color)]" />
+                  )}
+
+                  {/* Individual Shelves */}
+                  {loadingShelves ? (
+                    <div className="px-4 py-2.5 text-sm text-[var(--foreground)]/50">
+                      Loading shelves...
+                    </div>
+                  ) : availableShelves.length === 0 ? (
+                    <div className="px-4 py-2.5 text-sm text-[var(--foreground)]/50">
+                      No shelves available
+                    </div>
+                  ) : (
+                    availableShelves.map((shelf) => {
+                      const ShelfIcon = (shelf.icon ? getShelfIcon(shelf.icon) : null) || FolderOpen;
+                      return (
+                        <button
+                          key={shelf.id}
+                          type="button"
+                          onClick={() => {
+                            onShelfFilterChange(shelf.id);
+                            setShowShelfDropdown(false);
+                          }}
+                          disabled={loading}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            shelfFilter === shelf.id && "bg-[var(--accent)]/10",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <div
+                            className="w-7 h-7 rounded-md flex items-center justify-center"
+                            style={{
+                              backgroundColor: shelf.color || "var(--foreground-20)",
+                            }}
+                          >
+                            <ShelfIcon className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="font-medium flex-1">{shelf.name}</span>
+                          {shelfFilter === shelf.id && (
+                            <Check className="w-5 h-5 text-[var(--accent)]" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </form>

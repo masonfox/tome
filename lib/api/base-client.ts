@@ -179,6 +179,17 @@ export class BaseApiClient {
   }
 
   /**
+   * Make a typed PUT request
+   */
+  protected async put<TRequest, TResponse>(
+    endpoint: string,
+    data?: TRequest,
+    options?: RequestOptions
+  ): Promise<TResponse> {
+    return this.request<TResponse>("PUT", endpoint, data, options);
+  }
+
+  /**
    * Make a typed DELETE request
    */
   protected async delete<TResponse>(endpoint: string, options?: RequestOptions): Promise<TResponse> {

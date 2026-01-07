@@ -6,10 +6,7 @@ This directory contains the test suite for the book tracker application using Bu
 
 ```bash
 # Run all tests once
-bun test
-
-# Run tests in watch mode (auto-rerun on file changes)
-bun test:watch
+npm test
 ```
 
 ## ✅ Current Status
@@ -304,11 +301,11 @@ The test suite is production-ready and provides confidence in the application's 
 
 ```bash
 # Run all tests
-bun test
+npm test
 
 # Run only reading goals tests
-bun test __tests__/integration/api/reading-goals*.test.ts __tests__/repositories/reading-goals.repository.test.ts
+npm test __tests__/integration/api/reading-goals*.test.ts __tests__/repositories/reading-goals.repository.test.ts
 
 # Run individual test file
-bun test __tests__/integration/api/reading-goals-books.test.ts
+npm test __tests__/integration/api/reading-goals-books.test.ts
 ```
