@@ -410,4 +410,148 @@ describe("ShelfRepository - Status Display", () => {
       expect(books[2].id).toBe(book2!.id); // Jr.
     });
   });
+
+  describe("reindexShelfBooks", () => {
+    it("should reindex books to have continuous sortOrder (0, 1, 2, ...)", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Reindex Test Shelf",
+        userId: null,
+      });
+
+      // Create books
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "First Book",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Second Book",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      const book3 = await bookRepository.create({
+        calibreId: 3,
+        title: "Third Book",
+        authors: ["Author 3"],
+        tags: [],
+        path: "/path/3",
+      });
+
+      // Add books with explicit sortOrder values that have gaps
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id, 0);
+      await shelfRepository.addBookToShelf(shelf.id, book2!.id, 5); // Gap
+      await shelfRepository.addBookToShelf(shelf.id, book3!.id, 10); // Gap
+
+      // Verify gaps exist
+      const booksBeforeReindex = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(booksBeforeReindex[0].sortOrder).toBe(0);
+      expect(booksBeforeReindex[1].sortOrder).toBe(5);
+      expect(booksBeforeReindex[2].sortOrder).toBe(10);
+
+      // Reindex
+      await shelfRepository.reindexShelfBooks(shelf.id);
+
+      // Verify continuous sortOrder
+      const booksAfterReindex = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(booksAfterReindex).toHaveLength(3);
+      expect(booksAfterReindex[0].sortOrder).toBe(0);
+      expect(booksAfterReindex[1].sortOrder).toBe(1);
+      expect(booksAfterReindex[2].sortOrder).toBe(2);
+
+      // Verify order is preserved
+      expect(booksAfterReindex[0].id).toBe(book1!.id);
+      expect(booksAfterReindex[1].id).toBe(book2!.id);
+      expect(booksAfterReindex[2].id).toBe(book3!.id);
+    });
+
+    it("should preserve existing order when reindexing", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Order Preservation Shelf",
+        userId: null,
+      });
+
+      // Create books
+      const books = [];
+      for (let i = 0; i < 5; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+      }
+
+      // Add books with gaps in sortOrder (simulating removals)
+      await shelfRepository.addBookToShelf(shelf.id, books[0].id, 0);
+      await shelfRepository.addBookToShelf(shelf.id, books[1].id, 1);
+      await shelfRepository.addBookToShelf(shelf.id, books[2].id, 5); // Gap after removal
+      await shelfRepository.addBookToShelf(shelf.id, books[3].id, 7); // Gap after removal
+      await shelfRepository.addBookToShelf(shelf.id, books[4].id, 12); // Gap after removal
+
+      // Reindex
+      await shelfRepository.reindexShelfBooks(shelf.id);
+
+      // Verify continuous sortOrder and preserved order
+      const reindexedBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(reindexedBooks).toHaveLength(5);
+      
+      for (let i = 0; i < 5; i++) {
+        expect(reindexedBooks[i].sortOrder).toBe(i);
+        expect(reindexedBooks[i].id).toBe(books[i].id);
+      }
+    });
+
+    it("should handle empty shelf when reindexing", async () => {
+      // Create an empty shelf
+      const shelf = await shelfRepository.create({
+        name: "Empty Shelf",
+        userId: null,
+      });
+
+      // Should not throw error
+      await expect(shelfRepository.reindexShelfBooks(shelf.id)).resolves.not.toThrow();
+
+      // Verify shelf is still empty
+      const books = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(books).toHaveLength(0);
+    });
+
+    it("should handle shelf with single book when reindexing", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Single Book Shelf",
+        userId: null,
+      });
+
+      // Create and add a single book with non-zero sortOrder
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Only Book",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      await shelfRepository.addBookToShelf(shelf.id, book!.id, 99);
+
+      // Reindex
+      await shelfRepository.reindexShelfBooks(shelf.id);
+
+      // Verify sortOrder is now 0
+      const books = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(books).toHaveLength(1);
+      expect(books[0].sortOrder).toBe(0);
+      expect(books[0].id).toBe(book!.id);
+    });
+  });
 });

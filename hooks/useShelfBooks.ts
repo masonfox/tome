@@ -99,15 +99,19 @@ export function useShelfBooks(shelfId: number | null) {
       try {
         await shelfApi.removeBook(shelfId, bookId);
         
-        // Update local state optimistically
-        setShelf((prev) =>
-          prev
-            ? {
-                ...prev,
-                books: prev.books.filter((book) => book.id !== bookId),
-              }
-            : null
-        );
+        // Update local state optimistically - filter out removed book and reindex sortOrder
+        setShelf((prev) => {
+          if (!prev) return null;
+          
+          const remainingBooks = prev.books
+            .filter((book) => book.id !== bookId)
+            .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
+          
+          return {
+            ...prev,
+            books: remainingBooks,
+          };
+        });
 
         toast.success("Book removed from shelf");
         return true;

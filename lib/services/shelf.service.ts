@@ -226,7 +226,10 @@ export class ShelfService {
 
     logger.info({ shelfId, bookId, sortOrder }, "Adding book to shelf");
     await shelfRepository.addBookToShelf(shelfId, bookId, sortOrder);
-    logger.info({ shelfId, bookId }, "Book added to shelf successfully");
+    
+    // Reindex all books to ensure continuous sortOrder
+    await shelfRepository.reindexShelfBooks(shelfId);
+    logger.info({ shelfId, bookId }, "Book added to shelf successfully and books reindexed");
   }
 
   /**
@@ -243,7 +246,9 @@ export class ShelfService {
     const removed = await shelfRepository.removeBookFromShelf(shelfId, bookId);
 
     if (removed) {
-      logger.info({ shelfId, bookId }, "Book removed from shelf successfully");
+      // Reindex remaining books to eliminate gaps in sortOrder
+      await shelfRepository.reindexShelfBooks(shelfId);
+      logger.info({ shelfId, bookId }, "Book removed from shelf successfully and remaining books reindexed");
     } else {
       logger.warn({ shelfId, bookId }, "Book was not on shelf");
     }

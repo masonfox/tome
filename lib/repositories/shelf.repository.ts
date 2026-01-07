@@ -433,6 +433,35 @@ export class ShelfRepository extends BaseRepository<
   }
 
   /**
+   * Reindex all books in a shelf to have continuous sortOrder values (0, 1, 2, ...)
+   * This eliminates gaps caused by book removals and ensures proper ordering.
+   * Books are reindexed based on their current sortOrder.
+   */
+  async reindexShelfBooks(shelfId: number): Promise<void> {
+    const db = this.getDatabase();
+
+    // Get all books on the shelf ordered by current sortOrder
+    const booksOnShelf = await db
+      .select({
+        bookId: bookShelves.bookId,
+      })
+      .from(bookShelves)
+      .where(eq(bookShelves.shelfId, shelfId))
+      .orderBy(bookShelves.sortOrder, bookShelves.bookId)
+      .all();
+
+    // Use a transaction to update all books atomically
+    db.transaction(() => {
+      booksOnShelf.forEach((book, index) => {
+        db.update(bookShelves)
+          .set({ sortOrder: index })
+          .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, book.bookId)))
+          .run();
+      });
+    });
+  }
+
+  /**
    * Check if a book is on a specific shelf
    */
   async isBookOnShelf(shelfId: number, bookId: number): Promise<boolean> {
