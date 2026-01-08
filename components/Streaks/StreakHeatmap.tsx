@@ -263,7 +263,7 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-end gap-2 mt-3 text-xs text-[var(--foreground)]/70">
+      <div className="flex items-center gap-2 mt-3 text-xs text-[var(--foreground)]/70">
         <span>Less</span>
         {[0, 1, 2, 3, 4].map((level) => {
           const color = getColorForLevel(level, theme);
