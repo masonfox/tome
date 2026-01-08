@@ -9,6 +9,7 @@ import { CreateShelfModal } from "@/components/ShelfManagement/CreateShelfModal"
 import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import BaseModal from "@/components/Modals/BaseModal";
+import { NewShelfFAB } from "@/components/ShelfManagement/NewShelfFAB";
 
 export default function ShelvesPage() {
   const {
@@ -107,6 +108,9 @@ export default function ShelvesPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile FAB for New Shelf */}
+      <NewShelfFAB onClick={() => setIsCreateModalOpen(true)} />
 
       {/* Create Shelf Modal */}
       <CreateShelfModal
