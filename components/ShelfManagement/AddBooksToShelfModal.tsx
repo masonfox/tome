@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Search, X, Check, Library as LibraryIcon } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
+import { Spinner } from "@/components/Utilities/Spinner";
 import { cn } from "@/utils/cn";
 
 interface BookWithStatus {
@@ -230,13 +231,13 @@ export function AddBooksToShelfModal({
               <h3 className="text-lg font-semibold text-[var(--heading-text)] mb-2">
                 Search for books to add
               </h3>
-              <p className="text-sm text-[var(--foreground)]/60">
+              <p className="text-sm text-[var(--subheading-text)]">
                 Enter at least 2 characters to search your library
               </p>
             </div>
           ) : loading ? (
             <div className="text-center py-16">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]" />
+              <Spinner size="md" />
               <p className="mt-4 text-sm text-[var(--foreground)]/60">Searching...</p>
             </div>
           ) : books.length === 0 ? (
