@@ -216,6 +216,7 @@ export async function DELETE(
         data: {
           removed: true,
           count: result.count,
+          removedBookIds: result.removedBookIds,
         },
       },
       { status: 200 }
