@@ -111,12 +111,12 @@ export default function ShelfDetailPage() {
           {/* Back Link Skeleton */}
           <div className="h-6 bg-[var(--card-bg)] rounded w-36 mb-5"></div>
           {/* Title with Icon Skeleton */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 bg-[var(--card-bg)] rounded-full"></div>
-            <div className="h-12 bg-[var(--card-bg)] rounded w-64"></div>
+          <div className="flex items-center gap-3 sm:gap-4 mb-2">
+            <div className="w-8 h-8 bg-[var(--card-bg)] rounded-full flex-shrink-0"></div>
+            <div className="h-10 bg-[var(--card-bg)] rounded w-56"></div>
           </div>
           {/* Subtitle Skeleton */}
-          <div className="h-6 bg-[var(--card-bg)] rounded w-48 mt-2"></div>
+          <div className="h-6 bg-[var(--card-bg)] rounded w-44 mt-2"></div>
         </div>
 
         {/* Content Skeleton */}
@@ -163,11 +163,11 @@ export default function ShelfDetailPage() {
     );
   }
 
-  // Build title with book count (count is smaller)
+  // Build title with book count (stays on same line)
   const titleWithCount = (
     <>
-      {shelf.name}
-      <span className="text-3xl text-[var(--accent)] ml-2">({books.length})</span>
+      {shelf.name}{' '}
+      <span className="text-2xl text-[var(--accent)] whitespace-nowrap">({books.length})</span>
     </>
   );
 
@@ -456,7 +456,7 @@ export default function ShelfDetailPage() {
       </BaseModal>
 
       {/* Mobile FAB for Add Books */}
-      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} />
+      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} isHidden={showAddBooksModal} />
 
       {/* Add Books to Shelf Modal */}
       {shelf && shelfId && (

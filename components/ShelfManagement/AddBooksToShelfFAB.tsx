@@ -5,9 +5,12 @@ import { FloatingActionButton } from '@/components/Utilities/FloatingActionButto
 
 interface AddBooksToShelfFABProps {
   onClick: () => void;
+  isHidden?: boolean;
 }
 
-export function AddBooksToShelfFAB({ onClick }: AddBooksToShelfFABProps) {
+export function AddBooksToShelfFAB({ onClick, isHidden = false }: AddBooksToShelfFABProps) {
+  if (isHidden) return null;
+  
   return (
     <FloatingActionButton
       icon={Plus}
