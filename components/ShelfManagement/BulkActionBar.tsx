@@ -49,15 +49,14 @@ export function BulkActionBar({
               disabled={loading}
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                "text-[var(--foreground)] hover:bg-[var(--hover-bg)]",
+                "bg-[var(--card-bg)] text-[var(--foreground)] hover:bg-[var(--hover-bg)]",
                 "border border-[var(--border-color)]",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "flex items-center gap-2"
               )}
             >
-              <span className="flex items-center gap-2">
-                <X className="w-4 h-4" />
-                Cancel
-              </span>
+              <X className="w-4 h-4" />
+              Cancel
             </button>
             <button
               onClick={onDelete}
