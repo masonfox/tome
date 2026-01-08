@@ -567,6 +567,167 @@ describe('shelfApi', () => {
     });
   });
 
+  describe('addBooks', () => {
+    test('should call POST with correct endpoint and request body', async () => {
+      const request = { bookIds: [42, 43, 44] };
+      const response = { success: true, data: { added: true, count: 3 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(1, request);
+
+      expect(apiSpies.post).toHaveBeenCalledWith('/api/shelves/1/books/bulk', request);
+      expect(result).toEqual({ added: true, count: 3 });
+    });
+
+    test('should handle single book in bookIds array', async () => {
+      const request = { bookIds: [42] };
+      const response = { success: true, data: { added: true, count: 1 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(1, request);
+
+      expect(apiSpies.post).toHaveBeenCalledWith('/api/shelves/1/books/bulk', request);
+      expect(result).toEqual({ added: true, count: 1 });
+    });
+
+    test('should handle large batch of books', async () => {
+      const bookIds = Array.from({ length: 50 }, (_, i) => i + 1);
+      const request = { bookIds };
+      const response = { success: true, data: { added: true, count: 50 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(1, request);
+
+      expect(apiSpies.post).toHaveBeenCalledWith('/api/shelves/1/books/bulk', request);
+      expect(result).toEqual({ added: true, count: 50 });
+      expect(bookIds).toHaveLength(50);
+    });
+
+    test('should handle empty bookIds array (server validation)', async () => {
+      const request = { bookIds: [] };
+      // Server should return validation error, but API client passes through
+      const error = new ApiError(
+        'bookIds array cannot be empty',
+        400,
+        '/api/shelves/1/books/bulk',
+        { error: 'bookIds array cannot be empty' }
+      );
+      apiSpies.post.mockRejectedValue(error);
+
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow(ApiError);
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow('bookIds array cannot be empty');
+    });
+
+    test('should return count 0 when no books are added', async () => {
+      const request = { bookIds: [9999, 8888] };
+      const response = { success: true, data: { added: true, count: 0 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(1, request);
+
+      expect(result).toEqual({ added: true, count: 0 });
+    });
+
+    test('should handle partial success (some books already on shelf)', async () => {
+      const request = { bookIds: [1, 2, 3, 4, 5] };
+      // Server adds only 3 out of 5 books
+      const response = { success: true, data: { added: true, count: 3 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(1, request);
+
+      expect(result).toEqual({ added: true, count: 3 });
+    });
+
+    test('should unwrap response and return data', async () => {
+      const request = { bookIds: [10, 20, 30] };
+      const response = { success: true, data: { added: true, count: 3 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(5, request);
+
+      expect(result).toEqual({ added: true, count: 3 });
+      expect(result).not.toHaveProperty('success');
+    });
+
+    test('should handle different shelf IDs', async () => {
+      apiSpies.post.mockResolvedValue({ success: true, data: { added: true, count: 2 } });
+
+      await shelfApi.addBooks(10, { bookIds: [20, 30] });
+      expect(apiSpies.post).toHaveBeenCalledWith('/api/shelves/10/books/bulk', {
+        bookIds: [20, 30],
+      });
+
+      await shelfApi.addBooks(50, { bookIds: [100, 200, 300] });
+      expect(apiSpies.post).toHaveBeenCalledWith('/api/shelves/50/books/bulk', {
+        bookIds: [100, 200, 300],
+      });
+    });
+
+    test('should propagate 404 ApiError when shelf not found', async () => {
+      const request = { bookIds: [42, 43] };
+      const error = new ApiError('Shelf not found', 404, '/api/shelves/999/books/bulk');
+      apiSpies.post.mockRejectedValue(error);
+
+      await expect(shelfApi.addBooks(999, request)).rejects.toThrow(ApiError);
+      await expect(shelfApi.addBooks(999, request)).rejects.toThrow('Shelf not found');
+    });
+
+    test('should propagate 400 ApiError for validation errors', async () => {
+      const request = { bookIds: [1, 'invalid' as any, 3] };
+      const error = new ApiError(
+        'All bookIds must be numbers',
+        400,
+        '/api/shelves/1/books/bulk',
+        { error: 'All bookIds must be numbers' }
+      );
+      apiSpies.post.mockRejectedValue(error);
+
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow(ApiError);
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow('All bookIds must be numbers');
+    });
+
+    test('should propagate 400 ApiError when bookIds is missing', async () => {
+      const request = {} as any;
+      const error = new ApiError(
+        'bookIds is required',
+        400,
+        '/api/shelves/1/books/bulk',
+        { error: 'bookIds is required' }
+      );
+      apiSpies.post.mockRejectedValue(error);
+
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow(ApiError);
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow('bookIds is required');
+    });
+
+    test('should handle network errors', async () => {
+      const request = { bookIds: [1, 2, 3] };
+      const error = new ApiError('Network error', 0, '/api/shelves/1/books/bulk');
+      apiSpies.post.mockRejectedValue(error);
+
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow(ApiError);
+      await expect(shelfApi.addBooks(1, request)).rejects.toThrow('Network error');
+      await expect(shelfApi.addBooks(1, request)).rejects.toMatchObject({
+        statusCode: 0,
+        endpoint: '/api/shelves/1/books/bulk',
+      });
+    });
+
+    test('should preserve response structure with added and count', async () => {
+      const request = { bookIds: [1, 2, 3, 4, 5] };
+      const response = { success: true, data: { added: true, count: 5 } };
+      apiSpies.post.mockResolvedValue(response);
+
+      const result = await shelfApi.addBooks(1, request);
+
+      expect(result).toHaveProperty('added');
+      expect(result).toHaveProperty('count');
+      expect(result.added).toBe(true);
+      expect(result.count).toBe(5);
+    });
+  });
+
   describe('removeBook', () => {
     test('should call DELETE with correct endpoint and query string', async () => {
       const response = { success: true, data: { removed: true } };

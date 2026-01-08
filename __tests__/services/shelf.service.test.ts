@@ -1023,4 +1023,307 @@ describe("ShelfService", () => {
       expect(books[1].id).toBe(book1!.id);
     });
   });
+
+  describe("addBooksToShelf (bulk operation)", () => {
+    test("should add multiple books to shelf", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Bulk Test Shelf",
+        userId: null,
+      });
+
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      const book3 = await bookRepository.create({
+        calibreId: 3,
+        title: "Book 3",
+        authors: ["Author 3"],
+        tags: [],
+        path: "/path/3",
+      });
+
+      const result = await shelfService.addBooksToShelf(shelf.id, [
+        book1!.id,
+        book2!.id,
+        book3!.id,
+      ]);
+
+      expect(result.count).toBe(3);
+      expect(result.addedBookIds).toHaveLength(3);
+      expect(result.addedBookIds).toContain(book1!.id);
+      expect(result.addedBookIds).toContain(book2!.id);
+      expect(result.addedBookIds).toContain(book3!.id);
+
+      // Verify books are on shelf
+      const booksOnShelf = await shelfRepository.getBooksOnShelf(shelf.id);
+      expect(booksOnShelf).toHaveLength(3);
+    });
+
+    test("should return correct count and addedBookIds array", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Test Shelf",
+        userId: null,
+      });
+
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      const result = await shelfService.addBooksToShelf(shelf.id, [book1!.id, book2!.id]);
+
+      expect(result).toEqual({
+        count: 2,
+        addedBookIds: [book1!.id, book2!.id],
+      });
+    });
+
+    test("should throw error when shelf doesn't exist", async () => {
+      await expect(shelfService.addBooksToShelf(999, [1, 2, 3])).rejects.toThrow(
+        "Shelf with ID 999 not found"
+      );
+    });
+
+    test("should skip non-existent books with warning", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Test Shelf",
+        userId: null,
+      });
+
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Valid Book",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      // Include valid and non-existent book IDs
+      const result = await shelfService.addBooksToShelf(shelf.id, [
+        book1!.id,
+        9999,
+        8888,
+      ]);
+
+      // Should only add the valid book
+      expect(result.count).toBe(1);
+      expect(result.addedBookIds).toEqual([book1!.id]);
+
+      const booksOnShelf = await shelfRepository.getBooksOnShelf(shelf.id);
+      expect(booksOnShelf).toHaveLength(1);
+      expect(booksOnShelf[0].id).toBe(book1!.id);
+    });
+
+    test("should skip books already on shelf (defensive check)", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Test Shelf",
+        userId: null,
+      });
+
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book 2",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      // Add book1 beforehand
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+
+      // Try to add both books
+      const result = await shelfService.addBooksToShelf(shelf.id, [book1!.id, book2!.id]);
+
+      // Should only add book2 (book1 skipped)
+      expect(result.count).toBe(1);
+      expect(result.addedBookIds).toEqual([book2!.id]);
+
+      const booksOnShelf = await shelfRepository.getBooksOnShelf(shelf.id);
+      expect(booksOnShelf).toHaveLength(2);
+    });
+
+    test("should reindex shelf after bulk add", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Reindex Shelf",
+        userId: null,
+      });
+
+      const books = [];
+      for (let i = 1; i <= 5; i++) {
+        const book = await bookRepository.create({
+          calibreId: i,
+          title: `Book ${i}`,
+          authors: [`Author ${i}`],
+          tags: [],
+          path: `/path/${i}`,
+        });
+        books.push(book!);
+      }
+
+      await shelfService.addBooksToShelf(
+        shelf.id,
+        books.map((b) => b.id)
+      );
+
+      // Verify books are reindexed with continuous sortOrder
+      const booksOnShelf = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(booksOnShelf).toHaveLength(5);
+
+      booksOnShelf.forEach((book, index) => {
+        expect(book.sortOrder).toBe(index);
+      });
+    });
+
+    test("should handle mixed valid/invalid book IDs", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Mixed Shelf",
+        userId: null,
+      });
+
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Valid 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Valid 2",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      const result = await shelfService.addBooksToShelf(shelf.id, [
+        book1!.id,
+        9999,
+        book2!.id,
+        8888,
+      ]);
+
+      expect(result.count).toBe(2);
+      expect(result.addedBookIds).toEqual([book1!.id, book2!.id]);
+    });
+
+    test("should handle empty bookIds array gracefully", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Empty Array Shelf",
+        userId: null,
+      });
+
+      const result = await shelfService.addBooksToShelf(shelf.id, []);
+
+      expect(result.count).toBe(0);
+      expect(result.addedBookIds).toEqual([]);
+    });
+
+    test("should continue processing after individual book failures", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Failure Test Shelf",
+        userId: null,
+      });
+
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Valid Book 1",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Valid Book 2",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      // Mix valid books with non-existent IDs
+      const result = await shelfService.addBooksToShelf(shelf.id, [
+        book1!.id,
+        9999, // Non-existent
+        book2!.id,
+      ]);
+
+      // Should successfully add valid books despite invalid ones
+      expect(result.count).toBe(2);
+      expect(result.addedBookIds).toHaveLength(2);
+    });
+
+    test("should return empty array when no books added", async () => {
+      const shelf = await shelfRepository.create({
+        name: "No Adds Shelf",
+        userId: null,
+      });
+
+      // Try to add only non-existent books
+      const result = await shelfService.addBooksToShelf(shelf.id, [9999, 8888, 7777]);
+
+      expect(result.count).toBe(0);
+      expect(result.addedBookIds).toEqual([]);
+
+      const booksOnShelf = await shelfRepository.getBooksOnShelf(shelf.id);
+      expect(booksOnShelf).toHaveLength(0);
+    });
+
+    test("should not reindex when no books were added", async () => {
+      const shelf = await shelfRepository.create({
+        name: "No Reindex Shelf",
+        userId: null,
+      });
+
+      // Add a book beforehand
+      const existingBook = await bookRepository.create({
+        calibreId: 1,
+        title: "Existing Book",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+      });
+      await shelfRepository.addBookToShelf(shelf.id, existingBook!.id, 5);
+
+      // Try to add non-existent books (shouldn't reindex)
+      await shelfService.addBooksToShelf(shelf.id, [9999, 8888]);
+
+      const booksOnShelf = await shelfRepository.getBooksOnShelf(shelf.id);
+      expect(booksOnShelf).toHaveLength(1);
+      // sortOrder should still be 5 (not reindexed to 0)
+      expect(booksOnShelf[0].sortOrder).toBe(5);
+    });
+  });
 });

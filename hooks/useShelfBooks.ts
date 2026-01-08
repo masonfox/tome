@@ -86,6 +86,41 @@ export function useShelfBooks(shelfId: number | null) {
   );
 
   /**
+   * Add multiple books to the shelf (bulk operation)
+   */
+  const addBooksToShelf = useCallback(
+    async (bookIds: number[]) => {
+      if (!shelfId || bookIds.length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await shelfApi.addBooks(shelfId, { bookIds });
+        
+        // Refresh shelf books after adding
+        await fetchShelfBooks();
+
+        const bookWord = result.count === 1 ? 'book' : 'books';
+        toast.success(`${result.count} ${bookWord} added to shelf`);
+        return result;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Unknown error");
+        setError(error);
+        
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to add books: ${message}`);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shelfId, fetchShelfBooks]
+  );
+
+  /**
    * Remove a book from the shelf
    */
   const removeBookFromShelf = useCallback(
@@ -224,6 +259,7 @@ export function useShelfBooks(shelfId: number | null) {
     hasInitialized,
     fetchShelfBooks,
     addBookToShelf,
+    addBooksToShelf,
     removeBookFromShelf,
     updateBookOrder,
     reorderBooks,

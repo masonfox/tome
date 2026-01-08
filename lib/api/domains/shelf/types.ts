@@ -112,6 +112,13 @@ export interface AddBookToShelfRequest {
 }
 
 /**
+ * Request to add multiple books to a shelf (bulk operation)
+ */
+export interface AddBooksToShelfRequest {
+  bookIds: number[];
+}
+
+/**
  * Request to update book order on a shelf
  */
 export interface UpdateBookOrderRequest {
@@ -123,6 +130,13 @@ export interface UpdateBookOrderRequest {
  * Request to batch reorder books on a shelf
  */
 export interface ReorderBooksRequest {
+  bookIds: number[];
+}
+
+/**
+ * Request to add multiple books to a shelf (bulk operation)
+ */
+export interface AddBooksToShelfRequest {
   bookIds: number[];
 }
 
@@ -200,4 +214,23 @@ export interface UpdateBookOrderResponse {
 export interface ReorderBooksResponse {
   success: boolean;
   data: { reordered: boolean };
+}
+
+/**
+ * Response from adding multiple books to a shelf (bulk operation)
+ */
+export interface AddBooksToShelfResponse {
+  success: boolean;
+  data: {
+    added: boolean;
+    count: number;
+  };
+}
+
+// ============================================================================
+// Base API Response (for error handling)
+// ============================================================================
+
+export interface ApiResponse {
+  success: boolean;
 }

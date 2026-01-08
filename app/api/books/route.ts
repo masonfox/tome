@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const tagsParam = searchParams.get("tags");
     const rating = searchParams.get("rating") || undefined;
     const shelfParam = searchParams.get("shelf");
+    const excludeShelfParam = searchParams.get("excludeShelfId");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = parseInt(searchParams.get("skip") || "0");
     const showOrphaned = searchParams.get("showOrphaned") === "true";
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
 
     // Parse shelf ID
     const shelfIds = shelfParam ? [parseInt(shelfParam)] : undefined;
+    
+    // Parse exclude shelf ID
+    const excludeShelfId = excludeShelfParam ? parseInt(excludeShelfParam) : undefined;
 
     // Determine orphaned filter
     const orphanedOnly = showOrphaned;
@@ -36,6 +40,7 @@ export async function GET(request: NextRequest) {
         tags,
         rating,
         shelfIds,
+        excludeShelfId,
         showOrphaned,
         orphanedOnly,
       },

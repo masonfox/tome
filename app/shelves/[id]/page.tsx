@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { FolderOpen, Trash2, Search, X, ArrowUp, ArrowDown } from "lucide-react";
+import { FolderOpen, Trash2, Search, X, ArrowUp, ArrowDown, Plus } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
 import { BookTable } from "@/components/Books/BookTable";
@@ -11,6 +11,8 @@ import { BookListItemSkeleton } from "@/components/Books/BookListItemSkeleton";
 import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
 import BaseModal from "@/components/Modals/BaseModal";
+import { AddBooksToShelfModal } from "@/components/ShelfManagement/AddBooksToShelfModal";
+import { AddBooksToShelfFAB } from "@/components/ShelfManagement/AddBooksToShelfFAB";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
@@ -28,6 +30,7 @@ export default function ShelfDetailPage() {
     loading,
     hasInitialized,
     fetchShelfBooks,
+    addBooksToShelf,
     removeBookFromShelf,
     reorderBooks,
   } = useShelfBooks(shelfId);
@@ -38,6 +41,7 @@ export default function ShelfDetailPage() {
   const [removeLoading, setRemoveLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [filterText, setFilterText] = useState("");
+  const [showAddBooksModal, setShowAddBooksModal] = useState(false);
 
   // Detect mobile/tablet vs desktop
   useEffect(() => {
@@ -192,6 +196,15 @@ export default function ShelfDetailPage() {
           href: "/shelves",
           label: "Back to Shelves"
         }}
+        actions={
+          <button
+            onClick={() => setShowAddBooksModal(true)}
+            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Add Books
+          </button>
+        }
       />
 
       {/* Content */}
@@ -441,6 +454,23 @@ export default function ShelfDetailPage() {
           The book will be removed from this shelf but will remain in your library.
         </p>
       </BaseModal>
+
+      {/* Mobile FAB for Add Books */}
+      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} />
+
+      {/* Add Books to Shelf Modal */}
+      {shelf && shelfId && (
+        <AddBooksToShelfModal
+          isOpen={showAddBooksModal}
+          onClose={() => setShowAddBooksModal(false)}
+          onAddBooks={async (bookIds) => {
+            const result = await addBooksToShelf(bookIds);
+            return result || { count: 0 };
+          }}
+          shelfId={shelfId}
+          shelfName={shelf.name}
+        />
+      )}
     </div>
   );
 }
