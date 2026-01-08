@@ -185,25 +185,6 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
 
   return (
     <div className="relative">
-      {/* Legend */}
-      <div className="flex items-center gap-2 mb-4 text-xs text-[var(--foreground)]/70">
-        <span>Less</span>
-        {[0, 1, 2, 3, 4].map((level) => {
-          const color = getColorForLevel(level, theme);
-          return (
-            <div
-              key={level}
-              className="w-3 h-3 rounded-sm border"
-              style={{
-                backgroundColor: color || 'var(--background)',
-                borderColor: level === 0 ? 'var(--border-color)' : 'transparent'
-              }}
-            />
-          );
-        })}
-        <span>More</span>
-      </div>
-
       <div className="overflow-x-auto">
         <svg
           width={totalWidth}
@@ -279,6 +260,25 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
           })
         )}
         </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-2 mt-3 text-xs text-[var(--foreground)]/70">
+        <span>Less</span>
+        {[0, 1, 2, 3, 4].map((level) => {
+          const color = getColorForLevel(level, theme);
+          return (
+            <div
+              key={level}
+              className="w-3 h-3 rounded-sm border"
+              style={{
+                backgroundColor: color || 'var(--background)',
+                borderColor: level === 0 ? 'var(--border-color)' : 'transparent'
+              }}
+            />
+          );
+        })}
+        <span>More</span>
       </div>
 
       {/* Tooltip */}
