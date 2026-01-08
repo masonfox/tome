@@ -14,6 +14,7 @@ export function NewShelfFAB({ onClick }: NewShelfFABProps) {
       onClick={onClick}
       ariaLabel="Create new shelf"
       visibility="lg:hidden"
+      zIndex="z-[60]"
     />
   );
 }

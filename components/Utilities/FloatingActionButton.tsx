@@ -19,7 +19,7 @@ interface FloatingActionButtonProps {
   /** Responsive visibility class (e.g., 'lg:hidden' for mobile-only) */
   visibility?: string;
   /** Z-index layer */
-  zIndex?: 'z-40' | 'z-[45]' | 'z-50';
+  zIndex?: 'z-40' | 'z-[45]' | 'z-50' | 'z-[60]';
   /** Additional custom classes */
   className?: string;
 }
