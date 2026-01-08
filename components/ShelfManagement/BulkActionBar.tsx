@@ -26,7 +26,7 @@ export function BulkActionBar({
     <div
       className={cn(
         "fixed bottom-24 md:bottom-0 left-0 right-0 z-30",
-        "bg-[var(--card-bg)]/95 backdrop-blur-sm",
+        "bg-[var(--card-bg)]/98 backdrop-blur-md",
         "border-t border-[var(--border-color)]",
         "shadow-lg",
         "animate-in slide-in-from-bottom duration-200",
