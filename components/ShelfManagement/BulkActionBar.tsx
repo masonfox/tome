@@ -26,8 +26,8 @@ export function BulkActionBar({
     <div
       className={cn(
         "fixed bottom-24 md:bottom-0 left-0 right-0 z-30",
-        "bg-[var(--accent)] backdrop-blur-sm",
-        "border-t border-[var(--accent)]",
+        "bg-[var(--card-bg-emphasis)] backdrop-blur-sm",
+        "border-t border-[var(--border-color)]",
         "shadow-lg",
         "animate-in slide-in-from-bottom duration-200",
         className
@@ -37,7 +37,7 @@ export function BulkActionBar({
         <div className="flex items-center justify-between gap-4">
           {/* Selected count */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-[var(--foreground)]">
               {selectedCount} {selectedCount === 1 ? "book" : "books"} selected
             </span>
           </div>
@@ -49,8 +49,8 @@ export function BulkActionBar({
               disabled={loading}
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                "bg-white/20 text-white hover:bg-white/30",
-                "border border-white/30",
+                "bg-[var(--card-bg)] text-[var(--foreground)] hover:bg-[var(--hover-bg)]",
+                "border border-[var(--border-color)]",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "flex items-center gap-2"
               )}

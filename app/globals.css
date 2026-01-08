@@ -12,6 +12,7 @@
   --accent: #8b6f47;
   --light-accent: #c9a876;
   --card-bg: #f5f1e8;
+  --card-bg-emphasis: #e8e0d1;
   --border-color: #d4cbbe;
 
   /* Sidebar dimensions */
@@ -29,6 +30,7 @@ html[data-theme="dark"] {
   --accent: #a89968;
   --light-accent: #c9a876;
   --card-bg: #3d3935;
+  --card-bg-emphasis: #4a4640;
   --border-color: #4a4640;
 }
 
@@ -41,6 +43,7 @@ html[data-theme="light"] {
   --accent: #8b6f47;
   --light-accent: #c9a876;
   --card-bg: #f5f1e8;
+  --card-bg-emphasis: #e8e0d1;
   --border-color: #d4cbbe;
 }
 
@@ -54,6 +57,7 @@ html[data-theme="light"] {
     --accent: #a89968;
     --light-accent: #c9a876;
     --card-bg: #3d3935;
+    --card-bg-emphasis: #4a4640;
     --border-color: #4a4640;
   }
 }
