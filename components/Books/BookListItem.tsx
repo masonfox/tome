@@ -78,7 +78,8 @@ export const BookListItem = memo(function BookListItem({
               checked={isSelected}
               onChange={onToggleSelection}
               onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+              className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+              style={{ accentColor: 'var(--accent)' }}
             />
           </div>
         )}

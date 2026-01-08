@@ -210,7 +210,8 @@ export function BookTable({
                       checked={isSelected}
                       onChange={() => onToggleSelection?.(book.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-5 h-5 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+                      className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+                      style={{ accentColor: 'var(--accent)' }}
                     />
                   </td>
                 )}
@@ -432,9 +433,6 @@ function BookTableSkeleton({ showOrderColumn = false }: { showOrderColumn?: bool
               </td>
               <td className="px-4 py-3">
                 <div className="h-4 bg-[var(--hover-bg)] rounded w-1/2" />
-              </td>
-              <td className="px-4 py-3">
-                <div className="h-4 bg-[var(--hover-bg)] rounded w-20" />
               </td>
               <td className="px-4 py-3">
                 <div className="h-6 bg-[var(--hover-bg)] rounded w-16" />
