@@ -24,6 +24,9 @@ interface BookListItemProps {
   showProgress?: boolean;
   onClick?: () => void;
   className?: string;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
 export const BookListItem = memo(function BookListItem({
@@ -32,6 +35,9 @@ export const BookListItem = memo(function BookListItem({
   showProgress = false,
   onClick,
   className,
+  isSelectMode = false,
+  isSelected = false,
+  onToggleSelection,
 }: BookListItemProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -43,18 +49,46 @@ export const BookListItem = memo(function BookListItem({
     ? `${book.series} #${book.seriesIndex}`
     : book.series;
 
+  const handleClick = () => {
+    if (isSelectMode && onToggleSelection) {
+      onToggleSelection();
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
       className={cn(
-        "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:shadow-md transition-shadow",
-        onClick && "cursor-pointer",
+        "bg-[var(--card-bg)] border rounded-lg p-4 transition-all",
+        isSelectMode && "cursor-pointer hover:shadow-md",
+        isSelected && "border-[var(--accent)] bg-[var(--accent)]/10",
+        !isSelected && "border-[var(--border-color)]",
+        !isSelectMode && onClick && "cursor-pointer hover:shadow-md",
         className
       )}
-      onClick={onClick}
+      onClick={isSelectMode ? handleClick : onClick}
     >
       <div className="flex gap-4 items-start">
+        {/* Checkbox for select mode */}
+        {isSelectMode && (
+          <div className="flex-shrink-0 pt-1">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onToggleSelection}
+              onClick={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+            />
+          </div>
+        )}
+
         {/* Book Cover Thumbnail */}
-        <Link href={`/books/${book.id}`} className="flex-shrink-0">
+        <Link 
+          href={`/books/${book.id}`} 
+          className="flex-shrink-0"
+          onClick={(e) => isSelectMode && e.preventDefault()}
+        >
           <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
             {!imageError ? (
               <Image
@@ -175,6 +209,8 @@ export const BookListItem = memo(function BookListItem({
     prevProps.book.status === nextProps.book.status &&
     prevProps.book.currentProgress === nextProps.book.currentProgress &&
     prevProps.book.rating === nextProps.book.rating &&
-    prevProps.showProgress === nextProps.showProgress
+    prevProps.showProgress === nextProps.showProgress &&
+    prevProps.isSelectMode === nextProps.isSelectMode &&
+    prevProps.isSelected === nextProps.isSelected
   );
 });
