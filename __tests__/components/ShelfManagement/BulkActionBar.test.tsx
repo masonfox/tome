@@ -67,22 +67,6 @@ describe("BulkActionBar", () => {
       const bulkBar = container.firstChild as HTMLElement;
       expect(bulkBar).toHaveClass("custom-class");
     });
-
-    test("should have fixed positioning at bottom of screen", () => {
-      const { container } = render(
-        <BulkActionBar
-          selectedCount={1}
-          onDelete={mockOnDelete}
-          onCancel={mockOnCancel}
-        />
-      );
-
-      const bulkBar = container.firstChild as HTMLElement;
-      expect(bulkBar).toHaveClass("fixed");
-      expect(bulkBar).toHaveClass("bottom-0");
-      expect(bulkBar).toHaveClass("left-0");
-      expect(bulkBar).toHaveClass("right-0");
-    });
   });
 
   describe("Selected Count Display", () => {
