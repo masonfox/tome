@@ -456,7 +456,7 @@ export default function ShelfDetailPage() {
       </BaseModal>
 
       {/* Mobile FAB for Add Books */}
-      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} />
+      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} isHidden={showAddBooksModal} />
 
       {/* Add Books to Shelf Modal */}
       {shelf && shelfId && (
