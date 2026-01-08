@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface BulkActionBarProps {
@@ -24,6 +24,7 @@ export function BulkActionBar({
 
   return (
     <div
+      id="bulk-action-bar"
       className={cn(
         "fixed bottom-24 md:bottom-0 left-0 right-0 z-30",
         "bg-[var(--card-bg-emphasis)] backdrop-blur-sm",
@@ -55,7 +56,6 @@ export function BulkActionBar({
                 "flex items-center gap-2"
               )}
             >
-              <X className="w-4 h-4" />
               Cancel
             </button>
             <button
@@ -69,7 +69,7 @@ export function BulkActionBar({
               )}
             >
               <Trash2 className="w-4 h-4" />
-              {loading ? "Removing..." : "Delete Selected"}
+              {loading ? "Removing..." : "Delete"}
             </button>
           </div>
         </div>

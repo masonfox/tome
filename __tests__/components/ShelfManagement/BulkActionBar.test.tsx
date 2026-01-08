@@ -50,7 +50,7 @@ describe("BulkActionBar", () => {
       );
 
       expect(screen.getByText("3 books selected")).toBeInTheDocument();
-      expect(screen.getByText("Delete Selected")).toBeInTheDocument();
+      expect(screen.getByText("Delete")).toBeInTheDocument();
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
 
@@ -118,13 +118,13 @@ describe("BulkActionBar", () => {
         />
       );
 
-      const deleteButton = screen.getByText("Delete Selected");
+      const deleteButton = screen.getByText("Delete");
       fireEvent.click(deleteButton);
 
       expect(mockOnDelete).toHaveBeenCalledTimes(1);
     });
 
-    test("should show 'Delete Selected' text by default", () => {
+    test("should show 'Delete' text by default", () => {
       render(
         <BulkActionBar
           selectedCount={3}
@@ -133,7 +133,7 @@ describe("BulkActionBar", () => {
         />
       );
 
-      expect(screen.getByText("Delete Selected")).toBeInTheDocument();
+      expect(screen.getByText("Delete")).toBeInTheDocument();
     });
 
     test("should show 'Removing...' text when loading", () => {
@@ -147,7 +147,7 @@ describe("BulkActionBar", () => {
       );
 
       expect(screen.getByText("Removing...")).toBeInTheDocument();
-      expect(screen.queryByText("Delete Selected")).not.toBeInTheDocument();
+      expect(screen.queryByText("Delete")).not.toBeInTheDocument();
     });
 
     test("should be disabled when loading", () => {
@@ -189,7 +189,7 @@ describe("BulkActionBar", () => {
         />
       );
 
-      const deleteButton = screen.getByText("Delete Selected").closest("button");
+      const deleteButton = screen.getByText("Delete").closest("button");
       const icon = deleteButton?.querySelector("svg");
       expect(icon).toBeInTheDocument();
     });
@@ -203,7 +203,7 @@ describe("BulkActionBar", () => {
         />
       );
 
-      const deleteButton = screen.getByText("Delete Selected");
+      const deleteButton = screen.getByText("Delete");
       expect(deleteButton).toHaveClass("bg-red-500");
     });
   });
@@ -254,20 +254,6 @@ describe("BulkActionBar", () => {
       expect(mockOnCancel).not.toHaveBeenCalled();
     });
 
-    test("should have X icon", () => {
-      render(
-        <BulkActionBar
-          selectedCount={3}
-          onDelete={mockOnDelete}
-          onCancel={mockOnCancel}
-        />
-      );
-
-      const cancelButton = screen.getByText("Cancel").closest("button");
-      const icon = cancelButton?.querySelector("svg");
-      expect(icon).toBeInTheDocument();
-    });
-
     test("should maintain Cancel text when loading", () => {
       render(
         <BulkActionBar
@@ -312,7 +298,7 @@ describe("BulkActionBar", () => {
       );
 
       const cancelButton = screen.getByText("Cancel");
-      const deleteButton = screen.getByText("Delete Selected");
+      const deleteButton = screen.getByText("Delete");
 
       expect(cancelButton).not.toBeDisabled();
       expect(deleteButton).not.toBeDisabled();
@@ -329,7 +315,7 @@ describe("BulkActionBar", () => {
       );
 
       // Initially not loading
-      expect(screen.getByText("Delete Selected")).not.toBeDisabled();
+      expect(screen.getByText("Delete")).not.toBeDisabled();
 
       // Transition to loading
       rerender(
@@ -353,7 +339,7 @@ describe("BulkActionBar", () => {
         />
       );
 
-      expect(screen.getByText("Delete Selected")).not.toBeDisabled();
+      expect(screen.getByText("Delete")).not.toBeDisabled();
     });
   });
 
@@ -379,7 +365,7 @@ describe("BulkActionBar", () => {
         />
       );
 
-      const deleteButton = screen.getByText("Delete Selected");
+      const deleteButton = screen.getByText("Delete");
       
       // Click multiple times rapidly
       fireEvent.click(deleteButton);
@@ -448,7 +434,7 @@ describe("BulkActionBar", () => {
       );
 
       // Click with original callbacks
-      fireEvent.click(screen.getByText("Delete Selected"));
+      fireEvent.click(screen.getByText("Delete"));
       expect(mockOnDelete).toHaveBeenCalledTimes(1);
       expect(newOnDelete).not.toHaveBeenCalled();
 
@@ -462,7 +448,7 @@ describe("BulkActionBar", () => {
       );
 
       // Click with new callbacks
-      fireEvent.click(screen.getByText("Delete Selected"));
+      fireEvent.click(screen.getByText("Delete"));
       expect(mockOnDelete).toHaveBeenCalledTimes(1); // Still only once
       expect(newOnDelete).toHaveBeenCalledTimes(1); // New callback called
     });
@@ -492,7 +478,7 @@ describe("BulkActionBar", () => {
       );
 
       expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /delete selected/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
     });
 
     test("should indicate disabled state in loading mode", () => {

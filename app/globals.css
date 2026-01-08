@@ -273,6 +273,19 @@ body.overflow-hidden {
   html[data-sidebar-collapsed="false"] #main-content {
     margin-left: var(--sidebar-width-expanded);
   }
+
+  /* Bulk action bar - offset for sidebar */
+  #bulk-action-bar {
+    left: var(--sidebar-width-collapsed);
+  }
+
+  html.transitions-enabled #bulk-action-bar {
+    transition: left 0.3s ease-in-out;
+  }
+
+  html[data-sidebar-collapsed="false"] #bulk-action-bar {
+    left: var(--sidebar-width-expanded);
+  }
 }
 
 /* Mobile sidebar (hide on mobile) */
