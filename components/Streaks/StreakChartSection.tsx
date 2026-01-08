@@ -113,16 +113,37 @@ export function StreakChartSection({
       ) : null}
 
       {/* Activity Calendar Heatmap - Always shows 365 days */}
-      {!isHeatmapLoading && heatmapData && heatmapData.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-3">
-            Activity Calendar
-          </h3>
+      <div className="mt-6">
+        <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-3">
+          Activity Calendar
+        </h3>
+        {isHeatmapLoading ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4 md:p-6">
+            <div className="animate-pulse space-y-3">
+              {/* Month labels skeleton */}
+              <div className="flex gap-2 mb-2">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="h-3 w-8 bg-[var(--border-color)] rounded" />
+                ))}
+              </div>
+              {/* Heatmap grid skeleton */}
+              <div className="h-32 bg-[var(--border-color)] rounded" />
+              {/* Legend skeleton */}
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="h-3 w-8 bg-[var(--border-color)] rounded" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-3 w-3 bg-[var(--border-color)] rounded-sm" />
+                ))}
+                <div className="h-3 w-8 bg-[var(--border-color)] rounded" />
+              </div>
+            </div>
+          </div>
+        ) : heatmapData && heatmapData.length > 0 ? (
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4 md:p-6">
             <StreakHeatmap data={heatmapData} threshold={threshold} />
           </div>
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
   );
 }
