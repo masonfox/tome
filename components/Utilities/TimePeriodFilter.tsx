@@ -52,7 +52,7 @@ export function TimePeriodFilter({
           className={cn(
             // Base styles matching ProgressEditModal
             "appearance-none px-3 py-2 pr-10 rounded",
-            "border border-[var(--border-color)] bg-[var(--background)]",
+            "border border-[var(--border-color)] bg-[var(--card-bg)]",
             "text-[var(--foreground)] font-medium cursor-pointer transition-colors",
             "focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2",
             "hover:bg-[var(--card-bg)]",
