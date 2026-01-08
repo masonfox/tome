@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
-import { ShelfIconPicker } from "@/components/ShelfIconPicker";
-import { ColorPicker } from "@/components/ColorPicker";
+import { ShelfAppearancePicker } from "@/components/ShelfAppearancePicker";
 import type { UpdateShelfRequest, ShelfWithBookCount } from "@/lib/api";
 
 interface EditShelfModalProps {
@@ -133,21 +132,14 @@ export function EditShelfModal({
           />
         </div>
 
-        {/* Color Picker */}
-        <ColorPicker
-          value={color}
-          onChange={setColor}
-          disabled={loading}
-          label="Color"
-          id="edit-shelf-color"
-        />
-
-        {/* Icon Picker */}
-        <ShelfIconPicker
-          selectedIcon={icon}
-          onSelectIcon={setIcon}
+        {/* Appearance Picker (Color + Icon) */}
+        <ShelfAppearancePicker
           color={color}
+          icon={icon}
+          onColorChange={setColor}
+          onIconChange={setIcon}
           disabled={loading}
+          shelfName={name}
         />
       </div>
     </BaseModal>
