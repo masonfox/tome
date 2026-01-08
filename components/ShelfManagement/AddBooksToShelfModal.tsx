@@ -163,6 +163,7 @@ export function AddBooksToShelfModal({
       subtitle={`Search and select books to add to "${shelfName}"`}
       size="2xl"
       loading={submitting}
+      allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-between items-center w-full">
           <div className="text-sm text-[var(--foreground)]/70">

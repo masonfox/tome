@@ -12,6 +12,7 @@ import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
 import BaseModal from "@/components/Modals/BaseModal";
 import { AddBooksToShelfModal } from "@/components/ShelfManagement/AddBooksToShelfModal";
+import { AddBooksToShelfFAB } from "@/components/ShelfManagement/AddBooksToShelfFAB";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
@@ -198,10 +199,10 @@ export default function ShelfDetailPage() {
         actions={
           <button
             onClick={() => setShowAddBooksModal(true)}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium flex items-center gap-2"
+            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Books</span>
+            <Plus className="w-5 h-5" />
+            Add Books
           </button>
         }
       />
@@ -453,6 +454,9 @@ export default function ShelfDetailPage() {
           The book will be removed from this shelf but will remain in your library.
         </p>
       </BaseModal>
+
+      {/* Mobile FAB for Add Books */}
+      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} />
 
       {/* Add Books to Shelf Modal */}
       {shelf && shelfId && (
