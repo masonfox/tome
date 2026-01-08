@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
-import { ShelfAppearancePicker } from "@/components/ShelfAppearancePicker";
+import { ShelfAppearancePicker } from "@/components/ShelfManagement/ShelfAppearancePicker";
 import type { UpdateShelfRequest, ShelfWithBookCount } from "@/lib/api";
 
 interface EditShelfModalProps {

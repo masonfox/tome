@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { LucideIcon, Search, X } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { getShelfIcon, SHELF_ICONS, type ShelfIconName } from "@/components/ShelfIconPicker";
+import { getShelfIcon, SHELF_ICONS, type ShelfIconName } from "@/components/ShelfManagement/ShelfIconPicker";
 
 interface ShelfAppearancePickerProps {
   color: string;

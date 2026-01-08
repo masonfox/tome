@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
-import { ShelfAppearancePicker } from "@/components/ShelfAppearancePicker";
+import { ShelfAppearancePicker } from "@/components/ShelfManagement/ShelfAppearancePicker";
 import type { CreateShelfRequest } from "@/lib/api";
 
 interface CreateShelfModalProps {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Edit2, Trash2, MoreVertical, FolderOpen } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { ShelfWithBookCountAndCovers } from "@/lib/api";
-import { getShelfIcon } from "@/components/ShelfIconPicker";
+import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import FannedBookCovers from "@/components/Utilities/FannedBookCovers";
 
 interface ShelfItemProps {

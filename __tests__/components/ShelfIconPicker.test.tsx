@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ShelfIconPicker, getShelfIcon, SHELF_ICONS } from '@/components/ShelfIconPicker';
+import { ShelfIconPicker, getShelfIcon, SHELF_ICONS } from '@/components/ShelfManagement/ShelfIconPicker';
 
 describe('getShelfIcon', () => {
   test('should return icon component for valid icon name', () => {

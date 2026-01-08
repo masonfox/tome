@@ -5,13 +5,13 @@ import { useParams } from "next/navigation";
 import { FolderOpen, Trash2, Search, X, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { useShelfBooks } from "@/hooks/useShelfBooks";
-import { BookTable } from "@/components/BookTable";
-import { BookListItem } from "@/components/BookListItem";
-import { BookListItemSkeleton } from "@/components/BookListItemSkeleton";
+import { BookTable } from "@/components/Books/BookTable";
+import { BookListItem } from "@/components/Books/BookListItem";
+import { BookListItemSkeleton } from "@/components/Books/BookListItemSkeleton";
 import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
 import BaseModal from "@/components/Modals/BaseModal";
-import { getShelfIcon } from "@/components/ShelfIconPicker";
+import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 

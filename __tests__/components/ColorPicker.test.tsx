@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ColorPicker } from '@/components/ColorPicker';
+import { ColorPicker } from '@/components/Utilities/ColorPicker';
 
 describe('ColorPicker', () => {
   const mockOnChange = vi.fn();
