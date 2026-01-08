@@ -72,7 +72,7 @@ export const BookListItem = memo(function BookListItem({
       <div className="flex gap-4 items-start">
         {/* Checkbox for select mode */}
         {isSelectMode && (
-          <div className="flex-shrink-0 pt-1">
+          <div className="flex-shrink-0 h-24 flex items-center">
             <input
               type="checkbox"
               checked={isSelected}
@@ -90,7 +90,7 @@ export const BookListItem = memo(function BookListItem({
           className="flex-shrink-0"
           onClick={(e) => isSelectMode && e.preventDefault()}
         >
-          <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
+          <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-lg">
             {!imageError ? (
               <Image
                 src={`/api/books/${book.calibreId}/cover`}
@@ -115,14 +115,22 @@ export const BookListItem = memo(function BookListItem({
                 <Link
                   href={`/series/${encodeURIComponent(book.series)}`}
                   className="text-xs text-[var(--subheading-text)] hover:text-[var(--accent)] font-serif font-medium transition-colors block mb-1"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isSelectMode) e.preventDefault();
+                  }}
                 >
                   {seriesInfo}
                 </Link>
               )}
 
               {/* Title */}
-              <Link href={`/books/${book.id}`}>
+              <Link 
+                href={`/books/${book.id}`}
+                onClick={(e) => {
+                  if (isSelectMode) e.preventDefault();
+                }}
+              >
                 <h3 className="font-semibold text-[var(--heading-text)] line-clamp-2 hover:text-[var(--accent)] transition-colors leading-snug">
                   {book.title}
                 </h3>
@@ -136,7 +144,10 @@ export const BookListItem = memo(function BookListItem({
                       <Link
                         href={`/library?search=${encodeURIComponent(author)}`}
                         className="hover:text-[var(--accent)] transition-colors"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isSelectMode) e.preventDefault();
+                        }}
                       >
                         {author}
                       </Link>

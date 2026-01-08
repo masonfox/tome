@@ -421,7 +421,7 @@ export default function ShelfDetailPage() {
               isSelectMode={isSelectMode}
               selectedBookIds={selectedBookIds}
               onToggleSelection={toggleBookSelection}
-              renderActions={(book) => (
+              renderActions={!isSelectMode ? (book) => (
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -433,7 +433,7 @@ export default function ShelfDetailPage() {
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              )}
+              ) : undefined}
             />
           ) : (
             <div className="space-y-4">
@@ -445,17 +445,19 @@ export default function ShelfDetailPage() {
                   isSelected={selectedBookIds.has(book.id)}
                   onToggleSelection={() => toggleBookSelection(book.id)}
                   actions={
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setRemovingBook({ id: book.id, title: book.title });
-                      }}
-                      className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
-                      title="Remove from shelf"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    !isSelectMode ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setRemovingBook({ id: book.id, title: book.title });
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
+                        title="Remove from shelf"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : undefined
                   }
                 />
               ))}
@@ -543,7 +545,7 @@ export default function ShelfDetailPage() {
       </BaseModal>
 
       {/* Mobile FAB for Add Books */}
-      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} isHidden={showAddBooksModal} />
+      <AddBooksToShelfFAB onClick={() => setShowAddBooksModal(true)} isHidden={showAddBooksModal || isSelectMode} />
 
       {/* Add Books to Shelf Modal */}
       {shelf && shelfId && (
