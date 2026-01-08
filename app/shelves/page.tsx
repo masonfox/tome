@@ -56,7 +56,7 @@ export default function ShelvesPage() {
         actions={
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
             New Shelf
