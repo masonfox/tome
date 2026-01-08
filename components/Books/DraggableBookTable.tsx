@@ -55,6 +55,10 @@ interface DraggableBookTableProps {
   loading?: boolean;
   className?: string;
   isDragEnabled?: boolean;
+  isSelectMode?: boolean;
+  selectedBookIds?: Set<number>;
+  onToggleSelection?: (bookId: number) => void;
+  onToggleSelectAll?: () => void;
 }
 
 interface SortableRowProps {
@@ -64,9 +68,12 @@ interface SortableRowProps {
   onImageError: (calibreId: number) => void;
   onRemoveBook?: (bookId: number) => void;
   isDragEnabled: boolean;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
-function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isDragEnabled }: SortableRowProps) {
+function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isDragEnabled, isSelectMode = false, isSelected = false, onToggleSelection }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -92,13 +99,32 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       ref={setNodeRef}
       style={style}
       className={cn(
-        "hover:bg-[var(--hover-bg)] transition-colors",
+        "transition-colors",
+        isSelectMode && "cursor-pointer",
+        isSelectMode && isSelected && "bg-[var(--accent)]/10",
+        !isSelectMode && "hover:bg-[var(--hover-bg)]",
         index % 2 === 0 ? "bg-[var(--card-bg)]" : "bg-[var(--background)]",
         isDragging && "relative z-50"
       )}
+      onClick={isSelectMode ? onToggleSelection : undefined}
     >
-      {/* Drag Handle */}
-      {isDragEnabled && (
+      {/* Checkbox Column - Show in select mode */}
+      {isSelectMode && (
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelection?.()}
+              onClick={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded border-2 border-[var(--border-color)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+            />
+          </div>
+        </td>
+      )}
+
+      {/* Drag Handle - Hide in select mode */}
+      {isDragEnabled && !isSelectMode && (
         <td className="px-2 py-3">
           <button
             {...attributes}
@@ -236,12 +262,16 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
             href={`/books/${book.id}`}
             className="p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
             title="View details"
+            onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink className="w-4 h-4" />
           </Link>
-          {onRemoveBook && (
+          {onRemoveBook && !isSelectMode && (
             <button
-              onClick={() => onRemoveBook(book.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveBook(book.id);
+              }}
               className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
               title="Remove from shelf"
             >
@@ -264,15 +294,25 @@ export function DraggableBookTable({
   loading = false,
   className,
   isDragEnabled = false,
+  isSelectMode = false,
+  selectedBookIds = new Set(),
+  onToggleSelection,
+  onToggleSelectAll,
 }: DraggableBookTableProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [activeId, setActiveId] = useState<number | null>(null);
   const [localBooks, setLocalBooks] = useState(books);
 
+  // Disable drag when in select mode
+  const effectiveIsDragEnabled = isDragEnabled && !isSelectMode;
+
   // Update local state when books prop changes
   if (books !== localBooks) {
     setLocalBooks(books);
   }
+
+  // Check if all visible books are selected
+  const allSelected = books.length > 0 && books.every((book) => selectedBookIds.has(book.id));
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -361,7 +401,7 @@ export function DraggableBookTable({
   };
 
   if (loading) {
-    return <BookTableSkeleton isDragEnabled={isDragEnabled} />;
+    return <BookTableSkeleton isDragEnabled={effectiveIsDragEnabled} isSelectMode={isSelectMode} />;
   }
 
   if (books.length === 0) {
@@ -389,7 +429,21 @@ export function DraggableBookTable({
       <table className="w-full bg-[var(--card-bg)]">
         <thead className="bg-[var(--background)] border-b border-[var(--border-color)] sticky top-0 z-10">
           <tr>
-            {isDragEnabled && (
+            {/* Checkbox Column Header - Show in select mode */}
+            {isSelectMode && (
+              <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--heading-text)] w-[60px]">
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={onToggleSelectAll}
+                    className="w-5 h-5 rounded border-2 border-[var(--border-color)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+                    aria-label="Select all books"
+                  />
+                </div>
+              </th>
+            )}
+            {effectiveIsDragEnabled && (
               <th className="px-2 py-3 text-left text-sm font-semibold text-[var(--heading-text)] w-[60px]">
                 {/* Drag handle column */}
               </th>
@@ -435,7 +489,10 @@ export function DraggableBookTable({
               imageErrors={imageErrors}
               onImageError={handleImageError}
               onRemoveBook={onRemoveBook}
-              isDragEnabled={isDragEnabled}
+              isDragEnabled={effectiveIsDragEnabled}
+              isSelectMode={isSelectMode}
+              isSelected={selectedBookIds.has(book.id)}
+              onToggleSelection={() => onToggleSelection?.(book.id)}
             />
           ))}
         </tbody>
@@ -443,7 +500,7 @@ export function DraggableBookTable({
     </div>
   );
 
-  if (!isDragEnabled) {
+  if (!effectiveIsDragEnabled) {
     return content;
   }
 
@@ -485,12 +542,17 @@ export function DraggableBookTable({
   );
 }
 
-function BookTableSkeleton({ isDragEnabled = false }: { isDragEnabled?: boolean }) {
+function BookTableSkeleton({ isDragEnabled = false, isSelectMode = false }: { isDragEnabled?: boolean; isSelectMode?: boolean }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-[var(--border-color)]">
       <table className="w-full bg-[var(--card-bg)]">
         <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
           <tr>
+            {isSelectMode && (
+              <th className="px-4 py-3 w-[60px]">
+                <div className="h-4 bg-[var(--hover-bg)] rounded w-8 mx-auto" />
+              </th>
+            )}
             {isDragEnabled && (
               <th className="px-2 py-3 w-[60px]">
                 <div className="h-4 bg-[var(--hover-bg)] rounded w-8" />
@@ -537,6 +599,11 @@ function BookTableSkeleton({ isDragEnabled = false }: { isDragEnabled?: boolean 
                 index % 2 === 0 ? "bg-[var(--card-bg)]" : "bg-[var(--background)]"
               )}
             >
+              {isSelectMode && (
+                <td className="px-4 py-3">
+                  <div className="h-5 bg-[var(--hover-bg)] rounded w-5 mx-auto" />
+                </td>
+              )}
               {isDragEnabled && (
                 <td className="px-2 py-3">
                   <div className="h-8 bg-[var(--hover-bg)] rounded w-8" />

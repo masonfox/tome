@@ -10,11 +10,13 @@ import { BookListItem } from "@/components/Books/BookListItem";
 import { BookListItemSkeleton } from "@/components/Books/BookListItemSkeleton";
 import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
+import { BulkActionBar } from "@/components/ShelfManagement/BulkActionBar";
 import BaseModal from "@/components/Modals/BaseModal";
 import { AddBooksToShelfModal } from "@/components/ShelfManagement/AddBooksToShelfModal";
 import { AddBooksToShelfFAB } from "@/components/ShelfManagement/AddBooksToShelfFAB";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { cn } from "@/utils/cn";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
 type SortOption = ShelfOrderBy;
@@ -32,6 +34,7 @@ export default function ShelfDetailPage() {
     fetchShelfBooks,
     addBooksToShelf,
     removeBookFromShelf,
+    removeBooksFromShelf,
     reorderBooks,
   } = useShelfBooks(shelfId);
 
@@ -42,6 +45,12 @@ export default function ShelfDetailPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [showAddBooksModal, setShowAddBooksModal] = useState(false);
+  
+  // Multi-select state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<number>>(new Set());
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   // Detect mobile/tablet vs desktop
   useEffect(() => {
@@ -102,6 +111,55 @@ export default function ShelfDetailPage() {
     
     return titleMatch || authorMatch || seriesMatch;
   });
+
+  // Multi-select handlers
+  const toggleSelectMode = () => {
+    setIsSelectMode(!isSelectMode);
+    setSelectedBookIds(new Set()); // Clear selection when toggling
+  };
+
+  const toggleBookSelection = (bookId: number) => {
+    setSelectedBookIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(bookId)) {
+        newSet.delete(bookId);
+      } else {
+        newSet.add(bookId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedBookIds.size === filteredBooks.length) {
+      // Deselect all
+      setSelectedBookIds(new Set());
+    } else {
+      // Select all visible books
+      setSelectedBookIds(new Set(filteredBooks.map((book) => book.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedBookIds.size === 0) return;
+    setShowBulkDeleteModal(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedBookIds.size === 0) return;
+
+    setBulkDeleteLoading(true);
+    try {
+      await removeBooksFromShelf(Array.from(selectedBookIds));
+      setShowBulkDeleteModal(false);
+      setIsSelectMode(false);
+      setSelectedBookIds(new Set());
+    } catch (error) {
+      // Error handled by hook
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
 
   if (!hasInitialized || (loading && !shelf)) {
     return (
@@ -212,31 +270,46 @@ export default function ShelfDetailPage() {
         {/* Filter and Sort Controls */}
         {books.length > 0 && (
           <div className="mb-6">
-            {/* Filter Input */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-              <input
-                type="text"
-                placeholder="Filter by title, author, or series..."
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                className={`w-full pl-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
-                  filterText ? "pr-10" : "pr-4"
-                }`}
-              />
-              {filterText && (
-                <button
-                  type="button"
-                  onClick={() => setFilterText("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
+            {/* Filter Input with Select Button */}
+            <div className="flex gap-3 mb-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
+                <input
+                  type="text"
+                  placeholder="Filter by title, author, or series..."
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  className={`w-full pl-10 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+                    filterText ? "pr-10" : "pr-4"
+                  }`}
+                />
+                {filterText && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterText("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Select/Cancel Button */}
+              <button
+                onClick={toggleSelectMode}
+                className={cn(
+                  "px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap",
+                  isSelectMode
+                    ? "bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:bg-[var(--hover-bg)]"
+                    : "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
+                )}
+              >
+                {isSelectMode ? "Cancel" : "Select"}
+              </button>
             </div>
 
-            {/* Sort Controls - Only show on mobile for list view */}
-            {isMobile && (
+            {/* Sort Controls - Only show on mobile when NOT in select mode */}
+            {isMobile && !isSelectMode && (
               <div className="flex gap-2 mt-2">
                 {/* Sort By Dropdown */}
                 <div className="flex-1">
@@ -344,7 +417,10 @@ export default function ShelfDetailPage() {
             <DraggableBookList
               books={filteredBooks}
               onReorder={reorderBooks}
-              isDragEnabled={true}
+              isDragEnabled={!isSelectMode}
+              isSelectMode={isSelectMode}
+              selectedBookIds={selectedBookIds}
+              onToggleSelection={toggleBookSelection}
               renderActions={(book) => (
                 <button
                   onClick={(e) => {
@@ -365,6 +441,9 @@ export default function ShelfDetailPage() {
                 <BookListItem
                   key={book.id}
                   book={book}
+                  isSelectMode={isSelectMode}
+                  isSelected={selectedBookIds.has(book.id)}
+                  onToggleSelection={() => toggleBookSelection(book.id)}
                   actions={
                     <button
                       onClick={(e) => {
@@ -400,7 +479,11 @@ export default function ShelfDetailPage() {
                 }
               }}
               onReorder={reorderBooks}
-              isDragEnabled={true}
+              isDragEnabled={!isSelectMode}
+              isSelectMode={isSelectMode}
+              selectedBookIds={selectedBookIds}
+              onToggleSelection={toggleBookSelection}
+              onToggleSelectAll={toggleSelectAll}
             />
           ) : (
             <BookTable
@@ -418,6 +501,10 @@ export default function ShelfDetailPage() {
                 }
               }}
               showOrderColumn={true}
+              isSelectMode={isSelectMode}
+              selectedBookIds={selectedBookIds}
+              onToggleSelection={toggleBookSelection}
+              onToggleSelectAll={toggleSelectAll}
             />
           )
         )}
@@ -471,6 +558,48 @@ export default function ShelfDetailPage() {
           shelfName={shelf.name}
         />
       )}
+
+      {/* Bulk Action Bar - Show when in select mode */}
+      {isSelectMode && (
+        <BulkActionBar
+          selectedCount={selectedBookIds.size}
+          onCancel={toggleSelectMode}
+          onDelete={handleBulkDelete}
+          loading={bulkDeleteLoading}
+        />
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      <BaseModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => !bulkDeleteLoading && setShowBulkDeleteModal(false)}
+        title="Remove Books from Shelf"
+        subtitle={`Remove ${selectedBookIds.size} ${selectedBookIds.size === 1 ? "book" : "books"} from this shelf?`}
+        size="md"
+        loading={bulkDeleteLoading}
+        actions={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setShowBulkDeleteModal(false)}
+              disabled={bulkDeleteLoading}
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleteLoading}
+              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {bulkDeleteLoading ? "Removing..." : "Remove"}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-[var(--foreground)]">
+          The selected books will be removed from this shelf but will remain in your library.
+        </p>
+      </BaseModal>
     </div>
   );
 }

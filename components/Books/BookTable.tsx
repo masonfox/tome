@@ -35,6 +35,10 @@ interface BookTableProps {
   loading?: boolean;
   className?: string;
   showOrderColumn?: boolean;
+  isSelectMode?: boolean;
+  selectedBookIds?: Set<number>;
+  onToggleSelection?: (bookId: number) => void;
+  onToggleSelectAll?: () => void;
 }
 
 export function BookTable({
@@ -46,6 +50,10 @@ export function BookTable({
   loading = false,
   className,
   showOrderColumn = false,
+  isSelectMode = false,
+  selectedBookIds = new Set(),
+  onToggleSelection,
+  onToggleSelectAll,
 }: BookTableProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
@@ -129,6 +137,17 @@ export function BookTable({
       <table className="w-full bg-[var(--card-bg)]">
         <thead className="bg-[var(--background)] border-b border-[var(--border-color)] sticky top-0 z-10">
           <tr>
+            {isSelectMode && (
+              <th className="px-4 py-3 text-left w-[60px]">
+                <input
+                  type="checkbox"
+                  checked={selectedBookIds.size === books.length && books.length > 0}
+                  onChange={onToggleSelectAll}
+                  className="w-5 h-5 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+                  aria-label="Select all books"
+                />
+              </th>
+            )}
             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--heading-text)] w-[60px]">
               Cover
             </th>
@@ -169,15 +188,33 @@ export function BookTable({
             const seriesInfo = book.series && book.seriesIndex
               ? `${book.series} #${book.seriesIndex}`
               : book.series || "-";
+            const isSelected = selectedBookIds.has(book.id);
 
             return (
               <tr
                 key={book.id}
                 className={cn(
-                  "hover:bg-[var(--hover-bg)] transition-colors",
-                  index % 2 === 0 ? "bg-[var(--card-bg)]" : "bg-[var(--background)]"
+                  "transition-colors",
+                  isSelected && "bg-[var(--accent)]/10",
+                  !isSelected && (index % 2 === 0 ? "bg-[var(--card-bg)]" : "bg-[var(--background)]"),
+                  !isSelectMode && "hover:bg-[var(--hover-bg)]",
+                  isSelectMode && "cursor-pointer hover:bg-[var(--hover-bg)]"
                 )}
+                onClick={isSelectMode && onToggleSelection ? () => onToggleSelection(book.id) : undefined}
               >
+                {/* Checkbox */}
+                {isSelectMode && (
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleSelection?.(book.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+                    />
+                  </td>
+                )}
+
                 {/* Cover */}
                 <td className="px-4 py-3">
                   <Link href={`/books/${book.id}`} className="block">
@@ -305,10 +342,11 @@ export function BookTable({
                       href={`/books/${book.id}`}
                       className="p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
                       title="View details"
+                      onClick={(e) => isSelectMode && e.stopPropagation()}
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Link>
-                    {onRemoveBook && (
+                    {onRemoveBook && !isSelectMode && (
                       <button
                         onClick={() => onRemoveBook(book.id)}
                         className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
