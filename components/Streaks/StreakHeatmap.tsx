@@ -184,12 +184,12 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
   }
 
   return (
-    <div className="relative flex flex-col md:items-center">
-      <div className="overflow-x-auto">
+    <div className="relative flex flex-col lg:items-center gap-1">
+      {/* Scroll container - allows horizontal scroll on mobile/tablet */}
+      <div className="overflow-x-auto overflow-y-hidden pb-2 px-1">
         <svg
           width={totalWidth}
           height={totalHeight}
-          className="min-w-full"
           role="img"
           aria-label="Daily reading activity heatmap"
         >
@@ -263,7 +263,7 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-2 mt-3 text-xs text-[var(--foreground)]/70">
+      <div className="flex items-center justify-center lg:justify-center gap-2 text-xs text-[var(--foreground)]/70">
         <span>Less</span>
         {[0, 1, 2, 3, 4].map((level) => {
           const color = getColorForLevel(level, theme);

@@ -115,10 +115,10 @@ export function StreakChartSection({
       {/* Activity Calendar Heatmap - Always shows 365 days */}
       {!isHeatmapLoading && heatmapData && heatmapData.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-lg font-semibold text-[var(--heading-text)] mb-3">
+          <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-3">
             Activity Calendar
           </h3>
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4 md:p-6">
             <StreakHeatmap data={heatmapData} threshold={threshold} />
           </div>
         </div>
