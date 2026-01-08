@@ -6,6 +6,7 @@ import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
 import { getLogger } from "@/lib/logger";
+import { extractLastName } from "@/lib/utils/author-sorting";
 
 export interface BookFilter {
   status?: string;
@@ -431,6 +432,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const total = countResult?.count ?? 0;
 
     // Determine sort order
+    // Author sorting will be done in JavaScript after fetching results
+    const sortByAuthorInJS = sortBy === "author" || sortBy === "author_desc";
+    const authorSortDirection = sortBy === "author_desc" ? "desc" : "asc";
     let orderBy: SQL;
     switch (sortBy) {
       case "title":
@@ -440,10 +444,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.title);
         break;
       case "author":
-        orderBy = asc(books.authors);
+        // Will be sorted in JavaScript by last name
+        orderBy = desc(books.addedToLibrary);
         break;
       case "author_desc":
-        orderBy = desc(books.authors);
+        // Will be sorted in JavaScript by last name
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created":
         // Sort by when the book was added to Calibre library (not tome database)
@@ -484,15 +490,45 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.addedToLibrary);
     }
 
-    // Get paginated results
-    const results = this.getDatabase()
+    // Get results - if sorting by author, fetch all results to sort in JavaScript
+    // Otherwise, apply SQL pagination
+    const query = this.getDatabase()
       .select()
       .from(books)
       .where(whereClause)
-      .orderBy(orderBy)
-      .limit(limit)
-      .offset(skip)
-      .all();
+      .orderBy(orderBy);
+
+    if (!sortByAuthorInJS) {
+      query.limit(limit).offset(skip);
+    }
+
+    let results = query.all();
+
+    // If sorting by author, do it in JavaScript by last name
+    if (sortByAuthorInJS) {
+      results.sort((a, b) => {
+        // Extract first author from each book
+        const authorA = Array.isArray(a.authors) && a.authors.length > 0
+          ? a.authors[0]
+          : '';
+        const authorB = Array.isArray(b.authors) && b.authors.length > 0
+          ? b.authors[0]
+          : '';
+
+        // Get last names
+        const lastNameA = extractLastName(authorA);
+        const lastNameB = extractLastName(authorB);
+
+        // Compare last names
+        const comparison = lastNameA.localeCompare(lastNameB);
+
+        // Apply sort direction
+        return authorSortDirection === "asc" ? comparison : -comparison;
+      });
+
+      // Apply pagination in JavaScript after sorting
+      results = results.slice(skip, skip + limit);
+    }
 
     return { books: results, total };
   }
@@ -766,6 +802,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const total = countResult?.count ?? 0;
 
     // Determine sort order
+    // Author sorting will be done in JavaScript after fetching results
+    const sortByAuthorInJS = sortBy === "author" || sortBy === "author_desc";
+    const authorSortDirection = sortBy === "author_desc" ? "desc" : "asc";
     let orderBy: SQL;
     switch (sortBy) {
       case "title":
@@ -775,10 +814,12 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.title);
         break;
       case "author":
-        orderBy = asc(books.authors);
+        // Will be sorted in JavaScript by last name
+        orderBy = desc(books.addedToLibrary);
         break;
       case "author_desc":
-        orderBy = desc(books.authors);
+        // Will be sorted in JavaScript by last name
+        orderBy = desc(books.addedToLibrary);
         break;
       case "created":
         // Sort by when the book was added to Calibre library (not tome database)
@@ -840,7 +881,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         )`;
 
     // Main query with LEFT JOINs
-    const results = this.getDatabase()
+    // If sorting by author, fetch all results to sort in JavaScript
+    // Otherwise, apply SQL pagination
+    const query = this.getDatabase()
       .select({
         // Book fields
         bookId: books.id,
@@ -939,10 +982,39 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         sql`${readingSessions.id} = ${sessionIdSubquery}`
       )
       .where(whereClause)
-      .orderBy(orderBy)
-      .limit(limit)
-      .offset(skip)
-      .all();
+      .orderBy(orderBy);
+
+    if (!sortByAuthorInJS) {
+      query.limit(limit).offset(skip);
+    }
+
+    let results = query.all();
+
+    // If sorting by author, do it in JavaScript by last name
+    if (sortByAuthorInJS) {
+      results.sort((a, b) => {
+        // Extract first author from each book
+        const authorA = Array.isArray(a.authors) && a.authors.length > 0
+          ? a.authors[0]
+          : '';
+        const authorB = Array.isArray(b.authors) && b.authors.length > 0
+          ? b.authors[0]
+          : '';
+
+        // Get last names
+        const lastNameA = extractLastName(authorA);
+        const lastNameB = extractLastName(authorB);
+
+        // Compare last names
+        const comparison = lastNameA.localeCompare(lastNameB);
+
+        // Apply sort direction
+        return authorSortDirection === "asc" ? comparison : -comparison;
+      });
+
+      // Apply pagination in JavaScript after sorting
+      results = results.slice(skip, skip + limit);
+    }
 
     // Map results to optimized structure (only fields needed by BookCard)
     // This reduces payload size by ~40-50% for large libraries
