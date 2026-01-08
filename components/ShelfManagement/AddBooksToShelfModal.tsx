@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Search, X, Check, Library as LibraryIcon } from "lucide-react";
+import { Search, X, Check, Library as LibraryIcon, BookOpen } from "lucide-react";
+import Image from "next/image";
 import BaseModal from "@/components/Modals/BaseModal";
 import { Spinner } from "@/components/Utilities/Spinner";
 import { cn } from "@/utils/cn";
@@ -281,17 +282,17 @@ export function AddBooksToShelfModal({
                       onClick={() => toggleBookSelection(book.id)}
                       disabled={submitting}
                       className={cn(
-                        "w-full p-3 rounded-lg border text-left transition-all disabled:opacity-50",
+                        "w-full p-3 rounded-lg border text-left transition-all disabled:opacity-50 shadow-sm",
                         isSelected
-                          ? "border-[var(--accent)] bg-[var(--accent)]/10"
-                          : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:bg-[var(--background)]"
+                          ? "border-[var(--accent)] bg-[var(--accent)]/10 shadow-md"
+                          : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:shadow-md"
                       )}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-center gap-3">
                         {/* Checkbox */}
                         <div
                           className={cn(
-                            "w-5 h-5 rounded border-2 flex items-center justify-center mt-0.5 flex-shrink-0",
+                            "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
                             isSelected
                               ? "border-[var(--accent)] bg-[var(--accent)]"
                               : "border-[var(--foreground)]/30"
@@ -300,18 +301,21 @@ export function AddBooksToShelfModal({
                           {isSelected && <Check className="w-3 h-3 text-white" />}
                         </div>
 
+                        {/* Book Cover */}
+                        <BookCoverThumbnail calibreId={book.calibreId} title={book.title} />
+
                         {/* Book Info */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-[var(--heading-text)] mb-0.5">
+                          <h4 className="font-medium text-[var(--heading-text)] mb-0.5 truncate">
                             {book.title}
                           </h4>
-                          <p className="text-sm text-[var(--foreground)]/70">
+                          <p className="text-md font-serif text-[var(--subheading-text)] truncate">
                             {book.authors.join(", ")}
                           </p>
                           
                           {/* Series */}
                           {book.series && (
-                            <p className="text-xs text-[var(--foreground)]/60 mt-1">
+                            <p className="text-xs text-[var(--foreground)]/60 mt-0.5 truncate">
                               {book.series}
                             </p>
                           )}
@@ -326,5 +330,27 @@ export function AddBooksToShelfModal({
         </div>
       </div>
     </BaseModal>
+  );
+}
+
+// Book cover thumbnail component
+function BookCoverThumbnail({ calibreId, title }: { calibreId: number; title: string }) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="w-12 h-16 bg-[var(--light-accent)]/30 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
+      {!imageError ? (
+        <Image
+          src={`/api/books/${calibreId}/cover`}
+          alt={title}
+          width={48}
+          height={64}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <BookOpen className="w-6 h-6 text-[var(--accent)]/40" />
+      )}
+    </div>
   );
 }
