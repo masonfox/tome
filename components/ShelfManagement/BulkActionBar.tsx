@@ -25,7 +25,7 @@ export function BulkActionBar({
   return (
     <div
       className={cn(
-        "fixed bottom-24 md:bottom-0 left-0 right-0 z-50",
+        "fixed bottom-24 md:bottom-0 left-0 right-0 z-30",
         "bg-[var(--card-bg)]/95 backdrop-blur-sm",
         "border-t border-[var(--border-color)]",
         "shadow-lg",
