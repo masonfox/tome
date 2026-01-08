@@ -184,7 +184,7 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex flex-col items-center">
       <div className="overflow-x-auto">
         <svg
           width={totalWidth}
