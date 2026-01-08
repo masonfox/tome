@@ -110,7 +110,10 @@ export default function ShelvesPage() {
       </div>
 
       {/* Mobile FAB for New Shelf */}
-      <NewShelfFAB onClick={() => setIsCreateModalOpen(true)} />
+      <NewShelfFAB 
+        onClick={() => setIsCreateModalOpen(true)} 
+        isHidden={isCreateModalOpen || !!editingShelf || !!deletingShelf}
+      />
 
       {/* Create Shelf Modal */}
       <CreateShelfModal
