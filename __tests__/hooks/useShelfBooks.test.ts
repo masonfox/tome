@@ -602,4 +602,393 @@ describe('useShelfBooks', () => {
       expect(addResult).toEqual({ count: 5 });
     });
   });
+
+  describe('removeBooksFromShelf (bulk operation)', () => {
+    const mockFetchResponse = (data: any, ok = true, status = 200) => ({
+      ok,
+      status,
+      json: async () => data,
+    });
+
+    beforeEach(() => {
+      // Mock global fetch for bulk delete
+      global.fetch = vi.fn() as any;
+    });
+
+    test('should call DELETE API with correct parameters', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 3, removedBookIds: [10, 20, 30] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      // Pre-populate shelf state
+      await result.current.fetchShelfBooks();
+
+      await result.current.removeBooksFromShelf([10, 20, 30]);
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/shelves/1/books/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookIds: [10, 20, 30] }),
+      });
+    });
+
+    test('should optimistically update shelf state', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      // Pre-populate shelf state
+      await result.current.fetchShelfBooks();
+
+      // Wait for shelf to be populated
+      await waitFor(() => {
+        expect(result.current.books.length).toBe(2);
+      });
+
+      // Should have both books initially
+      expect(result.current.books.find(b => b.id === 10)).toBeDefined();
+
+      await result.current.removeBooksFromShelf([10]);
+
+      await waitFor(() => {
+        // Book 10 should be removed
+        expect(result.current.books.length).toBe(1);
+        expect(result.current.books.find(b => b.id === 10)).toBeUndefined();
+        expect(result.current.books[0].id).toBe(20);
+      });
+    });
+
+    test('should reindex sortOrder of remaining books', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      // Pre-populate shelf state
+      await result.current.fetchShelfBooks();
+
+      await result.current.removeBooksFromShelf([10]);
+
+      await waitFor(() => {
+        // Remaining book should have sortOrder reindexed to 0
+        expect(result.current.books[0].sortOrder).toBe(0);
+      });
+    });
+
+    test('should show success toast with correct count (single book)', async () => {
+      const { toast } = await import('@/utils/toast');
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+      await result.current.removeBooksFromShelf([10]);
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('1 book removed from shelf');
+      });
+    });
+
+    test('should show success toast with correct count (multiple books)', async () => {
+      const { toast } = await import('@/utils/toast');
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 3, removedBookIds: [10, 20, 30] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+      await result.current.removeBooksFromShelf([10, 20, 30]);
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('3 books removed from shelf');
+      });
+    });
+
+    test('should handle API errors and refresh shelf', async () => {
+      const { toast } = await import('@/utils/toast');
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse(
+          { success: false, error: { message: 'Shelf not found' } },
+          false,
+          404
+        )
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+
+      // Clear initial fetch
+      (shelfApi.get as any).mockClear();
+
+      try {
+        await result.current.removeBooksFromShelf([10, 20]);
+        expect.fail('Should have thrown an error');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        expect((err as Error).message).toBe('Shelf not found');
+      }
+
+      await waitFor(() => {
+        // Should refresh shelf to restore correct state
+        expect(shelfApi.get).toHaveBeenCalled();
+        expect(toast.error).toHaveBeenCalledWith('Failed to remove books: Shelf not found');
+      });
+    });
+
+    test('should handle network errors', async () => {
+      const { toast } = await import('@/utils/toast');
+      const networkError = new Error('Network request failed');
+      (global.fetch as any).mockRejectedValue(networkError);
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+      
+      // Wait for shelf to be populated
+      await waitFor(() => {
+        expect(result.current.books.length).toBe(2);
+      });
+
+      // Clear any previous error states
+      (shelfApi.get as any).mockClear();
+      
+      let errorThrown = false;
+      try {
+        await result.current.removeBooksFromShelf([10]);
+        expect.fail('Should have thrown an error');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        errorThrown = true;
+      }
+
+      // Ensure error was thrown
+      expect(errorThrown).toBe(true);
+
+      await waitFor(() => {
+        expect(shelfApi.get).toHaveBeenCalled(); // Should refresh on error
+        expect(toast.error).toHaveBeenCalled();
+      });
+    });
+
+    test('should set loading state during operation', async () => {
+      (global.fetch as any).mockImplementation(
+        () => new Promise(resolve => 
+          setTimeout(() => resolve(
+            mockFetchResponse({ success: true, data: { removed: true, count: 2, removedBookIds: [10, 20] } })
+          ), 100)
+        )
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+
+      const promise = result.current.removeBooksFromShelf([10, 20]);
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(true);
+      });
+
+      await promise;
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+    });
+
+    test('should clear loading state after error', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse(
+          { success: false, error: { message: 'Server error' } },
+          false,
+          500
+        )
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+
+      try {
+        await result.current.removeBooksFromShelf([10]);
+      } catch (err) {
+        // Expected
+      }
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+    });
+
+    test('should not call API when shelfId is null', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 2 } })
+      );
+
+      const { result } = renderHook(() => useShelfBooks(null));
+
+      await result.current.removeBooksFromShelf([10, 20]);
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test('should not call API when bookIds array is empty', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 0 } })
+      );
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.removeBooksFromShelf([]);
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test('should handle removing all books from shelf', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 2, removedBookIds: [10, 20] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+      
+      // Remove all books
+      await result.current.removeBooksFromShelf([10, 20]);
+
+      await waitFor(() => {
+        expect(result.current.books).toHaveLength(0);
+      });
+    });
+
+    test('should handle removing books not in current shelf', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 0, removedBookIds: [] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+
+      // Try to remove books that aren't on the shelf
+      await result.current.removeBooksFromShelf([999, 888]);
+
+      await waitFor(() => {
+        // Should still have original books
+        expect(result.current.books.length).toBe(2);
+      });
+    });
+
+    test('should handle mixed valid and invalid book IDs', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+
+      // Remove one valid book and one invalid
+      await result.current.removeBooksFromShelf([10, 999]);
+
+      await waitFor(() => {
+        // Only book 10 should be removed
+        expect(result.current.books.length).toBe(1);
+        expect(result.current.books[0].id).toBe(20);
+      });
+    });
+
+    test('should preserve order of remaining books', async () => {
+      const extendedMockShelf = {
+        ...mockShelf,
+        books: [
+          { id: 10, calibreId: 100, title: 'Book 1', authors: ['Author 1'], sortOrder: 0, tags: [] },
+          { id: 20, calibreId: 200, title: 'Book 2', authors: ['Author 2'], sortOrder: 1, tags: [] },
+          { id: 30, calibreId: 300, title: 'Book 3', authors: ['Author 3'], sortOrder: 2, tags: [] },
+          { id: 40, calibreId: 400, title: 'Book 4', authors: ['Author 4'], sortOrder: 3, tags: [] },
+        ],
+      };
+
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ success: true, data: { removed: true, count: 2, removedBookIds: [20, 40] } })
+      );
+      (shelfApi.get as any).mockResolvedValue(extendedMockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+      
+      // Remove books at index 1 and 3
+      await result.current.removeBooksFromShelf([20, 40]);
+
+      await waitFor(() => {
+        expect(result.current.books.length).toBe(2);
+        // Books 10 and 30 remain, with reindexed sortOrder
+        expect(result.current.books[0].id).toBe(10);
+        expect(result.current.books[0].sortOrder).toBe(0);
+        expect(result.current.books[1].id).toBe(30);
+        expect(result.current.books[1].sortOrder).toBe(1);
+      });
+    });
+
+    test('should return result data with count and removedBookIds', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({ 
+          success: true, 
+          data: { removed: true, count: 2, removedBookIds: [10, 20] } 
+        })
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+      const removeResult = await result.current.removeBooksFromShelf([10, 20]);
+
+      expect(removeResult).toEqual({
+        removed: true,
+        count: 2,
+        removedBookIds: [10, 20],
+      });
+    });
+
+    test('should handle API response without error details', async () => {
+      (global.fetch as any).mockResolvedValue(
+        mockFetchResponse({}, false, 500)
+      );
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+
+      const { result } = renderHook(() => useShelfBooks(1));
+
+      await result.current.fetchShelfBooks();
+
+      try {
+        await result.current.removeBooksFromShelf([10]);
+        expect.fail('Should have thrown an error');
+      } catch (err) {
+        expect((err as Error).message).toBe('Failed to remove books');
+      }
+    });
+  });
 });
