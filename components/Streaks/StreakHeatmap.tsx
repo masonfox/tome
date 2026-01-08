@@ -197,12 +197,13 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
         {monthLabels.map(({ month, weekIndex }) => (
           <text
             key={`month-${weekIndex}`}
-            x={labelOffsetX + weekIndex * (cellSize + gap)}
-            y={10}
-            fontSize="9"
+            x={labelOffsetX + weekIndex * (cellSize + gap) + cellSize / 2}
+            y={11}
+            fontSize="10"
             fill="currentColor"
             className="text-[var(--foreground)]"
             opacity="0.6"
+            textAnchor="middle"
           >
             {month}
           </text>
@@ -213,8 +214,8 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
           <text
             key={`day-${i}`}
             x={26}
-            y={labelOffsetY + dayIndices[i] * (cellSize + gap) + cellSize / 2 + 3}
-            fontSize="8"
+            y={labelOffsetY + dayIndices[i] * (cellSize + gap) + cellSize / 2 + 3.5}
+            fontSize="10"
             fill="currentColor"
             className="text-[var(--foreground)]"
             opacity="0.5"
@@ -263,7 +264,7 @@ export function StreakHeatmap({ data, threshold }: StreakHeatmapProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center lg:justify-center gap-2 text-xs text-[var(--foreground)]/70">
+      <div className="flex items-center justify-center lg:justify-center gap-2 text-xs text-[var(--subheading-text)]">
         <span>Less</span>
         {[0, 1, 2, 3, 4].map((level) => {
           const color = getColorForLevel(level, theme);
