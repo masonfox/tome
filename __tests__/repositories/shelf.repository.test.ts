@@ -702,4 +702,232 @@ describe("ShelfRepository - Status Display", () => {
       expect(remaining[1].id).toBe(books[1].id);
     });
   });
+
+  describe("removeBooksFromShelf - Bulk Delete", () => {
+    it("should remove multiple books in a single transaction", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Bulk Delete Test Shelf",
+        userId: null,
+      });
+
+      // Create 5 books
+      const books = [];
+      for (let i = 0; i < 5; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Verify all books are on shelf
+      let shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(5);
+
+      // Remove 3 books (indices 1, 2, 4)
+      const bookIdsToRemove = [books[1].id, books[2].id, books[4].id];
+      await shelfRepository.removeBooksFromShelf(shelf.id, bookIdsToRemove);
+
+      // Verify only 2 books remain
+      shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(2);
+      expect(shelfBooks[0].id).toBe(books[0].id);
+      expect(shelfBooks[1].id).toBe(books[3].id);
+    });
+
+    it("should automatically reindex remaining books after bulk removal", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Bulk Reindex Test Shelf",
+        userId: null,
+      });
+
+      // Create 6 books
+      const books = [];
+      for (let i = 0; i < 6; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Verify initial sortOrder (0, 1, 2, 3, 4, 5)
+      let shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks[0].sortOrder).toBe(0);
+      expect(shelfBooks[1].sortOrder).toBe(1);
+      expect(shelfBooks[2].sortOrder).toBe(2);
+      expect(shelfBooks[3].sortOrder).toBe(3);
+      expect(shelfBooks[4].sortOrder).toBe(4);
+      expect(shelfBooks[5].sortOrder).toBe(5);
+
+      // Remove books at indices 1, 3, 4 (leaving 0, 2, 5)
+      const bookIdsToRemove = [books[1].id, books[3].id, books[4].id];
+      await shelfRepository.removeBooksFromShelf(shelf.id, bookIdsToRemove);
+
+      // Verify remaining books are reindexed to 0, 1, 2
+      shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(3);
+      expect(shelfBooks[0].sortOrder).toBe(0);
+      expect(shelfBooks[0].id).toBe(books[0].id);
+      expect(shelfBooks[1].sortOrder).toBe(1);
+      expect(shelfBooks[1].id).toBe(books[2].id);
+      expect(shelfBooks[2].sortOrder).toBe(2);
+      expect(shelfBooks[2].id).toBe(books[5].id);
+    });
+
+    it("should handle empty bookIds array", async () => {
+      // Create a shelf with books
+      const shelf = await shelfRepository.create({
+        name: "Empty Array Test Shelf",
+        userId: null,
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+      });
+      await shelfRepository.addBookToShelf(shelf.id, book!.id);
+
+      // Try to remove with empty array
+      await shelfRepository.removeBooksFromShelf(shelf.id, []);
+
+      // Book should still be on shelf
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(1);
+      expect(shelfBooks[0].id).toBe(book!.id);
+    });
+
+    it("should handle removing all books from shelf", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Remove All Test Shelf",
+        userId: null,
+      });
+
+      // Create 3 books
+      const books = [];
+      for (let i = 0; i < 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Remove all books
+      const allBookIds = books.map(b => b.id);
+      await shelfRepository.removeBooksFromShelf(shelf.id, allBookIds);
+
+      // Shelf should be empty
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(0);
+    });
+
+    it("should handle partial book list (some books not on shelf)", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Partial Remove Test Shelf",
+        userId: null,
+      });
+
+      // Create books - only add some to shelf
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        title: "Book On Shelf",
+        authors: ["Author 1"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        title: "Book Not On Shelf",
+        authors: ["Author 2"],
+        tags: [],
+        path: "/path/2",
+      });
+
+      const book3 = await bookRepository.create({
+        calibreId: 3,
+        title: "Another Book On Shelf",
+        authors: ["Author 3"],
+        tags: [],
+        path: "/path/3",
+      });
+
+      // Only add book1 and book3 to shelf
+      await shelfRepository.addBookToShelf(shelf.id, book1!.id);
+      await shelfRepository.addBookToShelf(shelf.id, book3!.id);
+
+      // Try to remove all three (including book2 which isn't on shelf)
+      await shelfRepository.removeBooksFromShelf(shelf.id, [book1!.id, book2!.id, book3!.id]);
+
+      // Shelf should be empty (book1 and book3 removed, book2 ignored)
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(0);
+    });
+
+    it("should preserve order of remaining books after bulk removal", async () => {
+      // Create a shelf
+      const shelf = await shelfRepository.create({
+        name: "Order Preservation Test Shelf",
+        userId: null,
+      });
+
+      // Create 10 books
+      const books = [];
+      for (let i = 0; i < 10; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Remove every other book (indices 1, 3, 5, 7, 9)
+      const bookIdsToRemove = [
+        books[1].id,
+        books[3].id,
+        books[5].id,
+        books[7].id,
+        books[9].id,
+      ];
+      await shelfRepository.removeBooksFromShelf(shelf.id, bookIdsToRemove);
+
+      // Verify remaining books (indices 0, 2, 4, 6, 8) maintain relative order
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(5);
+      expect(shelfBooks[0].id).toBe(books[0].id);
+      expect(shelfBooks[1].id).toBe(books[2].id);
+      expect(shelfBooks[2].id).toBe(books[4].id);
+      expect(shelfBooks[3].id).toBe(books[6].id);
+      expect(shelfBooks[4].id).toBe(books[8].id);
+
+      // Verify sortOrder is continuous (0, 1, 2, 3, 4)
+      for (let i = 0; i < 5; i++) {
+        expect(shelfBooks[i].sortOrder).toBe(i);
+      }
+    });
+  });
 });

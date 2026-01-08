@@ -24,6 +24,9 @@ interface BookListItemProps {
   showProgress?: boolean;
   onClick?: () => void;
   className?: string;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
 export const BookListItem = memo(function BookListItem({
@@ -32,6 +35,9 @@ export const BookListItem = memo(function BookListItem({
   showProgress = false,
   onClick,
   className,
+  isSelectMode = false,
+  isSelected = false,
+  onToggleSelection,
 }: BookListItemProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -43,19 +49,48 @@ export const BookListItem = memo(function BookListItem({
     ? `${book.series} #${book.seriesIndex}`
     : book.series;
 
+  const handleClick = () => {
+    if (isSelectMode && onToggleSelection) {
+      onToggleSelection();
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
       className={cn(
-        "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:shadow-md transition-shadow",
-        onClick && "cursor-pointer",
+        "bg-[var(--card-bg)] border rounded-lg p-4 transition-all",
+        isSelectMode && "cursor-pointer hover:shadow-md",
+        isSelected && "border-[var(--accent)] bg-[var(--accent)]/10",
+        !isSelected && "border-[var(--border-color)]",
+        !isSelectMode && onClick && "cursor-pointer hover:shadow-md",
         className
       )}
-      onClick={onClick}
+      onClick={isSelectMode ? handleClick : onClick}
     >
       <div className="flex gap-4 items-start">
+        {/* Checkbox for select mode */}
+        {isSelectMode && (
+          <div className="flex-shrink-0 h-24 flex items-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onToggleSelection}
+              onClick={(e) => e.stopPropagation()}
+              className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+              style={{ accentColor: 'var(--accent)' }}
+            />
+          </div>
+        )}
+
         {/* Book Cover Thumbnail */}
-        <Link href={`/books/${book.id}`} className="flex-shrink-0">
-          <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
+        <Link 
+          href={`/books/${book.id}`} 
+          className="flex-shrink-0"
+          onClick={(e) => isSelectMode && e.preventDefault()}
+        >
+          <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-lg">
             {!imageError ? (
               <Image
                 src={`/api/books/${book.calibreId}/cover`}
@@ -80,14 +115,22 @@ export const BookListItem = memo(function BookListItem({
                 <Link
                   href={`/series/${encodeURIComponent(book.series)}`}
                   className="text-xs text-[var(--subheading-text)] hover:text-[var(--accent)] font-serif font-medium transition-colors block mb-1"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isSelectMode) e.preventDefault();
+                  }}
                 >
                   {seriesInfo}
                 </Link>
               )}
 
               {/* Title */}
-              <Link href={`/books/${book.id}`}>
+              <Link 
+                href={`/books/${book.id}`}
+                onClick={(e) => {
+                  if (isSelectMode) e.preventDefault();
+                }}
+              >
                 <h3 className="font-semibold text-[var(--heading-text)] line-clamp-2 hover:text-[var(--accent)] transition-colors leading-snug">
                   {book.title}
                 </h3>
@@ -101,7 +144,10 @@ export const BookListItem = memo(function BookListItem({
                       <Link
                         href={`/library?search=${encodeURIComponent(author)}`}
                         className="hover:text-[var(--accent)] transition-colors"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isSelectMode) e.preventDefault();
+                        }}
                       >
                         {author}
                       </Link>
@@ -141,7 +187,7 @@ export const BookListItem = memo(function BookListItem({
 
             {/* Actions */}
             {actions && (
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 h-24 flex items-center">
                 {actions}
               </div>
             )}
@@ -175,6 +221,8 @@ export const BookListItem = memo(function BookListItem({
     prevProps.book.status === nextProps.book.status &&
     prevProps.book.currentProgress === nextProps.book.currentProgress &&
     prevProps.book.rating === nextProps.book.rating &&
-    prevProps.showProgress === nextProps.showProgress
+    prevProps.showProgress === nextProps.showProgress &&
+    prevProps.isSelectMode === nextProps.isSelectMode &&
+    prevProps.isSelected === nextProps.isSelected
   );
 });

@@ -314,6 +314,42 @@ export class ShelfService {
   }
 
   /**
+   * Remove multiple books from a shelf in bulk
+   * Returns count of books successfully removed
+   */
+  async removeBooksFromShelf(
+    shelfId: number,
+    bookIds: number[]
+  ): Promise<{ count: number; removedBookIds: number[] }> {
+    // Validate shelf exists
+    const shelf = await shelfRepository.findById(shelfId);
+    if (!shelf) {
+      throw new Error(`Shelf with ID ${shelfId} not found`);
+    }
+
+    if (bookIds.length === 0) {
+      logger.warn({ shelfId }, "No book IDs provided for bulk removal");
+      return { count: 0, removedBookIds: [] };
+    }
+
+    logger.info({ shelfId, bookCount: bookIds.length }, "Removing multiple books from shelf");
+
+    const count = await shelfRepository.removeBooksFromShelf(shelfId, bookIds);
+
+    logger.info(
+      { shelfId, requested: bookIds.length, removed: count },
+      "Bulk remove books from shelf completed"
+    );
+
+    // Return the book IDs that were successfully removed
+    // Since we're using a single delete operation, if any succeeded, all requested were removed
+    return {
+      count,
+      removedBookIds: bookIds.slice(0, count),
+    };
+  }
+
+  /**
    * Update the sort order of a specific book on a shelf
    */
   async updateBookOrder(shelfId: number, bookId: number, sortOrder: number): Promise<void> {

@@ -406,6 +406,37 @@ export class ShelfRepository extends BaseRepository<
   }
 
   /**
+   * Remove multiple books from a shelf in a single transaction
+   * Automatically reindexes remaining books after bulk deletion
+   * Returns the count of books actually removed
+   */
+  async removeBooksFromShelf(shelfId: number, bookIds: number[]): Promise<number> {
+    if (bookIds.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    let removedCount = 0;
+
+    // Use a transaction for atomic bulk deletion
+    db.transaction(() => {
+      const result = db
+        .delete(bookShelves)
+        .where(and(eq(bookShelves.shelfId, shelfId), inArray(bookShelves.bookId, bookIds)))
+        .run();
+
+      removedCount = (result as any).changes;
+    });
+
+    // Reindex remaining books to ensure continuous sortOrder (0, 1, 2, ...)
+    if (removedCount > 0) {
+      await this.reindexShelfBooks(shelfId);
+    }
+
+    return removedCount;
+  }
+
+  /**
    * Update the sort order of a specific book on a shelf
    */
   async updateBookOrder(

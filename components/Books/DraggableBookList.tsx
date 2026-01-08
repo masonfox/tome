@@ -43,14 +43,20 @@ interface DraggableBookListProps {
   onReorder: (bookIds: number[]) => void;
   renderActions?: (book: Book) => ReactNode;
   isDragEnabled?: boolean;
+  isSelectMode?: boolean;
+  selectedBookIds?: Set<number>;
+  onToggleSelection?: (bookId: number) => void;
 }
 
 interface SortableBookItemProps {
   book: Book;
   actions?: ReactNode;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
-function SortableBookItem({ book, actions }: SortableBookItemProps) {
+function SortableBookItem({ book, actions, isSelectMode = false, isSelected = false, onToggleSelection }: SortableBookItemProps) {
   const {
     attributes,
     listeners,
@@ -69,20 +75,22 @@ function SortableBookItem({ book, actions }: SortableBookItemProps) {
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <div className="flex items-stretch gap-2">
-        {/* Drag Handle */}
-        <button
-          {...attributes}
-          {...listeners}
-          className={cn(
-            "flex-shrink-0 px-2 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none",
-            "text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors",
-            "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg",
-            "hover:bg-[var(--hover-bg)]"
-          )}
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="w-5 h-5" />
-        </button>
+        {/* Drag Handle - Hide in select mode */}
+        {!isSelectMode && (
+          <button
+            {...attributes}
+            {...listeners}
+            className={cn(
+              "flex-shrink-0 px-2 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none",
+              "text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors",
+              "bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg",
+              "hover:bg-[var(--hover-bg)]"
+            )}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Book Item */}
         <div className="flex-1">
@@ -90,6 +98,9 @@ function SortableBookItem({ book, actions }: SortableBookItemProps) {
             book={book}
             actions={actions}
             className={cn(isSortableDragging && "opacity-50")}
+            isSelectMode={isSelectMode}
+            isSelected={isSelected}
+            onToggleSelection={onToggleSelection}
           />
         </div>
       </div>
@@ -102,9 +113,15 @@ export function DraggableBookList({
   onReorder,
   renderActions,
   isDragEnabled = true,
+  isSelectMode = false,
+  selectedBookIds = new Set(),
+  onToggleSelection,
 }: DraggableBookListProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [localBooks, setLocalBooks] = useState(books);
+
+  // Disable drag when in select mode
+  const effectiveIsDragEnabled = isDragEnabled && !isSelectMode;
 
   // Update local state when books prop changes
   if (books !== localBooks) {
@@ -155,7 +172,7 @@ export function DraggableBookList({
 
   const activeBook = localBooks.find((book) => book.id === activeId);
 
-  if (!isDragEnabled) {
+  if (!effectiveIsDragEnabled) {
     // Render without drag-and-drop
     return (
       <div className="space-y-4">
@@ -164,6 +181,9 @@ export function DraggableBookList({
             key={book.id}
             book={book}
             actions={renderActions?.(book)}
+            isSelectMode={isSelectMode}
+            isSelected={selectedBookIds.has(book.id)}
+            onToggleSelection={() => onToggleSelection?.(book.id)}
           />
         ))}
       </div>
@@ -185,6 +205,9 @@ export function DraggableBookList({
               key={book.id}
               book={book}
               actions={renderActions?.(book)}
+              isSelectMode={isSelectMode}
+              isSelected={selectedBookIds.has(book.id)}
+              onToggleSelection={() => onToggleSelection?.(book.id)}
             />
           ))}
         </div>
@@ -193,9 +216,11 @@ export function DraggableBookList({
       <DragOverlay>
         {activeBook ? (
           <div className="flex items-stretch gap-2 opacity-90">
-            <div className="flex-shrink-0 px-2 flex items-center justify-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg">
-              <GripVertical className="w-5 h-5 text-[var(--foreground)]/40" />
-            </div>
+            {!isSelectMode && (
+              <div className="flex-shrink-0 px-2 flex items-center justify-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg">
+                <GripVertical className="w-5 h-5 text-[var(--foreground)]/40" />
+              </div>
+            )}
             <div className="flex-1">
               <BookListItem book={activeBook} actions={renderActions?.(activeBook)} />
             </div>

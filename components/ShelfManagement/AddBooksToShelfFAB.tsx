@@ -18,6 +18,7 @@ export function AddBooksToShelfFAB({ onClick, isHidden = false }: AddBooksToShel
       ariaLabel="Add books to shelf"
       visibility="lg:hidden"
       zIndex="z-[60]"
+      bottom="bottom-32"
     />
   );
 }

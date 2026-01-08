@@ -169,6 +169,64 @@ export function useShelfBooks(shelfId: number | null) {
   );
 
   /**
+   * Remove multiple books from the shelf (bulk operation)
+   */
+  const removeBooksFromShelf = useCallback(
+    async (bookIds: number[]) => {
+      if (!shelfId || bookIds.length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/shelves/${shelfId}/books/bulk`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookIds }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || "Failed to remove books");
+        }
+
+        const result = await response.json();
+
+        // Optimistic update: remove books from local state and reindex
+        setShelf((prev) => {
+          if (!prev) return null;
+          
+          const remainingBooks = prev.books
+            .filter((book) => !bookIds.includes(book.id))
+            .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
+          
+          return {
+            ...prev,
+            books: remainingBooks,
+          };
+        });
+
+        const bookWord = result.data.count === 1 ? "book" : "books";
+        toast.success(`${result.data.count} ${bookWord} removed from shelf`);
+        return result.data;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Unknown error");
+        setError(error);
+        
+        toast.error(`Failed to remove books: ${error.message}`);
+        
+        // Refresh to ensure consistency
+        await fetchShelfBooks();
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shelfId, fetchShelfBooks]
+  );
+
+  /**
    * Update the order of a book on the shelf
    */
   const updateBookOrder = useCallback(
@@ -261,6 +319,7 @@ export function useShelfBooks(shelfId: number | null) {
     addBookToShelf,
     addBooksToShelf,
     removeBookFromShelf,
+    removeBooksFromShelf,
     updateBookOrder,
     reorderBooks,
   };
