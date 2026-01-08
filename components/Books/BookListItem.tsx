@@ -187,7 +187,7 @@ export const BookListItem = memo(function BookListItem({
 
             {/* Actions */}
             {actions && (
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 h-24 flex items-center">
                 {actions}
               </div>
             )}
