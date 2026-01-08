@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Edit2, Trash2, MoreVertical, FolderOpen } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { ShelfWithBookCountAndCovers } from "@/lib/api";
-import { getShelfIcon } from "@/components/ShelfIconPicker";
+import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import FannedBookCovers from "@/components/Utilities/FannedBookCovers";
 
 interface ShelfItemProps {
@@ -102,7 +102,7 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
       </Link>
 
       {/* Actions menu */}
-      <div className="absolute top-3 right-3 z-50" ref={menuRef}>
+      <div className="absolute top-3 right-3 z-30" ref={menuRef}>
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -116,7 +116,7 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg py-1 z-50">
+          <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg py-1 z-30">
             <button
               onClick={(e) => {
                 e.preventDefault();

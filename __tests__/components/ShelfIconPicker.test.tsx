@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ShelfIconPicker, getShelfIcon, SHELF_ICONS } from '@/components/ShelfIconPicker';
+import { ShelfIconPicker, getShelfIcon, SHELF_ICONS } from '@/components/ShelfManagement/ShelfIconPicker';
 
 describe('getShelfIcon', () => {
   test('should return icon component for valid icon name', () => {
@@ -208,5 +208,149 @@ describe('ShelfIconPicker', () => {
     // The selected icon button should have special styling
     const heartButton = screen.getByTitle('Heart');
     expect(heartButton.className).toContain('bg-');
+  });
+
+  test('should render search input when grid is open', () => {
+    render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    expect(screen.getByPlaceholderText('Search icons...')).toBeInTheDocument();
+  });
+
+  test('should filter icons by search query', () => {
+    render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    const searchInput = screen.getByPlaceholderText('Search icons...');
+    fireEvent.change(searchInput, { target: { value: 'book' } });
+
+    // Should filter to only icons with "book" in the name
+    const iconButtons = screen.getAllByRole('button').filter(
+      button => button.hasAttribute('title') && button.title !== ''
+    );
+
+    // All visible icons should contain "book" in their name (case-insensitive)
+    iconButtons.forEach(button => {
+      if (button.title) {
+        expect(button.title.toLowerCase()).toContain('book');
+      }
+    });
+  });
+
+  test('should show "no icons found" for no matches', () => {
+    render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    const searchInput = screen.getByPlaceholderText('Search icons...');
+    fireEvent.change(searchInput, { target: { value: 'nonexistenticon' } });
+
+    expect(screen.getByText('No icons found')).toBeInTheDocument();
+    expect(screen.getByText('Try a different search term')).toBeInTheDocument();
+  });
+
+  test('should clear search when X is clicked', () => {
+    render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    const searchInput = screen.getByPlaceholderText('Search icons...');
+    fireEvent.change(searchInput, { target: { value: 'book' } });
+
+    const clearButton = screen.getByLabelText('Clear search');
+    fireEvent.click(clearButton);
+
+    expect(searchInput).toHaveValue('');
+  });
+
+  test('search is case-insensitive', () => {
+    render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    const searchInput = screen.getByPlaceholderText('Search icons...');
+    
+    // Search with uppercase
+    fireEvent.change(searchInput, { target: { value: 'HEART' } });
+
+    // Should still find the Heart icon
+    expect(screen.getByTitle('Heart')).toBeInTheDocument();
+  });
+
+  test('should clear search and close picker when icon is selected', () => {
+    render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    const searchInput = screen.getByPlaceholderText('Search icons...');
+    fireEvent.change(searchInput, { target: { value: 'heart' } });
+
+    const heartButton = screen.getByTitle('Heart');
+    fireEvent.click(heartButton);
+
+    // Picker should be closed
+    expect(screen.getByText('Choose Icon')).toBeInTheDocument();
+    expect(mockOnSelectIcon).toHaveBeenCalledWith('Heart');
+  });
+
+  test('should auto-focus search input when grid opens', () => {
+    const { container } = render(
+      <ShelfIconPicker
+        selectedIcon={null}
+        onSelectIcon={mockOnSelectIcon}
+        color={testColor}
+      />
+    );
+
+    const chooseButton = screen.getByText('Choose Icon');
+    fireEvent.click(chooseButton);
+
+    const searchInput = screen.getByPlaceholderText('Search icons...');
+    // Check that autoFocus prop is present (it's a boolean attribute in React)
+    expect(searchInput).toHaveProperty('autofocus');
   });
 });

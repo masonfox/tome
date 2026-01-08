@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
-import { ShelfIconPicker } from "@/components/ShelfIconPicker";
+import { ShelfAppearancePicker } from "@/components/ShelfManagement/ShelfAppearancePicker";
 import type { CreateShelfRequest } from "@/lib/api";
 
 interface CreateShelfModalProps {
@@ -62,7 +62,7 @@ export function CreateShelfModal({
       onClose={handleClose}
       title="Create New Shelf"
       subtitle="Organize your books into custom shelves"
-      size="md"
+      size="xl"
       loading={loading}
       allowBackdropClose={false}
       actions={
@@ -101,7 +101,7 @@ export function CreateShelfModal({
             placeholder="e.g., Favorites, To Read, Currently Reading..."
             maxLength={100}
             disabled={loading}
-            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <p className="text-xs text-[var(--foreground)]/60 mt-1">
             {name.length}/100 characters
@@ -123,45 +123,18 @@ export function CreateShelfModal({
             placeholder="Add a description for this shelf..."
             rows={3}
             disabled={loading}
-            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
-        {/* Color Picker */}
-        <div>
-          <label
-            htmlFor="shelf-color"
-            className="block text-sm font-medium text-[var(--heading-text)] mb-2"
-          >
-            Color
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              id="shelf-color"
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              disabled={loading}
-              className="h-10 w-20 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded-full border-2 border-[var(--border-color)]"
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-sm text-[var(--foreground)]/70 font-mono">
-                {color}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Icon Picker */}
-        <ShelfIconPicker
-          selectedIcon={icon}
-          onSelectIcon={setIcon}
+        {/* Appearance Picker (Color + Icon) */}
+        <ShelfAppearancePicker
           color={color}
+          icon={icon}
+          onColorChange={setColor}
+          onIconChange={setIcon}
           disabled={loading}
+          shelfName={name}
         />
       </div>
     </BaseModal>
