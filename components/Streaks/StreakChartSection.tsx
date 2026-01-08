@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StreakChart } from "@/components/Streaks/StreakChart";
+import { StreakHeatmap } from "@/components/Streaks/StreakHeatmap";
 import { TimePeriodFilter, TimePeriod } from "@/components/Utilities/TimePeriodFilter";
 import { TrendingUp } from "lucide-react";
 import { getLogger } from "@/lib/logger";
@@ -44,12 +45,20 @@ export function StreakChartSection({
 }: StreakChartSectionProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
 
-  // Use TanStack Query for fetching analytics
+  // Use TanStack Query for fetching analytics (for area chart)
   const { data, isLoading, error } = useQuery<DailyReading[]>({
     queryKey: ['streak-analytics', selectedPeriod],
     queryFn: () => fetchAnalytics(selectedPeriod),
     initialData: selectedPeriod === 7 ? initialData : undefined,
     staleTime: 60000, // 1 minute - streak data changes slowly
+    refetchOnWindowFocus: true,
+  });
+
+  // Always fetch 365 days for heatmap (like GitHub's contribution graph)
+  const { data: heatmapData, isLoading: isHeatmapLoading } = useQuery<DailyReading[]>({
+    queryKey: ['streak-analytics-heatmap', 365],
+    queryFn: () => fetchAnalytics(365 as TimePeriod),
+    staleTime: 60000,
     refetchOnWindowFocus: true,
   });
 
@@ -89,7 +98,7 @@ export function StreakChartSection({
         </div>
       )}
 
-      {/* Chart Container */}
+      {/* Area Chart Container */}
       {!isLoading && data && data.length > 0 ? (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-3 md:p-6 relative">
           <StreakChart data={data} threshold={threshold} />
@@ -102,6 +111,18 @@ export function StreakChartSection({
           </p>
         </div>
       ) : null}
+
+      {/* Activity Calendar Heatmap - Always shows 365 days */}
+      {!isHeatmapLoading && heatmapData && heatmapData.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-[var(--heading-text)] mb-3">
+            Activity Calendar
+          </h3>
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4">
+            <StreakHeatmap data={heatmapData} threshold={threshold} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
