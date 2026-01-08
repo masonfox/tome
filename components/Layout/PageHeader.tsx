@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string | ReactNode;
-  subtitle: string;
+  subtitle?: string | ReactNode;
   icon?: LucideIcon;
   customIcon?: ReactNode;
   backLink?: {
@@ -33,21 +33,23 @@ export function PageHeader({
           {backLink.label}
         </Link>
       )}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-5xl font-serif font-bold flex items-center gap-3">
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-4xl font-serif font-bold flex items-center gap-3 sm:gap-4">
             {customIcon ? (
               customIcon
             ) : Icon ? (
-              <Icon className="w-8 h-8 text-[var(--subheading-text)]" />
+              <Icon className="w-8 h-8 text-[var(--subheading-text)] flex-shrink-0" />
             ) : null}
-            <span className="text-[var(--heading-text)] flex items-center">{title}</span>
+            <span className="text-[var(--heading-text)] min-w-0">{title}</span>
           </h1>
-          <p className="text-[var(--subheading-text)] mt-2 font-medium">
-            {subtitle}
-          </p>
+          {subtitle && (
+            <p className="text-base text-[var(--subheading-text)] mt-2 font-medium">
+              {subtitle}
+            </p>
+          )}
         </div>
-        {actions && <div className="mt-3 sm:mt-2">{actions}</div>}
+        {actions && <div className="flex-shrink-0 self-center">{actions}</div>}
       </div>
     </div>
   );
