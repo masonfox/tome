@@ -17,9 +17,10 @@ FROM base AS prod-deps
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
-# Install migration dependencies only (drizzle-orm, pino, and tsx for TypeScript execution)
+# Install migration dependencies (standalone build doesn't include all dependencies)
+# These packages are needed by lib/db/migrate.ts which runs before the app starts
 FROM base AS migration-deps
-RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1 tsx@^4.7.0
+RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1 tsx@^4.7.0 better-sqlite3@^12.4.1
 
 # Build the application
 FROM base AS builder
@@ -44,6 +45,7 @@ RUN apk add --no-cache sqlite
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_PATH=/app/data/tome.db
+ENV NODE_OPTIONS="--enable-source-maps"
 
 # Create a non-root user (Alpine syntax)
 RUN addgroup -g 1001 -S nodejs

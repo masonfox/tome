@@ -79,7 +79,7 @@ export default function FannedBookCovers({
 
   /**
    * Calculate positioning for each cover based on total count
-   * Uses a smart algorithm to distribute covers evenly with appropriate overlap
+   * Centers the fanned covers within the container with equal spacing on both sides
    */
   const calculateCoverStyle = (index: number) => {
     const maxRotation = 8; // Maximum rotation in degrees
@@ -96,18 +96,28 @@ export default function FannedBookCovers({
     const normalizedPosition = (index / Math.max(coverCount - 1, 1)) - 0.5; // -0.5 to 0.5
     const rotation = normalizedPosition * maxRotation * 2;
 
-    // Calculate left position
-    const left = 30 + (index * spacing);
+    // Calculate total width of the fan
+    const totalFanWidth = (coverCount - 1) * spacing + dimensions.width;
+    
+    // Position each cover from the center point
+    // Start from center of container, then offset by half the fan width to the left,
+    // then add the individual cover's position
+    // Subtract 40px to shift the whole fan slightly left for better optical centering
+    const translateX = -(totalFanWidth / 2) + (index * spacing) + (dimensions.width / 2) - 40;
 
     // Z-index increases with index (later covers on top)
     const zIndex = 10 + index;
 
-    // Calculate hover translation - each cover spreads out proportionally
-    const hoverTranslateX = withHoverEffect && isHovered ? index * 4 : 0;
+    // Calculate hover translation - spread equally left and right from center
+    // Covers on the left move more left, covers on the right move more right
+    const hoverSpread = 8; // Total spread in pixels per cover from center
+    const hoverTranslateX = withHoverEffect && isHovered 
+      ? normalizedPosition * hoverSpread * coverCount
+      : 0;
 
     return {
       rotation,
-      left,
+      translateX,
       zIndex,
       hoverTranslateX,
     };
@@ -124,7 +134,7 @@ export default function FannedBookCovers({
       onMouseEnter={() => withHoverEffect && setIsHovered(true)}
       onMouseLeave={() => withHoverEffect && setIsHovered(false)}
     >
-      <div className="absolute inset-0 flex items-center justify-start pl-4">
+      <div className="absolute inset-0 flex items-center justify-center">
         {visibleCovers.map((item, index) => {
           const calibreId = typeof item === 'number' && !isLoading ? item : null;
           const style = calculateCoverStyle(index);
@@ -134,8 +144,9 @@ export default function FannedBookCovers({
               key={calibreId || `skeleton-${index}`}
               className={`absolute transition-all duration-300 ${isHovered ? 'scale-105' : ''}`}
               style={{
-                left: `${style.left}px`,
+                left: '50%',
                 zIndex: style.zIndex,
+                transform: `translateX(${style.translateX}px)`,
               }}
             >
               <div 

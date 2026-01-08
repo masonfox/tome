@@ -79,7 +79,7 @@ export const BookListItem = memo(function BookListItem({
               {seriesInfo && book.series && (
                 <Link
                   href={`/series/${encodeURIComponent(book.series)}`}
-                  className="text-xs text-[var(--foreground)]/60 hover:text-[var(--accent)] font-medium transition-colors block mb-1"
+                  className="text-xs text-[var(--subheading-text)] hover:text-[var(--accent)] font-serif font-medium transition-colors block mb-1"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {seriesInfo}

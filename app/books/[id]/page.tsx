@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
-import { getShelfIcon } from "@/components/ShelfIconPicker";
+import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import ReadingHistoryTab from "@/components/CurrentlyReading/ReadingHistoryTab";
 import FinishBookModal from "@/components/Modals/FinishBookModal";
 import CompleteBookModal from "@/components/Modals/CompleteBookModal";

@@ -21,7 +21,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { BookListItem } from "@/components/BookListItem";
+import { BookListItem } from "@/components/Books/BookListItem";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/utils/cn";
 

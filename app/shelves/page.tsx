@@ -9,6 +9,7 @@ import { CreateShelfModal } from "@/components/ShelfManagement/CreateShelfModal"
 import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import BaseModal from "@/components/Modals/BaseModal";
+import { NewShelfFAB } from "@/components/ShelfManagement/NewShelfFAB";
 
 export default function ShelvesPage() {
   const {
@@ -55,7 +56,7 @@ export default function ShelvesPage() {
         actions={
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
             New Shelf
@@ -107,6 +108,9 @@ export default function ShelvesPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile FAB for New Shelf */}
+      <NewShelfFAB onClick={() => setIsCreateModalOpen(true)} />
 
       {/* Create Shelf Modal */}
       <CreateShelfModal

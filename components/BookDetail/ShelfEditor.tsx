@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { X, FolderOpen, Plus, Check, Search } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
-import { getShelfIcon } from "@/components/ShelfIconPicker";
+import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 
 interface Shelf {

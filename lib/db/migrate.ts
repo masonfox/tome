@@ -105,7 +105,10 @@ export function runMigrationsOnDatabase(database: any) {
 }
 
 // Run migrations if this file is executed directly
-if (import.meta.main) {
+// ESM-compatible main detection (works with tsx, Node.js ESM, Bun)
+// tsx doesn't support import.meta.main, so we use the standard ESM approach
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   try {
     runMigrations();
     sqlite.close();
