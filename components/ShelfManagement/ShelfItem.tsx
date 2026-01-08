@@ -102,7 +102,7 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
       </Link>
 
       {/* Actions menu */}
-      <div className="absolute top-3 right-3 z-10" ref={menuRef}>
+      <div className="absolute top-3 right-3 z-20" ref={menuRef}>
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -116,7 +116,7 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg py-1 z-10">
+          <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg py-1 z-20">
             <button
               onClick={(e) => {
                 e.preventDefault();
