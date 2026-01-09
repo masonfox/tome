@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/schema/shelves";
 import { books, Book } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
+import { extractLastName } from "@/lib/utils/author-sorting";
 
 export interface ShelfWithBookCount extends Shelf {
   bookCount: number;
@@ -36,29 +37,6 @@ export interface BookWithStatus extends Book {
 
 export type ShelfOrderBy = "sortOrder" | "title" | "author" | "series" | "rating" | "pages" | "dateAdded";
 export type ShelfSortDirection = "asc" | "desc";
-
-/**
- * Extract the last name from an author's full name.
- * Handles common cases like "Brandon Sanderson" -> "Sanderson",
- * single names like "Plato" -> "Plato", and empty/null values.
- * 
- * @param authorName - Full author name (e.g., "Brandon Sanderson")
- * @returns Last name in lowercase for sorting
- */
-function extractLastName(authorName: string | null | undefined): string {
-  if (!authorName || typeof authorName !== 'string') {
-    return '';
-  }
-  
-  const trimmed = authorName.trim();
-  if (!trimmed) {
-    return '';
-  }
-  
-  // Split by whitespace and get the last word
-  const parts = trimmed.split(/\s+/);
-  return parts[parts.length - 1].toLowerCase();
-}
 
 export class ShelfRepository extends BaseRepository<
   Shelf,
