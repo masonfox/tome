@@ -2,21 +2,6 @@
 
 **Universal guidance for all AI coding assistants working on the Tome project.**
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
-
----
-
-## 📌 QUICK START
-
-### Beads Workflow
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
-```
 
 ### Essential Documentation (Read in Order)
 
@@ -241,6 +226,16 @@ const { db, sqlite, runtime } = createDatabase({ path, schema, wal: true });
 
 ---
 
+## Development Workflow - ALL AGENTS: Claude and Opencode
+**ALWAYS follow these planning steps**:
+
+1. When finalizing planned work, ALWAYS create a plan file in /docs/plans, including context/background, phased work and uniquely identifiable tasks.
+2. As you work, pull and and announce each task item that you're working on
+3. When you complete a task, announce it and update that task as done in the plan file
+4. Mark phases complete when all tasks are done
+
+---
+
 ## 🔄 Git Workflow
 
 ### Branching Policy
@@ -249,7 +244,7 @@ const { db, sqlite, runtime } = createDatabase({ path, schema, wal: true });
 
 1. **Starting Work:**
    - Create a new branch from develop: `git checkout -b feature/descriptive-name`
-   - Branch naming conventions: `feature/`, `fix/`, `docs/`, `refactor/`
+   - Branch naming conventions: `feature/`, `fix/`, `docs/`, `refactor/`, `hotfix`
    - Always branch off develop, never off main or other feature branches
 
 2. **During Development:**
@@ -287,8 +282,8 @@ Only create commits when user requests. Follow the Git Safety Protocol:
 When user asks for PR:
 
 1. Run `git status`, `git diff`, and `git log` in parallel
-2. Analyze ALL commits (not just latest)
-3. Draft PR summary covering all changes
+2. Analyze ALL commits (not just latest) on the branch
+3. Draft PR title and summary covering all changes
 4. Push with `-u` if needed
 5. Use `gh pr create --base develop` with title and body (HEREDOC format)
 6. Return PR URL to user
@@ -301,27 +296,19 @@ When user asks for PR:
 
 **MANDATORY WORKFLOW:**
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-   ```bash
-   bd new "Issue title" --description "Details"
-   ```
+1. **File issues for remaining work** - use the respective plan in /docs/plans.
 
 2. **Run quality gates** (if code changed) - Tests, linters, builds
    ```bash
    npm test                # All tests must pass
-   bun run build           # Must build successfully
+   npm run build           # Must build successfully
    ```
 
-3. **Update issue status** - Close finished work, update in-progress items
-   ```bash
-   bd close <id>           # Mark work complete
-   bd update <id> --status ready  # Update status if not done
-   ```
+3. **Update issue status** - Close finished work, update in-progress items in the appropriate /docs/plans file.
 
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
@@ -354,18 +341,10 @@ When user asks for PR:
 ## ⚡ Quick Commands
 
 ```bash
-# Beads (Issue Tracking)
-bd ready                           # Find available work
-bd show <id>                       # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>                      # Complete work
-bd sync                            # Sync with git
-
 # Development
-bun install                        # Install dependencies
-bun run dev                        # Start dev server (auto-sync enabled)
+npm install                        # Install dependencies
 npm test                           # Run all tests (must pass 2000+)
-bun run build                      # Build for production
+npm run build                      # Build for production
 
 # Database
 bunx drizzle-kit generate          # Generate migration from schema changes
@@ -402,8 +381,8 @@ cat docs/REPOSITORY_PATTERN_GUIDE.md   # Repository guide
 - **Runtime:** Node.js
 - **Package Manager:** npm
 - **Databases:**
-  - **Tome DB:** SQLite + Drizzle ORM (tracking data: books, sessions, progress, streaks)
-  - **Calibre DB:** SQLite (read-only metadata.db from Calibre library)
+  - **Tome DB:** SQLite + Drizzle ORM
+  - **Calibre DB:** SQLite
 - **Data Access:** Repository Pattern (lib/repositories/)
 - **SQLite Libraries:** better-sqlite3 (Node.js) via Database Factory Pattern
 - **Testing:** Vitest test runner (2000+ tests)
