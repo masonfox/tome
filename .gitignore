@@ -54,3 +54,6 @@ bun.lock
 # database backups
 /data/backups/
 *.backup-*
+
+# AI plans
+/docs/plans
