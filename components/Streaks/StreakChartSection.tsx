@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StreakChart } from "@/components/Streaks/StreakChart";
+import { StreakHeatmap } from "@/components/Streaks/StreakHeatmap";
 import { TimePeriodFilter, TimePeriod } from "@/components/Utilities/TimePeriodFilter";
 import { TrendingUp } from "lucide-react";
 import { getLogger } from "@/lib/logger";
@@ -44,12 +45,20 @@ export function StreakChartSection({
 }: StreakChartSectionProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
 
-  // Use TanStack Query for fetching analytics
+  // Use TanStack Query for fetching analytics (for area chart)
   const { data, isLoading, error } = useQuery<DailyReading[]>({
     queryKey: ['streak-analytics', selectedPeriod],
     queryFn: () => fetchAnalytics(selectedPeriod),
     initialData: selectedPeriod === 7 ? initialData : undefined,
     staleTime: 60000, // 1 minute - streak data changes slowly
+    refetchOnWindowFocus: true,
+  });
+
+  // Always fetch 365 days for heatmap (like GitHub's contribution graph)
+  const { data: heatmapData, isLoading: isHeatmapLoading } = useQuery<DailyReading[]>({
+    queryKey: ['streak-analytics-heatmap', 365],
+    queryFn: () => fetchAnalytics(365 as TimePeriod),
+    staleTime: 60000,
     refetchOnWindowFocus: true,
   });
 
@@ -89,7 +98,7 @@ export function StreakChartSection({
         </div>
       )}
 
-      {/* Chart Container */}
+      {/* Area Chart Container */}
       {!isLoading && data && data.length > 0 ? (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-3 md:p-6 relative">
           <StreakChart data={data} threshold={threshold} />
@@ -102,6 +111,39 @@ export function StreakChartSection({
           </p>
         </div>
       ) : null}
+
+      {/* Activity Calendar Heatmap - Always shows 365 days */}
+      <div className="mt-6">
+        <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-3">
+          Activity Calendar
+        </h3>
+        {isHeatmapLoading ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4 md:p-6">
+            <div className="animate-pulse space-y-3">
+              {/* Month labels skeleton */}
+              <div className="flex gap-2 mb-2">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="h-3 w-8 bg-[var(--border-color)] rounded" />
+                ))}
+              </div>
+              {/* Heatmap grid skeleton */}
+              <div className="h-32 bg-[var(--border-color)] rounded" />
+              {/* Legend skeleton */}
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="h-3 w-8 bg-[var(--border-color)] rounded" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-3 w-3 bg-[var(--border-color)] rounded-sm" />
+                ))}
+                <div className="h-3 w-8 bg-[var(--border-color)] rounded" />
+              </div>
+            </div>
+          </div>
+        ) : heatmapData && heatmapData.length > 0 ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-4 md:p-6">
+            <StreakHeatmap data={heatmapData} threshold={threshold} />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
