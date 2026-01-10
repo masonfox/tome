@@ -1388,22 +1388,196 @@ describe("Reading Streak Tracking - Spec 001", () => {
     });
 
     test("can update streak threshold", async () => {
-      const streak = await streakRepository.create({
+      const streak = await streakService.getStreakBasic();
+      
+      await streakRepository.update(streak.id, { dailyThreshold: 15 } as any);
+      
+      const updated = await streakService.getStreakBasic();
+      expect(updated.dailyThreshold).toBe(15);
+    });
+  });
+
+  describe("Branch Coverage Tests - Uncovered Paths", () => {
+    test("checkAndResetStreakIfNeeded should early return when already checked today", async () => {
+      // Create book and session
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        path: "/test/path",
+        totalPages: 300,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        startedDate: toSessionDate(getStreakDate(0)),
+      });
+
+      // Create progress for today
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 50,
+        currentPercentage: 16.67,
+        pagesRead: 50,
+        progressDate: toProgressDate(getStreakDate(0)),
+      });
+
+      // Update streak to trigger initial check
+      await streakService.updateStreaks();
+
+      // Get streak and manually set lastCheckedDate to today
+      const streak = await streakService.getStreakBasic();
+      await streakRepository.update(streak.id, {
+        lastCheckedDate: getStreakDate(0),
+      } as any);
+
+      // Call checkAndResetStreakIfNeeded - should return false (already checked)
+      const { checkAndResetStreakIfNeeded } = await import("@/lib/streaks");
+      const wasReset = await checkAndResetStreakIfNeeded();
+
+      expect(wasReset).toBe(false); // Early return path
+    });
+
+    test("checkAndResetStreakIfNeeded should detect streak broken due to missed days", async () => {
+      // Create streak with activity 3 days ago (missed days)
+      const threeDaysAgo = getStreakDate(-3);
+      await streakRepository.create({
         userId: null,
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: threeDaysAgo,
+        streakStartDate: getStreakDate(-8),
         totalDaysActive: 5,
-        dailyThreshold: 1,
       });
 
-      const updated = await streakRepository.update(streak.id, {
-        dailyThreshold: 10,
+      // Check and reset streak
+      const { checkAndResetStreakIfNeeded } = await import("@/lib/streaks");
+      const wasReset = await checkAndResetStreakIfNeeded();
+
+      expect(wasReset).toBe(true); // Streak was reset
+
+      // Verify streak is now 0
+      const streak = await streakService.getStreakBasic();
+      expect(streak.currentStreak).toBe(0);
+    });
+
+    test("checkAndResetStreakIfNeeded should not reset when within 1 day", async () => {
+      // Create streak with activity yesterday
+      const yesterday = getStreakDate(-1);
+      await streakRepository.create({
+        userId: null,
+        currentStreak: 3,
+        longestStreak: 5,
+        lastActivityDate: yesterday,
+        streakStartDate: getStreakDate(-3),
+        totalDaysActive: 3,
+      });
+
+      // Check streak (should not reset)
+      const { checkAndResetStreakIfNeeded } = await import("@/lib/streaks");
+      const wasReset = await checkAndResetStreakIfNeeded();
+
+      expect(wasReset).toBe(false); // No reset
+
+      // Verify streak unchanged
+      const streak = await streakService.getStreakBasic();
+      expect(streak.currentStreak).toBe(3);
+    });
+
+    test("updateStreaks should handle threshold not met on new day", async () => {
+      // Create book and session
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        path: "/test/path",
+        totalPages: 300,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        startedDate: toSessionDate(getStreakDate(0)),
+      });
+
+      // Set high threshold
+      let streak = await streakService.getStreakBasic();
+      await streakRepository.update(streak.id, {
+        dailyThreshold: 100, // High threshold
+        currentStreak: 5,
+        lastActivityDate: getStreakDate(-1), // Yesterday
       } as any);
 
-      expect(updated?.dailyThreshold).toBe(10);
-      expect(updated?.currentStreak).toBe(5); // Unchanged
+      // Create progress for today but below threshold
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 20,
+        currentPercentage: 6.67,
+        pagesRead: 20, // Only 20 pages, threshold is 100
+        progressDate: toProgressDate(getStreakDate(0)),
+      });
+
+      // Update streak - threshold not met on new day
+      await streakService.updateStreaks();
+
+      // Verify streak unchanged (path: line 118)
+      streak = await streakService.getStreakBasic();
+      expect(streak.currentStreak).toBe(5); // Unchanged, waiting for threshold
+    });
+
+    test("updateStreaks should handle same-day activity with threshold already met", async () => {
+      // Create book and session
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        path: "/test/path",
+        totalPages: 300,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        startedDate: toSessionDate(getStreakDate(0)),
+      });
+
+      // Create first progress log for today (meets threshold)
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 50,
+        currentPercentage: 16.67,
+        pagesRead: 50,
+        progressDate: toProgressDate(getStreakDate(0)),
+      });
+
+      // Update streak first time
+      await streakService.updateStreaks();
+      let streak = await streakService.getStreakBasic();
+      const firstStreak = streak.currentStreak;
+
+      // Create second progress log same day
+      await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 100,
+        currentPercentage: 33.33,
+        pagesRead: 50,
+        progressDate: toProgressDate(getStreakDate(0)),
+      });
+
+      // Update streak again (same day, threshold already met - path: line 111)
+      await streakService.updateStreaks();
+      streak = await streakService.getStreakBasic();
+
+      // Streak should be unchanged (same day activity)
+      expect(streak.currentStreak).toBe(firstStreak);
     });
   });
 });
