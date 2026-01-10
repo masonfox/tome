@@ -1,6 +1,8 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { ProgressService } from "@/lib/services/progress.service";
+import { createProgressSchema } from "@/lib/api/schemas/progress.schemas";
+import { ZodError } from "zod";
 
 export const dynamic = 'force-dynamic';
 
@@ -48,13 +50,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     const body = await request.json();
-    const { currentPage, currentPercentage, notes, progressDate } = body;
+    
+    // Validate request body with Zod
+    const validatedData = createProgressSchema.parse(body);
 
     const progressData = {
-      currentPage,
-      currentPercentage,
-      notes,
-      progressDate: progressDate ? new Date(progressDate) : undefined,
+      currentPage: validatedData.currentPage,
+      currentPercentage: validatedData.currentPercentage,
+      notes: validatedData.notes,
+      progressDate: validatedData.progressDate,
     };
 
     const result = await progressService.logProgress(bookId, progressData);
@@ -64,6 +68,12 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     return NextResponse.json(result);
   } catch (error) {
     getLogger().error({ err: error }, "Error logging progress");
+    
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const errorMessage = error.issues.map((e) => e.message).join(", ");
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
     
     // Handle specific errors
     if (error instanceof Error) {
