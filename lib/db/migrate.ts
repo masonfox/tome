@@ -95,6 +95,59 @@ export async function runMigrations() {
       getLoggerSafe().info("No migrations applied yet (first run)");
     }
     
+    // Special handling for migrations 0015 and 0016 which have data conversion logic
+    // These migrations work correctly when executed via raw SQL but fail silently when
+    // run through Drizzle's migrate() function. We manually execute them to ensure reliability.
+    const specialMigrations = ['0015_opposite_shatterstar.sql', '0016_outstanding_leader.sql'];
+    for (const migFile of specialMigrations) {
+      const migPath = join(migrationsFolder, migFile);
+      if (!require('fs').existsSync(migPath)) continue;
+      
+      // Check if already applied by hash
+      const migContent = readFileSync(migPath, 'utf-8');
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256').update(migContent).digest('hex');
+      
+      try {
+        const existing = sqlite.prepare(
+          "SELECT hash FROM __drizzle_migrations WHERE hash = ?"
+        ).get(hash);
+        
+        if (existing) {
+          getLoggerSafe().info(`Migration ${migFile} already applied, skipping`);
+          continue;
+        }
+      } catch (error) {
+        // Table doesn't exist, will be created by first migration
+      }
+      
+      // Run the migration manually
+      getLoggerSafe().info(`Manually running migration ${migFile}...`);
+      try {
+        // Execute each statement separately
+        const statements = migContent
+          .split('--> statement-breakpoint')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0 && !s.startsWith('--'));
+        
+        for (const stmt of statements) {
+          if (stmt.trim()) {
+            sqlite.exec(stmt);
+          }
+        }
+        
+        // Record migration as applied
+        sqlite.prepare(
+          "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)"
+        ).run(hash, Date.now());
+        
+        getLoggerSafe().info(`Migration ${migFile} completed successfully`);
+      } catch (error) {
+        getLoggerSafe().error({ err: error, migration: migFile }, `Failed to run migration ${migFile}`);
+        throw error;
+      }
+    }
+    
     // Note: We can't reliably determine which specific migrations will be applied
     // because Drizzle uses content hashes, not just file counts or names.
     // Drizzle's migrate() function will handle the actual detection and execution.

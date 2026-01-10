@@ -183,6 +183,8 @@ async function migrate(): Promise<void> {
     db.exec("BEGIN TRANSACTION");
 
     try {
+      // Update progress_date column directly with TEXT values
+      // SQLite's flexible typing allows storing TEXT in INTEGER columns
       const updateStmt = db.prepare(
         "UPDATE progress_logs SET progress_date = ? WHERE id = ?"
       );
@@ -217,8 +219,9 @@ async function migrate(): Promise<void> {
 
       logger.info(
         { success: successCount, errors: errorCount, total: logs.length },
-        "Migration completed successfully"
+        "Data migration completed successfully"
       );
+      logger.info("Note: Drizzle schema migration will complete the column type change");
     } catch (error) {
       logger.error({ error }, "Migration failed, rolling back");
       db.exec("ROLLBACK");
