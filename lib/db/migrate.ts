@@ -44,7 +44,6 @@ export async function runMigrations() {
     
     // PHASE 1: Run data migration for progress dates (if not already done)
     // This MUST run BEFORE the Drizzle schema migration that changes column types
-    // TODO: Remove in v0.6.0 (after 2-3 releases, all users migrated)
     if (!isProgressDatesMigrationComplete()) {
       getLoggerSafe().info("Running progress dates data migration...");
       try {
@@ -60,7 +59,6 @@ export async function runMigrations() {
     
     // PHASE 1.5: Run data migration for session dates (if not already done)
     // This MUST run BEFORE the Drizzle schema migration that changes column types
-    // TODO: Remove in v0.6.0 (after 2-3 releases, all users migrated)
     if (!isSessionDatesMigrationComplete()) {
       getLoggerSafe().info("Running session dates data migration...");
       try {
