@@ -96,7 +96,10 @@
 - `sessionNumber` - Enables re-reading (1, 2, 3...)
 - `isActive` - Only one active session per book
 - `status` - Enum: to-read, read-next, reading, read
-- `startedDate`, `completedDate`, `review`
+- `startedDate`, `completedDate` (TEXT: YYYY-MM-DD) - Calendar days, not timestamps
+- `review`
+
+**Date Storage:** Uses YYYY-MM-DD strings (not timestamps) for semantic correctness. See [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md)
 
 **Indexes:** Unique on (bookId, sessionNumber); Partial unique on (bookId) WHERE isActive=1
 **Repository:** `sessionRepository` | **Schema:** `lib/db/schema/reading-sessions.ts`
@@ -110,7 +113,10 @@
 - `bookId`, `sessionId` (FK with CASCADE DELETE)
 - `currentPage`, `currentPercentage` (0-100)
 - `pagesRead` - Delta from previous entry
-- `progressDate`, `notes`
+- `progressDate` (TEXT: YYYY-MM-DD) - Calendar day, not timestamp
+- `notes`
+
+**Date Storage:** Uses YYYY-MM-DD strings (not timestamps) for semantic correctness. See [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md)
 
 **Indexes:** (bookId, progressDate DESC), (sessionId, progressDate DESC)
 **Repository:** `progressRepository` | **Schema:** `lib/db/schema/progress-logs.ts`
@@ -621,9 +627,13 @@ const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
 
 ### Date Handling Patterns
 
-**Storage Format**: All calendar day dates (progress dates, session dates) are stored as **YYYY-MM-DD strings** in the database, representing UTC calendar days.
+**Storage Format**: All calendar day dates (progress dates, session dates) are stored as **YYYY-MM-DD strings** (TEXT columns) in the database, representing calendar days independent of timezone.
 
 **Why Strings?** Calendar days are semantically different from timestamps. When a user logs "I read on January 8th," they mean a calendar day in their life, not a specific moment in time. Storing as strings ensures dates never shift when users change timezones.
+
+**Key Principle:** What the user logs is what they see. A date logged as "2025-01-08" remains "2025-01-08" regardless of timezone changes.
+
+**See:** [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md) for complete rationale and migration details.
 
 **Two Patterns for Creating Date Strings:**
 
@@ -668,7 +678,7 @@ const todayInUserTz = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
 
 **Rule of Thumb:** If timezone matters semantically, use `formatInTimeZone()`. Otherwise, use `toDateString()`.
 
-**Historical Note:** Before v0.5.0, dates were stored as INTEGER timestamps and required a complex timezone conversion layer (242 lines). This was removed in favor of string storage for semantic correctness and simplicity. See migration in `scripts/migrations/migrate-*-dates-to-text.ts`.
+**Historical Note:** Before v0.5.0, dates were stored as INTEGER timestamps and required a complex timezone conversion layer (242 lines). This was removed in favor of string storage for semantic correctness and simplicity. See migrations in `scripts/migrations/migrate-*-dates-to-text.ts` and [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md).
 
 ---
 
@@ -710,6 +720,8 @@ For detailed code examples and implementation patterns, see:
 - **ADR-002**: Book rating system (completed Nov 20, 2025)
 - **ADR-003**: Book detail page refactoring (in progress)
 - **ADR-004**: Backend service layer (completed Nov 21, 2025)
+- **ADR-006**: Timezone-aware date handling (superseded Jan 10, 2026)
+- **ADR-014**: Date string storage for calendar days (completed Jan 10, 2026)
 
 ### Documentation Files
 
