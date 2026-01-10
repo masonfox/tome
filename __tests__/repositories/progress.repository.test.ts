@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { test, expect, describe, beforeAll, afterAll, beforeEach } from 'vitest';
 import { progressRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -51,13 +52,15 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: targetDate,
+      progressDate: toProgressDate(targetDate),
       pagesRead: 50,
     });
 
     const earliest = await progressRepository.getEarliestProgressDate();
     expect(earliest).not.toBeNull();
-    expect(earliest?.toISOString()).toBe(targetDate.toISOString());
+    // progressDate is stored as calendar day (YYYY-MM-DD), so getEarliestProgressDate returns midnight UTC
+    const expectedMidnight = new Date("2024-11-27T00:00:00Z");
+    expect(earliest?.toISOString()).toBe(expectedMidnight.toISOString());
   });
 
   test("should return earliest date from multiple progress logs", async () => {
@@ -88,7 +91,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 37.5,
-      progressDate: nov29,
+      progressDate: toProgressDate(nov29),
       pagesRead: 50,
     });
 
@@ -97,7 +100,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 12.5,
-      progressDate: nov27,
+      progressDate: toProgressDate(nov27),
       pagesRead: 50,
     });
 
@@ -106,13 +109,15 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 25.0,
-      progressDate: nov28,
+      progressDate: toProgressDate(nov28),
       pagesRead: 50,
     });
 
     const earliest = await progressRepository.getEarliestProgressDate();
     expect(earliest).not.toBeNull();
-    expect(earliest?.toISOString()).toBe(nov27.toISOString());
+    // nov27 is stored as calendar day (2024-11-27), so earliest is midnight UTC
+    const expectedMidnight = new Date("2024-11-27T00:00:00Z");
+    expect(earliest?.toISOString()).toBe(expectedMidnight.toISOString());
   });
 
   test("should return earliest date across multiple books", async () => {
@@ -157,7 +162,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session1.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: nov28,
+      progressDate: toProgressDate(nov28),
       pagesRead: 50,
     });
 
@@ -168,13 +173,15 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session2.id,
       currentPage: 50,
       currentPercentage: 12.5,
-      progressDate: nov25,
+      progressDate: toProgressDate(nov25),
       pagesRead: 50,
     });
 
     const earliest = await progressRepository.getEarliestProgressDate();
     expect(earliest).not.toBeNull();
-    expect(earliest?.toISOString()).toBe(nov25.toISOString());
+    // nov25 is stored as calendar day (2024-11-25), so earliest is midnight UTC
+    const expectedMidnight = new Date("2024-11-25T00:00:00Z");
+    expect(earliest?.toISOString()).toBe(expectedMidnight.toISOString());
   });
 
   test("should handle progress logs on the same day", async () => {
@@ -205,7 +212,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: afternoon,
+      progressDate: toProgressDate(afternoon),
       pagesRead: 50,
     });
 
@@ -214,7 +221,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 50.0,
-      progressDate: evening,
+      progressDate: toProgressDate(evening),
       pagesRead: 50,
     });
 
@@ -223,13 +230,15 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: morning,
+      progressDate: toProgressDate(morning),
       pagesRead: 50,
     });
 
     const earliest = await progressRepository.getEarliestProgressDate();
     expect(earliest).not.toBeNull();
-    expect(earliest?.toISOString()).toBe(morning.toISOString());
+    // All three progress entries are on the same day (2024-11-30), so earliest is midnight UTC
+    const expectedMidnight = new Date("2024-11-30T00:00:00Z");
+    expect(earliest?.toISOString()).toBe(expectedMidnight.toISOString());
   });
 
   test("should return earliest across multiple sessions of same book", async () => {
@@ -249,7 +258,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-10-15"),
+      completedDate: "2024-10-15",
     });
 
     const session2 = await sessionRepository.create({
@@ -266,7 +275,7 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session1.id,
       currentPage: 100,
       currentPercentage: 28.57,
-      progressDate: oct10,
+      progressDate: toProgressDate(oct10),
       pagesRead: 100,
     });
 
@@ -277,13 +286,15 @@ describe("ProgressRepository.getEarliestProgressDate()", () => {
       sessionId: session2.id,
       currentPage: 50,
       currentPercentage: 14.29,
-      progressDate: nov27,
+      progressDate: toProgressDate(nov27),
       pagesRead: 50,
     });
 
     const earliest = await progressRepository.getEarliestProgressDate();
     expect(earliest).not.toBeNull();
-    expect(earliest?.toISOString()).toBe(oct10.toISOString());
+    // oct10 is stored as calendar day (2024-10-10), so earliest is midnight UTC
+    const expectedMidnight = new Date("2024-10-10T00:00:00Z");
+    expect(earliest?.toISOString()).toBe(expectedMidnight.toISOString());
   });
 });
 
@@ -339,6 +350,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 250,
       currentPercentage: 62,
       pagesRead: 250,
+      progressDate: toProgressDate(new Date()),
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -369,7 +381,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date("2024-01-01"),
+      progressDate: "2024-01-01",
     });
 
     await progressRepository.create({
@@ -378,7 +390,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 350, // Highest
       currentPercentage: 70,
       pagesRead: 250,
-      progressDate: new Date("2024-01-03"),
+      progressDate: "2024-01-03",
     });
 
     await progressRepository.create({
@@ -387,7 +399,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
-      progressDate: new Date("2024-01-02"),
+      progressDate: "2024-01-02",
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -410,7 +422,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-01-01"),
+      completedDate: "2024-01-01",
     });
 
     await progressRepository.create({
@@ -419,6 +431,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 400, // Should be ignored
       currentPercentage: 100,
       pagesRead: 400,
+      progressDate: toProgressDate(new Date()),
     });
 
     // Create active session with lower page count
@@ -435,6 +448,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 150, // Should be returned
       currentPercentage: 37,
       pagesRead: 150,
+      progressDate: toProgressDate(new Date()),
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -465,6 +479,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 300, // Should be ignored
       currentPercentage: 75,
       pagesRead: 300,
+      progressDate: toProgressDate(new Date()),
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -495,6 +510,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
+      progressDate: toProgressDate(new Date()),
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -525,6 +541,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 0,
       currentPercentage: 0,
       pagesRead: 0,
+      progressDate: toProgressDate(new Date()),
     });
 
     await progressRepository.create({
@@ -533,6 +550,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 50,
       currentPercentage: 16,
       pagesRead: 50,
+      progressDate: toProgressDate(new Date()),
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -564,7 +582,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 350, // Highest - created first
       currentPercentage: 70,
       pagesRead: 350,
-      progressDate: new Date("2024-01-03"),
+      progressDate: "2024-01-03",
     });
 
     await progressRepository.create({
@@ -573,7 +591,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 200, // Lower page - created later
       currentPercentage: 40,
       pagesRead: 200,
-      progressDate: new Date("2024-01-04"),
+      progressDate: "2024-01-04",
     });
 
     const highest = await progressRepository.getHighestCurrentPageForActiveSessions(book.id);
@@ -619,6 +637,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 150,
       currentPercentage: 50,
       pagesRead: 150,
+      progressDate: toProgressDate(new Date()),
     });
 
     // Create active session for book2 with higher page count
@@ -635,6 +654,7 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
       currentPage: 350,
       currentPercentage: 87,
       pagesRead: 350,
+      progressDate: toProgressDate(new Date()),
     });
 
     // Query for book1 should only return book1's progress

@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET } from "@/app/api/reading-goals/books/route";
 import { bookRepository, sessionRepository, readingGoalRepository } from "@/lib/repositories";
@@ -57,8 +58,8 @@ describe("Reading Goals Books API - GET /api/reading-goals/books", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-05"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-05",
+        completedDate: "2024-01-15",
         isActive: false,
         userId: null,
       });
@@ -74,8 +75,8 @@ describe("Reading Goals Books API - GET /api/reading-goals/books", () => {
         bookId: book2.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-06-10"),
-        completedDate: new Date("2024-06-20"),
+        startedDate: "2024-06-10",
+        completedDate: "2024-06-20",
         isActive: false,
         userId: null,
       });
@@ -105,8 +106,8 @@ describe("Reading Goals Books API - GET /api/reading-goals/books", () => {
         bookId: book2023.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2023-12-01"),
-        completedDate: new Date("2023-12-31"),
+        startedDate: "2023-12-01",
+        completedDate: "2023-12-31",
         isActive: false,
         userId: null,
       });
@@ -121,8 +122,8 @@ describe("Reading Goals Books API - GET /api/reading-goals/books", () => {
         bookId: book2024.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-01"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-01",
+        completedDate: "2024-01-15",
         isActive: false,
         userId: null,
       });
@@ -150,8 +151,8 @@ describe("Reading Goals Books API - GET /api/reading-goals/books", () => {
           bookId: book.id,
           sessionNumber: 1,
           status: "read",
-          startedDate: new Date(`2024-0${i}-01`),
-          completedDate: new Date(`2024-0${i}-15`),
+          startedDate: toSessionDate(new Date(`2024-0${i}-01`)),
+          completedDate: toSessionDate(new Date(`2024-0${i}-15`)),
           isActive: false,
           userId: null,
         });
@@ -173,12 +174,12 @@ describe("Reading Goals Books API - GET /api/reading-goals/books", () => {
         path: "TestBook",
         orphaned: false,
       }));
-      const completedDate = new Date("2024-03-15");
+      const completedDate = "2024-03-15";
       await sessionRepository.create({
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-03-01"),
+        startedDate: "2024-03-01",
         completedDate,
         isActive: false,
         userId: null,

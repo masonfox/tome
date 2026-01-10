@@ -1,3 +1,4 @@
+import { toProgressDate } from '../test-utils';
 import { describe, test, expect, beforeEach, beforeAll, afterAll } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -52,13 +53,13 @@ describe("Integration: Quick Progress Logging Flow", () => {
       currentPage: 100,
       currentPercentage: 33,
       pagesRead: 100,
-      progressDate: new Date("2025-12-20"),
+      progressDate: "2025-12-20",
     });
 
     // ACT: User logs progress to page 150
     const result = await progressService.logProgress(book.id, {
       currentPage: 150,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT: Progress logged successfully
@@ -100,7 +101,7 @@ describe("Integration: Quick Progress Logging Flow", () => {
     // ACT: Log progress by percentage
     const result = await progressService.logProgress(book.id, {
       currentPercentage: 60,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT
@@ -129,17 +130,17 @@ describe("Integration: Quick Progress Logging Flow", () => {
     // ACT: Log progress 3 times over 3 days
     await progressService.logProgress(book.id, {
       currentPage: 100,
-      progressDate: new Date("2025-12-19"),
+      progressDate: "2025-12-19",
     });
 
     await progressService.logProgress(book.id, {
       currentPage: 250,
-      progressDate: new Date("2025-12-20"),
+      progressDate: "2025-12-20",
     });
 
     const finalResult = await progressService.logProgress(book.id, {
       currentPage: 400,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT
@@ -178,7 +179,7 @@ describe("Integration: Quick Progress Logging Flow", () => {
     const result = await progressService.logProgress(book.id, {
       currentPage: 150,
       notes: notes,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT
@@ -211,13 +212,13 @@ describe("Integration: Completion Flow", () => {
       currentPage: 270,
       currentPercentage: 90,
       pagesRead: 270,
-      progressDate: new Date("2025-12-20"),
+      progressDate: "2025-12-20",
     });
 
     // ACT: Log progress to 100%
     const result = await progressService.logProgress(book.id, {
       currentPage: 300,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT: Should indicate completion modal should show
@@ -246,7 +247,7 @@ describe("Integration: Completion Flow", () => {
     // ACT: Log 100% by percentage
     const result = await progressService.logProgress(book.id, {
       currentPercentage: 100,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT
@@ -275,7 +276,7 @@ describe("Integration: Completion Flow", () => {
     // ACT: Log to 99%
     const result = await progressService.logProgress(book.id, {
       currentPage: 297, // 99%
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT
@@ -303,7 +304,7 @@ describe("Integration: Completion Flow", () => {
     // Log to 100% - auto-completes the book
     const result = await progressService.logProgress(book.id, {
       currentPage: 300,
-      progressDate: new Date("2025-12-21"),
+      progressDate: "2025-12-21",
     });
 
     // ASSERT: Book is auto-completed
@@ -327,7 +328,7 @@ describe("Integration: Completion Flow", () => {
     const additionalResult = await progressService.logProgress(book.id, {
       currentPage: 300,
       notes: "Re-reading favorite chapter",
-      progressDate: new Date("2025-12-22"),
+      progressDate: "2025-12-22",
     });
 
     // ASSERT: Should allow additional progress in new session

@@ -1,3 +1,4 @@
+import { toProgressDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET } from "@/app/api/journal/archive/route";
 import { bookRepository, progressRepository } from "@/lib/repositories";
@@ -63,7 +64,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       await progressRepository.create({
@@ -71,7 +72,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 33.33,
         pagesRead: 50,
-        progressDate: new Date("2024-01-20"),
+        progressDate: "2024-01-20",
       });
 
       const request = createMockRequest("GET", "/api/journal/archive");
@@ -101,7 +102,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       await progressRepository.create({
@@ -109,7 +110,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 33.33,
         pagesRead: 50,
-        progressDate: new Date("2024-01-20"),
+        progressDate: "2024-01-20",
       });
 
       await progressRepository.create({
@@ -117,7 +118,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 150,
         currentPercentage: 50.0,
         pagesRead: 50,
-        progressDate: new Date("2024-01-25"),
+        progressDate: "2024-01-25",
       });
 
       const request = createMockRequest("GET", "/api/journal/archive");
@@ -138,7 +139,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       await progressRepository.create({
@@ -146,7 +147,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 33.33,
         pagesRead: 50,
-        progressDate: new Date("2024-02-15"),
+        progressDate: "2024-02-15",
       });
 
       const request = createMockRequest("GET", "/api/journal/archive");
@@ -170,7 +171,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal/archive");
@@ -198,7 +199,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T23:00:00Z"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal/archive?timezone=Asia/Tokyo");
@@ -215,7 +216,7 @@ describe("Journal Archive API - GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal/archive");

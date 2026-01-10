@@ -28,16 +28,17 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
-// Helper to get relative dates in America/New_York timezone
-function getDaysAgo(days: number): Date {
-  const { toZonedTime, fromZonedTime } = require('date-fns-tz');
+// Helper to get relative dates in UTC
+function getDaysAgo(days: number): string {
   const { subDays } = require('date-fns');
-  
-  const nowInEst = toZonedTime(new Date(), 'America/New_York');
-  const targetDate = subDays(nowInEst, days);
-  targetDate.setHours(12, 0, 0, 0);
-  
-  return fromZonedTime(targetDate, 'America/New_York');
+  const targetDate = subDays(new Date(), days);
+  return targetDate.toISOString().split('T')[0];
+}
+
+// Helper to get Date object for relative days
+function getDateDaysAgo(days: number): Date {
+  const { subDays } = require('date-fns');
+  return subDays(new Date(), days);
 }
 
 describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
@@ -181,7 +182,7 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: getDaysAgo(0),
+        lastActivityDate: getDateDaysAgo(0),
         dailyThreshold: 10,
         streakEnabled: true,
       });
@@ -206,7 +207,7 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 3,
         longestStreak: 5,
-        lastActivityDate: getDaysAgo(0),
+        lastActivityDate: getDateDaysAgo(0),
         dailyThreshold: 15,
         streakEnabled: true,
       });
@@ -272,7 +273,7 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 2,
         longestStreak: 5,
-        lastActivityDate: getDaysAgo(0),
+        lastActivityDate: getDateDaysAgo(0),
         dailyThreshold: 10,
         streakEnabled: false,
       });

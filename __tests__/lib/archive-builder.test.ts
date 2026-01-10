@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest';
+import { generateDateSequence, generateWeeklyDates } from '../test-utils';
 import {
   buildArchiveHierarchy,
   matchesDateKey,
@@ -32,7 +33,7 @@ describe("buildArchiveHierarchy", () => {
 
     test("should build single year node for single date", () => {
       // Arrange
-      const dates = [new Date("2024-11-15T10:00:00.000Z")];
+      const dates = ["2024-11-15"];
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -48,8 +49,8 @@ describe("buildArchiveHierarchy", () => {
     test("should build month nodes under year", () => {
       // Arrange: Two dates in same month
       const dates = [
-        new Date("2024-11-15T10:00:00.000Z"),
-        new Date("2024-11-20T10:00:00.000Z"),
+        "2024-11-15",
+        "2024-11-20",
       ];
 
       // Act
@@ -67,8 +68,8 @@ describe("buildArchiveHierarchy", () => {
     test("should build week nodes under months", () => {
       // Arrange: Dates in same week
       const dates = [
-        new Date("2024-11-01T10:00:00.000Z"), // Day 1
-        new Date("2024-11-03T10:00:00.000Z"), // Day 3
+        "2024-11-01", // Day 1
+        "2024-11-03", // Day 3
       ];
 
       // Act
@@ -87,9 +88,9 @@ describe("buildArchiveHierarchy", () => {
     test("should calculate week 1 for days 1-7", () => {
       // Arrange: Days 1, 4, and 7 of November
       const dates = [
-        new Date("2024-11-01T10:00:00.000Z"),
-        new Date("2024-11-04T10:00:00.000Z"),
-        new Date("2024-11-07T10:00:00.000Z"),
+        "2024-11-01",
+        "2024-11-04",
+        "2024-11-07",
       ];
 
       // Act
@@ -105,9 +106,9 @@ describe("buildArchiveHierarchy", () => {
     test("should calculate week 2 for days 8-14", () => {
       // Arrange: Days 8, 10, and 14 of November
       const dates = [
-        new Date("2024-11-08T10:00:00.000Z"),
-        new Date("2024-11-10T10:00:00.000Z"),
-        new Date("2024-11-14T10:00:00.000Z"),
+        "2024-11-08",
+        "2024-11-10",
+        "2024-11-14",
       ];
 
       // Act
@@ -123,8 +124,8 @@ describe("buildArchiveHierarchy", () => {
     test("should handle week boundary (day 7 vs day 8)", () => {
       // Arrange: Day 7 (week 1) and day 8 (week 2)
       const dates = [
-        new Date("2024-11-07T10:00:00.000Z"), // Week 1
-        new Date("2024-11-08T10:00:00.000Z"), // Week 2
+        "2024-11-07", // Week 1
+        "2024-11-08", // Week 2
       ];
 
       // Act
@@ -140,9 +141,9 @@ describe("buildArchiveHierarchy", () => {
     test("should calculate week 5 for days 29-31", () => {
       // Arrange: Days 29, 30, 31 of a 31-day month
       const dates = [
-        new Date("2024-01-29T10:00:00.000Z"),
-        new Date("2024-01-30T10:00:00.000Z"),
-        new Date("2024-01-31T10:00:00.000Z"),
+        "2024-01-29",
+        "2024-01-30",
+        "2024-01-31",
       ];
 
       // Act
@@ -156,14 +157,8 @@ describe("buildArchiveHierarchy", () => {
     });
 
     test("should create separate weeks across different week ranges", () => {
-      // Arrange: Days from weeks 1, 2, 3, 4, 5
-      const dates = [
-        new Date("2024-11-01T10:00:00.000Z"), // W1 (day 1)
-        new Date("2024-11-08T10:00:00.000Z"), // W2 (day 8)
-        new Date("2024-11-15T10:00:00.000Z"), // W3 (day 15)
-        new Date("2024-11-22T10:00:00.000Z"), // W4 (day 22)
-        new Date("2024-11-29T10:00:00.000Z"), // W5 (day 29)
-      ];
+      // Arrange: Days from weeks 1, 2, 3, 4, 5 - using generateWeeklyDates helper
+      const dates = generateWeeklyDates("2024-11-01", 5);
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -183,8 +178,8 @@ describe("buildArchiveHierarchy", () => {
     test("should handle dates across month boundaries", () => {
       // Arrange: Jan 31 and Feb 1
       const dates = [
-        new Date("2024-01-31T10:00:00.000Z"),
-        new Date("2024-02-01T10:00:00.000Z"),
+        "2024-01-31",
+        "2024-02-01",
       ];
 
       // Act
@@ -200,8 +195,8 @@ describe("buildArchiveHierarchy", () => {
     test("should handle dates across year boundaries", () => {
       // Arrange: Dec 31, 2023 and Jan 1, 2024
       const dates = [
-        new Date("2023-12-31T10:00:00.000Z"),
-        new Date("2024-01-01T10:00:00.000Z"),
+        "2023-12-31",
+        "2024-01-01",
       ];
 
       // Act
@@ -215,7 +210,7 @@ describe("buildArchiveHierarchy", () => {
 
     test("should handle leap year (Feb 29)", () => {
       // Arrange: Feb 29, 2024
-      const dates = [new Date("2024-02-29T10:00:00.000Z")];
+      const dates = ["2024-02-29"];
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -227,7 +222,7 @@ describe("buildArchiveHierarchy", () => {
 
     test("should handle February in non-leap year (28 days)", () => {
       // Arrange: Feb 28, 2023 (non-leap year)
-      const dates = [new Date("2023-02-28T10:00:00.000Z")];
+      const dates = ["2023-02-28"];
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -238,7 +233,7 @@ describe("buildArchiveHierarchy", () => {
 
     test("should handle months with 30 days", () => {
       // Arrange: April (30 days)
-      const dates = [new Date("2024-04-30T10:00:00.000Z")];
+      const dates = ["2024-04-30"];
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -249,7 +244,7 @@ describe("buildArchiveHierarchy", () => {
 
     test("should handle months with 31 days", () => {
       // Arrange: January (31 days)
-      const dates = [new Date("2024-01-31T10:00:00.000Z")];
+      const dates = ["2024-01-31"];
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -263,9 +258,9 @@ describe("buildArchiveHierarchy", () => {
     test("should sort years in descending order", () => {
       // Arrange: Create dates in 2022, 2023, 2024
       const dates = [
-        new Date("2022-06-15T10:00:00.000Z"),
-        new Date("2024-03-15T10:00:00.000Z"),
-        new Date("2023-09-15T10:00:00.000Z"),
+        "2022-06-15",
+        "2024-03-15",
+        "2023-09-15",
       ];
 
       // Act
@@ -281,9 +276,9 @@ describe("buildArchiveHierarchy", () => {
     test("should sort months in descending order", () => {
       // Arrange: Create dates in Jan, Mar, Nov of same year
       const dates = [
-        new Date("2024-01-15T10:00:00.000Z"),
-        new Date("2024-11-15T10:00:00.000Z"),
-        new Date("2024-03-15T10:00:00.000Z"),
+        "2024-01-15",
+        "2024-11-15",
+        "2024-03-15",
       ];
 
       // Act
@@ -299,9 +294,9 @@ describe("buildArchiveHierarchy", () => {
     test("should sort weeks in descending order", () => {
       // Arrange: Create dates in weeks 1, 3, 5
       const dates = [
-        new Date("2024-11-01T10:00:00.000Z"), // W1
-        new Date("2024-11-29T10:00:00.000Z"), // W5
-        new Date("2024-11-15T10:00:00.000Z"), // W3
+        "2024-11-01", // W1
+        "2024-11-29", // W5
+        "2024-11-15", // W3
       ];
 
       // Act
@@ -319,11 +314,11 @@ describe("buildArchiveHierarchy", () => {
     test("should aggregate counts correctly at year level", () => {
       // Arrange: 3 entries in Nov, 2 in Dec
       const dates = [
-        new Date("2024-11-01T10:00:00.000Z"),
-        new Date("2024-11-10T10:00:00.000Z"),
-        new Date("2024-11-20T10:00:00.000Z"),
-        new Date("2024-12-05T10:00:00.000Z"),
-        new Date("2024-12-15T10:00:00.000Z"),
+        "2024-11-01",
+        "2024-11-10",
+        "2024-11-20",
+        "2024-12-05",
+        "2024-12-15",
       ];
 
       // Act
@@ -336,10 +331,10 @@ describe("buildArchiveHierarchy", () => {
     test("should aggregate counts correctly at month level", () => {
       // Arrange: 4 entries in November
       const dates = [
-        new Date("2024-11-01T10:00:00.000Z"),
-        new Date("2024-11-10T10:00:00.000Z"),
-        new Date("2024-11-20T10:00:00.000Z"),
-        new Date("2024-11-25T10:00:00.000Z"),
+        "2024-11-01",
+        "2024-11-10",
+        "2024-11-20",
+        "2024-11-25",
       ];
 
       // Act
@@ -352,9 +347,9 @@ describe("buildArchiveHierarchy", () => {
     test("should aggregate counts correctly at week level", () => {
       // Arrange: 3 entries in week 2
       const dates = [
-        new Date("2024-11-08T10:00:00.000Z"),
-        new Date("2024-11-10T10:00:00.000Z"),
-        new Date("2024-11-12T10:00:00.000Z"),
+        "2024-11-08",
+        "2024-11-10",
+        "2024-11-12",
       ];
 
       // Act
@@ -368,7 +363,7 @@ describe("buildArchiveHierarchy", () => {
   describe("week label formatting", () => {
     test("should format single-day week label correctly", () => {
       // Arrange: Only one entry in week
-      const dates = [new Date("2024-11-15T10:00:00.000Z")];
+      const dates = ["2024-11-15"];
 
       // Act
       const result = buildArchiveHierarchy(dates);
@@ -381,8 +376,8 @@ describe("buildArchiveHierarchy", () => {
     test("should format multi-day week label correctly", () => {
       // Arrange: Multiple days in same week
       const dates = [
-        new Date("2024-11-15T10:00:00.000Z"),
-        new Date("2024-11-17T10:00:00.000Z"),
+        "2024-11-15",
+        "2024-11-17",
       ];
 
       // Act
@@ -398,8 +393,8 @@ describe("buildArchiveHierarchy", () => {
     test("should set correct startDate and endDate for week", () => {
       // Arrange: Days 10 and 12 in week 2
       const dates = [
-        new Date("2024-11-10T10:00:00.000Z"),
-        new Date("2024-11-12T10:00:00.000Z"),
+        "2024-11-10",
+        "2024-11-12",
       ];
 
       // Act
@@ -414,8 +409,8 @@ describe("buildArchiveHierarchy", () => {
     test("should set correct startDate and endDate for month", () => {
       // Arrange: Any dates in November
       const dates = [
-        new Date("2024-11-10T10:00:00.000Z"),
-        new Date("2024-11-20T10:00:00.000Z"),
+        "2024-11-10",
+        "2024-11-20",
       ];
 
       // Act
@@ -430,8 +425,8 @@ describe("buildArchiveHierarchy", () => {
     test("should set correct startDate and endDate for year", () => {
       // Arrange: Any dates in 2024
       const dates = [
-        new Date("2024-03-15T10:00:00.000Z"),
-        new Date("2024-09-20T10:00:00.000Z"),
+        "2024-03-15",
+        "2024-09-20",
       ];
 
       // Act

@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/books/[id]/status/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
@@ -78,7 +79,7 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     });
 
     // Add progress with explicit date
-    const progressDate = new Date("2025-11-20T12:00:00.000Z");
+    const progressDate = "2025-11-20T12:00:00.000Z";
     await progressRepository.create({
       ...mockProgressLog1,
       bookId: book.id,
@@ -210,7 +211,7 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
       ...mockProgressLog1,
       bookId: book.id,
       sessionId: session.id,
-      progressDate: new Date("2025-11-17"),
+      progressDate: "2025-11-17",
     });
 
     // Create initial streak
@@ -390,9 +391,9 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(response.status).toBe(200);
     expect(data.startedDate).toBeDefined();
 
-    // Started date should be today's date (midnight in user's timezone)
-    const startedDate = new Date(data.startedDate);
-    expect(getDateInEST(startedDate)).toBe(todayEST);
+    // Started date should be today's date in UTC (test environment uses TZ=UTC)
+    const todayUTC = new Date().toISOString().split('T')[0];
+    expect(data.startedDate).toBe(todayUTC);
   });
 
   test("should set completedDate when moving to 'read' status", async () => {
@@ -401,7 +402,7 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
       ...mockSessionReading,
       bookId: book.id,
       status: "reading",
-      startedDate: new Date("2025-11-15"),
+      startedDate: "2025-11-15",
       isActive: true,
     });
 
@@ -416,29 +417,29 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     expect(response.status).toBe(200);
     expect(data.completedDate).toBeDefined();
 
-    // Completed date should be today's date (midnight in user's timezone)
-    const completedDate = new Date(data.completedDate);
-    expect(getDateInEST(completedDate)).toBe(todayEST);
+    // Completed date should be today's date in UTC (test environment uses TZ=UTC)
+    const todayUTC = new Date().toISOString().split('T')[0];
+    expect(data.completedDate).toBe(todayUTC);
   });
 
   test("should accept custom startedDate", async () => {
     const book = await bookRepository.create(mockBook1);
-    const customDate = new Date("2025-11-01T05:00:00.000Z");
+    const customDate = "2025-11-01";
 
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "reading",
-      startedDate: customDate.toISOString(),
+      startedDate: customDate,
     });
     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(new Date(data.startedDate).toISOString()).toBe(customDate.toISOString());
+    expect(data.startedDate).toBe(customDate);
   });
 
   test("should accept custom completedDate", async () => {
     const book = await bookRepository.create(mockBook1);
-    const customDate = new Date("2025-11-16T05:00:00.000Z");
+    const customDate = "2025-11-16";
 
     await sessionRepository.create({
       ...mockSessionReading,
@@ -449,13 +450,13 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
 
     const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
       status: "read",
-      completedDate: customDate.toISOString(),
+      completedDate: customDate,
     });
     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(new Date(data.completedDate).toISOString()).toBe(customDate.toISOString());
+    expect(data.completedDate).toBe(customDate);
   });
 
   // ============================================================================

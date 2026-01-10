@@ -223,16 +223,24 @@ const { db, sqlite, runtime } = createDatabase({ path, schema, wal: true });
 **Session Management:** Use TodoWrite to track progress. Mark tasks as completed immediately after finishing.
 
 **Parallel Execution:** When multiple independent tasks exist, make all tool calls in a single response.
-
+i
 ---
 
 ## Development Workflow - ALL AGENTS: Claude and Opencode
 **ALWAYS follow these planning steps**:
 
 1. When finalizing planned work, ALWAYS create a plan file in /docs/plans, including context/background, phased work and uniquely identifiable tasks.
-2. As you work, pull and and announce each task item that you're working on
+2. As you work, pull and announce each task item that you're working on
 3. When you complete a task, announce it and update that task as done in the plan file
 4. Mark phases complete when all tasks are done
+5. Unless there are questions that need answered to inform the next phase of development, continue to the next phase of development without user prompt
+
+Additional notes:
+
+* The /docs/plans directory IS NOT versioned with git on purpose. Therefore, do not try to `git add` or `git commit` changes to them.
+* You NEVER need to run the dev server - `npm run dev`. It's always running in the background. Therefore, if you need to test APIs, use localhost:3000
+* Prefer direct API tests via curling localhost:3000 API endpoints
+* Prefer direct database queries when troubleshooting problems. The database is always in /data/tome.db
 
 ---
 

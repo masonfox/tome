@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import {
   bookRepository,
@@ -153,7 +154,7 @@ describe("Edge Case Tests", () => {
       // Update to read status
       const updated = await sessionRepository.update(session.id, {
         status: "read",
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       expect(updated?.status).toBe("read");
@@ -264,7 +265,7 @@ describe("Edge Case Tests", () => {
         isActive: true,
       });
 
-      const progressDate = new Date("2024-01-15T15:30:00Z");
+      const progressDate = toProgressDate(new Date("2024-01-15T15:30:00Z"));
 
       const progress = await progressRepository.create({
         bookId: book.id,
@@ -311,7 +312,7 @@ describe("Edge Case Tests", () => {
         currentPage: 9999,
         currentPercentage: 99.99,
         pagesRead: 9999,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       expect(progress.currentPage).toBe(9999);

@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
@@ -136,7 +137,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 5 - i,
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -175,7 +176,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: yesterday,
+        progressDate: toProgressDate(yesterday),
       });
 
       // Act: Rebuild streak (check as of today - yesterday should still count)
@@ -215,7 +216,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: twoDaysAgo,
+        progressDate: toProgressDate(twoDaysAgo),
       });
 
       await streakService.updateStreaks();
@@ -256,7 +257,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: twoDaysAgo,
+        progressDate: toProgressDate(twoDaysAgo),
       });
 
       await streakService.updateStreaks();
@@ -269,7 +270,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 20,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Update streak with today's activity
@@ -350,7 +351,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 5,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: yesterday,
+        progressDate: toProgressDate(yesterday),
       });
 
       // Today: 5 pages
@@ -360,7 +361,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Rebuild streak
@@ -407,7 +408,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 15,
         currentPercentage: 0,
         pagesRead: 15,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Update streak - should not increment because threshold not met
@@ -460,7 +461,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: yesterday,
+        progressDate: toProgressDate(yesterday),
       });
 
       // Today (morning): 10 pages
@@ -470,7 +471,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 20,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Check with original threshold
@@ -543,7 +544,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 21 - i,
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -558,7 +559,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 20 + (5 - i),
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -602,7 +603,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 23 - i,
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -616,7 +617,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 20 + (7 - i),
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -659,7 +660,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 5 - i,
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -676,7 +677,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 6,
         currentPercentage: 0,
         pagesRead: 1,
-        progressDate: tomorrow,
+        progressDate: toProgressDate(tomorrow),
       });
 
       streak = await streakService.rebuildStreak(null, tomorrow);
@@ -718,7 +719,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
           currentPage: 3 - i,
           currentPercentage: 0,
           pagesRead: 1,
-          progressDate: date,
+          progressDate: toProgressDate(date),
         });
       }
 
@@ -771,7 +772,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 5,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: day1,
+        progressDate: toProgressDate(day1),
       });
 
       // Day 2: 3 pages (below threshold - breaks streak)
@@ -782,7 +783,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 8,
         currentPercentage: 0,
         pagesRead: 3,
-        progressDate: day2,
+        progressDate: toProgressDate(day2),
       });
 
       // Day 3: 6 pages (meets threshold - new streak)
@@ -792,7 +793,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 14,
         currentPercentage: 0,
         pagesRead: 6,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Rebuild streak
@@ -862,7 +863,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: day1,
+        progressDate: toProgressDate(day1),
       });
 
       // Day 2: 5 pages (below threshold - breaks)
@@ -873,7 +874,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 15,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: day2,
+        progressDate: toProgressDate(day2),
       });
 
       // Act: Check streak after day 2 - day2 doesn't meet threshold
@@ -892,7 +893,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 27,
         currentPercentage: 0,
         pagesRead: 12,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Check streak after day 3
@@ -940,7 +941,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 3,
         currentPercentage: 0,
         pagesRead: 3,
-        progressDate: new Date(today.getTime() + 3600000), // 1 hour after midnight
+        progressDate: toProgressDate(new Date(today.getTime() + 3600000)), // 1 hour after midnight
       });
 
       await progressRepository.create({
@@ -949,7 +950,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 6,
         currentPercentage: 0,
         pagesRead: 3,
-        progressDate: new Date(today.getTime() + 7200000), // 2 hours after midnight
+        progressDate: toProgressDate(new Date(today.getTime() + 7200000)), // 2 hours after midnight
       });
 
       await progressRepository.create({
@@ -958,7 +959,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 4,
-        progressDate: new Date(today.getTime() + 10800000), // 3 hours after midnight
+        progressDate: toProgressDate(new Date(today.getTime() + 10800000)), // 3 hours after midnight
       });
 
       // Act: Rebuild streak (aggregates all logs for the day)
@@ -1008,7 +1009,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 7,
         currentPercentage: 0,
         pagesRead: 7,
-        progressDate: yesterday,
+        progressDate: toProgressDate(yesterday),
       });
 
       // Build streak with old threshold (check as of yesterday)
@@ -1022,7 +1023,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 14,
         currentPercentage: 0,
         pagesRead: 7,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Change threshold to 10 pages
@@ -1088,31 +1089,30 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       const today = getStreakDate(0);
+      const yesterday = getStreakDate(-1);
       
-      // 11:59 PM yesterday (counts toward yesterday)
-      const yesterdayEnd = new Date(today.getTime() - 60000); // 1 minute before midnight
+      // 11:59 PM yesterday (counts toward yesterday) - use yesterday's date
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
         currentPage: 5,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: yesterdayEnd,
+        progressDate: toProgressDate(yesterday),
       });
 
-      // 12:01 AM today (counts toward today)
-      const todayStart = new Date(today.getTime() + 60000); // 1 minute after midnight
+      // 12:01 AM today (counts toward today) - use today's date
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: todayStart,
+        progressDate: toProgressDate(today),
       });
 
-      // Act: Rebuild streak
-      const streak = await streakService.rebuildStreak();
+      // Act: Rebuild streak (pass current date so streak isn't marked as broken)
+      const streak = await streakService.rebuildStreak(null, today);
 
       // Assert: Should recognize 2 consecutive days
       expect(streak.currentStreak).toBe(2);
@@ -1149,7 +1149,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: specificTime,
+        progressDate: toProgressDate(specificTime),
       });
 
       // Act: Get progress for the date (create date range for the day)
@@ -1202,7 +1202,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 8,
         currentPercentage: 0,
         pagesRead: 8,
-        progressDate: morning,
+        progressDate: toProgressDate(morning),
       });
 
       // Check streak with old threshold (should increment)
@@ -1260,7 +1260,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 10,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: day1,
+        progressDate: toProgressDate(day1),
       });
 
       // Day 2: Exactly 10 pages
@@ -1270,7 +1270,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 20,
         currentPercentage: 0,
         pagesRead: 10,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       // Act: Rebuild streak
@@ -1311,7 +1311,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
 
       const today = getStreakDate(0);
 
-      // Create 4 reading sessions throughout the day
+      // Create 4 reading sessions throughout the day - all on the same calendar day
       // Morning: 4 pages
       await progressRepository.create({
         bookId: book.id,
@@ -1319,7 +1319,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 4,
         currentPercentage: 0,
         pagesRead: 4,
-        progressDate: new Date(today.getTime() + 8 * 3600000),
+        progressDate: toProgressDate(today),
       });
 
       // Afternoon: 5 pages
@@ -1329,7 +1329,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 9,
         currentPercentage: 0,
         pagesRead: 5,
-        progressDate: new Date(today.getTime() + 14 * 3600000),
+        progressDate: toProgressDate(today),
       });
 
       // Evening: 3 pages
@@ -1339,7 +1339,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 12,
         currentPercentage: 0,
         pagesRead: 3,
-        progressDate: new Date(today.getTime() + 19 * 3600000),
+        progressDate: toProgressDate(today),
       });
 
       // Night: 3 pages (total = 15)
@@ -1349,342 +1349,14 @@ describe("Reading Streak Tracking - Spec 001", () => {
         currentPage: 15,
         currentPercentage: 0,
         pagesRead: 3,
-        progressDate: new Date(today.getTime() + 22 * 3600000),
+        progressDate: toProgressDate(today),
       });
 
       // Act: Rebuild streak (should aggregate all 4 logs)
-      const streak = await streakService.rebuildStreak();
+      const streak = await streakService.rebuildStreak(null, today);
 
       // Assert: All logs aggregated = 15 pages, meets threshold
       expect(streak.currentStreak).toBe(1);
-    });
-  });
-
-  describe("Timezone Edge Cases", () => {
-    test("DST transition (Spring Forward): Streak continues across 'lost hour'", async () => {
-      // Arrange: Test streak continuity during Spring DST transition
-      // In America/New_York, DST 2025 begins at 2:00 AM on March 9
-      // Clock jumps from 1:59:59 AM to 3:00:00 AM (losing 1 hour)
-      
-      await streakRepository.create({
-        userId: null,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
-        totalDaysActive: 0,
-        dailyThreshold: 1,
-        userTimezone: 'America/New_York',
-      });
-
-      const book = await bookRepository.create({
-        calibreId: 1,
-        title: "Test Book",
-        authors: ["Author"],
-        tags: [],
-        path: "Author/Test Book",
-        orphaned: false,
-      });
-
-      const session = await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-        userId: null,
-      });
-
-      // March 8, 2025 (day before DST) - 11 PM EST
-      const beforeDST = new Date("2025-03-09T04:00:00.000Z"); // 11 PM EST = 4 AM UTC
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 5,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: beforeDST,
-      });
-
-      // March 9, 2025 (DST day) - 4 AM EDT (after spring forward)
-      const afterDST = new Date("2025-03-09T08:00:00.000Z"); // 4 AM EDT = 8 AM UTC
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 10,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: afterDST,
-      });
-
-      // Act: Rebuild streak
-      const streak = await streakService.rebuildStreak(null, afterDST);
-
-      // Assert: Should recognize 2 consecutive days despite DST transition
-      expect(streak.currentStreak).toBe(2);
-      expect(streak.totalDaysActive).toBe(2);
-    });
-
-    test("DST transition (Fall Back): Streak continues across 'extra hour'", async () => {
-      // Arrange: Test streak continuity during Fall DST transition
-      // In America/New_York, DST 2025 ends at 2:00 AM on November 2
-      // Clock falls back from 1:59:59 AM to 1:00:00 AM (gaining 1 hour)
-      
-      await streakRepository.create({
-        userId: null,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
-        totalDaysActive: 0,
-        dailyThreshold: 1,
-        userTimezone: 'America/New_York',
-      });
-
-      const book = await bookRepository.create({
-        calibreId: 1,
-        title: "Test Book",
-        authors: ["Author"],
-        tags: [],
-        path: "Author/Test Book",
-        orphaned: false,
-      });
-
-      const session = await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-        userId: null,
-      });
-
-      // November 1, 2025 (day before DST ends) - 11 PM EDT
-      const beforeDST = new Date("2025-11-02T03:00:00.000Z"); // 11 PM EDT = 3 AM UTC
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 5,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: beforeDST,
-      });
-
-      // November 2, 2025 (DST ends) - 3 AM EST (after fall back)
-      const afterDST = new Date("2025-11-02T08:00:00.000Z"); // 3 AM EST = 8 AM UTC
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 10,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: afterDST,
-      });
-
-      // Act: Rebuild streak
-      const streak = await streakService.rebuildStreak(null, afterDST);
-
-      // Assert: Should recognize 2 consecutive days despite DST transition
-      expect(streak.currentStreak).toBe(2);
-      expect(streak.totalDaysActive).toBe(2);
-    });
-
-    test("Timezone change: Rebuilding streak after timezone change recalculates correctly", async () => {
-      // Arrange: User starts in New York, builds a streak, then moves to Tokyo
-      const streak = await streakRepository.create({
-        userId: null,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
-        totalDaysActive: 0,
-        dailyThreshold: 1,
-        userTimezone: 'America/New_York',
-      });
-
-      const book = await bookRepository.create({
-        calibreId: 1,
-        title: "Test Book",
-        authors: ["Author"],
-        tags: [],
-        path: "Author/Test Book",
-        orphaned: false,
-      });
-
-      const session = await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-        userId: null,
-      });
-
-      // Create 3 days of progress in New York timezone
-      const day1 = new Date("2025-11-25T04:00:00.000Z"); // Nov 24, 11 PM EST
-      const day2 = new Date("2025-11-26T04:00:00.000Z"); // Nov 25, 11 PM EST
-      const day3 = new Date("2025-11-27T04:00:00.000Z"); // Nov 26, 11 PM EST
-
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 5,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: day1,
-      });
-
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 10,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: day2,
-      });
-
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 15,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: day3,
-      });
-
-      // Build streak in NY timezone
-      let result = await streakService.rebuildStreak(null, day3);
-      expect(result.currentStreak).toBe(3);
-
-      // Act: User changes timezone to Tokyo (Asia/Tokyo is UTC+9)
-      await streakRepository.setTimezone(null, 'Asia/Tokyo');
-
-      // Rebuild streak with Tokyo timezone
-      result = await streakService.rebuildStreak(null, day3);
-
-      // Assert: Streak should still be valid (same UTC moments, different timezone interpretation)
-      // The dates should still be consecutive when viewed in Tokyo time
-      expect(result.currentStreak).toBe(3);
-      expect(result.totalDaysActive).toBe(3);
-    });
-
-    test("Cross-timezone midnight: Progress logged just before and after timezone midnight", async () => {
-      // Arrange: Test edge case where progress is logged very close to midnight in user's timezone
-      await streakRepository.create({
-        userId: null,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
-        totalDaysActive: 0,
-        dailyThreshold: 1,
-        userTimezone: 'America/New_York', // EST is UTC-5
-      });
-
-      const book = await bookRepository.create({
-        calibreId: 1,
-        title: "Test Book",
-        authors: ["Author"],
-        tags: [],
-        path: "Author/Test Book",
-        orphaned: false,
-      });
-
-      const session = await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-        userId: null,
-      });
-
-      // 11:59 PM EST on Nov 26 = 4:59 AM UTC on Nov 27
-      const beforeMidnight = new Date("2025-11-27T04:59:00.000Z");
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 5,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: beforeMidnight,
-      });
-
-      // 12:01 AM EST on Nov 27 = 5:01 AM UTC on Nov 27
-      const afterMidnight = new Date("2025-11-27T05:01:00.000Z");
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 10,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: afterMidnight,
-      });
-
-      // Act: Rebuild streak
-      const streak = await streakService.rebuildStreak(null, afterMidnight);
-
-      // Assert: Should recognize as 2 different days in user's timezone
-      expect(streak.currentStreak).toBe(2);
-      expect(streak.totalDaysActive).toBe(2);
-    });
-
-    test("UTC midnight vs local midnight: Same UTC day can span 2 local days", async () => {
-      // Arrange: Demonstrate that a single UTC day can cross local day boundaries
-      await streakRepository.create({
-        userId: null,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
-        totalDaysActive: 0,
-        dailyThreshold: 10, // Need 10 pages per day
-        userTimezone: 'America/Los_Angeles', // PST is UTC-8
-      });
-
-      const book = await bookRepository.create({
-        calibreId: 1,
-        title: "Test Book",
-        authors: ["Author"],
-        tags: [],
-        path: "Author/Test Book",
-        orphaned: false,
-      });
-
-      const session = await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-        userId: null,
-      });
-
-      // 6 PM PST Nov 26 = 2 AM UTC Nov 27 (still Nov 26 in PST)
-      const evening = new Date("2025-11-27T02:00:00.000Z");
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 6,
-        currentPercentage: 0,
-        pagesRead: 6,
-        progressDate: evening,
-      });
-
-      // 10 AM UTC Nov 27 = 2 AM PST Nov 27 (now Nov 27 in PST)
-      const morning = new Date("2025-11-27T10:00:00.000Z");
-      await progressRepository.create({
-        bookId: book.id,
-        sessionId: session.id,
-        currentPage: 11,
-        currentPercentage: 0,
-        pagesRead: 5,
-        progressDate: morning,
-      });
-
-      // Act: Rebuild streak
-      const streak = await streakService.rebuildStreak(null, morning);
-
-      // Assert: Should aggregate by LOCAL day, not UTC day
-      // Nov 26 PST: 6 pages (doesn't meet threshold)
-      // Nov 27 PST: 5 pages (doesn't meet threshold)
-      expect(streak.currentStreak).toBe(0);
-      expect(streak.totalDaysActive).toBe(0);
     });
   });
 

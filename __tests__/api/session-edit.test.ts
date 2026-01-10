@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { PATCH } from "@/app/api/books/[id]/sessions/[sessionId]/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toSessionDate } from '../test-utils';
 import {
   mockBook1,
   mockSessionRead,
@@ -37,8 +38,8 @@ async function createTestSession(bookId: number, overrides = {}) {
     bookId,
     sessionNumber: 1,
     isActive: true,
-    startedDate: new Date("2025-11-01"),
-    completedDate: new Date("2025-11-15"),
+    startedDate: "2025-11-01",
+    completedDate: "2025-11-15",
     review: "Original review",
     ...overrides,
   });

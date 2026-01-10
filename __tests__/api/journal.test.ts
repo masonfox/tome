@@ -1,3 +1,4 @@
+import { toProgressDate, createProgressSequence } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET } from "@/app/api/journal/route";
 import { bookRepository, progressRepository } from "@/lib/repositories";
@@ -68,7 +69,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T10:00:00Z"),
+        progressDate: "2024-01-15",
         notes: "Test note",
       });
 
@@ -95,7 +96,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T10:00:00Z"),
+        progressDate: "2024-01-15",
       });
 
       await progressRepository.create({
@@ -103,7 +104,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 100,
         currentPercentage: 33.33,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T15:00:00Z"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal");
@@ -121,7 +122,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T10:00:00Z"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal");
@@ -153,7 +154,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal?limit=10");
@@ -195,16 +196,15 @@ describe("Journal API - GET /api/journal", () => {
     });
 
     test("accepts valid skip parameter", async () => {
-      // Create 3 progress entries
-      for (let i = 0; i < 3; i++) {
-        await progressRepository.create({
-          bookId: testBook.id,
-          currentPage: 50 + i * 10,
-          currentPercentage: 16.67 + i * 3.33,
-          pagesRead: 10,
-          progressDate: new Date(`2024-01-${15 + i}T10:00:00Z`),
-        });
-      }
+      // Create 3 progress entries using helper
+      await createProgressSequence(progressRepository, {
+        bookId: testBook.id,
+        startDate: "2024-01-15",
+        startPage: 50,
+        pageIncrement: 10,
+        count: 3,
+        totalPages: 300,
+      });
 
       const request = createMockRequest("GET", "/api/journal?skip=1");
       const response = await GET(request as NextRequest);
@@ -235,7 +235,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T23:00:00Z"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal?timezone=Asia/Tokyo");
@@ -252,7 +252,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T10:00:00Z"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal");
@@ -271,7 +271,7 @@ describe("Journal API - GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 16.67,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15"),
+        progressDate: "2024-01-15",
       });
 
       const request = createMockRequest("GET", "/api/journal?limit=50");
@@ -283,16 +283,15 @@ describe("Journal API - GET /api/journal", () => {
     });
 
     test("returns hasMore=true when more entries available", async () => {
-      // Create 3 progress entries
-      for (let i = 0; i < 3; i++) {
-        await progressRepository.create({
-          bookId: testBook.id,
-          currentPage: 50 + i * 10,
-          currentPercentage: 16.67 + i * 3.33,
-          pagesRead: 10,
-          progressDate: new Date(`2024-01-${15 + i}T10:00:00Z`),
-        });
-      }
+      // Create 3 progress entries using helper
+      await createProgressSequence(progressRepository, {
+        bookId: testBook.id,
+        startDate: "2024-01-15",
+        startPage: 50,
+        pageIncrement: 10,
+        count: 3,
+        totalPages: 300,
+      });
 
       const request = createMockRequest("GET", "/api/journal?limit=1");
       const response = await GET(request as NextRequest);

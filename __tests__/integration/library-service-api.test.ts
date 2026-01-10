@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET as GET_BOOKS } from "@/app/api/books/route";
@@ -117,7 +118,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       await sessionRepository.create({
@@ -125,7 +126,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       // Filter by "reading"
@@ -520,7 +521,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false, // Archived
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       const result = await service.getBooks({
@@ -547,7 +548,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true, // Active
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       const result = await service.getBooks({
@@ -574,7 +575,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       const result = await service.getBooks({
@@ -599,7 +600,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       const result = await service.getBooks({
@@ -627,7 +628,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2024-01-01"),
+        completedDate: toSessionDate(new Date("2024-01-01")),
         rating: 4,
       });
 
@@ -637,7 +638,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 2,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2024-02-01"),
+        startedDate: toSessionDate(new Date("2024-02-01")),
       });
 
       await progressRepository.create({
@@ -645,7 +646,7 @@ describe("LibraryService → API Integration", () => {
         sessionId: session2.id,
         currentPage: 150,
         currentPercentage: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
         pagesRead: 50,
       });
 
@@ -744,7 +745,7 @@ describe("LibraryService → API Integration", () => {
         sessionId: session.id,
         currentPage: 150,
         currentPercentage: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
         pagesRead: 50,
       });
 
@@ -774,7 +775,7 @@ describe("LibraryService → API Integration", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       await progressRepository.create({
@@ -782,7 +783,7 @@ describe("LibraryService → API Integration", () => {
         sessionId: session.id,
         currentPage: 300,
         currentPercentage: 100,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
         pagesRead: 50,
       });
 
