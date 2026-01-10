@@ -1,7 +1,8 @@
 import { getLogger } from "@/lib/logger";
+import { toDateString } from "@/utils/dateHelpers.server";
 import { NextResponse } from "next/server";
 import { sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
-import { startOfYear, startOfMonth, startOfDay, subDays } from "date-fns";
+import { startOfYear, startOfMonth, startOfDay, subDays, format } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 
 export const dynamic = 'force-dynamic';
@@ -34,9 +35,9 @@ export async function GET() {
     // Books read (all time, this year, this month)
     const booksReadTotal = await sessionRepository.countByStatus("read", false);
 
-    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(yearStartUtc);
+    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(toDateString(yearStartUtc));
 
-    const booksReadThisMonth = await sessionRepository.countCompletedAfterDate(monthStartUtc);
+    const booksReadThisMonth = await sessionRepository.countCompletedAfterDate(toDateString(monthStartUtc));
 
     // Currently reading (only count active sessions)
     const currentlyReading = await sessionRepository.countByStatus("reading", true);

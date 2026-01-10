@@ -14,8 +14,8 @@ export const readingSessions = sqliteTable(
     status: text("status", {
       enum: ["to-read", "read-next", "reading", "read"],
     }).notNull().default("to-read"),
-    startedDate: integer("started_date", { mode: "timestamp" }),
-    completedDate: integer("completed_date", { mode: "timestamp" }),
+    startedDate: text("started_date"), // YYYY-MM-DD format
+    completedDate: text("completed_date"), // YYYY-MM-DD format
     review: text("review"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
