@@ -628,6 +628,48 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
   });
 });
 
+describe("POST /api/books/[id]/status - Error Validation", () => {
+  test("should return PAGES_REQUIRED error when setting status to 'reading' without totalPages", async () => {
+    // Create book without totalPages
+    const book = await bookRepository.create(createTestBook({
+      ...mockBook1,
+      totalPages: null,
+    }));
+
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "reading",
+    });
+    const response = await POST(request as NextRequest, {
+      params: Promise.resolve({ id: book.id.toString() }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("Page count required");
+    expect(data.code).toBe("PAGES_REQUIRED");
+  });
+
+  test("should return PAGES_REQUIRED error when setting status to 'read' without totalPages", async () => {
+    // Create book without totalPages
+    const book = await bookRepository.create(createTestBook({
+      ...mockBook1,
+      totalPages: null,
+    }));
+
+    const request = createMockRequest("POST", `/api/books/${book.id}/status`, {
+      status: "read",
+    });
+    const response = await POST(request as NextRequest, {
+      params: Promise.resolve({ id: book.id.toString() }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("Page count required");
+    expect(data.code).toBe("PAGES_REQUIRED");
+  });
+});
+
 describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
   beforeEach(() => {
     // Clear tracking array before each test
