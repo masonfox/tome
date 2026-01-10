@@ -666,3 +666,177 @@ describe("ProgressRepository.getHighestCurrentPageForActiveSessions()", () => {
     expect(highest2).toBe(350);
   });
 });
+
+describe("ProgressRepository.recalculatePercentagesForBook()", () => {
+  test("should return 0 when no active sessions exist", async () => {
+    // Create book with no sessions
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "/test/path",
+      totalPages: 300,
+    });
+
+    // Recalculate with new page count
+    const updated = await progressRepository.recalculatePercentagesForBook(book.id, 400);
+
+    expect(updated).toBe(0);
+  });
+
+  test("should recalculate percentages for active reading sessions", async () => {
+    // Create book with original totalPages
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "/test/path",
+      totalPages: 300,
+    });
+
+    // Create active reading session
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Create progress logs with percentages based on 300 pages
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 150,
+      currentPercentage: 50, // 150/300 = 50%
+      pagesRead: 150,
+      progressDate: toProgressDate(new Date("2025-01-01")),
+    });
+
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: session.id,
+      currentPage: 225,
+      currentPercentage: 75, // 225/300 = 75%
+      pagesRead: 75,
+      progressDate: toProgressDate(new Date("2025-01-02")),
+    });
+
+    // Recalculate with new page count (400 pages)
+    const updated = await progressRepository.recalculatePercentagesForBook(book.id, 400);
+
+    expect(updated).toBe(2); // 2 logs updated
+
+    // Verify percentages were recalculated
+    const logs = await progressRepository.findBySessionId(session.id);
+    expect(logs).toHaveLength(2);
+    
+    const log1 = logs.find(l => l.currentPage === 150);
+    const log2 = logs.find(l => l.currentPage === 225);
+    
+    expect(log1?.currentPercentage).toBe(37); // floor(150/400 * 100) = 37
+    expect(log2?.currentPercentage).toBe(56); // floor(225/400 * 100) = 56
+  });
+
+  test("should not recalculate percentages for completed sessions", async () => {
+    // Create book
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Test Book",
+      authors: ["Author"],
+      path: "/test/path",
+      totalPages: 300,
+    });
+
+    // Create completed (inactive) session
+    const completedSession = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read",
+      isActive: false,
+    });
+
+    // Create progress log for completed session
+    await progressRepository.create({
+      bookId: book.id,
+      sessionId: completedSession.id,
+      currentPage: 300,
+      currentPercentage: 100,
+      pagesRead: 300,
+      progressDate: toProgressDate(new Date("2025-01-01")),
+    });
+
+    // Recalculate - should skip completed session
+    const updated = await progressRepository.recalculatePercentagesForBook(book.id, 400);
+
+    expect(updated).toBe(0); // No logs updated
+
+    // Verify percentage unchanged
+    const logs = await progressRepository.findBySessionId(completedSession.id);
+    expect(logs[0].currentPercentage).toBe(100); // Still 100%
+  });
+
+  test("should only recalculate for specified book", async () => {
+    // Create two books
+    const book1 = await bookRepository.create({
+      calibreId: 1,
+      title: "Book 1",
+      authors: ["Author"],
+      path: "/test/path1",
+      totalPages: 300,
+    });
+
+    const book2 = await bookRepository.create({
+      calibreId: 2,
+      title: "Book 2",
+      authors: ["Author"],
+      path: "/test/path2",
+      totalPages: 300,
+    });
+
+    // Create active sessions for both
+    const session1 = await sessionRepository.create({
+      bookId: book1.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    const session2 = await sessionRepository.create({
+      bookId: book2.id,
+      sessionNumber: 1,
+      status: "reading",
+      isActive: true,
+    });
+
+    // Create progress for both
+    await progressRepository.create({
+      bookId: book1.id,
+      sessionId: session1.id,
+      currentPage: 150,
+      currentPercentage: 50,
+      pagesRead: 150,
+      progressDate: toProgressDate(new Date("2025-01-01")),
+    });
+
+    await progressRepository.create({
+      bookId: book2.id,
+      sessionId: session2.id,
+      currentPage: 150,
+      currentPercentage: 50,
+      pagesRead: 150,
+      progressDate: toProgressDate(new Date("2025-01-01")),
+    });
+
+    // Recalculate only for book1
+    const updated = await progressRepository.recalculatePercentagesForBook(book1.id, 600);
+
+    expect(updated).toBe(1); // Only 1 log updated (book1's)
+
+    // Verify book1's percentage changed but book2's didn't
+    const logs1 = await progressRepository.findBySessionId(session1.id);
+    const logs2 = await progressRepository.findBySessionId(session2.id);
+
+    expect(logs1[0].currentPercentage).toBe(25); // floor(150/600 * 100) = 25
+    expect(logs2[0].currentPercentage).toBe(50); // Unchanged
+  });
+});
