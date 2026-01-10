@@ -148,12 +148,14 @@ export function runMigrationsOnDatabase(database: any) {
 // tsx doesn't support import.meta.main, so we use the standard ESM approach
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
-  try {
-    await runMigrations();
-    sqlite.close();
-    getLoggerSafe().info("Database setup complete.");
-  } catch (error) {
-    getLoggerSafe().error({ err: error }, "Migration failed");
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      await runMigrations();
+      sqlite.close();
+      getLoggerSafe().info("Database setup complete.");
+    } catch (error) {
+      getLoggerSafe().error({ err: error }, "Migration failed");
+      process.exit(1);
+    }
+  })();
 }
