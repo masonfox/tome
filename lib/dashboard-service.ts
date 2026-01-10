@@ -1,4 +1,5 @@
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { toDateString } from "@/utils/dateHelpers.server";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 import { getLogger } from "@/lib/logger";
 import type { ProgressLog } from "@/lib/db/schema";
@@ -105,7 +106,7 @@ async function getStats(): Promise<DashboardStats | null> {
     const thirtyDaysAgoUtc = fromZonedTime(thirtyDaysAgoInUserTz, userTimezone);
 
     // Books read this year (using user's year boundary)
-    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(yearStartUtc);
+    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(toDateString(yearStartUtc));
 
     // Total books read
     const totalBooksRead = await sessionRepository.countByStatus("read", false);

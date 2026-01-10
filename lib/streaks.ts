@@ -265,10 +265,10 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date, 
   const qualifyingDates = new Set<string>(); // Only dates that meet the threshold
 
   allProgress.forEach((progress) => {
-    // Convert progress date to user's timezone for day boundary calculation
-    const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-    const dayStart = startOfDay(dateInUserTz);
-    const dateKey = format(dayStart, 'yyyy-MM-dd');
+    // Progress dates are now stored as YYYY-MM-DD strings (calendar days)
+    // Parse as midnight local time, then group by this date key
+    // Note: Since dates are already calendar days, we don't need timezone conversion
+    const dateKey = progress.progressDate; // Already YYYY-MM-DD
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {

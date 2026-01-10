@@ -145,3 +145,24 @@ export async function getCurrentDateInUserTimezone(userId?: number | null): Prom
   // Parse this date back to midnight in user's timezone, converted to UTC
   return parseLocalDateToUtc(dateString, userId);
 }
+
+/**
+ * Convert a Date object to YYYY-MM-DD string format (UTC).
+ * 
+ * This is the canonical way to convert Date objects to database date strings
+ * for session dates (started_date, completed_date) and progress dates (progress_date).
+ * Uses UTC to ensure consistency across timezones.
+ * 
+ * @param date - Date object to convert
+ * @returns Date string in YYYY-MM-DD format
+ * 
+ * @example
+ * const date = new Date('2025-01-15T10:30:00Z');
+ * toDateString(date); // "2025-01-15"
+ */
+export function toDateString(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
