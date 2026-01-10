@@ -5,6 +5,7 @@ import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 export class ProgressRepository extends BaseRepository<
   ProgressLog,
@@ -103,10 +104,11 @@ export class ProgressRepository extends BaseRepository<
    * Find progress logs after a certain date
    */
   async findAfterDate(date: Date): Promise<ProgressLog[]> {
+    const dateString = toDateString(date);
     return this.getDatabase()
       .select()
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, date))
+      .where(gte(progressLogs.progressDate, dateString))
       .orderBy(asc(progressLogs.progressDate))
       .all();
   }
@@ -114,10 +116,11 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Find progress entries BEFORE a specific date for a session
    * Used to validate that new entry has progress ≥ all previous entries
+   * @param date - Date string in YYYY-MM-DD format
    */
   async findBeforeDateForSession(
     sessionId: number,
-    date: Date
+    date: string
   ): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
@@ -135,10 +138,11 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Find progress entries AFTER a specific date for a session
    * Used to validate that new entry has progress ≤ all future entries
+   * @param date - Date string in YYYY-MM-DD format
    */
   async findAfterDateForSession(
     sessionId: number,
-    date: Date
+    date: string
   ): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
@@ -160,13 +164,14 @@ export class ProgressRepository extends BaseRepository<
     sessionId: number,
     date: Date
   ): Promise<ProgressLog | undefined> {
+    const dateString = toDateString(date);
     return this.getDatabase()
       .select()
       .from(progressLogs)
       .where(
         and(
           eq(progressLogs.sessionId, sessionId),
-          lt(progressLogs.progressDate, date)
+          lt(progressLogs.progressDate, dateString)
         )
       )
       .orderBy(desc(progressLogs.progressDate))
@@ -181,13 +186,14 @@ export class ProgressRepository extends BaseRepository<
     sessionId: number,
     date: Date
   ): Promise<ProgressLog | undefined> {
+    const dateString = toDateString(date);
     return this.getDatabase()
       .select()
       .from(progressLogs)
       .where(
         and(
           eq(progressLogs.sessionId, sessionId),
-          gt(progressLogs.progressDate, date)
+          gt(progressLogs.progressDate, dateString)
         )
       )
       .orderBy(asc(progressLogs.progressDate))
@@ -226,31 +232,27 @@ export class ProgressRepository extends BaseRepository<
     const result = this.getDatabase()
       .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, date))
+      .where(gte(progressLogs.progressDate, toDateString(date)))
       .get();
 
     return result?.total ?? 0;
   }
 
   /**
-   * Get activity calendar (dates with page counts) in user's timezone
-   * 
-   * IMPORTANT: Returns dates in user's timezone, not UTC.
-   * Caller must provide timezone for proper date grouping.
+   * Get activity calendar (dates with page counts)
    * 
    * @param startDate Start of date range in UTC
    * @param endDate End of date range in UTC
-   * @param timezone IANA timezone identifier (e.g., 'America/New_York', 'Asia/Tokyo')
-   * @returns Array of {date: 'YYYY-MM-DD' in user TZ, pagesRead: number}
+   * @param timezone DEPRECATED - no longer used, progressDate is already a calendar day
+   * @returns Array of {date: 'YYYY-MM-DD', pagesRead: number} grouped by progressDate
    * 
    * @example
-   * // Get activity calendar for user in Tokyo
    * const calendar = await progressRepository.getActivityCalendar(
    *   startDateUtc, 
    *   endDateUtc, 
-   *   'Asia/Tokyo'
+   *   'America/New_York'
    * );
-   * // Returns dates like '2025-12-02' representing Dec 2 in Tokyo time
+   * // Returns dates like '2025-12-02' (the progressDate calendar day)
    */
   async getActivityCalendar(
     startDate: Date,
@@ -263,23 +265,18 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          gte(progressLogs.progressDate, startDate),
-          lte(progressLogs.progressDate, endDate)
+          gte(progressLogs.progressDate, toDateString(startDate)),
+          lte(progressLogs.progressDate, toDateString(endDate))
         )
       )
       .all();
 
-    // Group by date in user's timezone
-    const { toZonedTime } = require('date-fns-tz');
-    const { startOfDay, format } = require('date-fns');
-    
+    // Group by date (progressDate is already the calendar day string)
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
-      const dateInUserTz = toZonedTime(log.progressDate, timezone);
-      const dayStart = startOfDay(dateInUserTz);
-      const dateKey = format(dayStart, 'yyyy-MM-dd');
-      
+      // progressDate is YYYY-MM-DD string - use it directly as the calendar day
+      const dateKey = log.progressDate;
       const current = dailyMap.get(dateKey) || 0;
       dailyMap.set(dateKey, current + (log.pagesRead || 0));
     });
@@ -312,7 +309,7 @@ export class ProgressRepository extends BaseRepository<
     const logs = this.getDatabase()
       .select()
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, startDateUtc))
+      .where(gte(progressLogs.progressDate, toDateString(startDateUtc)))
       .all();
 
     if (logs.length === 0) {
@@ -326,7 +323,9 @@ export class ProgressRepository extends BaseRepository<
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
-      const dateInUserTz = toZonedTime(log.progressDate, timezone);
+      // progressDate is YYYY-MM-DD string, parse as midnight UTC
+      const progressDateUtc = new Date(log.progressDate + "T00:00:00Z");
+      const dateInUserTz = toZonedTime(progressDateUtc, timezone);
       const dayStart = startOfDay(dateInUserTz);
       const dateKey = format(dayStart, 'yyyy-MM-dd');
       
@@ -379,8 +378,8 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          gte(progressLogs.progressDate, dateStartUtc),
-          lte(progressLogs.progressDate, dateEndUtc)
+          gte(progressLogs.progressDate, toDateString(dateStartUtc)),
+          lte(progressLogs.progressDate, toDateString(dateEndUtc))
         )
       )
       .get();
@@ -464,7 +463,7 @@ export class ProgressRepository extends BaseRepository<
    */
   async getEarliestProgressDate(): Promise<Date | null> {
     const result = this.getDatabase()
-      .select({ earliestDate: sql<number>`MIN(${progressLogs.progressDate})` })
+      .select({ earliestDate: sql<string>`MIN(${progressLogs.progressDate})` })
       .from(progressLogs)
       .get();
 
@@ -472,8 +471,24 @@ export class ProgressRepository extends BaseRepository<
       return null;
     }
 
-    // Convert Unix timestamp to Date
-    return new Date(result.earliestDate * 1000);
+    // progressDate is now TEXT in YYYY-MM-DD format
+    // Parse it as midnight UTC
+    const [year, month, day] = result.earliestDate.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  /**
+   * Get the earliest progress date as a YYYY-MM-DD string
+   * Returns null if no progress exists
+   * This avoids timezone conversion issues when comparing dates
+   */
+  async getEarliestProgressDateString(): Promise<string | null> {
+    const result = this.getDatabase()
+      .select({ earliestDate: sql<string>`MIN(${progressLogs.progressDate})` })
+      .from(progressLogs)
+      .get();
+
+    return result?.earliestDate ?? null;
   }
 
   /**

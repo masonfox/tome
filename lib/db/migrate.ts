@@ -9,6 +9,14 @@ import { validatePreflightChecks } from "./preflight-checks";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { getLogger } from "@/lib/logger";
+import { 
+  migrateProgressDatesToText, 
+  isMigrationComplete as isProgressDatesMigrationComplete 
+} from "@/scripts/migrations/migrate-progress-dates-to-text";
+import { 
+  migrateSessions, 
+  isMigrationComplete as isSessionDatesMigrationComplete 
+} from "@/scripts/migrations/migrate-session-dates-to-text";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
 let logger: any = null;
@@ -23,7 +31,7 @@ function getLoggerSafe() {
   return logger;
 }
 
-export function runMigrations() {
+export async function runMigrations() {
   // Run pre-flight checks
   validatePreflightChecks();
 
@@ -34,6 +42,37 @@ export function runMigrations() {
   try {
     getLoggerSafe().info("Running migrations...");
     
+    // PHASE 1: Run data migration for progress dates (if not already done)
+    // This MUST run BEFORE the Drizzle schema migration that changes column types
+    if (!isProgressDatesMigrationComplete()) {
+      getLoggerSafe().info("Running progress dates data migration...");
+      try {
+        await migrateProgressDatesToText();
+        getLoggerSafe().info("Progress dates migration complete");
+      } catch (error) {
+        getLoggerSafe().error({ err: error }, "Progress dates migration failed");
+        throw error;
+      }
+    } else {
+      getLoggerSafe().info("Progress dates already migrated, skipping");
+    }
+    
+    // PHASE 1.5: Run data migration for session dates (if not already done)
+    // This MUST run BEFORE the Drizzle schema migration that changes column types
+    if (!isSessionDatesMigrationComplete()) {
+      getLoggerSafe().info("Running session dates data migration...");
+      try {
+        await migrateSessions();
+        getLoggerSafe().info("Session dates migration complete");
+      } catch (error) {
+        getLoggerSafe().error({ err: error }, "Session dates migration failed");
+        throw error;
+      }
+    } else {
+      getLoggerSafe().info("Session dates already migrated, skipping");
+    }
+    
+    // PHASE 2: Run Drizzle schema migrations
     // Check which migrations exist and which have been applied
     const migrationsFolder = './drizzle';
     const migrationFiles = readdirSync(migrationsFolder)
@@ -110,7 +149,7 @@ export function runMigrationsOnDatabase(database: any) {
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
   try {
-    runMigrations();
+    await runMigrations();
     sqlite.close();
     getLoggerSafe().info("Database setup complete.");
   } catch (error) {
