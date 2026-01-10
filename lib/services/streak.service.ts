@@ -4,6 +4,7 @@ import { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
 import { differenceInHours, endOfDay, differenceInDays, startOfDay, isEqual, format, parseISO } from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 const logger = getLogger();
 
@@ -228,8 +229,8 @@ export class StreakService {
       // Check if last activity was more than 1 day ago (streak is broken)
       // Compare UTC calendar days
       const now = currentDate || new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const lastActivityStr = lastActivityDate.toISOString().split('T')[0];
+      const todayStr = toDateString(now);
+      const lastActivityStr = toDateString(lastActivityDate);
       const today = parseISO(`${todayStr}T00:00:00.000Z`);
       const lastActivityDay = parseISO(`${lastActivityStr}T00:00:00.000Z`);
       const daysSinceLastActivity = differenceInDays(today, lastActivityDay);

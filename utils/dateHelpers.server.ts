@@ -153,12 +153,29 @@ export async function getCurrentDateInUserTimezone(userId?: number | null): Prom
  * for session dates (started_date, completed_date) and progress dates (progress_date).
  * Uses UTC to ensure consistency across timezones.
  * 
+ * **When to use:**
+ * - Converting Date objects for database queries (date range filters, comparisons)
+ * - Working with dates already in UTC
+ * - Comparing calendar days at UTC midnight
+ * 
+ * **When NOT to use:**
+ * For timezone-aware conversions (e.g., "today" in user's timezone), use
+ * `formatInTimeZone(date, timezone, 'yyyy-MM-dd')` from date-fns-tz instead.
+ * 
  * @param date - Date object to convert
- * @returns Date string in YYYY-MM-DD format
+ * @returns Date string in YYYY-MM-DD format (UTC)
  * 
  * @example
- * const date = new Date('2025-01-15T10:30:00Z');
- * toDateString(date); // "2025-01-15"
+ * // Database query
+ * const dateStr = toDateString(new Date('2025-01-15T10:30:00Z')); // "2025-01-15"
+ * await progressRepository.findAfterDate(dateStr);
+ * 
+ * @example
+ * // For timezone-aware conversion, use formatInTimeZone instead:
+ * import { formatInTimeZone } from 'date-fns-tz';
+ * const todayInUserTz = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+ * 
+ * @see formatInTimeZone from date-fns-tz for timezone-aware conversions
  */
 export function toDateString(date: Date): string {
   const year = date.getUTCFullYear();
