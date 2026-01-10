@@ -45,14 +45,14 @@ export async function GET() {
     // Pages read (total, this year, this month, today)
     const pagesReadTotal = await progressRepository.getTotalPagesRead();
 
-    const pagesReadThisYear = await progressRepository.getPagesReadAfterDate(yearStartUtc);
+    const pagesReadThisYear = await progressRepository.getPagesReadAfterDate(toDateString(yearStartUtc));
 
-    const pagesReadThisMonth = await progressRepository.getPagesReadAfterDate(monthStartUtc);
+    const pagesReadThisMonth = await progressRepository.getPagesReadAfterDate(toDateString(monthStartUtc));
 
-    const pagesReadToday = await progressRepository.getPagesReadAfterDate(todayUtc);
+    const pagesReadToday = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
 
     // Calculate average reading speed (pages per day) for the last 30 days in user timezone
-    const avgPagesPerDay = await progressRepository.getAveragePagesPerDay(thirtyDaysAgoUtc, userTimezone);
+    const avgPagesPerDay = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgoUtc), userTimezone);
 
     return NextResponse.json({
       booksRead: {

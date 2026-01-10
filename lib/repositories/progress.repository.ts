@@ -102,9 +102,16 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Find progress logs after a certain date
+   * 
+   * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
+   * @returns Progress logs on or after the specified date
+   * 
+   * @example
+   * import { toDateString } from "@/utils/dateHelpers.server";
+   * const today = toDateString(new Date());
+   * const logs = await progressRepository.findAfterDate(today);
    */
-  async findAfterDate(date: Date): Promise<ProgressLog[]> {
-    const dateString = toDateString(date);
+  async findAfterDate(dateString: string): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
@@ -159,12 +166,20 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Find the closest progress entry before a date
+   * 
+   * @param sessionId - Reading session ID
+   * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
+   * @returns The most recent progress log before the specified date, or undefined
+   * 
+   * @example
+   * import { toDateString } from "@/utils/dateHelpers.server";
+   * const dateStr = toDateString(new Date());
+   * const log = await progressRepository.findClosestBeforeDate(sessionId, dateStr);
    */
   async findClosestBeforeDate(
     sessionId: number,
-    date: Date
+    dateString: string
   ): Promise<ProgressLog | undefined> {
-    const dateString = toDateString(date);
     return this.getDatabase()
       .select()
       .from(progressLogs)
@@ -181,12 +196,20 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Find the closest progress entry after a date
+   * 
+   * @param sessionId - Reading session ID
+   * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
+   * @returns The earliest progress log after the specified date, or undefined
+   * 
+   * @example
+   * import { toDateString } from "@/utils/dateHelpers.server";
+   * const dateStr = toDateString(new Date());
+   * const log = await progressRepository.findClosestAfterDate(sessionId, dateStr);
    */
   async findClosestAfterDate(
     sessionId: number,
-    date: Date
+    dateString: string
   ): Promise<ProgressLog | undefined> {
-    const dateString = toDateString(date);
     return this.getDatabase()
       .select()
       .from(progressLogs)
@@ -214,25 +237,27 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Calculate pages read after a UTC date (timezone-agnostic)
-   * Compares UTC timestamps directly without timezone conversion
+   * Calculate pages read after a specific date (inclusive)
    * 
-   * IMPORTANT: Caller must convert user's day boundary to UTC before calling.
-   * Use toZonedTime/fromZonedTime to get user's "today" in UTC.
+   * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
+   * @returns Total pages read on or after the specified date
    * 
-   * @param date UTC timestamp representing the start of a day in user's timezone
    * @example
-   * // Get pages read "today" for user in Tokyo
+   * import { toDateString, getCurrentUserTimezone } from "@/utils/dateHelpers.server";
+   * import { startOfDay, toZonedTime, fromZonedTime } from 'date-fns-tz';
+   * 
+   * // Get pages read "today" for user in their timezone
+   * const userTimezone = await getCurrentUserTimezone();
    * const now = new Date();
-   * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
-   * const todayUtc = fromZonedTime(todayInUserTz, 'Asia/Tokyo');
-   * const pages = await progressRepository.getPagesReadAfterDate(todayUtc);
+   * const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+   * const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+   * const pages = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
    */
-  async getPagesReadAfterDate(date: Date): Promise<number> {
+  async getPagesReadAfterDate(dateString: string): Promise<number> {
     const result = this.getDatabase()
       .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, toDateString(date)))
+      .where(gte(progressLogs.progressDate, dateString))
       .get();
 
     return result?.total ?? 0;
@@ -241,22 +266,21 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Get activity calendar (dates with page counts)
    * 
-   * @param startDate Start of date range in UTC
-   * @param endDate End of date range in UTC
-   * @param timezone DEPRECATED - no longer used, progressDate is already a calendar day
+   * @param startDateString - Start of date range in YYYY-MM-DD format (UTC calendar day)
+   * @param endDateString - End of date range in YYYY-MM-DD format (UTC calendar day)
+   * @param timezone - DEPRECATED, no longer used (progressDate is already a calendar day)
    * @returns Array of {date: 'YYYY-MM-DD', pagesRead: number} grouped by progressDate
    * 
    * @example
-   * const calendar = await progressRepository.getActivityCalendar(
-   *   startDateUtc, 
-   *   endDateUtc, 
-   *   'America/New_York'
-   * );
+   * import { toDateString } from "@/utils/dateHelpers.server";
+   * const startStr = toDateString(startDateUtc);
+   * const endStr = toDateString(endDateUtc);
+   * const calendar = await progressRepository.getActivityCalendar(startStr, endStr);
    * // Returns dates like '2025-12-02' (the progressDate calendar day)
    */
   async getActivityCalendar(
-    startDate: Date,
-    endDate: Date,
+    startDateString: string,
+    endDateString: string,
     timezone: string = 'America/New_York'
   ): Promise<{ date: string; pagesRead: number }[]> {
     // Get all progress logs in date range
@@ -265,8 +289,8 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          gte(progressLogs.progressDate, toDateString(startDate)),
-          lte(progressLogs.progressDate, toDateString(endDate))
+          gte(progressLogs.progressDate, startDateString),
+          lte(progressLogs.progressDate, endDateString)
         )
       )
       .all();
@@ -290,26 +314,30 @@ export class ProgressRepository extends BaseRepository<
   /**
    * Get average pages per day over a period in user's timezone
    * 
-   * IMPORTANT: Caller must provide start date in UTC (representing start of day in user TZ)
-   * 
-   * @param startDateUtc Start of period in UTC (user's day boundary converted to UTC)
-   * @param timezone IANA timezone identifier for grouping by calendar day
+   * @param startDateString - Start of period in YYYY-MM-DD format (UTC calendar day)
+   * @param timezone - IANA timezone identifier for grouping by calendar day
    * @returns Average pages per day, rounded to nearest integer
    * 
    * @example
+   * import { toDateString } from "@/utils/dateHelpers.server";
+   * import { startOfDay, subDays, toZonedTime, fromZonedTime } from 'date-fns-tz';
+   * 
    * // Get average pages per day for last 30 days for user in Tokyo
    * const now = new Date();
    * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
    * const thirtyDaysAgoInUserTz = subDays(todayInUserTz, 30);
    * const startDateUtc = fromZonedTime(thirtyDaysAgoInUserTz, 'Asia/Tokyo');
-   * const avg = await progressRepository.getAveragePagesPerDay(startDateUtc, 'Asia/Tokyo');
+   * const avg = await progressRepository.getAveragePagesPerDay(
+   *   toDateString(startDateUtc), 
+   *   'Asia/Tokyo'
+   * );
    */
-  async getAveragePagesPerDay(startDateUtc: Date, timezone: string = 'America/New_York'): Promise<number> {
+  async getAveragePagesPerDay(startDateString: string, timezone: string = 'America/New_York'): Promise<number> {
     // Get all logs since start date
     const logs = this.getDatabase()
       .select()
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, toDateString(startDateUtc)))
+      .where(gte(progressLogs.progressDate, startDateString))
       .all();
 
     if (logs.length === 0) {
@@ -355,31 +383,35 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Get progress for a specific date in user's timezone
+   * Get progress for a specific date range
    * 
-   * IMPORTANT: Caller must provide UTC timestamps for start/end of day in user's timezone
-   * 
-   * @param dateStartUtc Start of day in UTC (user's midnight converted to UTC)
-   * @param dateEndUtc End of day in UTC (user's 23:59:59 converted to UTC)
-   * @returns Total pages read during that calendar day in user's timezone
+   * @param startDateString - Start date in YYYY-MM-DD format (UTC calendar day)
+   * @param endDateString - End date in YYYY-MM-DD format (UTC calendar day)
+   * @returns Total pages read during the date range (inclusive)
    * 
    * @example
+   * import { toDateString } from "@/utils/dateHelpers.server";
+   * import { startOfDay, toZonedTime, fromZonedTime } from 'date-fns-tz';
+   * 
    * // Get progress for "today" for user in Tokyo
    * const now = new Date();
    * const todayInUserTz = startOfDay(toZonedTime(now, 'Asia/Tokyo'));
    * const tomorrowInUserTz = endOfDay(todayInUserTz);
    * const startUtc = fromZonedTime(todayInUserTz, 'Asia/Tokyo');
    * const endUtc = fromZonedTime(tomorrowInUserTz, 'Asia/Tokyo');
-   * const progress = await progressRepository.getProgressForDate(startUtc, endUtc);
+   * const progress = await progressRepository.getProgressForDate(
+   *   toDateString(startUtc), 
+   *   toDateString(endUtc)
+   * );
    */
-  async getProgressForDate(dateStartUtc: Date, dateEndUtc: Date): Promise<{ pagesRead: number }> {
+  async getProgressForDate(startDateString: string, endDateString: string): Promise<{ pagesRead: number }> {
     const result = this.getDatabase()
       .select({ pagesRead: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
       .where(
         and(
-          gte(progressLogs.progressDate, toDateString(dateStartUtc)),
-          lte(progressLogs.progressDate, toDateString(dateEndUtc))
+          gte(progressLogs.progressDate, startDateString),
+          lte(progressLogs.progressDate, endDateString)
         )
       )
       .get();

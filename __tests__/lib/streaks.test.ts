@@ -5,6 +5,7 @@ import { bookRepository, sessionRepository, progressRepository, streakRepository
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, type TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
 import { startOfDay } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 /**
  * Reading Streak Tests (Spec 001)
@@ -1157,7 +1158,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       dayStart.setUTCHours(0, 0, 0, 0);
       const dayEnd = new Date(specificTime);
       dayEnd.setUTCHours(23, 59, 59, 999);
-      const result = await progressRepository.getProgressForDate(dayStart, dayEnd);
+      const result = await progressRepository.getProgressForDate(toDateString(dayStart), toDateString(dayEnd));
 
       // Assert: Should return progress (timezone-aware query worked)
       expect(result).toBeDefined();

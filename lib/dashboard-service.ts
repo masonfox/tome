@@ -115,13 +115,13 @@ async function getStats(): Promise<DashboardStats | null> {
     const currentlyReadingCount = await sessionRepository.countByStatus("reading", true);
 
     // Pages read today (using user's today)
-    const pagesToday = await progressRepository.getPagesReadAfterDate(todayUtc);
+    const pagesToday = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
 
     // Pages read this month (using user's month boundary)
-    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(monthStartUtc);
+    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(toDateString(monthStartUtc));
 
     // Average pages per day (last 30 days in user's timezone)
-    const avgPages = await progressRepository.getAveragePagesPerDay(thirtyDaysAgoUtc, userTimezone);
+    const avgPages = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgoUtc), userTimezone);
 
     return {
       booksRead: {
@@ -162,7 +162,7 @@ async function getStreak(): Promise<DashboardStreak | null> {
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
     const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    const todayPages = await progressRepository.getPagesReadAfterDate(todayUtc);
+    const todayPages = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
 
     return {
       currentStreak: streak.currentStreak,

@@ -7,6 +7,7 @@ import {
   streakRepository,
 } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 describe("Aggregation Query Tests", () => {
   beforeAll(async () => {
@@ -110,7 +111,7 @@ describe("Aggregation Query Tests", () => {
         progressDate: toProgressDate(new Date()),
       });
 
-      const totalSinceYesterday = await progressRepository.getPagesReadAfterDate(yesterday);
+      const totalSinceYesterday = await progressRepository.getPagesReadAfterDate(toDateString(yesterday));
       expect(totalSinceYesterday).toBe(50); // Only today's progress
     });
 
@@ -310,7 +311,7 @@ describe("Aggregation Query Tests", () => {
       const thirtyDaysAgo = new Date(now);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
+      const avg = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgo), userTimezone);
       expect(avg).toBe(75); // (50 + 100) / 2 = 75
     });
 
@@ -320,7 +321,7 @@ describe("Aggregation Query Tests", () => {
       const thirtyDaysAgo = new Date(now);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
+      const avg = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgo), userTimezone);
       expect(avg).toBe(0);
     });
   });
@@ -385,7 +386,7 @@ describe("Aggregation Query Tests", () => {
       const sevenDaysAgo = subDays(todayInTz, 7);
       const sevenDaysAgoUtc = fromZonedTime(sevenDaysAgo, timezone);
 
-      const calendar = await progressRepository.getActivityCalendar(sevenDaysAgoUtc, today, timezone);
+      const calendar = await progressRepository.getActivityCalendar(toDateString(sevenDaysAgoUtc), toDateString(today), timezone);
 
       expect(calendar.length).toBe(2); // 2 unique days
       

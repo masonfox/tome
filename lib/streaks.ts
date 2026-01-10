@@ -1,6 +1,7 @@
 import { startOfDay, differenceInDays, isEqual, format } from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { streakRepository, progressRepository } from "@/lib/repositories";
+import { toDateString } from "@/utils/dateHelpers.server";
 import type { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
 const logger = getLogger();
@@ -43,7 +44,7 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
   const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
   
-  const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
+  const todayProgress = await progressRepository.getProgressForDate(toDateString(todayUtc), toDateString(tomorrowUtc));
 
   if (!todayProgress || todayProgress.pagesRead === 0) {
     // No activity today, return existing streak
@@ -384,5 +385,5 @@ export async function getActivityCalendar(
     0
   );
 
-  return await progressRepository.getActivityCalendar(startDate, endDate, userTimezone);
+  return await progressRepository.getActivityCalendar(toDateString(startDate), toDateString(endDate), userTimezone);
 }
