@@ -6,6 +6,7 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { SessionService } from "@/lib/services/session.service";
 import { mockBook1, mockSessionToRead, mockSessionReading, mockProgressLog1 , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
+import { toSessionDate } from "@/__tests__/test-utils";
 import type { Book } from "@/lib/db/schema/books";
 
 /**
@@ -131,7 +132,7 @@ describe("SessionService", () => {
     });
 
     test("should create session with custom startedDate", async () => {
-      const customDate = new Date("2025-01-01");
+      const customDate = "2025-01-01";
       
       const result = await sessionService.updateStatus(book1.id, {
         status: "reading",
@@ -179,7 +180,7 @@ describe("SessionService", () => {
     });
 
     test("should not override existing startedDate", async () => {
-      const existingDate = new Date("2025-01-01");
+      const existingDate = "2025-01-01";
       
       await sessionRepository.create(createTestSession({
         bookId: book1.id,
@@ -203,7 +204,7 @@ describe("SessionService", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
         isActive: true,
       }));
 
@@ -217,7 +218,7 @@ describe("SessionService", () => {
     });
 
     test("should use custom completedDate", async () => {
-      const customDate = new Date("2025-11-20");
+      const customDate = "2025-11-20";
       
       await sessionRepository.create(createTestSession({
         bookId: book1.id,
@@ -258,7 +259,7 @@ describe("SessionService", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
         isActive: true,
       }));
 
@@ -278,7 +279,7 @@ describe("SessionService", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
         isActive: true,
       }));
 
@@ -393,7 +394,7 @@ describe("SessionService", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2025-10-01"),
+        completedDate: "2025-10-01",
       }));
 
       const result = await sessionService.startReread(book1.id);
@@ -441,7 +442,7 @@ describe("SessionService", () => {
         isActive: true,
       }));
 
-      const newDate = new Date("2025-01-15");
+      const newDate = "2025-01-15";
       const result = await sessionService.updateSessionDate(session.id, "startedDate", newDate);
 
       expect(result.startedDate).toEqual(newDate);
@@ -453,10 +454,10 @@ describe("SessionService", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2025-11-01"),
+        completedDate: "2025-11-01",
       }));
 
-      const newDate = new Date("2025-11-20");
+      const newDate = "2025-11-20";
       const result = await sessionService.updateSessionDate(session.id, "completedDate", newDate);
 
       expect(result.completedDate).toEqual(newDate);
@@ -464,7 +465,7 @@ describe("SessionService", () => {
 
     test("should throw error for non-existent session", async () => {
       await expect(
-        sessionService.updateSessionDate(99999, "startedDate", new Date())
+        sessionService.updateSessionDate(99999, "startedDate", toSessionDate(new Date()))
       ).rejects.toThrow("Session not found");
     });
   });

@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET, POST } from "@/app/api/books/[id]/progress/route";
 import { bookRepository, progressRepository, sessionRepository } from "@/lib/repositories";
@@ -76,7 +77,7 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 20,
-      progressDate: new Date("2025-11-01"),
+      progressDate: "2025-11-01",
       pagesRead: 100,
     });
 
@@ -85,7 +86,7 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
       sessionId: session.id,
       currentPage: 250,
       currentPercentage: 50,
-      progressDate: new Date("2025-11-05"),
+      progressDate: "2025-11-05",
       pagesRead: 150,
       notes: "Great chapter!",
     });
@@ -95,7 +96,7 @@ describe("Progress API - GET /api/books/[id]/progress", () => {
       sessionId: session.id,
       currentPage: 400,
       currentPercentage: 80,
-      progressDate: new Date("2025-11-10"),
+      progressDate: "2025-11-10",
       pagesRead: 150,
     });
   });
@@ -202,7 +203,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2025-11-01"),
+      startedDate: "2025-11-01",
     });
   });
 
@@ -250,7 +251,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       sessionId: session!.id,
       currentPage: 100,
       currentPercentage: 20,
-      progressDate: new Date("2025-11-01"),
+      progressDate: "2025-11-01",
       pagesRead: 100,
     });
 
@@ -278,7 +279,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       sessionId: session!.id,
       currentPage: 300,
       currentPercentage: 60,
-      progressDate: new Date("2025-11-01"),
+      progressDate: "2025-11-01",
       pagesRead: 300,
     });
 
@@ -379,7 +380,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Either currentPage or currentPercentage is required");
+    expect(data.error).toBe("Must provide either currentPage or currentPercentage");
   });
 
   test("handles book without totalPages (page-only mode)", async () => {
@@ -399,7 +400,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2025-11-01"),
+      startedDate: "2025-11-01",
     });
 
     const request = createMockRequest("POST", "/api/books/123/progress", {
@@ -432,7 +433,7 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2025-11-01"),
+      startedDate: "2025-11-01",
     });
 
     const request = createMockRequest("POST", "/api/books/123/progress", {

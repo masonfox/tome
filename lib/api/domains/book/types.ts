@@ -31,16 +31,23 @@ export interface UpdateStatusResponse {
 
 /**
  * Request to create progress entry
+ * 
+ * @property currentPage - Current page number (alternative to currentPercentage)
+ * @property currentPercentage - Current percentage (0-100, alternative to currentPage)
+ * @property notes - Optional notes in Markdown format
+ * @property progressDate - Optional date in YYYY-MM-DD format (defaults to today in user's timezone)
  */
 export interface CreateProgressRequest {
   currentPage?: number;
   currentPercentage?: number;
   notes?: string;
-  progressDate?: Date | string;
+  progressDate?: string; // YYYY-MM-DD format
 }
 
 /**
  * Progress log entry
+ * 
+ * @property progressDate - Date in YYYY-MM-DD format (in user's timezone)
  */
 export interface ProgressLog {
   id: number;
@@ -48,7 +55,7 @@ export interface ProgressLog {
   sessionId: number;
   currentPage: number;
   currentPercentage: number;
-  progressDate: string;
+  progressDate: string; // YYYY-MM-DD format
   notes?: string;
   pagesRead: number;
 }
@@ -71,11 +78,13 @@ export interface ListProgressParams {
 
 /**
  * Request to update existing progress entry
+ * 
+ * @property progressDate - Date in YYYY-MM-DD format
  */
 export interface UpdateProgressRequest {
   currentPage?: number;
   currentPercentage?: number;
-  progressDate?: string;
+  progressDate?: string; // YYYY-MM-DD format
   notes?: string;
 }
 

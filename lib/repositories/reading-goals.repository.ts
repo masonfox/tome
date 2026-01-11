@@ -71,7 +71,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+          sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
       .get();
@@ -90,7 +90,7 @@ export class ReadingGoalRepository extends BaseRepository<
 
     const results = db
       .select({
-        year: sql<number>`CAST(strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) AS INTEGER)`,
+        year: sql<number>`CAST(strftime('%Y', ${readingSessions.completedDate}) AS INTEGER)`,
         count: sql<number>`COUNT(*)`,
       })
       .from(readingSessions)
@@ -102,9 +102,9 @@ export class ReadingGoalRepository extends BaseRepository<
           isNotNull(readingSessions.completedDate)
         )
       )
-      .groupBy(sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch'))`)
+      .groupBy(sql`strftime('%Y', ${readingSessions.completedDate})`)
       .orderBy(
-        desc(sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch'))`)
+        desc(sql`strftime('%Y', ${readingSessions.completedDate})`)
       )
       .all();
 
@@ -123,9 +123,10 @@ export class ReadingGoalRepository extends BaseRepository<
     const db = this.getDatabase();
 
     // Query for books completed in each month
+    // completedDate is stored as YYYY-MM-DD string
     const results = db
       .select({
-        month: sql<number>`CAST(strftime('%m', datetime(${readingSessions.completedDate}, 'unixepoch')) AS INTEGER)`,
+        month: sql<number>`CAST(strftime('%m', ${readingSessions.completedDate}) AS INTEGER)`,
         count: sql<number>`COUNT(*)`,
       })
       .from(readingSessions)
@@ -135,10 +136,10 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+          sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
-      .groupBy(sql`strftime('%m', datetime(${readingSessions.completedDate}, 'unixepoch'))`)
+      .groupBy(sql`strftime('%m', ${readingSessions.completedDate})`)
       .all();
 
     // Create a map of month -> count from query results
@@ -163,10 +164,14 @@ export class ReadingGoalRepository extends BaseRepository<
    * Get all books completed in a specific year
    * Returns books with their completion dates, ordered by completion date descending
    */
+  /**
+   * Get books completed in a specific year
+   * Returns books with completedDate as string (YYYY-MM-DD)
+   */
   async getBooksByCompletionYear(
     userId: number | null,
     year: number
-  ): Promise<Array<Book & { completedDate: Date }>> {
+  ): Promise<Array<Book & { completedDate: string }>> {
     const db = this.getDatabase();
 
     const results = db
@@ -192,7 +197,7 @@ export class ReadingGoalRepository extends BaseRepository<
         orphanedAt: books.orphanedAt,
         createdAt: books.createdAt,
         updatedAt: books.updatedAt,
-        // Completion date from session
+        // Completion date from session (YYYY-MM-DD string)
         completedDate: readingSessions.completedDate,
       })
       .from(readingSessions)
@@ -203,13 +208,13 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`strftime('%Y', datetime(${readingSessions.completedDate}, 'unixepoch')) = ${year.toString()}`
+          sql`substr(${readingSessions.completedDate}, 1, 4) = ${year.toString()}`
         )
       )
       .orderBy(desc(readingSessions.completedDate))
       .all();
 
-    return results as Array<Book & { completedDate: Date }>;
+    return results as Array<Book & { completedDate: string }>;
   }
 }
 

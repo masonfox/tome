@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '@/__tests__/test-utils';
 // Import shared mock setup (must be first to properly mock modules)
 import "./setup";
 
@@ -125,7 +126,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       
@@ -137,7 +138,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         activeSession: session,
         has100Progress: false,
         isAlreadyRead: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         ensureReadingStatus: sessionService.ensureReadingStatus.bind(sessionService),
         create100PercentProgress: sessionService.create100PercentProgress.bind(sessionService),
         updateStatus: sessionService.updateStatus.bind(sessionService),
@@ -165,7 +166,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         activeSession: null,
         has100Progress: false,
         isAlreadyRead: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         ensureReadingStatus: sessionService.ensureReadingStatus.bind(sessionService),
         create100PercentProgress: sessionService.create100PercentProgress.bind(sessionService),
         updateStatus: sessionService.updateStatus.bind(sessionService),
@@ -192,7 +193,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       // Create a 100% progress entry
@@ -201,7 +202,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionId: session.id,
         currentPage: 300,
         currentPercentage: 100,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
         pagesRead: 300,
       });
 
@@ -214,7 +215,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         activeSession: session,
         has100Progress: true,
         isAlreadyRead: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         ensureReadingStatus: sessionService.ensureReadingStatus.bind(sessionService),
         create100PercentProgress: sessionService.create100PercentProgress.bind(sessionService),
         updateStatus: sessionService.updateStatus.bind(sessionService),
@@ -243,10 +244,10 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
-      const customDate = new Date("2024-01-15");
+      const customDate = "2024-01-15";
 
       
       const logger = getLogger();
@@ -283,7 +284,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       
@@ -295,7 +296,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         activeSession: session,
         has100Progress: false,
         isAlreadyRead: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         ensureReadingStatus: sessionService.ensureReadingStatus.bind(sessionService),
         create100PercentProgress: sessionService.create100PercentProgress.bind(sessionService),
         updateStatus: sessionService.updateStatus.bind(sessionService),
@@ -327,7 +328,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         activeSession: null,
         has100Progress: false,
         isAlreadyRead: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         ensureReadingStatus: sessionService.ensureReadingStatus.bind(sessionService),
         create100PercentProgress: sessionService.create100PercentProgress.bind(sessionService),
         updateStatus: sessionService.updateStatus.bind(sessionService),
@@ -351,7 +352,7 @@ describe("SessionService - Mark as Read Strategies", () => {
     test("uses custom completedDate when provided", async () => {
       const book = await bookRepository.create(createTestBook({ totalPages: null }));
 
-      const customDate = new Date("2024-06-15");
+      const customDate = "2024-06-15";
 
       
       const logger = getLogger();
@@ -390,8 +391,8 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        startedDate: new Date("2024-01-01"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-01",
+        completedDate: "2024-01-15",
       });
 
       
@@ -456,8 +457,8 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        startedDate: new Date("2024-01-01"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-01",
+        completedDate: "2024-01-15",
       });
 
       const mostRecent = await sessionRepository.create({
@@ -465,8 +466,8 @@ describe("SessionService - Mark as Read Strategies", () => {
         sessionNumber: 2,
         status: "read",
         isActive: false,
-        startedDate: new Date("2024-06-01"),
-        completedDate: new Date("2024-06-30"),
+        startedDate: "2024-06-01",
+        completedDate: "2024-06-30",
       });
 
       

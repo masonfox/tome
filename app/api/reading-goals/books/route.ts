@@ -12,7 +12,7 @@ interface BooksResponse {
   data: {
     year: number;
     count: number;
-    books: Array<Book & { completedDate: Date }>;
+    books: Array<Book & { completedDate: string }>;  // YYYY-MM-DD format
   };
 }
 

@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -123,7 +124,7 @@ describe("BookService", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2025-10-01"),
+        completedDate: "2025-10-01",
       }));
 
       // Create another completed session
@@ -132,7 +133,7 @@ describe("BookService", () => {
         sessionNumber: 2,
         status: "read",
         isActive: false,
-        completedDate: new Date("2025-11-01"),
+        completedDate: "2025-11-01",
       }));
 
       // Create active session
@@ -174,7 +175,7 @@ describe("BookService", () => {
         sessionNumber: 1,
         status: 'read',
         isActive: false,
-        completedDate: new Date('2024-01-01'),
+        completedDate: '2024-01-01',
       }));
       
       await progressRepository.create(createTestProgress({
@@ -183,7 +184,7 @@ describe("BookService", () => {
         currentPage: 150,
         currentPercentage: 0, // Will stay 0 since no totalPages
         pagesRead: 150,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
       
       // Create active session with progress logs
@@ -192,7 +193,7 @@ describe("BookService", () => {
         sessionNumber: 2,
         status: 'reading',
         isActive: true,
-        startedDate: new Date('2024-02-01'),
+        startedDate: '2024-02-01',
       }));
       
       const activeProgress1 = await progressRepository.create(createTestProgress({
@@ -201,7 +202,7 @@ describe("BookService", () => {
         currentPage: 50,
         currentPercentage: 0, // Will be recalculated
         pagesRead: 50,
-        progressDate: new Date('2024-02-01'),
+        progressDate: '2024-02-01',
       }));
       
       const activeProgress2 = await progressRepository.create(createTestProgress({
@@ -210,7 +211,7 @@ describe("BookService", () => {
         currentPage: 100,
         currentPercentage: 0, // Will be recalculated
         pagesRead: 50,
-        progressDate: new Date('2024-02-02'),
+        progressDate: '2024-02-02',
       }));
       
       // Act: Update totalPages to 300
@@ -265,7 +266,7 @@ describe("BookService", () => {
         sessionNumber: 1,
         status: 'read',
         isActive: false,
-        completedDate: new Date('2024-01-01'),
+        completedDate: '2024-01-01',
       }));
       
       await progressRepository.create(createTestProgress({
@@ -274,7 +275,7 @@ describe("BookService", () => {
         currentPage: 150,
         currentPercentage: 0,
         pagesRead: 150,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
       
       const result = await bookService.updateTotalPages(testBook.id, 300);
@@ -300,7 +301,7 @@ describe("BookService", () => {
         sessionNumber: 1,
         status: 'reading',
         isActive: true,
-        startedDate: new Date('2024-02-01'),
+        startedDate: '2024-02-01',
       }));
       
       // Test: currentPage > totalPages (user had wrong initial count, now correcting upward)
@@ -310,7 +311,7 @@ describe("BookService", () => {
         currentPage: 400, // Will exceed the initial lower totalPages estimate
         currentPercentage: 0,
         pagesRead: 400,
-        progressDate: new Date('2024-02-03'),
+        progressDate: '2024-02-03',
       }));
 
       // Test: currentPage = 0
@@ -320,7 +321,7 @@ describe("BookService", () => {
         currentPage: 0,
         currentPercentage: 0,
         pagesRead: 0,
-        progressDate: new Date('2024-02-01'),
+        progressDate: '2024-02-01',
       }));
 
       // Update to 450 (above the 400 progress, so validation passes)
@@ -371,7 +372,7 @@ describe("BookService", () => {
         currentPage: 100,
         currentPercentage: 50,
         pagesRead: 100,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Act: Update page count
@@ -410,7 +411,7 @@ describe("BookService", () => {
         currentPage: 150,
         currentPercentage: 50,
         pagesRead: 150,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
 
@@ -460,7 +461,7 @@ describe("BookService", () => {
         currentPage: 250,
         currentPercentage: 83,
         pagesRead: 250,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Act & Assert: Cannot reduce to 200 (below 250)
@@ -489,7 +490,7 @@ describe("BookService", () => {
         sessionNumber: 1,
         status: 'read',
         isActive: false,
-        completedDate: new Date('2024-01-15'),
+        completedDate: '2024-01-15',
       }));
 
       await progressRepository.create(createTestProgress({
@@ -498,7 +499,7 @@ describe("BookService", () => {
         currentPage: 500,
         currentPercentage: 83,
         pagesRead: 500,
-        progressDate: new Date('2024-01-15'),
+        progressDate: '2024-01-15',
       }));
 
       // Act & Assert: CAN reduce below completed session (active sessions only)
@@ -529,7 +530,7 @@ describe("BookService", () => {
         currentPage: 100,
         currentPercentage: 33,
         pagesRead: 100,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Act: Reduce to 200 (above 100)
@@ -566,7 +567,7 @@ describe("BookService", () => {
         currentPage: 250,
         currentPercentage: 83,
         pagesRead: 250,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Act & Assert: Can reduce to exactly 250
@@ -600,7 +601,7 @@ describe("BookService", () => {
         currentPage: 200,
         currentPercentage: 40,
         pagesRead: 200,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Progress entry 2: page 350 (higher - current position)
@@ -610,7 +611,7 @@ describe("BookService", () => {
         currentPage: 350,
         currentPercentage: 70,
         pagesRead: 150,
-        progressDate: new Date('2024-02-01'),
+        progressDate: '2024-02-01',
       }));
 
       // Act & Assert: Cannot reduce below max (350)
@@ -642,7 +643,7 @@ describe("BookService", () => {
         sessionNumber: 1,
         status: 'read',
         isActive: false,
-        completedDate: new Date('2024-01-01'),
+        completedDate: '2024-01-01',
       }));
 
       await progressRepository.create(createTestProgress({
@@ -651,7 +652,7 @@ describe("BookService", () => {
         currentPage: 500,
         currentPercentage: 100,
         pagesRead: 500,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Act: Can reduce to any value (no active sessions to protect)
@@ -701,7 +702,7 @@ describe("BookService", () => {
         currentPage: 425,
         currentPercentage: 85,
         pagesRead: 425,
-        progressDate: new Date('2024-01-01'),
+        progressDate: '2024-01-01',
       }));
 
       // Act & Assert: Error should show actual numbers

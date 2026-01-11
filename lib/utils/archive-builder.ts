@@ -1,5 +1,4 @@
-import { format, startOfMonth, endOfMonth } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+// No imports needed - working with YYYY-MM-DD strings directly
 
 export interface ArchiveNode {
   id: string; // Unique identifier (e.g., "2024", "2024-11", "2024-11-W3")
@@ -14,18 +13,15 @@ export interface ArchiveNode {
 
 /**
  * Builds a hierarchical Year → Month → Week archive structure from an array of dates
- * @param dates Array of Date objects from progress logs
+ * @param dates Array of date strings in YYYY-MM-DD format from progress logs
  * @param timezone IANA timezone identifier (e.g., "America/New_York", "Asia/Tokyo")
  * @returns Array of year nodes with nested month and week children
  */
-export function buildArchiveHierarchy(dates: Date[], timezone: string = 'America/New_York'): ArchiveNode[] {
-  const yearMap = new Map<string, Map<string, Date[]>>();
+export function buildArchiveHierarchy(dates: string[], timezone: string = 'America/New_York'): ArchiveNode[] {
+  const yearMap = new Map<string, Map<string, string[]>>();
 
-  // Group dates by year → month using user's timezone to match journal grouping
-  for (const date of dates) {
-    // Convert UTC date to user's timezone, then extract date portion
-    const dateInUserTz = toZonedTime(date, timezone);
-    const dateStr = format(dateInUserTz, 'yyyy-MM-dd');
+  // Group dates by year → month (dates are already in YYYY-MM-DD format)
+  for (const dateStr of dates) {
     const year = dateStr.substring(0, 4);
     const month = dateStr.substring(0, 7); // YYYY-MM
 
@@ -37,7 +33,7 @@ export function buildArchiveHierarchy(dates: Date[], timezone: string = 'America
     if (!monthMap.has(month)) {
       monthMap.set(month, []);
     }
-    monthMap.get(month)!.push(date);
+    monthMap.get(month)!.push(dateStr);
   }
 
   // Build year nodes
@@ -93,25 +89,22 @@ export function buildArchiveHierarchy(dates: Date[], timezone: string = 'America
 /**
  * Groups dates into weeks of month (Week 1-5)
  * Week calculation: Week 1 = days 1-7, Week 2 = days 8-14, etc.
- * @param dates Array of dates within a single month
+ * @param dates Array of date strings in YYYY-MM-DD format within a single month
  * @param monthKey Month identifier (YYYY-MM)
- * @param timezone IANA timezone identifier
+ * @param timezone IANA timezone identifier (not used anymore, kept for compatibility)
  * @returns Array of week nodes sorted by week number
  */
-function buildWeekNodes(dates: Date[], monthKey: string, timezone: string): ArchiveNode[] {
+function buildWeekNodes(dates: string[], monthKey: string, timezone: string): ArchiveNode[] {
   // Group by week of month (1-5)
-  const weekMap = new Map<number, Date[]>();
+  const weekMap = new Map<number, string[]>();
 
-  // Get the correct month abbreviation from monthKey (avoid timezone issues)
+  // Get the correct month abbreviation from monthKey
   const monthNum = parseInt(monthKey.split("-")[1]);
   const monthAbbrs = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const monthAbbr = monthAbbrs[monthNum - 1];
 
-  for (const date of dates) {
-    // Convert UTC date to user's timezone, then extract date portion
-    const dateInUserTz = toZonedTime(date, timezone);
-    const dateStr = format(dateInUserTz, 'yyyy-MM-dd');
+  for (const dateStr of dates) {
     const [year, month, dayStr] = dateStr.split("-");
     const day = parseInt(dayStr);
 
@@ -126,19 +119,17 @@ function buildWeekNodes(dates: Date[], monthKey: string, timezone: string): Arch
     if (!weekMap.has(weekNum)) {
       weekMap.set(weekNum, []);
     }
-    weekMap.get(weekNum)!.push(date);
+    weekMap.get(weekNum)!.push(dateStr);
   }
 
   const weeks: ArchiveNode[] = [];
 
   for (const [weekNum, weekDates] of Array.from(weekMap.entries())) {
-    const sortedDates = weekDates.sort((a, b) => a.getTime() - b.getTime());
+    const sortedDates = weekDates.sort();
 
-    // Get actual first and last day from the data using user's timezone
-    const firstDateInUserTz = toZonedTime(sortedDates[0], timezone);
-    const lastDateInUserTz = toZonedTime(sortedDates[sortedDates.length - 1], timezone);
-    const firstDateStr = format(firstDateInUserTz, 'yyyy-MM-dd');
-    const lastDateStr = format(lastDateInUserTz, 'yyyy-MM-dd');
+    // Get actual first and last day from the data
+    const firstDateStr = sortedDates[0];
+    const lastDateStr = sortedDates[sortedDates.length - 1];
     const firstDay = parseInt(firstDateStr.split("-")[2]);
     const lastDay = parseInt(lastDateStr.split("-")[2]);
 

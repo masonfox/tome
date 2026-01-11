@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   setupTestDatabase,
@@ -42,7 +43,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       // Test: First entry should always be valid
@@ -65,7 +66,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -74,7 +75,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Progress on later date with higher page count should be valid
@@ -97,7 +98,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -106,7 +107,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Progress on later date with LOWER page count should be invalid
@@ -133,7 +134,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       // Create progress on Nov 15
@@ -143,7 +144,7 @@ describe("Progress Validation Service", () => {
         currentPage: 300,
         currentPercentage: 75,
         pagesRead: 300,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Adding progress on Nov 10 that exceeds Nov 15's progress should fail
@@ -170,7 +171,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       // Create progress on Nov 5 (100 pages)
@@ -180,7 +181,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Create progress on Nov 15 (300 pages)
@@ -190,7 +191,7 @@ describe("Progress Validation Service", () => {
         currentPage: 300,
         currentPercentage: 75,
         pagesRead: 200,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Adding progress on Nov 10 between 100 and 300 should be valid
@@ -213,7 +214,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -222,7 +223,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25.0,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Progress with lower percentage should fail
@@ -246,7 +247,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -255,7 +256,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Same progress on later date should be valid (e.g., no reading happened)
@@ -278,7 +279,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -287,7 +288,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       await progressRepository.create({
@@ -296,7 +297,7 @@ describe("Progress Validation Service", () => {
         currentPage: 150,
         currentPercentage: 37.5,
         pagesRead: 50,
-        progressDate: new Date("2025-11-08"),
+        progressDate: "2025-11-08",
       });
 
       await progressRepository.create({
@@ -305,7 +306,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: New entry on Nov 12 must be >= 200 (the max before that date)
@@ -338,7 +339,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -347,7 +348,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       const entryToEdit = await progressRepository.create({
@@ -356,7 +357,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 100,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       await progressRepository.create({
@@ -365,7 +366,7 @@ describe("Progress Validation Service", () => {
         currentPage: 300,
         currentPercentage: 75,
         pagesRead: 100,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Edit middle entry to 220 pages (between 100 and 300) should be valid
@@ -389,7 +390,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -398,7 +399,7 @@ describe("Progress Validation Service", () => {
         currentPage: 150,
         currentPercentage: 37.5,
         pagesRead: 150,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       const entryToEdit = await progressRepository.create({
@@ -407,7 +408,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: Edit to 100 pages (less than previous 150) should fail
@@ -432,7 +433,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       const entryToEdit = await progressRepository.create({
@@ -441,7 +442,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       await progressRepository.create({
@@ -450,7 +451,7 @@ describe("Progress Validation Service", () => {
         currentPage: 250,
         currentPercentage: 62.5,
         pagesRead: 50,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Edit to 300 pages (more than future 250) should fail
@@ -475,7 +476,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       const entryToEdit = await progressRepository.create({
@@ -484,7 +485,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: Editing the only entry should always be valid (nothing to compare against)
@@ -508,7 +509,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -517,7 +518,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       const entryToEdit = await progressRepository.create({
@@ -526,7 +527,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 100,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       await progressRepository.create({
@@ -535,7 +536,7 @@ describe("Progress Validation Service", () => {
         currentPage: 300,
         currentPercentage: 75,
         pagesRead: 100,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Moving entry from Nov 10 to Nov 12 with same progress should be valid
@@ -559,7 +560,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -568,7 +569,7 @@ describe("Progress Validation Service", () => {
         currentPage: 100,
         currentPercentage: 25.0,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       const entryToEdit = await progressRepository.create({
@@ -577,7 +578,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50.0,
         pagesRead: 100,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: Edit to percentage less than previous entry should fail
@@ -601,7 +602,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       const entryToEdit = await progressRepository.create({
@@ -610,7 +611,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: "Editing" to same values should always be valid
@@ -636,7 +637,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -645,7 +646,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-05T12:30:00.000Z"),
+        progressDate: "2025-11-05T12:30:00.000Z",
       });
 
       // Test: Error message should format date nicely
@@ -667,7 +668,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -676,7 +677,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Error for pages should show "page 200"
@@ -698,7 +699,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       await progressRepository.create({
@@ -707,7 +708,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50.5,
         pagesRead: 200,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Error for percentage should show "50.5%"
@@ -731,7 +732,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       const previousEntry = await progressRepository.create({
@@ -740,7 +741,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Conflicting entry should include ID and details
@@ -767,7 +768,7 @@ describe("Progress Validation Service", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: toSessionDate(new Date("2025-11-01")),
       });
 
       const futureEntry = await progressRepository.create({
@@ -776,7 +777,7 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Conflicting entry should include ID and details

@@ -40,13 +40,28 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     const body = await request.json();
     const { status, rating, review, startedDate, completedDate } = body;
 
-    // Convert date strings to Date objects if provided
+    // Validate date formats if provided
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (startedDate && !dateRegex.test(startedDate)) {
+      return NextResponse.json(
+        { error: "Invalid startedDate format. Expected YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+    if (completedDate && !dateRegex.test(completedDate)) {
+      return NextResponse.json(
+        { error: "Invalid completedDate format. Expected YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+
+    // Pass date strings directly (YYYY-MM-DD format)
     const statusData = {
       status,
       rating,
       review,
-      startedDate: startedDate ? new Date(startedDate) : undefined,
-      completedDate: completedDate ? new Date(completedDate) : undefined,
+      startedDate,  // YYYY-MM-DD string
+      completedDate,  // YYYY-MM-DD string
     };
 
     const result = await sessionService.updateStatus(bookId, statusData);

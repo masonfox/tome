@@ -60,12 +60,12 @@ export async function PATCH(
     // Build update object with only provided fields
     const updateData: any = {};
     
-    // Handle dates
+    // Handle dates (expect YYYY-MM-DD strings)
     if ('startedDate' in body) {
-      updateData.startedDate = startedDate ? new Date(startedDate) : null;
+      updateData.startedDate = startedDate || null;
     }
     if ('completedDate' in body) {
-      updateData.completedDate = completedDate ? new Date(completedDate) : null;
+      updateData.completedDate = completedDate || null;
     }
     
     // Handle review

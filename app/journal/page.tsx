@@ -447,9 +447,7 @@ export default function JournalPage() {
                               id: entry.id,
                               currentPage: entry.currentPage,
                               currentPercentage: entry.currentPercentage,
-                              progressDate: entry.progressDate instanceof Date 
-                                ? entry.progressDate.toISOString() 
-                                : entry.progressDate,
+                              progressDate: entry.progressDate,
                               notes: entry.notes ?? undefined,
                               pagesRead: entry.pagesRead,
                             }}

@@ -1,3 +1,4 @@
+import { toProgressDate, createProgressSequence } from '../../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -53,7 +54,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act: No query params
@@ -85,16 +86,16 @@ describe("GET /api/journal", () => {
         isActive: true,
       });
 
-      for (let i = 0; i < 10; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 10,
-          currentPercentage: (i + 1) * 10,
-          pagesRead: 10,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      // Create 10 progress entries using helper
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 10,
+        pageIncrement: 10,
+        count: 10,
+        totalPages: 100,
+      });
 
       // Act: Request with limit=3
       const request = createMockRequest("GET", "/api/journal?limit=3");
@@ -124,16 +125,16 @@ describe("GET /api/journal", () => {
         isActive: true,
       });
 
-      for (let i = 0; i < 5; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 20,
-          currentPercentage: (i + 1) * 20,
-          pagesRead: 20,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      // Create 5 progress entries using helper
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 20,
+        pageIncrement: 20,
+        count: 5,
+        totalPages: 100,
+      });
 
       // Act: Skip first 2
       const request = createMockRequest("GET", "/api/journal?skip=2&limit=2");
@@ -169,7 +170,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act: Request with timezone
@@ -214,7 +215,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -254,7 +255,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -262,10 +263,10 @@ describe("GET /api/journal", () => {
       const response = await GET(request as any);
       const data = await response.json();
 
-      // Assert: progressDate should be serialized as string
+      // Assert: progressDate should be serialized as string in YYYY-MM-DD format
       const firstEntry = data.entries[0].books[0].entries[0];
       expect(typeof firstEntry.progressDate).toBe("string");
-      expect(firstEntry.progressDate).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO format
+      expect(firstEntry.progressDate).toMatch(/^\d{4}-\d{2}-\d{2}$/); // YYYY-MM-DD format
     });
 
     test("should include all required entry fields", async () => {
@@ -291,7 +292,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
         notes: "Test note",
       });
 
@@ -353,7 +354,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       await progressRepository.create({
@@ -362,7 +363,7 @@ describe("GET /api/journal", () => {
         currentPage: 75,
         currentPercentage: 75,
         pagesRead: 75,
-        progressDate: new Date("2024-11-15T14:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -412,16 +413,16 @@ describe("GET /api/journal", () => {
         isActive: true,
       });
 
-      for (let i = 0; i < 3; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 30,
-          currentPercentage: (i + 1) * 30,
-          pagesRead: 30,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      // Create 3 progress entries using helper
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 30,
+        pageIncrement: 30,
+        count: 3,
+        totalPages: 100,
+      });
 
       // Act: Skip beyond total
       const request = createMockRequest("GET", "/api/journal?skip=10");
@@ -480,7 +481,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act: limit=0 (should default to 50)
@@ -511,16 +512,14 @@ describe("GET /api/journal", () => {
         isActive: true,
       });
 
-      for (let i = 0; i < 5; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 20,
-          currentPercentage: (i + 1) * 20,
-          pagesRead: 20,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 20,
+        pageIncrement: 20,
+        count: 5,
+      });
 
       // Act: limit=1
       const request = createMockRequest("GET", "/api/journal?limit=1");
@@ -550,16 +549,14 @@ describe("GET /api/journal", () => {
         isActive: true,
       });
 
-      for (let i = 0; i < 3; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 30,
-          currentPercentage: (i + 1) * 30,
-          pagesRead: 30,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 30,
+        pageIncrement: 30,
+        count: 3,
+      });
 
       // Act: limit=100 (more than total)
       const request = createMockRequest("GET", "/api/journal?limit=100");
@@ -598,7 +595,7 @@ describe("GET /api/journal", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-16T04:59:59.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // 00:00:01 on Nov 16 EST = Nov 16 05:00:01 UTC
@@ -608,7 +605,7 @@ describe("GET /api/journal", () => {
         currentPage: 75,
         currentPercentage: 75,
         pagesRead: 25,
-        progressDate: new Date("2024-11-16T05:00:01.000Z"),
+        progressDate: "2024-11-16",
       });
 
       // Act

@@ -16,7 +16,7 @@ export const progressLogs = sqliteTable(
     }),
     currentPage: integer("current_page").notNull().default(0),
     currentPercentage: real("current_percentage").notNull().default(0),
-    progressDate: integer("progress_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    progressDate: text("progress_date").notNull(),
     notes: text("notes"),
     pagesRead: integer("pages_read").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

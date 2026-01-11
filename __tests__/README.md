@@ -253,6 +253,66 @@ import {
 } from "@/__tests__/fixtures/test-data";
 ```
 
+### Test Date Utilities
+
+**IMPORTANT:** Calendar day dates (progress dates, session dates) are stored as YYYY-MM-DD strings in the database. Use the test utilities from `test-utils.tsx` to ensure proper date formatting:
+
+```typescript
+import { 
+  toProgressDate, 
+  toSessionDate,
+  generateDateSequence,
+  expectDateToMatch,
+  createProgressSequence,
+  createTestBookWithSession
+} from '../test-utils';
+
+// Convert Date to YYYY-MM-DD for progress logs
+const log = await progressRepository.create({
+  bookId: book.id,
+  sessionId: session.id,
+  currentPage: 100,
+  currentPercentage: 50,
+  pagesRead: 50,
+  progressDate: toProgressDate(new Date("2024-11-15T10:30:00Z")), // "2024-11-15"
+});
+
+// Convert Date to YYYY-MM-DD for session dates
+const session = await sessionRepository.create({
+  bookId: book.id,
+  sessionNumber: 1,
+  status: "reading",
+  startedDate: toSessionDate(new Date("2024-01-01")), // "2024-01-01"
+  completedDate: toSessionDate(new Date("2024-01-15")), // "2024-01-15"
+});
+
+// Generate sequential dates for testing streaks
+const dates = generateDateSequence("2024-11-01", 5);
+// ["2024-11-01", "2024-11-02", "2024-11-03", "2024-11-04", "2024-11-05"]
+
+// Assert dates match expected values
+expectDateToMatch(session.completedDate, "2024-11-15");
+
+// Create bulk progress logs for testing
+await createProgressSequence(progressRepository, {
+  bookId: book.id,
+  sessionId: session.id,
+  startDate: "2024-01-01",
+  startPage: 0,
+  pageIncrement: 10,
+  count: 12,
+  totalPages: 120,
+});
+```
+
+**Why these utilities?**
+- All calendar day dates are stored as YYYY-MM-DD strings (not timestamps)
+- The database uses UTC date parts (extracts year, month, day from UTC Date)
+- These utilities ensure consistent date formatting across all tests
+- They're used in 150+ test files - follow the pattern!
+
+**Pattern:** `toProgressDate()` and `toSessionDate()` are aliases (same format), but named semantically for clarity.
+
 ## Adding More Tests
 
 Core functionality is well-tested! Here are areas that could benefit from additional coverage:

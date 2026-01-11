@@ -42,11 +42,22 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       }
     }
 
+    // Validate completedDate format if provided
+    if (completedDate) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(completedDate)) {
+        return NextResponse.json(
+          { error: "Invalid date format. Expected YYYY-MM-DD" },
+          { status: 400 }
+        );
+      }
+    }
+
     const result = await sessionService.markAsRead({
       bookId,
       rating,
       review,
-      completedDate: completedDate ? new Date(completedDate) : undefined,
+      completedDate,  // Pass YYYY-MM-DD string directly
     });
 
     // Note: Cache invalidation handled by SessionService.invalidateCache()

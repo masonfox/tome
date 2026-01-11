@@ -1,3 +1,4 @@
+import { toProgressDate, toDateString, expectDateToMatch } from '../test-utils';
 import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -14,6 +15,9 @@ import { formatInTimeZone } from "date-fns-tz";
 function getDateInEST(date: Date): string {
   return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
 }
+
+// Test timezone
+const TEST_TIMEZONE = "America/New_York";
 
 /**
  * Mock Rationale: Isolate progress service tests from streak calculation complexity.
@@ -84,7 +88,7 @@ describe("ProgressService", () => {
         currentPage: 50,
         currentPercentage: 5,
         pagesRead: 50,
-        progressDate: new Date("2025-11-01"),
+        progressDate: "2025-11-01",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -93,7 +97,7 @@ describe("ProgressService", () => {
         currentPage: 100,
         currentPercentage: 10,
         pagesRead: 50,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       }));
 
       const result = await progressService.getProgressForSession(session.id);
@@ -165,7 +169,7 @@ describe("ProgressService", () => {
         currentPage: 100,
         currentPercentage: 9.62,
         pagesRead: 100,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       }));
 
       // Log second progress
@@ -178,14 +182,15 @@ describe("ProgressService", () => {
     });
 
     test("should handle backdated progress entries", async () => {
-      const backdatedDate = new Date("2025-11-10");
+      const backdatedDate = "2025-11-10";
 
       const result = await progressService.logProgress(book1.id, {
         currentPage: 100,
         progressDate: backdatedDate,
       });
 
-      expect(result.progressLog.progressDate).toEqual(backdatedDate);
+      // progressDate is already a string in YYYY-MM-DD format
+      expect(result.progressLog.progressDate).toBe(backdatedDate);
       expect(result.shouldShowCompletionModal).toBe(false);
     });
 
@@ -227,14 +232,14 @@ describe("ProgressService", () => {
         currentPage: 200,
         currentPercentage: 19.23,
         pagesRead: 200,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       }));
 
       // Try to log progress at page 100 (before page 200) with later date
       await expect(
         progressService.logProgress(book1.id, {
           currentPage: 100,
-          progressDate: new Date("2025-11-15"),
+          progressDate: "2025-11-15",
         })
       ).rejects.toThrow(/Progress must be at least/);
     });
@@ -247,14 +252,14 @@ describe("ProgressService", () => {
         currentPage: 200,
         currentPercentage: 19.23,
         pagesRead: 200,
-        progressDate: new Date("2025-11-20"),
+        progressDate: "2025-11-20",
       }));
 
       // Try to log backdated progress at page 300 (after page 200)
       await expect(
         progressService.logProgress(book1.id, {
           currentPage: 300,
-          progressDate: new Date("2025-11-15"),
+          progressDate: "2025-11-15",
         })
       ).rejects.toThrow(/Progress cannot exceed/);
     });
@@ -282,7 +287,7 @@ describe("ProgressService", () => {
     });
 
     test("should use progress date as completion date for backdated 100% progress", async () => {
-      const backdatedDate = new Date("2025-11-10T14:30:00.000Z");
+      const backdatedDate = "2025-11-10";
       
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 100,
@@ -294,7 +299,8 @@ describe("ProgressService", () => {
       // Completion date should match the backdated progress date
       const updatedSession = await sessionRepository.findById(session.id);
       expect(updatedSession?.status).toBe("read");
-      expect(updatedSession?.completedDate?.getTime()).toBe(backdatedDate.getTime());
+      // completedDate is now a string in YYYY-MM-DD format
+      expectDateToMatch(updatedSession!.completedDate, backdatedDate);
     });
 
     test("should use today's date as completion date for current 100% progress", async () => {
@@ -312,7 +318,7 @@ describe("ProgressService", () => {
       expect(updatedSession?.completedDate).not.toBeNull();
       
       // Should be today's date (midnight in user's timezone)
-      expect(getDateInEST(updatedSession!.completedDate!)).toBe(todayEST);
+      expectDateToMatch(updatedSession!.completedDate, todayEST);
     });
 
     test("should auto-complete when logging 100% by page number", async () => {
@@ -340,7 +346,7 @@ describe("ProgressService", () => {
 
     test("should preserve completion date when logging 100% with historical date", async () => {
       // Simulate logging completion for a book finished weeks ago
-      const historicalDate = new Date("2025-10-15T10:00:00.000Z");
+      const historicalDate = "2025-10-15";
       
       const result = await progressService.logProgress(book1.id, {
         currentPercentage: 100,
@@ -351,7 +357,8 @@ describe("ProgressService", () => {
       
       const updatedSession = await sessionRepository.findById(session.id);
       expect(updatedSession?.status).toBe("read");
-      expect(updatedSession?.completedDate?.toISOString()).toBe(historicalDate.toISOString());
+      // completedDate is now a string in YYYY-MM-DD format
+      expectDateToMatch(updatedSession!.completedDate, historicalDate);
     });
 
     test("should log info message when auto-completing", async () => {
@@ -412,7 +419,7 @@ describe("ProgressService", () => {
         currentPage: 100,
         currentPercentage: 9.62,
         pagesRead: 100,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -421,7 +428,7 @@ describe("ProgressService", () => {
         currentPage: 200,
         currentPercentage: 19.23,
         pagesRead: 100,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -430,7 +437,7 @@ describe("ProgressService", () => {
         currentPage: 300,
         currentPercentage: 28.85,
         pagesRead: 100,
-        progressDate: new Date("2025-11-20"),
+        progressDate: "2025-11-20",
       }));
 
       // Try to update p1 to page 250 (would conflict with later entries)
@@ -459,7 +466,7 @@ describe("ProgressService", () => {
         currentPage: 50,
         currentPercentage: 4.81,  // 50/1040 * 100
         pagesRead: 50,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       }));
 
       const middleEntry = await progressRepository.create(createTestProgress({
@@ -468,7 +475,7 @@ describe("ProgressService", () => {
         currentPage: 80,
         currentPercentage: 7.69,  // 80/1040 * 100
         pagesRead: 30,  // 80 - 50
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -477,7 +484,7 @@ describe("ProgressService", () => {
         currentPage: 100,
         currentPercentage: 9.62,  // 100/1040 * 100
         pagesRead: 20,  // 100 - 80
-        progressDate: new Date("2025-11-20"),
+        progressDate: "2025-11-20",
       }));
 
       // Now edit the middle entry, bumping it from 80% to 81% (80 pages to 84 pages)
@@ -507,7 +514,7 @@ describe("ProgressService", () => {
         currentPage: 50,
         currentPercentage: 4.81,
         pagesRead: 50,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       }));
 
       // Entry 2: Nov 12, page 70
@@ -517,7 +524,7 @@ describe("ProgressService", () => {
         currentPage: 70,
         currentPercentage: 6.73,
         pagesRead: 20,  // 70 - 50
-        progressDate: new Date("2025-11-12"),
+        progressDate: "2025-11-12",
       }));
 
       // Entry 3: Nov 15, page 80 (this is the one we'll edit)
@@ -527,7 +534,7 @@ describe("ProgressService", () => {
         currentPage: 80,
         currentPercentage: 7.69,
         pagesRead: 10,  // 80 - 70
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       }));
 
       // Entry 4: Nov 20, page 100
@@ -537,7 +544,7 @@ describe("ProgressService", () => {
         currentPage: 100,
         currentPercentage: 9.62,
         pagesRead: 20,  // 100 - 80
-        progressDate: new Date("2025-11-20"),
+        progressDate: "2025-11-20",
       }));
 
       // Edit entry 3, bumping it from page 80 to page 85

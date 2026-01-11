@@ -106,6 +106,20 @@
       "when": 1766959864874,
       "tag": "0014_add_shelves",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1767968372200,
+      "tag": "0015_opposite_shatterstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1767985309290,
+      "tag": "0016_outstanding_leader",
+      "breakpoints": true
     }
   ]
 }

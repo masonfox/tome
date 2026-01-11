@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET } from "@/app/api/reading-goals/monthly/route";
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";
@@ -62,8 +63,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-05"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-05",
+        completedDate: "2024-01-15",
         isActive: false,
         userId: null,
       });
@@ -78,8 +79,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
         bookId: book2.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-20"),
-        completedDate: new Date("2024-01-25"),
+        startedDate: "2024-01-20",
+        completedDate: "2024-01-25",
         isActive: false,
         userId: null,
       });
@@ -94,8 +95,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
         bookId: book3.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-02-10"),
-        completedDate: new Date("2024-02-15"),
+        startedDate: "2024-02-10",
+        completedDate: "2024-02-15",
         isActive: false,
         userId: null,
       });
@@ -136,8 +137,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-05"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-05",
+        completedDate: "2024-01-15",
         isActive: false,
         userId: null,
       });
@@ -181,8 +182,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
         bookId: book2023.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2023-12-01"),
-        completedDate: new Date("2023-12-31"),
+        startedDate: "2023-12-01",
+        completedDate: "2023-12-31",
         isActive: false,
         userId: null,
       });
@@ -197,8 +198,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
         bookId: book2024.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-01"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-01",
+        completedDate: "2024-01-15",
         isActive: false,
         userId: null,
       });
@@ -228,8 +229,8 @@ describe("Reading Goals Monthly API - GET /api/reading-goals/monthly", () => {
           bookId: book.id,
           sessionNumber: 1,
           status: "read",
-          startedDate: new Date(`2024-03-0${i}`),
-          completedDate: new Date(`2024-03-${10 + i}`),
+          startedDate: toSessionDate(new Date(`2024-03-0${i}`)),
+          completedDate: toSessionDate(new Date(`2024-03-${10 + i}`)),
           isActive: false,
           userId: null,
         });

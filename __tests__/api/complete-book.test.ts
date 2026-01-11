@@ -211,12 +211,12 @@ describe("POST /api/books/[id]/complete", () => {
 
       // First progress should be on start date
       const firstProgress = sortedProgress[0];
-      expect(getDateInEST(new Date(firstProgress.progressDate))).toBe("2024-01-01");
+      expect(firstProgress.progressDate).toBe("2024-01-01");
       expect(firstProgress.currentPage).toBe(1);
 
       // Last progress should be on end date
       const lastProgress = sortedProgress[sortedProgress.length - 1];
-      expect(getDateInEST(new Date(lastProgress.progressDate))).toBe("2024-01-20");
+      expect(lastProgress.progressDate).toBe("2024-01-20");
       expect(lastProgress.currentPercentage).toBe(100);
     });
 
@@ -486,10 +486,8 @@ describe("POST /api/books/[id]/complete", () => {
         sessionNumber: 1,
       }));
 
-      const startDate = new Date("2024-01-05");
-
       const request = createMockRequest("POST", `/api/books/${book.id}/complete`, {
-        startDate: startDate.toISOString(),
+        startDate: "2024-01-05",
         endDate: "2024-01-20",
       });
 

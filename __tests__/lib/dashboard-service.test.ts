@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { test, expect, describe, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { getDashboardData } from "@/lib/dashboard-service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
@@ -47,7 +48,7 @@ describe("Dashboard Service", () => {
             sessionNumber: 1,
             status: "reading",
             isActive: true,
-            startedDate: new Date(Date.now() - i * 60000), // Stagger by 1 minute each
+            startedDate: toSessionDate(new Date(Date.now() - i * 60000)), // Stagger by 1 minute each
           })
         )
       );
@@ -80,7 +81,7 @@ describe("Dashboard Service", () => {
             sessionNumber: 1,
             status: "read-next",
             isActive: true,
-            startedDate: new Date(Date.now() - i * 60000), // Stagger by 1 minute each
+            startedDate: toSessionDate(new Date(Date.now() - i * 60000)), // Stagger by 1 minute each
           })
         )
       );
@@ -245,7 +246,7 @@ describe("Dashboard Service", () => {
         sessionId: session.id,
         currentPage: 100,
         currentPercentage: 33.33,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
         pagesRead: 100,
       });
 
@@ -310,7 +311,7 @@ describe("Dashboard Service", () => {
           sessionNumber: 1,
           status: "reading",
           isActive: true,
-          startedDate: now,
+          startedDate: toSessionDate(now),
           updatedAt: now,
         });
       }

@@ -1,3 +1,4 @@
+import { toProgressDate } from '../test-utils';
 import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import {
   bookRepository,
@@ -154,7 +155,7 @@ describe("Database Constraints", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date(),
+          progressDate: toProgressDate(new Date()),
         })
       ).rejects.toThrow();
     });
@@ -181,7 +182,7 @@ describe("Database Constraints", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       // Delete book
@@ -218,7 +219,7 @@ describe("Database Constraints", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       // Delete session
@@ -314,7 +315,7 @@ describe("Database Constraints", () => {
           currentPage: -1,
           currentPercentage: 0,
           pagesRead: 0,
-          progressDate: new Date(),
+          progressDate: toProgressDate(new Date()),
         });
       } catch (e) {
         error = e;
@@ -345,7 +346,7 @@ describe("Database Constraints", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 100,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
       expect(validProgress.currentPercentage).toBe(100);
 
@@ -358,7 +359,7 @@ describe("Database Constraints", () => {
           currentPage: 200,
           currentPercentage: 150, // Out of range
           pagesRead: 100,
-          progressDate: new Date(),
+          progressDate: toProgressDate(new Date()),
         });
       } catch (e) {
         error = e;

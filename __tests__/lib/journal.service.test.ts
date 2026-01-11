@@ -1,3 +1,4 @@
+import { toProgressDate, createProgressSequence } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -53,7 +54,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-11-15T10:30:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         await progressRepository.create({
@@ -62,7 +63,7 @@ describe("JournalService", () => {
           currentPage: 100,
           currentPercentage: 100,
           pagesRead: 50,
-          progressDate: new Date("2024-11-16T14:45:00.000Z"),
+          progressDate: "2024-11-16",
         });
 
         // Act
@@ -98,7 +99,7 @@ describe("JournalService", () => {
           currentPage: 25,
           currentPercentage: 25,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T08:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         // Evening progress (same date)
@@ -108,7 +109,7 @@ describe("JournalService", () => {
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 50,
-          progressDate: new Date("2024-11-15T20:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         // Act
@@ -144,7 +145,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-01-31T22:00:00.000Z"), // Jan 31, 5pm EST
+          progressDate: "2024-01-31", // Jan 31, 5pm EST
         });
 
         await progressRepository.create({
@@ -153,7 +154,7 @@ describe("JournalService", () => {
           currentPage: 100,
           currentPercentage: 100,
           pagesRead: 50,
-          progressDate: new Date("2024-02-01T06:00:00.000Z"), // Feb 1, 1am EST
+          progressDate: "2024-02-01", // Feb 1, 1am EST
         });
 
         // Act
@@ -188,7 +189,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2023-12-31T22:00:00.000Z"), // Dec 31, 5pm EST
+          progressDate: "2023-12-31", // Dec 31, 5pm EST
         });
 
         await progressRepository.create({
@@ -197,7 +198,7 @@ describe("JournalService", () => {
           currentPage: 100,
           currentPercentage: 100,
           pagesRead: 50,
-          progressDate: new Date("2024-01-01T06:00:00.000Z"), // Jan 1, 1am EST
+          progressDate: "2024-01-01", // Jan 1, 1am EST
         });
 
         // Act
@@ -232,7 +233,7 @@ describe("JournalService", () => {
           currentPage: 100,
           currentPercentage: 100,
           pagesRead: 100,
-          progressDate: new Date("2024-02-29T12:00:00.000Z"),
+          progressDate: "2024-02-29",
         });
 
         // Act
@@ -284,7 +285,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-11-15T10:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         await progressRepository.create({
@@ -293,7 +294,7 @@ describe("JournalService", () => {
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 75,
-          progressDate: new Date("2024-11-15T14:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         // Act
@@ -331,7 +332,7 @@ describe("JournalService", () => {
           currentPage: 25,
           currentPercentage: 25,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T08:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         await progressRepository.create({
@@ -340,7 +341,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T12:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         await progressRepository.create({
@@ -349,7 +350,7 @@ describe("JournalService", () => {
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T18:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         // Act
@@ -387,7 +388,7 @@ describe("JournalService", () => {
           currentPage: 25,
           currentPercentage: 25,
           pagesRead: 25,
-          progressDate: new Date("2024-11-13T10:00:00.000Z"),
+          progressDate: "2024-11-13",
         });
 
         await progressRepository.create({
@@ -396,7 +397,7 @@ describe("JournalService", () => {
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T10:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         await progressRepository.create({
@@ -405,7 +406,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 25,
-          progressDate: new Date("2024-11-14T10:00:00.000Z"),
+          progressDate: "2024-11-14",
         });
 
         // Act
@@ -420,6 +421,7 @@ describe("JournalService", () => {
 
       test("should sort entries within same book by timestamp descending", async () => {
         // Arrange: Create multiple entries for same book on same date
+        // Since progressDate no longer has time precision, entries are sorted by createdAt DESC
         const book = await bookRepository.create({
           calibreId: 1,
           title: "Test Book",
@@ -435,45 +437,46 @@ describe("JournalService", () => {
           isActive: true,
         });
 
-        // Morning
+        // Create entries in sequence - will be sorted by createdAt DESC (most recent first)
+        // Entry 1
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 25,
           currentPercentage: 25,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T08:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
-        // Evening
+        // Entry 2
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 50,
-          progressDate: new Date("2024-11-15T20:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
-        // Afternoon
+        // Entry 3 (most recent)
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 25,
-          progressDate: new Date("2024-11-15T14:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         // Act
         const result = await journalService.getJournalEntries("America/New_York", 50, 0);
 
-        // Assert: Entries should be sorted descending by time
+        // Assert: Entries should be sorted descending by createdAt
         const entries = result.entries[0].books[0].entries;
         expect(entries).toHaveLength(3);
-        expect(entries[0].currentPage).toBe(75); // Evening (most recent)
-        expect(entries[1].currentPage).toBe(50); // Afternoon
-        expect(entries[2].currentPage).toBe(25); // Morning
+        expect(entries[0].currentPage).toBe(50); // Entry 3 (most recent)
+        expect(entries[1].currentPage).toBe(75); // Entry 2
+        expect(entries[2].currentPage).toBe(25); // Entry 1 (oldest)
       });
     });
 
@@ -495,16 +498,14 @@ describe("JournalService", () => {
           isActive: true,
         });
 
-        for (let i = 0; i < 10; i++) {
-          await progressRepository.create({
-            bookId: book.id,
-            sessionId: session.id,
-            currentPage: (i + 1) * 10,
-            currentPercentage: (i + 1) * 10,
-            pagesRead: 10,
-            progressDate: new Date(`2024-11-${15 + i}T10:00:00.000Z`),
-          });
-        }
+        await createProgressSequence(progressRepository, {
+          bookId: book.id,
+          sessionId: session.id,
+          startDate: "2024-11-15",
+          startPage: 10,
+          pageIncrement: 10,
+          count: 10,
+        });
 
         // Act: Request only 3 entries
         const result = await journalService.getJournalEntries("America/New_York", 3, 0);
@@ -532,16 +533,14 @@ describe("JournalService", () => {
           isActive: true,
         });
 
-        for (let i = 0; i < 5; i++) {
-          await progressRepository.create({
-            bookId: book.id,
-            sessionId: session.id,
-            currentPage: (i + 1) * 20,
-            currentPercentage: (i + 1) * 20,
-            pagesRead: 20,
-            progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-          });
-        }
+        await createProgressSequence(progressRepository, {
+          bookId: book.id,
+          sessionId: session.id,
+          startDate: "2024-11-10",
+          startPage: 20,
+          pageIncrement: 20,
+          count: 5,
+        });
 
         // Act: Skip first 2, get next 2
         const result = await journalService.getJournalEntries("America/New_York", 2, 2);
@@ -576,7 +575,7 @@ describe("JournalService", () => {
             currentPage: (i + 1) * 20,
             currentPercentage: (i + 1) * 20,
             pagesRead: 20,
-            progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
+            progressDate: toProgressDate(new Date(`2024-11-${10 + i}T10:00:00.000Z`)),
           });
         }
 
@@ -612,7 +611,7 @@ describe("JournalService", () => {
             currentPage: (i + 1) * 20,
             currentPercentage: (i + 1) * 20,
             pagesRead: 20,
-            progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
+            progressDate: toProgressDate(new Date(`2024-11-${10 + i}T10:00:00.000Z`)),
           });
         }
 
@@ -648,7 +647,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-11-15T10:00:00.000Z"),
+          progressDate: "2024-11-15",
         });
 
         // Act: Request with limit=0
@@ -699,7 +698,7 @@ describe("JournalService", () => {
 
     describe("edge cases", () => {
       test("should handle entries with identical timestamps", async () => {
-        // Arrange: Create entries with exact same timestamp
+        // Arrange: Create entries with same progressDate
         const book = await bookRepository.create({
           calibreId: 1,
           title: "Test Book",
@@ -715,7 +714,7 @@ describe("JournalService", () => {
           isActive: true,
         });
 
-        const sameTimestamp = new Date("2024-11-15T10:00:00.000Z");
+        const sameDate = "2024-11-15T10:00:00.000Z";
 
         await progressRepository.create({
           bookId: book.id,
@@ -723,7 +722,7 @@ describe("JournalService", () => {
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: sameTimestamp,
+          progressDate: sameDate,
         });
 
         await progressRepository.create({
@@ -732,7 +731,7 @@ describe("JournalService", () => {
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 25,
-          progressDate: sameTimestamp,
+          progressDate: sameDate,
         });
 
         // Act
@@ -744,7 +743,8 @@ describe("JournalService", () => {
       });
 
       test("should handle midnight boundary (23:59 → 00:01)", async () => {
-        // Arrange: Create progress just before and after midnight
+        // Arrange: Create progress on consecutive UTC days
+        // progressDate is stored as calendar day (YYYY-MM-DD) without time component
         const book = await bookRepository.create({
           calibreId: 1,
           title: "Test Book",
@@ -760,24 +760,24 @@ describe("JournalService", () => {
           isActive: true,
         });
 
-        // 23:59:59 on Nov 15 EST = Nov 16 04:59:59 UTC
+        // UTC Nov 15 (any time on this day)
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date("2024-11-16T04:59:59.000Z"), // Nov 15, 11:59:59pm EST
+          progressDate: "2024-11-15", // Nov 15 UTC
         });
 
-        // 00:01:00 on Nov 16 EST = Nov 16 05:01:00 UTC
+        // UTC Nov 16 (any time on this day)
         await progressRepository.create({
           bookId: book.id,
           sessionId: session.id,
           currentPage: 75,
           currentPercentage: 75,
           pagesRead: 25,
-          progressDate: new Date("2024-11-16T05:01:00.000Z"), // Nov 16, 12:01am EST
+          progressDate: "2024-11-16", // Nov 16 UTC
         });
 
         // Act
@@ -824,7 +824,7 @@ describe("JournalService", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // December entries
@@ -834,7 +834,7 @@ describe("JournalService", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date("2024-12-10T10:00:00.000Z"),
+        progressDate: "2024-12-10",
       });
 
       // Act
@@ -874,7 +874,7 @@ describe("JournalService", () => {
           currentPage: (i + 1) * 30,
           currentPercentage: (i + 1) * 30,
           pagesRead: 30,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
+          progressDate: toProgressDate(new Date(`2024-11-${10 + i}T10:00:00.000Z`)),
         });
       }
 
@@ -909,7 +909,7 @@ describe("JournalService", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2023-12-15T10:00:00.000Z"),
+        progressDate: "2023-12-15",
       });
 
       await progressRepository.create({
@@ -918,7 +918,7 @@ describe("JournalService", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date("2024-01-15T10:00:00.000Z"),
+        progressDate: "2024-01-15",
       });
 
       // Act
@@ -954,7 +954,7 @@ describe("JournalService", () => {
         currentPage: 33,
         currentPercentage: 33,
         pagesRead: 33,
-        progressDate: new Date("2024-03-15T10:00:00.000Z"),
+        progressDate: "2024-03-15",
       });
 
       await progressRepository.create({
@@ -963,7 +963,7 @@ describe("JournalService", () => {
         currentPage: 66,
         currentPercentage: 66,
         pagesRead: 33,
-        progressDate: new Date("2024-01-15T10:00:00.000Z"),
+        progressDate: "2024-01-15",
       });
 
       await progressRepository.create({
@@ -972,7 +972,7 @@ describe("JournalService", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 34,
-        progressDate: new Date("2024-02-15T10:00:00.000Z"),
+        progressDate: "2024-02-15",
       });
 
       // Act

@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { toSessionDate } from '../test-utils';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { shelfRepository } from "@/lib/repositories/shelf.repository";
@@ -138,7 +139,7 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2024-01-10"),
+      startedDate: "2024-01-10",
     });
 
     // Book 4: "read" status (INACTIVE session) - THIS WAS THE BUG
@@ -148,8 +149,8 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       sessionNumber: 1,
       status: "read",
       isActive: false, // <-- Critical: read books have isActive = false
-      startedDate: new Date("2024-01-01"),
-      completedDate: new Date("2024-01-15"),
+      startedDate: "2024-01-01",
+      completedDate: "2024-01-15",
       review: "Great book!",
     });
 
@@ -243,8 +244,8 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      startedDate: new Date("2024-01-01"),
-      completedDate: new Date("2024-01-15"),
+      startedDate: "2024-01-01",
+      completedDate: "2024-01-15",
     });
 
     // Session 2: Reading (current, active) - this should be returned
@@ -254,7 +255,7 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       sessionNumber: 2,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2024-02-01"),
+      startedDate: "2024-02-01",
     });
 
     // ========================================================================
@@ -308,8 +309,8 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      startedDate: new Date("2023-01-01"),
-      completedDate: new Date("2023-01-15"),
+      startedDate: "2023-01-01",
+      completedDate: "2023-01-15",
     });
 
     // Session 2: Read (second read, inactive) - most recent
@@ -319,8 +320,8 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       sessionNumber: 2,
       status: "read",
       isActive: false,
-      startedDate: new Date("2024-01-01"),
-      completedDate: new Date("2024-01-15"),
+      startedDate: "2024-01-01",
+      completedDate: "2024-01-15",
     });
 
     // ========================================================================

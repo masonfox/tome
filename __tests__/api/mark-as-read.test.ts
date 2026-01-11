@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/books/[id]/mark-as-read/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -8,6 +9,11 @@ import {
   createTestSession,
 } from "../fixtures/test-data";
 import type { NextRequest } from "next/server";
+import { formatInTimeZone } from "date-fns-tz";
+
+function getDateInEST(date: Date): string {
+  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
+}
 
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
@@ -184,7 +190,7 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       sessionId: session.id,
       currentPage: 300,
       currentPercentage: 100,
-      progressDate: new Date(),
+      progressDate: toProgressDate(new Date()),
       pagesRead: 300,
     });
 
@@ -208,7 +214,7 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       status: "read",
       isActive: false,
       sessionNumber: 1,
-      completedDate: new Date("2024-01-01"),
+      completedDate: "2024-01-01",
     }));
 
     const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
@@ -233,7 +239,7 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       status: "read",
       isActive: false,
       sessionNumber: 1,
-      completedDate: new Date("2024-01-01"),
+      completedDate: "2024-01-01",
     }));
 
     const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
@@ -255,7 +261,7 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       status: "read",
       isActive: false,
       sessionNumber: 1,
-      completedDate: new Date("2024-01-01"),
+      completedDate: "2024-01-01",
       review: "Original review",
     }));
 
@@ -284,16 +290,17 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       sessionNumber: 1,
     }));
 
-    const customDate = new Date("2024-06-15T10:00:00.000Z");
+    const customDate = "2024-06-15";
     const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
-      completedDate: customDate.toISOString(),
+      completedDate: customDate,
     });
     const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
     expect(data.session.status).toBe("read");
-    expect(new Date(data.session.completedDate).toISOString()).toBe(customDate.toISOString());
+    // Compare date strings directly (completedDate is now stored as YYYY-MM-DD string)
+    expect(data.session.completedDate).toBe(customDate);
   });
 
   // ============================================================================
@@ -404,14 +411,14 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       status: "read",
       isActive: false,
       sessionNumber: 1,
-      completedDate: new Date("2023-01-01"),
+      completedDate: "2023-01-01",
     }));
     await sessionRepository.create(createTestSession({
       bookId: book.id,
       status: "read",
       isActive: false,
       sessionNumber: 2,
-      completedDate: new Date("2024-01-01"), // Most recent
+      completedDate: "2024-01-01", // Most recent
     }));
 
     const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {

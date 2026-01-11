@@ -6,10 +6,23 @@ import { format } from "date-fns";
  * These functions can be used on both client and server.
  * For server-only functions (that access database), use '@/utils/dateHelpers.server'
  * 
- * Follows ADR-006 "The Right Way™" pattern for date handling.
+ * ## When to Use Each Helper
+ * 
+ * - **getTodayLocalDate()**: Get current date for date input default values
+ *   - Use case: `<input type="date" defaultValue={getTodayLocalDate()} />`
+ * 
+ * - **formatDateOnly()**: DEPRECATED - Use date-fns format/parse instead
+ *   - Old way: `formatDateOnly(isoString, 'MMM d, yyyy')`
+ *   - New way: `format(parse(dateStr, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')`
+ * 
+ * Follows ADR-006 and ADR-013 for date handling patterns.
  */
 
 /**
+ * @deprecated As of Jan 2026 - APIs now return YYYY-MM-DD strings directly, no need to parse ISO.
+ * Use date-fns format() with parse() instead: `format(parse(dateStr, 'yyyy-MM-dd', new Date()), formatString)`
+ * Will be removed in 3 months (April 2026).
+ * 
  * Formats an ISO date string for display, avoiding timezone conversion issues.
  * 
  * When dates are stored as ISO strings with midnight UTC (e.g., "2025-11-23T00:00:00.000Z"),

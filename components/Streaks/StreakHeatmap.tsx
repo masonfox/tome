@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, parseISO, getMonth } from "date-fns";
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, getMonth } from "date-fns";
 
 interface DailyReading {
   date: string;

@@ -115,9 +115,9 @@ export class SessionRepository extends BaseRepository<
         // Progress aggregations
         totalEntries: sql`COUNT(${progressLogs.id})`.as('totalEntries'),
         totalPagesRead: sql`COALESCE(SUM(${progressLogs.pagesRead}), 0)`.as('totalPagesRead'),
-        // Convert Unix timestamps to ISO date strings
-        firstProgressDate: sql`datetime(MIN(${progressLogs.progressDate}), 'unixepoch')`.as('firstProgressDate'),
-        lastProgressDate: sql`datetime(MAX(${progressLogs.progressDate}), 'unixepoch')`.as('lastProgressDate'),
+        // Progress dates are already in YYYY-MM-DD format
+        firstProgressDate: sql`MIN(${progressLogs.progressDate})`.as('firstProgressDate'),
+        lastProgressDate: sql`MAX(${progressLogs.progressDate})`.as('lastProgressDate'),
 
         // Latest progress fields (using MAX to get most recent)
         latestProgressCurrentPage: sql`(
@@ -303,28 +303,23 @@ export class SessionRepository extends BaseRepository<
    }
 
    /**
-    * Count completed sessions (status='read') after a date
+    * Count completed reading sessions after a specific date (inclusive)
+    * Used for annual reading goals (count books read this year)
     * 
-    * @param date UTC timestamp representing the start boundary (caller must convert from user TZ to UTC)
-    * @returns Count of completed sessions with completedDate >= date
+    * @param dateString - Date in YYYY-MM-DD format
+    * @returns Number of completed sessions on or after the date
     * 
     * @example
-    * // Count books completed this year in user's timezone
-    * const streak = await streakRepository.getOrCreate(null);
-    * const userTimezone = streak.userTimezone || 'America/New_York';
-    * const now = new Date();
-    * const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
-    * const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
-    * const count = await sessionRepository.countCompletedAfterDate(yearStartUtc);
+    * const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
     */
-   async countCompletedAfterDate(date: Date): Promise<number> {
+   async countCompletedAfterDate(dateString: string): Promise<number> {
      const result = this.getDatabase()
        .select({ count: sql<number>`count(*)` })
        .from(readingSessions)
        .where(
          and(
            eq(readingSessions.status, "read"),
-           gte(readingSessions.completedDate, date)
+           gte(readingSessions.completedDate, dateString)
          )
        )
        .get();

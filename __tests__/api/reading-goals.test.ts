@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { toSessionDate } from '../test-utils';
 import { GET, POST } from "@/app/api/reading-goals/route";
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -87,8 +88,8 @@ describe("Reading Goals API - GET /api/reading-goals", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-15"),
-        completedDate: new Date("2024-01-20"),
+        startedDate: "2024-01-15",
+        completedDate: "2024-01-20",
         isActive: false,
         userId: null,
       });

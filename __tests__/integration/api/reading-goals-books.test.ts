@@ -1,3 +1,4 @@
+import { toSessionDate } from '../../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { GET as GET_BOOKS } from "@/app/api/reading-goals/books/route";
@@ -125,8 +126,8 @@ describe("Integration: Reading Goals Books API", () => {
           bookId: book.id,
           sessionNumber: 1,
           status: "read",
-          startedDate: new Date(year, 0, 1),
-          completedDate: new Date(year, 6, 15 + i), // July 2025
+          startedDate: toSessionDate(new Date(year, 0, 1)),
+          completedDate: toSessionDate(new Date(year, 6, 15 + i)), // July 2025
           isActive: false,
         });
       }
@@ -166,8 +167,8 @@ describe("Integration: Reading Goals Books API", () => {
           bookId: book.id,
           sessionNumber: 1,
           status: "read",
-          startedDate: new Date(year, 0, 1),
-          completedDate: new Date(year, 3, 10 + i), // April 2024
+          startedDate: toSessionDate(new Date(year, 0, 1)),
+          completedDate: toSessionDate(new Date(year, 3, 10 + i)), // April 2024
           isActive: false,
         });
       }
@@ -186,7 +187,7 @@ describe("Integration: Reading Goals Books API", () => {
 
     test("should include completion dates in response", async () => {
       const year = 2025;
-      const completedDate = new Date(year, 5, 20); // June 20, 2025
+      const completedDate = toSessionDate(new Date(year, 5, 20)); // June 20, 2025
       
       const book = await bookRepository.create({
         calibreId: 1,
@@ -200,7 +201,7 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 5, 1),
+        startedDate: toSessionDate(new Date(year, 5, 1)),
         completedDate,
         isActive: false,
       });
@@ -241,8 +242,8 @@ describe("Integration: Reading Goals Books API", () => {
           bookId: book.id,
           sessionNumber: 1,
           status: "read",
-          startedDate: new Date(year, 0, 1),
-          completedDate: dates[i],
+          startedDate: toSessionDate(new Date(year, 0, 1)),
+          completedDate: toSessionDate(dates[i]),
           isActive: false,
         });
       }
@@ -282,8 +283,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book2025.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(targetYear, 0, 1),
-        completedDate: new Date(targetYear, 6, 15),
+        startedDate: toSessionDate(new Date(targetYear, 0, 1)),
+        completedDate: toSessionDate(new Date(targetYear, 6, 15)),
         isActive: false,
       });
       
@@ -300,8 +301,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book2024.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(2024, 0, 1),
-        completedDate: new Date(2024, 6, 15),
+        startedDate: toSessionDate(new Date(2024, 0, 1)),
+        completedDate: toSessionDate(new Date(2024, 6, 15)),
         isActive: false,
       });
       
@@ -317,8 +318,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book2026.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(2026, 0, 1),
-        completedDate: new Date(2026, 6, 15),
+        startedDate: toSessionDate(new Date(2026, 0, 1)),
+        completedDate: toSessionDate(new Date(2026, 6, 15)),
         isActive: false,
       });
       
@@ -351,8 +352,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 0, 15),
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 0, 15)),
         isActive: false,
       });
       
@@ -361,8 +362,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book.id,
         sessionNumber: 2,
         status: "read",
-        startedDate: new Date(year, 6, 1),
-        completedDate: new Date(year, 6, 15),
+        startedDate: toSessionDate(new Date(year, 6, 1)),
+        completedDate: toSessionDate(new Date(year, 6, 15)),
         isActive: false,
       });
       
@@ -403,8 +404,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: completedBook.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 6, 15),
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 6, 15)),
         isActive: false,
       });
       
@@ -421,7 +422,7 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: inProgressBook.id,
         sessionNumber: 1,
         status: "reading",
-        startedDate: new Date(year, 6, 1),
+        startedDate: toSessionDate(new Date(year, 6, 1)),
         completedDate: null,
         isActive: true,
       });
@@ -455,8 +456,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 6, 15),
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 6, 15)),
         isActive: false,
       });
       
@@ -494,8 +495,8 @@ describe("Integration: Reading Goals Books API", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 6, 15),
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 6, 15)),
         isActive: false,
       });
       

@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { toSessionDate } from '../test-utils';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { seriesService } from "@/lib/services/series.service";
@@ -398,7 +399,7 @@ describe("GET /api/series/:name", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       // Act
