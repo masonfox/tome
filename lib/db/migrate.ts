@@ -98,10 +98,29 @@ export async function runMigrations() {
     // Special handling for migrations 0015 and 0016 which have data conversion logic
     // These migrations work correctly when executed via raw SQL but fail silently when
     // run through Drizzle's migrate() function. We manually execute them to ensure reliability.
+    // However, we only do this if the base tables exist (not a fresh database).
     const specialMigrations = ['0015_opposite_shatterstar.sql', '0016_outstanding_leader.sql'];
     for (const migFile of specialMigrations) {
       const migPath = join(migrationsFolder, migFile);
       if (!require('fs').existsSync(migPath)) continue;
+      
+      // Check if the tables that these migrations affect exist
+      // Migration 0015 affects progress_logs, migration 0016 affects reading_sessions
+      const tableToCheck = migFile.includes('0015') ? 'progress_logs' : 'reading_sessions';
+      try {
+        const tableExists = sqlite.prepare(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name='${tableToCheck}'`
+        ).get();
+        
+        if (!tableExists) {
+          getLoggerSafe().info(`Table ${tableToCheck} doesn't exist yet, skipping special migration ${migFile} (will be handled by regular migrations)`);
+          continue;
+        }
+      } catch (error) {
+        // If we can't check, skip this special migration
+        getLoggerSafe().info(`Cannot check for ${tableToCheck}, skipping special migration ${migFile}`);
+        continue;
+      }
       
       // Check if already applied by hash
       const migContent = readFileSync(migPath, 'utf-8');

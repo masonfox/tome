@@ -49,6 +49,19 @@ function isMigrationComplete(): boolean {
   const { sqlite: db } = createDatabase({ path: DB_PATH, wal: true });
   
   try {
+    // Check if reading_sessions table exists - if not, this is a fresh database
+    const sessionsTable = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='reading_sessions'"
+      )
+      .get();
+
+    if (!sessionsTable) {
+      // Fresh database - no tables to migrate, so consider migration "complete"
+      logger.debug("reading_sessions table does not exist, treating as fresh database");
+      return true;
+    }
+
     // Check if metadata table exists
     const tableExists = db
       .prepare(
@@ -102,12 +115,25 @@ async function migrateSessions() {
       "Starting session dates migration (INTEGER → TEXT)"
     );
 
-    // Get user's timezone from streaks table
-    const streakRow = db
-      .prepare("SELECT user_timezone FROM streaks LIMIT 1")
-      .get() as StreakRow | undefined;
+    // Get user's timezone from streaks table (if it exists)
+    let userTimezone = "America/New_York";
+    
+    // Check if streaks table exists
+    const streaksTable = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='streaks'"
+      )
+      .get();
 
-    const userTimezone = streakRow?.user_timezone || "America/New_York";
+    if (streaksTable) {
+      const streakRow = db
+        .prepare("SELECT user_timezone FROM streaks LIMIT 1")
+        .get() as StreakRow | undefined;
+      userTimezone = streakRow?.user_timezone || "America/New_York";
+    } else {
+      logger.info("streaks table does not exist, using default timezone");
+    }
+    
     logger.info({ timezone: userTimezone }, "Using user timezone for conversion");
 
     // Get all sessions that need migration

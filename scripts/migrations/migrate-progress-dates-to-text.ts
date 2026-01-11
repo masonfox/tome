@@ -47,6 +47,19 @@ function isMigrationComplete(): boolean {
   const { sqlite: db } = createDatabase({ path: DB_PATH, wal: true });
   
   try {
+    // Check if progress_logs table exists - if not, this is a fresh database
+    const progressLogsTable = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='progress_logs'"
+      )
+      .get();
+
+    if (!progressLogsTable) {
+      // Fresh database - no tables to migrate, so consider migration "complete"
+      logger.debug("progress_logs table does not exist, treating as fresh database");
+      return true;
+    }
+
     // Check if metadata table exists
     const tableExists = db
       .prepare(
@@ -93,6 +106,20 @@ function setMigrationComplete(db: any): void {
  * Get user's timezone from streaks table
  */
 function getUserTimezone(db: any): string {
+  // Check if streaks table exists
+  const streaksTable = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='streaks'"
+    )
+    .get();
+
+  if (!streaksTable) {
+    // No streaks table yet - use default timezone
+    const defaultTimezone = "America/New_York";
+    logger.info({ timezone: defaultTimezone }, "streaks table does not exist, using default timezone");
+    return defaultTimezone;
+  }
+
   const streak = db
     .prepare("SELECT user_timezone FROM streaks LIMIT 1")
     .get() as StreakRow | undefined;
