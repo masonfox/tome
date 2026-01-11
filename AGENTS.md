@@ -55,6 +55,7 @@ Contains:
 - File Watcher (debouncing)
 - Status State Machine (auto-dates)
 - Standard CRUD Routes
+- Companion Migrations (data transformations during schema changes)
 
 **All patterns extracted from production code. Read this before implementing features.**
 
@@ -136,7 +137,7 @@ Need to understand project principles?
 └─ Read .specify/memory/constitution.md
 
 Need a code pattern?
-└─ Read .specify/memory/patterns.md (10 patterns with examples)
+└─ Read .specify/memory/patterns.md (11 patterns with examples)
 
 Need to access Tome database?
 ├─ YES → Use repositories (lib/repositories/)
