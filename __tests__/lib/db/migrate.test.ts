@@ -320,43 +320,6 @@ describe("Migration System", () => {
     });
   });
 
-  describe("Data Migration Detection", () => {
-    test("should detect when progress dates migration is needed", async () => {
-      const { isMigrationComplete } = await import("@/scripts/migrations/migrate-progress-dates-to-text");
-
-      // Mock old-style integer dates in progress_logs
-      testSqlite.exec(`
-        CREATE TABLE IF NOT EXISTS progress_logs_test (
-          id INTEGER PRIMARY KEY,
-          progress_date INTEGER NOT NULL
-        );
-        INSERT INTO progress_logs_test (progress_date) VALUES (1704067200000);
-      `);
-
-      // Note: In real test, would need actual progress_logs table
-      // This is a simplified check
-      expect(typeof isMigrationComplete).toBe("function");
-    });
-
-    test("should detect when session dates migration is needed", async () => {
-      const { isMigrationComplete } = await import("@/scripts/migrations/migrate-session-dates-to-text");
-
-      // Mock old-style integer dates in reading_sessions
-      testSqlite.exec(`
-        CREATE TABLE IF NOT EXISTS reading_sessions_test (
-          id INTEGER PRIMARY KEY,
-          started_date INTEGER,
-          completed_date INTEGER
-        );
-        INSERT INTO reading_sessions_test (started_date, completed_date) 
-        VALUES (1704067200000, 1704153600000);
-      `);
-
-      // Note: In real test, would need actual reading_sessions table
-      expect(typeof isMigrationComplete).toBe("function");
-    });
-  });
-
   describe("Schema Validation", () => {
     test("should create books table with correct columns", async () => {
       const { runMigrationsOnDatabase } = await import("@/lib/db/migrate");
