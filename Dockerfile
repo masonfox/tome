@@ -19,9 +19,16 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
 # Install migration dependencies (standalone build doesn't include all dependencies)
-# These packages are needed by lib/db/migrate.ts which runs before the app starts
+# These packages are needed by lib/db/migrate.ts and companion migrations which run before the app starts
+# Note: date-fns and date-fns-tz are required by companion migrations for timezone conversions
 FROM base AS migration-deps
-RUN npm install drizzle-orm@^0.44.7 pino@^9.3.1 tsx@^4.7.0 better-sqlite3@^12.4.1
+RUN npm install \
+  drizzle-orm@^0.44.7 \
+  pino@^9.3.1 \
+  tsx@^4.7.0 \
+  better-sqlite3@^12.4.1 \
+  date-fns@^3.3.0 \
+  date-fns-tz@^3.2.0
 
 # Build the application
 FROM base AS builder
@@ -67,8 +74,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 
-# Copy only migration dependencies (drizzle-orm and pino) instead of all node_modules
+# Copy only migration dependencies instead of all node_modules
 # The standalone build's node_modules don't include deps needed by lib/db/migrate.ts
+# and companion migrations (date-fns, date-fns-tz for timezone conversions)
 # This optimization significantly reduces image size by copying only what's needed
 COPY --from=migration-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
