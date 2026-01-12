@@ -6,6 +6,7 @@ import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
+import { getTodayLocalDate } from "@/utils/dateHelpers";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger().child({ component: "DNFBookModal" });
@@ -51,10 +52,8 @@ export default function DNFBookModal({
   useEffect(() => {
     if (isOpen) {
       hasRestoredDraft.current = false;
-      // Prefill DNF date with last progress date
-      if (lastProgressDate) {
-        setDnfDate(lastProgressDate);
-      }
+      // Prefill DNF date with last progress date, or today if no progress
+      setDnfDate(lastProgressDate || getTodayLocalDate());
     }
   }, [isOpen, lastProgressDate]);
 
