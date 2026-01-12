@@ -134,7 +134,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-[var(--accent)]/60" />
                 <h3 className="text-lg font-semibold text-[var(--heading-text)]">
-                  {session.status === 'dnf' ? `DNF #${session.sessionNumber}` : `Read #${session.sessionNumber}`}
+                  Read #{session.sessionNumber}
                 </h3>
                 {session.status === 'dnf' ? (
                   <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-600 dark:text-red-400 rounded-full border border-red-500/30">
@@ -169,19 +169,16 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   </span>
                 </div>
               )}
-              {session.completedDate && (
-                <div className="flex items-center gap-2 text-sm text-[var(--foreground)]/70 font-medium">
+              {(session.completedDate || session.dnfDate) && (
+                <div className={`flex items-center gap-2 text-sm font-medium ${
+                  session.dnfDate ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]/70'
+                }`}>
                   <Calendar className="w-4 h-4" />
                   <span>
-                    Completed: {formatDateOnly(session.completedDate)}
-                  </span>
-                </div>
-              )}
-              {session.dnfDate && (
-                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 font-medium">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    Stopped Reading: {formatDateOnly(session.dnfDate)}
+                    {session.dnfDate 
+                      ? `Stopped Reading: ${formatDateOnly(session.dnfDate)}`
+                      : `Completed: ${formatDateOnly(session.completedDate!)}`
+                    }
                   </span>
                 </div>
               )}
