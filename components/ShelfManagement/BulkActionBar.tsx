@@ -1,10 +1,12 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, MoveHorizontal, Copy } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface BulkActionBarProps {
   selectedCount: number;
+  onMove?: () => void;
+  onCopy?: () => void;
   onDelete: () => void;
   onCancel: () => void;
   loading?: boolean;
@@ -13,6 +15,8 @@ interface BulkActionBarProps {
 
 export function BulkActionBar({
   selectedCount,
+  onMove,
+  onCopy,
   onDelete,
   onCancel,
   loading = false,
@@ -44,7 +48,7 @@ export function BulkActionBar({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={onCancel}
               disabled={loading}
@@ -58,6 +62,36 @@ export function BulkActionBar({
             >
               Cancel
             </button>
+            {onMove && (
+              <button
+                onClick={onMove}
+                disabled={loading || selectedCount === 0}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "flex items-center gap-2"
+                )}
+              >
+                <MoveHorizontal className="w-4 h-4" />
+                Move to...
+              </button>
+            )}
+            {onCopy && (
+              <button
+                onClick={onCopy}
+                disabled={loading || selectedCount === 0}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "flex items-center gap-2"
+                )}
+              >
+                <Copy className="w-4 h-4" />
+                Copy to...
+              </button>
+            )}
             <button
               onClick={onDelete}
               disabled={loading || selectedCount === 0}
@@ -69,7 +103,7 @@ export function BulkActionBar({
               )}
             >
               <Trash2 className="w-4 h-4" />
-              {loading ? "Removing..." : "Delete"}
+              {loading ? "Removing..." : "Remove"}
             </button>
           </div>
         </div>

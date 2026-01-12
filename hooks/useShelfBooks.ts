@@ -309,6 +309,120 @@ export function useShelfBooks(shelfId: number | null) {
     [shelfId, shelf, fetchShelfBooks]
   );
 
+  /**
+   * Move books from current shelf to another shelf
+   */
+  const moveBooks = useCallback(
+    async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
+      if (!shelfId || bookIds.length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      // Optimistic update: remove books from local state
+      setShelf((prev) => {
+        if (!prev) return null;
+        
+        const remainingBooks = prev.books
+          .filter((book) => !bookIds.includes(book.id))
+          .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
+        
+        return {
+          ...prev,
+          books: remainingBooks,
+        };
+      });
+
+      try {
+        // 1. Remove from source shelf
+        await fetch(`/api/shelves/${shelfId}/books/bulk`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookIds }),
+        });
+
+        // 2. Add to target shelf
+        const response = await fetch(`/api/shelves/${targetShelfId}/books/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookIds }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || "Failed to move books");
+        }
+
+        const result = await response.json();
+        
+        const bookWord = result.data.count === 1 ? "book" : "books";
+        const shelfName = targetShelfName ? ` to ${targetShelfName}` : "";
+        toast.success(`${result.data.count} ${bookWord} moved${shelfName}`);
+        
+        return { count: result.data.count };
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Unknown error");
+        setError(error);
+        
+        toast.error(`Failed to move books: ${error.message}`);
+        
+        // Refresh to ensure consistency
+        await fetchShelfBooks();
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shelfId, fetchShelfBooks]
+  );
+
+  /**
+   * Copy books from current shelf to another shelf
+   */
+  const copyBooks = useCallback(
+    async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
+      if (bookIds.length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Add to target shelf (no removal from current shelf)
+        const response = await fetch(`/api/shelves/${targetShelfId}/books/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookIds }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || "Failed to copy books");
+        }
+
+        const result = await response.json();
+        
+        const bookWord = result.data.count === 1 ? "book" : "books";
+        const shelfName = targetShelfName ? ` to ${targetShelfName}` : "";
+        toast.success(`${result.data.count} ${bookWord} copied${shelfName}`);
+        
+        return { count: result.data.count };
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Unknown error");
+        setError(error);
+        
+        toast.error(`Failed to copy books: ${error.message}`);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shelfId]
+  );
+
   return {
     shelf,
     books: shelf?.books || [],
@@ -322,5 +436,7 @@ export function useShelfBooks(shelfId: number | null) {
     removeBooksFromShelf,
     updateBookOrder,
     reorderBooks,
+    moveBooks,
+    copyBooks,
   };
 }
