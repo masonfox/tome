@@ -226,7 +226,8 @@ describe("ShelfRepository - Status Display", () => {
       const book1 = await bookRepository.create({
         calibreId: 1,
         title: "Book by Sanderson",
-        authors: ["Brandon Sanderson"], // Last name: Sanderson
+        authors: ["Brandon Sanderson"],
+        authorSort: "Sanderson, Brandon",
         tags: [],
         path: "/path/1",
       });
@@ -234,7 +235,8 @@ describe("ShelfRepository - Status Display", () => {
       const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Book by Rothfuss",
-        authors: ["Patrick Rothfuss"], // Last name: Rothfuss
+        authors: ["Patrick Rothfuss"],
+        authorSort: "Rothfuss, Patrick",
         tags: [],
         path: "/path/2",
       });
@@ -242,7 +244,8 @@ describe("ShelfRepository - Status Display", () => {
       const book3 = await bookRepository.create({
         calibreId: 3,
         title: "Book by Abercrombie",
-        authors: ["Joe Abercrombie"], // Last name: Abercrombie
+        authors: ["Joe Abercrombie"],
+        authorSort: "Abercrombie, Joe",
         tags: [],
         path: "/path/3",
       });
@@ -250,7 +253,8 @@ describe("ShelfRepository - Status Display", () => {
       const book4 = await bookRepository.create({
         calibreId: 4,
         title: "Book by Le Guin",
-        authors: ["Ursula K. Le Guin"], // Last name: Guin (last word)
+        authors: ["Ursula K. Le Guin"],
+        authorSort: "Guin, Ursula K. Le",
         tags: [],
         path: "/path/4",
       });
@@ -258,7 +262,8 @@ describe("ShelfRepository - Status Display", () => {
       const book5 = await bookRepository.create({
         calibreId: 5,
         title: "Book by Plato",
-        authors: ["Plato"], // Single name: Plato
+        authors: ["Plato"],
+        authorSort: "Plato",
         tags: [],
         path: "/path/5",
       });
@@ -296,6 +301,7 @@ describe("ShelfRepository - Status Display", () => {
         calibreId: 1,
         title: "Book by Sanderson",
         authors: ["Brandon Sanderson"],
+        authorSort: "Sanderson, Brandon",
         tags: [],
         path: "/path/1",
       });
@@ -304,6 +310,7 @@ describe("ShelfRepository - Status Display", () => {
         calibreId: 2,
         title: "Book by Abercrombie",
         authors: ["Joe Abercrombie"],
+        authorSort: "Abercrombie, Joe",
         tags: [],
         path: "/path/2",
       });
@@ -335,6 +342,7 @@ describe("ShelfRepository - Status Display", () => {
         calibreId: 1,
         title: "Book with Author",
         authors: ["Brandon Sanderson"],
+        authorSort: "Sanderson, Brandon",
         tags: [],
         path: "/path/1",
       });
@@ -344,6 +352,7 @@ describe("ShelfRepository - Status Display", () => {
         calibreId: 2,
         title: "Book without Author",
         authors: [],
+        authorSort: null,
         tags: [],
         path: "/path/2",
       });
@@ -356,10 +365,10 @@ describe("ShelfRepository - Status Display", () => {
       const books = await shelfRepository.getBooksOnShelf(shelf.id, "author", "asc");
 
       expect(books).toHaveLength(2);
-      
-      // Books with no author (empty string) should come first
-      expect(books[0].id).toBe(book2!.id); // No author (empty)
-      expect(books[1].id).toBe(book1!.id); // Sanderson
+
+      // Books with authors come first, books without authors (NULL) sort to end with NULLS LAST
+      expect(books[0].id).toBe(book1!.id); // Sanderson
+      expect(books[1].id).toBe(book2!.id); // No author (NULL, sorts last)
     });
 
     it("should handle multi-word last names correctly", async () => {
@@ -373,7 +382,8 @@ describe("ShelfRepository - Status Display", () => {
       const book1 = await bookRepository.create({
         calibreId: 1,
         title: "Book by Le Guin",
-        authors: ["Ursula K. Le Guin"], // Last word: Guin
+        authors: ["Ursula K. Le Guin"],
+        authorSort: "Guin, Ursula K. Le",
         tags: [],
         path: "/path/1",
       });
@@ -381,7 +391,8 @@ describe("ShelfRepository - Status Display", () => {
       const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Book by King",
-        authors: ["Martin Luther King Jr."], // Last word: Jr.
+        authors: ["Martin Luther King Jr."],
+        authorSort: "Jr., Martin Luther King",
         tags: [],
         path: "/path/2",
       });
@@ -389,7 +400,8 @@ describe("ShelfRepository - Status Display", () => {
       const book3 = await bookRepository.create({
         calibreId: 3,
         title: "Book by van Gogh",
-        authors: ["Vincent van Gogh"], // Last word: Gogh
+        authors: ["Vincent van Gogh"],
+        authorSort: "Gogh, Vincent van",
         tags: [],
         path: "/path/3",
       });
