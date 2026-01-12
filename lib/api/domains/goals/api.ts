@@ -107,7 +107,7 @@ export const goalsApi = {
    * await goalsApi.delete(1);
    */
   delete: (goalId: number): Promise<DeleteGoalResponse> => {
-    return baseApiClient["delete"]<DeleteGoalResponse>(
+    return baseApiClient["delete"]<undefined, DeleteGoalResponse>(
       `/api/reading-goals/${goalId}`
     );
   },

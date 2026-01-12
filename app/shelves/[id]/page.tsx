@@ -11,6 +11,7 @@ import { BookListItemSkeleton } from "@/components/Books/BookListItemSkeleton";
 import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
 import { BulkActionBar } from "@/components/ShelfManagement/BulkActionBar";
+import { ShelfSelectionModal } from "@/components/ShelfManagement/ShelfSelectionModal";
 import BaseModal from "@/components/Modals/BaseModal";
 import { AddBooksToShelfModal } from "@/components/ShelfManagement/AddBooksToShelfModal";
 import { AddBooksToShelfFAB } from "@/components/ShelfManagement/AddBooksToShelfFAB";
@@ -36,6 +37,8 @@ export default function ShelfDetailPage() {
     removeBookFromShelf,
     removeBooksFromShelf,
     reorderBooks,
+    moveBooks,
+    copyBooks,
   } = useShelfBooks(shelfId);
 
   const [sortBy, setSortBy] = useState<SortOption>("sortOrder");
@@ -51,6 +54,12 @@ export default function ShelfDetailPage() {
   const [selectedBookIds, setSelectedBookIds] = useState<Set<number>>(new Set());
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  
+  // Move/Copy state
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [moveLoading, setMoveLoading] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
 
   // Detect mobile/tablet vs desktop
   useEffect(() => {
@@ -158,6 +167,66 @@ export default function ShelfDetailPage() {
       // Error handled by hook
     } finally {
       setBulkDeleteLoading(false);
+    }
+  };
+
+  // Handle move books to another shelf
+  const handleMoveClick = () => {
+    if (selectedBookIds.size === 0) return;
+    setShowMoveModal(true);
+  };
+
+  const handleMoveSubmit = async (targetShelfId: number, keepSelected: boolean) => {
+    if (selectedBookIds.size === 0 || !shelf) return;
+
+    setMoveLoading(true);
+    try {
+      // Fetch target shelf name for toast message
+      const shelvesResponse = await fetch("/api/shelves?withCounts=true");
+      const shelvesData = await shelvesResponse.json();
+      const targetShelf = shelvesData.data.find((s: { id: number }) => s.id === targetShelfId);
+      
+      await moveBooks(targetShelfId, Array.from(selectedBookIds), targetShelf?.name);
+      setShowMoveModal(false);
+      
+      if (!keepSelected) {
+        setIsSelectMode(false);
+        setSelectedBookIds(new Set());
+      }
+    } catch (error) {
+      // Error handled by hook
+    } finally {
+      setMoveLoading(false);
+    }
+  };
+
+  // Handle copy books to another shelf
+  const handleCopyClick = () => {
+    if (selectedBookIds.size === 0) return;
+    setShowCopyModal(true);
+  };
+
+  const handleCopySubmit = async (targetShelfId: number, keepSelected: boolean) => {
+    if (selectedBookIds.size === 0 || !shelf) return;
+
+    setCopyLoading(true);
+    try {
+      // Fetch target shelf name for toast message
+      const shelvesResponse = await fetch("/api/shelves?withCounts=true");
+      const shelvesData = await shelvesResponse.json();
+      const targetShelf = shelvesData.data.find((s: { id: number }) => s.id === targetShelfId);
+      
+      await copyBooks(targetShelfId, Array.from(selectedBookIds), targetShelf?.name);
+      setShowCopyModal(false);
+      
+      if (!keepSelected) {
+        setIsSelectMode(false);
+        setSelectedBookIds(new Set());
+      }
+    } catch (error) {
+      // Error handled by hook
+    } finally {
+      setCopyLoading(false);
     }
   };
 
@@ -565,9 +634,11 @@ export default function ShelfDetailPage() {
       {isSelectMode && (
         <BulkActionBar
           selectedCount={selectedBookIds.size}
+          onMove={handleMoveClick}
+          onCopy={handleCopyClick}
           onCancel={toggleSelectMode}
           onDelete={handleBulkDelete}
-          loading={bulkDeleteLoading}
+          loading={bulkDeleteLoading || moveLoading || copyLoading}
         />
       )}
 
@@ -602,6 +673,32 @@ export default function ShelfDetailPage() {
           The selected books will be removed from this shelf but will remain in your library.
         </p>
       </BaseModal>
+
+      {/* Move Books Modal */}
+      {shelf && shelfId && (
+        <ShelfSelectionModal
+          isOpen={showMoveModal}
+          onClose={() => !moveLoading && setShowMoveModal(false)}
+          onSelectShelf={handleMoveSubmit}
+          currentShelfId={shelfId}
+          title="Move Books to Shelf"
+          confirmButtonText="Move"
+          allowKeepSelected={true}
+        />
+      )}
+
+      {/* Copy Books Modal */}
+      {shelf && shelfId && (
+        <ShelfSelectionModal
+          isOpen={showCopyModal}
+          onClose={() => !copyLoading && setShowCopyModal(false)}
+          onSelectShelf={handleCopySubmit}
+          currentShelfId={shelfId}
+          title="Copy Books to Shelf"
+          confirmButtonText="Copy"
+          allowKeepSelected={true}
+        />
+      )}
     </div>
   );
 }

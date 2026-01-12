@@ -11,8 +11,11 @@ vi.mock('@/lib/api', () => ({
     addBook: vi.fn(),
     addBooks: vi.fn(),
     removeBook: vi.fn(),
+    removeBooks: vi.fn(),
     updateBookOrder: vi.fn(),
     reorderBooks: vi.fn(),
+    moveBooks: vi.fn(),
+    copyBooks: vi.fn(),
   },
   ApiError: class ApiError extends Error {
     constructor(
@@ -604,21 +607,8 @@ describe('useShelfBooks', () => {
   });
 
   describe('removeBooksFromShelf (bulk operation)', () => {
-    const mockFetchResponse = (data: any, ok = true, status = 200) => ({
-      ok,
-      status,
-      json: async () => data,
-    });
-
-    beforeEach(() => {
-      // Mock global fetch for bulk delete
-      global.fetch = vi.fn() as any;
-    });
-
     test('should call DELETE API with correct parameters', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 3, removedBookIds: [10, 20, 30] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 3 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -628,17 +618,11 @@ describe('useShelfBooks', () => {
 
       await result.current.removeBooksFromShelf([10, 20, 30]);
 
-      expect(global.fetch).toHaveBeenCalledWith('/api/shelves/1/books/bulk', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookIds: [10, 20, 30] }),
-      });
+      expect(shelfApi.removeBooks).toHaveBeenCalledWith(1, { bookIds: [10, 20, 30] });
     });
 
     test('should optimistically update shelf state', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 1 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -665,9 +649,7 @@ describe('useShelfBooks', () => {
     });
 
     test('should reindex sortOrder of remaining books', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 1 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -685,9 +667,7 @@ describe('useShelfBooks', () => {
 
     test('should show success toast with correct count (single book)', async () => {
       const { toast } = await import('@/utils/toast');
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 1 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -702,9 +682,7 @@ describe('useShelfBooks', () => {
 
     test('should show success toast with correct count (multiple books)', async () => {
       const { toast } = await import('@/utils/toast');
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 3, removedBookIds: [10, 20, 30] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 3 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -719,13 +697,8 @@ describe('useShelfBooks', () => {
 
     test('should handle API errors and refresh shelf', async () => {
       const { toast } = await import('@/utils/toast');
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse(
-          { success: false, error: { message: 'Shelf not found' } },
-          false,
-          404
-        )
-      );
+      const error = new ApiError('Shelf not found', 404, '/api/shelves/1/books/bulk');
+      (shelfApi.removeBooks as any).mockRejectedValue(error);
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -739,7 +712,7 @@ describe('useShelfBooks', () => {
         await result.current.removeBooksFromShelf([10, 20]);
         expect.fail('Should have thrown an error');
       } catch (err) {
-        expect(err).toBeInstanceOf(Error);
+        expect(err).toBeInstanceOf(ApiError);
         expect((err as Error).message).toBe('Shelf not found');
       }
 
@@ -753,7 +726,7 @@ describe('useShelfBooks', () => {
     test('should handle network errors', async () => {
       const { toast } = await import('@/utils/toast');
       const networkError = new Error('Network request failed');
-      (global.fetch as any).mockRejectedValue(networkError);
+      (shelfApi.removeBooks as any).mockRejectedValue(networkError);
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -787,11 +760,9 @@ describe('useShelfBooks', () => {
     });
 
     test('should set loading state during operation', async () => {
-      (global.fetch as any).mockImplementation(
+      (shelfApi.removeBooks as any).mockImplementation(
         () => new Promise(resolve => 
-          setTimeout(() => resolve(
-            mockFetchResponse({ success: true, data: { removed: true, count: 2, removedBookIds: [10, 20] } })
-          ), 100)
+          setTimeout(() => resolve({ removed: true, count: 2 }), 100)
         )
       );
       (shelfApi.get as any).mockResolvedValue(mockShelf);
@@ -814,13 +785,8 @@ describe('useShelfBooks', () => {
     });
 
     test('should clear loading state after error', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse(
-          { success: false, error: { message: 'Server error' } },
-          false,
-          500
-        )
-      );
+      const error = new ApiError('Server error', 500, '/api/shelves/1/books/bulk');
+      (shelfApi.removeBooks as any).mockRejectedValue(error);
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -839,33 +805,27 @@ describe('useShelfBooks', () => {
     });
 
     test('should not call API when shelfId is null', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 2 } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 2 });
 
       const { result } = renderHook(() => useShelfBooks(null));
 
       await result.current.removeBooksFromShelf([10, 20]);
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(shelfApi.removeBooks).not.toHaveBeenCalled();
     });
 
     test('should not call API when bookIds array is empty', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 0 } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 0 });
 
       const { result } = renderHook(() => useShelfBooks(1));
 
       await result.current.removeBooksFromShelf([]);
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(shelfApi.removeBooks).not.toHaveBeenCalled();
     });
 
     test('should handle removing all books from shelf', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 2, removedBookIds: [10, 20] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 2 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -881,9 +841,7 @@ describe('useShelfBooks', () => {
     });
 
     test('should handle removing books not in current shelf', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 0, removedBookIds: [] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 0 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -900,9 +858,7 @@ describe('useShelfBooks', () => {
     });
 
     test('should handle mixed valid and invalid book IDs', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 1, removedBookIds: [10] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 1 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -930,9 +886,7 @@ describe('useShelfBooks', () => {
         ],
       };
 
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ success: true, data: { removed: true, count: 2, removedBookIds: [20, 40] } })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 2 });
       (shelfApi.get as any).mockResolvedValue(extendedMockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -953,12 +907,7 @@ describe('useShelfBooks', () => {
     });
 
     test('should return result data with count and removedBookIds', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({ 
-          success: true, 
-          data: { removed: true, count: 2, removedBookIds: [10, 20] } 
-        })
-      );
+      (shelfApi.removeBooks as any).mockResolvedValue({ removed: true, count: 2 });
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -969,14 +918,12 @@ describe('useShelfBooks', () => {
       expect(removeResult).toEqual({
         removed: true,
         count: 2,
-        removedBookIds: [10, 20],
       });
     });
 
     test('should handle API response without error details', async () => {
-      (global.fetch as any).mockResolvedValue(
-        mockFetchResponse({}, false, 500)
-      );
+      const error = new Error('Unknown error');
+      (shelfApi.removeBooks as any).mockRejectedValue(error);
       (shelfApi.get as any).mockResolvedValue(mockShelf);
 
       const { result } = renderHook(() => useShelfBooks(1));
@@ -987,7 +934,7 @@ describe('useShelfBooks', () => {
         await result.current.removeBooksFromShelf([10]);
         expect.fail('Should have thrown an error');
       } catch (err) {
-        expect((err as Error).message).toBe('Failed to remove books');
+        expect((err as Error).message).toBe('Unknown error');
       }
     });
   });
