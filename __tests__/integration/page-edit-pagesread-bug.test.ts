@@ -58,7 +58,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
       currentPage: 50,
       currentPercentage: 16, // 50/300 = 16.66% → 16%
       pagesRead: 50,
-      progressDate: new Date("2025-12-01"),
+      progressDate: "2025-12-01",
     }));
 
     await progressRepository.create(createTestProgress({
@@ -67,7 +67,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
       currentPage: 100,
       currentPercentage: 33, // 100/300 = 33.33% → 33%
       pagesRead: 50, // 100 - 50 = 50
-      progressDate: new Date("2025-12-02"),
+      progressDate: "2025-12-02",
     }));
 
     // Edit page count
@@ -115,7 +115,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
       currentPage: 80,
       currentPercentage: 40, // 80/200
       pagesRead: 80,
-      progressDate: new Date("2025-12-01"),
+      progressDate: "2025-12-01",
     }));
 
     // Edit pages to 250
@@ -128,7 +128,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
     const progressResponse = await POST_PROGRESS(
       createMockRequest("POST", `/api/books/${book.id}/progress`, {
         currentPage: 120,
-        progressDate: new Date("2025-12-02").toISOString(),
+        progressDate: "2025-12-02",
       }) as NextRequest,
       { params: { id: book.id.toString() } }
     );
@@ -171,7 +171,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
       currentPage: 100,
       currentPercentage: 33, // 100/300
       pagesRead: 100,
-      progressDate: new Date("2025-12-01"),
+      progressDate: "2025-12-01",
     }));
 
     // Edit to 400 pages
@@ -185,7 +185,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
     const progressResponse = await POST_PROGRESS(
       createMockRequest("POST", `/api/books/${book.id}/progress`, {
         currentPage: 150,
-        progressDate: new Date("2025-12-02").toISOString(),
+        progressDate: "2025-12-02",
       }) as NextRequest,
       { params: { id: book.id.toString() } }
     );
@@ -225,7 +225,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
       currentPage: 100,
       currentPercentage: 33, // 100/300
       pagesRead: 100,
-      progressDate: new Date("2025-12-01"),
+      progressDate: "2025-12-01",
     }));
 
     // Simulate page edit
@@ -253,7 +253,7 @@ describe("Page Edit pagesRead Bug Investigation", () => {
     const newProgressResponse = await POST_PROGRESS(
       createMockRequest("POST", `/api/books/${book.id}/progress`, {
         currentPage: 150,
-        progressDate: new Date("2025-12-02").toISOString(),
+        progressDate: "2025-12-02",
       }) as NextRequest,
       { params: { id: book.id.toString() } }
     );

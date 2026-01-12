@@ -1,3 +1,4 @@
+import { toProgressDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET } from "@/app/api/books/[id]/sessions/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -79,14 +80,14 @@ describe("GET /api/books/[id]/sessions", () => {
       bookId: book.id,
       sessionId: session.id,
       pagesRead: 100,
-      progressDate: new Date("2025-11-15"),
+      progressDate: "2025-11-15",
     });
     await progressRepository.create({
       ...mockProgressLog2,
       bookId: book.id,
       sessionId: session.id,
       pagesRead: 150,
-      progressDate: new Date("2025-11-16"),
+      progressDate: "2025-11-16",
     });
 
     // Act: Fetch sessions
@@ -157,8 +158,8 @@ describe("GET /api/books/[id]/sessions", () => {
       bookId: book.id,
       sessionNumber: 1,
       status: "read",
-      startedDate: new Date("2025-11-01"),
-      completedDate: new Date("2025-11-16"),
+      startedDate: "2025-11-01",
+      completedDate: "2025-11-16",
       review: "Great book!",
       isActive: true,
     });
@@ -208,7 +209,7 @@ describe("GET /api/books/[id]/sessions", () => {
         currentPage: (i + 1) * 100,
         currentPercentage: ((i + 1) * 100) / 1040,
         pagesRead: 100,
-        progressDate: new Date(dates[i]),
+        progressDate: toProgressDate(new Date(dates[i])),
       });
     }
 
@@ -375,7 +376,7 @@ describe("GET /api/books/[id]/sessions", () => {
       bookId: book.id,
       sessionNumber: 2,
       status: "reading",
-      startedDate: new Date("2025-11-15"),
+      startedDate: "2025-11-15",
       isActive: false,
     });
 
@@ -383,8 +384,8 @@ describe("GET /api/books/[id]/sessions", () => {
       bookId: book.id,
       sessionNumber: 3,
       status: "read",
-      startedDate: new Date("2025-11-01"),
-      completedDate: new Date("2025-11-16"),
+      startedDate: "2025-11-01",
+      completedDate: "2025-11-16",
       rating: 5,
       review: "Great!",
       isActive: true,

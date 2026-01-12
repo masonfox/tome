@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { toSessionDate } from '../test-utils';
 import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { bookRepository } from "@/lib/repositories/book.repository";
 import { sessionRepository } from "@/lib/repositories/session.repository";
@@ -72,7 +73,7 @@ describe("ShelfRepository - Status Display", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2024-01-15"),
+        completedDate: "2024-01-15",
       });
 
       // Book 2: Reading status (isActive = true)
@@ -82,7 +83,7 @@ describe("ShelfRepository - Status Display", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2024-01-10"),
+        startedDate: "2024-01-10",
       });
 
       // Book 3: To-read status (isActive = true)
@@ -139,7 +140,7 @@ describe("ShelfRepository - Status Display", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2024-01-15"),
+        completedDate: "2024-01-15",
       });
 
       // Session 2: Reading (current)
@@ -149,7 +150,7 @@ describe("ShelfRepository - Status Display", () => {
         sessionNumber: 2,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2024-02-01"),
+        startedDate: "2024-02-01",
       });
 
       // Get books from shelf
@@ -196,7 +197,7 @@ describe("ShelfRepository - Status Display", () => {
           sessionNumber: 1,
           status: statuses[i],
           isActive: statuses[i] !== "read", // "read" books have isActive = false
-          completedDate: statuses[i] === "read" ? new Date() : undefined,
+          completedDate: statuses[i] === "read" ? toSessionDate(new Date()) : undefined,
         });
       }
 

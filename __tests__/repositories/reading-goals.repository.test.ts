@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { toSessionDate } from '../test-utils';
 import { readingGoalRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import type { TestDatabaseInstance } from "../helpers/db-setup";
@@ -262,8 +263,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 5, 15), // June 15, 2026
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 5, 15)), // June 15, 2026
         isActive: false,
       });
       
@@ -271,8 +272,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book2.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 7, 20), // August 20, 2026
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 7, 20)), // August 20, 2026
         isActive: false,
       });
       
@@ -317,8 +318,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 0, 15), // January 15
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 0, 15)), // January 15
         isActive: false,
       });
       
@@ -326,8 +327,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book2.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 11, 25), // December 25
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 11, 25)), // December 25
         isActive: false,
       });
       
@@ -335,8 +336,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book3.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 5, 10), // June 10
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 5, 10)), // June 10
         isActive: false,
       });
       
@@ -351,7 +352,7 @@ describe("ReadingGoalRepository", () => {
     test("includes completion dates in response", async () => {
       const { bookRepository, sessionRepository } = await import("@/lib/repositories");
       const year = 2026;
-      const completionDate = new Date(year, 6, 15);
+      const completionDate = toSessionDate(new Date(year, 6, 15));
       
       const book = await bookRepository.create({
         calibreId: 1,
@@ -365,7 +366,7 @@ describe("ReadingGoalRepository", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 6, 1),
+        startedDate: toSessionDate(new Date(year, 6, 1)),
         completedDate: completionDate,
         isActive: false,
       });
@@ -402,8 +403,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 0, 31), // January 31
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 0, 31)), // January 31
         isActive: false,
       });
       
@@ -412,8 +413,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book.id,
         sessionNumber: 2,
         status: "read",
-        startedDate: new Date(year, 9, 1),
-        completedDate: new Date(year, 9, 31), // October 31
+        startedDate: toSessionDate(new Date(year, 9, 1)),
+        completedDate: toSessionDate(new Date(year, 9, 31)), // October 31
         isActive: false,
       });
       
@@ -447,8 +448,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book2026.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(targetYear, 0, 1),
-        completedDate: new Date(targetYear, 6, 15),
+        startedDate: toSessionDate(new Date(targetYear, 0, 1)),
+        completedDate: toSessionDate(new Date(targetYear, 6, 15)),
         isActive: false,
       });
       
@@ -465,8 +466,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book2025.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(2025, 0, 1),
-        completedDate: new Date(2025, 11, 31),
+        startedDate: toSessionDate(new Date(2025, 0, 1)),
+        completedDate: toSessionDate(new Date(2025, 11, 31)),
         isActive: false,
       });
       
@@ -482,8 +483,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book2027.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(2027, 0, 1),
-        completedDate: new Date(2027, 0, 15),
+        startedDate: toSessionDate(new Date(2027, 0, 1)),
+        completedDate: toSessionDate(new Date(2027, 0, 15)),
         isActive: false,
       });
       
@@ -514,8 +515,8 @@ describe("ReadingGoalRepository", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date(year, 0, 1),
-        completedDate: new Date(year, 6, 15),
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 6, 15)),
         isActive: false,
       });
       

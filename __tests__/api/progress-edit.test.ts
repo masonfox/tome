@@ -49,7 +49,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       const progress = await progressRepository.create({
@@ -58,7 +58,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Update progress to 150 pages
@@ -91,7 +91,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       const progress = await progressRepository.create({
@@ -100,7 +100,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Update date to Nov 10
@@ -109,7 +109,7 @@ describe("Progress Edit API", () => {
         `/api/books/${book.id}/progress/${progress.id}`,
         {
           currentPage: 150,
-          progressDate: "2025-11-10T00:00:00.000Z",
+          progressDate: "2025-11-10",
         }
       ) as any;
 
@@ -120,7 +120,8 @@ describe("Progress Edit API", () => {
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(new Date(data.progressDate).toISOString()).toBe("2025-11-10T00:00:00.000Z");
+      // Compare date string in EST
+      expect(data.progressDate).toMatch(/^2025-11-10/);
     });
 
     test("should reject edit that violates temporal order (before)", async () => {
@@ -131,7 +132,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       await progressRepository.create({
@@ -140,7 +141,7 @@ describe("Progress Edit API", () => {
         currentPage: 150,
         currentPercentage: 37.5,
         pagesRead: 150,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       const progressToEdit = await progressRepository.create({
@@ -149,7 +150,7 @@ describe("Progress Edit API", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: Try to edit to 100 pages (less than previous 150)
@@ -180,7 +181,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       const progressToEdit = await progressRepository.create({
@@ -189,7 +190,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       await progressRepository.create({
@@ -198,7 +199,7 @@ describe("Progress Edit API", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 100,
-        progressDate: new Date("2025-11-15"),
+        progressDate: "2025-11-15",
       });
 
       // Test: Try to edit to 250 pages (more than future 200)
@@ -229,7 +230,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       await progressRepository.create({
@@ -238,7 +239,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       const progressToEdit = await progressRepository.create({
@@ -247,7 +248,7 @@ describe("Progress Edit API", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 100,
-        progressDate: new Date("2025-11-10"),
+        progressDate: "2025-11-10",
       });
 
       // Test: Update to 250 pages
@@ -307,7 +308,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       const progress1 = await progressRepository.create({
@@ -316,7 +317,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Try to update book1's progress using book2's ID
@@ -348,7 +349,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       const progress = await progressRepository.create({
@@ -357,7 +358,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Delete progress entry
@@ -415,7 +416,7 @@ describe("Progress Edit API", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-01"),
+        startedDate: "2025-11-01",
       });
 
       const progress1 = await progressRepository.create({
@@ -424,7 +425,7 @@ describe("Progress Edit API", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2025-11-05"),
+        progressDate: "2025-11-05",
       });
 
       // Test: Try to delete book1's progress using book2's ID

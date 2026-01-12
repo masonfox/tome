@@ -37,8 +37,8 @@ async function createTestSession(bookId: number, overrides = {}) {
     bookId,
     sessionNumber: 1,
     isActive: true,
-    startedDate: new Date("2025-11-01"),
-    completedDate: new Date("2025-11-15"),
+    startedDate: "2025-11-01",
+    completedDate: "2025-11-15",
     review: "Original review",
     ...overrides,
   });

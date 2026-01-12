@@ -1,8 +1,11 @@
 # ADR-006: Timezone-Aware Date Handling for Progress Tracking
 
 ## Status
-✅ **Implemented** - November 25, 2025  
-🔄 **Updated** - November 27, 2025 (Timezone-aware streak tracking with auto-reset)
+~~✅ **Implemented** - November 25, 2025~~  
+~~🔄 **Updated** - November 27, 2025 (Timezone-aware streak tracking with auto-reset)~~  
+🔴 **SUPERSEDED** - January 10, 2026 - See [ADR-014: Date String Storage](./ADR-014-DATE-STRING-STORAGE.md)
+
+**Note:** This ADR documents the intermediate timezone-aware timestamp approach that was used from November 2025 to January 2026. As of January 10, 2026, all calendar day dates are stored as YYYY-MM-DD strings instead of timestamps, eliminating the need for timezone conversion at the storage level. The architectural insights from this ADR informed the final string storage decision.
 
 ## Context
 

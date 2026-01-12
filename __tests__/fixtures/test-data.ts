@@ -1,3 +1,4 @@
+import { toProgressDate } from '@/__tests__/test-utils';
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { NewProgressLog } from "@/lib/db/schema/progress-logs";
@@ -88,7 +89,7 @@ export const mockProgressLog1: Partial<NewProgressLog> = {
   currentPage: 100,
   currentPercentage: 9.62, // 100/1040
   pagesRead: 100,
-  progressDate: new Date("2025-11-15"),
+  progressDate: "2025-11-15",
   notes: "Great chapter!",
 };
 
@@ -96,7 +97,7 @@ export const mockProgressLog2: Partial<NewProgressLog> = {
   currentPage: 250,
   currentPercentage: 24.04, // 250/1040
   pagesRead: 150,
-  progressDate: new Date("2025-11-16"),
+  progressDate: "2025-11-16",
   notes: "Plot thickens",
 };
 
@@ -123,7 +124,7 @@ export const mockSessionReadNext: Partial<NewReadingSession> = {
 export const mockSessionReading: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "reading",
-  startedDate: new Date("2025-11-15T05:00:00.000Z"),
+  startedDate: "2025-11-15",
   isActive: true,
   userId: null,
   bookId: 0, // Will be set in test
@@ -134,8 +135,8 @@ export const mockSessionReading: Partial<NewReadingSession> = {
 export const mockSessionRead: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "read",
-  startedDate: new Date("2025-11-01T05:00:00.000Z"),
-  completedDate: new Date("2025-11-16T05:00:00.000Z"),
+  startedDate: "2025-11-01",
+  completedDate: "2025-11-16",
   review: "Amazing book!",
   isActive: true,
   userId: null,
@@ -147,8 +148,8 @@ export const mockSessionRead: Partial<NewReadingSession> = {
 export const mockSessionArchived: Partial<NewReadingSession> = {
   sessionNumber: 1,
   status: "read",
-  startedDate: new Date("2025-10-01T05:00:00.000Z"),
-  completedDate: new Date("2025-10-20T05:00:00.000Z"),
+  startedDate: "2025-10-01",
+  completedDate: "2025-10-20",
   review: "Great first read!",
   isActive: false,
   userId: null,
@@ -160,7 +161,7 @@ export const mockSessionArchived: Partial<NewReadingSession> = {
 export const mockSessionReread: Partial<NewReadingSession> = {
   sessionNumber: 2,
   status: "reading",
-  startedDate: new Date("2025-11-15T05:00:00.000Z"),
+  startedDate: "2025-11-15",
   isActive: true,
 };
 
@@ -210,7 +211,6 @@ export function createTestBook(overrides?: Partial<NewBook>): NewBook {
  */
 export function createTestSession(overrides: Partial<NewReadingSession> & { bookId: number }): NewReadingSession {
   return {
-    bookId: overrides.bookId,
     sessionNumber: 1,
     status: "to-read",
     isActive: true,
@@ -225,12 +225,10 @@ export function createTestSession(overrides: Partial<NewReadingSession> & { book
  */
 export function createTestProgress(overrides: Partial<NewProgressLog> & { bookId: number; sessionId: number }): NewProgressLog {
   return {
-    bookId: overrides.bookId,
-    sessionId: overrides.sessionId,
     currentPage: 0,
     currentPercentage: 0,
     pagesRead: 0,
-    progressDate: new Date(),
+    progressDate: toProgressDate(new Date()),
     ...overrides,
   };
 }

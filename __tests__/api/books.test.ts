@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -135,7 +136,7 @@ describe("GET /api/books", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "reading",
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
         isActive: true,
       });
 
@@ -181,8 +182,8 @@ describe("GET /api/books", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-01"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-01",
+        completedDate: "2024-01-15",
         isActive: false, // Archived
         rating: 5,
       });
@@ -224,8 +225,8 @@ describe("GET /api/books", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2023-01-01"),
-        completedDate: new Date("2023-01-15"),
+        startedDate: "2023-01-01",
+        completedDate: "2023-01-15",
         isActive: false,
         rating: 4,
       });
@@ -235,8 +236,8 @@ describe("GET /api/books", () => {
         bookId: book.id,
         sessionNumber: 2,
         status: "read",
-        startedDate: new Date("2024-01-01"),
-        completedDate: new Date("2024-01-15"),
+        startedDate: "2024-01-01",
+        completedDate: "2024-01-15",
         isActive: false,
         rating: 5,
       });
@@ -296,7 +297,7 @@ describe("GET /api/books", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         isActive: false,
       });
 
@@ -1047,7 +1048,7 @@ describe("GET /api/books", () => {
         bookId: book2.id,
         sessionNumber: 1,
         status: "read",
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         isActive: false,
       });
 
@@ -1202,7 +1203,7 @@ describe("GET /api/books", () => {
         currentPage: 150,
         currentPercentage: 50,
         pagesRead: 150,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       const request = createMockRequest("GET", "/api/books?status=reading");
@@ -1230,7 +1231,7 @@ describe("GET /api/books", () => {
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
         isActive: false,
       });
 
@@ -1240,7 +1241,7 @@ describe("GET /api/books", () => {
         currentPage: 300,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       const request = createMockRequest("GET", "/api/books?status=read");

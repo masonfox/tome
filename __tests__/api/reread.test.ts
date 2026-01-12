@@ -116,17 +116,13 @@ describe("POST /api/books/[id]/reread", () => {
       expect(data.session.status).toBe("reading");
       expect(data.session.startedDate).toBeDefined();
 
-      // startedDate is returned as an ISO string (Drizzle serializes Date objects)
+      // startedDate is returned as a date string (YYYY-MM-DD format)
       expect(typeof data.session.startedDate).toBe("string");
-      const startedDate = new Date(data.session.startedDate);
       
-      // After timezone changes, startedDate is midnight today in user's timezone (EST)
-      // Check it's today's date (not an exact timestamp)
-      const { formatInTimeZone } = require("date-fns-tz");
-      const dateInEST = formatInTimeZone(startedDate, "America/New_York", "yyyy-MM-dd");
+      // Check it's today's date in UTC (test environment is TZ=UTC)
       const today = new Date();
-      const todayStr = formatInTimeZone(today, "America/New_York", "yyyy-MM-dd");
-      expect(dateInEST).toBe(todayStr);
+      const todayStr = today.toISOString().split('T')[0]; // Get YYYY-MM-DD
+      expect(data.session.startedDate).toBe(todayStr);
     });
 
   test("should preserve userId from previous session", async () => {
@@ -179,7 +175,7 @@ describe("POST /api/books/[id]/reread", () => {
       ...mockProgressLog1,
       bookId: book.id,
       sessionId: session.id,
-      progressDate: new Date("2025-11-17"),
+      progressDate: "2025-11-17",
     });
 
     const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;

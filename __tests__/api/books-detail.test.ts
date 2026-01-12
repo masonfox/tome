@@ -40,7 +40,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-11-01"),
+      completedDate: "2024-11-01",
     });
 
     const request = new Request("http://localhost:3000/api/books/1");
@@ -70,7 +70,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-01-15"),
+      completedDate: "2024-01-15",
     });
 
     await sessionRepository.create({
@@ -78,7 +78,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 2,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-06-20"),
+      completedDate: "2024-06-20",
     });
 
     await sessionRepository.create({
@@ -86,7 +86,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 3,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2024-11-01"),
+      startedDate: "2024-11-01",
     });
 
     const request = new Request("http://localhost:3000/api/books/2");
@@ -137,7 +137,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2024-11-01"),
+      startedDate: "2024-11-01",
     });
 
     const request = new Request("http://localhost:3000/api/books/4");
@@ -178,7 +178,7 @@ describe("GET /api/books/[id]", () => {
       sessionId: activeSession.id,
       currentPage: 50,
       currentPercentage: 14.29,
-      progressDate: new Date("2024-11-01"),
+      progressDate: "2024-11-01",
       pagesRead: 50,
     });
 
@@ -187,7 +187,7 @@ describe("GET /api/books/[id]", () => {
       sessionId: activeSession.id,
       currentPage: 150,
       currentPercentage: 42.86,
-      progressDate: new Date("2024-11-10"),
+      progressDate: "2024-11-10",
       pagesRead: 100,
     });
 
@@ -294,7 +294,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-05-15"),
+      completedDate: "2024-05-15",
     });
 
     await sessionRepository.create({
@@ -302,7 +302,7 @@ describe("GET /api/books/[id]", () => {
       sessionNumber: 2,
       status: "read",
       isActive: false,
-      completedDate: new Date("2024-10-20"),
+      completedDate: "2024-10-20",
     });
 
     const request = new Request("http://localhost:3000/api/books/8");

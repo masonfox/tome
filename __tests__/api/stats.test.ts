@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
@@ -94,8 +95,8 @@ describe("Stats API - GET /api/stats/overview", () => {
 
   test("counts books read correctly", async () => {
     const now = new Date();
-    const thisYear = new Date(now.getFullYear(), 5, 15); // June 15 this year
-    const lastYear = new Date(now.getFullYear() - 1, 4, 10); // May 10 last year
+    const thisYear = toSessionDate(new Date(now.getFullYear(), 5, 15)); // June 15 this year
+    const lastYear = toSessionDate(new Date(now.getFullYear() - 1, 4, 10)); // May 10 last year
 
     // Create reading sessions
     await sessionRepository.create({
@@ -131,8 +132,8 @@ describe("Stats API - GET /api/stats/overview", () => {
 
   test("calculates books read this month correctly", async () => {
     const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 15);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+    const thisMonth = toSessionDate(new Date(now.getFullYear(), now.getMonth(), 15));
+    const lastMonth = toSessionDate(new Date(now.getFullYear(), now.getMonth() - 1, 15));
 
     await sessionRepository.create({
       bookId: testBook1.id,
@@ -162,7 +163,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date("2024-01-15"),
+      progressDate: "2024-01-15",
     });
 
     await progressRepository.create({
@@ -170,7 +171,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 250,
       currentPercentage: 50,
       pagesRead: 150,
-      progressDate: new Date("2025-06-10"),
+      progressDate: "2025-06-10",
     });
 
     await progressRepository.create({
@@ -178,7 +179,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
-      progressDate: new Date("2025-11-15"),
+      progressDate: "2025-11-15",
     });
 
     const response = await getOverview();
@@ -189,8 +190,8 @@ describe("Stats API - GET /api/stats/overview", () => {
 
   test("calculates pages read this year correctly", async () => {
     const now = new Date();
-    const thisYear = new Date(now.getFullYear(), 5, 15);
-    const lastYear = new Date(now.getFullYear() - 1, 5, 15);
+    const thisYear = toProgressDate(new Date(now.getFullYear(), 5, 15));
+    const lastYear = toProgressDate(new Date(now.getFullYear() - 1, 5, 15));
 
     await progressRepository.create({
       bookId: testBook1.id,
@@ -216,8 +217,8 @@ describe("Stats API - GET /api/stats/overview", () => {
 
   test("calculates pages read this month correctly", async () => {
     const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 15);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+    const thisMonth = toProgressDate(new Date(now.getFullYear(), now.getMonth(), 15));
+    const lastMonth = toProgressDate(new Date(now.getFullYear(), now.getMonth() - 1, 15));
 
     await progressRepository.create({
       bookId: testBook1.id,
@@ -251,9 +252,9 @@ describe("Stats API - GET /api/stats/overview", () => {
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
     const yesterdayInUserTz = subDays(todayInUserTz, 1);
     
-    // Convert back to UTC for storage (matches how progress is stored)
-    const today = fromZonedTime(todayInUserTz, userTimezone);
-    const yesterday = fromZonedTime(yesterdayInUserTz, userTimezone);
+    // Convert to YYYY-MM-DD strings for storage
+    const today = toProgressDate(fromZonedTime(todayInUserTz, userTimezone));
+    const yesterday = toProgressDate(fromZonedTime(yesterdayInUserTz, userTimezone));
 
     await progressRepository.create({
       bookId: testBook1.id,
@@ -286,7 +287,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      progressDate: toProgressDate(new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000)), // 5 days ago
     });
 
     await progressRepository.create({
@@ -294,7 +295,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 250,
       currentPercentage: 50,
       pagesRead: 150,
-      progressDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+      progressDate: toProgressDate(new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000)), // 10 days ago
     });
 
     await progressRepository.create({
@@ -302,7 +303,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 200,
       currentPercentage: 66,
       pagesRead: 200,
-      progressDate: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+      progressDate: toProgressDate(new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000)), // 15 days ago
     });
 
     const response = await getOverview();
@@ -322,7 +323,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date(fiveDaysAgo.getTime() + 1000), // Same day, slightly different time
+      progressDate: toProgressDate(new Date(fiveDaysAgo.getTime())), // Same day, slightly different time
     });
 
     await progressRepository.create({
@@ -330,7 +331,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
-      progressDate: new Date(fiveDaysAgo.getTime() + 2000), // Same day, slightly different time
+      progressDate: toProgressDate(new Date(fiveDaysAgo.getTime())), // Same day, slightly different time
     });
 
     const response = await getOverview();
@@ -349,7 +350,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      progressDate: toProgressDate(new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000)),
     });
 
     // Old progress (should be excluded)
@@ -358,7 +359,7 @@ describe("Stats API - GET /api/stats/overview", () => {
       currentPage: 500,
       currentPercentage: 100,
       pagesRead: 500,
-      progressDate: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000), // 35 days ago
+      progressDate: toProgressDate(new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000)), // 35 days ago
     });
 
     const response = await getOverview();
@@ -416,7 +417,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date("2025-11-15"),
+      progressDate: "2025-11-15",
     });
 
     await progressRepository.create({
@@ -424,7 +425,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
-      progressDate: new Date("2025-11-20"),
+      progressDate: "2025-11-20",
     });
 
     const request = createMockRequest("GET", "/api/stats/activity?year=2025") as NextRequest;
@@ -446,7 +447,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date("2025-01-15"),
+      progressDate: "2025-01-15",
     });
 
     await progressRepository.create({
@@ -454,7 +455,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
-      progressDate: new Date("2025-01-20"),
+      progressDate: "2025-01-20",
     });
 
     await progressRepository.create({
@@ -462,7 +463,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 300,
       currentPercentage: 60,
       pagesRead: 100,
-      progressDate: new Date("2025-02-10"),
+      progressDate: "2025-02-10",
     });
 
     const request = createMockRequest("GET", "/api/stats/activity?year=2025") as NextRequest;
@@ -486,7 +487,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 300,
       currentPercentage: 60,
       pagesRead: 100,
-      progressDate: new Date("2025-12-15"), // December
+      progressDate: "2025-12-15", // December
     });
 
     await progressRepository.create({
@@ -494,7 +495,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date("2025-01-15"), // January
+      progressDate: "2025-01-15", // January
     });
 
     await progressRepository.create({
@@ -502,7 +503,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
-      progressDate: new Date("2025-06-15"), // June
+      progressDate: "2025-06-15", // June
     });
 
     const request = createMockRequest("GET", "/api/stats/activity?year=2025") as NextRequest;
@@ -523,7 +524,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: new Date("2025-06-15"),
+      progressDate: "2025-06-15",
     });
 
     await progressRepository.create({
@@ -531,7 +532,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 200,
       currentPercentage: 40,
       pagesRead: 100,
-      progressDate: new Date("2024-06-15"),
+      progressDate: "2024-06-15",
     });
 
     const request = createMockRequest("GET", "/api/stats/activity?year=2025") as NextRequest;
@@ -553,7 +554,7 @@ describe("Stats API - GET /api/stats/activity", () => {
       currentPage: 100,
       currentPercentage: 20,
       pagesRead: 100,
-      progressDate: now,
+      progressDate: toProgressDate(now),
     });
 
     const request = createMockRequest("GET", "/api/stats/activity") as NextRequest;

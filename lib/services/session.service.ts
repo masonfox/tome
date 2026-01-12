@@ -12,8 +12,8 @@ export interface StatusUpdateData {
   status: "to-read" | "read-next" | "reading" | "read";
   rating?: number | null;
   review?: string;
-  startedDate?: Date;
-  completedDate?: Date;
+  startedDate?: string; // YYYY-MM-DD format
+  completedDate?: string; // YYYY-MM-DD format
 }
 
 /**
@@ -32,7 +32,7 @@ export interface MarkAsReadParams {
   bookId: number;
   rating?: number;
   review?: string;
-  completedDate?: Date;
+  completedDate?: string; // YYYY-MM-DD format
 }
 
 /**
@@ -54,16 +54,16 @@ interface MarkAsReadStrategyContext {
   activeSession: ReadingSession | null | undefined;
   has100Progress: boolean;
   isAlreadyRead: boolean;
-  completedDate?: Date;
+  completedDate?: string; // YYYY-MM-DD format
   tx?: any; // Optional transaction context
   ensureReadingStatus: (bookId: number, tx?: any) => Promise<ReadingSession>;
-  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: Date, tx?: any) => Promise<void>;
+  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: string, tx?: any) => Promise<void>;
   updateStatus: (bookId: number, statusData: StatusUpdateData, tx?: any) => Promise<StatusUpdateResult>;
   invalidateCache: (bookId: number) => Promise<void>;
   findMostRecentCompletedSession: (bookId: number, tx?: any) => Promise<ReadingSession | null>;
-  getCurrentDateInUserTimezone: () => Promise<Date>;
-  sessionRepository: typeof sessionRepository;
-  logger: any; // Logger type
+  getTodayDateString: () => Promise<string>;
+  sessionRepository: any; // Session repository instance
+  logger: any; // Logger instance
 }
 
 /**
@@ -94,21 +94,21 @@ type MarkAsReadStrategy = (
  */
 export class SessionService {
   /**
-   * Get the current date as midnight in user's timezone, converted to UTC.
+   * Get the current date as YYYY-MM-DD string in user's timezone.
    * 
    * Used for default date values when creating sessions or progress logs.
-   * Follows ADR-006 "The Right Way™" pattern.
    * 
-   * @returns UTC Date representing midnight today in user's timezone
+   * @returns YYYY-MM-DD string representing today in user's timezone
    */
-  private async getCurrentDateInUserTimezone(): Promise<Date> {
+  private async getTodayDateString(): Promise<string> {
     try {
-      const { getCurrentDateInUserTimezone } = await import('@/utils/dateHelpers.server');
-      return await getCurrentDateInUserTimezone();
+      const { getTodayDateString } = await import('@/lib/utils/date-validation');
+      return getTodayDateString();
     } catch (error) {
-      // Fallback to current UTC time if timezone conversion fails
-      getLogger().warn({ err: error }, 'Failed to get current date in user timezone, using UTC');
-      return new Date();
+      // Fallback to UTC date if import fails
+      getLogger().warn({ err: error }, 'Failed to get today date string, using UTC');
+      const now = new Date();
+      return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
     }
   }
 
@@ -261,14 +261,12 @@ export class SessionService {
 
       // Get last progress date for completedDate (use last activity or current date)
       const latestProgress = await progressRepository.findLatestBySessionId(readingSession.id, tx);
-      const completedDate = latestProgress?.progressDate
-        ? new Date(latestProgress.progressDate)
-        : new Date();
+      const archiveCompletedDate = latestProgress?.progressDate || await this.getTodayDateString();
 
       // Archive current session WITH completedDate
       await sessionRepository.update(readingSession.id, {
         isActive: false,
-        completedDate,
+        completedDate: archiveCompletedDate,
       } as any, tx);
 
       // Create new session with new status
@@ -305,14 +303,14 @@ export class SessionService {
 
     // Set dates based on status
     if (status === "reading" && !readingSession?.startedDate) {
-      updateData.startedDate = startedDate || await this.getCurrentDateInUserTimezone();
+      updateData.startedDate = startedDate || await this.getTodayDateString();
     }
 
     if (status === "read") {
       if (!updateData.startedDate && !readingSession?.startedDate) {
-        updateData.startedDate = startedDate || await this.getCurrentDateInUserTimezone();
+        updateData.startedDate = startedDate || await this.getTodayDateString();
       }
-      updateData.completedDate = completedDate || await this.getCurrentDateInUserTimezone();
+      updateData.completedDate = completedDate || await this.getTodayDateString();
       // Auto-archive session when marked as read
       updateData.isActive = false;
     }
@@ -376,7 +374,7 @@ export class SessionService {
       sessionNumber,
       status: "reading",
       isActive: true,
-      startedDate: await this.getCurrentDateInUserTimezone(),
+      startedDate: await this.getTodayDateString(),
       userId: previousSession?.userId ?? null,
     });
 
@@ -392,7 +390,7 @@ export class SessionService {
   async updateSessionDate(
     sessionId: number,
     field: "startedDate" | "completedDate",
-    date: Date
+    date: string
   ): Promise<ReadingSession> {
     const session = await sessionRepository.findById(sessionId);
     if (!session) {
@@ -466,17 +464,20 @@ export class SessionService {
    * await sessionService.create100PercentProgress(123, 350);
    * // Book is now marked as "read" with 100% progress logged
    */
-  async create100PercentProgress(bookId: number, totalPages: number, completedDate?: Date, tx?: any): Promise<void> {
+  async create100PercentProgress(bookId: number, totalPages: number, completedDate?: string, tx?: any): Promise<void> {
     const logger = getLogger();
 
     logger.info({ bookId, totalPages, completedDate }, "Creating 100% progress entry");
+
+    // completedDate is already a YYYY-MM-DD string, use directly
+    const progressDate = completedDate;
 
     // Log 100% progress (this will trigger auto-completion in ProgressService)
     await progressService.logProgress(bookId, {
       currentPage: totalPages,
       currentPercentage: 100,
       notes: "Marked as read",
-      progressDate: completedDate,
+      progressDate,
     }, tx);
 
     logger.info({ bookId }, "Successfully created 100% progress entry (book auto-completed)");
@@ -671,7 +672,7 @@ export class SessionService {
     if (activeSession) {
       const updated = await sessionRepository.update(activeSession.id, {
         status: "read",
-        completedDate: completedDate || await context.getCurrentDateInUserTimezone(),
+        completedDate: completedDate || await context.getTodayDateString(),
         isActive: false,
       } as any, tx);
       sessionId = updated?.id;
@@ -682,8 +683,8 @@ export class SessionService {
         sessionNumber: nextSessionNumber,
         status: "read",
         isActive: false,
-        startedDate: completedDate || await context.getCurrentDateInUserTimezone(),
-        completedDate: completedDate || await context.getCurrentDateInUserTimezone(),
+        startedDate: completedDate || await context.getTodayDateString(),
+        completedDate: completedDate || await context.getTodayDateString(),
       }, tx);
       sessionId = newSession.id;
     }
@@ -864,7 +865,7 @@ export class SessionService {
         updateStatus: this.updateStatus.bind(this),
         invalidateCache: this.invalidateCache.bind(this),
         findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
-        getCurrentDateInUserTimezone: this.getCurrentDateInUserTimezone.bind(this),
+        getTodayDateString: this.getTodayDateString.bind(this),
         sessionRepository,
         logger,
       };

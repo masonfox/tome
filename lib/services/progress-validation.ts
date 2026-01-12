@@ -1,5 +1,6 @@
 import { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { progressRepository } from "@/lib/repositories";
+import { formatDateToString } from "@/lib/utils/date-validation";
 
 export interface ProgressValidationResult {
   valid: boolean;
@@ -38,9 +39,12 @@ export async function validateProgressTimeline(
   usePercentage: boolean = true
 ): Promise<ProgressValidationResult> {
   
+  // Convert Date to YYYY-MM-DD string for database query
+  const dateString = formatDateToString(progressDate);
+  
   // Find entries before and after the new date
-  const entriesBefore = await progressRepository.findBeforeDateForSession(sessionId, progressDate);
-  const entriesAfter = await progressRepository.findAfterDateForSession(sessionId, progressDate);
+  const entriesBefore = await progressRepository.findBeforeDateForSession(sessionId, dateString);
+  const entriesAfter = await progressRepository.findAfterDateForSession(sessionId, dateString);
   
   // Validate against entries BEFORE (must be ≥ previous progress)
   const maxBefore = entriesBefore.reduce((max, entry) => {

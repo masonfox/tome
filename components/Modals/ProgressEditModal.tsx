@@ -5,7 +5,6 @@ import { getTodayLocalDate } from '@/utils/dateHelpers';
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
-import { parseISO, startOfDay } from "date-fns";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 import { useDraftField } from "@/hooks/useDraftField";
@@ -75,7 +74,8 @@ export default function ProgressEditModal({
       setCurrentPercentage(currentProgress.currentPercentage.toString());
       const notesValue = currentProgress.notes || "";
       setNotes(notesValue);
-      setProgressDate(currentProgress.progressDate.split("T")[0]);
+      // progressDate is already in YYYY-MM-DD format from API
+      setProgressDate(currentProgress.progressDate);
       setShowDeleteConfirm(false);
       hasRestoredDraft.current = false; // Reset draft restoration flag
       
@@ -133,12 +133,8 @@ export default function ProgressEditModal({
 
     data.notes = notes.trim() || undefined;
     
-    // Parse the selected date and get midnight in LOCAL timezone
-    // This ensures the timestamp represents the intended calendar day in the user's timezone
-    const localMidnight = startOfDay(parseISO(progressDate));
-    
-    // Send as ISO string (will be stored as UTC but represents local midnight)
-    data.progressDate = localMidnight.toISOString();
+    // progressDate is already in YYYY-MM-DD format
+    data.progressDate = progressDate;
 
     onConfirm(data);
     
@@ -190,7 +186,7 @@ export default function ProgressEditModal({
           <div className="bg-[var(--background)] border border-[var(--border-color)] rounded p-4">
             <p className="text-sm text-[var(--foreground)]/70 font-medium">
               <span className="font-semibold">Date:</span>{" "}
-              {new Date(currentProgress.progressDate).toLocaleDateString()}
+              {currentProgress.progressDate}
             </p>
             <p className="text-sm text-[var(--foreground)]/70 font-medium mt-1">
               <span className="font-semibold">Progress:</span>{" "}

@@ -18,6 +18,7 @@ import {
   calculateCompletedBooksForGoal,
   generateCompletionDatesForYear,
 } from "./fixtures/goals";
+import { format, subDays } from "date-fns";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
 let logger: any = null;
@@ -146,10 +147,13 @@ export async function seedDatabase(): Promise<SeedResult> {
       if (existingSession) {
         // Update session status if it doesn't match the plan
         if (existingSession.status !== plan.status) {
+          // Get today's date string in YYYY-MM-DD format
+          const todayString = format(new Date(), 'yyyy-MM-dd');
+          
           await sessionRepository.update(existingSession.id, {
             status: plan.status,
-            startedDate: plan.status !== "to-read" ? (existingSession.startedDate || new Date()) : null,
-            completedDate: plan.status === "read" ? new Date() : existingSession.completedDate,
+            startedDate: plan.status !== "to-read" ? (existingSession.startedDate || todayString) : null,
+            completedDate: plan.status === "read" ? todayString : existingSession.completedDate,
           });
 
           getLoggerSafe().info({
@@ -181,13 +185,16 @@ export async function seedDatabase(): Promise<SeedResult> {
       // Get next session number
       const sessionNumber = await sessionRepository.getNextSessionNumber(book.id);
 
+      // Get today's date string in YYYY-MM-DD format
+      const todayString = format(new Date(), 'yyyy-MM-dd');
+
       // Create session
       const session = await sessionRepository.create({
         bookId: book.id,
         sessionNumber,
         status: plan.status,
-        startedDate: plan.status !== "to-read" ? new Date() : null,
-        completedDate: plan.status === "read" ? new Date() : null,
+        startedDate: plan.status !== "to-read" ? todayString : null,
+        completedDate: plan.status === "read" ? todayString : null,
       });
 
       sessions.push({
@@ -409,8 +416,8 @@ export async function seedDatabase(): Promise<SeedResult> {
           // Update existing session with completion date
           await sessionRepository.update(existingSession.id, {
             status: "read",
-            completedDate: completionDate,
-            startedDate: existingSession.startedDate || new Date(completionDate.getTime() - (14 * 24 * 60 * 60 * 1000)), // 2 weeks before completion
+            completedDate: format(completionDate, 'yyyy-MM-dd'),
+            startedDate: existingSession.startedDate || format(subDays(completionDate, 14), 'yyyy-MM-dd'), // 2 weeks before completion
           });
           
           booksCompletedHistorically++;
@@ -428,8 +435,8 @@ export async function seedDatabase(): Promise<SeedResult> {
             bookId: book.id,
             sessionNumber,
             status: "read",
-            startedDate: new Date(completionDate.getTime() - (14 * 24 * 60 * 60 * 1000)), // Started 2 weeks before completion
-            completedDate: completionDate,
+            startedDate: format(subDays(completionDate, 14), 'yyyy-MM-dd'), // Started 2 weeks before completion
+            completedDate: format(completionDate, 'yyyy-MM-dd'),
           });
           
           booksCompletedHistorically++;

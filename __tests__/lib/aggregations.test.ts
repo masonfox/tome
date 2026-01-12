@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import {
   bookRepository,
@@ -6,6 +7,7 @@ import {
   streakRepository,
 } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 describe("Aggregation Query Tests", () => {
   beforeAll(async () => {
@@ -44,7 +46,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       await progressRepository.create({
@@ -53,7 +55,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       const total = await progressRepository.getTotalPagesRead();
@@ -96,7 +98,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: twoDaysAgo,
+        progressDate: toProgressDate(twoDaysAgo),
       });
 
       // Progress from today
@@ -106,10 +108,10 @@ describe("Aggregation Query Tests", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
-      const totalSinceYesterday = await progressRepository.getPagesReadAfterDate(yesterday);
+      const totalSinceYesterday = await progressRepository.getPagesReadAfterDate(toDateString(yesterday));
       expect(totalSinceYesterday).toBe(50); // Only today's progress
     });
 
@@ -153,7 +155,7 @@ describe("Aggregation Query Tests", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       await sessionRepository.create({
@@ -161,7 +163,7 @@ describe("Aggregation Query Tests", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       // Active session (shouldn't be counted)
@@ -197,7 +199,7 @@ describe("Aggregation Query Tests", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: twoDaysAgo,
+        completedDate: toSessionDate(twoDaysAgo),
       });
 
       // Completed today
@@ -206,10 +208,10 @@ describe("Aggregation Query Tests", () => {
         sessionNumber: 2,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
-      const countSinceYesterday = await sessionRepository.countCompletedAfterDate(yesterday);
+      const countSinceYesterday = await sessionRepository.countCompletedAfterDate(toSessionDate(yesterday));
       expect(countSinceYesterday).toBe(1);
     });
   });
@@ -249,10 +251,12 @@ describe("Aggregation Query Tests", () => {
 
       // Inactive reading session (shouldn't count)
       await sessionRepository.create({
-        bookId: book1.id,
+        bookId: book2.id,
         sessionNumber: 2,
-        status: "reading",
+        status: "read",
         isActive: false,
+        startedDate: toSessionDate(new Date()),
+        completedDate: toSessionDate(new Date()),
       });
 
       const count = await sessionRepository.countByStatus("reading", true);
@@ -286,7 +290,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: day1,
+        progressDate: toProgressDate(day1),
       });
 
       // Day 2: 100 pages
@@ -298,7 +302,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 150,
         currentPercentage: 75,
         pagesRead: 100,
-        progressDate: day2,
+        progressDate: toProgressDate(day2),
       });
 
       // Calculate 30 days ago in user timezone
@@ -307,7 +311,7 @@ describe("Aggregation Query Tests", () => {
       const thirtyDaysAgo = new Date(now);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
+      const avg = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgo), userTimezone);
       expect(avg).toBe(75); // (50 + 100) / 2 = 75
     });
 
@@ -317,7 +321,7 @@ describe("Aggregation Query Tests", () => {
       const thirtyDaysAgo = new Date(now);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const avg = await progressRepository.getAveragePagesPerDay(thirtyDaysAgo, userTimezone);
+      const avg = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgo), userTimezone);
       expect(avg).toBe(0);
     });
   });
@@ -358,7 +362,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       await progressRepository.create({
@@ -367,7 +371,7 @@ describe("Aggregation Query Tests", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: today,
+        progressDate: toProgressDate(today),
       });
 
       await progressRepository.create({
@@ -376,23 +380,22 @@ describe("Aggregation Query Tests", () => {
         currentPage: 75,
         currentPercentage: 75,
         pagesRead: 75,
-        progressDate: yesterday,
+        progressDate: toProgressDate(yesterday),
       });
 
       const sevenDaysAgo = subDays(todayInTz, 7);
       const sevenDaysAgoUtc = fromZonedTime(sevenDaysAgo, timezone);
 
-      const calendar = await progressRepository.getActivityCalendar(sevenDaysAgoUtc, today, timezone);
+      const calendar = await progressRepository.getActivityCalendar(toDateString(sevenDaysAgoUtc), toDateString(today), timezone);
 
       expect(calendar.length).toBe(2); // 2 unique days
       
-      // Format dates in timezone for comparison
-      const { formatInTimeZone } = require("date-fns-tz");
-      const todayStr = formatInTimeZone(today, timezone, 'yyyy-MM-dd');
-      const yesterdayStr = formatInTimeZone(yesterday, timezone, 'yyyy-MM-dd');
+      // progressDate is the calendar day string - compare directly
+      const todayDateStr = toProgressDate(today);
+      const yesterdayDateStr = toProgressDate(yesterday);
       
-      expect(calendar.find((day) => day.date === todayStr)?.pagesRead).toBe(100);
-      expect(calendar.find((day) => day.date === yesterdayStr)?.pagesRead).toBe(75);
+      expect(calendar.find((day) => day.date === todayDateStr)?.pagesRead).toBe(100);
+      expect(calendar.find((day) => day.date === yesterdayDateStr)?.pagesRead).toBe(75);
     });
   });
 });

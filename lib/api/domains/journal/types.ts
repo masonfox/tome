@@ -11,7 +11,7 @@ export interface JournalEntry {
   id: number;
   currentPage: number;
   currentPercentage: number;
-  progressDate: Date;
+  progressDate: string;  // YYYY-MM-DD format
   notes: string | null;
   pagesRead: number;
 }

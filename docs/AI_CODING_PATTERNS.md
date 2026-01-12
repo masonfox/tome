@@ -502,6 +502,150 @@ const books = await bookRepository.findAll();
 
 ---
 
+### Companion Migrations Pattern (Data Transformations)
+
+**CRITICAL:** When Drizzle migrations change column types, they copy data AS-IS without semantic transformation. Use companion migrations for data transformations.
+
+**Location:** `lib/db/companion-migrations.ts` (framework), `lib/migrations/*.ts` (companions)
+
+**The Problem:**
+```typescript
+// Before: INTEGER column (Unix timestamp: 1732507200)
+progress_date: integer('progress_date', { mode: 'number' })
+
+// After: TEXT column (YYYY-MM-DD: "2024-11-25")
+progress_date: text('progress_date', { mode: 'text' })
+
+// ❌ Drizzle copies data AS-IS: "1732507200" (WRONG - integer as string)
+// ✅ Companion migration: "2024-11-25" (CORRECT - formatted date)
+```
+
+**The Solution - Companion Migrations:**
+
+Companion migrations are TypeScript files that run AFTER schema migrations to transform data semantically.
+
+✅ **DO: Create companion migration for type changes:**
+
+```typescript
+// lib/migrations/0015_progress_dates_timezone.ts
+import { CompanionMigration } from "@/lib/db/companion-migrations";
+import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+
+export const migration: CompanionMigration = {
+  name: "0015_progress_dates_timezone",
+  description: "Convert progress_logs.progress_date from INTEGER to TEXT with timezone awareness",
+  requiredTables: ["progress_logs"],  // Skip if table doesn't exist (fresh DB)
+  
+  execute: async (db) => {
+    // Get user timezone (defaults to UTC)
+    const timezone = process.env.TZ || "UTC";
+    
+    // Find records with old INTEGER format
+    const oldRows = db.prepare(`
+      SELECT id, progress_date 
+      FROM progress_logs 
+      WHERE typeof(progress_date) = 'integer' 
+         OR (typeof(progress_date) = 'text' AND length(progress_date) > 10)
+    `).all();
+    
+    if (oldRows.length === 0) return;  // Already migrated
+    
+    // Transform: INTEGER → TEXT with timezone awareness
+    const update = db.prepare(`
+      UPDATE progress_logs 
+      SET progress_date = ? 
+      WHERE id = ?
+    `);
+    
+    for (const row of oldRows) {
+      const timestamp = parseInt(String(row.progress_date), 10);
+      const date = new Date(timestamp);
+      const formattedDate = formatInTimeZone(date, timezone, "yyyy-MM-dd");
+      update.run(formattedDate, row.id);
+    }
+  },
+};
+```
+
+**Companion Migration Rules:**
+
+✅ **DO:**
+- Create companions for ALL type changes requiring semantic transformation
+- Use `requiredTables` to skip on fresh databases
+- Use timezone-aware date conversions (`date-fns-tz`)
+- Check data type before transforming (`typeof(column) = 'integer'`)
+- Make idempotent (safe to run multiple times)
+- Add descriptive `description` field
+- Follow naming: `{migration_number}_{table}_{column}_{transformation}.ts`
+- Return early if no transformation needed
+- Use `_template.ts` as starting point
+
+❌ **DON'T:**
+- Put data transformations in Drizzle schema migrations (they run DDL only)
+- Forget `requiredTables` check (causes errors on fresh DBs)
+- Hardcode timezones (use `process.env.TZ` with fallback)
+- Transform data without checking current type
+- Run transformations on already-transformed data
+
+**Framework Features:**
+- **Auto-discovery**: Finds `lib/migrations/{number}_*.ts` files
+- **Completion tracking**: Stores status in `migration_metadata` table
+- **Ordering**: Runs in same order as schema migrations
+- **Transaction safety**: Rolls back on error
+- **Fresh DB support**: Skips if required tables don't exist
+- **Idempotency**: Tracks completion, won't re-run
+
+**Template:**
+```typescript
+// lib/migrations/_template.ts
+import { CompanionMigration } from "@/lib/db/companion-migrations";
+
+export const migration: CompanionMigration = {
+  name: "XXXX_descriptive_name",
+  description: "What this migration does",
+  requiredTables: ["table_name"],
+  
+  execute: async (db) => {
+    // 1. Query records needing transformation
+    const rows = db.prepare(`SELECT id, column FROM table WHERE condition`).all();
+    
+    // 2. Early return if no work needed
+    if (rows.length === 0) return;
+    
+    // 3. Transform data
+    const update = db.prepare(`UPDATE table SET column = ? WHERE id = ?`);
+    for (const row of rows) {
+      const transformed = transformData(row.column);
+      update.run(transformed, row.id);
+    }
+  },
+};
+```
+
+**Integration:**
+```typescript
+// lib/db/migrate.ts
+import { runCompanionMigrations } from "@/lib/db/companion-migrations";
+
+export async function runMigrations() {
+  await runSchemaCheck();
+  
+  // Phase 1: Schema migrations (Drizzle DDL)
+  migrate(db, { migrationsFolder: "./drizzle" });
+  
+  // Phase 2: Companion migrations (Data transformations)
+  await runCompanionMigrations(sqlite);
+}
+```
+
+**See:**
+- `docs/ADRs/ADR-013-COMPANION-MIGRATIONS.md` - Complete architecture decision record
+- `.specify/memory/patterns.md` - Pattern 11: Companion Migrations
+- `lib/migrations/README.md` - Usage guide with examples
+
+---
+
 ### SQLite Queries (Calibre - Read-Only)
 
 ```typescript
