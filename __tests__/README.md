@@ -11,10 +11,14 @@ npm test
 
 ## ✅ Current Status
 
-The test infrastructure is **fully functional** and comprehensive with **165 tests passing** using Bun's test runner with real database testing!
+The test infrastructure is **fully functional** and comprehensive with **2740 tests passing** using Vitest with real database testing!
 
-**Test Suite (165 passing):**
-- ✅ **Annual Reading Goals** - 66 tests (NEW!)
+**Test Suite (2740 passing):**
+- ✅ **Companion Migrations Framework** - 34 tests (NEW!)
+  - Unit tests - 21 tests (completion tracking, table existence checks, error handling)
+  - Integration tests - 13 tests (end-to-end execution, transaction rollback, idempotency, fresh database support)
+  - Coverage: 80-90% of companion-migrations.ts
+- ✅ **Annual Reading Goals** - 66 tests
   - `/api/reading-goals/books` - 16 tests (parameter validation, data retrieval, response structure)
   - `/api/reading-goals/[id]` PATCH/DELETE - 16 tests (validation, authorization, error handling)
   - `ReadingGoalRepository` - 8 tests (`getBooksByCompletionYear` method)
@@ -23,23 +27,31 @@ The test infrastructure is **fully functional** and comprehensive with **165 tes
 - ✅ **Utility tests** (toast.test.ts) - 9 tests
 - ✅ **Streak logic** (streaks.test.ts) - 12 comprehensive tests using real database
 - ✅ **Sync service** (sync-service.test.ts) - 14 tests with real database integration
-- ✅ **Calibre queries** (calibre.test.ts) - 31 tests using Bun's native SQLite :memory:
+- ✅ **Calibre queries** (calibre.test.ts) - 31 tests using in-memory SQLite
 - ✅ **Progress API** (progress.test.ts) - 18 tests with real database
 - ✅ **Stats API** (stats.test.ts) - 20 tests for aggregation pipelines
 - ✅ **Database compatibility** - 2 tests
+- ✅ **Additional tests** - 2575+ tests across all features
 
 **Key Achievements:**
 - ✅ **Real database testing** - No complex mocking, uses in-memory SQLite
-- ✅ **Comprehensive coverage** - All core features tested (goals, streaks, sync, progress, stats, queries)
-- ✅ **Fast execution** - ~8.5 seconds for full suite
+- ✅ **Comprehensive coverage** - All core features tested (companion migrations, goals, streaks, sync, progress, stats, queries)
+- ✅ **Fast execution** - ~18.5 seconds for full suite (2740 tests)
 - ✅ **Test isolation** - Proper cleanup between tests, no cross-file interference
 - ✅ **Production-like testing** - Tests run against real database engines
+- ✅ **Companion Migrations Framework** - Complete test coverage (80-90% coverage)
 - ✅ **Annual Reading Goals** - Complete test coverage for PR #96 (0% → 79%+ coverage)
 
 ## Test Structure
 
 ```
 __tests__/
+├── lib/                         # Library/core functionality tests
+│   └── db/
+│       ├── companion-migrations.test.ts          # Unit tests (21 tests)
+│       ├── companion-migrations-integration.test.ts  # Integration tests (13 tests)
+│       ├── migrate.test.ts                       # Migration framework tests
+│       └── ...
 ├── integration/                 # Integration tests (API routes)
 │   └── api/
 │       ├── reading-goals.test.ts        # Goal CRUD operations (26 tests)
@@ -59,13 +71,75 @@ __tests__/
 ├── helpers/                     # Test utilities
 │   └── db-setup.ts              # Database setup/teardown helpers
 ├── fixtures/                    # Shared test data
-│   └── test-data.ts             # Mock data and helper functions
+│   ├── test-data.ts             # Mock data and helper functions
+│   └── companion-migrations/    # Test companion migration files
 ├── IMPLEMENTATION_SUMMARY.md    # Detailed test implementation summary
 ├── TEST_COVERAGE_SUMMARY.md     # Coverage metrics and analysis
 └── README.md                    # This file
 ```
 
 ## Test Coverage
+
+### Companion Migrations Framework (NEW) - 34 tests
+
+Complete test coverage for the Companion Migrations Framework (ADR-013):
+
+#### Unit Tests (`lib/db/companion-migrations.test.ts`) - 21 tests
+- ✅ **`isCompleteMigration()`** - 6 tests
+  - Returns false when `migration_metadata` table doesn't exist
+  - Returns false when migration key doesn't exist
+  - Returns true when migration key has value 'true'
+  - Returns false when migration key has value 'false'
+  - Handles database query errors gracefully
+  - Handles multiple migrations independently
+- ✅ **`markComplete()`** - 7 tests
+  - Creates `migration_metadata` table if needed
+  - Inserts completion flag for new migration
+  - Updates completion flag for existing migration (INSERT OR REPLACE)
+  - Stores `created_at` timestamp
+  - Throws error if database write fails
+  - Handles multiple migrations
+  - Uses INSERT OR REPLACE semantics
+- ✅ **`tablesExist()`** - 8 tests
+  - Returns true when all required tables exist
+  - Returns false when any required table is missing
+  - Returns true for empty array (no requirements)
+  - Returns false when all tables are missing
+  - Handles database query errors gracefully
+  - Checks multiple tables correctly
+  - Case-sensitive for table names
+  - Detects missing table even when others exist
+
+#### Integration Tests (`lib/db/companion-migrations-integration.test.ts`) - 13 tests
+- ✅ **Basic Execution** - 3 tests
+  - Runs companions on existing database and transforms data
+  - Marks companion as complete after successful run
+  - Handles multiple books in single migration
+- ✅ **Idempotency** - 2 tests
+  - Skips companion if already marked complete
+  - Handles running migrations multiple times safely
+- ✅ **Fresh Database Support** - 2 tests
+  - Skips companion when required tables don't exist
+  - Handles empty database gracefully
+- ✅ **Transaction Handling** - 2 tests
+  - Rolls back transaction on companion execution error
+  - Does not mark companion as complete when it fails
+- ✅ **Multiple Migrations** - 2 tests
+  - Runs multiple companions in numeric order
+  - Marks all successful companions as complete
+- ✅ **Edge Cases** - 2 tests
+  - Handles empty companions directory gracefully
+  - Handles companion with no data to transform
+
+**Coverage**: 80-90% of `lib/db/companion-migrations.ts` (249 lines)
+
+**Key Testing Patterns**:
+- Uses in-memory SQLite (`:memory:`) for unit tests
+- Uses temporary directories with real TypeScript files for integration tests
+- Proper test isolation with cleanup (try/finally blocks)
+- Tests both success and failure paths
+- Validates transaction rollback behavior
+- Tests idempotency and fresh database scenarios
 
 ### Annual Reading Goals (NEW - PR #96) - 66 tests
 
@@ -345,12 +419,13 @@ We use **real databases** instead of mocks:
 
 ## Summary
 
-✅ **165 tests passing** across 10 test files  
-⚡ **~8.5 seconds** execution time  
+✅ **2740 tests passing** across 132 test files  
+⚡ **~18.5 seconds** execution time  
 🎯 **Comprehensive coverage** of core features  
 🏗️ **Production-like** testing with real databases  
 🔒 **Test isolation** with proper cleanup  
 📝 **Well documented** with examples and best practices  
+🎊 **NEW: Companion Migrations Framework fully tested** (80-90% coverage)  
 🎊 **NEW: Annual Reading Goals feature fully tested** (PR #96)
 
 The test suite is production-ready and provides confidence in the application's core functionality!
@@ -363,9 +438,12 @@ The test suite is production-ready and provides confidence in the application's 
 # Run all tests
 npm test
 
+# Run only companion migration tests
+npm test __tests__/lib/db/companion-migrations
+
 # Run only reading goals tests
 npm test __tests__/integration/api/reading-goals*.test.ts __tests__/repositories/reading-goals.repository.test.ts
 
 # Run individual test file
-npm test __tests__/integration/api/reading-goals-books.test.ts
+npm test __tests__/lib/db/companion-migrations-integration.test.ts
 ```

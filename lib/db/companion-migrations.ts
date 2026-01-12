@@ -40,9 +40,12 @@ export interface CompanionMigration {
 /**
  * Discover companion migrations in lib/migrations/
  * Returns migrations sorted by number
+ * 
+ * @param baseDir - Optional base directory for testing (defaults to process.cwd())
+ * @internal Exported for testing
  */
-function discoverCompanions(): CompanionMigration[] {
-  const migrationsDir = join(process.cwd(), 'lib/migrations');
+export function discoverCompanions(baseDir?: string): CompanionMigration[] {
+  const migrationsDir = join(baseDir || process.cwd(), 'lib/migrations');
   
   // Check if directory exists
   if (!existsSync(migrationsDir)) {
@@ -96,8 +99,10 @@ function discoverCompanions(): CompanionMigration[] {
 
 /**
  * Check if companion has already been run
+ * 
+ * @internal Exported for testing
  */
-function isCompleteMigration(db: Database, name: string): boolean {
+export function isCompleteMigration(db: Database, name: string): boolean {
   try {
     // Check if migration_metadata table exists
     const tableExists = db.prepare(
@@ -123,8 +128,10 @@ function isCompleteMigration(db: Database, name: string): boolean {
 
 /**
  * Mark companion migration as complete
+ * 
+ * @internal Exported for testing
  */
-function markComplete(db: Database, name: string): void {
+export function markComplete(db: Database, name: string): void {
   try {
     // Ensure migration_metadata table exists
     db.exec(`
@@ -149,8 +156,10 @@ function markComplete(db: Database, name: string): void {
 
 /**
  * Check if required tables exist
+ * 
+ * @internal Exported for testing
  */
-function tablesExist(db: Database, tables: string[]): boolean {
+export function tablesExist(db: Database, tables: string[]): boolean {
   for (const table of tables) {
     try {
       const result = db.prepare(
@@ -177,12 +186,13 @@ function tablesExist(db: Database, tables: string[]): boolean {
  * transactions.
  * 
  * @param db - Database instance (better-sqlite3 format)
+ * @param baseDir - Optional base directory for testing (defaults to process.cwd())
  */
-export async function runCompanionMigrations(db: Database): Promise<void> {
+export async function runCompanionMigrations(db: Database, baseDir?: string): Promise<void> {
   logger.info("Running companion migrations...");
   
   // Discover companions
-  const companions = discoverCompanions();
+  const companions = discoverCompanions(baseDir);
   
   if (companions.length === 0) {
     logger.info("No companion migrations found");
