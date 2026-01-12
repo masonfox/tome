@@ -17,6 +17,7 @@ import type {
   UpdateShelfRequest,
   AddBookToShelfRequest,
   AddBooksToShelfRequest,
+  RemoveBooksFromShelfRequest,
   UpdateBookOrderRequest,
   ReorderBooksRequest,
   ReorderBooksResponse,
@@ -28,6 +29,7 @@ import type {
   AddBookToShelfResponse,
   AddBooksToShelfResponse,
   RemoveBookFromShelfResponse,
+  RemoveBooksFromShelfResponse,
   UpdateBookOrderResponse,
 } from "./types";
 
@@ -204,7 +206,7 @@ export const shelfApi = {
    * console.log('Deleted:', result.deleted);
    */
   delete: async (shelfId: number): Promise<{ deleted: boolean }> => {
-    const response = await baseApiClient["delete"]<DeleteShelfResponse>(
+    const response = await baseApiClient["delete"]<undefined, DeleteShelfResponse>(
       `/api/shelves/${shelfId}`
     );
 
@@ -277,7 +279,7 @@ export const shelfApi = {
     shelfId: number,
     bookId: number
   ): Promise<{ removed: boolean }> => {
-    const response = await baseApiClient["delete"]<RemoveBookFromShelfResponse>(
+    const response = await baseApiClient["delete"]<undefined, RemoveBookFromShelfResponse>(
       `/api/shelves/${shelfId}/books?bookId=${bookId}`
     );
 
@@ -335,5 +337,91 @@ export const shelfApi = {
     >(`/api/shelves/${shelfId}/books/reorder`, request);
 
     return response.data;
+  },
+
+  /**
+   * Remove multiple books from a shelf (bulk operation)
+   * 
+   * @param shelfId - The ID of the shelf
+   * @param request - Array of book IDs to remove
+   * @returns Success indicator with count
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * const result = await shelfApi.removeBooks(1, { bookIds: [42, 43, 44] });
+   * console.log(`Removed ${result.count} books`);
+   */
+  removeBooks: async (
+    shelfId: number,
+    request: RemoveBooksFromShelfRequest
+  ): Promise<{ removed: boolean; count: number }> => {
+    const response = await baseApiClient["delete"]<
+      RemoveBooksFromShelfRequest,
+      RemoveBooksFromShelfResponse
+    >(`/api/shelves/${shelfId}/books/bulk`, request);
+
+    return response.data;
+  },
+
+  /**
+   * Move books from one shelf to another
+   * 
+   * Removes books from the source shelf and adds them to the target shelf.
+   * This is a compound operation that performs both remove and add.
+   * 
+   * @param sourceShelfId - The ID of the shelf to remove books from
+   * @param targetShelfId - The ID of the shelf to add books to
+   * @param request - Array of book IDs to move
+   * @returns Success indicator with count
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * const result = await shelfApi.moveBooks(1, 2, { bookIds: [42, 43, 44] });
+   * console.log(`Moved ${result.count} books`);
+   */
+  moveBooks: async (
+    sourceShelfId: number,
+    targetShelfId: number,
+    request: RemoveBooksFromShelfRequest
+  ): Promise<{ count: number }> => {
+    // Remove from source shelf
+    await baseApiClient["delete"]<
+      RemoveBooksFromShelfRequest,
+      RemoveBooksFromShelfResponse
+    >(`/api/shelves/${sourceShelfId}/books/bulk`, request);
+
+    // Add to target shelf
+    const response = await baseApiClient["post"]<
+      AddBooksToShelfRequest,
+      AddBooksToShelfResponse
+    >(`/api/shelves/${targetShelfId}/books/bulk`, request);
+
+    return { count: response.data.count };
+  },
+
+  /**
+   * Copy books to another shelf
+   * 
+   * Adds books to the target shelf without removing them from any source shelf.
+   * 
+   * @param targetShelfId - The ID of the shelf to add books to
+   * @param request - Array of book IDs to copy
+   * @returns Success indicator with count
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * const result = await shelfApi.copyBooks(2, { bookIds: [42, 43, 44] });
+   * console.log(`Copied ${result.count} books`);
+   */
+  copyBooks: async (
+    targetShelfId: number,
+    request: AddBooksToShelfRequest
+  ): Promise<{ count: number }> => {
+    const response = await baseApiClient["post"]<
+      AddBooksToShelfRequest,
+      AddBooksToShelfResponse
+    >(`/api/shelves/${targetShelfId}/books/bulk`, request);
+
+    return { count: response.data.count };
   },
 };

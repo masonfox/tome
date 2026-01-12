@@ -191,9 +191,16 @@ export class BaseApiClient {
 
   /**
    * Make a typed DELETE request
+   * 
+   * Note: While not common, DELETE requests CAN include a body per HTTP spec.
+   * This is useful for bulk delete operations where IDs are passed in the body.
    */
-  protected async delete<TResponse>(endpoint: string, options?: RequestOptions): Promise<TResponse> {
-    return this.request<TResponse>("DELETE", endpoint, undefined, options);
+  protected async delete<TRequest, TResponse>(
+    endpoint: string,
+    data?: TRequest,
+    options?: RequestOptions
+  ): Promise<TResponse> {
+    return this.request<TResponse>("DELETE", endpoint, data, options);
   }
 
   /**

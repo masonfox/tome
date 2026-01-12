@@ -438,6 +438,9 @@ function BookTableSkeleton({ showOrderColumn = false }: { showOrderColumn?: bool
                 <div className="h-6 bg-[var(--hover-bg)] rounded w-16" />
               </td>
               <td className="px-4 py-3">
+                <div className="h-6 bg-[var(--hover-bg)] rounded w-16" />
+              </td>
+              <td className="px-4 py-3">
                 <div className="h-4 bg-[var(--hover-bg)] rounded w-12 mx-auto" />
               </td>
               <td className="px-4 py-3">

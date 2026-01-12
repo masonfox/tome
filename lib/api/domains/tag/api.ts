@@ -71,7 +71,7 @@ export const tagApi = {
    * }
    */
   delete: (tagName: string): Promise<TagOperationResult> => {
-    return baseApiClient["delete"]<TagOperationResult>(
+    return baseApiClient["delete"]<undefined, TagOperationResult>(
       `/api/tags/${encodeURIComponent(tagName)}`
     );
   },

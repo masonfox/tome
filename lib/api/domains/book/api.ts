@@ -158,11 +158,11 @@ export const bookApi = {
   },
 
   /**
-   * Delete a progress entry
+   * Delete progress entry
    * 
    * @param bookId - The ID of the book
    * @param progressId - The ID of the progress entry to delete
-   * @returns Success response
+   * @returns Delete progress response
    * @throws {ApiError} When request fails
    * 
    * @example
@@ -172,7 +172,7 @@ export const bookApi = {
     bookId: string | number,
     progressId: number
   ): Promise<DeleteProgressResponse> => {
-    return baseApiClient["delete"]<DeleteProgressResponse>(
+    return baseApiClient["delete"]<undefined, DeleteProgressResponse>(
       `/api/books/${bookId}/progress/${progressId}`
     );
   },
