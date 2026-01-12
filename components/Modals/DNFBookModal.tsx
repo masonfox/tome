@@ -203,9 +203,6 @@ export default function DNFBookModal({
             id="review"
           />
         </div>
-        <p className="text-xs italic text-[var(--subheading-text)] mt-1">
-          Your notes will be saved as a draft
-        </p>
       </div>
     </BaseModal>
   );
