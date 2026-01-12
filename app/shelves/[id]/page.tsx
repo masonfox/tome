@@ -693,7 +693,7 @@ export default function ShelfDetailPage() {
           isOpen={showCopyModal}
           onClose={() => !copyLoading && setShowCopyModal(false)}
           onSelectShelf={handleCopySubmit}
-          currentShelfId={undefined}
+          currentShelfId={shelfId}
           title="Copy Books to Shelf"
           confirmButtonText="Copy"
           allowKeepSelected={true}
