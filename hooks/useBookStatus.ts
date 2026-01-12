@@ -62,6 +62,7 @@ export interface UseBookStatusReturn {
   showReadConfirmation: boolean;
   showStatusChangeConfirmation: boolean;
   showCompleteBookModal: boolean;
+  showDNFModal: boolean;
   pendingStatusChange: string | null;
   handleUpdateStatus: (newStatus: string) => Promise<void>;
   handleConfirmStatusChange: () => Promise<void>;
@@ -69,6 +70,7 @@ export interface UseBookStatusReturn {
   handleConfirmRead: (rating?: number, review?: string) => Promise<void>;
   handleCompleteBook: (data: CompleteBookData) => Promise<void>;
   handleStartReread: () => Promise<void>;
+  handleMarkAsDNF: (rating?: number, review?: string, dnfDate?: string) => Promise<void>;
 }
 
 /**
@@ -94,6 +96,7 @@ export function useBookStatus(
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
   const [showCompleteBookModal, setShowCompleteBookModal] = useState(false);
+  const [showDNFModal, setShowDNFModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
 
   // Initialize status from book data
@@ -269,6 +272,69 @@ export function useBookStatus(
     },
   });
 
+  // Mutation for marking as DNF
+  const markAsDNFMutation = useMutation({
+    mutationFn: async ({ rating, review, dnfDate }: { rating?: number; review?: string; dnfDate?: string }) => {
+      const response = await fetch(`/api/books/${bookId}/mark-as-dnf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, review, dnfDate }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.error || "Failed to mark as DNF",
+          response.status,
+          `/api/books/${bookId}/mark-as-dnf`,
+          errorData
+        );
+      }
+      
+      return response.json();
+    },
+    onMutate: async () => {
+      // Cancel outgoing queries and snapshot state
+      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      const previousStatus = selectedStatus;
+
+      // Optimistic update
+      setSelectedStatus("dnf");
+      return { previousStatus };
+    },
+    onError: (error, _variables, context) => {
+      // Rollback
+      if (context?.previousStatus) {
+        setSelectedStatus(context.previousStatus);
+      }
+
+      if (error instanceof ApiError) {
+        getLogger().error({
+          statusCode: error.statusCode,
+          endpoint: error.endpoint,
+          details: error.details
+        }, "Failed to mark book as DNF");
+      } else {
+        getLogger().error({ err: error }, "Failed to mark book as DNF");
+      }
+      toast.error("Failed to mark book as DNF");
+    },
+    onSuccess: (data) => {
+      // Invalidate all related queries
+      invalidateBookQueries(queryClient, bookId);
+
+      // Build success message based on what was updated
+      const messages = ["Marked as Did Not Finish"];
+      if (data.ratingUpdated) messages.push("Rating saved");
+      if (data.reviewUpdated) messages.push("Review saved");
+
+      toast.success(messages.join(" • "));
+
+      // Legacy callbacks for compatibility
+      onRefresh?.();
+    },
+  });
+
   const handleUpdateStatus = useCallback(async (newStatus: string) => {
     // If marking as "read" from non-reading status, show CompleteBookModal
     if (newStatus === "read" && selectedStatus !== "read" && selectedStatus !== "reading") {
@@ -279,6 +345,12 @@ export function useBookStatus(
     // If marking as "read" from "reading" status, show FinishBookModal
     if (newStatus === "read" && selectedStatus === "reading") {
       setShowReadConfirmation(true);
+      return;
+    }
+
+    // If marking as "dnf" from "reading" status, show DNFBookModal
+    if (newStatus === "dnf" && selectedStatus === "reading") {
+      setShowDNFModal(true);
       return;
     }
 
@@ -305,6 +377,7 @@ export function useBookStatus(
     setShowStatusChangeConfirmation(false);
     setShowReadConfirmation(false);
     setShowCompleteBookModal(false);
+    setShowDNFModal(false);
     setPendingStatusChange(null);
   }, []);
 
@@ -321,11 +394,17 @@ export function useBookStatus(
     await rereadMutation.mutateAsync();
   }, [rereadMutation]);
 
+  const handleMarkAsDNF = useCallback(async (rating?: number, review?: string, dnfDate?: string) => {
+    await markAsDNFMutation.mutateAsync({ rating, review, dnfDate });
+    setShowDNFModal(false);
+  }, [markAsDNFMutation]);
+
   return {
     selectedStatus,
     showReadConfirmation,
     showStatusChangeConfirmation,
     showCompleteBookModal,
+    showDNFModal,
     pendingStatusChange,
     handleUpdateStatus,
     handleConfirmStatusChange,
@@ -333,5 +412,6 @@ export function useBookStatus(
     handleConfirmRead,
     handleCompleteBook,
     handleStartReread,
+    handleMarkAsDNF,
   };
 }
