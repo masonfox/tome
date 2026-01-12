@@ -180,18 +180,7 @@ export function useShelfBooks(shelfId: number | null) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/shelves/${shelfId}/books/bulk`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookIds }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || "Failed to remove books");
-        }
-
-        const result = await response.json();
+        const result = await shelfApi.removeBooks(shelfId, { bookIds });
 
         // Optimistic update: remove books from local state and reindex
         setShelf((prev) => {
@@ -207,14 +196,16 @@ export function useShelfBooks(shelfId: number | null) {
           };
         });
 
-        const bookWord = result.data.count === 1 ? "book" : "books";
-        toast.success(`${result.data.count} ${bookWord} removed from shelf`);
-        return result.data;
+        const bookWord = result.count === 1 ? "book" : "books";
+        toast.success(`${result.count} ${bookWord} removed from shelf`);
+        return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         
-        toast.error(`Failed to remove books: ${error.message}`);
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to remove books: ${message}`);
         
         // Refresh to ensure consistency
         await fetchShelfBooks();
@@ -336,37 +327,20 @@ export function useShelfBooks(shelfId: number | null) {
       });
 
       try {
-        // 1. Remove from source shelf
-        await fetch(`/api/shelves/${shelfId}/books/bulk`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookIds }),
-        });
-
-        // 2. Add to target shelf
-        const response = await fetch(`/api/shelves/${targetShelfId}/books/bulk`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookIds }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || "Failed to move books");
-        }
-
-        const result = await response.json();
+        const result = await shelfApi.moveBooks(shelfId, targetShelfId, { bookIds });
         
-        const bookWord = result.data.count === 1 ? "book" : "books";
+        const bookWord = result.count === 1 ? "book" : "books";
         const shelfName = targetShelfName ? ` to ${targetShelfName}` : "";
-        toast.success(`${result.data.count} ${bookWord} moved${shelfName}`);
+        toast.success(`${result.count} ${bookWord} moved${shelfName}`);
         
-        return { count: result.data.count };
+        return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         
-        toast.error(`Failed to move books: ${error.message}`);
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to move books: ${message}`);
         
         // Refresh to ensure consistency
         await fetchShelfBooks();
@@ -391,36 +365,26 @@ export function useShelfBooks(shelfId: number | null) {
       setError(null);
 
       try {
-        // Add to target shelf (no removal from current shelf)
-        const response = await fetch(`/api/shelves/${targetShelfId}/books/bulk`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookIds }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || "Failed to copy books");
-        }
-
-        const result = await response.json();
+        const result = await shelfApi.copyBooks(targetShelfId, { bookIds });
         
-        const bookWord = result.data.count === 1 ? "book" : "books";
+        const bookWord = result.count === 1 ? "book" : "books";
         const shelfName = targetShelfName ? ` to ${targetShelfName}` : "";
-        toast.success(`${result.data.count} ${bookWord} copied${shelfName}`);
+        toast.success(`${result.count} ${bookWord} copied${shelfName}`);
         
-        return { count: result.data.count };
+        return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         
-        toast.error(`Failed to copy books: ${error.message}`);
+        // Extract user-friendly message from ApiError
+        const message = err instanceof ApiError ? err.message : error.message;
+        toast.error(`Failed to copy books: ${message}`);
         throw error;
       } finally {
         setLoading(false);
       }
     },
-    [shelfId]
+    []
   );
 
   return {
