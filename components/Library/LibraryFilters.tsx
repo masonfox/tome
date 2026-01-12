@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
@@ -32,6 +32,7 @@ const statusOptions = [
   { value: "read-next", label: "Read Next", icon: Clock },
   { value: "reading", label: "Reading", icon: BookOpen },
   { value: "read", label: "Read", icon: BookCheck },
+  { value: "dnf", label: "Did Not Finish", icon: BookX },
 ];
 
 // Grouped rating options with star rendering support
