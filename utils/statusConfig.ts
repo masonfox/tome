@@ -1,6 +1,6 @@
-import { BookOpen, BookCheck, Bookmark, Clock, LucideIcon } from "lucide-react";
+import { BookOpen, BookCheck, Bookmark, Clock, BookX, LucideIcon } from "lucide-react";
 
-export type BookStatus = "reading" | "read" | "to-read" | "read-next";
+export type BookStatus = "reading" | "read" | "to-read" | "read-next" | "dnf";
 
 export interface StatusConfig {
   labels: {
@@ -67,6 +67,17 @@ export const STATUS_CONFIG: Record<BookStatus, StatusConfig> = {
     icon: Clock,
     lightGradient: "from-purple-500 to-purple-600",
     darkGradient: "from-purple-500 to-purple-600",
+    textColor: "text-white",
+    borderColor: "border-transparent",
+  },
+  "dnf": {
+    labels: {
+      short: "DNF",
+      long: "Did Not Finish",
+    },
+    icon: BookX,
+    lightGradient: "from-red-500 to-red-600",
+    darkGradient: "from-red-500 to-red-600",
     textColor: "text-white",
     borderColor: "border-transparent",
   },
