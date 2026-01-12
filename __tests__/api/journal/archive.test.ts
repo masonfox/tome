@@ -1,3 +1,4 @@
+import { createProgressSequence } from '../../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -52,7 +53,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -94,7 +95,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -153,16 +154,16 @@ describe("GET /api/journal/archive", () => {
         isActive: true,
       });
 
-      for (let i = 0; i < 5; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 20,
-          currentPercentage: (i + 1) * 20,
-          pagesRead: 20,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      // Create 5 progress entries using helper
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 20,
+        pageIncrement: 20,
+        count: 5,
+        totalPages: 100,
+      });
 
       // Act
       const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
@@ -189,29 +190,27 @@ describe("GET /api/journal/archive", () => {
         isActive: true,
       });
 
-      // November entries
-      for (let i = 0; i < 3; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 1) * 20,
-          currentPercentage: (i + 1) * 20,
-          pagesRead: 20,
-          progressDate: new Date(`2024-11-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      // November entries (3 entries)
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-11-10",
+        startPage: 20,
+        pageIncrement: 20,
+        count: 3,
+        totalPages: 100,
+      });
 
-      // December entries
-      for (let i = 0; i < 2; i++) {
-        await progressRepository.create({
-          bookId: book.id,
-          sessionId: session.id,
-          currentPage: (i + 4) * 20,
-          currentPercentage: (i + 4) * 20,
-          pagesRead: 20,
-          progressDate: new Date(`2024-12-${10 + i}T10:00:00.000Z`),
-        });
-      }
+      // December entries (2 entries)
+      await createProgressSequence(progressRepository, {
+        bookId: book.id,
+        sessionId: session.id,
+        startDate: "2024-12-10",
+        startPage: 80,
+        pageIncrement: 20,
+        count: 2,
+        totalPages: 100,
+      });
 
       // Act
       const response = await GET(createMockRequest("GET", "/api/journal/archive") as any);
@@ -248,7 +247,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2023-06-15T10:00:00.000Z"),
+        progressDate: "2023-06-15",
       });
 
       await progressRepository.create({
@@ -257,7 +256,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date("2024-06-15T10:00:00.000Z"),
+        progressDate: "2024-06-15",
       });
 
       // Act
@@ -292,7 +291,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 33,
         currentPercentage: 33,
         pagesRead: 33,
-        progressDate: new Date("2024-01-15T10:00:00.000Z"),
+        progressDate: "2024-01-15",
       });
 
       await progressRepository.create({
@@ -301,7 +300,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 66,
         currentPercentage: 66,
         pagesRead: 33,
-        progressDate: new Date("2024-03-15T10:00:00.000Z"),
+        progressDate: "2024-03-15",
       });
 
       await progressRepository.create({
@@ -310,7 +309,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 34,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -347,7 +346,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 33,
         currentPercentage: 33,
         pagesRead: 33,
-        progressDate: new Date("2024-11-01T10:00:00.000Z"), // W1
+        progressDate: "2024-11-01", // W1
       });
 
       await progressRepository.create({
@@ -356,7 +355,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 66,
         currentPercentage: 66,
         pagesRead: 33,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"), // W3
+        progressDate: "2024-11-15", // W3
       });
 
       await progressRepository.create({
@@ -365,7 +364,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 34,
-        progressDate: new Date("2024-11-29T10:00:00.000Z"), // W5
+        progressDate: "2024-11-29", // W5
       });
 
       // Act
@@ -417,7 +416,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-11-15T10:00:00.000Z"),
+        progressDate: "2024-11-15",
       });
 
       // Act
@@ -460,7 +459,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2023-12-31T10:00:00.000Z"),
+        progressDate: "2023-12-31",
       });
 
       await progressRepository.create({
@@ -469,7 +468,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 50,
-        progressDate: new Date("2024-01-01T10:00:00.000Z"),
+        progressDate: "2024-01-01",
       });
 
       // Act
@@ -505,7 +504,7 @@ describe("GET /api/journal/archive", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date("2024-02-29T10:00:00.000Z"),
+        progressDate: "2024-02-29",
       });
 
       // Act

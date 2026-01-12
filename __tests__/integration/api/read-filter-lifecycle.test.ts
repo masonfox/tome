@@ -5,6 +5,7 @@ import { POST as UPDATE_STATUS } from "@/app/api/books/[id]/status/route";
 import { POST as LOG_PROGRESS } from "@/app/api/books/[id]/progress/route";
 import { POST as START_REREAD } from "@/app/api/books/[id]/reread/route";
 import { createMockRequest, createTestBook } from "../../fixtures/test-data";
+import { toSessionDate } from "../../test-utils";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 // Mock Next.js cache revalidation - required for integration tests
@@ -352,8 +353,8 @@ describe("Integration: Read Filter Lifecycle", () => {
       bookId: book.id,
       sessionNumber: 1,
       status: "read",
-      startedDate: new Date("2024-01-01"),
-      completedDate: new Date("2024-01-15"),
+      startedDate: toSessionDate(new Date("2024-01-01")),
+      completedDate: toSessionDate(new Date("2024-01-15")),
       isActive: false,
       rating: 4,
     });

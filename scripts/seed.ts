@@ -13,6 +13,10 @@
  *   - Calibre library must contain books
  */
 
+// Load environment variables from .env file
+import { config } from 'dotenv';
+config();
+
 import { seedDatabase } from "@/lib/db/seeders";
 import { getLogger } from "@/lib/logger";
 

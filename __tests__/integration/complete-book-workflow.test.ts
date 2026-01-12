@@ -1,7 +1,8 @@
+import { toSessionDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { createTestBook, createTestSession, createMockRequest } from "../fixtures/test-data";
+import { createTestBook, createTestSession, createMockRequest } from "@/__tests__/fixtures/test-data";
 import { POST } from "@/app/api/books/[id]/complete/route";
 import type { NextRequest } from "next/server";
 import { formatInTimeZone } from "date-fns-tz";
@@ -298,7 +299,7 @@ describe("Integration: Complete Book Workflow", () => {
       status: "reading",
       isActive: true,
       sessionNumber: 1,
-      startedDate: new Date("2024-01-01"),
+      startedDate: toSessionDate(new Date("2024-01-01")),
     }));
 
     // User has already logged some progress
@@ -308,7 +309,7 @@ describe("Integration: Complete Book Workflow", () => {
       currentPage: 200,
       currentPercentage: 50,
       pagesRead: 200,
-      progressDate: new Date("2024-01-10"),
+      progressDate: "2024-01-10",
     });
 
     // ACT: User logs 100% progress (auto-completion)
@@ -392,7 +393,7 @@ describe("Integration: Complete Book Workflow", () => {
     expect(response.status).toBe(200);
 
     const progress = await progressRepository.findByBookId(book.id);
-    const dates = progress.map(p => p.progressDate.toISOString().split('T')[0]);
+    const dates = progress.map(p => p.progressDate);
     expect(dates.every(d => d === "2024-07-01")).toBe(true);
   });
 

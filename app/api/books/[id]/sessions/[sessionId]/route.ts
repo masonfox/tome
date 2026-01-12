@@ -10,8 +10,8 @@ export const dynamic = 'force-dynamic';
  * 
  * Request Body:
  * {
- *   "startedDate": string | null   // ISO date string or null
- *   "completedDate": string | null // ISO date string or null
+ *   "startedDate": string | null   // YYYY-MM-DD string or null
+ *   "completedDate": string | null // YYYY-MM-DD string or null
  *   "review": string | null        // Review text or null to remove
  * }
  * 
@@ -60,12 +60,25 @@ export async function PATCH(
     // Build update object with only provided fields
     const updateData: any = {};
     
-    // Handle dates
+    // Handle dates - normalize to YYYY-MM-DD format
+    // Frontend may send ISO strings (2026-01-12T00:00:00.000Z) or YYYY-MM-DD strings
     if ('startedDate' in body) {
-      updateData.startedDate = startedDate ? new Date(startedDate) : null;
+      if (startedDate) {
+        // Extract YYYY-MM-DD from ISO string or use as-is if already in correct format
+        const normalized = startedDate.includes('T') ? startedDate.split('T')[0] : startedDate;
+        updateData.startedDate = normalized;
+      } else {
+        updateData.startedDate = null;
+      }
     }
     if ('completedDate' in body) {
-      updateData.completedDate = completedDate ? new Date(completedDate) : null;
+      if (completedDate) {
+        // Extract YYYY-MM-DD from ISO string or use as-is if already in correct format
+        const normalized = completedDate.includes('T') ? completedDate.split('T')[0] : completedDate;
+        updateData.completedDate = normalized;
+      } else {
+        updateData.completedDate = null;
+      }
     }
     
     // Handle review

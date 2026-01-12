@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../../test-utils';
 // Import shared mock setup (must be first to properly mock modules)
 import "./setup";
 
@@ -32,7 +33,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       const result = await sessionService.ensureReadingStatus(book.id);
@@ -112,7 +113,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       const result = await sessionService.updateSessionReview(session.id, "Great book!");
@@ -135,7 +136,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2023-01-01"),
+        completedDate: "2023-01-01",
       });
 
       const session2 = await sessionRepository.create({
@@ -143,7 +144,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 2,
         status: "read",
         isActive: false,
-        completedDate: new Date("2023-06-01"),
+        completedDate: "2023-06-01",
       });
 
       const result = await sessionService.findMostRecentCompletedSession(book.id);
@@ -176,7 +177,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2023-01-01"),
+        completedDate: "2023-01-01",
       });
 
       // Create an active reading session (more recent but should be ignored)
@@ -185,7 +186,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 2,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       const result = await sessionService.findMostRecentCompletedSession(book.id);
@@ -215,7 +216,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       const result = await sessionService.markAsRead({ bookId: book.id });
@@ -234,7 +235,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date(),
+        startedDate: toSessionDate(new Date()),
       });
 
       await progressRepository.create({
@@ -242,7 +243,7 @@ describe("SessionService - Mark as Read", () => {
         sessionId: session.id,
         currentPage: 350,
         currentPercentage: 100,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
         notes: "Finished",
         pagesRead: 350,
       });
@@ -262,7 +263,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date(),
+        completedDate: toSessionDate(new Date()),
       });
 
       const result = await sessionService.markAsRead({ bookId: book.id });
@@ -356,7 +357,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2023-01-01"),
+        completedDate: "2023-01-01",
       });
 
       const recentSession = await sessionRepository.create({
@@ -364,7 +365,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 2,
         status: "read",
         isActive: false,
-        completedDate: new Date("2023-06-01"),
+        completedDate: "2023-06-01",
       });
 
       const result = await sessionService.markAsRead({
@@ -382,7 +383,7 @@ describe("SessionService - Mark as Read", () => {
 
     test("uses custom completedDate when provided", async () => {
       const book = await bookRepository.create(createTestBook({ totalPages: null }));
-      const customDate = new Date("2023-05-15");
+      const customDate = "2023-05-15";
 
       const result = await sessionService.markAsRead({
         bookId: book.id,
@@ -390,7 +391,7 @@ describe("SessionService - Mark as Read", () => {
       });
 
       expect(result.session.status).toBe("read");
-      expect(result.session.completedDate).toEqual(customDate);
+      expect(result.session.completedDate).toBe(customDate);
     });
   });
 
@@ -461,7 +462,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2022-01-01"),
+        completedDate: "2022-01-01",
       });
 
       await sessionRepository.create({
@@ -469,7 +470,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 2,
         status: "read",
         isActive: false,
-        completedDate: new Date("2023-01-01"),
+        completedDate: "2023-01-01",
       });
 
       const mostRecent = await sessionRepository.create({
@@ -477,7 +478,7 @@ describe("SessionService - Mark as Read", () => {
         sessionNumber: 3,
         status: "read",
         isActive: false,
-        completedDate: new Date("2024-01-01"),
+        completedDate: "2024-01-01",
       });
 
       const result = await sessionService.markAsRead({

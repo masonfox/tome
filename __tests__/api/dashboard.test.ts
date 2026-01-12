@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET } from "@/app/api/dashboard/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
@@ -156,7 +157,7 @@ describe("Dashboard API - GET /api/dashboard", () => {
     await sessionRepository.create({
       bookId: testBook3.id,
       status: "read",
-      completedDate: new Date(),
+      completedDate: toSessionDate(new Date()),
       sessionNumber: 1,
       isActive: false,
     });
@@ -168,7 +169,7 @@ describe("Dashboard API - GET /api/dashboard", () => {
   });
 
   test("includes progress data in stats", async () => {
-    const today = new Date();
+    const today = toProgressDate(new Date());
 
     // Create progress for today
     await progressRepository.create({
@@ -325,7 +326,7 @@ describe("Dashboard API - GET /api/dashboard", () => {
 
   test("averages pages per day correctly with recent data", async () => {
     const now = new Date();
-    const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+    const fiveDaysAgo = toProgressDate(new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000));
 
     await progressRepository.create({
       bookId: testBook1.id,

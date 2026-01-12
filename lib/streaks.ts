@@ -1,6 +1,7 @@
 import { startOfDay, differenceInDays, isEqual, format } from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { streakRepository, progressRepository } from "@/lib/repositories";
+import { toDateString } from "@/utils/dateHelpers.server";
 import type { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
 const logger = getLogger();
@@ -43,7 +44,7 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
   const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
   
-  const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
+  const todayProgress = await progressRepository.getProgressForDate(toDateString(todayUtc), toDateString(tomorrowUtc));
 
   if (!todayProgress || todayProgress.pagesRead === 0) {
     // No activity today, return existing streak
@@ -265,10 +266,10 @@ export async function rebuildStreak(userId?: number | null, currentDate?: Date, 
   const qualifyingDates = new Set<string>(); // Only dates that meet the threshold
 
   allProgress.forEach((progress) => {
-    // Convert progress date to user's timezone for day boundary calculation
-    const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-    const dayStart = startOfDay(dateInUserTz);
-    const dateKey = format(dayStart, 'yyyy-MM-dd');
+    // Progress dates are now stored as YYYY-MM-DD strings (calendar days)
+    // Parse as midnight local time, then group by this date key
+    // Note: Since dates are already calendar days, we don't need timezone conversion
+    const dateKey = progress.progressDate; // Already YYYY-MM-DD
     const pagesRead = progress.pagesRead || 0;
 
     if (pagesRead > 0) {
@@ -384,5 +385,5 @@ export async function getActivityCalendar(
     0
   );
 
-  return await progressRepository.getActivityCalendar(startDate, endDate, userTimezone);
+  return await progressRepository.getActivityCalendar(toDateString(startDate), toDateString(endDate), userTimezone);
 }

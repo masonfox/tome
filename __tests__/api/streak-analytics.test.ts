@@ -1,3 +1,4 @@
+import { toProgressDate } from '../test-utils';
 import { test, expect, describe, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { NextRequest } from "next/server";
 import { GET } from "@/app/api/streak/analytics/route";
@@ -89,7 +90,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: day3Ago,
+      progressDate: formatDate(day3Ago),
       pagesRead: 50,
     });
 
@@ -98,7 +99,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: day2Ago,
+      progressDate: formatDate(day2Ago),
       pagesRead: 50,
     });
 
@@ -107,7 +108,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 50.0,
-      progressDate: today,
+      progressDate: formatDate(today),
       pagesRead: 50,
     });
 
@@ -183,7 +184,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 25.0,
-      progressDate: day5Ago,
+      progressDate: formatDate(day5Ago),
       pagesRead: 100,
     });
 
@@ -192,7 +193,7 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
       sessionId: session.id,
       currentPage: 200,
       currentPercentage: 50.0,
-      progressDate: today,
+      progressDate: formatDate(today),
       pagesRead: 100,
     });
 
@@ -271,7 +272,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: day3Ago,
+      progressDate: formatDate(day3Ago),
       pagesRead: 50,
     });
 
@@ -280,7 +281,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: day2Ago,
+      progressDate: formatDate(day2Ago),
       pagesRead: 50,
     });
 
@@ -289,7 +290,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 150,
       currentPercentage: 50.0,
-      progressDate: day1Ago,
+      progressDate: formatDate(day1Ago),
       pagesRead: 50,
     });
 
@@ -298,7 +299,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 200,
       currentPercentage: 66.67,
-      progressDate: today,
+      progressDate: formatDate(today),
       pagesRead: 50,
     });
 
@@ -360,7 +361,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 10.0,
-      progressDate: day60Ago,
+      progressDate: formatDate(day60Ago),
       pagesRead: 50,
     });
 
@@ -369,7 +370,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 100,
       currentPercentage: 20.0,
-      progressDate: today,
+      progressDate: formatDate(today),
       pagesRead: 50,
     });
 
@@ -428,7 +429,7 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 25.0,
-      progressDate: today,
+      progressDate: formatDate(today),
       pagesRead: 50,
     });
 
@@ -480,7 +481,7 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: new Date(),
+      progressDate: toProgressDate(new Date()),
       pagesRead: 50,
     });
 
@@ -522,7 +523,7 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: new Date(),
+      progressDate: toProgressDate(new Date()),
       pagesRead: 50,
     });
 
@@ -564,7 +565,7 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: new Date(),
+      progressDate: toProgressDate(new Date()),
       pagesRead: 50,
     });
 

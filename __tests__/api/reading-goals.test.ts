@@ -87,8 +87,8 @@ describe("Reading Goals API - GET /api/reading-goals", () => {
         bookId: book1.id,
         sessionNumber: 1,
         status: "read",
-        startedDate: new Date("2024-01-15"),
-        completedDate: new Date("2024-01-20"),
+        startedDate: "2024-01-15",
+        completedDate: "2024-01-20",
         isActive: false,
         userId: null,
       });

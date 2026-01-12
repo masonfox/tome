@@ -1,3 +1,4 @@
+import { toProgressDate, toSessionDate } from '../test-utils';
 import { test, expect, describe, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
@@ -39,7 +40,7 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date(),
+      startedDate: toSessionDate(new Date()),
     });
 
     expect(session.isActive).toBe(true);
@@ -48,7 +49,7 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
     // Update session to 'read' status (simulating what the API does)
     const updatedSession = await sessionRepository.update(session.id, {
       status: "read",
-      completedDate: new Date(),
+      completedDate: toSessionDate(new Date()),
       isActive: false, // Auto-archive
     });
 
@@ -130,7 +131,7 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date(),
+      completedDate: toSessionDate(new Date()),
     });
 
     const session2 = await sessionRepository.create({
@@ -138,7 +139,7 @@ describe("Session Lifecycle - Auto-Archive on Read", () => {
       sessionNumber: 2,
       status: "read",
       isActive: false,
-      completedDate: new Date(),
+      completedDate: toSessionDate(new Date()),
     });
 
     expect(session1.isActive).toBe(false);
@@ -166,8 +167,8 @@ describe("Re-reading Flow", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      startedDate: new Date("2025-01-01"),
-      completedDate: new Date("2025-01-15"),
+      startedDate: "2025-01-01",
+      completedDate: "2025-01-15",
     });
 
     // Create new active session for re-read
@@ -176,7 +177,7 @@ describe("Re-reading Flow", () => {
       sessionNumber: 2,
       status: "reading",
       isActive: true,
-      startedDate: new Date(),
+      startedDate: toSessionDate(new Date()),
     });
 
     expect(session2.sessionNumber).toBe(2);
@@ -207,7 +208,7 @@ describe("Re-reading Flow", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date(),
+      startedDate: toSessionDate(new Date()),
     });
 
     // Find session and check status
@@ -241,7 +242,7 @@ describe("Re-reading Flow", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date(),
+      completedDate: toSessionDate(new Date()),
     });
 
     // Create active session (already re-reading)
@@ -250,7 +251,7 @@ describe("Re-reading Flow", () => {
       sessionNumber: 2,
       status: "reading",
       isActive: true,
-      startedDate: new Date(),
+      startedDate: toSessionDate(new Date()),
     });
 
     // Check if active session exists
@@ -282,7 +283,7 @@ describe("Progress Logging Validation", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date(),
+      startedDate: toSessionDate(new Date()),
     });
 
     // Should allow progress logging
@@ -291,7 +292,7 @@ describe("Progress Logging Validation", () => {
       sessionId: session.id,
       currentPage: 50,
       currentPercentage: 31.25,
-      progressDate: new Date(),
+      progressDate: toProgressDate(new Date()),
       pagesRead: 50,
     });
 
@@ -344,7 +345,7 @@ describe("Progress Logging Validation", () => {
       sessionNumber: 1,
       status: "read",
       isActive: false,
-      completedDate: new Date(),
+      completedDate: toSessionDate(new Date()),
     });
 
     // Try to find active session
@@ -375,7 +376,7 @@ describe("Progress Isolation Between Sessions", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2025-01-01"),
+      startedDate: "2025-01-01",
     });
 
     await progressRepository.create({
@@ -383,7 +384,7 @@ describe("Progress Isolation Between Sessions", () => {
       sessionId: session1.id,
       currentPage: 100,
       currentPercentage: 50,
-      progressDate: new Date("2025-01-10"),
+      progressDate: "2025-01-10",
       pagesRead: 100,
     });
 
@@ -391,7 +392,7 @@ describe("Progress Isolation Between Sessions", () => {
     await sessionRepository.update(session1.id, {
       status: "read",
       isActive: false,
-      completedDate: new Date("2025-01-15"),
+      completedDate: "2025-01-15",
     });
 
     // Create second session with progress
@@ -400,7 +401,7 @@ describe("Progress Isolation Between Sessions", () => {
       sessionNumber: 2,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2025-02-01"),
+      startedDate: "2025-02-01",
     });
 
     await progressRepository.create({
@@ -408,7 +409,7 @@ describe("Progress Isolation Between Sessions", () => {
       sessionId: session2.id,
       currentPage: 75,
       currentPercentage: 37.5,
-      progressDate: new Date("2025-02-05"),
+      progressDate: "2025-02-05",
       pagesRead: 75,
     });
 

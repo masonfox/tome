@@ -33,7 +33,8 @@ export function JournalEntryList({
 
   // Group entries by date
   const groupedByDate = entries.reduce((acc, entry) => {
-    const dateKey = entry.progressDate.split('T')[0]; // Extract YYYY-MM-DD
+    // progressDate is already in YYYY-MM-DD format from the API
+    const dateKey = entry.progressDate;
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }

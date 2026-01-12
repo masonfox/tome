@@ -81,18 +81,14 @@ export default function SessionEditModal({
   }, [review, isInitialized, saveDraft, isOpen]);
 
   function handleSave() {
-    // Convert date strings back to ISO format (with time set to midnight UTC)
-    const startedISO = startedDate
-      ? new Date(startedDate + "T00:00:00.000Z").toISOString()
-      : null;
-    const completedISO = completedDate
-      ? new Date(completedDate + "T00:00:00.000Z").toISOString()
-      : null;
+    // Date inputs already provide YYYY-MM-DD format, send as-is
+    const startedValue = startedDate || null;
+    const completedValue = completedDate || null;
     const reviewValue = review.trim() ? review.trim() : null;
 
     onConfirm({
-      startedDate: startedISO,
-      completedDate: completedISO,
+      startedDate: startedValue,
+      completedDate: completedValue,
       review: reviewValue,
     });
     

@@ -277,7 +277,7 @@ describe("PATCH /api/books/[id] - Page Count Update", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2024-01-01"),
+        completedDate: "2024-01-01",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -311,7 +311,7 @@ describe("PATCH /api/books/[id] - Page Count Update", () => {
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: new Date("2024-01-01"),
+        completedDate: "2024-01-01",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -353,7 +353,7 @@ describe("PATCH /api/books/[id] - Page Count Update", () => {
         currentPage: 100,
         currentPercentage: 25,
         pagesRead: 100,
-        progressDate: new Date("2024-01-01"),
+        progressDate: "2024-01-01",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -362,7 +362,7 @@ describe("PATCH /api/books/[id] - Page Count Update", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 100,
-        progressDate: new Date("2024-01-02"),
+        progressDate: "2024-01-02",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -371,7 +371,7 @@ describe("PATCH /api/books/[id] - Page Count Update", () => {
         currentPage: 300,
         currentPercentage: 75,
         pagesRead: 100,
-        progressDate: new Date("2024-01-03"),
+        progressDate: "2024-01-03",
       }));
 
       const request = createMockRequest("PATCH", `/api/books/${book.id}`, { totalPages: 600 });
