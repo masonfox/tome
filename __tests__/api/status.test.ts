@@ -1,4 +1,3 @@
-import { toProgressDate, toSessionDate } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/books/[id]/status/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";

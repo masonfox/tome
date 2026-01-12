@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { toSessionDate } from '../test-utils';
 import { GET, POST } from "@/app/api/reading-goals/route";
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";

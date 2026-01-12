@@ -2,7 +2,6 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { PATCH } from "@/app/api/books/[id]/sessions/[sessionId]/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { toSessionDate } from '../test-utils';
 import {
   mockBook1,
   mockSessionRead,

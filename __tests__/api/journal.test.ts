@@ -1,4 +1,4 @@
-import { toProgressDate, createProgressSequence } from '../test-utils';
+import { createProgressSequence } from '../test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET } from "@/app/api/journal/route";
 import { bookRepository, progressRepository } from "@/lib/repositories";

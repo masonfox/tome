@@ -1,4 +1,4 @@
-import { toProgressDate, toSessionDate } from '../test-utils';
+import { toSessionDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GET } from "@/app/api/reading-goals/monthly/route";
 import { readingGoalRepository, bookRepository, sessionRepository } from "@/lib/repositories";

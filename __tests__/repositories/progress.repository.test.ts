@@ -1,4 +1,4 @@
-import { toProgressDate, toSessionDate } from '../test-utils';
+import { toProgressDate } from '@/__tests__/test-utils';
 import { test, expect, describe, beforeAll, afterAll, beforeEach } from 'vitest';
 import { progressRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";

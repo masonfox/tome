@@ -1,7 +1,7 @@
-import { toProgressDate, toSessionDate } from '../test-utils';
+import { toSessionDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { createMockRequest, createTestBook, createTestSession, createTestProgress } from "../fixtures/test-data";
+import { createMockRequest, createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import type { NextRequest } from "next/server";
 

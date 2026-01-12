@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { toSessionDate } from '../test-utils';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { shelfRepository } from "@/lib/repositories/shelf.repository";

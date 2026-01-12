@@ -1,8 +1,8 @@
-import { toProgressDate, toSessionDate } from '../test-utils';
+import { toSessionDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { createTestBook, createTestSession, createMockRequest } from "../fixtures/test-data";
+import { createTestBook, createTestSession, createMockRequest } from "@/__tests__/fixtures/test-data";
 import { POST } from "@/app/api/books/[id]/complete/route";
 import type { NextRequest } from "next/server";
 import { formatInTimeZone } from "date-fns-tz";

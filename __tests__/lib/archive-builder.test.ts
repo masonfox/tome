@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { generateDateSequence, generateWeeklyDates } from '../test-utils';
+import { generateWeeklyDates } from '@/__tests__/test-utils';
 import {
   buildArchiveHierarchy,
   matchesDateKey,

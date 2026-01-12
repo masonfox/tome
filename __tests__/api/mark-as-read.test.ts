@@ -1,4 +1,4 @@
-import { toProgressDate, toSessionDate } from '../test-utils';
+import { toProgressDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { POST } from "@/app/api/books/[id]/mark-as-read/route";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
@@ -7,13 +7,8 @@ import {
   createMockRequest,
   createTestBook,
   createTestSession,
-} from "../fixtures/test-data";
+} from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
-import { formatInTimeZone } from "date-fns-tz";
-
-function getDateInEST(date: Date): string {
-  return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd");
-}
 
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.

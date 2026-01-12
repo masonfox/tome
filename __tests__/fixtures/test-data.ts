@@ -1,11 +1,8 @@
-import { toProgressDate } from '../test-utils';
+import { toProgressDate } from '@/__tests__/test-utils';
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { NewProgressLog } from "@/lib/db/schema/progress-logs";
 import type { NewStreak } from "@/lib/db/schema/streaks";
-
-// Helper for session dates (uses same format as progress dates)
-const toSessionDate = toProgressDate;
 
 /**
  * Test fixtures and utilities for tests
