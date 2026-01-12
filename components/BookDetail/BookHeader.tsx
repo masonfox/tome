@@ -43,6 +43,7 @@ export default function BookHeader({
     { value: "read-next", disabled: false },
     { value: "reading", disabled: false },
     { value: "read", disabled: false },
+    { value: "dnf", disabled: false },
   ] as const;
 
   // Get the current status configuration for button styling
