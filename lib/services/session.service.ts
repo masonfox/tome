@@ -9,11 +9,12 @@ import { getLogger } from "@/lib/logger";
  * Status update data structure
  */
 export interface StatusUpdateData {
-  status: "to-read" | "read-next" | "reading" | "read";
+  status: "to-read" | "read-next" | "reading" | "read" | "dnf";
   rating?: number | null;
   review?: string;
   startedDate?: string; // YYYY-MM-DD format
   completedDate?: string; // YYYY-MM-DD format
+  dnfDate?: string; // YYYY-MM-DD format
 }
 
 /**
@@ -43,6 +44,30 @@ export interface MarkAsReadResult {
   ratingUpdated: boolean;
   reviewUpdated: boolean;
   progressCreated: boolean;
+}
+
+/**
+ * Mark as DNF (Did Not Finish) parameters
+ */
+export interface MarkAsDNFParams {
+  bookId: number;
+  rating?: number;
+  review?: string;
+  dnfDate?: string; // YYYY-MM-DD format
+}
+
+/**
+ * Mark as DNF result
+ */
+export interface MarkAsDNFResult {
+  session: ReadingSession;
+  ratingUpdated: boolean;
+  reviewUpdated: boolean;
+  lastProgress?: {
+    currentPage: number;
+    currentPercentage: number;
+    progressDate: string;
+  };
 }
 
 /**
@@ -960,6 +985,143 @@ export class SessionService {
       ratingUpdated,
       reviewUpdated,
       progressCreated,
+    };
+  }
+
+  /**
+   * Mark a book as DNF (Did Not Finish)
+   *
+   * This method handles the workflow for marking a book as abandoned mid-read.
+   * Unlike markAsRead() which has multiple strategies, DNF follows a single path:
+   * - Must have active session in "reading" status
+   * - Archives the session (sets isActive = false, adds dnfDate)
+   * - Optionally updates rating (best-effort, syncs to Calibre)
+   * - Optionally updates review (best-effort, attaches to archived session)
+   * - Returns last progress log for prefilling date in UI
+   *
+   * @param params - Mark as DNF parameters (bookId, rating, review, dnfDate)
+   * @returns Promise resolving to result with session and update flags
+   * @throws {Error} If book not found or no active reading session
+   *
+   * @example
+   * // Simple mark as DNF
+   * const result = await sessionService.markAsDNF({ bookId: 123 });
+   *
+   * @example
+   * // Mark as DNF with rating and review
+   * const result = await sessionService.markAsDNF({
+   *   bookId: 123,
+   *   rating: 2,
+   *   review: "Started strong but couldn't get into it",
+   *   dnfDate: "2026-01-12",
+   * });
+   */
+  async markAsDNF(params: MarkAsDNFParams): Promise<MarkAsDNFResult> {
+    const { bookId, rating, review, dnfDate } = params;
+    const logger = getLogger();
+
+    logger.info({ bookId, hasRating: !!rating, hasReview: !!review }, "Starting markAsDNF workflow");
+
+    // Get book data
+    const book = await bookRepository.findById(bookId);
+    if (!book) {
+      throw new Error("Book not found");
+    }
+
+    // Get active session - must be in "reading" status
+    const activeSession = await sessionRepository.findActiveByBookId(bookId);
+    if (!activeSession) {
+      throw new Error("No active reading session found for this book");
+    }
+
+    if (activeSession.status !== "reading") {
+      throw new Error(`Cannot mark as DNF from status "${activeSession.status}". Must be "reading".`);
+    }
+
+    // Get last progress for prefilling date
+    let lastProgress;
+    const progressLogs = await progressRepository.findBySessionId(activeSession.id);
+    if (progressLogs.length > 0) {
+      // Sort by date descending to get most recent
+      const sortedLogs = [...progressLogs].sort((a, b) => 
+        b.progressDate.localeCompare(a.progressDate)
+      );
+      const mostRecent = sortedLogs[0];
+      lastProgress = {
+        currentPage: mostRecent.currentPage,
+        currentPercentage: mostRecent.currentPercentage,
+        progressDate: mostRecent.progressDate,
+      };
+    }
+
+    // Archive session with DNF date
+    const finalDnfDate = dnfDate || lastProgress?.progressDate || await this.getTodayDateString();
+    
+    logger.info({ bookId, sessionId: activeSession.id, dnfDate: finalDnfDate }, "Archiving session as DNF");
+
+    await sessionRepository.update(activeSession.id, {
+      status: "dnf",
+      isActive: false,
+      dnfDate: finalDnfDate,
+    } as any);
+
+    // Best-effort: Update rating
+    let ratingUpdated = false;
+    if (rating !== undefined && rating > 0) {
+      try {
+        await this.updateBookRating(bookId, rating);
+        ratingUpdated = true;
+        logger.info({ bookId, rating }, "Rating updated successfully");
+      } catch (error) {
+        logger.error({ err: error, bookId, rating }, "Failed to update rating (continuing)");
+      }
+    }
+
+    // Best-effort: Update review
+    let reviewUpdated = false;
+    if (review) {
+      try {
+        await this.updateSessionReview(activeSession.id, review);
+        reviewUpdated = true;
+        logger.info({ bookId, sessionId: activeSession.id }, "Review updated successfully");
+      } catch (error) {
+        logger.error({ err: error, bookId, sessionId: activeSession.id }, "Failed to update review (continuing)");
+      }
+    }
+
+    // Best-effort: Update streak system
+    try {
+      await this.updateStreakSystem();
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to update streak (continuing)");
+    }
+
+    // Best-effort: Invalidate cache
+    try {
+      await this.invalidateCache(bookId);
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to invalidate cache (continuing)");
+    }
+
+    // Get the final archived session
+    const finalSession = await sessionRepository.findById(activeSession.id);
+    if (!finalSession) {
+      throw new Error("Could not find session after marking as DNF");
+    }
+
+    logger.info({
+      bookId,
+      sessionId: finalSession.id,
+      ratingUpdated,
+      reviewUpdated,
+      hasLastProgress: !!lastProgress,
+    }, "Successfully completed markAsDNF workflow");
+
+    return {
+      session: finalSession,
+      ratingUpdated,
+      reviewUpdated,
+      lastProgress,
     };
   }
 
