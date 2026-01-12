@@ -138,7 +138,6 @@ export default function DNFBookModal({
       <div className="mb-6">
         <label htmlFor="dnfDate" className="block text-sm font-semibold text-[var(--foreground)] mb-2">
           Stopped Reading Date
-          <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
         <input
           type="date"
@@ -147,15 +146,12 @@ export default function DNFBookModal({
           onChange={(e) => setDnfDate(e.target.value)}
           className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         />
-        <p className="text-xs italic text-[var(--subheading-text)] mt-1">
-          Prefilled with your last progress entry
-        </p>
       </div>
 
       {/* Rating */}
       <div className="mb-6">
         <label className="block text-sm text-[var(--foreground)] mb-3">
-          Rating <span className="text-[var(--subheading-text)] font-normal">(optional - for partial opinion)</span>
+          <span className="font-semibold">Rating</span> <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((star) => (
@@ -191,7 +187,7 @@ export default function DNFBookModal({
           htmlFor="review"
           className="block text-sm font-semibold text-[var(--foreground)] mb-2"
         >
-          <span>Notes</span>
+          <span>Notes / Reasoning</span>
           <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
         <div>
