@@ -39,10 +39,18 @@ const migration: CompanionMigration = {
     logger.info({ timezone }, "Using timezone for conversion");
     
     // Get all progress logs with INTEGER timestamps
-    // Use typeof() to detect unconverted INTEGER values
-    const logs = db.prepare(
-      "SELECT id, progress_date FROM progress_logs WHERE typeof(progress_date) = 'integer'"
-    ).all() as Array<{ id: number; progress_date: number }>;
+    // Check both:
+    // 1. typeof(progress_date) = 'integer' - values stored as INTEGER type
+    // 2. Numeric strings that look like Unix timestamps (> 1000000000)
+    //    These can occur when Drizzle's table recreation copies INTEGER values
+    //    into TEXT columns - SQLite stores them as TEXT type but they're still numbers
+    const logs = db.prepare(`
+      SELECT id, progress_date FROM progress_logs 
+      WHERE typeof(progress_date) = 'integer'
+         OR (typeof(progress_date) = 'text' 
+             AND CAST(progress_date AS INTEGER) = progress_date 
+             AND CAST(progress_date AS INTEGER) > 1000000000)
+    `).all() as Array<{ id: number; progress_date: number }>;
     
     logger.info({ count: logs.length }, "Found progress logs to convert");
     

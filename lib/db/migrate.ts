@@ -32,23 +32,150 @@ export async function runMigrations() {
   acquireMigrationLock();
   setupLockCleanup();
 
+  let fkWasEnabled = false;
+  let fkStateChanged = false;
+
   try {
     getLoggerSafe().info("Running migrations...");
     
-    // Run Drizzle schema migrations (DDL)
-    getLoggerSafe().info("Checking for pending schema migrations...");
-    migrate(db, { migrationsFolder: "./drizzle" });
-    getLoggerSafe().info("Schema migrations complete");
+    // SAFEGUARD: Check for other database connections (WAL mode)
+    // In WAL mode, we can detect if there are active readers/writers
+    try {
+      const walInfo = sqlite.pragma('wal_checkpoint(PASSIVE)', { simple: true });
+      getLoggerSafe().debug({ walInfo }, "WAL checkpoint status before migration");
+    } catch (error) {
+      // WAL checkpoint might fail if not in WAL mode - that's fine
+      getLoggerSafe().debug("WAL checkpoint check skipped (not in WAL mode or failed)");
+    }
     
-    // Run companion migrations (DML)
-    getLoggerSafe().info("Running companion migrations...");
-    await runCompanionMigrations(sqlite);
-    getLoggerSafe().info("Companion migrations complete");
+    // SAFEGUARD: Check foreign key integrity BEFORE disabling
+    getLoggerSafe().info("Checking foreign key integrity before migration...");
+    const fkViolations = sqlite.pragma('foreign_key_check');
+    if (fkViolations.length > 0) {
+      getLoggerSafe().error({ violations: fkViolations }, "Foreign key violations detected before migration");
+      throw new Error(`Database has ${fkViolations.length} foreign key violations. Cannot proceed with migration.`);
+    }
+    getLoggerSafe().info("Foreign key integrity check passed");
     
-    getLoggerSafe().info("All migrations complete!");
+    // CRITICAL: Disable foreign keys before migrations
+    // Drizzle wraps migrations in a transaction (BEGIN...COMMIT), and in SQLite,
+    // PRAGMA statements inside transactions have no effect. Since migrations 0015/0016
+    // include "PRAGMA foreign_keys=OFF" to safely recreate tables, we must disable
+    // FK constraints at the connection level BEFORE Drizzle starts its transaction.
+    //
+    // See: https://www.sqlite.org/pragma.html#pragma_foreign_keys
+    // "It is not possible to enable or disable foreign key constraints in the middle
+    // of a multi-statement transaction (when SQLite is not in autocommit mode)."
+    fkWasEnabled = sqlite.pragma('foreign_keys', { simple: true }) === 1;
+    getLoggerSafe().info({ fkEnabled: fkWasEnabled }, "Current foreign key constraint state");
+    
+    if (fkWasEnabled) {
+      getLoggerSafe().warn("Temporarily disabling foreign key constraints for migration");
+      sqlite.pragma('foreign_keys = OFF');
+      fkStateChanged = true;
+      
+      // ASSERTION: Verify FK is actually disabled
+      const fkAfterDisable = sqlite.pragma('foreign_keys', { simple: true });
+      if (fkAfterDisable !== 0) {
+        throw new Error(`Failed to disable foreign keys: expected 0, got ${fkAfterDisable}`);
+      }
+      getLoggerSafe().debug({ fkEnabled: false }, "✓ Verified foreign keys are disabled");
+    }
+    
+    try {
+      // Run Drizzle schema migrations (DDL)
+      getLoggerSafe().info("Checking for pending schema migrations...");
+      
+      try {
+        migrate(db, { migrationsFolder: "./drizzle" });
+        getLoggerSafe().info("Schema migrations complete");
+      } catch (migrationError) {
+        getLoggerSafe().error(
+          { err: migrationError, fkDisabled: !fkWasEnabled || fkStateChanged }, 
+          "Schema migration failed"
+        );
+        throw migrationError;
+      }
+      
+      // Run companion migrations (DML)
+      getLoggerSafe().info("Running companion migrations...");
+      
+      try {
+        await runCompanionMigrations(sqlite);
+        getLoggerSafe().info("Companion migrations complete");
+      } catch (companionError) {
+        getLoggerSafe().error(
+          { err: companionError, fkDisabled: !fkWasEnabled || fkStateChanged },
+          "Companion migration failed"
+        );
+        throw companionError;
+      }
+      
+      getLoggerSafe().info("All migrations complete!");
+    } finally {
+      // CRITICAL: Re-enable foreign keys if they were enabled before
+      if (fkStateChanged) {
+        getLoggerSafe().info("Re-enabling foreign key constraints");
+        sqlite.pragma('foreign_keys = ON');
+        
+        // ASSERTION: Verify FK is actually enabled
+        const fkAfterEnable = sqlite.pragma('foreign_keys', { simple: true });
+        if (fkAfterEnable !== 1) {
+          getLoggerSafe().error(
+            { expected: 1, actual: fkAfterEnable },
+            "Failed to re-enable foreign keys"
+          );
+          throw new Error(`Failed to re-enable foreign keys: expected 1, got ${fkAfterEnable}`);
+        }
+        getLoggerSafe().debug({ fkEnabled: true }, "✓ Verified foreign keys are re-enabled");
+        
+        // SAFEGUARD: Check foreign key integrity AFTER re-enabling
+        getLoggerSafe().info("Checking foreign key integrity after migration...");
+        const fkViolationsAfter = sqlite.pragma('foreign_key_check');
+        if (fkViolationsAfter.length > 0) {
+          getLoggerSafe().error(
+            { violations: fkViolationsAfter }, 
+            "Foreign key violations detected after migration"
+          );
+          throw new Error(
+            `Migration introduced ${fkViolationsAfter.length} foreign key violations. ` +
+            `Database may be in inconsistent state.`
+          );
+        }
+        getLoggerSafe().info("Foreign key integrity check passed after migration");
+      }
+    }
+  } catch (error) {
+    getLoggerSafe().error(
+      { 
+        err: error,
+        fkWasEnabled,
+        fkStateChanged,
+        context: "Migration failed - check logs above for details"
+      },
+      "Migration process failed"
+    );
+    throw error;
   } finally {
     // Always release lock, even if migration fails
     releaseMigrationLock();
+    
+    // Final safety check: ensure FK state is correct
+    const finalFkState = sqlite.pragma('foreign_keys', { simple: true });
+    getLoggerSafe().info(
+      { 
+        fkEnabled: finalFkState === 1,
+        expectedState: fkWasEnabled 
+      },
+      "Final foreign key constraint state"
+    );
+    
+    if (fkWasEnabled && finalFkState !== 1) {
+      getLoggerSafe().fatal(
+        { expected: 1, actual: finalFkState },
+        "CRITICAL: Foreign keys should be enabled but are not. Database may be in unsafe state."
+      );
+    }
   }
 }
 

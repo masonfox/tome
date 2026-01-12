@@ -46,13 +46,25 @@ const migration: CompanionMigration = {
     logger.info({ timezone }, "Using timezone for conversion");
     
     // Get all sessions with INTEGER timestamps (not already converted)
-    // Check both started_date and completed_date for INTEGER types
+    // Check both started_date and completed_date for:
+    // 1. INTEGER types - values stored as INTEGER type
+    // 2. Numeric strings that look like Unix timestamps (> 1000000000)
+    //    These can occur when Drizzle's table recreation copies INTEGER values
+    //    into TEXT columns - SQLite stores them as TEXT type but they're still numbers
     const sessions = db.prepare(`
       SELECT id, started_date, completed_date
       FROM reading_sessions
       WHERE 
         (started_date IS NOT NULL AND typeof(started_date) = 'integer')
         OR (completed_date IS NOT NULL AND typeof(completed_date) = 'integer')
+        OR (started_date IS NOT NULL 
+            AND typeof(started_date) = 'text'
+            AND CAST(started_date AS INTEGER) = started_date
+            AND CAST(started_date AS INTEGER) > 1000000000)
+        OR (completed_date IS NOT NULL
+            AND typeof(completed_date) = 'text'
+            AND CAST(completed_date AS INTEGER) = completed_date
+            AND CAST(completed_date AS INTEGER) > 1000000000)
     `).all() as SessionRow[];
     
     logger.info({ count: sessions.length }, "Found sessions to convert");
