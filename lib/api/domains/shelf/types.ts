@@ -140,6 +140,13 @@ export interface AddBooksToShelfRequest {
   bookIds: number[];
 }
 
+/**
+ * Request to remove multiple books from a shelf (bulk operation)
+ */
+export interface RemoveBooksFromShelfRequest {
+  bookIds: number[];
+}
+
 // ============================================================================
 // Shelf API Response Types
 // ============================================================================
@@ -223,6 +230,17 @@ export interface AddBooksToShelfResponse {
   success: boolean;
   data: {
     added: boolean;
+    count: number;
+  };
+}
+
+/**
+ * Response from removing multiple books from a shelf (bulk operation)
+ */
+export interface RemoveBooksFromShelfResponse {
+  success: boolean;
+  data: {
+    removed: boolean;
     count: number;
   };
 }
