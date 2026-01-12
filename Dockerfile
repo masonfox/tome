@@ -3,7 +3,8 @@ FROM node:22-alpine AS base
 WORKDIR /app
 
 # Install build dependencies for better-sqlite3 native module
-RUN apk add --no-cache python3 make g++
+# Install bash for running utility scripts (backup, restore, etc.)
+RUN apk add --no-cache python3 make g++ bash
 
 # Install dependencies
 FROM base AS deps
