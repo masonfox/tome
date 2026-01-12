@@ -3,6 +3,7 @@ import { bookRepository, sessionRepository } from "@/lib/repositories";
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { getLogger } from "@/lib/logger";
+import { generateAuthorSort } from "@/lib/utils/author-sort";
 
 export interface SyncResult {
   success: boolean;
@@ -210,15 +211,19 @@ export async function syncCalibreLibrary(
         const tags = allTagsMap.get(calibreBook.id) || [];
         const existingBook = existingBooksMap.get(calibreBook.id);
 
+        // Parse authors from Calibre
+        const authors = calibreBook.authors
+          ? calibreBook.authors
+              .split(/\s*[,|]\s*/)
+              .map((a) => a.trim())
+              .filter((a) => a)
+          : [];
+
         const bookData: NewBook = {
           calibreId: calibreBook.id,
           title: calibreBook.title,
-          authors: calibreBook.authors
-            ? calibreBook.authors
-                .split(/\s*[,|]\s*/)
-                .map((a) => a.trim())
-                .filter((a) => a)
-            : [],
+          authors,
+          authorSort: generateAuthorSort(authors),
           isbn: calibreBook.isbn || undefined,
           publisher: calibreBook.publisher || undefined,
           pubDate: calibreBook.pubdate ? new Date(calibreBook.pubdate) : undefined,

@@ -140,6 +140,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         calibreId: books.calibreId,
         title: books.title,
         authors: books.authors,
+        authorSort: books.authorSort,
         isbn: books.isbn,
         totalPages: books.totalPages,
         addedToLibrary: books.addedToLibrary,
@@ -258,6 +259,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       calibreId: result.calibreId,
       title: result.title,
       authors: result.authors,
+      authorSort: result.authorSort,
       isbn: result.isbn,
       totalPages: result.totalPages,
       addedToLibrary: result.addedToLibrary,
@@ -335,7 +337,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(
         or(
           like(books.title, searchPattern),
-          like(books.authors, searchPattern)
+          like(books.authors, searchPattern),
+          like(books.authorSort, searchPattern)
         )!
       );
     }
@@ -440,10 +443,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.title);
         break;
       case "author":
-        orderBy = asc(books.authors);
+        // Sort by pre-computed authorSort field for efficient last name sorting
+        orderBy = sql`${books.authorSort} ASC NULLS LAST`;
         break;
       case "author_desc":
-        orderBy = desc(books.authors);
+        orderBy = sql`${books.authorSort} DESC NULLS LAST`;
         break;
       case "created":
         // Sort by when the book was added to Calibre library (not tome database)
@@ -670,7 +674,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(
         or(
           like(books.title, searchPattern),
-          like(books.authors, searchPattern)
+          like(books.authors, searchPattern),
+          like(books.authorSort, searchPattern)
         )!
       );
     }
@@ -775,10 +780,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.title);
         break;
       case "author":
-        orderBy = asc(books.authors);
+        // Sort by pre-computed authorSort field for efficient last name sorting
+        orderBy = sql`${books.authorSort} ASC NULLS LAST`;
         break;
       case "author_desc":
-        orderBy = desc(books.authors);
+        orderBy = sql`${books.authorSort} DESC NULLS LAST`;
         break;
       case "created":
         // Sort by when the book was added to Calibre library (not tome database)
@@ -847,6 +853,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         calibreId: books.calibreId,
         title: books.title,
         authors: books.authors,
+        authorSort: books.authorSort,
         isbn: books.isbn,
         totalPages: books.totalPages,
         addedToLibrary: books.addedToLibrary,
