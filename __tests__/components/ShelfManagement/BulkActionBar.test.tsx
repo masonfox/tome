@@ -52,7 +52,7 @@ describe("BulkActionBar", () => {
       );
 
       expect(screen.getByText("3 books selected")).toBeInTheDocument();
-      expect(screen.getByText("Remove")).toBeInTheDocument();
+      expect(screen.getAllByText("Remove")[0]).toBeInTheDocument();
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
 
@@ -467,7 +467,8 @@ describe("BulkActionBar", () => {
       );
 
       const buttons = screen.getAllByRole("button");
-      expect(buttons).toHaveLength(2); // Cancel and Remove buttons
+      // Cancel button + 1 Remove button (desktop) + 1 Actions button (mobile)
+      expect(buttons).toHaveLength(3);
     });
 
     test("should have descriptive button text", () => {

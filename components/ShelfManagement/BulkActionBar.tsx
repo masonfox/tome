@@ -1,6 +1,7 @@
 "use client";
 
-import { Trash2, MoveHorizontal, Copy } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Trash2, MoveHorizontal, Copy, ChevronDown } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface BulkActionBarProps {
@@ -22,9 +23,56 @@ export function BulkActionBar({
   loading = false,
   className,
 }: BulkActionBarProps) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showDropdown]);
+
   if (selectedCount === 0) {
     return null;
   }
+
+  const handleActionClick = (action: () => void) => {
+    setShowDropdown(false);
+    action();
+  };
+
+  // Define actions configuration
+  const actions = [
+    {
+      key: "move",
+      label: "Move to...",
+      icon: MoveHorizontal,
+      onClick: onMove,
+      variant: "accent" as const,
+    },
+    {
+      key: "copy",
+      label: "Copy to...",
+      icon: Copy,
+      onClick: onCopy,
+      variant: "accent" as const,
+    },
+    {
+      key: "remove",
+      label: loading ? "Removing..." : "Remove",
+      icon: Trash2,
+      onClick: onDelete,
+      variant: "danger" as const,
+    },
+  ].filter((action) => action.onClick !== undefined);
 
   return (
     <div
@@ -48,63 +96,90 @@ export function BulkActionBar({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <button
               onClick={onCancel}
               disabled={loading}
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                 "bg-[var(--card-bg)] text-[var(--foreground)] hover:bg-[var(--hover-bg)]",
                 "border border-[var(--border-color)]",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                "flex items-center gap-2"
+                "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
               Cancel
             </button>
-            {onMove && (
-              <button
-                onClick={onMove}
-                disabled={loading || selectedCount === 0}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                  "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "flex items-center gap-2"
-                )}
-              >
-                <MoveHorizontal className="w-4 h-4" />
-                Move to...
-              </button>
-            )}
-            {onCopy && (
-              <button
-                onClick={onCopy}
-                disabled={loading || selectedCount === 0}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                  "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "flex items-center gap-2"
-                )}
-              >
-                <Copy className="w-4 h-4" />
-                Copy to...
-              </button>
-            )}
-            <button
-              onClick={onDelete}
-              disabled={loading || selectedCount === 0}
-              className={cn(
-                "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                "bg-red-500 text-white hover:bg-red-600",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                "flex items-center gap-2"
+
+            {/* Desktop: Show all buttons */}
+            <div className="hidden md:flex items-center gap-2">
+              {actions.map((action) => (
+                <button
+                  key={action.key}
+                  onClick={action.onClick}
+                  disabled={loading || selectedCount === 0}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "flex items-center gap-2",
+                    action.variant === "danger"
+                      ? "bg-red-500 text-white hover:bg-red-600"
+                      : "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
+                  )}
+                >
+                  <action.icon className="w-4 h-4" />
+                  {action.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile: Show dropdown */}
+            <div className="md:hidden flex items-center gap-2">
+              {actions.length > 0 && (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    disabled={loading || selectedCount === 0}
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                      "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "flex items-center gap-1"
+                    )}
+                  >
+                    Actions
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showDropdown && (
+                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-xl overflow-hidden z-50">
+                      {actions.map((action) => (
+                        <button
+                          key={action.key}
+                          onClick={() => handleActionClick(action.onClick!)}
+                          disabled={loading || selectedCount === 0}
+                          className={cn(
+                            "w-full px-4 py-3 text-left text-sm font-medium transition-colors",
+                            "text-[var(--foreground)] hover:bg-[var(--hover-bg)]",
+                            "disabled:opacity-50 disabled:cursor-not-allowed",
+                            "flex items-center gap-3",
+                            action.variant === "danger" && "border-t border-[var(--border-color)]"
+                          )}
+                        >
+                          <action.icon 
+                            className={cn(
+                              "w-4 h-4",
+                              action.variant === "danger" ? "text-red-500" : "text-[var(--accent)]"
+                            )} 
+                          />
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
-            >
-              <Trash2 className="w-4 h-4" />
-              {loading ? "Removing..." : "Remove"}
-            </button>
+            </div>
           </div>
         </div>
       </div>
