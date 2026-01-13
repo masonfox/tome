@@ -84,13 +84,7 @@ else
 fi
 echo ""
 
-# Step 2: Recreate data directory
-echo "📁 Creating empty data/ directory..."
-mkdir -p "$DATA_DIR"
-echo "✅ Created data/ directory"
-echo ""
-
-# Step 3: Run database migrations
+# Step 2: Run database migrations (will create data/ directory automatically)
 echo "🔄 Running database migrations..."
 echo ""
 npm run db:migrate
@@ -98,7 +92,7 @@ echo ""
 echo "✅ Database schema applied"
 echo ""
 
-# Step 4: Prompt for seeder (Y is default)
+# Step 3: Prompt for seeder (Y is default)
 echo -e "${YELLOW}❓ Run database seeder? [Y/n]:${NC} "
 read -r RUN_SEED
 
