@@ -13,6 +13,7 @@ export interface BookWithDetails extends Book {
   activeSession: ReadingSession | null;
   latestProgress: ProgressLog | null;
   hasCompletedReads: boolean;
+  hasFinishedSessions: boolean;
   totalReads: number;
 }
 
@@ -69,11 +70,15 @@ export class BookService {
       return null;
     }
 
+    // Check if book has any finished sessions (read or DNF)
+    const hasFinishedSessions = await sessionRepository.hasFinishedSessions(bookId);
+
     return {
       ...result.book,
       activeSession: result.activeSession,
       latestProgress: result.latestProgress,
       hasCompletedReads: result.totalReads > 0,
+      hasFinishedSessions,
       totalReads: result.totalReads,
     };
   }
@@ -238,12 +243,16 @@ export class BookService {
 
     // Count completed reads
     const totalReads = await sessionRepository.countCompletedReadsByBookId(book.id);
+    
+    // Check if book has any finished sessions (read or DNF)
+    const hasFinishedSessions = await sessionRepository.hasFinishedSessions(book.id);
 
     return {
       ...book,
       activeSession: activeSession || null,
       latestProgress,
       hasCompletedReads: totalReads > 0,
+      hasFinishedSessions,
       totalReads,
     };
   }

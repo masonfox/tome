@@ -17,6 +17,7 @@ export interface Book {
   tags: string[];
   totalReads?: number;
   hasCompletedReads?: boolean;
+  hasFinishedSessions?: boolean;
   activeSession?: {
     id: number;
     status: string;
