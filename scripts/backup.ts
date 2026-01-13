@@ -17,7 +17,8 @@
  *   BACKUP_CALIBRE_DB  - Enable Calibre backups (default: true)
  */
 
-// Load environment variables from .env file
+// IMPORTANT: Load environment variables BEFORE importing backup module
+// The backup module reads env vars at import time
 import { config } from 'dotenv';
 config();
 

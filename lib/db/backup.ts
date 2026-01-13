@@ -18,12 +18,16 @@ import { getLogger } from "@/lib/logger";
 import { existsSync, statSync, accessSync, constants, mkdirSync, copyFileSync, readdirSync, unlinkSync, rmdirSync } from "fs";
 import { dirname, join, basename } from "path";
 
-// Environment configuration
-const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
-const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
-const BACKUP_DIR = process.env.BACKUP_DIR || "./data/backups";
-const BACKUP_CALIBRE_DB = process.env.BACKUP_CALIBRE_DB !== "false"; // Default to true
-const MAX_BACKUPS = 3;
+// Lazy environment configuration - read at function call time to ensure .env is loaded
+function getEnvConfig() {
+  return {
+    DATABASE_PATH: process.env.DATABASE_PATH || "./data/tome.db",
+    CALIBRE_DB_PATH: process.env.CALIBRE_DB_PATH || "",
+    BACKUP_DIR: process.env.BACKUP_DIR || "./data/backups",
+    BACKUP_CALIBRE_DB: process.env.BACKUP_CALIBRE_DB !== "false",
+    MAX_BACKUPS: 3
+  };
+}
 
 /**
  * Options for creating a single database backup
@@ -465,12 +469,13 @@ export async function listBackups(backupDir: string): Promise<BackupInfo[]> {
  * @returns Backup configuration
  */
 export function getBackupConfig(): BackupConfig {
+  const env = getEnvConfig();
   return {
-    tomeDbPath: DATABASE_PATH,
-    calibreDbPath: CALIBRE_DB_PATH || undefined,
-    backupDir: BACKUP_DIR,
-    backupCalibre: BACKUP_CALIBRE_DB,
-    maxBackups: MAX_BACKUPS
+    tomeDbPath: env.DATABASE_PATH,
+    calibreDbPath: env.CALIBRE_DB_PATH || undefined,
+    backupDir: env.BACKUP_DIR,
+    backupCalibre: env.BACKUP_CALIBRE_DB,
+    maxBackups: env.MAX_BACKUPS
   };
 }
 
