@@ -20,6 +20,7 @@ interface BookHeaderProps {
   dropdownRef?: React.RefObject<HTMLDivElement | null>;
   rating: number | null | undefined;
   hasCompletedReads: boolean;
+  hasFinishedSessions: boolean;
   hasActiveSession: boolean;
 }
 
@@ -36,6 +37,7 @@ export default function BookHeader({
   dropdownRef,
   rating,
   hasCompletedReads,
+  hasFinishedSessions,
   hasActiveSession,
 }: BookHeaderProps) {
   // Status options with conditional disabling based on current status
@@ -190,7 +192,7 @@ export default function BookHeader({
       )}
 
       {/* Re-read Button */}
-      {!hasActiveSession && hasCompletedReads && (
+      {(selectedStatus === "read" || selectedStatus === "dnf") && (
         <button
           onClick={onRereadClick}
           className="w-full px-4 py-2.5 bg-[var(--background)] text-[var(--foreground)] font-semibold rounded border border-[var(--border-color)] hover:bg-[var(--card-bg)] transition-colors flex items-center justify-center gap-2"

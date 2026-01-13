@@ -390,6 +390,7 @@ export default function BookDetailPage() {
           dropdownRef={dropdownRef}
           rating={book.rating}
           hasCompletedReads={book.hasCompletedReads || false}
+          hasFinishedSessions={book.hasFinishedSessions || false}
           hasActiveSession={!!book.activeSession}
         />
 
