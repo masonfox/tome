@@ -1,0 +1,238 @@
+#!/bin/bash
+set -e
+
+# Database Restore Script
+#
+# Restores the Tome database from a backup file.
+# Creates a safety backup before restoring.
+#
+# Usage:
+#   bash scripts/restore-database.sh                    # Interactive mode
+#   bash scripts/restore-database.sh <backup-file>      # Direct restore
+#   bun run db:restore
+
+# Configuration
+DATABASE_PATH="${DATABASE_PATH:-./data/tome.db}"
+BACKUP_DIR="${BACKUP_DIR:-./data/backups}"
+
+echo "=== Database Restore Utility ==="
+echo ""
+
+# Function to list available backups
+list_backups() {
+	if [ ! -d "$BACKUP_DIR" ]; then
+		echo "❌ Error: Backup directory does not exist: $BACKUP_DIR"
+		exit 1
+	fi
+
+	# Find backups in date-based folders, sorted by modification time (newest first)
+	BACKUPS=$(find "$BACKUP_DIR" -type f -name "tome.db.backup-*" -exec ls -t {} + 2>/dev/null | grep -v -- '-wal$\|-shm$' || true)
+
+	if [ -z "$BACKUPS" ]; then
+		echo "❌ Error: No backups found in: $BACKUP_DIR"
+		echo ""
+		echo "Create a backup first:"
+		echo "  bun run db:backup"
+		exit 1
+	fi
+
+	echo "$BACKUPS"
+}
+
+# Function to validate backup file
+validate_backup() {
+	local BACKUP_FILE="$1"
+
+	if [ ! -f "$BACKUP_FILE" ]; then
+		echo "❌ Error: Backup file not found: $BACKUP_FILE"
+		exit 1
+	fi
+
+	# Check if it's a valid SQLite database
+	if ! sqlite3 "$BACKUP_FILE" "PRAGMA integrity_check;" >/dev/null 2>&1; then
+		echo "❌ Error: Backup file is not a valid SQLite database or is corrupted"
+		echo "File: $BACKUP_FILE"
+		exit 1
+	fi
+
+	echo "✅ Backup file validation passed"
+}
+
+# Function to create safety backup before restore
+create_safety_backup() {
+	if [ ! -f "$DATABASE_PATH" ]; then
+		echo "ℹ️  No existing database to backup (fresh install)"
+		return 0
+	fi
+
+	TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+	DATE_FOLDER=$(date +%Y-%m-%d)
+	BACKUP_FOLDER="${BACKUP_DIR}/${DATE_FOLDER}"
+	SAFETY_BACKUP="${BACKUP_FOLDER}/tome.db.before-restore-${TIMESTAMP}"
+
+	echo "Creating safety backup of current database..."
+	mkdir -p "$BACKUP_FOLDER"
+
+	cp "$DATABASE_PATH" "$SAFETY_BACKUP" || {
+		echo "❌ Error: Failed to create safety backup"
+		exit 1
+	}
+
+	# Copy WAL and SHM files if they exist
+	[ -f "${DATABASE_PATH}-wal" ] && cp "${DATABASE_PATH}-wal" "${SAFETY_BACKUP}-wal"
+	[ -f "${DATABASE_PATH}-shm" ] && cp "${DATABASE_PATH}-shm" "${SAFETY_BACKUP}-shm"
+
+	SAFETY_SIZE=$(du -h "$SAFETY_BACKUP" | cut -f1)
+	echo "✅ Safety backup created: $SAFETY_BACKUP ($SAFETY_SIZE)"
+	echo ""
+}
+
+# Function to perform restore
+perform_restore() {
+	local BACKUP_FILE="$1"
+
+	echo "Restoring database from: $BACKUP_FILE"
+	echo ""
+
+	# Validate backup
+	validate_backup "$BACKUP_FILE"
+	echo ""
+
+	# Create safety backup
+	create_safety_backup
+
+	# Perform restore
+	echo "Restoring database..."
+
+	# Stop any existing connections (best effort)
+	# In production, the application should be stopped first
+
+	cp "$BACKUP_FILE" "$DATABASE_PATH" || {
+		echo "❌ Error: Failed to restore database"
+		exit 1
+	}
+
+	# Restore WAL file if it exists
+	if [ -f "${BACKUP_FILE}-wal" ]; then
+		echo "Restoring WAL file..."
+		cp "${BACKUP_FILE}-wal" "${DATABASE_PATH}-wal"
+	fi
+
+	# Restore SHM file if it exists
+	if [ -f "${BACKUP_FILE}-shm" ]; then
+		echo "Restoring SHM file..."
+		cp "${BACKUP_FILE}-shm" "${DATABASE_PATH}-shm"
+	fi
+
+	# Verify restored database
+	echo ""
+	echo "Verifying restored database..."
+	if ! sqlite3 "$DATABASE_PATH" "PRAGMA integrity_check;" >/dev/null 2>&1; then
+		echo "❌ Error: Restored database failed integrity check"
+		echo "Database may be corrupted!"
+		exit 1
+	fi
+
+	RESTORED_SIZE=$(du -h "$DATABASE_PATH" | cut -f1)
+	echo "✅ Database integrity check passed"
+	echo ""
+	echo "=== Restore Complete ==="
+	echo ""
+	echo "Restored database: $DATABASE_PATH ($RESTORED_SIZE)"
+	echo ""
+	echo "⚠️  Important: Restart the application to use the restored database"
+	echo ""
+}
+
+# Main script logic
+if [ -n "$1" ]; then
+	# Direct restore mode - backup file provided as argument
+	BACKUP_FILE="$1"
+
+	echo "Direct restore mode"
+	echo "Backup file: $BACKUP_FILE"
+	echo ""
+
+	echo "⚠️  WARNING: This will overwrite the current database!"
+	echo ""
+	read -p "Are you sure you want to continue? (yes/no): " CONFIRM
+	echo ""
+
+	if [ "$CONFIRM" != "yes" ]; then
+		echo "Restore cancelled"
+		exit 0
+	fi
+
+	perform_restore "$BACKUP_FILE"
+
+else
+	# Interactive mode - list backups and prompt for selection
+	echo "Interactive restore mode"
+	echo ""
+
+	BACKUPS=$(list_backups)
+	BACKUP_ARRAY=($BACKUPS)
+
+	echo "Available backups:"
+	echo ""
+
+	INDEX=1
+	for BACKUP in "${BACKUP_ARRAY[@]}"; do
+		BACKUP_NAME=$(basename "$BACKUP")
+		BACKUP_SIZE=$(du -h "$BACKUP" | cut -f1)
+
+		# Extract timestamp from filename (format: tome.db.backup-YYYYMMDD_HHMMSS or tome.db.before-restore-YYYYMMDD_HHMMSS)
+		TIMESTAMP=$(echo "$BACKUP_NAME" | grep -oE '[0-9]{8}_[0-9]{6}')
+
+		# Format date and time for display
+		if [ -n "$TIMESTAMP" ]; then
+			YEAR=$(echo "$TIMESTAMP" | cut -c1-4)
+			MONTH=$(echo "$TIMESTAMP" | cut -c5-6)
+			DAY=$(echo "$TIMESTAMP" | cut -c7-8)
+			HOUR=$(echo "$TIMESTAMP" | cut -c10-11)
+			MINUTE=$(echo "$TIMESTAMP" | cut -c12-13)
+			SECOND=$(echo "$TIMESTAMP" | cut -c14-15)
+			FORMATTED_DATE="$YEAR-$MONTH-$DAY $HOUR:$MINUTE:$SECOND"
+		else
+			FORMATTED_DATE="Unknown"
+		fi
+
+		FOLDER_NAME=$(basename "$(dirname "$BACKUP")")
+		echo "  [$INDEX] $BACKUP_NAME ($BACKUP_SIZE)"
+		echo "       Date: $FORMATTED_DATE"
+		echo "       Folder: $FOLDER_NAME"
+		echo ""
+		INDEX=$((INDEX + 1))
+	done
+
+	echo "Select a backup to restore (1-${#BACKUP_ARRAY[@]}), or 'q' to quit:"
+	read -p "> " SELECTION
+	echo ""
+
+	if [ "$SELECTION" = "q" ] || [ "$SELECTION" = "Q" ]; then
+		echo "Restore cancelled"
+		exit 0
+	fi
+
+	# Validate selection
+	if ! [[ "$SELECTION" =~ ^[0-9]+$ ]] || [ "$SELECTION" -lt 1 ] || [ "$SELECTION" -gt "${#BACKUP_ARRAY[@]}" ]; then
+		echo "❌ Error: Invalid selection"
+		exit 1
+	fi
+
+	SELECTED_BACKUP="${BACKUP_ARRAY[$((SELECTION - 1))]}"
+
+	echo "Selected backup: $(basename "$SELECTED_BACKUP")"
+	echo ""
+	echo "⚠️  WARNING: This will overwrite the current database!"
+	echo ""
+	read -p "Are you sure you want to continue? (yes/no): " CONFIRM
+	echo ""
+
+	if [ "$CONFIRM" != "yes" ]; then
+		echo "Restore cancelled"
+		exit 0
+	fi
+
+	perform_restore "$SELECTED_BACKUP"
+fi

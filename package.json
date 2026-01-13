@@ -18,7 +18,7 @@
     "lint": "next lint",
     "db:migrate": "tsx ./lib/db/migrate.ts",
     "db:backup": "tsx scripts/backup.ts",
-    "db:restore": "bash scripts/restore-database.sh",
+    "db:restore": "tsx scripts/restore.ts",
     "db:list-backups": "tsx scripts/list-backups.ts",
     "db:generate": "DATABASE_PATH=./data/tome.db npx drizzle-kit generate",
     "db:push": "DATABASE_PATH=./data/tome.db npx drizzle-kit push",

@@ -560,6 +560,198 @@ export async function createBackups(config?: BackupConfig): Promise<BackupsResul
 }
 
 /**
+ * Result of a restore operation
+ */
+export interface RestoreResult {
+  /** Whether the restore succeeded */
+  success: boolean;
+  /** Full path to the restored database (if successful) */
+  restoredPath?: string;
+  /** Human-readable size of restored database (if successful) */
+  restoredSize?: string;
+  /** Path to safety backup created before restore (if successful) */
+  safetyBackupPath?: string;
+  /** Error message (if failed) */
+  error?: string;
+}
+
+/**
+ * Validate that a backup file is a valid SQLite database
+ * 
+ * @param backupPath - Path to backup file to validate
+ * @returns Promise resolving to validation result
+ */
+export async function validateBackup(backupPath: string): Promise<{ valid: boolean; error?: string }> {
+  const log = getLoggerSafe();
+  
+  try {
+    if (!existsSync(backupPath)) {
+      return { valid: false, error: `Backup file not found: ${backupPath}` };
+    }
+    
+    // Check file is readable
+    try {
+      accessSync(backupPath, constants.R_OK);
+    } catch (err) {
+      return { valid: false, error: `Backup file is not readable: ${backupPath}` };
+    }
+    
+    // Check if it's a valid SQLite database using better-sqlite3
+    try {
+      const Database = require('better-sqlite3');
+      const db = new Database(backupPath, { readonly: true });
+      
+      // Run integrity check
+      const result = db.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
+      db.close();
+      
+      if (result.integrity_check !== 'ok') {
+        return { valid: false, error: 'Backup file failed integrity check' };
+      }
+      
+      return { valid: true };
+    } catch (err: any) {
+      return { valid: false, error: `Backup file is not a valid SQLite database: ${err.message}` };
+    }
+  } catch (error: any) {
+    log.error({ backupPath, error: error.message }, 'Failed to validate backup');
+    return { valid: false, error: `Validation failed: ${error.message}` };
+  }
+}
+
+/**
+ * Restore a database from a backup file
+ * 
+ * This function:
+ * 1. Validates the backup file
+ * 2. Creates a safety backup of the current database (if it exists)
+ * 3. Restores the backup file to the target location
+ * 4. Restores WAL and SHM files if they exist
+ * 5. Validates the restored database
+ * 
+ * @param backupPath - Path to the backup file to restore
+ * @param targetPath - Path where the database should be restored
+ * @returns Promise resolving to restore result
+ */
+export async function restoreBackup(backupPath: string, targetPath: string): Promise<RestoreResult> {
+  const log = getLoggerSafe();
+  
+  try {
+    // 1. Validate backup file
+    log.info({ backupPath }, 'Validating backup file');
+    const validation = await validateBackup(backupPath);
+    if (!validation.valid) {
+      log.error({ backupPath, error: validation.error }, 'Backup validation failed');
+      return { success: false, error: validation.error };
+    }
+    
+    // 2. Create safety backup of current database (if it exists)
+    let safetyBackupPath: string | undefined;
+    if (existsSync(targetPath)) {
+      log.info({ targetPath }, 'Creating safety backup of current database');
+      
+      const timestamp = generateTimestamp();
+      const dateFolder = generateDateFolder();
+      const backupFolder = join(dirname(targetPath), 'backups', dateFolder);
+      const dbName = basename(targetPath);
+      
+      if (!existsSync(backupFolder)) {
+        mkdirSync(backupFolder, { recursive: true });
+      }
+      
+      safetyBackupPath = join(backupFolder, `${dbName}.before-restore-${timestamp}`);
+      
+      try {
+        copyFileSync(targetPath, safetyBackupPath);
+        
+        // Copy WAL and SHM files if they exist
+        if (existsSync(`${targetPath}-wal`)) {
+          copyFileSync(`${targetPath}-wal`, `${safetyBackupPath}-wal`);
+        }
+        if (existsSync(`${targetPath}-shm`)) {
+          copyFileSync(`${targetPath}-shm`, `${safetyBackupPath}-shm`);
+        }
+        
+        log.info({ safetyBackupPath }, 'Safety backup created');
+      } catch (error: any) {
+        log.error({ targetPath, safetyBackupPath, error: error.message }, 'Failed to create safety backup');
+        return { success: false, error: `Failed to create safety backup: ${error.message}` };
+      }
+    } else {
+      log.info({ targetPath }, 'No existing database to backup (fresh install)');
+    }
+    
+    // 3. Restore the database file
+    log.info({ backupPath, targetPath }, 'Restoring database');
+    try {
+      // Ensure target directory exists
+      const targetDir = dirname(targetPath);
+      if (!existsSync(targetDir)) {
+        mkdirSync(targetDir, { recursive: true });
+      }
+      
+      copyFileSync(backupPath, targetPath);
+    } catch (error: any) {
+      log.error({ backupPath, targetPath, error: error.message }, 'Failed to restore database');
+      return { success: false, error: `Failed to restore database: ${error.message}` };
+    }
+    
+    // 4. Restore WAL and SHM files if they exist
+    const walBackupPath = `${backupPath}-wal`;
+    if (existsSync(walBackupPath)) {
+      log.debug({ walBackupPath }, 'Restoring WAL file');
+      try {
+        copyFileSync(walBackupPath, `${targetPath}-wal`);
+      } catch (error: any) {
+        log.warn({ walBackupPath, error: error.message }, 'Failed to restore WAL file');
+      }
+    }
+    
+    const shmBackupPath = `${backupPath}-shm`;
+    if (existsSync(shmBackupPath)) {
+      log.debug({ shmBackupPath }, 'Restoring SHM file');
+      try {
+        copyFileSync(shmBackupPath, `${targetPath}-shm`);
+      } catch (error: any) {
+        log.warn({ shmBackupPath, error: error.message }, 'Failed to restore SHM file');
+      }
+    }
+    
+    // 5. Validate restored database
+    log.info({ targetPath }, 'Validating restored database');
+    const restoredValidation = await validateBackup(targetPath);
+    if (!restoredValidation.valid) {
+      log.error({ targetPath, error: restoredValidation.error }, 'Restored database validation failed');
+      return {
+        success: false,
+        error: `Restored database failed validation: ${restoredValidation.error}`
+      };
+    }
+    
+    // Get restored database size
+    const stats = statSync(targetPath);
+    const restoredSize = formatSize(stats.size);
+    
+    log.info({
+      backupPath,
+      targetPath,
+      restoredSize,
+      safetyBackupPath
+    }, 'Database restored successfully');
+    
+    return {
+      success: true,
+      restoredPath: targetPath,
+      restoredSize,
+      safetyBackupPath
+    };
+  } catch (error: any) {
+    log.error({ backupPath, targetPath, error: error.message, stack: error.stack }, 'Restore failed');
+    return { success: false, error: `Restore failed: ${error.message}` };
+  }
+}
+
+/**
  * CLI execution support
  * Allows this module to be run directly as a script
  */
