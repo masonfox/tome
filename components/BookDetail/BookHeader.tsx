@@ -20,6 +20,7 @@ interface BookHeaderProps {
   dropdownRef?: React.RefObject<HTMLDivElement | null>;
   rating: number | null | undefined;
   hasCompletedReads: boolean;
+  hasFinishedSessions: boolean;
   hasActiveSession: boolean;
 }
 
@@ -36,14 +37,17 @@ export default function BookHeader({
   dropdownRef,
   rating,
   hasCompletedReads,
+  hasFinishedSessions,
   hasActiveSession,
 }: BookHeaderProps) {
+  // Status options with conditional disabling based on current status
   const statusOptions = [
-    { value: "to-read", disabled: false },
-    { value: "read-next", disabled: false },
-    { value: "reading", disabled: false },
-    { value: "read", disabled: false },
-  ] as const;
+    { value: "to-read" as const, disabled: false },
+    { value: "read-next" as const, disabled: false },
+    { value: "reading" as const, disabled: false },
+    { value: "read" as const, disabled: selectedStatus === "dnf" }, // Can't go from DNF to Read
+    { value: "dnf" as const, disabled: selectedStatus !== "reading" }, // Can only DNF from Reading
+  ];
 
   // Get the current status configuration for button styling
   const currentStatusConfig = STATUS_CONFIG[selectedStatus as BookStatus];
@@ -65,10 +69,13 @@ export default function BookHeader({
               }
             }}
             disabled={option.disabled}
+            title={option.disabled && option.value === "dnf" 
+              ? "Only available when actively reading" 
+              : undefined}
             className={cn(
               "w-full px-4 py-3 text-left flex items-center justify-between transition-all group",
               option.disabled
-                ? "cursor-not-allowed opacity-40"
+                ? "cursor-not-allowed opacity-55"
                 : "cursor-pointer hover:bg-[var(--background)]",
               isSelected && !option.disabled && "bg-[var(--background)]"
             )}
@@ -76,8 +83,10 @@ export default function BookHeader({
             <div className="flex items-center gap-3 flex-1">
               {option.disabled ? (
                 <>
-                  <Lock className="w-4 h-4 text-[var(--foreground)]/40" />
-                  <span className="font-semibold text-[var(--foreground)]/40">
+                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-md shadow-sm bg-[var(--background)]">
+                    <Lock className="w-4 h-4 text-red-500/80" />
+                  </div>
+                  <span className="font-semibold text-[var(--foreground)]/55">
                     {optionConfig.labels.long}
                   </span>
                 </>
@@ -183,7 +192,7 @@ export default function BookHeader({
       )}
 
       {/* Re-read Button */}
-      {!hasActiveSession && hasCompletedReads && (
+      {(selectedStatus === "read" || selectedStatus === "dnf") && (
         <button
           onClick={onRereadClick}
           className="w-full px-4 py-2.5 bg-[var(--background)] text-[var(--foreground)] font-semibold rounded border border-[var(--border-color)] hover:bg-[var(--card-bg)] transition-colors flex items-center justify-center gap-2"

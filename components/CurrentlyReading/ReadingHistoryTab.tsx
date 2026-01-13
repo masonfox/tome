@@ -15,6 +15,7 @@ interface ReadingSession {
   status: string;
   startedDate?: string;
   completedDate?: string;
+  dnfDate?: string;
   review?: string;
   isActive: boolean;
   progressSummary: {
@@ -66,10 +67,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     staleTime: 5000, // Data is fresh for 5 seconds
   });
 
-  // Filter to show completed sessions (archived OR status='read')
-  // This ensures single-read books display their completed session even when isActive=true
+  // Filter to show finished sessions (archived OR terminal states: 'read'/'dnf')
+  // This ensures books with terminal states display their session even when isActive=true
   const sessions = allSessions.filter((session: ReadingSession) => 
-    !session.isActive || session.status === 'read'
+    !session.isActive || session.status === 'read' || session.status === 'dnf'
   );
 
   function handleOpenEditModal(session: ReadingSession) {
@@ -135,11 +136,17 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <h3 className="text-lg font-semibold text-[var(--heading-text)]">
                   Read #{session.sessionNumber}
                 </h3>
-                {session.progressSummary.latestProgress && 
-                 session.progressSummary.latestProgress.currentPercentage < 100 && (
-                  <span className="px-2 py-0.5 text-xs font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full border border-amber-500/30">
-                    Abandoned
+                {session.status === 'dnf' ? (
+                  <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-600 dark:text-red-400 rounded-full border border-red-500/30">
+                    Did Not Finish
                   </span>
+                ) : (
+                  session.progressSummary.latestProgress && 
+                  session.progressSummary.latestProgress.currentPercentage < 100 && (
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full border border-amber-500/30">
+                      Abandoned
+                    </span>
+                  )
                 )}
               </div>
               <button
@@ -162,11 +169,16 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   </span>
                 </div>
               )}
-              {session.completedDate && (
-                <div className="flex items-center gap-2 text-sm text-[var(--foreground)]/70 font-medium">
+              {(session.completedDate || session.dnfDate) && (
+                <div className={`flex items-center gap-2 text-sm font-medium ${
+                  session.dnfDate ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]/70'
+                }`}>
                   <Calendar className="w-4 h-4" />
                   <span>
-                    Completed: {formatDateOnly(session.completedDate)}
+                    {session.dnfDate 
+                      ? `Stopped Reading: ${formatDateOnly(session.dnfDate)}`
+                      : `Completed: ${formatDateOnly(session.completedDate!)}`
+                    }
                   </span>
                 </div>
               )}

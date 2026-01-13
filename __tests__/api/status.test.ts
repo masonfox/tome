@@ -190,10 +190,10 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.sessionArchived).toBeUndefined(); // No explicit archival message, just auto-archives
+    expect(data.sessionArchived).toBeUndefined(); // No archival for terminal states
     expect(data.sessionNumber).toBe(1); // Same session
     expect(data.status).toBe("read");
-    expect(data.isActive).toBe(false); // Auto-archived!
+    expect(data.isActive).toBe(true); // Terminal states stay active
     expect(data.completedDate).toBeDefined();
   });
 
@@ -869,7 +869,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
     // Assert - Status update still succeeded
     expect(response.status).toBe(200);
     expect(data.status).toBe("read");
-    expect(data.isActive).toBe(false);
+    expect(data.isActive).toBe(true); // Terminal states stay active
 
     // Assert - Tome DB was still updated
     const updatedBook = await bookRepository.findById(book.id);

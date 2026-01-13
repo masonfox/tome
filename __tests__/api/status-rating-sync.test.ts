@@ -265,7 +265,7 @@ describe("POST /api/books/[id]/status - Rating Sync to Calibre", () => {
       // Assert - Status update still succeeded
       expect(response.status).toBe(200);
       expect(data.status).toBe("read");
-      expect(data.isActive).toBe(false);
+      expect(data.isActive).toBe(true); // Terminal states stay active
 
       // Assert - Tome DB was still updated with rating
       const updatedBook = await bookRepository.findById(book.id);

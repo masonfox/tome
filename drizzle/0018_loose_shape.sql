@@ -1,0 +1,1 @@
+ALTER TABLE `reading_sessions` ADD `dnf_date` text;

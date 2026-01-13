@@ -9,6 +9,7 @@ import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import ReadingHistoryTab from "@/components/CurrentlyReading/ReadingHistoryTab";
 import FinishBookModal from "@/components/Modals/FinishBookModal";
 import CompleteBookModal from "@/components/Modals/CompleteBookModal";
+import DNFBookModal from "@/components/Modals/DNFBookModal";
 import RatingModal from "@/components/Modals/RatingModal";
 import ProgressEditModal from "@/components/Modals/ProgressEditModal";
 import RereadConfirmModal from "@/components/Modals/RereadConfirmModal";
@@ -58,6 +59,7 @@ export default function BookDetailPage() {
     showReadConfirmation,
     showStatusChangeConfirmation,
     showCompleteBookModal,
+    showDNFModal,
     pendingStatusChange,
     handleUpdateStatus: handleUpdateStatusFromHook,
     handleConfirmStatusChange,
@@ -65,6 +67,7 @@ export default function BookDetailPage() {
     handleConfirmRead: handleConfirmReadFromHook,
     handleCompleteBook,
     handleStartReread,
+    handleMarkAsDNF,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
   // Handle finishing book from auto-completion modal (when progress reaches 100%)
@@ -387,6 +390,7 @@ export default function BookDetailPage() {
           dropdownRef={dropdownRef}
           rating={book.rating}
           hasCompletedReads={book.hasCompletedReads || false}
+          hasFinishedSessions={book.hasFinishedSessions || false}
           hasActiveSession={!!book.activeSession}
         />
 
@@ -649,6 +653,18 @@ export default function BookDetailPage() {
         onConfirm={handleConfirmReadFromHook}
         bookTitle={book.title}
         bookId={bookId}
+      />
+
+      {/* Manual status change from "reading" to "dnf" - uses mark-as-dnf API */}
+      <DNFBookModal
+        isOpen={showDNFModal}
+        onClose={() => handleCancelStatusChange()}
+        onConfirm={handleMarkAsDNF}
+        bookTitle={book.title}
+        bookId={bookId}
+        lastProgressDate={book.latestProgress?.progressDate}
+        lastProgressPage={book.latestProgress?.currentPage}
+        lastProgressPercentage={book.latestProgress?.currentPercentage}
       />
 
       {/* Auto-completion modal (shown when progress reaches 100%) - book already marked as read */}

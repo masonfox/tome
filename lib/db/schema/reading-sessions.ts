@@ -12,10 +12,11 @@ export const readingSessions = sqliteTable(
       .references(() => books.id, { onDelete: "cascade" }),
     sessionNumber: integer("session_number").notNull(),
     status: text("status", {
-      enum: ["to-read", "read-next", "reading", "read"],
+      enum: ["to-read", "read-next", "reading", "read", "dnf"],
     }).notNull().default("to-read"),
     startedDate: text("started_date"), // YYYY-MM-DD format
     completedDate: text("completed_date"), // YYYY-MM-DD format
+    dnfDate: text("dnf_date"), // YYYY-MM-DD format - when book was abandoned
     review: text("review"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

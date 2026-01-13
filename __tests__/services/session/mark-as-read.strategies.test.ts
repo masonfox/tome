@@ -233,7 +233,7 @@ describe("SessionService - Mark as Read Strategies", () => {
       // Verify session was updated to "read"
       const updatedSession = await sessionRepository.findById(result.sessionId!);
       expect(updatedSession?.status).toBe("read");
-      expect(updatedSession?.isActive).toBe(false);
+      expect(updatedSession?.isActive).toBe(true); // Terminal state stays active
     });
 
     test("uses provided completedDate", async () => {
