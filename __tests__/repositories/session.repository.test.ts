@@ -1,0 +1,786 @@
+/**
+ * Session Repository Edge Cases and Coverage Tests
+ * 
+ * This test suite focuses on edge cases and uncovered paths in session.repository.ts:
+ * - findAllByBookIdWithProgress aggregation logic
+ * - Orphaned book filtering
+ * - Transaction handling
+ * - Count operations
+ * - Edge cases with null/empty data
+ */
+
+import { describe, test, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { sessionRepository, bookRepository, progressRepository } from "@/lib/repositories";
+import {
+  setupTestDatabase,
+  clearTestDatabase,
+  teardownTestDatabase,
+} from "@/__tests__/helpers/db-setup";
+
+describe("SessionRepository - Edge Cases", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
+  describe("findAllByBookIdWithProgress", () => {
+    test("should return sessions with null latestProgress when no progress logs exist", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const sessions = await sessionRepository.findAllByBookIdWithProgress(book.id);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].id).toBe(session.id);
+      expect(sessions[0].progressSummary).toEqual({
+        totalEntries: 0,
+        totalPagesRead: 0,
+        latestProgress: null,
+        firstProgressDate: null,
+        lastProgressDate: null,
+      });
+    });
+
+    test("should return sessions with progress summary when progress logs exist", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      // Add progress entries
+      await progressRepository.create({
+        sessionId: session.id,
+        bookId: book.id,
+        progressDate: "2024-01-01",
+        currentPage: 50,
+        currentPercentage: 25,
+        pagesRead: 50,
+      });
+
+      await progressRepository.create({
+        sessionId: session.id,
+        bookId: book.id,
+        progressDate: "2024-01-02",
+        currentPage: 100,
+        currentPercentage: 50,
+        pagesRead: 50,
+        notes: "Great progress!",
+      });
+
+      const sessions = await sessionRepository.findAllByBookIdWithProgress(book.id);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].progressSummary).toEqual({
+        totalEntries: 2,
+        totalPagesRead: 100,
+        latestProgress: {
+          currentPage: 100,
+          currentPercentage: 50,
+          progressDate: "2024-01-02",
+          notes: "Great progress!",
+        },
+        firstProgressDate: "2024-01-01",
+        lastProgressDate: "2024-01-02",
+      });
+    });
+
+    test("should handle multiple sessions with mixed progress states", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      // First session with progress
+      const session1 = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-01-15",
+      });
+
+      await progressRepository.create({
+        sessionId: session1.id,
+        bookId: book.id,
+        progressDate: "2024-01-10",
+        currentPage: 200,
+        currentPercentage: 100,
+        pagesRead: 200,
+      });
+
+      // Second session without progress (DNF)
+      const session2 = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "dnf",
+        isActive: false,
+        dnfDate: "2024-02-01",
+      });
+
+      // Third session with progress (active)
+      const session3 = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 3,
+        status: "reading",
+        isActive: true,
+      });
+
+      await progressRepository.create({
+        sessionId: session3.id,
+        bookId: book.id,
+        progressDate: "2024-03-01",
+        currentPage: 50,
+        currentPercentage: 25,
+        pagesRead: 50,
+      });
+
+      const sessions = await sessionRepository.findAllByBookIdWithProgress(book.id);
+
+      expect(sessions).toHaveLength(3);
+      // Ordered by session number descending
+      expect(sessions[0].sessionNumber).toBe(3);
+      expect(sessions[0].progressSummary.totalEntries).toBe(1);
+      expect(sessions[0].progressSummary.latestProgress?.currentPage).toBe(50);
+
+      expect(sessions[1].sessionNumber).toBe(2);
+      expect(sessions[1].progressSummary.totalEntries).toBe(0);
+      expect(sessions[1].progressSummary.latestProgress).toBeNull();
+
+      expect(sessions[2].sessionNumber).toBe(1);
+      expect(sessions[2].progressSummary.totalEntries).toBe(1);
+      expect(sessions[2].progressSummary.latestProgress?.currentPage).toBe(200);
+    });
+
+    test("should return empty array when book has no sessions", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const sessions = await sessionRepository.findAllByBookIdWithProgress(book.id);
+
+      expect(sessions).toEqual([]);
+    });
+  });
+
+  describe("findByStatus - Orphaned Book Filtering", () => {
+    test("should exclude orphaned books by default", async () => {
+      const normalBook = await bookRepository.create({
+        title: "Normal Book",
+        calibreId: 1,
+        path: "/test/normal.epub",
+        orphaned: false,
+      });
+
+      const orphanedBook = await bookRepository.create({
+        title: "Orphaned Book",
+        calibreId: 2,
+        path: "/test/orphaned.epub",
+        orphaned: true,
+      });
+
+      await sessionRepository.create({
+        bookId: normalBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: orphanedBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const sessions = await sessionRepository.findByStatus("reading", true);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].bookId).toBe(normalBook.id);
+    });
+
+    test("should handle null orphaned field as non-orphaned", async () => {
+      const book = await bookRepository.create({
+        title: "Book Without Orphaned Field",
+        calibreId: 1,
+        path: "/test/book.epub",
+        // orphaned field not set (defaults to null)
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const sessions = await sessionRepository.findByStatus("reading", true);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].bookId).toBe(book.id);
+    });
+
+    test("should include orphaned books when using findByStatusIncludingOrphaned", async () => {
+      const normalBook = await bookRepository.create({
+        title: "Normal Book",
+        calibreId: 1,
+        path: "/test/normal.epub",
+        orphaned: false,
+      });
+
+      const orphanedBook = await bookRepository.create({
+        title: "Orphaned Book",
+        calibreId: 2,
+        path: "/test/orphaned.epub",
+        orphaned: true,
+      });
+
+      await sessionRepository.create({
+        bookId: normalBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: orphanedBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const sessions = await sessionRepository.findByStatusIncludingOrphaned("reading", true);
+
+      expect(sessions).toHaveLength(2);
+      const bookIds = sessions.map(s => s.bookId).sort();
+      expect(bookIds).toEqual([normalBook.id, orphanedBook.id].sort());
+    });
+
+    test("should respect activeOnly parameter", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "reading",
+        isActive: false,
+      });
+
+      const activeSessions = await sessionRepository.findByStatus("reading", true);
+      expect(activeSessions).toHaveLength(1);
+      expect(activeSessions[0].isActive).toBe(true);
+
+      const allSessions = await sessionRepository.findByStatus("reading", false);
+      expect(allSessions).toHaveLength(2);
+    });
+
+    test("should respect limit parameter", async () => {
+      // Create 5 different books with reading sessions
+      for (let i = 1; i <= 5; i++) {
+        const book = await bookRepository.create({
+          title: `Test Book ${i}`,
+          calibreId: i,
+          path: `/test/book${i}.epub`,
+        });
+
+        await sessionRepository.create({
+          bookId: book.id,
+          sessionNumber: 1,
+          status: "reading",
+          isActive: true,
+        });
+      }
+
+      const sessions = await sessionRepository.findByStatus("reading", true, 3);
+
+      expect(sessions).toHaveLength(3);
+    });
+  });
+
+  describe("countByStatus - Orphaned Book Filtering", () => {
+    test("should exclude orphaned books from count by default", async () => {
+      const normalBook = await bookRepository.create({
+        title: "Normal Book",
+        calibreId: 1,
+        path: "/test/normal.epub",
+        orphaned: false,
+      });
+
+      const orphanedBook = await bookRepository.create({
+        title: "Orphaned Book",
+        calibreId: 2,
+        path: "/test/orphaned.epub",
+        orphaned: true,
+      });
+
+      await sessionRepository.create({
+        bookId: normalBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: orphanedBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const count = await sessionRepository.countByStatus("reading", true);
+
+      expect(count).toBe(1);
+    });
+
+    test("should include orphaned books in countByStatusIncludingOrphaned", async () => {
+      const normalBook = await bookRepository.create({
+        title: "Normal Book",
+        calibreId: 1,
+        path: "/test/normal.epub",
+        orphaned: false,
+      });
+
+      const orphanedBook = await bookRepository.create({
+        title: "Orphaned Book",
+        calibreId: 2,
+        path: "/test/orphaned.epub",
+        orphaned: true,
+      });
+
+      await sessionRepository.create({
+        bookId: normalBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: orphanedBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const count = await sessionRepository.countByStatusIncludingOrphaned("reading", true);
+
+      expect(count).toBe(2);
+    });
+
+    test("should return 0 when no sessions match", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const count = await sessionRepository.countByStatus("read", true);
+
+      expect(count).toBe(0);
+    });
+  });
+
+  describe("countCompletedAfterDate", () => {
+    test("should count only completed sessions after the specified date", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      // Before the cutoff
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-12-31",
+      });
+
+      // On the cutoff (should be included - gte)
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "read",
+        isActive: false,
+        completedDate: "2025-01-01",
+      });
+
+      // After the cutoff
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 3,
+        status: "read",
+        isActive: false,
+        completedDate: "2025-01-15",
+      });
+
+      const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
+
+      expect(count).toBe(2);
+    });
+
+    test("should not count non-completed sessions", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        startedDate: "2025-01-01",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "dnf",
+        isActive: false,
+        dnfDate: "2025-01-15",
+      });
+
+      const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
+
+      expect(count).toBe(0);
+    });
+
+    test("should return 0 when no completed sessions exist", async () => {
+      const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
+
+      expect(count).toBe(0);
+    });
+  });
+
+  describe("findActiveByBookId with transaction", () => {
+    test("should work with transaction parameter", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      // Call with undefined transaction (uses default database)
+      const session = await sessionRepository.findActiveByBookId(book.id, undefined);
+
+      expect(session).toBeDefined();
+      expect(session?.isActive).toBe(true);
+    });
+  });
+
+  describe("findActiveSessionsByBookId", () => {
+    test("should only return sessions that are both active AND reading status", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      // Active + reading (should match)
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      // Reading but not active (should NOT match)
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "reading",
+        isActive: false,
+      });
+
+      const sessions = await sessionRepository.findActiveSessionsByBookId(book.id);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].sessionNumber).toBe(1);
+      expect(sessions[0].status).toBe("reading");
+      expect(sessions[0].isActive).toBe(true);
+    });
+
+    test("should return empty array when no active reading sessions exist", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const sessions = await sessionRepository.findActiveSessionsByBookId(book.id);
+
+      expect(sessions).toEqual([]);
+    });
+  });
+
+  describe("findMostRecentCompletedByBookId", () => {
+    test("should return session with most recent completedDate", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-01-01",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-03-01",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 3,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-02-01",
+      });
+
+      const session = await sessionRepository.findMostRecentCompletedByBookId(book.id);
+
+      expect(session).toBeDefined();
+      expect(session?.sessionNumber).toBe(2);
+      expect(session?.completedDate).toBe("2024-03-01");
+    });
+
+    test("should use sessionNumber as tiebreaker for same completedDate", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-01-01",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "read",
+        isActive: false,
+        completedDate: "2024-01-01",
+      });
+
+      const session = await sessionRepository.findMostRecentCompletedByBookId(book.id);
+
+      expect(session).toBeDefined();
+      expect(session?.sessionNumber).toBe(2);
+    });
+
+    test("should return undefined when no completed sessions exist", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const session = await sessionRepository.findMostRecentCompletedByBookId(book.id);
+
+      expect(session).toBeUndefined();
+    });
+  });
+
+  describe("findLatestByBookId", () => {
+    test("should return session with highest session number", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        isActive: false,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 3,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "dnf",
+        isActive: false,
+      });
+
+      const session = await sessionRepository.findLatestByBookId(book.id);
+
+      expect(session).toBeDefined();
+      expect(session?.sessionNumber).toBe(3);
+    });
+
+    test("should return undefined when book has no sessions", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const session = await sessionRepository.findLatestByBookId(book.id);
+
+      expect(session).toBeUndefined();
+    });
+  });
+
+  describe("findByBookIdAndSessionNumber", () => {
+    test("should find specific session by book ID and session number", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        isActive: false,
+      });
+
+      const targetSession = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "reading",
+        isActive: true,
+      });
+
+      const found = await sessionRepository.findByBookIdAndSessionNumber(book.id, 2);
+
+      expect(found).toBeDefined();
+      expect(found?.id).toBe(targetSession.id);
+      expect(found?.sessionNumber).toBe(2);
+    });
+
+    test("should return undefined when session number doesn't exist", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      const found = await sessionRepository.findByBookIdAndSessionNumber(book.id, 99);
+
+      expect(found).toBeUndefined();
+    });
+  });
+
+  describe("findAllByBookId with transaction", () => {
+    test("should work with transaction parameter", async () => {
+      const book = await bookRepository.create({
+        title: "Test Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "read",
+        isActive: false,
+      });
+
+      // Call with undefined transaction (uses default database)
+      const sessions = await sessionRepository.findAllByBookId(book.id, undefined);
+
+      expect(sessions).toHaveLength(2);
+      // Should be ordered by session number descending
+      expect(sessions[0].sessionNumber).toBe(2);
+      expect(sessions[1].sessionNumber).toBe(1);
+    });
+  });
+});
