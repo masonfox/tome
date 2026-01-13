@@ -68,6 +68,12 @@ ensure_data_directory() {
 
 # Function to create backup of database(s) using TypeScript module
 backup_database() {
+	# Skip backup if database doesn't exist (first run)
+	if [ ! -f "$DATABASE_PATH" ]; then
+		echo "Database not found (first run), skipping backup"
+		return 0
+	fi
+
 	echo "Creating database backup(s)..."
 	if npx tsx lib/db/backup.ts --docker-mode 2>&1; then
 		echo "Backup(s) created successfully"
