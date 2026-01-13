@@ -90,8 +90,6 @@ Tome writes to Calibre when you:
 - Rate a book
 - Manage tags, whether on `/books/:id` or `/tags` pages
 
-**Learn more:** [Calibre Database Safety Guide](./docs/CALIBRE_SAFETY.md)
-
 ## Roadmap
 Active development can be viewed [here](https://github.com/users/masonfox/projects/2/views/6), representing the upcoming release. Additionally, checkout repo [discussions](https://github.com/masonfox/tome/discussions) for [release](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3ARelease) and [feature](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3Afeature) announcements and more!
 
