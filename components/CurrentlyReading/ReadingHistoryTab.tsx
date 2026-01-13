@@ -67,10 +67,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     staleTime: 5000, // Data is fresh for 5 seconds
   });
 
-  // Filter to show completed sessions (archived OR status='read')
-  // This ensures single-read books display their completed session even when isActive=true
+  // Filter to show finished sessions (archived OR terminal states: 'read'/'dnf')
+  // This ensures books with terminal states display their session even when isActive=true
   const sessions = allSessions.filter((session: ReadingSession) => 
-    !session.isActive || session.status === 'read'
+    !session.isActive || session.status === 'read' || session.status === 'dnf'
   );
 
   function handleOpenEditModal(session: ReadingSession) {
