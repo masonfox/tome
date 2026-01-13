@@ -197,9 +197,9 @@ describe("POST /api/books/[id]/reread", () => {
     const response = await POST(request, { params: { id: fakeId.toString() } });
     const data = await response.json();
 
-    // Service layer returns 400 for no completed reads (doesn't check if book exists first)
+    // Service layer returns 400 for no finished sessions (doesn't check if book exists first)
     expect(response.status).toBe(400);
-    expect(data.error).toContain("no completed reads found");
+    expect(data.error).toContain("book has not been finished");
   });
 
   test("should return 400 if no sessions exist", async () => {
@@ -209,9 +209,9 @@ describe("POST /api/books/[id]/reread", () => {
     const response = await POST(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
-    // Service layer checks for completed reads, returns 400 if none found
+    // Service layer checks for finished sessions, returns 400 if none found
     expect(response.status).toBe(400);
-    expect(data.error).toContain("no completed reads found");
+    expect(data.error).toContain("book has not been finished");
   });
 
   test("should return 400 if no completed reads (only active session)", async () => {
@@ -228,9 +228,9 @@ describe("POST /api/books/[id]/reread", () => {
     const response = await POST(request, { params: { id: book.id.toString() } });
     const data = await response.json();
 
-    // Service layer checks for completed reads (read status), returns 400 if none found
+    // Service layer checks for finished sessions (read or DNF status), returns 400 if none found
     expect(response.status).toBe(400);
-    expect(data.error).toContain("no completed reads found");
+    expect(data.error).toContain("book has not been finished");
   });
 
   test("should return 400 if active session is 'to-read' status", async () => {

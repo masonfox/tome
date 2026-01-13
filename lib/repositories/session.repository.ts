@@ -348,6 +348,28 @@ export class SessionRepository extends BaseRepository<
   }
 
   /**
+   * Get most recent finished session (read or DNF) for a book
+   * Used when starting a re-read to inherit userId
+   */
+  async findMostRecentFinishedByBookId(bookId: number): Promise<ReadingSession | undefined> {
+    return this.getDatabase()
+      .select()
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          or(
+            eq(readingSessions.status, "read"),
+            eq(readingSessions.status, "dnf")
+          )
+        )
+      )
+      .orderBy(desc(readingSessions.completedDate), desc(readingSessions.sessionNumber))
+      .limit(1)
+      .get();
+  }
+
+  /**
    * Archive a session (set isActive = false)
    */
   async archive(id: number): Promise<ReadingSession | undefined> {
@@ -372,6 +394,29 @@ export class SessionRepository extends BaseRepository<
       .from(readingSessions)
       .where(
         and(eq(readingSessions.bookId, bookId), eq(readingSessions.status, "read"))
+      )
+      .get();
+
+    return (result?.count ?? 0) > 0;
+  }
+
+  /**
+   * Check if a book has any finished sessions (read or DNF)
+   * Used for re-read validation
+   */
+  async hasFinishedSessions(bookId: number, tx?: any): Promise<boolean> {
+    const database = tx || this.getDatabase();
+    const result = database
+      .select({ count: sql<number>`count(*)` })
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.bookId, bookId),
+          or(
+            eq(readingSessions.status, "read"),
+            eq(readingSessions.status, "dnf")
+          )
+        )
       )
       .get();
 

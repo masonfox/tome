@@ -336,8 +336,7 @@ export class SessionService {
         updateData.startedDate = startedDate || await this.getTodayDateString();
       }
       updateData.completedDate = completedDate || await this.getTodayDateString();
-      // Auto-archive session when marked as read
-      updateData.isActive = false;
+      // Keep session active for terminal "read" state (archived only on re-read)
     }
 
     if (review !== undefined) {
@@ -381,14 +380,21 @@ export class SessionService {
    * Start a re-read of a book (creates new active session)
    */
   async startReread(bookId: number): Promise<ReadingSession> {
-    // Verify book has completed reads (business rule enforcement)
-    const hasCompletedReads = await sessionRepository.hasCompletedReads(bookId);
-    if (!hasCompletedReads) {
-      throw new Error("Cannot start re-read: no completed reads found");
+    // Verify book has finished sessions (business rule enforcement)
+    const hasFinishedSessions = await sessionRepository.hasFinishedSessions(bookId);
+    if (!hasFinishedSessions) {
+      throw new Error("Cannot start re-read: book has not been finished");
     }
 
-    // Get most recent completed session to preserve userId
-    const previousSession = await sessionRepository.findMostRecentCompletedByBookId(bookId);
+    // Get most recent finished session to preserve userId
+    const previousSession = await sessionRepository.findMostRecentFinishedByBookId(bookId);
+
+    // Archive the previous finished session
+    if (previousSession && previousSession.isActive) {
+      await sessionRepository.update(previousSession.id, {
+        isActive: false,
+      } as any);
+    }
 
     // Get next session number
     const sessionNumber = await sessionRepository.getNextSessionNumber(bookId);
@@ -1054,14 +1060,13 @@ export class SessionService {
       };
     }
 
-    // Archive session with DNF date
+    // Mark session as DNF (keep active - archived only on re-read)
     const finalDnfDate = dnfDate || lastProgress?.progressDate || await this.getTodayDateString();
     
-    logger.info({ bookId, sessionId: activeSession.id, dnfDate: finalDnfDate }, "Archiving session as DNF");
+    logger.info({ bookId, sessionId: activeSession.id, dnfDate: finalDnfDate }, "Marking session as DNF");
 
     await sessionRepository.update(activeSession.id, {
       status: "dnf",
-      isActive: false,
       dnfDate: finalDnfDate,
     } as any);
 

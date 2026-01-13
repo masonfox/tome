@@ -214,7 +214,7 @@ describe("SessionService", () => {
 
       expect(result.session.status).toBe("read");
       expect(result.session.completedDate).toBeDefined();
-      expect(result.session.isActive).toBe(false); // Archived
+      expect(result.session.isActive).toBe(true); // Kept active for terminal state
     });
 
     test("should use custom completedDate", async () => {
@@ -407,7 +407,7 @@ describe("SessionService", () => {
 
     test("should throw error if no completed reads exist", async () => {
       await expect(sessionService.startReread(book1.id)).rejects.toThrow(
-        "Cannot start re-read: no completed reads found"
+        "Cannot start re-read: book has not been finished"
       );
     });
 
