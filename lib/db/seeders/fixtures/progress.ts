@@ -23,6 +23,7 @@ export interface ProgressLogData {
  * @param totalPages - Total pages in the book
  * @param daysBack - Number of consecutive days (default 7)
  * @param startPage - Page to start from (default 0)
+ * @param maxPercentage - Maximum percentage to cap progress at (default 95 to avoid auto-completion)
  * @returns Array of progress logs with 40-80 pages per day
  */
 export function generateActiveStreak(
@@ -30,15 +31,19 @@ export function generateActiveStreak(
   sessionId: number | undefined,
   totalPages: number,
   daysBack: number = 7,
-  startPage: number = 0
+  startPage: number = 0,
+  maxPercentage: number = 95
 ): ProgressLogData[] {
   const logs: ProgressLogData[] = [];
   let currentPage = startPage;
+  
+  // Calculate max page from percentage to avoid hitting 100% and triggering auto-completion
+  const maxPage = Math.floor(totalPages * maxPercentage / 100);
 
   for (let i = daysBack - 1; i >= 0; i--) {
     // Generate 40-80 pages per day (above default threshold)
     const pagesRead = Math.floor(Math.random() * 41) + 40; // 40-80 pages
-    currentPage = Math.min(currentPage + pagesRead, totalPages);
+    currentPage = Math.min(currentPage + pagesRead, maxPage);
 
     // Random evening time (7-10 PM)
     const hour = Math.floor(Math.random() * 4) + 19; // 19-22 (7pm-10pm)
@@ -59,8 +64,8 @@ export function generateActiveStreak(
       notes: i === 0 ? "Today's reading session" : undefined,
     });
 
-    // Stop if we've reached the end of the book
-    if (currentPage >= totalPages) {
+    // Stop if we've reached the max page
+    if (currentPage >= maxPage) {
       break;
     }
   }
@@ -76,6 +81,7 @@ export function generateActiveStreak(
  * @param totalPages - Total pages in the book
  * @param monthsBack - Number of months to generate data for (default 3)
  * @param targetCompletion - Target completion percentage (default 100)
+ * @param maxPercentage - Maximum percentage to cap progress at (default 95 to avoid auto-completion)
  * @returns Array of progress logs with realistic patterns
  */
 export function generateHistoricalProgress(
@@ -83,10 +89,14 @@ export function generateHistoricalProgress(
   sessionId: number | undefined,
   totalPages: number,
   monthsBack: number = 3,
-  targetCompletion: number = 100
+  targetCompletion: number = 100,
+  maxPercentage: number = 95
 ): ProgressLogData[] {
   const logs: ProgressLogData[] = [];
-  const targetPage = Math.floor((totalPages * targetCompletion) / 100);
+  
+  // Cap target completion at maxPercentage to avoid auto-completion
+  const cappedTargetCompletion = Math.min(targetCompletion, maxPercentage);
+  const targetPage = Math.floor((totalPages * cappedTargetCompletion) / 100);
 
   // Calculate total days and reading days (3-5 days per week)
   const totalDays = monthsBack * 30;
@@ -131,12 +141,22 @@ export function generateHistoricalProgress(
   // Sort by date (oldest first)
   logs.sort((a, b) => a.progressDate.getTime() - b.progressDate.getTime());
 
-  // Recalculate currentPage to be cumulative
+  // Recalculate currentPage to be cumulative and ensure monotonic progression
   let cumulativePage = 0;
+  let lastPage = 0;
   for (const log of logs) {
     cumulativePage += log.pagesRead;
     log.currentPage = Math.min(cumulativePage, targetPage);
+    
+    // Ensure monotonic progression - current page must be >= last page
+    if (log.currentPage < lastPage) {
+      log.currentPage = lastPage + log.pagesRead;
+    }
+    
+    // Cap at target page
+    log.currentPage = Math.min(log.currentPage, targetPage);
     log.currentPercentage = calculatePercentage(log.currentPage, totalPages);
+    lastPage = log.currentPage;
   }
 
   return logs;
@@ -148,7 +168,7 @@ export function generateHistoricalProgress(
  * @param bookId - Book ID
  * @param sessionId - Optional session ID
  * @param totalPages - Total pages in the book
- * @param percentComplete - Target completion percentage (0-100)
+ * @param percentComplete - Target completion percentage (0-100, capped at 95 to avoid auto-completion)
  * @param weeksToComplete - Number of weeks to spread progress over (default 2-4)
  * @returns Array of progress logs
  */
@@ -159,7 +179,10 @@ export function generateBookInProgress(
   percentComplete: number,
   weeksToComplete?: number
 ): ProgressLogData[] {
-  const targetPage = Math.floor((totalPages * percentComplete) / 100);
+  // Cap at 95% to avoid auto-completion triggered at 100%
+  const cappedPercentComplete = Math.min(percentComplete, 95);
+  
+  const targetPage = Math.floor((totalPages * cappedPercentComplete) / 100);
   const weeks = weeksToComplete || (2 + Math.floor(Math.random() * 3)); // 2-4 weeks
   const totalDays = weeks * 7;
 
@@ -203,6 +226,9 @@ export function generateBookInProgress(
 
 /**
  * Generates a single completion progress log
+ * 
+ * @warning Only use for books with "read" status - creates 100% progress which triggers auto-completion
+ * 
  * @param bookId - Book ID
  * @param sessionId - Optional session ID
  * @param totalPages - Total pages in the book

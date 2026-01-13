@@ -6,6 +6,7 @@ import { getLogger } from "@/lib/logger";
 
 import { syncCalibreLibrary } from "@/lib/sync-service";
 import { bookRepository, sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
+import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { rebuildStreak } from "@/lib/streaks";
 import {
   generateActiveStreak,
@@ -18,6 +19,7 @@ import {
   calculateCompletedBooksForGoal,
   generateCompletionDatesForYear,
 } from "./fixtures/goals";
+import { generateShelfFixtures } from "./fixtures/shelves";
 import { format, subDays } from "date-fns";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
@@ -41,6 +43,7 @@ export interface SeedResult {
   booksUsed: number;
   goalsCreated?: number;
   booksCompletedHistorically?: number;
+  shelvesCreated?: number;
   currentStreak?: number;
   longestStreak?: number;
   totalDaysActive?: number;
@@ -230,12 +233,14 @@ export async function seedDatabase(): Promise<SeedResult> {
       // Generate progress based on session index
       if (sessionIndex === 0 || sessionIndex === 1) {
         // Active streak books - consecutive 7 days with 40+ pages/day
+        // Cap at 95% to avoid auto-completion at 100%
         const streakLogs = generateActiveStreak(
           session.bookId,
           session.sessionId,
           session.totalPages,
           7,
-          sessionIndex === 0 ? Math.max(0, session.totalPages - 300) : Math.floor(session.totalPages * 0.4) // Nearly done for book 1, mid-progress for book 2
+          sessionIndex === 0 ? Math.max(0, session.totalPages - 300) : Math.floor(session.totalPages * 0.4), // Nearly done for book 1, mid-progress for book 2
+          95 // maxPercentage - avoid auto-completion
         );
         logs.push(...streakLogs);
 
@@ -246,7 +251,8 @@ export async function seedDatabase(): Promise<SeedResult> {
             session.sessionId,
             session.totalPages,
             3, // 3 months back
-            sessionIndex === 0 ? 80 : 30 // Different starting points
+            sessionIndex === 0 ? 80 : 30, // Different starting points
+            95 // maxPercentage - avoid auto-completion
           );
           logs.push(...historicalLogs);
         }
@@ -256,7 +262,7 @@ export async function seedDatabase(): Promise<SeedResult> {
           session.bookId,
           session.sessionId,
           session.totalPages,
-          45 + Math.floor(Math.random() * 15), // 45-60%
+          45 + Math.floor(Math.random() * 15), // 45-60% (will be capped at 95%)
           4 // 4 weeks
         );
         logs.push(...midProgressLogs);
@@ -277,10 +283,12 @@ export async function seedDatabase(): Promise<SeedResult> {
           session.sessionId,
           session.totalPages,
           2, // 2 months
-          95 // Up to 95%
+          95, // Up to 95%
+          95 // maxPercentage
         );
         logs.push(...completedHistorical);
 
+        // Generate 100% completion log (only for "read" status books)
         const completionLog = generateCompletedBook(
           session.bookId,
           session.sessionId,
@@ -294,7 +302,12 @@ export async function seedDatabase(): Promise<SeedResult> {
       // Insert progress logs in batch
       if (logs.length > 0) {
         for (const log of logs) {
-          await progressRepository.create(log);
+          // Convert progressDate from Date to string (ISO format)
+          const logToInsert = {
+            ...log,
+            progressDate: log.progressDate instanceof Date ? log.progressDate.toISOString().split('T')[0] : log.progressDate
+          };
+          await progressRepository.create(logToInsert);
         }
 
         progressLogsCreated += logs.length;
@@ -450,11 +463,72 @@ export async function seedDatabase(): Promise<SeedResult> {
       }
     }
 
+    // Phase 7: Create shelves and populate with books
+    getLoggerSafe().info("Phase 7: Creating shelves and assigning books...");
+    const shelfFixtures = generateShelfFixtures();
+    let shelvesCreated = 0;
+
+    for (const fixture of shelfFixtures) {
+      // Check if shelf already exists
+      const existingShelves = await shelfRepository.findByUserId(null);
+      const exists = existingShelves.find(s => s.name === fixture.name);
+      
+      if (exists) {
+        getLoggerSafe().info({ name: fixture.name }, "Shelf already exists, skipping");
+        continue;
+      }
+      
+      // Create shelf
+      const shelf = await shelfRepository.create({
+        userId: null,
+        name: fixture.name,
+        description: fixture.description,
+        color: fixture.color,
+        icon: fixture.icon,
+      });
+      
+      shelvesCreated++;
+      getLoggerSafe().info({ 
+        shelfId: shelf.id, 
+        name: fixture.name,
+        color: fixture.color,
+        icon: fixture.icon,
+      }, "Created shelf");
+      
+      // Select books for this shelf
+      const booksForShelf = fixture.bookSelector(allBooks, sessions);
+      
+      // Add books to shelf
+      let booksAdded = 0;
+      for (const book of booksForShelf) {
+        try {
+          await shelfRepository.addBookToShelf(shelf.id, book.id);
+          booksAdded++;
+        } catch (error) {
+          getLoggerSafe().warn({ 
+            error, 
+            bookId: book.id, 
+            shelfId: shelf.id 
+          }, "Failed to add book to shelf");
+        }
+      }
+      
+      getLoggerSafe().info({ 
+        shelfId: shelf.id, 
+        name: fixture.name, 
+        booksAdded,
+        booksAttempted: booksForShelf.length,
+      }, "Populated shelf with books");
+    }
+
+    getLoggerSafe().info({ shelvesCreated }, "Shelf seeding completed");
+
     getLoggerSafe().info({
       sessionsCreated,
       progressLogsCreated,
       goalsCreated,
       booksCompletedHistorically,
+      shelvesCreated,
       currentStreak: rebuiltStreak.currentStreak,
     }, "Seeding completed successfully");
 
@@ -466,6 +540,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       booksUsed: booksToUse.length,
       goalsCreated,
       booksCompletedHistorically,
+      shelvesCreated,
       currentStreak: rebuiltStreak.currentStreak,
       longestStreak: rebuiltStreak.longestStreak,
       totalDaysActive: rebuiltStreak.totalDaysActive,

@@ -77,6 +77,9 @@ async function main() {
       console.log(`  ⭐ Longest streak: ${result.longestStreak} ${result.longestStreak === 1 ? 'day' : 'days'}`);
       console.log(`  📅 Total active days: ${result.totalDaysActive}`);
     }
+    if (result.shelvesCreated !== undefined) {
+      console.log(`  📚 Shelves created: ${result.shelvesCreated}`);
+    }
     console.log(`  ⏱️  Duration: ${duration}s\n`);
 
     console.log("Next steps:");
