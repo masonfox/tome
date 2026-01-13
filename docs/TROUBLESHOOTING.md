@@ -74,7 +74,7 @@ This guide covers common issues and their solutions when running Tome.
 
 1. **Run migrations**:
    ```bash
-   bun run lib/db/migrate.ts
+   npm run db:migrate
    ```
 
 2. **Check database exists**:
@@ -92,7 +92,7 @@ This guide covers common issues and their solutions when running Tome.
 4. **Reset database** (WARNING: loses all data):
    ```bash
    rm data/tome.db
-   bun run lib/db/migrate.ts
+   npm run db:migrate
    ```
 
 ### Database Corrupted
@@ -104,10 +104,10 @@ This guide covers common issues and their solutions when running Tome.
 1. **Restore from backup**:
    ```bash
    # List available backups
-   bun run db:list-backups
+   npm run db:list-backups
 
    # Restore from backup (interactive)
-   bun run db:restore
+   npm run db:restore
    ```
 
 2. **Check database integrity**:
@@ -128,7 +128,7 @@ This guide covers common issues and their solutions when running Tome.
 4. **If unrecoverable, reset** (loses data):
    ```bash
    rm data/tome.db
-   bun run lib/db/migrate.ts
+   npm run db:migrate
    ```
 
 ### Migration Failures
@@ -163,64 +163,7 @@ This guide covers common issues and their solutions when running Tome.
 
 5. **Restore from pre-migration backup**:
    ```bash
-   # Migrations create automatic backups
-   ls -lah data/backups/
-   cp data/backups/tome.db.backup-YYYYMMDD_HHMMSS data/tome.db
-   ```
-
-## Port Issues
-
-### Port Already in Use
-
-**Symptoms**: Error about port 3000 being in use, cannot start server
-
-**Solutions**:
-
-1. **Change the port**:
-   ```bash
-   # Add to .env file
-   PORT=3001
-   ```
-
-2. **Find and stop conflicting service**:
-   ```bash
-   # Find process using port 3000
-   lsof -ti:3000
-
-   # Kill the process
-   lsof -ti:3000 | xargs kill
-   ```
-
-3. **Use a different port temporarily**:
-   ```bash
-   PORT=3001 bun run dev
-   ```
-
-## Docker-Specific Issues
-
-### Permission Errors in Docker
-
-**Symptoms**: Cannot write to database, permission denied errors
-
-**Solutions**:
-
-1. **Let container fix permissions** (recommended):
-   ```bash
-   # Restart container - entrypoint script fixes permissions
-   docker-compose restart tome
-   ```
-
-2. **Run with specific user**:
-   ```bash
-   docker-compose run --user 1001:1001 tome
-   ```
-
-3. **Check volume ownership**:
-   ```bash
-   # Inside container
-   docker exec tome ls -la /app/data/
-
-   # Should be owned by nextjs:nodejs (1001:1001)
+   npm run db:restore
    ```
 
 ### Calibre Database Not Accessible in Docker
@@ -275,7 +218,7 @@ This guide covers common issues and their solutions when running Tome.
 
 4. **Run migration manually**:
    ```bash
-   docker exec -it tome bun run lib/db/migrate.ts
+   docker exec -it tome npm run db:migrate
    ```
 
 5. **Restore from backup**:
@@ -356,25 +299,20 @@ This guide covers common issues and their solutions when running Tome.
 
 ### Test Failures
 
-**Symptoms**: `bun test` fails
+**Symptoms**: `npm test` fails
 
 **Solutions**:
 
 1. **Run migrations**:
    ```bash
    # Tests use in-memory database but need migration files
-   bun run lib/db/migrate.ts
+   npm run db:migrate
    ```
 
 2. **Check for port conflicts**:
    ```bash
    # Some tests may use ports
    lsof -ti:3000 | xargs kill
-   ```
-
-3. **Run tests in watch mode for debugging**:
-   ```bash
-   bun test --watch
    ```
 
 4. **Clear test cache**:
@@ -398,7 +336,7 @@ If none of these solutions work:
 
 To avoid common issues:
 
-1. **Regular backups**: `bun run db:backup`
+1. **Regular backups**: `npm run db:backup`
 2. **Keep Bun updated**: Check for new versions regularly
 3. **Monitor disk space**: Ensure adequate space for database growth
 4. **Use absolute paths**: Avoid relative paths in configuration

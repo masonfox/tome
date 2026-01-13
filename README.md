@@ -43,11 +43,11 @@ Your reading data lives locally, under your control, and survives platform chang
 
 ## Features
 
-- 🔗 **Calibre Integration**: Direct access to your Calibre database with automatic sync
+- 🔗 **Calibre Integration**: Integrates directly with Calibre, automatically syncing your library
 - 📖 **Reading Progress Tracking**: Track page-based or percentage-based progress with history
 - 📈 **Enhanced Reading Streaks**: Daily streak tracking with configurable goals and analytics
-- ▶️ **Book Status Management**: Organize books by reading status (To Read, Read Next, Reading, and Read). Supports rereads while preserving previous reading sessions.
-- 🏷️ **Robust Tag Management**: Easily remove a tag from many books in a single click, merge multiple tags into one, and bulk delete tags.
+- ▶️ **Book Status Management**: Organize books by reading status (To Read, Read Next, Reading, Read, and DNF). Supports rereads while preserving previous reading sessions.
+- 🏷️ **Robust [Tag Management](https://github.com/masonfox/tome/discussions/225)**: Easily remove a tag from many books in a single click, merge multiple tags into one, and bulk delete tags.
 - 📊 **Statistics Dashboard**: Comprehensive reading statistics
 - 🥇 **Annual goals**: Set and track annual reading goals
 - 🪛 **Self-Hosted**: Full control over your data with no external dependencies
@@ -69,13 +69,31 @@ cp .env.example .env
 # Edit .env and set CALIBRE_DB_PATH to your Calibre library
 
 # Run database migrations
-bun run db:migrate
+npm run db:migrate
+
+# (Optionally) run DB seeder
+npm run db:seed
 
 # Start development server
 bun run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre library from the Library page.
+
+## ⚠️ Calibre Concurrency
+
+Tome reads from and writes to Calibre’s `metadata.db`. **Concurrent writes** (for example, editing tags or ratings in Tome while Calibre is running) can lead to database locks or unpredictable results. **Read-only access is safe!**
+
+**Recommendation**: Close Calibre before using Tome for metadata edits.
+
+Tome writes to Calibre when you:
+- Rate a book
+- Manage tags, whether on `/books/:id` or `/tags` pages
+
+## Roadmap
+Active development can be viewed [here](https://github.com/users/masonfox/projects/2/views/6), representing the upcoming release. Additionally, checkout repo [discussions](https://github.com/masonfox/tome/discussions) for [release](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3ARelease) and [feature](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3Afeature) announcements and more!
+
+You're **highly encouraged** to create [issues](https://github.com/masonfox/tome/issues) and create [discussions](https://github.com/masonfox/tome/discussions)! 🙏
 
 ## Documentation
 

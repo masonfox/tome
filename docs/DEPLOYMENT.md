@@ -85,13 +85,13 @@ Tome includes automated backup scripts that work inside the container:
 
 ```bash
 # Create a timestamped backup
-docker exec tome bun run db:backup
+docker exec tome npm run db:backup
 
 # List available backups
-docker exec tome bun run db:list-backups
+docker exec tome npm run db:list-backups
 
 # Restore from backup (interactive)
-docker exec -it tome bun run db:restore
+docker exec -it tome npm run db:restore
 ```
 
 Backups are stored in `data/backups/` inside the container (part of the `tome-data` volume).
@@ -103,8 +103,15 @@ Tome uses Drizzle ORM for database schema management. The migrations run automat
 If needed, you can run migrations manually:
 
 ```bash
-docker exec -it tome bun run lib/db/migrate.ts
+docker exec -it tome npm run db:migrate
 ```
+
+**However**, you're encouraged to run backups _before_ manually running migrations:
+
+```bash
+docker exec tome npm run db:backup
+```
+This is done automatically on container startup.
 
 ### Handling Container Updates
 
@@ -131,20 +138,23 @@ docker-compose logs -f tome
 If you encounter permission errors with the data volume:
 
 ```bash
-sudo chown -R 1001:1001 your-tome-directory/
+sudo chown -R 1001:100 your-tome-directory/
 ```
 
 The entrypoint script automatically fixes permissions on first run.
 
 ### Port Conflicts
 
-If port 3000 is already in use, set `PORT` environment variable:
+If port 3000 is already in use on your host, remap your container's **external** port:
 
+**Compose**:
 ```yaml
-environment:
-  - PORT=3001
 ports:
-  - "3001:3001"
+  - "3001:3000"
+```
+or via **CLI**:
+```bash
+-p 3001:3000
 ```
 
 ### Calibre Database Not Accessible
