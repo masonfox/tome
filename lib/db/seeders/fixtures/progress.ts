@@ -261,3 +261,66 @@ export function generateCompletedBook(
     notes: "Finished! Great book.",
   };
 }
+
+/**
+ * Generates progress logs for a DNF (Did Not Finish) book
+ * Creates realistic partial progress that ends before completion
+ * 
+ * @param bookId - Book ID
+ * @param sessionId - Optional session ID
+ * @param totalPages - Total pages in the book
+ * @param percentComplete - How far they got before DNF (default 15-40%)
+ * @param weeksAgo - How many weeks ago they DNF'd (default 2-8 weeks)
+ * @returns Array of progress logs for DNF book
+ */
+export function generateDNFProgress(
+  bookId: number,
+  sessionId: number | undefined,
+  totalPages: number,
+  percentComplete?: number,
+  weeksAgo?: number
+): ProgressLogData[] {
+  // Random progress between 15-40% if not specified
+  const progress = percentComplete || (15 + Math.floor(Math.random() * 26));
+  const weeks = weeksAgo || (2 + Math.floor(Math.random() * 7)); // 2-8 weeks ago
+  
+  const targetPage = Math.floor((totalPages * progress) / 100);
+  const totalDays = weeks * 7;
+  
+  // DNF books tend to have inconsistent reading patterns (read 2-3 days per week)
+  const readingDays = weeks * (2 + Math.floor(Math.random() * 2));
+  const avgPagesPerSession = Math.max(1, Math.floor(targetPage / readingDays));
+  
+  const logs: ProgressLogData[] = [];
+  let currentPage = 0;
+  let daysProcessed = 0;
+  
+  while (currentPage < targetPage && daysProcessed < totalDays) {
+    // Randomly skip days - DNF books have more gaps
+    if (Math.random() > 0.6) { // 40% chance of reading (less than normal)
+      const pagesRead = Math.floor(avgPagesPerSession * (0.5 + Math.random() * 0.8)); // 50-130% of average
+      currentPage = Math.min(currentPage + pagesRead, targetPage);
+      
+      const hour = 19 + Math.floor(Math.random() * 4); // 7-10 PM
+      const minute = Math.floor(Math.random() * 60);
+      
+      const progressDate = setMinutes(
+        setHours(subDays(startOfDay(new Date()), totalDays - daysProcessed), hour),
+        minute
+      );
+      
+      logs.push({
+        bookId,
+        sessionId,
+        currentPage,
+        currentPercentage: calculatePercentage(currentPage, totalPages),
+        pagesRead,
+        progressDate,
+      });
+    }
+    
+    daysProcessed++;
+  }
+  
+  return logs;
+}
