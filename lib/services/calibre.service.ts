@@ -16,6 +16,16 @@
  * - Makes dependencies explicit
  * - Easier to mock at the instance level
  * 
+ * WRITE SAFETY:
+ * ------------
+ * All write operations respect Calibre database safety:
+ * - Detect and handle SQLite BUSY/LOCKED errors
+ * - Provide clear error messages with actionable guidance
+ * - Log operations with structured context
+ * - Require Calibre to be closed for tag operations
+ * 
+ * See docs/CALIBRE_SAFETY.md for complete safety documentation.
+ * 
  * Usage in Production:
  * ```typescript
  * import { calibreService } from "@/lib/services/calibre.service";

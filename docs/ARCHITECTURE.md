@@ -12,10 +12,40 @@
 
 ### Integration with Calibre
 
-- **Read-only access** to Calibre's SQLite database (metadata.db)
+- **Read-only access** to Calibre's SQLite database (metadata.db) for most operations
+- **Limited write access**: Only for ratings and tag management (see [Write Safety](#calibre-write-safety) below)
 - **Automatic sync**: File watcher monitors Calibre database for changes and syncs within 2 seconds
 - **Rating sync**: Bidirectional sync with Calibre's rating system (Tome 1-5 stars ↔ Calibre 2/4/6/8/10)
+- **Tag sync**: Tome uses Calibre tags for shelving (writing tags back to Calibre)
 - **No data export**: Calibre remains the source of truth for book metadata
+
+#### Calibre Write Safety
+
+Tome implements multiple safety mechanisms when writing to the Calibre database:
+
+**Approved Write Operations:**
+- `updateCalibreRating(calibreId, stars)` - Updates `ratings` and `books_ratings_link` tables
+- `updateCalibreTags(calibreId, tags)` - Updates `tags` and `books_tags_link` tables
+- `batchUpdateCalibreTags(operations)` - Bulk tag updates for shelving
+
+**Safety Mechanisms:**
+1. **Retry Logic** (`lib/calibre-watcher.ts`) - Automatically retries sync on database lock errors
+   - 3 retries with exponential backoff (1s, 2s, 3s)
+   - Detects `SQLITE_BUSY` / `SQLITE_LOCKED` errors
+   - Non-lock errors fail immediately
+2. **Watcher Suspension** - Pauses file watcher during writes to prevent re-syncing self-inflicted changes
+   - `suspend()` - Stops watching
+   - `resume()` - Resumes immediately
+   - `resumeWithIgnorePeriod(ms)` - Resumes after ignore period
+3. **Debouncing** - 2-second debounce on file changes to prevent sync storms
+4. **Single-Instance Guard** - `isSyncing` flag prevents concurrent syncs
+5. **Enhanced Error Messages** - Clear, actionable lock error messages with operation context
+
+**User Requirements:**
+- **Close Calibre before tag operations** (adding/removing books from shelves)
+- Rating updates and auto-sync work fine with Calibre open (retry logic handles transient locks)
+
+**For details:** See [Calibre Database Safety Guide](./CALIBRE_SAFETY.md)
 
 ### Core User Flows
 
@@ -50,9 +80,10 @@
   - Location: `data/tome.db`
   - Driver: `bun:sqlite` (Bun) / `better-sqlite3` (Node.js)
   - Factory Pattern: `lib/db/factory.ts` handles runtime detection
-- **Calibre Database**: SQLite (read-only, metadata.db from Calibre library)
-  - Read operations: `lib/db/calibre.ts`
-  - Write operations (ratings only): `lib/db/calibre-write.ts`
+- **Calibre Database**: SQLite (metadata.db from Calibre library)
+  - Read operations: `lib/db/calibre.ts` (read-only connection)
+  - Write operations: `lib/db/calibre-write.ts` (ratings and tags only)
+  - Safety: See [Calibre Write Safety](#calibre-write-safety) above
 
 ### Deployment
 - **Containerization**: Docker + Docker Compose

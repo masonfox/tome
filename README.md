@@ -52,6 +52,12 @@ Your reading data lives locally, under your control, and survives platform chang
 - 🥇 **Annual goals**: Set and track annual reading goals
 - 🪛 **Self-Hosted**: Full control over your data with no external dependencies
 
+### ⚠️ Calibre Safety Note
+
+Tome safely writes to your Calibre database for ratings and shelf tags. For tag operations (adding/removing books from shelves), **close Calibre first** to prevent database lock errors. Rating updates and auto-sync work fine with Calibre open.
+
+**Learn more:** [Calibre Database Safety Guide](./docs/CALIBRE_SAFETY.md)
+
 ## Quick Start
 
 ### Production Deployment
