@@ -52,12 +52,6 @@ Your reading data lives locally, under your control, and survives platform chang
 - 🥇 **Annual goals**: Set and track annual reading goals
 - 🪛 **Self-Hosted**: Full control over your data with no external dependencies
 
-### ⚠️ Calibre Safety Note
-
-Tome safely writes to your Calibre database for ratings and shelf tags. For tag operations (adding/removing books from shelves), **close Calibre first** to prevent database lock errors. Rating updates and auto-sync work fine with Calibre open.
-
-**Learn more:** [Calibre Database Safety Guide](./docs/CALIBRE_SAFETY.md)
-
 ## Quick Start
 
 ### Production Deployment
@@ -86,7 +80,7 @@ bun run dev
 
 Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre library from the Library page.
 
-## ⚠️ Calibre Concurrency
+## ⚠️ Calibre Safety
 
 Tome reads from and writes to Calibre’s `metadata.db`. **Concurrent writes** (for example, editing tags or ratings in Tome while Calibre is running) can lead to database locks or unpredictable results. **Read-only access is safe!**
 
@@ -95,6 +89,8 @@ Tome reads from and writes to Calibre’s `metadata.db`. **Concurrent writes** (
 Tome writes to Calibre when you:
 - Rate a book
 - Manage tags, whether on `/books/:id` or `/tags` pages
+
+**Learn more:** [Calibre Database Safety Guide](./docs/CALIBRE_SAFETY.md)
 
 ## Roadmap
 Active development can be viewed [here](https://github.com/users/masonfox/projects/2/views/6), representing the upcoming release. Additionally, checkout repo [discussions](https://github.com/masonfox/tome/discussions) for [release](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3ARelease) and [feature](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3Afeature) announcements and more!
