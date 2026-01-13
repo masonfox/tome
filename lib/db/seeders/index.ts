@@ -6,18 +6,21 @@ import { getLogger } from "@/lib/logger";
 
 import { syncCalibreLibrary } from "@/lib/sync-service";
 import { bookRepository, sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
+import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { rebuildStreak } from "@/lib/streaks";
 import {
   generateActiveStreak,
   generateHistoricalProgress,
   generateBookInProgress,
   generateCompletedBook,
+  generateDNFProgress,
 } from "./fixtures/progress";
 import {
   generateMultiYearGoals,
   calculateCompletedBooksForGoal,
   generateCompletionDatesForYear,
 } from "./fixtures/goals";
+import { generateShelfFixtures } from "./fixtures/shelves";
 import { format, subDays } from "date-fns";
 
 // Lazy logger initialization to prevent pino from loading during instrumentation phase
@@ -41,6 +44,7 @@ export interface SeedResult {
   booksUsed: number;
   goalsCreated?: number;
   booksCompletedHistorically?: number;
+  shelvesCreated?: number;
   currentStreak?: number;
   longestStreak?: number;
   totalDaysActive?: number;
@@ -84,10 +88,10 @@ export async function seedDatabase(): Promise<SeedResult> {
       throw new Error("No books found in database after sync");
     }
 
-    // Select 12 books with variety
+    // Select 15 books with variety (increased from 12 to include DNF books)
     // We'll assign random page counts to any books without them
     const sortedBooks = allBooks.sort((a, b) => (a.totalPages || 200) - (b.totalPages || 200));
-    const booksToUse = sortedBooks.slice(0, Math.min(12, sortedBooks.length));
+    const booksToUse = sortedBooks.slice(0, Math.min(15, sortedBooks.length));
 
     if (booksToUse.length === 0) {
       throw new Error("No books found to seed");
@@ -109,13 +113,16 @@ export async function seedDatabase(): Promise<SeedResult> {
       { index: 2, status: "reading" as const, description: "mid-progress book", hasProgress: true },
       { index: 3, status: "reading" as const, description: "just started book", hasProgress: true },
       { index: 4, status: "read" as const, description: "completed book", hasProgress: true },
-      { index: 5, status: "read-next" as const, description: "read-next book 1", hasProgress: false },
-      { index: 6, status: "read-next" as const, description: "read-next book 2", hasProgress: false },
-      { index: 7, status: "read-next" as const, description: "read-next book 3", hasProgress: false },
-      { index: 8, status: "to-read" as const, description: "to-read book 1", hasProgress: false },
-      { index: 9, status: "to-read" as const, description: "to-read book 2", hasProgress: false },
-      { index: 10, status: "to-read" as const, description: "to-read book 3", hasProgress: false },
-      { index: 11, status: "to-read" as const, description: "to-read book 4", hasProgress: false },
+      { index: 5, status: "dnf" as const, description: "DNF book 1 - wasn't feeling it", hasProgress: true },
+      { index: 6, status: "dnf" as const, description: "DNF book 2 - got bored", hasProgress: true },
+      { index: 7, status: "read-next" as const, description: "read-next book 1", hasProgress: false },
+      { index: 8, status: "read-next" as const, description: "read-next book 2", hasProgress: false },
+      { index: 9, status: "read-next" as const, description: "read-next book 3", hasProgress: false },
+      { index: 10, status: "to-read" as const, description: "to-read book 1", hasProgress: false },
+      { index: 11, status: "to-read" as const, description: "to-read book 2", hasProgress: false },
+      { index: 12, status: "to-read" as const, description: "to-read book 3", hasProgress: false },
+      { index: 13, status: "to-read" as const, description: "to-read book 4", hasProgress: false },
+      { index: 14, status: "to-read" as const, description: "to-read book 5", hasProgress: false },
     ];
 
     const sessions: Array<{ bookId: number; sessionId: number; status: string; totalPages: number }> = [];
@@ -150,10 +157,15 @@ export async function seedDatabase(): Promise<SeedResult> {
           // Get today's date string in YYYY-MM-DD format
           const todayString = format(new Date(), 'yyyy-MM-dd');
           
+          // Calculate DNF date (2-8 weeks ago for DNF books)
+          const dnfWeeksAgo = 2 + Math.floor(Math.random() * 7);
+          const dnfDateString = format(subDays(new Date(), dnfWeeksAgo * 7), 'yyyy-MM-dd');
+          
           await sessionRepository.update(existingSession.id, {
             status: plan.status,
             startedDate: plan.status !== "to-read" ? (existingSession.startedDate || todayString) : null,
             completedDate: plan.status === "read" ? todayString : existingSession.completedDate,
+            dnfDate: plan.status === "dnf" ? dnfDateString : existingSession.dnfDate,
           });
 
           getLoggerSafe().info({
@@ -187,6 +199,10 @@ export async function seedDatabase(): Promise<SeedResult> {
 
       // Get today's date string in YYYY-MM-DD format
       const todayString = format(new Date(), 'yyyy-MM-dd');
+      
+      // Calculate DNF date (2-8 weeks ago for DNF books)
+      const dnfWeeksAgo = 2 + Math.floor(Math.random() * 7);
+      const dnfDateString = format(subDays(new Date(), dnfWeeksAgo * 7), 'yyyy-MM-dd');
 
       // Create session
       const session = await sessionRepository.create({
@@ -195,6 +211,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         status: plan.status,
         startedDate: plan.status !== "to-read" ? todayString : null,
         completedDate: plan.status === "read" ? todayString : null,
+        dnfDate: plan.status === "dnf" ? dnfDateString : null,
       });
 
       sessions.push({
@@ -230,12 +247,14 @@ export async function seedDatabase(): Promise<SeedResult> {
       // Generate progress based on session index
       if (sessionIndex === 0 || sessionIndex === 1) {
         // Active streak books - consecutive 7 days with 40+ pages/day
+        // Cap at 95% to avoid auto-completion at 100%
         const streakLogs = generateActiveStreak(
           session.bookId,
           session.sessionId,
           session.totalPages,
           7,
-          sessionIndex === 0 ? Math.max(0, session.totalPages - 300) : Math.floor(session.totalPages * 0.4) // Nearly done for book 1, mid-progress for book 2
+          sessionIndex === 0 ? Math.max(0, session.totalPages - 300) : Math.floor(session.totalPages * 0.4), // Nearly done for book 1, mid-progress for book 2
+          95 // maxPercentage - avoid auto-completion
         );
         logs.push(...streakLogs);
 
@@ -246,7 +265,8 @@ export async function seedDatabase(): Promise<SeedResult> {
             session.sessionId,
             session.totalPages,
             3, // 3 months back
-            sessionIndex === 0 ? 80 : 30 // Different starting points
+            sessionIndex === 0 ? 80 : 30, // Different starting points
+            95 // maxPercentage - avoid auto-completion
           );
           logs.push(...historicalLogs);
         }
@@ -256,7 +276,7 @@ export async function seedDatabase(): Promise<SeedResult> {
           session.bookId,
           session.sessionId,
           session.totalPages,
-          45 + Math.floor(Math.random() * 15), // 45-60%
+          45 + Math.floor(Math.random() * 15), // 45-60% (will be capped at 95%)
           4 // 4 weeks
         );
         logs.push(...midProgressLogs);
@@ -277,10 +297,12 @@ export async function seedDatabase(): Promise<SeedResult> {
           session.sessionId,
           session.totalPages,
           2, // 2 months
-          95 // Up to 95%
+          95, // Up to 95%
+          95 // maxPercentage
         );
         logs.push(...completedHistorical);
 
+        // Generate 100% completion log (only for "read" status books)
         const completionLog = generateCompletedBook(
           session.bookId,
           session.sessionId,
@@ -288,13 +310,29 @@ export async function seedDatabase(): Promise<SeedResult> {
           14 + Math.floor(Math.random() * 14) // 14-28 days ago
         );
         logs.push(completionLog);
+      } else if (sessionIndex === 5 || sessionIndex === 6) {
+        // DNF books - partial progress with inconsistent reading patterns
+        const dnfWeeksAgo = 2 + Math.floor(Math.random() * 7); // 2-8 weeks ago
+        const dnfProgress = generateDNFProgress(
+          session.bookId,
+          session.sessionId,
+          session.totalPages,
+          15 + Math.floor(Math.random() * 26), // 15-40% completion
+          dnfWeeksAgo
+        );
+        logs.push(...dnfProgress);
       }
       // Other sessions: No progress logs (to-read, read-next scenarios)
 
       // Insert progress logs in batch
       if (logs.length > 0) {
         for (const log of logs) {
-          await progressRepository.create(log);
+          // Convert progressDate from Date to string (ISO format)
+          const logToInsert = {
+            ...log,
+            progressDate: log.progressDate instanceof Date ? log.progressDate.toISOString().split('T')[0] : log.progressDate
+          };
+          await progressRepository.create(logToInsert);
         }
 
         progressLogsCreated += logs.length;
@@ -450,11 +488,72 @@ export async function seedDatabase(): Promise<SeedResult> {
       }
     }
 
+    // Phase 7: Create shelves and populate with books
+    getLoggerSafe().info("Phase 7: Creating shelves and assigning books...");
+    const shelfFixtures = generateShelfFixtures();
+    let shelvesCreated = 0;
+
+    for (const fixture of shelfFixtures) {
+      // Check if shelf already exists
+      const existingShelves = await shelfRepository.findByUserId(null);
+      const exists = existingShelves.find(s => s.name === fixture.name);
+      
+      if (exists) {
+        getLoggerSafe().info({ name: fixture.name }, "Shelf already exists, skipping");
+        continue;
+      }
+      
+      // Create shelf
+      const shelf = await shelfRepository.create({
+        userId: null,
+        name: fixture.name,
+        description: fixture.description,
+        color: fixture.color,
+        icon: fixture.icon,
+      });
+      
+      shelvesCreated++;
+      getLoggerSafe().info({ 
+        shelfId: shelf.id, 
+        name: fixture.name,
+        color: fixture.color,
+        icon: fixture.icon,
+      }, "Created shelf");
+      
+      // Select books for this shelf
+      const booksForShelf = fixture.bookSelector(allBooks, sessions);
+      
+      // Add books to shelf
+      let booksAdded = 0;
+      for (const book of booksForShelf) {
+        try {
+          await shelfRepository.addBookToShelf(shelf.id, book.id);
+          booksAdded++;
+        } catch (error) {
+          getLoggerSafe().warn({ 
+            error, 
+            bookId: book.id, 
+            shelfId: shelf.id 
+          }, "Failed to add book to shelf");
+        }
+      }
+      
+      getLoggerSafe().info({ 
+        shelfId: shelf.id, 
+        name: fixture.name, 
+        booksAdded,
+        booksAttempted: booksForShelf.length,
+      }, "Populated shelf with books");
+    }
+
+    getLoggerSafe().info({ shelvesCreated }, "Shelf seeding completed");
+
     getLoggerSafe().info({
       sessionsCreated,
       progressLogsCreated,
       goalsCreated,
       booksCompletedHistorically,
+      shelvesCreated,
       currentStreak: rebuiltStreak.currentStreak,
     }, "Seeding completed successfully");
 
@@ -466,6 +565,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       booksUsed: booksToUse.length,
       goalsCreated,
       booksCompletedHistorically,
+      shelvesCreated,
       currentStreak: rebuiltStreak.currentStreak,
       longestStreak: rebuiltStreak.longestStreak,
       totalDaysActive: rebuiltStreak.totalDaysActive,

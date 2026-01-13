@@ -234,6 +234,9 @@ export const SHELF_ICONS = {
 
 export type ShelfIconName = keyof typeof SHELF_ICONS;
 
+// Array of all available shelf icon names for programmatic use (e.g., seeders)
+export const SHELF_ICON_NAMES = Object.keys(SHELF_ICONS) as ShelfIconName[];
+
 // Helper function to get icon component by name
 export function getShelfIcon(iconName: string | null | undefined): LucideIcon | null {
   if (!iconName || !(iconName in SHELF_ICONS)) {
