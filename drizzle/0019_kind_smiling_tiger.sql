@@ -1,0 +1,2 @@
+ALTER TABLE `reading_sessions` ADD `read_next_order` integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX `idx_sessions_read_next_order` ON `reading_sessions` (`read_next_order`,`id`) WHERE "reading_sessions"."status" = 'read-next';

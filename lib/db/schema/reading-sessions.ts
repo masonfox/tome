@@ -19,6 +19,7 @@ export const readingSessions = sqliteTable(
     dnfDate: text("dnf_date"), // YYYY-MM-DD format - when book was abandoned
     review: text("review"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    readNextOrder: integer("read_next_order").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   },
@@ -31,6 +32,8 @@ export const readingSessions = sqliteTable(
     bookIdIdx: index("idx_sessions_book_id").on(table.bookId),
     statusIdx: index("idx_sessions_status").on(table.status),
     userBookIdx: index("idx_sessions_user_book").on(table.userId, table.bookId),
+    // Partial index for read-next ordering (only WHERE status = 'read-next')
+    readNextOrderIdx: index("idx_sessions_read_next_order").on(table.readNextOrder, table.id).where(sql`${table.status} = 'read-next'`),
   })
 );
 

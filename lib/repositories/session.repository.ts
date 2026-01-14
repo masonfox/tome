@@ -110,6 +110,7 @@ export class SessionRepository extends BaseRepository<
         dnfDate: readingSessions.dnfDate,
         review: readingSessions.review,
         isActive: readingSessions.isActive,
+        readNextOrder: readingSessions.readNextOrder,
         createdAt: readingSessions.createdAt,
         updatedAt: readingSessions.updatedAt,
 
@@ -165,6 +166,7 @@ export class SessionRepository extends BaseRepository<
       dnfDate: row.dnfDate,
       review: row.review,
       isActive: row.isActive,
+      readNextOrder: row.readNextOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       progressSummary: {
@@ -489,6 +491,69 @@ export class SessionRepository extends BaseRepository<
      }
 
      return totalCreated;
+   }
+
+   /**
+    * Get the next available read_next_order value
+    * Returns max(read_next_order) + 1, or 0 if no read-next books exist
+    */
+   async getNextReadNextOrder(): Promise<number> {
+     const result = this.getDatabase()
+       .select({ maxOrder: sql<number>`COALESCE(MAX(${readingSessions.readNextOrder}), -1)` })
+       .from(readingSessions)
+       .where(eq(readingSessions.status, 'read-next'))
+       .get();
+     
+     return (result?.maxOrder ?? -1) + 1;
+   }
+
+   /**
+    * Reorder multiple read-next books in a single transaction
+    * @param updates Array of { id, readNextOrder } pairs
+    */
+   async reorderReadNextBooks(updates: Array<{ id: number; readNextOrder: number }>): Promise<void> {
+     const db = this.getDatabase();
+     
+     await db.transaction((tx) => {
+       for (const { id, readNextOrder } of updates) {
+         tx.update(readingSessions)
+           .set({ 
+             readNextOrder,
+             updatedAt: new Date()
+           })
+           .where(eq(readingSessions.id, id))
+           .run();
+       }
+     });
+   }
+
+   /**
+    * Reindex all read-next books to eliminate gaps (0, 1, 2, 3...)
+    * Called after a book leaves read-next status
+    */
+   async reindexReadNextOrders(): Promise<void> {
+     const db = this.getDatabase();
+     
+     // Get all read-next sessions ordered by current read_next_order
+     const sessions = db
+       .select({ id: readingSessions.id })
+       .from(readingSessions)
+       .where(eq(readingSessions.status, 'read-next'))
+       .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
+       .all();
+
+     // Renumber sequentially in a transaction
+     await db.transaction((tx) => {
+       sessions.forEach((session, index) => {
+         tx.update(readingSessions)
+           .set({ 
+             readNextOrder: index,
+             updatedAt: new Date()
+           })
+           .where(eq(readingSessions.id, session.id))
+           .run();
+       });
+     });
    }
 }
 
