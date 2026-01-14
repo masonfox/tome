@@ -16,13 +16,13 @@ export function DesktopSidebar() {
   const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
 
   // Combine all navigation links into one flat list
-  // Order: Dashboard, Library, Journal, Read Next, Series, Tags, Shelves, Streak, Goals, Stats
+  // Order: Dashboard, Library, Read Next, Journal, Series, Tags, Shelves, Streak, Goals, Stats
   const allNavLinks = [
     NAV_LINKS[0], // Dashboard
     NAV_LINKS[1], // Library
-    JOURNAL_LINK, // Journal (after Library)
-    READ_NEXT_LINK, // Read Next (after Journal)
-    SERIES_LINK,  // Series (after Read Next)
+    READ_NEXT_LINK, // Read Next (after Library)
+    JOURNAL_LINK, // Journal (after Read Next)
+    SERIES_LINK,  // Series (after Journal)
     TAGS_LINK,    // Tags (after Series)
     SHELVES_LINK, // Shelves (after Tags)
     NAV_LINKS[2], // Streak
