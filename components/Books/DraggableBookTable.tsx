@@ -362,20 +362,26 @@ export function DraggableBookTable({
     column: string;
     children: React.ReactNode;
     className?: string;
-  }) => (
-    <th
-      className={cn(
-        "px-4 py-3 text-left text-sm font-semibold text-[var(--heading-text)] cursor-pointer hover:bg-[var(--hover-bg)] transition-colors select-none",
-        headerClassName
-      )}
-      onClick={() => handleColumnClick(column)}
-    >
-      <div className="flex items-center gap-2">
-        {children}
-        {renderSortIcon(column)}
-      </div>
-    </th>
-  );
+  }) => {
+    // Only make sortable if onSortChange is provided
+    const isSortable = !!onSortChange;
+    
+    return (
+      <th
+        className={cn(
+          "px-4 py-3 text-left text-sm font-semibold text-[var(--heading-text)]",
+          isSortable && "cursor-pointer hover:bg-[var(--hover-bg)] transition-colors select-none",
+          headerClassName
+        )}
+        onClick={isSortable ? () => handleColumnClick(column) : undefined}
+      >
+        <div className="flex items-center gap-2">
+          {children}
+          {isSortable && renderSortIcon(column)}
+        </div>
+      </th>
+    );
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as number);
