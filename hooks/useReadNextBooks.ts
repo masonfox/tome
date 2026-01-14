@@ -48,10 +48,11 @@ export function useReadNextBooks() {
 
   /**
    * Reorder books (batch update)
+   * Note: Optimistic update happens in the page component via updateLocalOrder()
+   * This just persists the change to the server without triggering loading state
    */
   const reorderBooks = useCallback(
     async (updates: Array<{ id: number; readNextOrder: number }>) => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -66,18 +67,19 @@ export function useReadNextBooks() {
           throw new Error(data.error || "Failed to reorder books");
         }
 
-        // Refresh books after reordering
-        await fetchBooks();
+        // No need to refetch - optimistic update already reflects correct state
+        // This prevents the jarring loading skeleton flash after drag-and-drop
+        // No success toast - the visual feedback of reordering is confirmation enough
         
-        toast.success("Books reordered");
         return true;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         toast.error(`Failed to reorder books: ${error.message}`);
+        
+        // Refresh to revert optimistic update on error
+        await fetchBooks();
         throw error;
-      } finally {
-        setLoading(false);
       }
     },
     [fetchBooks]
