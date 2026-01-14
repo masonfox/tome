@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { shelfRepository } from "@/lib/repositories/shelf.repository";
+import { shelfService } from "@/lib/services/shelf.service";
 import type { Shelf } from "@/lib/db/schema/shelves";
 import { getLogger } from "@/lib/logger";
 
@@ -75,7 +76,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { shelfIds } = body;
+    const { shelfIds, addToTop } = body;
 
     if (!Array.isArray(shelfIds)) {
       return NextResponse.json(
@@ -104,6 +105,22 @@ export async function PUT(
       );
     }
 
+    // Validate addToTop is boolean if provided
+    if (addToTop !== undefined && typeof addToTop !== "boolean") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "INVALID_BODY",
+            message: "addToTop must be a boolean",
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    logger.info({ bookId, shelfIds, addToTop }, "Updating book shelves");
+
     // Get current shelves for this book
     const currentShelves = await shelfRepository.findShelvesByBookId(bookId);
     const currentShelfIds = currentShelves.map((s: Shelf) => s.id);
@@ -114,7 +131,18 @@ export async function PUT(
 
     // Add book to new shelves
     for (const shelfId of shelfIdsToAdd) {
-      await shelfRepository.addBookToShelf(shelfId, bookId);
+      try {
+        if (addToTop === true) {
+          // Add to top (position 0) - uses service for validation
+          await shelfService.addBookToShelfAtTop(shelfId, bookId);
+        } else {
+          // Add to end (default behavior)
+          await shelfRepository.addBookToShelf(shelfId, bookId);
+        }
+      } catch (error) {
+        // Log error but continue with other shelves
+        logger.error({ error, shelfId, bookId }, "Failed to add book to shelf");
+      }
     }
 
     // Remove book from old shelves (reindexing happens automatically)

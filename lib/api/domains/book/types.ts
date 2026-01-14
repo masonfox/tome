@@ -262,3 +262,26 @@ export interface UpdateTagsResponse {
   success: boolean;
   book: BookDetail;
 }
+
+// ============================================================================
+// Shelf Management API Types
+// ============================================================================
+
+/**
+ * Request to update which shelves contain a book
+ */
+export interface UpdateBookShelvesRequest {
+  shelfIds: number[];
+  addToTop?: boolean;
+}
+
+/**
+ * Response from updating book shelves
+ */
+export interface UpdateBookShelvesResponse {
+  success: boolean;
+  data: {
+    added: number;
+    removed: number;
+  };
+}

@@ -29,6 +29,8 @@ import type {
   UpdateBookResponse,
   UpdateTagsRequest,
   UpdateTagsResponse,
+  UpdateBookShelvesRequest,
+  UpdateBookShelvesResponse,
 } from "./types";
 
 /**
@@ -389,6 +391,32 @@ export const bookApi = {
   ): Promise<UpdateTagsResponse> => {
     return baseApiClient["patch"]<UpdateTagsRequest, UpdateTagsResponse>(
       `/api/books/${bookId}/tags`,
+      request
+    );
+  },
+
+  /**
+   * Update which shelves contain a book
+   * 
+   * @param bookId - The ID of the book
+   * @param request - Shelf update request (shelfIds array and optional addToTop flag)
+   * @returns Update result with counts
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * // Add book to shelves at the end (default)
+   * await bookApi.updateShelves('123', { shelfIds: [1, 2, 3] });
+   * 
+   * @example
+   * // Add book to shelves at the top (position 0)
+   * await bookApi.updateShelves('123', { shelfIds: [1, 2, 3], addToTop: true });
+   */
+  updateShelves: (
+    bookId: string | number,
+    request: UpdateBookShelvesRequest
+  ): Promise<UpdateBookShelvesResponse> => {
+    return baseApiClient["put"]<UpdateBookShelvesRequest, UpdateBookShelvesResponse>(
+      `/api/books/${bookId}/shelves`,
       request
     );
   },
