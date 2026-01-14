@@ -619,7 +619,7 @@ describe("Database Backup Module", () => {
       expect(typeof config.backupDir).toBe('string');
       expect(typeof config.backupCalibre).toBe('boolean');
       expect(typeof config.maxBackups).toBe('number');
-      expect(config.maxBackups).toBe(3);
+      expect(config.maxBackups).toBe(6); // Updated from 3 to 6
     });
 
     test("should allow custom config via createBackups()", async () => {
