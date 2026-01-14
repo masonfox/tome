@@ -551,14 +551,19 @@ await bookRepository.delete(book.id); // Lose user history!
 
 ---
 
-## Pattern 8: File Watcher with Debounce
+## Pattern 8: File Watcher with Debounce and Retry Logic
 
-**When to Use**: Monitoring external files that change rapidly
+**When to Use**: Monitoring external files that change rapidly or may be locked
 
-**Why**: Debounce prevents thrashing when source writes multiple times
+**Why**: 
+- Debounce prevents thrashing when source writes multiple times
+- Retry logic handles transient database locks gracefully
+- Suspension mechanism prevents re-syncing self-inflicted changes
 
 ```typescript
 // lib/calibre-watcher.ts
+const MAX_RETRIES = 3;
+
 async start(calibreDbPath: string, onSync: SyncCallback) {
   const stats = await stat(calibreDbPath);
   this.lastModified = stats.mtimeMs;
@@ -584,14 +589,107 @@ async start(calibreDbPath: string, onSync: SyncCallback) {
   // Initial sync on startup
   await this.triggerSync();
 }
+
+/**
+ * Triggers a sync with retry logic for database lock errors
+ */
+private async triggerSync() {
+  if (this.suspended) return;
+  if (this.syncing) return;  // Single-instance guard
+  
+  // Check ignore period (for self-inflicted changes)
+  if (Date.now() < this.ignorePeriodEnd) {
+    logger.info("[WATCHER] In ignore period, skipping sync");
+    return;
+  }
+  
+  this.syncing = true;
+  
+  // Retry logic with exponential backoff
+  let attempt = 0;
+  while (attempt < MAX_RETRIES) {
+    try {
+      await this.syncCallback();
+      this.syncing = false;
+      return;  // Success!
+    } catch (error) {
+      attempt++;
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                         errorMessage.toLowerCase().includes('busy');
+      
+      if (isLockError && attempt < MAX_RETRIES) {
+        logger.warn({ attempt, maxRetries: MAX_RETRIES }, 
+          `[WATCHER] Database locked, retrying in ${attempt}s...`);
+        await delay(1000 * attempt);  // Exponential backoff: 1s, 2s, 3s
+        continue;
+      } else if (isLockError) {
+        // Max retries reached
+        logger.error({ attempt }, "[WATCHER] Max retries reached, giving up");
+        this.syncing = false;
+        return;
+      } else {
+        // Non-lock error - don't retry
+        logger.error({ err: error }, "[WATCHER] Sync failed with non-lock error");
+        this.syncing = false;
+        throw error;
+      }
+    }
+  }
+  
+  this.syncing = false;
+}
+
+// Suspension methods (prevent re-syncing self-inflicted changes)
+suspend() {
+  this.suspended = true;
+}
+
+resume() {
+  this.suspended = false;
+}
+
+resumeWithIgnorePeriod(ms: number) {
+  this.ignorePeriodEnd = Date.now() + ms;
+  this.suspended = false;
+}
 ```
+
+**Safety Mechanisms**:
+1. **Debouncing** (2s) - Prevents sync storms from rapid file changes
+2. **Retry Logic** (3 attempts) - Handles transient database locks
+3. **Exponential Backoff** (1s, 2s, 3s) - Gives locked process time to finish
+4. **Lock Detection** - Only retries on SQLITE_BUSY/LOCKED errors
+5. **Suspension** - Prevents re-syncing during write operations
+6. **Ignore Period** - Skips syncs for N milliseconds after resume
+7. **Single-Instance Guard** - Prevents concurrent syncs
 
 **Debounce Times**:
 - 2000ms (2s): Database file changes
 - 300ms: User input (search, filters)
 - 500ms: Window resize events
 
-**Files**: `lib/calibre-watcher.ts`
+**Retry Pattern**:
+- Max retries: 3
+- Backoff: Exponential (1s, 2s, 3s)
+- Lock detection: Case-insensitive search for 'locked' or 'busy'
+- Non-lock errors: Fail immediately (no retry)
+
+**Usage with Write Operations**:
+```typescript
+// lib/services/tag.service.ts
+calibreWatcher.suspend();  // Stop watching
+await updateCalibreTags(calibreId, tags);  // Write tags
+calibreWatcher.resumeWithIgnorePeriod(5000);  // Resume after 5s
+```
+
+**Files**: 
+- `lib/calibre-watcher.ts` - Watcher implementation
+- `lib/utils/delay.ts` - Delay utility for backoff
+- `__tests__/lib/calibre-watcher.test.ts` - 11 tests for retry logic
+
+**See Also**: [Calibre Database Safety Guide](../../docs/CALIBRE_SAFETY.md)
 
 ---
 

@@ -3,8 +3,23 @@
  *
  * ⚠️ APPROVED WRITE OPERATIONS ONLY:
  * - Update book ratings (ratings table + books_ratings_link table)
+ * - Update book tags (tags table + books_tags_link table)
  *
  * All other operations MUST use read-only connection from calibre.ts.
+ *
+ * SAFETY MECHANISMS:
+ * ------------------
+ * 1. Lock Error Detection - Catches SQLite BUSY/LOCKED errors
+ * 2. Enhanced Error Messages - Clear, actionable guidance for users
+ * 3. Structured Logging - Operation context for troubleshooting
+ * 4. Validation - Input validation prevents invalid writes
+ *
+ * USER REQUIREMENTS:
+ * -----------------
+ * - Close Calibre before tag operations (adding/removing from shelves)
+ * - Rating updates work with Calibre open (watcher has retry logic)
+ *
+ * For complete safety documentation, see: docs/CALIBRE_SAFETY.md
  *
  * VALIDATED CALIBRE SCHEMA:
  * -------------------------
@@ -18,6 +33,16 @@
  *   - book: INTEGER NOT NULL (FK to books.id)
  *   - rating: INTEGER NOT NULL (FK to ratings.id - NOT the rating value!)
  *   - UNIQUE(book, rating)
+ *
+ * tags table (lookup table):
+ *   - id: INTEGER PRIMARY KEY
+ *   - name: TEXT NOT NULL COLLATE NOCASE, UNIQUE
+ *
+ * books_tags_link table (junction table):
+ *   - id: INTEGER PRIMARY KEY
+ *   - book: INTEGER NOT NULL (FK to books.id)
+ *   - tag: INTEGER NOT NULL (FK to tags.id)
+ *   - UNIQUE(book, tag)
  *
  * RATING SCALE:
  * ------------
@@ -161,8 +186,24 @@ export function updateCalibreRating(
       }
     }
   } catch (error) {
-    getLoggerSafe().error({ err: error }, `[Calibre] Failed to update rating for book ${calibreId}`);
-    throw new Error(`Failed to update rating in Calibre database: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                       errorMessage.toLowerCase().includes('busy');
+    
+    getLoggerSafe().error(
+      { err: error, calibreId, operation: 'updateRating', isLockError },
+      `[Calibre] Failed to update rating for book ${calibreId}`
+    );
+    
+    if (isLockError) {
+      throw new Error(
+        `Calibre database is locked. Please close Calibre and try again. ` +
+        `If Calibre is already closed, wait a few seconds and retry. ` +
+        `(Book ID: ${calibreId})`
+      );
+    }
+    
+    throw new Error(`Failed to update rating in Calibre database: ${errorMessage}`);
   }
 }
 
@@ -294,8 +335,24 @@ export function updateCalibreTags(
     getLoggerSafe().info({ calibreId, linksCreated, tags: validTags }, "[Calibre] Updated tags for book")
     
   } catch (error) {
-    getLoggerSafe().error({ err: error }, `[Calibre] Failed to update tags for book ${calibreId}`);
-    throw new Error(`Failed to update tags in Calibre database: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                       errorMessage.toLowerCase().includes('busy');
+    
+    getLoggerSafe().error(
+      { err: error, calibreId, operation: 'updateTags', isLockError, tags: validTags },
+      `[Calibre] Failed to update tags for book ${calibreId}`
+    );
+    
+    if (isLockError) {
+      throw new Error(
+        `Calibre database is locked. Please close Calibre and try again. ` +
+        `If Calibre is already closed, wait a few seconds and retry. ` +
+        `(Book ID: ${calibreId})`
+      );
+    }
+    
+    throw new Error(`Failed to update tags in Calibre database: ${errorMessage}`);
   }
 }
 
@@ -374,8 +431,24 @@ export function batchUpdateCalibreTags(
       failures
     };
   } catch (error) {
-    getLoggerSafe().error({ err: error }, "[Calibre] Batch tag update failed catastrophically");
-    throw new Error(`Batch tag update failed: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                       errorMessage.toLowerCase().includes('busy');
+    
+    getLoggerSafe().error(
+      { err: error, operation: 'batchUpdateTags', totalUpdates: updates.length, isLockError },
+      "[Calibre] Batch tag update failed catastrophically"
+    );
+    
+    if (isLockError) {
+      throw new Error(
+        `Calibre database is locked. Please close Calibre and try again. ` +
+        `If Calibre is already closed, wait a few seconds and retry. ` +
+        `(Batch operation with ${updates.length} books)`
+      );
+    }
+    
+    throw new Error(`Batch tag update failed: ${errorMessage}`);
   }
 }
 

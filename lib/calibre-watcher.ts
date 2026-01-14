@@ -2,8 +2,18 @@ import { watch } from "fs";
 import { stat } from "fs/promises";
 import type { SyncResult } from "./sync-service";
 import { getLogger } from "@/lib/logger";
+import { delay } from "@/lib/utils/delay";
 
 type SyncCallback = () => Promise<SyncResult>;
+
+/**
+ * Maximum number of retry attempts when encountering database locks
+ * 
+ * When Calibre is actively writing to its database, we may encounter
+ * transient BUSY or LOCKED errors. We retry up to 3 times with exponential
+ * backoff (1s, 2s, 3s) to allow Calibre to finish its operation.
+ */
+const MAX_RETRIES = 3;
 
 class CalibreWatcher {
   private watcher: ReturnType<typeof watch> | null = null;
@@ -61,6 +71,24 @@ class CalibreWatcher {
     }
   }
 
+  /**
+   * Triggers a sync with retry logic for database lock errors
+   * 
+   * This method implements exponential backoff retry logic to handle transient
+   * database locks that occur when Calibre is actively writing to its database.
+   * 
+   * Retry behavior:
+   * - Detects SQLite BUSY/LOCKED errors (message contains 'locked' or 'busy')
+   * - Retries up to MAX_RETRIES (3) times
+   * - Exponential backoff: 1s, 2s, 3s between retries
+   * - Non-lock errors are not retried (thrown immediately)
+   * - After max retries, logs final error and gives up gracefully
+   * 
+   * Safety checks:
+   * - Respects suspension state (suspend/resume)
+   * - Respects ignore period (resumeWithIgnorePeriod)
+   * - Prevents concurrent syncs (syncing flag)
+   */
   private async triggerSync() {
     const logger = getLogger();
 
@@ -87,10 +115,59 @@ class CalibreWatcher {
 
     this.syncing = true;
     logger.info("[WATCHER] Starting automatic sync from Calibre");
+    
     try {
-      await this.syncCallback();
-      logger.info("[WATCHER] Automatic sync completed");
+      // Retry loop for handling transient database locks
+      let attempt = 0;
+      
+      while (attempt < MAX_RETRIES) {
+        try {
+          await this.syncCallback();
+          logger.info("[WATCHER] Automatic sync completed");
+          return; // Success!
+        } catch (error) {
+          attempt++;
+          
+          // Check if this is a database lock error
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                             errorMessage.toLowerCase().includes('busy');
+          
+          if (isLockError && attempt < MAX_RETRIES) {
+            // Exponential backoff: 1s, 2s, 3s
+            const backoffMs = 1000 * attempt;
+            logger.warn(
+              { 
+                attempt, 
+                maxRetries: MAX_RETRIES, 
+                errorType: 'database_lock', 
+                backoffMs,
+                errorMessage 
+              },
+              `[WATCHER] Database locked, retrying in ${backoffMs}ms (attempt ${attempt}/${MAX_RETRIES})`
+            );
+            await delay(backoffMs);
+            continue; // Retry
+          } else if (isLockError) {
+            // Max retries reached
+            logger.error(
+              { 
+                attempt, 
+                maxRetries: MAX_RETRIES, 
+                errorType: 'database_lock',
+                errorMessage 
+              },
+              `[WATCHER] Database locked after ${MAX_RETRIES} retries, giving up`
+            );
+            return; // Give up gracefully
+          } else {
+            // Not a lock error - throw immediately (don't retry)
+            throw error;
+          }
+        }
+      }
     } catch (error) {
+      // Non-lock errors end up here
       logger.error({ err: error }, "[WATCHER] Automatic sync failed");
     } finally {
       this.syncing = false;

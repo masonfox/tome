@@ -80,7 +80,7 @@ bun run dev
 
 Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre library from the Library page.
 
-## ⚠️ Calibre Concurrency
+## ⚠️ Calibre Safety
 
 Tome reads from and writes to Calibre’s `metadata.db`. **Concurrent writes** (for example, editing tags or ratings in Tome while Calibre is running) can lead to database locks or unpredictable results. **Read-only access is safe!**
 
