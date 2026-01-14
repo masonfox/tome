@@ -133,18 +133,22 @@ export default function ReadNextPage() {
 
   // Handle drag-and-drop reorder (receives array of book IDs in new order)
   const handleReorder = async (bookIds: number[]) => {
-    // Find corresponding sessions for reordered books
-    const reorderedSessions = bookIds.map((bookId) =>
-      sessions.find((s) => s.book.id === bookId)!
-    );
+    // Find corresponding sessions for reordered books and update their readNextOrder
+    const reorderedSessions = bookIds.map((bookId, index) => {
+      const session = sessions.find((s) => s.book.id === bookId)!;
+      return {
+        ...session,
+        readNextOrder: index, // Update the order in the optimistic state
+      };
+    });
 
-    // Update local state optimistically
+    // Update local state optimistically with new order values
     updateLocalOrder(reorderedSessions);
 
     // Prepare updates for API (session IDs with new order)
-    const updates = reorderedSessions.map((session, index) => ({
+    const updates = reorderedSessions.map((session) => ({
       id: session.id, // Session ID, not book ID
-      readNextOrder: index,
+      readNextOrder: session.readNextOrder,
     }));
 
     // Send to API
