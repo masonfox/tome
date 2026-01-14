@@ -4,6 +4,7 @@ import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { getLogger } from "@/lib/logger";
 import { generateAuthorSort } from "@/lib/utils/author-sort";
+import { clearCoverCache, clearBookPathCache } from "@/app/api/books/[id]/cover/route";
 
 export interface SyncResult {
   success: boolean;
@@ -394,6 +395,12 @@ export async function syncCalibreLibrary(
       },
       `[Sync] Complete: ${totalBooks} books in ${duration}s (${booksPerSecond} books/sec) - ${syncedCount} new, ${updatedCount} updated, ${removedCount} orphaned`
     );
+
+    // Clear cover caches after successful sync
+    // Ensures fresh covers are fetched if they were updated in Calibre
+    clearCoverCache();
+    clearBookPathCache();
+    logger.info("[Sync] Cleared cover caches");
 
     return {
       success: true,
