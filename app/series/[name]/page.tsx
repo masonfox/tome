@@ -10,6 +10,7 @@ import { cn } from "@/utils/cn";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface SeriesBook {
   id: number;
@@ -22,6 +23,7 @@ interface SeriesBook {
   status?: string | null;
   tags: string[];
   description?: string | null;
+  lastSynced?: Date | string | null;
 }
 
 interface SeriesInfo {
@@ -112,7 +114,7 @@ export default function SeriesDetailPage() {
                   <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden">
                     {!imageErrors[book.calibreId] ? (
                       <Image
-                        src={`/api/books/${book.calibreId}/cover`}
+                        src={getCoverUrl(book.calibreId, book.lastSynced)}
                         alt={`Cover for ${book.title}`}
                         fill
                         sizes="(max-width: 768px) 160px, 128px"
