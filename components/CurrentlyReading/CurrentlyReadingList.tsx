@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Pencil } from "lucide-react";
 import LogProgressModal from "@/components/Modals/LogProgressModal";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface Book {
   id: number;
@@ -19,6 +20,7 @@ interface Book {
   activeSession?: {
     status: string;
   };
+  lastSynced?: Date | string | null;
 }
 
 interface CurrentlyReadingListProps {
@@ -66,7 +68,7 @@ export default function CurrentlyReadingList({
                   <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
                     {!hasImageError ? (
                       <Image
-                        src={`/api/books/${book.calibreId}/cover`}
+                        src={getCoverUrl(book.calibreId, book.lastSynced)}
                         alt={book.title}
                         fill
                         loading="lazy"

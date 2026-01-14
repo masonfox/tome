@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { BookOpen } from 'lucide-react';
 import { useState } from 'react';
+import { getCoverUrl } from '@/lib/utils/cover-url';
 
 interface FannedBookCoversProps {
   /** Calibre IDs for book covers */
@@ -167,7 +168,7 @@ export default function FannedBookCovers({
                 ) : calibreId && !imageErrors[calibreId] ? (
                   // Actual cover image
                   <Image
-                    src={`/api/books/${calibreId}/cover`}
+                    src={getCoverUrl(calibreId)}
                     alt={`Cover ${index + 1}`}
                     width={dimensions.width}
                     height={dimensions.height}

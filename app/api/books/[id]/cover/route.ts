@@ -103,6 +103,10 @@ class BookPathCache {
   clear(): void {
     this.cache.clear();
   }
+
+  getSize(): number {
+    return this.cache.size;
+  }
 }
 
 const bookPathCache = new BookPathCache();
@@ -115,12 +119,14 @@ function servePlaceholderImage() {
   return new NextResponse(new Uint8Array(imageBuffer), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": "public, max-age=604800", // 1 week
     },
   });
 }
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // NOTE: Query params like ?t=<timestamp> are used for cache busting on the client
+  // but are intentionally ignored by the server. The server caches by bookId only.
   const params = await props.params;
   try {
     const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
@@ -147,7 +153,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       return new NextResponse(new Uint8Array(cachedCover.buffer), {
         headers: {
           "Content-Type": cachedCover.contentType,
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=604800", // 1 week
           "X-Cache": "HIT",
         },
       });
@@ -232,7 +238,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     return new NextResponse(new Uint8Array(imageBuffer), {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "public, max-age=604800", // 1 week
         "X-Cache": "MISS",
       },
     });
@@ -240,4 +246,36 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     getLogger().error({ err: error }, "Error serving cover image");
     return servePlaceholderImage();
   }
+}
+
+// Exported cache management functions for use during Calibre sync
+export function clearCoverCache(): void {
+  coverCache.clear();
+}
+
+export function clearBookPathCache(): void {
+  bookPathCache.clear();
+}
+
+// Cache statistics for monitoring and observability
+export interface CacheStats {
+  size: number;
+  maxSize: number;
+  maxAgeMs: number;
+}
+
+export function getCoverCacheStats(): CacheStats {
+  return {
+    size: coverCache.getSize(),
+    maxSize: CACHE_CONFIG.COVER_CACHE.MAX_SIZE,
+    maxAgeMs: CACHE_CONFIG.COVER_CACHE.MAX_AGE_MS,
+  };
+}
+
+export function getBookPathCacheStats(): CacheStats {
+  return {
+    size: bookPathCache.getSize(),
+    maxSize: CACHE_CONFIG.BOOK_PATH_CACHE.MAX_SIZE,
+    maxAgeMs: CACHE_CONFIG.BOOK_PATH_CACHE.MAX_AGE_MS,
+  };
 }

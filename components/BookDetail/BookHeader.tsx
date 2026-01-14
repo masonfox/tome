@@ -3,11 +3,13 @@ import Link from "next/link";
 import { BookOpen, ChevronDown, Check, Lock, Pencil, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG, type BookStatus } from "@/utils/statusConfig";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface BookHeaderProps {
   book: {
     calibreId: number;
     totalPages?: number;
+    lastSynced?: Date | string | null;
   };
   selectedStatus: string;
   imageError: boolean;
@@ -122,7 +124,7 @@ export default function BookHeader({
       <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden flex items-center justify-center shadow-lg">
         {!imageError ? (
           <Image
-              src={`/api/books/${book.calibreId}/cover`}
+              src={getCoverUrl(book.calibreId, book.lastSynced)}
             alt="Book cover"
             fill
             sizes="(max-width: 768px) 220px, 250px"

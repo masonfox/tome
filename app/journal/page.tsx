@@ -14,6 +14,7 @@ import { JournalEntryCard } from "@/components/Journal/JournalEntryList";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
 import { matchesDateKey } from "@/lib/utils/archive-builder";
 import { journalApi, type GroupedJournalEntry, type JournalEntry } from "@/lib/api";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 export default function JournalPage() {
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
@@ -413,7 +414,7 @@ export default function JournalPage() {
                     >
                       <div className="w-24 h-36 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
                         <Image
-                          src={`/api/books/${bookGroup.bookCalibreId}/cover`}
+                          src={getCoverUrl(bookGroup.bookCalibreId, bookGroup.bookLastSynced)}
                           alt={bookGroup.bookTitle}
                           fill
                           className="object-cover"

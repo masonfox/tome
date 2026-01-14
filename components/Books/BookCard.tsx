@@ -7,6 +7,7 @@ import { cn } from "@/utils/cn";
 import { useState, memo } from "react";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface BookCardProps {
   id: string;
@@ -16,6 +17,7 @@ interface BookCardProps {
   status?: string | null;
   currentProgress?: number;
   className?: string;
+  lastSynced?: Date | string | null;
 }
 
 export const BookCard = memo(function BookCard({
@@ -26,6 +28,7 @@ export const BookCard = memo(function BookCard({
   status,
   currentProgress,
   className,
+  lastSynced,
 }: BookCardProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -40,7 +43,7 @@ export const BookCard = memo(function BookCard({
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
           {!imageError ? (
             <Image
-              src={`/api/books/${calibreId}/cover`}
+              src={getCoverUrl(calibreId, lastSynced)}
               alt={title}
               fill
               loading="lazy"

@@ -7,6 +7,7 @@ import { cn } from "@/utils/cn";
 import { useState, memo, ReactNode } from "react";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface BookListItemProps {
   book: {
@@ -19,6 +20,7 @@ interface BookListItemProps {
     rating?: number | null;
     status?: string | null;
     currentProgress?: number;
+    lastSynced?: Date | string | null;
   };
   actions?: ReactNode;
   showProgress?: boolean;
@@ -93,7 +95,7 @@ export const BookListItem = memo(function BookListItem({
           <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-lg">
             {!imageError ? (
               <Image
-                src={`/api/books/${book.calibreId}/cover`}
+                src={getCoverUrl(book.calibreId, book.lastSynced)}
                 alt={book.title}
                 fill
                 loading="lazy"
