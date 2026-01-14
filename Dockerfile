@@ -21,6 +21,7 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # Install migration dependencies (standalone build doesn't include all dependencies)
 # These packages are needed by lib/db/migrate.ts and companion migrations which run before the app starts
 # Note: date-fns and date-fns-tz are required by companion migrations for timezone conversions
+# Note: dotenv is required by backup/restore/seed scripts for environment variable loading
 FROM base AS migration-deps
 RUN npm install \
   drizzle-orm@^0.44.7 \
@@ -28,7 +29,8 @@ RUN npm install \
   tsx@^4.7.0 \
   better-sqlite3@^12.4.1 \
   date-fns@^3.3.0 \
-  date-fns-tz@^3.2.0
+  date-fns-tz@^3.2.0 \
+  dotenv@^16.0.0
 
 # Build the application
 FROM base AS builder
