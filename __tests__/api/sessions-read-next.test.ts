@@ -34,18 +34,21 @@ describe("GET /api/sessions/read-next", () => {
     const book1 = await bookRepository.create({
       calibreId: 1,
       title: "Book 1",
+      authors: ["Author 1"],
       path: "book1.epub",
     });
 
     const book2 = await bookRepository.create({
       calibreId: 2,
       title: "Book 2",
+      authors: ["Author 2"],
       path: "book2.epub",
     });
 
     const book3 = await bookRepository.create({
       calibreId: 3,
       title: "Book 3",
+      authors: ["Author 3"],
       path: "book3.epub",
     });
 
@@ -82,6 +85,12 @@ describe("GET /api/sessions/read-next", () => {
     expect(data[0].bookId).toBe(book2.id); // order 0
     expect(data[1].bookId).toBe(book3.id); // order 1
     expect(data[2].bookId).toBe(book1.id); // order 2
+
+    // Verify book data is included
+    expect(data[0]).toHaveProperty("book");
+    expect(data[0].book).toHaveProperty("title", "Book 2");
+    expect(data[0].book).toHaveProperty("authors");
+    expect(data[0].book.authors).toEqual(["Author 2"]);
   });
 
   it("should only return read-next status books", async () => {

@@ -7,10 +7,10 @@
 
 import { useState, useCallback } from "react";
 import { toast } from "@/utils/toast";
-import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
+import type { SessionWithBook } from "@/lib/repositories/session.repository";
 
 export function useReadNextBooks() {
-  const [books, setBooks] = useState<ReadingSession[]>([]);
+  const [sessions, setSessions] = useState<SessionWithBook[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -34,7 +34,7 @@ export function useReadNextBooks() {
       }
 
       const data = await response.json();
-      setBooks(data);
+      setSessions(data);
       return data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Unknown error");
@@ -86,16 +86,66 @@ export function useReadNextBooks() {
   /**
    * Update local book order optimistically (for drag-and-drop UI)
    */
-  const updateLocalOrder = useCallback((newBooks: ReadingSession[]) => {
-    setBooks(newBooks);
+  const updateLocalOrder = useCallback((newSessions: SessionWithBook[]) => {
+    setSessions(newSessions);
   }, []);
 
+  /**
+   * Remove multiple books from read-next queue
+   * Changes session status from "read-next" to "to-read"
+   */
+  const removeBooks = useCallback(
+    async (bookIds: number[]) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Update status for each book
+        const updatePromises = bookIds.map(async (bookId) => {
+          const response = await fetch(`/api/books/${bookId}/status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "to-read" }),
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || `Failed to remove book ${bookId}`);
+          }
+
+          return response.json();
+        });
+
+        await Promise.all(updatePromises);
+
+        // Refresh the list after removal
+        await fetchBooks();
+
+        const count = bookIds.length;
+        toast.success(
+          `Removed ${count} ${count === 1 ? "book" : "books"} from Read Next`
+        );
+        
+        return true;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Unknown error");
+        setError(error);
+        toast.error(`Failed to remove books: ${error.message}`);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchBooks]
+  );
+
   return {
-    books,
+    sessions,
     loading,
     error,
     fetchBooks,
     reorderBooks,
     updateLocalOrder,
+    removeBooks,
   };
 }

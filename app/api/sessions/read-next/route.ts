@@ -1,36 +1,26 @@
 /**
  * GET /api/sessions/read-next
  * 
- * Fetches all read-next status books, sorted by readNextOrder ascending.
- * Supports optional search parameter.
+ * Fetches all read-next status books with full book data, sorted by readNextOrder ascending.
+ * Supports optional search parameter (currently unused, for future enhancement).
  */
 
 import { NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories/session.repository";
-import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.toLowerCase();
 
-    // Fetch all read-next sessions
-    const sessions = await sessionRepository.findByStatus("read-next", true, 1000);
+    // Fetch all read-next sessions with joined book data
+    // Already sorted by readNextOrder ASC in repository
+    const sessions = await sessionRepository.findReadNextWithBooks();
 
-    // Apply search filter if provided (search in book title/authors would require joining)
-    let filtered = sessions;
-    if (search) {
-      // Note: This is a simple filter. For full-text search, we'd need to join with books table.
-      // For now, we'll just return all and let the frontend handle filtering.
-      filtered = sessions;
-    }
+    // Note: Search filtering is handled client-side for v1
+    // Server-side search can be added in future if needed
 
-    // Sort by readNextOrder ascending
-    const sorted = filtered.sort((a: ReadingSession, b: ReadingSession) => 
-      (a.readNextOrder ?? 0) - (b.readNextOrder ?? 0)
-    );
-
-    return NextResponse.json(sorted);
+    return NextResponse.json(sessions);
   } catch (error) {
     console.error("[API /api/sessions/read-next] Error:", error);
     return NextResponse.json(

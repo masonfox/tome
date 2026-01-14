@@ -1,8 +1,16 @@
 import { eq, and, desc, sql, SQL, asc, gte, or } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
-import { books } from "@/lib/db/schema/books";
+import { books, Book } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
+
+/**
+ * ReadingSession with joined Book data
+ * Used for read-next queue and other views that need full book information
+ */
+export interface SessionWithBook extends ReadingSession {
+  book: Book;
+}
 
 export class SessionRepository extends BaseRepository<
   ReadingSession,
@@ -556,6 +564,71 @@ export class SessionRepository extends BaseRepository<
            .run();
        });
      });
+   }
+
+   /**
+    * Find all read-next sessions with joined book data
+    * Returns sessions sorted by readNextOrder ascending
+    * Excludes orphaned books
+    */
+   async findReadNextWithBooks(): Promise<SessionWithBook[]> {
+     const db = this.getDatabase();
+     
+     const results = db
+       .select({
+         // Session fields
+         id: readingSessions.id,
+         userId: readingSessions.userId,
+         bookId: readingSessions.bookId,
+         sessionNumber: readingSessions.sessionNumber,
+         status: readingSessions.status,
+         startedDate: readingSessions.startedDate,
+         completedDate: readingSessions.completedDate,
+         dnfDate: readingSessions.dnfDate,
+         review: readingSessions.review,
+         isActive: readingSessions.isActive,
+         readNextOrder: readingSessions.readNextOrder,
+         createdAt: readingSessions.createdAt,
+         updatedAt: readingSessions.updatedAt,
+         
+         // Book fields (nested as 'book')
+         book: {
+           id: books.id,
+           calibreId: books.calibreId,
+           title: books.title,
+           authors: books.authors,
+           authorSort: books.authorSort,
+           isbn: books.isbn,
+           totalPages: books.totalPages,
+           addedToLibrary: books.addedToLibrary,
+           lastSynced: books.lastSynced,
+           publisher: books.publisher,
+           pubDate: books.pubDate,
+           series: books.series,
+           seriesIndex: books.seriesIndex,
+           tags: books.tags,
+           path: books.path,
+           description: books.description,
+           rating: books.rating,
+           orphaned: books.orphaned,
+           orphanedAt: books.orphanedAt,
+           createdAt: books.createdAt,
+           updatedAt: books.updatedAt,
+         }
+       })
+       .from(readingSessions)
+       .innerJoin(books, eq(readingSessions.bookId, books.id))
+       .where(
+         and(
+           eq(readingSessions.status, 'read-next'),
+           eq(readingSessions.isActive, true),
+           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+         )
+       )
+       .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
+       .all();
+
+     return results as SessionWithBook[];
    }
 }
 
