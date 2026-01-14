@@ -1,6 +1,20 @@
 #!/bin/sh
 set -e
 
+# ============================================================================
+# DEPRECATED: This shell script has been replaced by scripts/entrypoint.ts
+#
+# Date: 2026-01-14
+# Reason: Convert entire Docker startup flow to TypeScript to eliminate
+#         cross-process boundaries and fix "sonic boom is not ready yet" error
+#
+# New entrypoint: scripts/entrypoint.ts
+# Docker CMD: npx tsx scripts/entrypoint.ts
+#
+# This file is kept for git history and emergency rollback purposes only.
+# Do not modify or use this script for new deployments.
+# ============================================================================
+
 DATABASE_PATH="${DATABASE_PATH:-./data/tome.db}"
 DATA_DIR=$(dirname "$DATABASE_PATH")
 MAX_RETRIES=3

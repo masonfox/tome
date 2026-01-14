@@ -82,10 +82,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 # This optimization significantly reduces image size by copying only what's needed
 COPY --from=migration-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
-# Copy and set up entrypoint script
-COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
-
 USER nextjs
 
 EXPOSE 3000
@@ -96,4 +92,6 @@ ENV HOSTNAME="0.0.0.0"
 # Volume for persistent SQLite database
 VOLUME ["/app/data"]
 
-CMD ["./docker-entrypoint.sh"]
+# Use TypeScript entrypoint (scripts/entrypoint.ts already copied above)
+# This eliminates cross-process boundaries and fixes the "sonic boom is not ready yet" error
+CMD ["npx", "tsx", "scripts/entrypoint.ts"]
