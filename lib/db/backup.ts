@@ -25,7 +25,7 @@ function getEnvConfig() {
     CALIBRE_DB_PATH: process.env.CALIBRE_DB_PATH || "",
     BACKUP_DIR: process.env.BACKUP_DIR || "./data/backups",
     BACKUP_CALIBRE_DB: process.env.BACKUP_CALIBRE_DB !== "false",
-    MAX_BACKUPS: 3
+    MAX_BACKUPS: 6
   };
 }
 
