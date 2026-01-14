@@ -27,5 +27,10 @@ export function getCoverUrl(
     ? new Date(lastSynced).getTime() 
     : lastSynced.getTime();
   
+  // Validate timestamp - fall back to base URL if invalid
+  if (isNaN(timestamp)) {
+    return baseUrl;
+  }
+  
   return `${baseUrl}?t=${timestamp}`;
 }

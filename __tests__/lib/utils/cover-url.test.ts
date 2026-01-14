@@ -76,9 +76,9 @@ describe("getCoverUrl", () => {
 
     it("should handle invalid date strings gracefully", () => {
       const url = getCoverUrl(123, "invalid-date");
-      // Invalid dates result in NaN timestamp, which becomes "NaN" in the URL
-      // This is acceptable as the server will ignore the query param anyway
-      expect(url).toContain("/api/books/123/cover?t=");
+      // Invalid dates should fall back to base URL (no NaN in URL)
+      expect(url).toBe("/api/books/123/cover");
+      expect(url).not.toContain("NaN");
     });
 
     it("should handle epoch time (timestamp 0)", () => {

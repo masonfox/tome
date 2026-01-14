@@ -103,6 +103,10 @@ class BookPathCache {
   clear(): void {
     this.cache.clear();
   }
+
+  getSize(): number {
+    return this.cache.size;
+  }
 }
 
 const bookPathCache = new BookPathCache();
@@ -251,4 +255,27 @@ export function clearCoverCache(): void {
 
 export function clearBookPathCache(): void {
   bookPathCache.clear();
+}
+
+// Cache statistics for monitoring and observability
+export interface CacheStats {
+  size: number;
+  maxSize: number;
+  maxAgeMs: number;
+}
+
+export function getCoverCacheStats(): CacheStats {
+  return {
+    size: coverCache.getSize(),
+    maxSize: CACHE_CONFIG.COVER_CACHE.MAX_SIZE,
+    maxAgeMs: CACHE_CONFIG.COVER_CACHE.MAX_AGE_MS,
+  };
+}
+
+export function getBookPathCacheStats(): CacheStats {
+  return {
+    size: bookPathCache.getSize(),
+    maxSize: CACHE_CONFIG.BOOK_PATH_CACHE.MAX_SIZE,
+    maxAgeMs: CACHE_CONFIG.BOOK_PATH_CACHE.MAX_AGE_MS,
+  };
 }
