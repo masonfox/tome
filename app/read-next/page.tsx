@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useReadNextBooks } from "@/hooks/useReadNextBooks";
 import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
+import { BookListItem } from "@/components/Books/BookListItem";
 import { BookListItemSkeleton } from "@/components/Books/BookListItemSkeleton";
 import { BookTable } from "@/components/Books/BookTable";
 import { BulkActionBar } from "@/components/ShelfManagement/BulkActionBar";
@@ -307,29 +308,50 @@ export default function ReadNextPage() {
               No books found matching &quot;{filterText}&quot;
             </p>
           </div>
+        ) : isMobile ? (
+          // Mobile: Always use draggable list (disable dragging when filtering or selecting)
+          !filterText ? (
+            <DraggableBookList
+              books={filteredBooks}
+              onReorder={handleReorder}
+              isDragEnabled={!isSelectMode}
+              isSelectMode={isSelectMode}
+              selectedBookIds={selectedBookIds}
+              onToggleSelection={toggleBookSelection}
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredBooks.map((book) => (
+                <BookListItem
+                  key={book.id}
+                  book={book}
+                  isSelectMode={isSelectMode}
+                  isSelected={selectedBookIds.has(book.id)}
+                  onToggleSelection={() => toggleBookSelection(book.id)}
+                />
+              ))}
+            </div>
+          )
         ) : (
-          <>
-            {/* Mobile: Draggable List */}
-            {isMobile ? (
-              <DraggableBookList
-                books={filteredBooks}
-                onReorder={handleReorder}
-                isSelectMode={isSelectMode}
-                selectedBookIds={selectedBookIds}
-                onToggleSelection={toggleBookSelection}
-              />
-            ) : (
-              // Desktop: Draggable Table
-              <DraggableBookTable
-                books={filteredBooks}
-                onReorder={handleReorder}
-                isSelectMode={isSelectMode}
-                selectedBookIds={selectedBookIds}
-                onToggleSelection={toggleBookSelection}
-                onToggleSelectAll={toggleSelectAll}
-              />
-            )}
-          </>
+          // Desktop: Always use draggable table (disable dragging when filtering or selecting)
+          !filterText ? (
+            <DraggableBookTable
+              books={filteredBooks}
+              onReorder={handleReorder}
+              isDragEnabled={!isSelectMode}
+              isSelectMode={isSelectMode}
+              selectedBookIds={selectedBookIds}
+              onToggleSelection={toggleBookSelection}
+              onToggleSelectAll={toggleSelectAll}
+            />
+          ) : (
+            <BookTable
+              books={filteredBooks}
+              onToggleSelection={isSelectMode ? toggleBookSelection : undefined}
+              selectedBookIds={isSelectMode ? selectedBookIds : undefined}
+              onToggleSelectAll={isSelectMode ? toggleSelectAll : undefined}
+            />
+          )
         )}
 
         {/* Bulk Action Bar */}
