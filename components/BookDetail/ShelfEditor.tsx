@@ -18,7 +18,7 @@ interface Shelf {
 interface ShelfEditorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (shelfIds: number[]) => Promise<void>;
+  onSave: (shelfIds: number[], addToTop: boolean) => Promise<void>;
   bookTitle: string;
   currentShelfIds: number[];
   availableShelves: Shelf[];
@@ -37,6 +37,7 @@ export default function ShelfEditor({
   const [selectedShelfIds, setSelectedShelfIds] = useState<number[]>(currentShelfIds);
   const [saving, setSaving] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
+  const [addToTop, setAddToTop] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function ShelfEditor({
       setSelectedShelfIds(currentShelfIds);
       setSaving(false);
       setFilterQuery("");
+      setAddToTop(false);
     }
   }, [isOpen, currentShelfIds]);
 
@@ -58,7 +60,7 @@ export default function ShelfEditor({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(selectedShelfIds);
+      await onSave(selectedShelfIds, addToTop);
       onClose();
     } catch (error) {
       // Error is handled by the parent component with toast
@@ -72,6 +74,7 @@ export default function ShelfEditor({
     if (!saving) {
       setSelectedShelfIds(currentShelfIds);
       setFilterQuery("");
+      setAddToTop(false);
       onClose();
     }
   };
@@ -189,6 +192,27 @@ export default function ShelfEditor({
             <Plus className="w-4 h-4" />
             Create Shelf
           </a>
+        </div>
+      )}
+
+      {/* Add to Top Option */}
+      {filteredShelves.length > 0 && (
+        <div className="flex items-center gap-2 px-1 mb-4">
+          <input
+            type="checkbox"
+            id="addToTop"
+            checked={addToTop}
+            onChange={(e) => setAddToTop(e.target.checked)}
+            disabled={saving}
+            className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ accentColor: 'var(--accent)' }}
+          />
+          <label
+            htmlFor="addToTop"
+            className="text-sm text-[var(--foreground)] cursor-pointer select-none"
+          >
+            Add to top of shelf
+          </label>
         </div>
       )}
 

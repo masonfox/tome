@@ -1,6 +1,6 @@
 import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { bookRepository } from "@/lib/repositories";
-import type { Shelf, NewShelf } from "@/lib/db/schema/shelves";
+import type { Shelf, NewShelf, BookShelf } from "@/lib/db/schema/shelves";
 import type { Book } from "@/lib/db/schema/books";
 import type { BookWithStatus, ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 import { getLogger } from "@/lib/logger";
@@ -230,6 +230,37 @@ export class ShelfService {
     // Reindex all books to ensure continuous sortOrder
     await shelfRepository.reindexShelfBooks(shelfId);
     logger.info({ shelfId, bookId }, "Book added to shelf successfully and books reindexed");
+  }
+
+  /**
+   * Add a book to the top (position 0) of a shelf
+   * Validates shelf and book existence, and prevents duplicate associations
+   * Shifts all existing books down by incrementing their sortOrder
+   */
+  async addBookToShelfAtTop(shelfId: number, bookId: number): Promise<BookShelf> {
+    // Validate shelf exists
+    const shelf = await shelfRepository.findById(shelfId);
+    if (!shelf) {
+      throw new Error(`Shelf with ID ${shelfId} not found`);
+    }
+
+    // Validate book exists
+    const book = await bookRepository.findById(bookId);
+    if (!book) {
+      throw new Error(`Book with ID ${bookId} not found`);
+    }
+
+    // Check if book is already on shelf
+    const isOnShelf = await shelfRepository.isBookOnShelf(shelfId, bookId);
+    if (isOnShelf) {
+      throw new Error(`Book is already on shelf "${shelf.name}"`);
+    }
+
+    logger.info({ shelfId, bookId, position: "top" }, "Adding book to top of shelf");
+    const result = await shelfRepository.addBookToShelfAtTop(shelfId, bookId);
+    logger.info({ shelfId, bookId }, "Book added to top of shelf successfully");
+
+    return result;
   }
 
   /**

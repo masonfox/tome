@@ -339,6 +339,44 @@ export class ShelfRepository extends BaseRepository<
   }
 
   /**
+   * Add a book to the top (position 0) of a shelf
+   * Shifts all existing books down by incrementing their sortOrder
+   * Uses a transaction to ensure atomicity
+   */
+  async addBookToShelfAtTop(shelfId: number, bookId: number): Promise<BookShelf> {
+    const db = this.getDatabase();
+    let insertedBook: BookShelf | undefined;
+
+    // Use transaction to ensure atomicity of shift + insert
+    db.transaction(() => {
+      // Step 1: Shift all existing books down (increment sortOrder by 1)
+      db.update(bookShelves)
+        .set({ sortOrder: sql`${bookShelves.sortOrder} + 1` })
+        .where(eq(bookShelves.shelfId, shelfId))
+        .run();
+
+      // Step 2: Insert new book at position 0
+      const result = db
+        .insert(bookShelves)
+        .values({
+          shelfId,
+          bookId,
+          sortOrder: 0,
+        })
+        .returning()
+        .all();
+
+      insertedBook = result[0] as BookShelf;
+    });
+
+    if (!insertedBook) {
+      throw new Error("Failed to add book to shelf");
+    }
+
+    return insertedBook;
+  }
+
+  /**
    * Remove a book from a shelf
    * Automatically reindexes remaining books to eliminate sortOrder gaps
    * Delegates to removeBooksFromShelf to avoid duplicate logic

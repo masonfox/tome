@@ -21,6 +21,7 @@ import BookHeader from "@/components/BookDetail/BookHeader";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
+import { bookApi } from "@/lib/api";
 
 import BookProgress from "@/components/BookDetail/BookProgress";
 import Journal from "@/components/BookDetail/Journal";
@@ -218,23 +219,22 @@ export default function BookDetailPage() {
   const currentShelfIds = currentShelves.map((s) => s.id);
 
   // Function to update book shelves
-  async function updateShelves(shelfIds: number[]) {
+  async function updateShelves(shelfIds: number[], addToTop: boolean = false) {
     try {
-      const response = await fetch(`/api/books/${bookId}/shelves`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shelfIds }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update shelves');
-      }
+      await bookApi.updateShelves(bookId, { shelfIds, addToTop });
 
       // Refetch shelf data
       await refetchBookShelves();
       
       const { toast } = await import('@/utils/toast');
-      toast.success('Shelves updated successfully');
+      
+      // Show appropriate success message
+      const added = shelfIds.filter(id => !currentShelfIds.includes(id)).length;
+      if (addToTop && added > 0) {
+        toast.success(`Added to top of ${added} shelf${added !== 1 ? 's' : ''}`);
+      } else {
+        toast.success('Shelves updated successfully');
+      }
     } catch (error) {
       logger.error({ err: error }, 'Failed to update shelves');
       const { toast } = await import('@/utils/toast');
