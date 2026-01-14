@@ -219,8 +219,10 @@ export class SessionRepository extends BaseRepository<
         status: readingSessions.status,
         startedDate: readingSessions.startedDate,
         completedDate: readingSessions.completedDate,
+        dnfDate: readingSessions.dnfDate,
         review: readingSessions.review,
         isActive: readingSessions.isActive,
+        readNextOrder: readingSessions.readNextOrder,
         createdAt: readingSessions.createdAt,
         updatedAt: readingSessions.updatedAt,
       })
