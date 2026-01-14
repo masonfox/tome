@@ -2,8 +2,8 @@
  * Tests for read-next ordering logic in SessionService
  * 
  * Tests the auto-compaction behavior when status transitions involve read-next:
- * - Entering read-next assigns sequential order
- * - Leaving read-next resets order to 0 and compacts remaining
+ * - Entering read-next assigns next available order (does NOT trigger reindex - optimization)
+ * - Leaving read-next resets order to 0 and compacts remaining books (triggers reindex)
  * - Status changes not involving read-next don't affect ordering
  */
 
@@ -61,7 +61,7 @@ describe("SessionService - Read-Next Ordering", () => {
       expect(session3?.readNextOrder).toBe(2);
     });
 
-    it("should auto-compact after entering read-next", async () => {
+    it("should NOT auto-compact when entering read-next (optimization)", async () => {
       const book = await bookRepository.create({
         calibreId: 1,
         title: "Book 1",
@@ -76,7 +76,7 @@ describe("SessionService - Read-Next Ordering", () => {
         readNextOrder: 100,
       });
 
-      // Create another book and set to read-next (should trigger compaction)
+      // Create another book and set to read-next
       const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
@@ -85,12 +85,13 @@ describe("SessionService - Read-Next Ordering", () => {
 
       await sessionService.updateStatus(book2.id, { status: "read-next" });
 
-      // Both should now be sequential (0, 1)
+      // With optimization: entering read-next does NOT trigger reindex
+      // Book 1 keeps its high order, Book 2 gets next available (101)
       const session1 = await sessionRepository.findActiveByBookId(book.id);
       const session2 = await sessionRepository.findActiveByBookId(book2.id);
 
-      expect(session1?.readNextOrder).toBe(0);
-      expect(session2?.readNextOrder).toBe(1);
+      expect(session1?.readNextOrder).toBe(100); // Unchanged
+      expect(session2?.readNextOrder).toBe(101); // Next available order
     });
   });
 

@@ -372,8 +372,11 @@ export class SessionService {
       }, tx);
     }
 
-    // Auto-compact read-next queue if status changed involving read-next
-    if (!tx && (status === "read-next" || oldStatus === "read-next")) {
+    // Auto-compact read-next queue only when LEAVING read-next status
+    // This eliminates gaps created by removed books while reducing reindex frequency by 50%
+    // Entering read-next: new book gets next available order (may have gaps, but that's OK)
+    // Leaving read-next: renumber remaining books to maintain clean sequential order
+    if (!tx && oldStatus === "read-next" && status !== "read-next") {
       await sessionRepository.reindexReadNextOrders();
     }
 

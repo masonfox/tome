@@ -63,9 +63,11 @@ export default function ReadNextPage() {
   }, [fetchBooks]);
 
   // Map sessions to books with sortOrder for draggable components
-  const books: (Book & { sortOrder: number })[] = sessions.map((session) => ({
+  // Use array index for sortOrder so Order column displays sequential "1, 2, 3..."
+  // even if database has gaps (gaps are cleaned up when books leave read-next)
+  const books: (Book & { sortOrder: number })[] = sessions.map((session, index) => ({
     ...session.book,
-    sortOrder: session.readNextOrder,
+    sortOrder: index, // Display position (0-based, table adds 1 for display)
   }));
 
   // Filter books based on search text
