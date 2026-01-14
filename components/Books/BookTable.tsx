@@ -8,6 +8,7 @@ import { useState, ReactNode } from "react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 
 type SortDirection = "asc" | "desc";
 
@@ -24,6 +25,7 @@ interface BookTableBook {
   dateAddedToShelf?: Date | null;
   status?: string | null;
   sortOrder?: number;
+  lastSynced?: Date | string | null;
 }
 
 interface BookTableProps {
@@ -222,7 +224,7 @@ export function BookTable({
                     <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
                       {!hasImageError ? (
                         <Image
-                          src={`/api/books/${book.calibreId}/cover`}
+                          src={getCoverUrl(book.calibreId, book.lastSynced)}
                           alt={book.title}
                           fill
                           loading="lazy"

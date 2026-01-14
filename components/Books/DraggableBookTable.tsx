@@ -8,6 +8,7 @@ import { cn } from "@/utils/cn";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { type BookStatus } from "@/utils/statusConfig";
+import { getCoverUrl } from "@/lib/utils/cover-url";
 import {
   DndContext,
   closestCenter,
@@ -43,6 +44,7 @@ interface BookTableBook {
   dateAddedToShelf?: Date | null;
   status?: string | null;
   sortOrder?: number;
+  lastSynced?: Date | string | null;
 }
 
 interface DraggableBookTableProps {
@@ -144,7 +146,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
           <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
             {!hasImageError ? (
               <Image
-                src={`/api/books/${book.calibreId}/cover`}
+                src={getCoverUrl(book.calibreId, book.lastSynced)}
                 alt={book.title}
                 fill
                 loading="lazy"
