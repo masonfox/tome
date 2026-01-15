@@ -5,6 +5,7 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
 import type { NextRequest } from "next/server";
 import { subDays } from "date-fns";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 /**
  * Streak API Tests - /api/streak
@@ -43,8 +44,8 @@ describe("Streak API - GET /api/streak", () => {
         currentStreak: 5,
         longestStreak: 10,
         dailyThreshold: 15,
-        lastActivityDate: new Date(),
-        streakStartDate: subDays(new Date(), 5),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(subDays(new Date(), 5)),
         totalDaysActive: 20,
         streakEnabled: true,
         userId: null,
@@ -86,8 +87,8 @@ describe("Streak API - GET /api/streak", () => {
         currentStreak: 3,
         longestStreak: 5,
         dailyThreshold: 10,
-        lastActivityDate: new Date(),
-        streakStartDate: subDays(new Date(), 3),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(subDays(new Date(), 3)),
         totalDaysActive: 10,
         streakEnabled: true,
         userId: null,
@@ -110,8 +111,8 @@ describe("Streak API - GET /api/streak", () => {
         currentStreak: 5,
         longestStreak: 10,
         dailyThreshold: 15,
-        lastActivityDate: subDays(new Date(), 3), // 3 days ago (missed)
-        streakStartDate: subDays(new Date(), 8),
+        lastActivityDate: toDateString(subDays(new Date(), 3)), // 3 days ago (missed)
+        streakStartDate: toDateString(subDays(new Date(), 8)),
         totalDaysActive: 20,
         streakEnabled: true,
         userId: null,
@@ -132,8 +133,8 @@ describe("Streak API - GET /api/streak", () => {
         currentStreak: 5,
         longestStreak: 10,
         dailyThreshold: 15,
-        lastActivityDate: subDays(new Date(), 1), // Yesterday
-        streakStartDate: subDays(new Date(), 5),
+        lastActivityDate: toDateString(subDays(new Date(), 1)), // Yesterday
+        streakStartDate: toDateString(subDays(new Date(), 5)),
         totalDaysActive: 20,
         streakEnabled: true,
         userId: null,
@@ -154,8 +155,8 @@ describe("Streak API - GET /api/streak", () => {
         currentStreak: 5,
         longestStreak: 10,
         dailyThreshold: 15,
-        lastActivityDate: new Date(), // Today
-        streakStartDate: subDays(new Date(), 5),
+        lastActivityDate: toDateString(new Date()), // Today
+        streakStartDate: toDateString(subDays(new Date(), 5)),
         totalDaysActive: 20,
         streakEnabled: true,
         userId: null,
@@ -174,8 +175,8 @@ describe("Streak API - GET /api/streak", () => {
         currentStreak: 0,
         longestStreak: 0,
         dailyThreshold: 15,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         streakEnabled: false, // Disabled
         userId: null,
@@ -233,8 +234,8 @@ describe("Streak API - PATCH /api/streak (dailyThreshold)", () => {
         currentStreak: 5,
         longestStreak: 10,
         dailyThreshold: 15,
-        lastActivityDate: new Date(),
-        streakStartDate: subDays(new Date(), 5),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(subDays(new Date(), 5)),
         totalDaysActive: 20,
         streakEnabled: true,
         userId: null,
