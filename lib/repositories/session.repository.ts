@@ -601,16 +601,29 @@ export class SessionRepository extends BaseRepository<
       return;
     }
     
-    // Get all read-next sessions ordered by readNextOrder
-    const allReadNext = db
-      .select({ id: readingSessions.id, readNextOrder: readingSessions.readNextOrder })
-      .from(readingSessions)
-      .where(eq(readingSessions.status, 'read-next'))
-      .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
-      .all();
+    // Validate readNextOrder is not null
+    const currentOrder = session.readNextOrder;
+    if (currentOrder === null || currentOrder === undefined) {
+      throw new Error(`Session ${sessionId} has null readNextOrder`);
+    }
     
-    // Use transaction to update all sessions atomically
+    // Use transaction to update all sessions atomically with batch queries
     await db.transaction((tx) => {
+      // Increment all sessions with order < current order (batch update)
+      tx.update(readingSessions)
+        .set({ 
+          readNextOrder: sql`${readingSessions.readNextOrder} + 1`,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(readingSessions.status, 'read-next'),
+            sql`${readingSessions.readNextOrder} < ${currentOrder}`,
+            sql`${readingSessions.readNextOrder} IS NOT NULL`
+          )
+        )
+        .run();
+      
       // Set target session to position 0
       tx.update(readingSessions)
         .set({ 
@@ -619,19 +632,6 @@ export class SessionRepository extends BaseRepository<
         })
         .where(eq(readingSessions.id, sessionId))
         .run();
-      
-      // Increment only sessions that were before the moved session
-      for (const item of allReadNext) {
-        if (item.id !== sessionId && item.readNextOrder < session.readNextOrder!) {
-          tx.update(readingSessions)
-            .set({ 
-              readNextOrder: item.readNextOrder + 1,
-              updatedAt: new Date()
-            })
-            .where(eq(readingSessions.id, item.id))
-            .run();
-        }
-      }
     });
   }
 

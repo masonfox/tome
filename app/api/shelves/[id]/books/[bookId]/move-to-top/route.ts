@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { shelfService } from "@/lib/services/shelf.service";
+import { bookRepository } from "@/lib/repositories/book.repository";
+import { handleApiError } from "@/lib/api/error-handler";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
@@ -47,6 +49,21 @@ export async function POST(
       );
     }
 
+    // Validate book exists
+    const book = await bookRepository.findById(bookId);
+    if (!book) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: `Book with ID ${bookId} not found`,
+          },
+        },
+        { status: 404 }
+      );
+    }
+
     logger.debug({ shelfId, bookId }, "Moving book to top of shelf");
     await shelfService.moveBookToTop(shelfId, bookId);
     logger.info({ shelfId, bookId }, "Book moved to top successfully");
@@ -63,47 +80,18 @@ export async function POST(
     const errorId = crypto.randomUUID();
     logger.error({ error, errorId }, "Failed to move book to top");
 
-    if (error instanceof Error) {
-      if (error.message.includes("not found")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: error.message,
-            },
-          },
-          { status: 404 }
-        );
-      }
-
-      if (error.message.includes("not on shelf")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "NOT_ON_SHELF",
-              message: error.message,
-            },
-          },
-          { status: 400 }
-        );
-      }
-    }
+    const { code, message, status, errorId: includeErrorId } = handleApiError(error, errorId);
 
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: "INTERNAL_ERROR",
-          message:
-            process.env.NODE_ENV === "development"
-              ? (error as Error).message
-              : "An unexpected error occurred",
-          errorId,
+          code,
+          message,
+          ...(includeErrorId && { errorId: includeErrorId }),
         },
       },
-      { status: 500 }
+      { status }
     );
   }
 }

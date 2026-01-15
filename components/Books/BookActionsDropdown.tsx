@@ -22,6 +22,7 @@ export function BookActionsDropdown({
   disabled = false,
 }: BookActionsDropdownProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -69,18 +70,23 @@ export function BookActionsDropdown({
           </Link>
           
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
-              onMoveToTop();
-              setShowMenu(false);
+              setIsMoving(true);
+              try {
+                await onMoveToTop();
+              } finally {
+                setIsMoving(false);
+                setShowMenu(false);
+              }
             }}
-            disabled={isAtTop}
+            disabled={isAtTop || isMoving}
             className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={isAtTop ? "Already at top" : "Move to top of list"}
+            title={isAtTop ? "Already at top" : isMoving ? "Moving..." : "Move to top of list"}
           >
             <ArrowUp className="w-4 h-4" />
-            Move to Top
+            {isMoving ? "Moving..." : "Move to Top"}
           </button>
 
           <button

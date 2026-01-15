@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories/session.repository";
+import { handleApiError } from "@/lib/api/error-handler";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
@@ -44,47 +45,18 @@ export async function POST(
     const errorId = crypto.randomUUID();
     logger.error({ error, errorId }, "Failed to move session to top");
 
-    if (error instanceof Error) {
-      if (error.message.includes("not found")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: error.message,
-            },
-          },
-          { status: 404 }
-        );
-      }
-
-      if (error.message.includes("not in read-next status")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "INVALID_STATUS",
-              message: error.message,
-            },
-          },
-          { status: 400 }
-        );
-      }
-    }
+    const { code, message, status, errorId: includeErrorId } = handleApiError(error, errorId);
 
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: "INTERNAL_ERROR",
-          message:
-            process.env.NODE_ENV === "development"
-              ? (error as Error).message
-              : "An unexpected error occurred",
-          errorId,
+          code,
+          message,
+          ...(includeErrorId && { errorId: includeErrorId }),
         },
       },
-      { status: 500 }
+      { status }
     );
   }
 }

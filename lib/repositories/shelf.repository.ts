@@ -11,6 +11,9 @@ import {
 import { books, Book } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 
+// Matches FannedBookCovers maxCovers default
+const MAX_SHELF_COVERS = 12;
+
 export interface ShelfWithBookCount extends Shelf {
   bookCount: number;
 }
@@ -104,7 +107,7 @@ export class ShelfRepository extends BaseRepository<
         .innerJoin(books, eq(bookShelves.bookId, books.id))
         .where(eq(bookShelves.shelfId, shelf.id))
         .orderBy(asc(bookShelves.sortOrder))
-        .limit(12)
+        .limit(MAX_SHELF_COVERS)
         .all();
       
       result.push({
@@ -500,39 +503,36 @@ export class ShelfRepository extends BaseRepository<
       throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
     }
     
+    // Validate sortOrder is not null
+    const currentOrder = bookOnShelf.sortOrder;
+    if (currentOrder === null || currentOrder === undefined) {
+      throw new Error(`Book ${bookId} on shelf ${shelfId} has null sortOrder`);
+    }
+    
     // If already at position 0, no-op
-    if (bookOnShelf.sortOrder === 0) {
+    if (currentOrder === 0) {
       return;
     }
     
-    // Get all books on the shelf ordered by sortOrder
-    const allBooks = await db
-      .select({
-        bookId: bookShelves.bookId,
-        sortOrder: bookShelves.sortOrder,
-      })
-      .from(bookShelves)
-      .where(eq(bookShelves.shelfId, shelfId))
-      .orderBy(bookShelves.sortOrder, bookShelves.bookId)
-      .all();
-    
-    // Use transaction to update all books atomically
+    // Use transaction to update all books atomically with batch queries
     db.transaction(() => {
+      // Increment all books with order < current order (batch update)
+      db.update(bookShelves)
+        .set({ sortOrder: sql`${bookShelves.sortOrder} + 1` })
+        .where(
+          and(
+            eq(bookShelves.shelfId, shelfId),
+            sql`${bookShelves.sortOrder} < ${currentOrder}`,
+            sql`${bookShelves.sortOrder} IS NOT NULL`
+          )
+        )
+        .run();
+      
       // Set target book to position 0
       db.update(bookShelves)
         .set({ sortOrder: 0 })
         .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
         .run();
-      
-      // Increment only books that were before the moved book
-      for (const item of allBooks) {
-        if (item.bookId !== bookId && item.sortOrder < bookOnShelf.sortOrder) {
-          db.update(bookShelves)
-            .set({ sortOrder: item.sortOrder + 1 })
-            .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, item.bookId)))
-            .run();
-        }
-      }
     });
   }
 
