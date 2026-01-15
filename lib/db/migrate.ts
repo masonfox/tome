@@ -160,6 +160,59 @@ export async function runMigrations() {
     // Always release lock, even if migration fails
     releaseMigrationLock();
     
+    // CRITICAL: Force WAL checkpoint to ensure all changes are persisted to main database file
+    // This is essential when migrations run in a separate process (entrypoint.ts) before
+    // the Next.js app starts. Without this checkpoint, the new process may not see the
+    // migrated schema because changes are still in the WAL file.
+    //
+    // TRUNCATE mode ensures:
+    // 1. All WAL frames are written to the main database file
+    // 2. WAL file is reset to zero size
+    // 3. Changes are visible to all future connections (even in new processes)
+    //
+    // Returns: [busy, log, checkpointed] where:
+    //   busy = number of frames not checkpointed (should be 0)
+    //   log = total frames in WAL before checkpoint
+    //   checkpointed = number of frames successfully checkpointed
+    try {
+      getLoggerSafe().info("Forcing WAL checkpoint to persist migrations...");
+      const checkpointResult = sqlite.pragma('wal_checkpoint(TRUNCATE)');
+      
+      // Log checkpoint statistics for debugging
+      // better-sqlite3 returns an object: { busy: number, log: number, checkpointed: number }
+      let busy = 0, log = 0, checkpointed = 0;
+      
+      if (typeof checkpointResult === 'object' && checkpointResult !== null) {
+        busy = (checkpointResult as any).busy || 0;
+        log = (checkpointResult as any).log || 0;
+        checkpointed = (checkpointResult as any).checkpointed || 0;
+      }
+      
+      getLoggerSafe().info(
+        { 
+          busy, 
+          log, 
+          checkpointed,
+          fullyCheckpointed: busy === 0 
+        },
+        "WAL checkpoint complete"
+      );
+      
+      if (busy > 0) {
+        getLoggerSafe().warn(
+          { busy, log, checkpointed },
+          `WAL checkpoint incomplete: ${busy} frames still busy (may indicate locked database)`
+        );
+      }
+    } catch (checkpointError) {
+      // Checkpoint failure is serious but not fatal - log and continue
+      // The migration may still work if the process doesn't exit immediately
+      getLoggerSafe().error(
+        { err: checkpointError },
+        "WAL checkpoint failed - migrations may not be visible to new processes"
+      );
+    }
+    
     // Final safety check: ensure FK state is correct
     const finalFkState = sqlite.pragma('foreign_keys', { simple: true });
     getLoggerSafe().info(
