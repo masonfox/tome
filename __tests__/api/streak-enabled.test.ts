@@ -35,10 +35,11 @@ function getDaysAgo(days: number): string {
   return targetDate.toISOString().split('T')[0];
 }
 
-// Helper to get Date object for relative days
-function getDateDaysAgo(days: number): Date {
+// Helper to get Date string for relative days (YYYY-MM-DD)
+function getDateDaysAgo(days: number): string {
   const { subDays } = require('date-fns');
-  return subDays(new Date(), days);
+  const { toDateString } = require('@/utils/dateHelpers.server');
+  return toDateString(subDays(new Date(), days));
 }
 
 describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
@@ -48,6 +49,8 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 0,
         longestStreak: 0,
+        lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(0),
         dailyThreshold: 10,
         streakEnabled: false,
       });
@@ -71,6 +74,8 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 0,
         longestStreak: 0,
+        lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(0),
         dailyThreshold: 15,
         streakEnabled: false,
       });
@@ -136,6 +141,8 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 0,
         longestStreak: 0,
+        lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(0),
         dailyThreshold: 10,
         streakEnabled: false,
       });
@@ -183,6 +190,7 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
         currentStreak: 5,
         longestStreak: 10,
         lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(5),
         dailyThreshold: 10,
         streakEnabled: true,
       });
@@ -208,6 +216,7 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
         currentStreak: 3,
         longestStreak: 5,
         lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(3),
         dailyThreshold: 15,
         streakEnabled: true,
       });
@@ -274,6 +283,7 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
         currentStreak: 2,
         longestStreak: 5,
         lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(2),
         dailyThreshold: 10,
         streakEnabled: false,
       });
@@ -314,6 +324,8 @@ describe("PATCH /api/streak - Enable/Disable Streak Tracking", () => {
       await streakRepository.create({
         currentStreak: 0,
         longestStreak: 0,
+        lastActivityDate: getDateDaysAgo(0),
+        streakStartDate: getDateDaysAgo(0),
         dailyThreshold: 10,
         streakEnabled: false,
       });
