@@ -64,7 +64,9 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
   }, "[Streak] Checking daily threshold");
 
   // Has activity today, check if it's consecutive (using user's timezone)
-  const lastActivity = startOfDay(toZonedTime(streak.lastActivityDate, userTimezone));
+  // Parse lastActivityDate as local date (YYYY-MM-DD format)
+  const [lastYear, lastMonth, lastDay] = streak.lastActivityDate.split('-').map(Number);
+  const lastActivity = startOfDay(new Date(lastYear, lastMonth - 1, lastDay));
   const daysDiff = differenceInDays(todayInUserTz, lastActivity);
 
   if (daysDiff === 0) {
@@ -74,11 +76,12 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
       // This handles fresh database or restart after breaking streak
       logger.info("[Streak] First day activity meets threshold, setting streak to 1");
       const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive;
+      const todayString = toDateString(todayUtc);
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 1,
         longestStreak: Math.max(1, streak.longestStreak),
         totalDaysActive: newTotalDays,
-        lastActivityDate: todayUtc,
+        lastActivityDate: todayString,
       } as any);
       logger.info({
         currentStreak: updated?.currentStreak,
@@ -94,9 +97,10 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
         pagesRead: todayProgress.pagesRead,
         dailyThreshold,
       }, "[Streak] Threshold no longer met, resetting streak to 0");
+      const todayString = toDateString(todayUtc);
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 0,
-        lastActivityDate: todayUtc,
+        lastActivityDate: todayString,
       } as any);
       logger.info({
         currentStreak: updated?.currentStreak,
@@ -126,11 +130,12 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
     const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
     const newTotalDays = streak.totalDaysActive + 1;
 
+    const todayString = toDateString(todayUtc);
     const updated = await streakRepository.update(streak.id, {
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       totalDaysActive: newTotalDays,
-      lastActivityDate: todayUtc,
+      lastActivityDate: todayString,
     } as any);
     logger.info({
       from: oldStreak,
@@ -142,11 +147,12 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
     // Streak broken (or first activity after a gap)
     logger.warn({ gapDays: daysDiff }, "[Streak] Streak broken");
     const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
+    const todayString = toDateString(todayUtc);
     const updated = await streakRepository.update(streak.id, {
       currentStreak: 1,
-      streakStartDate: todayUtc,
+      streakStartDate: todayString,
       totalDaysActive: newTotalDays,
-      lastActivityDate: todayUtc,
+      lastActivityDate: todayString,
     } as any);
     return updated!;
   }
