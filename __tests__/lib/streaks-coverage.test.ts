@@ -10,6 +10,7 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
 import { startOfDay } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { toProgressDate, toSessionDate } from "../test-utils";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 /**
  * Streak Coverage Tests
@@ -125,8 +126,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 20,
       });
@@ -201,8 +202,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 15,
       });
@@ -457,8 +458,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: threeDaysAgo,
-        streakStartDate: getStreakDate(-8),
+        lastActivityDate: toDateString(threeDaysAgo),
+        streakStartDate: toDateString(getStreakDate(-8)),
         totalDaysActive: 5,
       });
 
@@ -476,8 +477,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 5,
-        lastActivityDate: today,
-        streakStartDate: getStreakDate(-3),
+        lastActivityDate: toDateString(today),
+        streakStartDate: toDateString(getStreakDate(-3)),
         totalDaysActive: 3,
       });
 
@@ -495,8 +496,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 2,
         longestStreak: 5,
-        lastActivityDate: yesterday,
-        streakStartDate: getStreakDate(-2),
+        lastActivityDate: toDateString(yesterday),
+        streakStartDate: toDateString(getStreakDate(-2)),
         totalDaysActive: 2,
       });
 
@@ -514,10 +515,10 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 5,
-        lastActivityDate: getStreakDate(-1),
-        streakStartDate: getStreakDate(-3),
+        lastActivityDate: toDateString(getStreakDate(-1)),
+        streakStartDate: toDateString(getStreakDate(-3)),
         totalDaysActive: 3,
-        lastCheckedDate: today, // Already checked today
+        lastCheckedDate: toDateString(today), // Already checked today
       });
 
       const wasReset = await checkAndResetStreakIfNeeded();
@@ -531,8 +532,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 0, // Already reset
         longestStreak: 10,
-        lastActivityDate: threeDaysAgo,
-        streakStartDate: threeDaysAgo,
+        lastActivityDate: toDateString(threeDaysAgo),
+        streakStartDate: toDateString(threeDaysAgo),
         totalDaysActive: 5,
       });
 
@@ -548,8 +549,8 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: getStreakDate(0),
-        streakStartDate: getStreakDate(0),
+        lastActivityDate: toDateString(getStreakDate(0)),
+        streakStartDate: toDateString(getStreakDate(0)),
         totalDaysActive: 0,
         dailyThreshold: 100, // High threshold
       });

@@ -4,6 +4,7 @@ import { streakRepository } from "@/lib/repositories/streak.repository";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { getDatabase } from "@/lib/db/context";
 import { streaks } from "@/lib/db/schema/streaks";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 describe("StreakService - Auto-initialization", () => {
   beforeAll(async () => {
@@ -35,8 +36,8 @@ describe("StreakService - Auto-initialization", () => {
       expect(streak.totalDaysActive).toBe(0);
       expect(streak.dailyThreshold).toBe(1);
       expect(streak.userId).toBeNull();
-      expect(streak.lastActivityDate).toBeInstanceOf(Date);
-      expect(streak.streakStartDate).toBeInstanceOf(Date);
+      expect(typeof streak.lastActivityDate).toBe('string');
+      expect(typeof streak.streakStartDate).toBe('string');
       expect(streak.hoursRemainingToday).toBeGreaterThanOrEqual(0);
       expect(streak.hoursRemainingToday).toBeLessThanOrEqual(24);
     });
@@ -47,8 +48,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 15,
         dailyThreshold: 25,
       });
@@ -80,8 +81,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 1,
         userTimezone: 'Asia/Tokyo',
@@ -139,8 +140,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 5,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 8,
         dailyThreshold: 1,
       });
@@ -268,8 +269,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 6,
         longestStreak: 10,
-        lastActivityDate: threeDaysAgo,
-        streakStartDate: threeDaysAgo,
+        lastActivityDate: toDateString(threeDaysAgo),
+        streakStartDate: toDateString(threeDaysAgo),
         totalDaysActive: 20,
         dailyThreshold: 1,
       });
@@ -295,8 +296,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: yesterday,
-        streakStartDate: yesterday,
+        lastActivityDate: toDateString(yesterday),
+        streakStartDate: toDateString(yesterday),
         totalDaysActive: 15,
         dailyThreshold: 1,
       });
@@ -320,8 +321,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 8,
-        lastActivityDate: today,
-        streakStartDate: today,
+        lastActivityDate: toDateString(today),
+        streakStartDate: toDateString(today),
         totalDaysActive: 10,
         dailyThreshold: 1,
       });
@@ -346,8 +347,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 15,
-        lastActivityDate: fiveDaysAgo,
-        streakStartDate: fiveDaysAgo,
+        lastActivityDate: toDateString(fiveDaysAgo),
+        streakStartDate: toDateString(fiveDaysAgo),
         totalDaysActive: 25,
         dailyThreshold: 1,
       });
@@ -391,8 +392,8 @@ describe("StreakService - Auto-initialization", () => {
         userId: null,
         currentStreak: 6,
         longestStreak: 10,
-        lastActivityDate: threeDaysAgo,
-        streakStartDate: threeDaysAgo,
+        lastActivityDate: toDateString(threeDaysAgo),
+        streakStartDate: toDateString(threeDaysAgo),
         totalDaysActive: 20,
         dailyThreshold: 1,
       });
@@ -422,8 +423,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
           dailyThreshold: 10,
           streakEnabled: false,
@@ -442,8 +443,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
           dailyThreshold: 15,
           streakEnabled: false,
@@ -487,8 +488,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 5,
           longestStreak: 10,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 15,
           dailyThreshold: 20,
           streakEnabled: true,
@@ -512,8 +513,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 11,
           longestStreak: 20,
-          lastActivityDate: lastActivity,
-          streakStartDate: streakStart,
+          lastActivityDate: toDateString(lastActivity),
+          streakStartDate: toDateString(streakStart),
           totalDaysActive: 50,
           dailyThreshold: 30,
           streakEnabled: true,
@@ -544,8 +545,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
           dailyThreshold: 15,
           streakEnabled: false,
@@ -571,8 +572,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 3,
           longestStreak: 5,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 10,
           dailyThreshold: 10,
           streakEnabled: false,
@@ -595,8 +596,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 2,
           longestStreak: 5,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 8,
           dailyThreshold: 10,
           streakEnabled: false,
@@ -625,8 +626,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
           dailyThreshold: 15,
           streakEnabled: true,
@@ -664,8 +665,8 @@ describe("StreakService - Auto-initialization", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
           dailyThreshold: 10,
           streakEnabled: true,
