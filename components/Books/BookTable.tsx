@@ -41,6 +41,7 @@ interface BookTableProps {
   selectedBookIds?: Set<number>;
   onToggleSelection?: (bookId: number) => void;
   onToggleSelectAll?: () => void;
+  renderActions?: (book: BookTableBook, index: number) => React.ReactNode;
 }
 
 export function BookTable({
@@ -56,6 +57,7 @@ export function BookTable({
   selectedBookIds = new Set(),
   onToggleSelection,
   onToggleSelectAll,
+  renderActions,
 }: BookTableProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
@@ -340,25 +342,29 @@ export function BookTable({
 
                 {/* Actions */}
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/books/${book.id}`}
-                      className="p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
-                      title="View details"
-                      onClick={(e) => isSelectMode && e.stopPropagation()}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Link>
-                    {onRemoveBook && !isSelectMode && (
-                      <button
-                        onClick={() => onRemoveBook(book.id)}
-                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                        title="Remove from shelf"
+                  {renderActions ? (
+                    renderActions(book, index)
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/books/${book.id}`}
+                        className="p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+                        title="View details"
+                        onClick={(e) => isSelectMode && e.stopPropagation()}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                      {onRemoveBook && !isSelectMode && (
+                        <button
+                          onClick={() => onRemoveBook(book.id)}
+                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          title="Remove from shelf"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             );

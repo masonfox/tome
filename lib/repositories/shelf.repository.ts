@@ -482,6 +482,56 @@ export class ShelfRepository extends BaseRepository<
   }
 
   /**
+   * Move a book to the top of a shelf (position 0) and shift all others down
+   * @param shelfId The shelf ID
+   * @param bookId The book ID to move to the top
+   */
+  async moveBookToTop(shelfId: number, bookId: number): Promise<void> {
+    const db = this.getDatabase();
+    
+    // Check if book is on the shelf
+    const bookOnShelf = await db
+      .select()
+      .from(bookShelves)
+      .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
+      .get();
+    
+    if (!bookOnShelf) {
+      throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
+    }
+    
+    // Get all books on the shelf ordered by sortOrder
+    const allBooks = await db
+      .select({
+        bookId: bookShelves.bookId,
+        sortOrder: bookShelves.sortOrder,
+      })
+      .from(bookShelves)
+      .where(eq(bookShelves.shelfId, shelfId))
+      .orderBy(bookShelves.sortOrder, bookShelves.bookId)
+      .all();
+    
+    // Use transaction to update all books atomically
+    db.transaction(() => {
+      // Set target book to position 0
+      db.update(bookShelves)
+        .set({ sortOrder: 0 })
+        .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
+        .run();
+      
+      // Increment all other books by 1
+      for (const item of allBooks) {
+        if (item.bookId !== bookId) {
+          db.update(bookShelves)
+            .set({ sortOrder: item.sortOrder + 1 })
+            .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, item.bookId)))
+            .run();
+        }
+      }
+    });
+  }
+
+  /**
    * Check if a book is on a specific shelf
    */
   async isBookOnShelf(shelfId: number, bookId: number): Promise<boolean> {

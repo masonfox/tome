@@ -41,7 +41,7 @@ interface Book {
 interface DraggableBookListProps {
   books: Book[];
   onReorder: (bookIds: number[]) => void;
-  renderActions?: (book: Book) => ReactNode;
+  renderActions?: (book: Book, index: number) => ReactNode;
   isDragEnabled?: boolean;
   isSelectMode?: boolean;
   selectedBookIds?: Set<number>;
@@ -182,11 +182,11 @@ export function DraggableBookList({
     // Render without drag-and-drop
     return (
       <div className="space-y-4">
-        {books.map((book) => (
+        {books.map((book, index) => (
           <BookListItem
             key={book.id}
             book={book}
-            actions={renderActions?.(book)}
+            actions={renderActions?.(book, index)}
             isSelectMode={isSelectMode}
             isSelected={selectedBookIds.has(book.id)}
             onToggleSelection={() => onToggleSelection?.(book.id)}
@@ -206,11 +206,11 @@ export function DraggableBookList({
     >
       <SortableContext items={localBooks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-4">
-          {localBooks.map((book) => (
+          {localBooks.map((book, index) => (
             <SortableBookItem
               key={book.id}
               book={book}
-              actions={renderActions?.(book)}
+              actions={renderActions?.(book, index)}
               isSelectMode={isSelectMode}
               isSelected={selectedBookIds.has(book.id)}
               onToggleSelection={() => onToggleSelection?.(book.id)}
@@ -228,7 +228,10 @@ export function DraggableBookList({
               </div>
             )}
             <div className="flex-1">
-              <BookListItem book={activeBook} actions={renderActions?.(activeBook)} />
+              <BookListItem 
+                book={activeBook} 
+                actions={renderActions?.(activeBook, localBooks.findIndex(b => b.id === activeBook.id))} 
+              />
             </div>
           </div>
         ) : null}

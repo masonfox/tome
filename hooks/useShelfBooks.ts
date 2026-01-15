@@ -328,16 +328,93 @@ export function useShelfBooks(
     },
   });
 
+  /**
+   * Mutation: Move a book to the top of the shelf
+   * Uses optimistic updates for instant feedback
+   */
+  const moveToTopMutation = useMutation({
+    mutationFn: async (bookId: number) => {
+      if (!shelfId) {
+        throw new Error("No shelf ID provided");
+      }
+
+      const response = await fetch(`/api/shelves/${shelfId}/books/${bookId}/move-to-top`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Failed to move to top");
+      }
+
+      return true;
+    },
+    onMutate: async (bookId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+
+      // Snapshot previous value
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
+        "shelf",
+        shelfId,
+        { orderBy, direction },
+      ]);
+
+      // Optimistically update: move book to top
+      if (previousShelf) {
+        const bookToMove = previousShelf.books.find((b) => b.id === bookId);
+        if (bookToMove) {
+          // Create new array with moved book at top
+          const otherBooks = previousShelf.books.filter((b) => b.id !== bookId);
+          const optimisticBooks = [
+            { ...bookToMove, sortOrder: 0 },
+            ...otherBooks.map((book, index) => ({
+              ...book,
+              sortOrder: index + 1,
+            })),
+          ] as BookWithStatus[];
+
+          queryClient.setQueryData(
+            ["shelf", shelfId, { orderBy, direction }],
+            {
+              ...previousShelf,
+              books: optimisticBooks,
+            }
+          );
+        }
+      }
+
+      return { previousShelf };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousShelf) {
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          context.previousShelf
+        );
+      }
+      toast.error(`Failed to move to top: ${getErrorMessage(err)}`);
+    },
+    onSuccess: () => {
+      toast.success("Moved to top of shelf");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+    },
+  });
+
   return {
     shelf,
     books: shelf?.books || [],
-    loading: isLoading || addBooksMutation.isPending || removeBookMutation.isPending || removeBooksMutation.isPending || reorderBooksMutation.isPending || moveBooksMutation.isPending || copyBooksMutation.isPending,
+    loading: isLoading || addBooksMutation.isPending || removeBookMutation.isPending || removeBooksMutation.isPending || reorderBooksMutation.isPending || moveBooksMutation.isPending || copyBooksMutation.isPending || moveToTopMutation.isPending,
     error,
     hasInitialized: shelf !== null || error !== null,
     addBooksToShelf: addBooksMutation.mutateAsync,
     removeBookFromShelf: removeBookMutation.mutateAsync,
     removeBooksFromShelf: removeBooksMutation.mutateAsync,
     reorderBooks: reorderBooksMutation.mutateAsync,
+    moveToTop: moveToTopMutation.mutateAsync,
     moveBooks: async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
       return moveBooksMutation.mutateAsync({ targetShelfId, bookIds, targetShelfName });
     },
@@ -348,6 +425,7 @@ export function useShelfBooks(
     isRemovingBook: removeBookMutation.isPending,
     isRemovingBooks: removeBooksMutation.isPending,
     isReordering: reorderBooksMutation.isPending,
+    isMovingToTop: moveToTopMutation.isPending,
     isMoving: moveBooksMutation.isPending,
     isCopying: copyBooksMutation.isPending,
   };

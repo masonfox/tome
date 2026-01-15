@@ -142,13 +142,83 @@ export function useReadNextBooks(search?: string) {
     },
   });
 
+  /**
+   * Mutation: Move a session to the top of the read-next queue
+   * Uses optimistic updates for instant feedback
+   */
+  const moveToTopMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      const response = await fetch(`/api/sessions/read-next/${sessionId}/move-to-top`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Failed to move to top");
+      }
+
+      return true;
+    },
+    onMutate: async (sessionId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["read-next-books"] });
+
+      // Snapshot previous value
+      const previousSessions = queryClient.getQueryData<SessionWithBook[]>([
+        "read-next-books",
+        search,
+      ]);
+
+      // Optimistically update cache
+      if (previousSessions) {
+        const sessionToMove = previousSessions.find((s) => s.id === sessionId);
+        if (sessionToMove) {
+          // Create new array with moved session at top
+          const otherSessions = previousSessions.filter((s) => s.id !== sessionId);
+          const optimisticSessions = [
+            { ...sessionToMove, readNextOrder: 0 },
+            ...otherSessions.map((s, index) => ({
+              ...s,
+              readNextOrder: index + 1,
+            })),
+          ];
+
+          queryClient.setQueryData(["read-next-books", search], optimisticSessions);
+        }
+      }
+
+      // Return context for rollback
+      return { previousSessions };
+    },
+    onError: (err, variables, context) => {
+      // Rollback to previous state
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          ["read-next-books", search],
+          context.previousSessions
+        );
+      }
+      const error = err instanceof Error ? err : new Error("Unknown error");
+      toast.error(`Failed to move to top: ${error.message}`);
+    },
+    onSuccess: () => {
+      toast.success("Moved to top of queue");
+    },
+    onSettled: () => {
+      // Refetch after error or success to sync with server
+      queryClient.invalidateQueries({ queryKey: ["read-next-books"] });
+    },
+  });
+
   return {
     sessions,
     loading: isLoading || removeMutation.isPending,
     error,
     reorderBooks: reorderMutation.mutateAsync,
     removeBooks: removeMutation.mutateAsync,
+    moveToTop: moveToTopMutation.mutateAsync,
     isReordering: reorderMutation.isPending,
     isRemoving: removeMutation.isPending,
+    isMovingToTop: moveToTopMutation.isPending,
   };
 }

@@ -61,6 +61,7 @@ interface DraggableBookTableProps {
   selectedBookIds?: Set<number>;
   onToggleSelection?: (bookId: number) => void;
   onToggleSelectAll?: () => void;
+  renderActions?: (book: BookTableBook, index: number) => React.ReactNode;
 }
 
 interface SortableRowProps {
@@ -73,9 +74,10 @@ interface SortableRowProps {
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: () => void;
+  renderActions?: (book: BookTableBook, index: number) => React.ReactNode;
 }
 
-function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isDragEnabled, isSelectMode = false, isSelected = false, onToggleSelection }: SortableRowProps) {
+function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isDragEnabled, isSelectMode = false, isSelected = false, onToggleSelection, renderActions }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -260,28 +262,32 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
 
       {/* Actions */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/books/${book.id}`}
-            className="p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
-            title="View details"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </Link>
-          {onRemoveBook && !isSelectMode && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveBook(book.id);
-              }}
-              className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-              title="Remove from shelf"
+        {renderActions ? (
+          renderActions(book, index)
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/books/${book.id}`}
+              className="p-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors"
+              title="View details"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+              <ExternalLink className="w-4 h-4" />
+            </Link>
+            {onRemoveBook && !isSelectMode && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveBook(book.id);
+                }}
+                className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                title="Remove from shelf"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -301,6 +307,7 @@ export function DraggableBookTable({
   selectedBookIds = new Set(),
   onToggleSelection,
   onToggleSelectAll,
+  renderActions,
 }: DraggableBookTableProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -509,6 +516,7 @@ export function DraggableBookTable({
               isSelectMode={isSelectMode}
               isSelected={selectedBookIds.has(book.id)}
               onToggleSelection={() => onToggleSelection?.(book.id)}
+              renderActions={renderActions}
             />
           ))}
         </tbody>

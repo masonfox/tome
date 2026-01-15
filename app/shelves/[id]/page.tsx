@@ -22,6 +22,7 @@ import { DraggableBookList } from "@/components/Books/DraggableBookList";
 import { DraggableBookTable } from "@/components/Books/DraggableBookTable";
 import { BulkActionBar } from "@/components/ShelfManagement/BulkActionBar";
 import { ShelfSelectionModal } from "@/components/ShelfManagement/ShelfSelectionModal";
+import { BookActionsDropdown } from "@/components/Books/BookActionsDropdown";
 import BaseModal from "@/components/Modals/BaseModal";
 import { AddBooksToShelfModal } from "@/components/ShelfManagement/AddBooksToShelfModal";
 import { AddBooksToShelfFAB } from "@/components/ShelfManagement/AddBooksToShelfFAB";
@@ -51,6 +52,7 @@ export default function ShelfDetailPage() {
     reorderBooks,
     moveBooks,
     copyBooks,
+    moveToTop,
   } = useShelfBooks(shelfId, sortBy, sortDirection);
 
   // Use shared book list view hook for filtering and selection
@@ -344,23 +346,19 @@ export default function ShelfDetailPage() {
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
-              renderActions={!listView.isSelectMode ? (book) => (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setRemovingBook({ id: book.id, title: book.title });
-                  }}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
-                  title="Remove from shelf"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              renderActions={!listView.isSelectMode ? (book, index) => (
+                <BookActionsDropdown
+                  bookId={book.id}
+                  bookTitle={book.title}
+                  isAtTop={index === 0}
+                  onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                  onMoveToTop={() => moveToTop(book.id)}
+                />
               ) : undefined}
             />
           ) : (
             <div className="space-y-4">
-              {listView.filteredBooks.map((book) => (
+              {listView.filteredBooks.map((book, index) => (
                 <BookListItem
                   key={book.id}
                   book={book}
@@ -369,17 +367,13 @@ export default function ShelfDetailPage() {
                   onToggleSelection={() => listView.toggleBookSelection(book.id)}
                   actions={
                     !listView.isSelectMode ? (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setRemovingBook({ id: book.id, title: book.title });
-                        }}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
-                        title="Remove from shelf"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <BookActionsDropdown
+                        bookId={book.id}
+                        bookTitle={book.title}
+                        isAtTop={index === 0}
+                        onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                        onMoveToTop={() => moveToTop(book.id)}
+                      />
                     ) : undefined
                   }
                 />
@@ -394,18 +388,21 @@ export default function ShelfDetailPage() {
               sortBy={sortBy}
               sortDirection={sortDirection}
               onSortChange={handleTableSort}
-              onRemoveBook={(bookId) => {
-                const book = listView.filteredBooks.find((b) => b.id === bookId);
-                if (book) {
-                  setRemovingBook({ id: book.id, title: book.title });
-                }
-              }}
               onReorder={reorderBooks}
               isDragEnabled={!listView.isSelectMode}
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
               onToggleSelectAll={listView.toggleSelectAll}
+              renderActions={!listView.isSelectMode ? (book, index) => (
+                <BookActionsDropdown
+                  bookId={book.id}
+                  bookTitle={book.title}
+                  isAtTop={book.sortOrder === 0}
+                  onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                  onMoveToTop={() => moveToTop(book.id)}
+                />
+              ) : undefined}
             />
           ) : (
             <BookTable
@@ -413,17 +410,20 @@ export default function ShelfDetailPage() {
               sortBy={sortBy}
               sortDirection={sortDirection}
               onSortChange={handleTableSort}
-              onRemoveBook={(bookId) => {
-                const book = listView.filteredBooks.find((b) => b.id === bookId);
-                if (book) {
-                  setRemovingBook({ id: book.id, title: book.title });
-                }
-              }}
               showOrderColumn={true}
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
               onToggleSelectAll={listView.toggleSelectAll}
+              renderActions={!listView.isSelectMode ? (book, index) => (
+                <BookActionsDropdown
+                  bookId={book.id}
+                  bookTitle={book.title}
+                  isAtTop={book.sortOrder === 0}
+                  onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                  onMoveToTop={() => moveToTop(book.id)}
+                />
+              ) : undefined}
             />
           )
         )}
