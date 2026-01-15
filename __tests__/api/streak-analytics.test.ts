@@ -79,7 +79,8 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
     await streakRepository.create({
       currentStreak: 3,
       longestStreak: 3,
-      lastActivityDate: today,
+      lastActivityDate: formatDate(today),
+      streakStartDate: formatDate(day3Ago),
       dailyThreshold: 1,
       totalDaysActive: 3,
     });
@@ -173,7 +174,8 @@ describe("GET /api/streak/analytics - Missing Days Fill", () => {
     await streakRepository.create({
       currentStreak: 2,
       longestStreak: 2,
-      lastActivityDate: today,
+      lastActivityDate: formatDate(today),
+      streakStartDate: formatDate(day5Ago),
       dailyThreshold: 10,
       totalDaysActive: 2,
     });
@@ -261,7 +263,8 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
     await streakRepository.create({
       currentStreak: 4,
       longestStreak: 4,
-      lastActivityDate: today,
+      lastActivityDate: formatDate(today),
+      streakStartDate: formatDate(day3Ago),
       dailyThreshold: 1,
       totalDaysActive: 4,
     });
@@ -350,7 +353,8 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: today,
+      lastActivityDate: formatDate(today),
+      streakStartDate: formatDate(day60Ago),
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
@@ -418,7 +422,8 @@ describe("GET /api/streak/analytics - Chart Trimming", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: today,
+      lastActivityDate: formatDate(today),
+      streakStartDate: formatDate(today),
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
@@ -471,7 +476,8 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date(),
+      lastActivityDate: toProgressDate(new Date()),
+      streakStartDate: toProgressDate(new Date()),
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
@@ -513,7 +519,8 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date(),
+      lastActivityDate: toProgressDate(new Date()),
+      streakStartDate: toProgressDate(new Date()),
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
@@ -555,7 +562,8 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
     await streakRepository.create({
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date(),
+      lastActivityDate: toProgressDate(new Date()),
+      streakStartDate: toProgressDate(new Date()),
       dailyThreshold: 1,
       totalDaysActive: 1,
     });
@@ -592,7 +600,8 @@ describe("GET /api/streak/analytics - Time Period Parameters", () => {
     await streakRepository.create({
       currentStreak: 0,
       longestStreak: 0,
-      lastActivityDate: getDaysAgo(0),
+      lastActivityDate: formatDate(getDaysAgo(0)),
+      streakStartDate: formatDate(getDaysAgo(0)),
       dailyThreshold: 1,
       totalDaysActive: 0,
     });
