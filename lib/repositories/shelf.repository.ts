@@ -500,6 +500,11 @@ export class ShelfRepository extends BaseRepository<
       throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
     }
     
+    // If already at position 0, no-op
+    if (bookOnShelf.sortOrder === 0) {
+      return;
+    }
+    
     // Get all books on the shelf ordered by sortOrder
     const allBooks = await db
       .select({
@@ -519,9 +524,9 @@ export class ShelfRepository extends BaseRepository<
         .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
         .run();
       
-      // Increment all other books by 1
+      // Increment only books that were before the moved book
       for (const item of allBooks) {
-        if (item.bookId !== bookId) {
+        if (item.bookId !== bookId && item.sortOrder < bookOnShelf.sortOrder) {
           db.update(bookShelves)
             .set({ sortOrder: item.sortOrder + 1 })
             .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, item.bookId)))

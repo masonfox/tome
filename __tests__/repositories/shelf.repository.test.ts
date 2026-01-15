@@ -943,4 +943,193 @@ describe("ShelfRepository - Status Display", () => {
       }
     });
   });
+
+  describe("moveBookToTop", () => {
+    it("should move book to position 0 and shift others down", async () => {
+      // Create shelf
+      const shelf = await shelfRepository.create({
+        name: "Move to Top Test Shelf",
+        userId: null,
+      });
+
+      // Create 3 books and add to shelf
+      const books = [];
+      for (let i = 0; i < 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Move book at position 2 to top
+      await shelfRepository.moveBookToTop(shelf.id, books[2].id);
+
+      // Verify new positions
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(3);
+      expect(shelfBooks[0].id).toBe(books[2].id); // Moved to top
+      expect(shelfBooks[0].sortOrder).toBe(0);
+      expect(shelfBooks[1].id).toBe(books[0].id); // Shifted down
+      expect(shelfBooks[1].sortOrder).toBe(1);
+      expect(shelfBooks[2].id).toBe(books[1].id); // Shifted down
+      expect(shelfBooks[2].sortOrder).toBe(2);
+    });
+
+    it("should handle moving already top item (no-op)", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Already Top Test Shelf",
+        userId: null,
+      });
+
+      const books = [];
+      for (let i = 0; i < 2; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Move first book (already at top) to top
+      await shelfRepository.moveBookToTop(shelf.id, books[0].id);
+
+      // Verify positions unchanged
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(2);
+      expect(shelfBooks[0].id).toBe(books[0].id);
+      expect(shelfBooks[0].sortOrder).toBe(0);
+      expect(shelfBooks[1].id).toBe(books[1].id);
+      expect(shelfBooks[1].sortOrder).toBe(1);
+    });
+
+    it("should work with single book on shelf", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Single Book Shelf",
+        userId: null,
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Lonely Book",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+      });
+      await shelfRepository.addBookToShelf(shelf.id, book!.id);
+
+      await shelfRepository.moveBookToTop(shelf.id, book!.id);
+
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(1);
+      expect(shelfBooks[0].id).toBe(book!.id);
+      expect(shelfBooks[0].sortOrder).toBe(0);
+    });
+
+    it("should handle moving from middle position", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Middle Position Shelf",
+        userId: null,
+      });
+
+      // Create 5 books
+      const books = [];
+      for (let i = 0; i < 5; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf.id, book!.id);
+      }
+
+      // Move book at position 2 to top
+      await shelfRepository.moveBookToTop(shelf.id, books[2].id);
+
+      // Verify all positions
+      const shelfBooks = await shelfRepository.getBooksOnShelf(shelf.id, "sortOrder", "asc");
+      expect(shelfBooks).toHaveLength(5);
+      expect(shelfBooks[0].id).toBe(books[2].id); // Moved to top
+      expect(shelfBooks[0].sortOrder).toBe(0);
+      expect(shelfBooks[1].id).toBe(books[0].id); // Shifted down
+      expect(shelfBooks[1].sortOrder).toBe(1);
+      expect(shelfBooks[2].id).toBe(books[1].id); // Shifted down
+      expect(shelfBooks[2].sortOrder).toBe(2);
+      expect(shelfBooks[3].id).toBe(books[3].id); // Unchanged
+      expect(shelfBooks[3].sortOrder).toBe(3);
+      expect(shelfBooks[4].id).toBe(books[4].id); // Unchanged
+      expect(shelfBooks[4].sortOrder).toBe(4);
+    });
+
+    it("should throw error if book not on shelf", async () => {
+      const shelf = await shelfRepository.create({
+        name: "Error Test Shelf",
+        userId: null,
+      });
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Book Not On Shelf",
+        authors: ["Author"],
+        tags: [],
+        path: "/path/1",
+      });
+
+      // Try to move book that's not on shelf
+      await expect(
+        shelfRepository.moveBookToTop(shelf.id, book!.id)
+      ).rejects.toThrow(/Book .+ is not on shelf .+/);
+    });
+
+    it("should only affect books on the specified shelf", async () => {
+      // Create two shelves
+      const shelf1 = await shelfRepository.create({
+        name: "Shelf 1",
+        userId: null,
+      });
+      const shelf2 = await shelfRepository.create({
+        name: "Shelf 2",
+        userId: null,
+      });
+
+      // Create books and add to both shelves
+      const books = [];
+      for (let i = 0; i < 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          title: `Book ${i + 1}`,
+          authors: [`Author ${i + 1}`],
+          tags: [],
+          path: `/path/${i + 1}`,
+        });
+        books.push(book!);
+        await shelfRepository.addBookToShelf(shelf1.id, book!.id);
+        await shelfRepository.addBookToShelf(shelf2.id, book!.id);
+      }
+
+      // Move book to top on shelf1
+      await shelfRepository.moveBookToTop(shelf1.id, books[2].id);
+
+      // Verify shelf1 changed
+      const shelf1Books = await shelfRepository.getBooksOnShelf(shelf1.id, "sortOrder", "asc");
+      expect(shelf1Books[0].id).toBe(books[2].id);
+
+      // Verify shelf2 unchanged
+      const shelf2Books = await shelfRepository.getBooksOnShelf(shelf2.id, "sortOrder", "asc");
+      expect(shelf2Books[0].id).toBe(books[0].id);
+      expect(shelf2Books[1].id).toBe(books[1].id);
+      expect(shelf2Books[2].id).toBe(books[2].id);
+    });
+  });
 });

@@ -574,61 +574,66 @@ export class SessionRepository extends BaseRepository<
      });
    }
 
-   /**
-    * Move a read-next session to the top (position 0) and shift all others down
-    * @param sessionId The session ID to move to the top
-    */
-   async moveReadNextToTop(sessionId: number): Promise<void> {
-     const db = this.getDatabase();
-     
-     // Get the session to move
-     const session = db
-       .select()
-       .from(readingSessions)
-       .where(eq(readingSessions.id, sessionId))
-       .get();
-     
-     if (!session) {
-       throw new Error(`Session with ID ${sessionId} not found`);
-     }
-     
-     if (session.status !== 'read-next') {
-       throw new Error(`Session ${sessionId} is not in read-next status`);
-     }
-     
-     // Get all read-next sessions ordered by readNextOrder
-     const allReadNext = db
-       .select({ id: readingSessions.id, readNextOrder: readingSessions.readNextOrder })
-       .from(readingSessions)
-       .where(eq(readingSessions.status, 'read-next'))
-       .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
-       .all();
-     
-     // Use transaction to update all sessions atomically
-     await db.transaction((tx) => {
-       // Set target session to position 0
-       tx.update(readingSessions)
-         .set({ 
-           readNextOrder: 0,
-           updatedAt: new Date()
-         })
-         .where(eq(readingSessions.id, sessionId))
-         .run();
-       
-       // Increment all other sessions by 1
-       for (const item of allReadNext) {
-         if (item.id !== sessionId) {
-           tx.update(readingSessions)
-             .set({ 
-               readNextOrder: item.readNextOrder + 1,
-               updatedAt: new Date()
-             })
-             .where(eq(readingSessions.id, item.id))
-             .run();
-         }
-       }
-     });
-   }
+  /**
+   * Move a read-next session to the top (position 0) and shift all others down
+   * @param sessionId The session ID to move to the top
+   */
+  async moveReadNextToTop(sessionId: number): Promise<void> {
+    const db = this.getDatabase();
+    
+    // Get the session to move
+    const session = db
+      .select()
+      .from(readingSessions)
+      .where(eq(readingSessions.id, sessionId))
+      .get();
+    
+    if (!session) {
+      throw new Error(`Session with ID ${sessionId} not found`);
+    }
+    
+    if (session.status !== 'read-next') {
+      throw new Error(`Session ${sessionId} is not in read-next status`);
+    }
+    
+    // If already at position 0, no-op
+    if (session.readNextOrder === 0) {
+      return;
+    }
+    
+    // Get all read-next sessions ordered by readNextOrder
+    const allReadNext = db
+      .select({ id: readingSessions.id, readNextOrder: readingSessions.readNextOrder })
+      .from(readingSessions)
+      .where(eq(readingSessions.status, 'read-next'))
+      .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
+      .all();
+    
+    // Use transaction to update all sessions atomically
+    await db.transaction((tx) => {
+      // Set target session to position 0
+      tx.update(readingSessions)
+        .set({ 
+          readNextOrder: 0,
+          updatedAt: new Date()
+        })
+        .where(eq(readingSessions.id, sessionId))
+        .run();
+      
+      // Increment only sessions that were before the moved session
+      for (const item of allReadNext) {
+        if (item.id !== sessionId && item.readNextOrder < session.readNextOrder!) {
+          tx.update(readingSessions)
+            .set({ 
+              readNextOrder: item.readNextOrder + 1,
+              updatedAt: new Date()
+            })
+            .where(eq(readingSessions.id, item.id))
+            .run();
+        }
+      }
+    });
+  }
 
    /**
     * Find all read-next sessions with joined book data
