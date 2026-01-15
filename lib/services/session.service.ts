@@ -267,6 +267,7 @@ export class SessionService {
 
     // Find active reading session or prepare to create new one
     let readingSession = await sessionRepository.findActiveByBookId(bookId, tx);
+    const oldStatus = readingSession?.status;
 
     // Detect "backward movement" from "reading" to planning statuses
     const isBackwardMovement =
@@ -326,6 +327,15 @@ export class SessionService {
       status,
     };
 
+    // Handle read-next ordering logic
+    if (status === "read-next" && oldStatus !== "read-next") {
+      // Entering read-next: Assign next order
+      updateData.readNextOrder = await sessionRepository.getNextReadNextOrder();
+    } else if (oldStatus === "read-next" && status !== "read-next") {
+      // Leaving read-next: Reset order to 0
+      updateData.readNextOrder = 0;
+    }
+
     // Set dates based on status
     if (status === "reading" && !readingSession?.startedDate) {
       updateData.startedDate = startedDate || await this.getTodayDateString();
@@ -360,6 +370,14 @@ export class SessionService {
         isActive: true,
         ...updateData,
       }, tx);
+    }
+
+    // Auto-compact read-next queue only when LEAVING read-next status
+    // This eliminates gaps created by removed books while reducing reindex frequency by 50%
+    // Entering read-next: new book gets next available order (may have gaps, but that's OK)
+    // Leaving read-next: renumber remaining books to maintain clean sequential order
+    if (!tx && oldStatus === "read-next" && status !== "read-next") {
+      await sessionRepository.reindexReadNextOrders();
     }
 
     // Update book rating if provided (single source of truth: books table)

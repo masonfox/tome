@@ -134,6 +134,13 @@
       "when": 1768247344561,
       "tag": "0018_loose_shape",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1768404299417,
+      "tag": "0019_kind_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }

@@ -108,7 +108,7 @@ export default function BaseModal({
         </div>
 
         {/* Action Buttons */}
-        <div>
+        <div className="flex justify-end gap-3">
           {actions}
         </div>
       </div>

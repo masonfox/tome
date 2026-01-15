@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
-import { NAV_LINKS, JOURNAL_LINK, SERIES_LINK, TAGS_LINK, SHELVES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
+import { NAV_LINKS, JOURNAL_LINK, READ_NEXT_LINK, SERIES_LINK, TAGS_LINK, SHELVES_LINK, MORE_MENU_LINKS, SETTINGS_LINK, isActiveRoute } from "@/lib/navigation-config";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
@@ -16,11 +16,12 @@ export function DesktopSidebar() {
   const { collapsed, toggleCollapsed, mounted } = useSidebarCollapsed();
 
   // Combine all navigation links into one flat list
-  // Order: Dashboard, Library, Journal, Series, Tags, Shelves, Streak, Goals, Stats
+  // Order: Dashboard, Library, Read Next, Journal, Series, Tags, Shelves, Streak, Goals, Stats
   const allNavLinks = [
     NAV_LINKS[0], // Dashboard
     NAV_LINKS[1], // Library
-    JOURNAL_LINK, // Journal (after Library)
+    READ_NEXT_LINK, // Read Next (after Library)
+    JOURNAL_LINK, // Journal (after Read Next)
     SERIES_LINK,  // Series (after Journal)
     TAGS_LINK,    // Tags (after Series)
     SHELVES_LINK, // Shelves (after Tags)

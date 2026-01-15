@@ -1,8 +1,16 @@
 import { eq, and, desc, sql, SQL, asc, gte, or } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
-import { books } from "@/lib/db/schema/books";
+import { books, Book } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
+
+/**
+ * ReadingSession with joined Book data
+ * Used for read-next queue and other views that need full book information
+ */
+export interface SessionWithBook extends ReadingSession {
+  book: Book;
+}
 
 export class SessionRepository extends BaseRepository<
   ReadingSession,
@@ -110,6 +118,7 @@ export class SessionRepository extends BaseRepository<
         dnfDate: readingSessions.dnfDate,
         review: readingSessions.review,
         isActive: readingSessions.isActive,
+        readNextOrder: readingSessions.readNextOrder,
         createdAt: readingSessions.createdAt,
         updatedAt: readingSessions.updatedAt,
 
@@ -165,6 +174,7 @@ export class SessionRepository extends BaseRepository<
       dnfDate: row.dnfDate,
       review: row.review,
       isActive: row.isActive,
+      readNextOrder: row.readNextOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       progressSummary: {
@@ -217,8 +227,10 @@ export class SessionRepository extends BaseRepository<
         status: readingSessions.status,
         startedDate: readingSessions.startedDate,
         completedDate: readingSessions.completedDate,
+        dnfDate: readingSessions.dnfDate,
         review: readingSessions.review,
         isActive: readingSessions.isActive,
+        readNextOrder: readingSessions.readNextOrder,
         createdAt: readingSessions.createdAt,
         updatedAt: readingSessions.updatedAt,
       })
@@ -489,6 +501,134 @@ export class SessionRepository extends BaseRepository<
      }
 
      return totalCreated;
+   }
+
+   /**
+    * Get the next available read_next_order value
+    * Returns max(read_next_order) + 1, or 0 if no read-next books exist
+    */
+   async getNextReadNextOrder(): Promise<number> {
+     const result = this.getDatabase()
+       .select({ maxOrder: sql<number>`COALESCE(MAX(${readingSessions.readNextOrder}), -1)` })
+       .from(readingSessions)
+       .where(eq(readingSessions.status, 'read-next'))
+       .get();
+     
+     return (result?.maxOrder ?? -1) + 1;
+   }
+
+   /**
+    * Reorder multiple read-next books in a single transaction
+    * @param updates Array of { id, readNextOrder } pairs
+    */
+   async reorderReadNextBooks(updates: Array<{ id: number; readNextOrder: number }>): Promise<void> {
+     const db = this.getDatabase();
+     
+     await db.transaction((tx) => {
+       for (const { id, readNextOrder } of updates) {
+         tx.update(readingSessions)
+           .set({ 
+             readNextOrder,
+             updatedAt: new Date()
+           })
+           .where(eq(readingSessions.id, id))
+           .run();
+       }
+     });
+   }
+
+   /**
+    * Reindex all read-next books to eliminate gaps (0, 1, 2, 3...)
+    * Called after a book leaves read-next status
+    */
+   async reindexReadNextOrders(): Promise<void> {
+     const db = this.getDatabase();
+     
+     // Get all read-next sessions ordered by current read_next_order
+     const sessions = db
+       .select({ id: readingSessions.id })
+       .from(readingSessions)
+       .where(eq(readingSessions.status, 'read-next'))
+       .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
+       .all();
+
+     // Renumber sequentially in a transaction
+     await db.transaction((tx) => {
+       sessions.forEach((session, index) => {
+         tx.update(readingSessions)
+           .set({ 
+             readNextOrder: index,
+             updatedAt: new Date()
+           })
+           .where(eq(readingSessions.id, session.id))
+           .run();
+       });
+     });
+   }
+
+   /**
+    * Find all read-next sessions with joined book data
+    * Returns sessions sorted by readNextOrder ascending
+    * Excludes orphaned books
+    */
+   async findReadNextWithBooks(): Promise<SessionWithBook[]> {
+     const db = this.getDatabase();
+     
+     const results = db
+       .select({
+         // Session fields
+         id: readingSessions.id,
+         userId: readingSessions.userId,
+         bookId: readingSessions.bookId,
+         sessionNumber: readingSessions.sessionNumber,
+         status: readingSessions.status,
+         startedDate: readingSessions.startedDate,
+         completedDate: readingSessions.completedDate,
+         dnfDate: readingSessions.dnfDate,
+         review: readingSessions.review,
+         isActive: readingSessions.isActive,
+         readNextOrder: readingSessions.readNextOrder,
+         createdAt: readingSessions.createdAt,
+         updatedAt: readingSessions.updatedAt,
+         
+         // Book fields (nested as 'book')
+         book: {
+           id: books.id,
+           calibreId: books.calibreId,
+           title: books.title,
+           authors: books.authors,
+           authorSort: books.authorSort,
+           isbn: books.isbn,
+           totalPages: books.totalPages,
+           addedToLibrary: books.addedToLibrary,
+           lastSynced: books.lastSynced,
+           publisher: books.publisher,
+           pubDate: books.pubDate,
+           series: books.series,
+           seriesIndex: books.seriesIndex,
+           tags: books.tags,
+           path: books.path,
+           description: books.description,
+           rating: books.rating,
+           orphaned: books.orphaned,
+           orphanedAt: books.orphanedAt,
+           createdAt: books.createdAt,
+           updatedAt: books.updatedAt,
+         }
+       })
+       .from(readingSessions)
+       .innerJoin(books, eq(readingSessions.bookId, books.id))
+       .where(
+         and(
+           eq(readingSessions.status, 'read-next'),
+           eq(readingSessions.isActive, true),
+           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+         )
+       )
+       .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
+       .all();
+
+     return results as SessionWithBook[];
    }
 }
 

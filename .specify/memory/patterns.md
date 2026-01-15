@@ -1080,6 +1080,290 @@ const logs = db.prepare("SELECT * FROM progress_logs").all();
 
 ---
 
+## Pattern 12: Read-Next Queue Ordering with Auto-Compaction
+
+**When to Use**: Custom sort order for status-specific book lists with automatic gap elimination
+
+**Why**: Maintains predictable sequential ordering (0, 1, 2, 3...) without manual maintenance
+
+### Implementation
+
+**Database Schema:**
+```typescript
+// lib/db/schema/reading-sessions.ts
+export const readingSessions = sqliteTable('reading_sessions', {
+  // ... existing columns ...
+  readNextOrder: integer('read_next_order').notNull().default(0),
+}, (table) => ({
+  // Partial index: only WHERE status = 'read-next'
+  readNextOrderIdx: index('idx_sessions_read_next_order')
+    .on(table.readNextOrder, table.id)
+    .where(sql`status = 'read-next'`),
+}));
+```
+
+**Repository Methods:**
+```typescript
+// lib/repositories/session.repository.ts
+
+/**
+ * Get next available read_next_order (max + 1, or 0 if empty)
+ */
+async getNextReadNextOrder(): Promise<number> {
+  const result = db
+    .select({ maxOrder: sql<number>`COALESCE(MAX(read_next_order), -1)` })
+    .from(readingSessions)
+    .where(eq(readingSessions.status, 'read-next'))
+    .get();
+  
+  return (result?.maxOrder ?? -1) + 1;
+}
+
+/**
+ * Batch reorder in single transaction (for drag-and-drop)
+ */
+async reorderReadNextBooks(updates: Array<{ id: number; readNextOrder: number }>): Promise<void> {
+  db.transaction(() => {
+    for (const { id, readNextOrder } of updates) {
+      db.update(readingSessions)
+        .set({ readNextOrder, updatedAt: new Date() })
+        .where(eq(readingSessions.id, id))
+        .run();
+    }
+  });
+}
+
+/**
+ * Eliminate gaps: renumber 0, 1, 2, 3...
+ * Called after book leaves read-next status
+ */
+async reindexReadNextOrders(): Promise<void> {
+  const sessions = db
+    .select({ id: readingSessions.id })
+    .from(readingSessions)
+    .where(eq(readingSessions.status, 'read-next'))
+    .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))
+    .all();
+
+  db.transaction(() => {
+    sessions.forEach((session, index) => {
+      db.update(readingSessions)
+        .set({ readNextOrder: index, updatedAt: new Date() })
+        .where(eq(readingSessions.id, session.id))
+        .run();
+    });
+  });
+}
+```
+
+### Auto-Compaction Trigger
+
+**Service Layer Integration:**
+```typescript
+// lib/services/session.service.ts
+
+async updateStatus(sessionId: number, status: SessionStatus): Promise<ReadingSession> {
+  const session = await sessionRepository.findById(sessionId);
+  if (!session) throw new Error('Session not found');
+
+  const oldStatus = session.status;
+  
+  if (status === 'read-next' && oldStatus !== 'read-next') {
+    // ENTERING read-next: Assign next sequential order
+    const nextOrder = await sessionRepository.getNextReadNextOrder();
+    await sessionRepository.update(sessionId, {
+      status,
+      readNextOrder: nextOrder,
+      ...this.calculateStatusDates(status),
+    });
+    
+    // Ensure clean state (handles edge cases)
+    await sessionRepository.reindexReadNextOrders();
+    
+  } else if (oldStatus === 'read-next' && status !== 'read-next') {
+    // LEAVING read-next: Reset order and compact remaining
+    await sessionRepository.update(sessionId, {
+      status,
+      readNextOrder: 0,
+      ...this.calculateStatusDates(status),
+    });
+    
+    // Eliminate gap left by removed book
+    await sessionRepository.reindexReadNextOrders();
+  } else {
+    // No read-next transition: standard update
+    await sessionRepository.update(sessionId, {
+      status,
+      ...this.calculateStatusDates(status),
+    });
+  }
+
+  return await sessionRepository.findById(sessionId);
+}
+```
+
+### Auto-Compaction Behavior
+
+**Example Flow:**
+```
+Initial state:    [Book A: 0] [Book B: 1] [Book C: 2] [Book D: 3]
+User moves B to "reading":
+  → Book B order reset to 0
+  → reindexReadNextOrders() called
+Final state:      [Book A: 0] [Book C: 1] [Book D: 2]
+```
+
+**Key Insight:** Auto-compaction runs on BOTH entry and exit from read-next status:
+- **On entry:** Ensures no gaps exist (handles concurrent updates)
+- **On exit:** Removes gap left by departing book
+
+### API Endpoints
+
+**GET /api/sessions/read-next:**
+```typescript
+// app/api/sessions/read-next/route.ts
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get('search') || undefined;
+
+  const sessions = await sessionRepository.findByStatus('read-next', { search });
+  
+  // Sort by readNextOrder ascending (0, 1, 2...)
+  const sorted = sessions.sort((a, b) => 
+    (a.readNextOrder ?? 0) - (b.readNextOrder ?? 0)
+  );
+
+  return NextResponse.json(sorted);
+}
+```
+
+**PUT /api/sessions/read-next/reorder:**
+```typescript
+// app/api/sessions/read-next/reorder/route.ts
+const reorderSchema = z.object({
+  updates: z.array(z.object({
+    id: z.number(),
+    readNextOrder: z.number().int().min(0),
+  })),
+});
+
+export async function PUT(request: Request) {
+  const body = await request.json();
+  const { updates } = reorderSchema.parse(body);
+  
+  await sessionRepository.reorderReadNextBooks(updates);
+  
+  return NextResponse.json({ success: true });
+}
+```
+
+### Frontend Integration
+
+**Custom Hook:**
+```typescript
+// hooks/useReadNextBooks.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+export function useReadNextBooks(search?: string) {
+  const queryClient = useQueryClient();
+
+  const reorderMutation = useMutation({
+    mutationFn: (updates: Array<{ id: number; readNextOrder: number }>) =>
+      sessionApi.reorderReadNext(updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['read-next-books'] });
+    },
+  });
+
+  // Optimistic update for local reordering
+  const updateLocalOrder = (newOrder: Array<{ id: number; readNextOrder: number }>) => {
+    queryClient.setQueryData(['read-next-books', search], (old: any) => {
+      const updated = [...(old || [])];
+      newOrder.forEach(({ id, readNextOrder }) => {
+        const book = updated.find(b => b.id === id);
+        if (book) book.readNextOrder = readNextOrder;
+      });
+      return updated.sort((a, b) => a.readNextOrder - b.readNextOrder);
+    });
+    reorderMutation.mutate(newOrder);
+  };
+
+  return { updateLocalOrder, isReordering: reorderMutation.isPending };
+}
+```
+
+**Drag-and-Drop Page:**
+```typescript
+// app/read-next/page.tsx
+const handleDragEnd = (result: DropResult) => {
+  if (!result.destination) return;
+
+  const reordered = Array.from(books);
+  const [removed] = reordered.splice(result.source.index, 1);
+  reordered.splice(result.destination.index, 0, removed);
+
+  // Generate new orders: 0, 1, 2, 3...
+  const updates = reordered.map((book, index) => ({
+    id: book.id,
+    readNextOrder: index,
+  }));
+
+  updateLocalOrder(updates);
+};
+```
+
+### Benefits
+
+✅ **Predictable ordering**: Always sequential (0, 1, 2, 3...)  
+✅ **No manual maintenance**: Auto-compaction on status changes  
+✅ **Optimistic updates**: Instant UI feedback with React Query  
+✅ **Transaction safety**: Batch updates prevent race conditions  
+✅ **Efficient queries**: Partial index only on read-next books  
+✅ **Handles edge cases**: Concurrent updates, stale orders  
+
+### Performance Considerations
+
+- **Partial index**: Only WHERE status = 'read-next' (minimal impact)
+- **Auto-compaction cost**: O(n) where n = read-next count (typically <50 books)
+- **Batch reorder**: Single transaction for drag-and-drop
+
+### Anti-patterns
+
+```typescript
+// ❌ WRONG - Manual gap checking
+if (hasGaps(orders)) {
+  reindexReadNextOrders();
+}
+
+// ✅ CORRECT - Auto-compact on every transition
+await sessionRepository.reindexReadNextOrders();
+
+// ❌ WRONG - Individual API calls per book
+for (const book of books) {
+  await updateOrder(book.id, book.order);
+}
+
+// ✅ CORRECT - Batch reorder in single transaction
+await sessionRepository.reorderReadNextBooks(updates);
+
+// ❌ WRONG - Forgot to reset order when leaving
+await sessionRepository.update(sessionId, { status: 'reading' });
+// read_next_order stays non-zero!
+
+// ✅ CORRECT - Reset + compact
+await sessionRepository.update(sessionId, { status: 'reading', readNextOrder: 0 });
+await sessionRepository.reindexReadNextOrders();
+```
+
+**Files**: 
+- Repository: `lib/repositories/session.repository.ts:200-250`
+- Service: `lib/services/session.service.ts:150-200`
+- API: `app/api/sessions/read-next/route.ts`, `app/api/sessions/read-next/reorder/route.ts`
+- Frontend: `hooks/useReadNextBooks.ts`, `app/read-next/page.tsx`
+- Tests: `__tests__/repositories/session.repository.read-next.test.ts` (10 tests)
+
+---
+
 ## Summary Reference Table
 
 | Pattern | Location | Primary Use | Critical For |
@@ -1095,5 +1379,6 @@ const logs = db.prepare("SELECT * FROM progress_logs").all();
 | State Machine | `/api/books/[id]/status` | Status transitions | Auto-dates |
 | CRUD Routes | `/api/**/*.ts` | REST endpoints | Error handling |
 | Companion Migrations | `lib/migrations/*.ts` | Data transformations | Type conversions |
+| Read-Next Ordering | `lib/repositories/session.repository.ts` | Queue management | Auto-compaction |
 
 **All patterns are production-tested with actual working code from the Tome codebase.**

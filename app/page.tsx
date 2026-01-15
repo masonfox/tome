@@ -82,7 +82,7 @@ export default function Dashboard() {
           </h2>
           {readNextTotal > 8 && (
             <Link
-              href="/library?status=read-next"
+              href="/read-next"
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
               title="View all read next books"
             >

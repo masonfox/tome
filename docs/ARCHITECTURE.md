@@ -127,12 +127,15 @@ Tome implements multiple safety mechanisms when writing to the Calibre database:
 - `sessionNumber` - Enables re-reading (1, 2, 3...)
 - `isActive` - Only one active session per book
 - `status` - Enum: to-read, read-next, reading, read
+- `readNextOrder` - Custom sort order for read-next queue (0, 1, 2...)
 - `startedDate`, `completedDate` (TEXT: YYYY-MM-DD) - Calendar days, not timestamps
 - `review`
 
 **Date Storage:** Uses YYYY-MM-DD strings (not timestamps) for semantic correctness. See [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md)
 
-**Indexes:** Unique on (bookId, sessionNumber); Partial unique on (bookId) WHERE isActive=1
+**Read-Next Ordering:** Auto-compaction on status changes (see Pattern 12). Partial index on (readNextOrder, id) WHERE status='read-next'.
+
+**Indexes:** Unique on (bookId, sessionNumber); Partial unique on (bookId) WHERE isActive=1; Partial on (readNextOrder, id) WHERE status='read-next'
 **Repository:** `sessionRepository` | **Schema:** `lib/db/schema/reading-sessions.ts`
 
 ---
@@ -227,7 +230,7 @@ All Tome database access goes through repositories:
 
 - **BaseRepository**: Generic CRUD (findById, create, update, delete, find, count, exists, etc.)
 - **BookRepository**: findByCalibreId, findWithFilters (complex filtering), getAllTags, markAsOrphaned
-- **SessionRepository**: findActiveByBookId, getNextSessionNumber, deactivateOtherSessions
+- **SessionRepository**: findActiveByBookId, getNextSessionNumber, deactivateOtherSessions, getNextReadNextOrder, reorderReadNextBooks, reindexReadNextOrders
 - **ProgressRepository**: findBySessionId, findLatestByBookId, getUniqueDatesWithProgress
 - **StreakRepository**: getActiveStreak, upsertStreak
 
@@ -288,7 +291,7 @@ Database (SQLite + Drizzle ORM)
 5. **Settings** (Client Component)
    - Calibre path display, sync status, manual sync button
 
-### API Routes (13 total)
+### API Routes (15 total)
 
 #### Books Management
 
@@ -341,6 +344,19 @@ Database (SQLite + Drizzle ORM)
   2. Creates new session (sessionNumber++, status="reading", isActive=true)
   3. Rebuilds streak from all progress logs
 - Returns: new session + archived session info
+
+**GET /api/sessions/read-next**
+- Fetch all read-next books sorted by custom order
+- Query params: `search` (optional - filters by title/author)
+- Returns: array of ReadingSession with status='read-next', sorted by readNextOrder ASC
+- Used by: `/read-next` page
+
+**PUT /api/sessions/read-next/reorder**
+- Batch reorder read-next books (drag-and-drop)
+- Body: `{ updates: Array<{ id: number, readNextOrder: number }> }`
+- Validation: Zod schema (id=number, readNextOrder>=0)
+- Returns: `{ success: true }`
+- Transaction safety: All updates in single transaction
 
 ---
 
@@ -525,6 +541,33 @@ See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
 - **Calculations**: Automatic page/percentage conversion, pagesRead delta
 - **Notes**: User notes attached to each entry
 - **Backdating**: Can add historical entries for book club scenarios
+
+### Read-Next Queue Ordering
+
+**Purpose**: Dedicated page for managing "read-next" status books with custom ordering
+
+**Features**:
+- **Custom order persistence**: Users drag-and-drop to reorder books
+- **Auto-compaction**: Gaps eliminated automatically when books leave queue
+- **Default behavior**: New books append to end (natural queue behavior)
+- **Search/filter**: In-page search by title/author (300ms debounce)
+- **Bulk actions**: Remove multiple books from read-next (→ to-read status)
+- **Navigation**: Dedicated `/read-next` page accessible from main nav and dashboard
+
+**Implementation (Pattern 12)**:
+- `readNextOrder` column on `reading_sessions` table (default 0)
+- Partial index: `(readNextOrder, id) WHERE status='read-next'`
+- Auto-assignment: Sequential order when entering read-next status
+- Auto-compact trigger: Service layer on all read-next transitions
+- API: Batch reorder endpoint for drag-and-drop efficiency
+
+**User Flow**:
+1. User changes book status to "read-next" → Auto-assigned next order (e.g., 3)
+2. User drags books on `/read-next` page → Batch reorder API call
+3. User changes book to "reading" → Order reset to 0, remaining books renumbered (0, 1, 2...)
+4. Dashboard card "View all" links to `/read-next` (not filtered library)
+
+**See**: Pattern 12 in `.specify/memory/patterns.md` for complete implementation details
 
 ### Reading Streaks
 
