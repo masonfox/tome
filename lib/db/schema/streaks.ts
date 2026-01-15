@@ -9,12 +9,12 @@ export const streaks = sqliteTable(
     streakEnabled: integer("streak_enabled", { mode: "boolean" }).notNull().default(false), // Opt-in streak tracking
     currentStreak: integer("current_streak").notNull().default(0),
     longestStreak: integer("longest_streak").notNull().default(0),
-    lastActivityDate: integer("last_activity_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-    streakStartDate: integer("streak_start_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    lastActivityDate: text("last_activity_date").notNull(), // YYYY-MM-DD format
+    streakStartDate: text("streak_start_date").notNull(), // YYYY-MM-DD format
     totalDaysActive: integer("total_days_active").notNull().default(0),
     dailyThreshold: integer("daily_threshold").notNull().default(1),
     userTimezone: text("user_timezone").notNull().default("America/New_York"),
-    lastCheckedDate: integer("last_checked_date", { mode: "timestamp" }),
+    lastCheckedDate: text("last_checked_date"), // YYYY-MM-DD format
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   },
   (table) => ({
