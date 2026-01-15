@@ -123,7 +123,7 @@ export default function ReadNextPage() {
       {/* Header */}
       <PageHeader
         title={titleWithCount}
-        subtitle="Your reading queue - drag to reorder priority"
+        subtitle="Your reading queue"
         customIcon={customIcon}
       />
 
