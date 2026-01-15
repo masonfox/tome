@@ -7,7 +7,8 @@
  * Uses shared abstractions: useBookListView, useBulkOperation, BookListControls
  */
 
-import { Clock } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
 import { useReadNextBooks } from "@/hooks/useReadNextBooks";
 import { useBookListView } from "@/hooks/useBookListView";
@@ -25,6 +26,8 @@ import type { Book } from "@/lib/db/schema/books";
 
 export default function ReadNextPage() {
   const { sessions, loading, reorderBooks, removeBooks } = useReadNextBooks();
+  const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
   // Map sessions to books with sortOrder for draggable components
   // Use array index for sortOrder so Order column displays sequential "1, 2, 3..."
@@ -63,6 +66,21 @@ export default function ReadNextPage() {
       await reorderBooks(updates);
     } catch (error) {
       // Error already handled by hook with rollback
+    }
+  };
+
+  // Handle individual book removal
+  const handleRemoveBook = async () => {
+    if (!removingBook) return;
+
+    setRemoveLoading(true);
+    try {
+      await removeBooks([removingBook.id]);
+      setRemovingBook(null);
+    } catch (error) {
+      console.error("Failed to remove book:", error);
+    } finally {
+      setRemoveLoading(false);
     }
   };
 
@@ -189,6 +207,19 @@ export default function ReadNextPage() {
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
+              renderActions={!listView.isSelectMode ? (book) => (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setRemovingBook({ id: book.id, title: book.title });
+                  }}
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
+                  title="Remove from read-next"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              ) : undefined}
             />
           ) : (
             <div className="space-y-4">
@@ -199,6 +230,21 @@ export default function ReadNextPage() {
                   isSelectMode={listView.isSelectMode}
                   isSelected={listView.selectedBookIds.has(book.id)}
                   onToggleSelection={() => listView.toggleBookSelection(book.id)}
+                  actions={
+                    !listView.isSelectMode ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setRemovingBook({ id: book.id, title: book.title });
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
+                        title="Remove from read-next"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : undefined
+                  }
                 />
               ))}
             </div>
@@ -214,6 +260,12 @@ export default function ReadNextPage() {
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
               onToggleSelectAll={listView.toggleSelectAll}
+              onRemoveBook={(bookId) => {
+                const book = listView.filteredBooks.find((b) => b.id === bookId);
+                if (book) {
+                  setRemovingBook({ id: book.id, title: book.title });
+                }
+              }}
             />
           ) : (
             <BookTable
@@ -221,6 +273,12 @@ export default function ReadNextPage() {
               onToggleSelection={listView.isSelectMode ? listView.toggleBookSelection : undefined}
               selectedBookIds={listView.isSelectMode ? listView.selectedBookIds : undefined}
               onToggleSelectAll={listView.isSelectMode ? listView.toggleSelectAll : undefined}
+              onRemoveBook={(bookId) => {
+                const book = listView.filteredBooks.find((b) => b.id === bookId);
+                if (book) {
+                  setRemovingBook({ id: book.id, title: book.title });
+                }
+              }}
             />
           )
         )}
@@ -235,6 +293,42 @@ export default function ReadNextPage() {
             onDelete={bulkRemove.trigger}
           />
         )}
+
+        {/* Individual Remove Confirmation Modal */}
+        <BaseModal
+          isOpen={!!removingBook}
+          onClose={() => !removeLoading && setRemovingBook(null)}
+          title="Remove from Read Next"
+          size="md"
+          loading={removeLoading}
+          actions={
+            <>
+              <button
+                onClick={() => setRemovingBook(null)}
+                disabled={removeLoading}
+                className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveBook}
+                disabled={removeLoading}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {removeLoading ? "Removing..." : "Remove"}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-[var(--foreground)]">
+              Are you sure you want to remove <strong>{removingBook?.title}</strong> from your read-next queue?
+            </p>
+            <p className="text-sm text-[var(--subheading-text)]">
+              This book will be moved back to your "Want To Read" list.
+            </p>
+          </div>
+        </BaseModal>
 
         {/* Bulk Remove Confirmation Modal */}
         <BaseModal
