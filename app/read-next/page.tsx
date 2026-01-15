@@ -246,7 +246,7 @@ export default function ReadNextPage() {
               <button
                 onClick={bulkRemove.cancel}
                 disabled={bulkRemove.loading}
-                className="px-4 py-2 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -265,8 +265,8 @@ export default function ReadNextPage() {
               Are you sure you want to remove {listView.selectedBookIds.size}{" "}
               {listView.selectedBookIds.size === 1 ? "book" : "books"} from your read-next queue?
             </p>
-            <p className="text-sm text-[var(--foreground)]/60">
-              {listView.selectedBookIds.size === 1 ? "This book" : "These books"} will be moved back to your To-Read list.
+            <p className="text-sm text-[var(--subheading-text)]">
+              {listView.selectedBookIds.size === 1 ? "This book" : "These books"} will be moved back to your "Want To Read" list.
             </p>
           </div>
         </BaseModal>
