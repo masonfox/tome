@@ -173,4 +173,82 @@ describe("GET /api/sessions/read-next", () => {
 
     expect(response.status).toBe(200);
   });
+
+  it("should handle search parameter gracefully (currently unused)", async () => {
+    // Create a book
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Harry Potter",
+      path: "harry.epub",
+    });
+
+    await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read-next",
+      readNextOrder: 0,
+    });
+
+    const request = new Request("http://localhost:3000/api/sessions/read-next?search=harry");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    // Currently search is ignored, but verify no crash
+    expect(data).toHaveLength(1);
+  });
+
+  it("should handle malformed URL parameters", async () => {
+    const request = new Request("http://localhost:3000/api/sessions/read-next?search=%&invalid");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    // Should not crash on malformed params
+  });
+});
+
+describe("GET /api/sessions/read-next - error handling", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
+  it("should return 500 when repository throws error", async () => {
+    // Mock repository to throw
+    const originalFn = sessionRepository.findReadNextWithBooks;
+    sessionRepository.findReadNextWithBooks = async () => {
+      throw new Error("Database connection failed");
+    };
+
+    const request = new Request("http://localhost:3000/api/sessions/read-next");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe("Failed to fetch read-next books");
+
+    // Restore original function
+    sessionRepository.findReadNextWithBooks = originalFn;
+  });
+
+  it("should handle database query errors gracefully", async () => {
+    // Mock repository to throw database-specific error
+    const originalFn = sessionRepository.findReadNextWithBooks;
+    sessionRepository.findReadNextWithBooks = async () => {
+      throw new Error("SQLITE_ERROR: no such table");
+    };
+
+    const request = new Request("http://localhost:3000/api/sessions/read-next");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data).toHaveProperty("error");
+
+    // Restore original function
+    sessionRepository.findReadNextWithBooks = originalFn;
+  });
 });

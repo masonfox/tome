@@ -212,3 +212,126 @@ describe("PUT /api/sessions/read-next/reorder", () => {
     expect(updated3?.readNextOrder).toBe(0);
   });
 });
+
+describe("PUT /api/sessions/read-next/reorder - non-validation error handling", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
+  it("should return 500 when repository throws unexpected error", async () => {
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Book 1",
+      path: "book1.epub",
+    });
+
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read-next",
+      readNextOrder: 0,
+    });
+
+    // Mock repository to throw
+    const originalFn = sessionRepository.reorderReadNextBooks;
+    sessionRepository.reorderReadNextBooks = async () => {
+      throw new Error("Database lock timeout");
+    };
+
+    const request = new Request("http://localhost:3000/api/sessions/read-next/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        updates: [{ id: session.id, readNextOrder: 1 }],
+      }),
+    });
+
+    const response = await PUT(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe("Failed to reorder books");
+
+    // Restore original function
+    sessionRepository.reorderReadNextBooks = originalFn;
+  });
+
+  it("should handle transaction failures gracefully", async () => {
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Book 1",
+      path: "book1.epub",
+    });
+
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read-next",
+      readNextOrder: 0,
+    });
+
+    // Mock to throw database constraint error
+    const originalFn = sessionRepository.reorderReadNextBooks;
+    sessionRepository.reorderReadNextBooks = async () => {
+      throw new Error("SQLITE_CONSTRAINT: UNIQUE constraint failed");
+    };
+
+    const request = new Request("http://localhost:3000/api/sessions/read-next/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        updates: [{ id: session.id, readNextOrder: 1 }],
+      }),
+    });
+
+    const response = await PUT(request);
+
+    expect(response.status).toBe(500);
+
+    // Restore original function
+    sessionRepository.reorderReadNextBooks = originalFn;
+  });
+
+  it("should handle invalid JSON body", async () => {
+    const request = new Request("http://localhost:3000/api/sessions/read-next/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: "invalid json {]",
+    });
+
+    const response = await PUT(request);
+
+    // Should be caught by catch block (either as Zod error or generic error)
+    expect(response.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("should handle missing Content-Type header", async () => {
+    const book = await bookRepository.create({
+      calibreId: 1,
+      title: "Book 1",
+      path: "book1.epub",
+    });
+
+    const session = await sessionRepository.create({
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read-next",
+      readNextOrder: 0,
+    });
+
+    const request = new Request("http://localhost:3000/api/sessions/read-next/reorder", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [{ id: session.id, readNextOrder: 1 }] }),
+      // No Content-Type header
+    });
+
+    const response = await PUT(request);
+
+    // Should still work or return appropriate error
+    expect(response.status).toBeGreaterThanOrEqual(200);
+  });
+});

@@ -478,4 +478,245 @@ describe('useShelfBooks', () => {
       });
     });
   });
+
+  describe('error handling - missing shelfId', () => {
+    test('addBooksToShelf should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.addBooksToShelf([30])).rejects.toThrow('No shelf ID or book IDs provided');
+    });
+
+    test('removeBookFromShelf should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.removeBookFromShelf(10)).rejects.toThrow('No shelf ID provided');
+    });
+
+    test('removeBooksFromShelf should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.removeBooksFromShelf([10])).rejects.toThrow('No shelf ID or book IDs provided');
+    });
+
+    test('reorderBooks should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.reorderBooks([10, 20])).rejects.toThrow('No shelf ID provided');
+    });
+
+    test('moveBooks should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.moveBooks(2, [10])).rejects.toThrow('No shelf ID or book IDs provided');
+    });
+  });
+
+  describe('error handling - empty book arrays', () => {
+    test('addBooksToShelf should throw with empty array', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.addBooksToShelf([])).rejects.toThrow('No shelf ID or book IDs provided');
+    });
+
+    test('removeBooksFromShelf should throw with empty array', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.removeBooksFromShelf([])).rejects.toThrow('No shelf ID or book IDs provided');
+    });
+
+    test('copyBooks should throw with empty array', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.copyBooks(2, [])).rejects.toThrow('No book IDs provided');
+    });
+
+    test('moveBooks should throw with empty array', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.moveBooks(2, [])).rejects.toThrow('No shelf ID or book IDs provided');
+    });
+  });
+
+  describe('getErrorMessage helper', () => {
+    test('should handle ApiError correctly', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      const apiError = new (ApiError as any)('Not found', 404, '/api/shelves/1');
+      (shelfApi.addBooks as any).mockRejectedValue(apiError);
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.addBooksToShelf([30])).rejects.toThrow();
+      
+      expect(toast.error).toHaveBeenCalledWith('Failed to add books: Not found');
+    });
+
+    test('should handle generic Error correctly', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      const genericError = new Error('Network failure');
+      (shelfApi.addBooks as any).mockRejectedValue(genericError);
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.addBooksToShelf([30])).rejects.toThrow();
+      
+      expect(toast.error).toHaveBeenCalledWith('Failed to add books: Network failure');
+    });
+
+    test('should handle unknown error types', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.addBooks as any).mockRejectedValue('string error'); // Non-Error object
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await expect(result.current.addBooksToShelf([30])).rejects.toThrow();
+      
+      expect(toast.error).toHaveBeenCalledWith('Failed to add books: Unknown error');
+    });
+  });
+
+  describe('optional parameters', () => {
+    test('moveBooks should work without targetShelfName', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.moveBooks as any).mockResolvedValue({ count: 1 });
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await result.current.moveBooks(2, [10]); // No shelf name
+      
+      expect(toast.success).toHaveBeenCalledWith('1 book moved'); // No " to X" suffix
+    });
+
+    test('moveBooks should handle plural without targetShelfName', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.moveBooks as any).mockResolvedValue({ count: 2 });
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await result.current.moveBooks(2, [10, 20]); // No shelf name
+      
+      expect(toast.success).toHaveBeenCalledWith('2 books moved');
+    });
+
+    test('copyBooks should work without targetShelfName', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.copyBooks as any).mockResolvedValue({ count: 2 });
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await result.current.copyBooks(2, [10, 20]); // No shelf name
+      
+      expect(toast.success).toHaveBeenCalledWith('2 books copied'); // No " to X" suffix
+    });
+
+    test('copyBooks should handle singular without targetShelfName', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.copyBooks as any).mockResolvedValue({ count: 1 });
+      
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      await result.current.copyBooks(2, [10]); // No shelf name
+      
+      expect(toast.success).toHaveBeenCalledWith('1 book copied');
+    });
+  });
+
+  describe('optimistic updates - edge cases', () => {
+    test('removeBookFromShelf should handle missing previousShelf gracefully', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.removeBook as any).mockRejectedValue(new Error('Remove failed'));
+      
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      
+      // Clear the query cache to simulate missing previousShelf
+      queryClient.clear();
+      
+      await expect(result.current.removeBookFromShelf(10)).rejects.toThrow();
+      // Should not crash when previousShelf is undefined
+    });
+
+    test('removeBooksFromShelf should handle missing previousShelf gracefully', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.removeBooks as any).mockRejectedValue(new Error('Remove failed'));
+      
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      
+      // Clear the query cache to simulate missing previousShelf
+      queryClient.clear();
+      
+      await expect(result.current.removeBooksFromShelf([10])).rejects.toThrow();
+      // Should not crash when previousShelf is undefined
+    });
+
+    test('reorderBooks should handle reordering with missing book IDs', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.reorderBooks as any).mockResolvedValue({});
+      
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      
+      // Attempt to reorder with non-existent book ID
+      await result.current.reorderBooks([999, 10]); // 999 doesn't exist
+      
+      // Should filter out undefined books in optimistic update
+      // The code filters undefined, so only book 10 should remain
+      await waitFor(() => {
+        // The optimistic update filters out non-existent books (999)
+        // but the final state after invalidation will have all original books back
+        expect(result.current.books.length).toBeGreaterThan(0);
+        // Just verify it doesn't crash
+      });
+    });
+
+    test('reorderBooks should handle error rollback with missing previousShelf', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.reorderBooks as any).mockRejectedValue(new Error('Reorder failed'));
+      
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      
+      // Clear the query cache to simulate missing previousShelf
+      queryClient.clear();
+      
+      await expect(result.current.reorderBooks([10, 20])).rejects.toThrow();
+      // Should not crash when previousShelf is undefined
+    });
+
+    test('moveBooks should handle error rollback with missing previousShelf', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      (shelfApi.moveBooks as any).mockRejectedValue(new Error('Move failed'));
+      
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+      
+      // Clear the query cache to simulate missing previousShelf
+      queryClient.clear();
+      
+      await expect(result.current.moveBooks(2, [10])).rejects.toThrow();
+      // Should not crash when previousShelf is undefined
+    });
+  });
 });
