@@ -4,6 +4,8 @@ import { PATCH } from "@/app/api/streak/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createMockRequest } from "@/__tests__/fixtures/test-data";
+import { subDays } from 'date-fns';
+import { toDateString } from "@/utils/dateHelpers.server";
 
 /**
  * Test suite for PATCH /api/streak with streakEnabled parameter
@@ -30,15 +32,12 @@ beforeEach(async () => {
 
 // Helper to get relative dates in UTC
 function getDaysAgo(days: number): string {
-  const { subDays } = require('date-fns');
   const targetDate = subDays(new Date(), days);
   return targetDate.toISOString().split('T')[0];
 }
 
 // Helper to get Date string for relative days (YYYY-MM-DD)
 function getDateDaysAgo(days: number): string {
-  const { subDays } = require('date-fns');
-  const { toDateString } = require('@/utils/dateHelpers.server');
   return toDateString(subDays(new Date(), days));
 }
 
