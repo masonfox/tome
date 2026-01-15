@@ -242,7 +242,11 @@ export class SessionRepository extends BaseRepository<
           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
         )
       )
-      .orderBy(desc(readingSessions.updatedAt));
+      .orderBy(
+        status === 'read-next'
+          ? asc(readingSessions.readNextOrder)
+          : desc(readingSessions.updatedAt)
+      );
 
     if (limit) {
       query = query.limit(limit) as any;
@@ -267,7 +271,11 @@ export class SessionRepository extends BaseRepository<
       .select()
       .from(readingSessions)
       .where(conditions)
-      .orderBy(desc(readingSessions.updatedAt));
+      .orderBy(
+        status === 'read-next'
+          ? asc(readingSessions.readNextOrder)
+          : desc(readingSessions.updatedAt)
+      );
 
     if (limit) {
       query = query.limit(limit) as any;
