@@ -5,149 +5,150 @@
  * Users add/remove books via Library page status changes, not directly.
  */
 
-import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/utils/toast";
 import type { SessionWithBook } from "@/lib/repositories/session.repository";
 
-export function useReadNextBooks() {
-  const [sessions, setSessions] = useState<SessionWithBook[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export function useReadNextBooks(search?: string) {
+  const queryClient = useQueryClient();
 
-  /**
-   * Fetch all read-next books
-   */
-  const fetchBooks = useCallback(async (search?: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
+  // Query: Fetch all read-next books
+  const {
+    data: sessions = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["read-next-books", search],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (search) {
         params.set("search", search);
       }
 
       const response = await fetch(`/api/sessions/read-next?${params}`);
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch read-next books");
       }
 
-      const data = await response.json();
-      setSessions(data);
+      const data: SessionWithBook[] = await response.json();
       return data;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error("Unknown error");
-      setError(error);
-      toast.error(`Failed to load read-next books: ${error.message}`);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
   /**
-   * Reorder books (batch update)
-   * Note: Optimistic update happens in the page component via updateLocalOrder()
-   * This just persists the change to the server without triggering loading state
+   * Mutation: Reorder books (batch update)
+   * Uses optimistic updates to prevent loading skeleton flash
    */
-  const reorderBooks = useCallback(
-    async (updates: Array<{ id: number; readNextOrder: number }>) => {
-      setError(null);
+  const reorderMutation = useMutation({
+    mutationFn: async (updates: Array<{ id: number; readNextOrder: number }>) => {
+      const response = await fetch("/api/sessions/read-next/reorder", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
 
-      try {
-        const response = await fetch("/api/sessions/read-next/reorder", {
-          method: "PUT",
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to reorder books");
+      }
+
+      return true;
+    },
+    onMutate: async (updates) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["read-next-books"] });
+
+      // Snapshot previous value
+      const previousSessions = queryClient.getQueryData<SessionWithBook[]>([
+        "read-next-books",
+        search,
+      ]);
+
+      // Optimistically update cache
+      if (previousSessions) {
+        const updatesMap = new Map(
+          updates.map((u) => [u.id, u.readNextOrder])
+        );
+        const optimisticSessions = previousSessions
+          .map((session) => {
+            const newOrder = updatesMap.get(session.id);
+            return newOrder !== undefined
+              ? { ...session, readNextOrder: newOrder }
+              : session;
+          })
+          .sort((a, b) => (a.readNextOrder || 0) - (b.readNextOrder || 0));
+
+        queryClient.setQueryData(["read-next-books", search], optimisticSessions);
+      }
+
+      // Return context for rollback
+      return { previousSessions };
+    },
+    onError: (err, variables, context) => {
+      // Rollback to previous state
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          ["read-next-books", search],
+          context.previousSessions
+        );
+      }
+      const error = err instanceof Error ? err : new Error("Unknown error");
+      toast.error(`Failed to reorder books: ${error.message}`);
+    },
+    onSettled: () => {
+      // Refetch after error or success to sync with server
+      queryClient.invalidateQueries({ queryKey: ["read-next-books"] });
+    },
+    // No success toast - visual feedback of reordering is confirmation enough
+  });
+
+  /**
+   * Mutation: Remove multiple books from read-next queue
+   * Changes session status from "read-next" to "to-read"
+   */
+  const removeMutation = useMutation({
+    mutationFn: async (bookIds: number[]) => {
+      // Update status for each book
+      const updatePromises = bookIds.map(async (bookId) => {
+        const response = await fetch(`/api/books/${bookId}/status`, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updates }),
+          body: JSON.stringify({ status: "to-read" }),
         });
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || "Failed to reorder books");
+          throw new Error(data.error || `Failed to remove book ${bookId}`);
         }
 
-        // No need to refetch - optimistic update already reflects correct state
-        // This prevents the jarring loading skeleton flash after drag-and-drop
-        // No success toast - the visual feedback of reordering is confirmation enough
-        
-        return true;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        toast.error(`Failed to reorder books: ${error.message}`);
-        
-        // Refresh to revert optimistic update on error
-        await fetchBooks();
-        throw error;
-      }
+        return response.json();
+      });
+
+      await Promise.all(updatePromises);
+      return bookIds;
     },
-    [fetchBooks]
-  );
-
-  /**
-   * Update local book order optimistically (for drag-and-drop UI)
-   */
-  const updateLocalOrder = useCallback((newSessions: SessionWithBook[]) => {
-    setSessions(newSessions);
-  }, []);
-
-  /**
-   * Remove multiple books from read-next queue
-   * Changes session status from "read-next" to "to-read"
-   */
-  const removeBooks = useCallback(
-    async (bookIds: number[]) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Update status for each book
-        const updatePromises = bookIds.map(async (bookId) => {
-          const response = await fetch(`/api/books/${bookId}/status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "to-read" }),
-          });
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || `Failed to remove book ${bookId}`);
-          }
-
-          return response.json();
-        });
-
-        await Promise.all(updatePromises);
-
-        // Refresh the list after removal
-        await fetchBooks();
-
-        const count = bookIds.length;
-        toast.success(
-          `Removed ${count} ${count === 1 ? "book" : "books"} from Read Next`
-        );
-        
-        return true;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        toast.error(`Failed to remove books: ${error.message}`);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
+    onSuccess: (bookIds) => {
+      queryClient.invalidateQueries({ queryKey: ["read-next-books"] });
+      const count = bookIds.length;
+      toast.success(
+        `Removed ${count} ${count === 1 ? "book" : "books"} from Read Next`
+      );
     },
-    [fetchBooks]
-  );
+    onError: (err) => {
+      const error = err instanceof Error ? err : new Error("Unknown error");
+      toast.error(`Failed to remove books: ${error.message}`);
+    },
+  });
 
   return {
     sessions,
-    loading,
+    loading: isLoading || removeMutation.isPending,
     error,
-    fetchBooks,
-    reorderBooks,
-    updateLocalOrder,
-    removeBooks,
+    reorderBooks: reorderMutation.mutateAsync,
+    removeBooks: removeMutation.mutateAsync,
+    isReordering: reorderMutation.isPending,
+    isRemoving: removeMutation.isPending,
   };
 }

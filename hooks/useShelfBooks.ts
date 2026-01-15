@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/utils/toast";
 import { shelfApi, ApiError } from "@/lib/api";
 import type { ShelfWithBooks } from "@/lib/api";
@@ -8,399 +8,347 @@ export interface ShelfWithBooksExtended extends Omit<ShelfWithBooks, 'books'> {
   books: BookWithStatus[];
 }
 
-export function useShelfBooks(shelfId: number | null) {
-  const [shelf, setShelf] = useState<ShelfWithBooksExtended | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
+export function useShelfBooks(
+  shelfId: number | null,
+  orderBy: ShelfOrderBy = "sortOrder",
+  direction: ShelfSortDirection = "asc"
+) {
+  const queryClient = useQueryClient();
 
-  /**
-   * Fetch shelf with its books
-   */
-  const fetchShelfBooks = useCallback(
-    async (orderBy: ShelfOrderBy = "sortOrder", direction: ShelfSortDirection = "asc") => {
-      if (!shelfId) {
-        return;
-      }
+  // Query: Fetch shelf with its books
+  const {
+    data: shelf = null,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["shelf", shelfId, { orderBy, direction }],
+    queryFn: async () => {
+      if (!shelfId) return null;
 
-      setLoading(true);
-      setHasInitialized(true);
-      setError(null);
-      try {
-        const shelf = await shelfApi.get(shelfId, {
-          withBooks: true,
-          orderBy,
-          direction,
-        });
-        
-        // Safe: API returns ShelfWithBooks when withBooks=true
-        setShelf(shelf as ShelfWithBooksExtended);
-        return shelf;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to load shelf books: ${message}`);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
+      const shelf = await shelfApi.get(shelfId, {
+        withBooks: true,
+        orderBy,
+        direction,
+      });
+
+      // Safe: API returns ShelfWithBooks when withBooks=true
+      return shelf as ShelfWithBooksExtended;
     },
-    [shelfId]
-  );
+    enabled: shelfId !== null,
+    staleTime: 30000, // 30 seconds
+  });
 
   /**
-   * Add a book to the shelf
+   * Helper to extract user-friendly error message
    */
-  const addBookToShelf = useCallback(
-    async (bookId: number, sortOrder?: number) => {
-      if (!shelfId) {
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      try {
-        await shelfApi.addBook(shelfId, { bookId, sortOrder });
-        
-        // Refresh shelf books after adding
-        await fetchShelfBooks();
-
-        toast.success("Book added to shelf");
-        return true;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to add book to shelf: ${message}`);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [shelfId, fetchShelfBooks]
-  );
+  const getErrorMessage = (err: unknown): string => {
+    return err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error";
+  };
 
   /**
-   * Add multiple books to the shelf (bulk operation)
+   * Mutation: Add multiple books to the shelf (bulk operation)
    */
-  const addBooksToShelf = useCallback(
-    async (bookIds: number[]) => {
+  const addBooksMutation = useMutation({
+    mutationFn: async (bookIds: number[]) => {
       if (!shelfId || bookIds.length === 0) {
-        return;
+        throw new Error("No shelf ID or book IDs provided");
       }
-
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await shelfApi.addBooks(shelfId, { bookIds });
-        
-        // Refresh shelf books after adding
-        await fetchShelfBooks();
-
-        const bookWord = result.count === 1 ? 'book' : 'books';
-        toast.success(`${result.count} ${bookWord} added to shelf`);
-        return result;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to add books: ${message}`);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
+      return shelfApi.addBooks(shelfId, { bookIds });
     },
-    [shelfId, fetchShelfBooks]
-  );
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      const bookWord = result.count === 1 ? 'book' : 'books';
+      toast.success(`${result.count} ${bookWord} added to shelf`);
+    },
+    onError: (err) => {
+      toast.error(`Failed to add books: ${getErrorMessage(err)}`);
+    },
+  });
 
   /**
-   * Remove a book from the shelf
+   * Mutation: Remove a single book from the shelf
    */
-  const removeBookFromShelf = useCallback(
-    async (bookId: number) => {
+  const removeBookMutation = useMutation({
+    mutationFn: async (bookId: number) => {
       if (!shelfId) {
-        return;
+        throw new Error("No shelf ID provided");
       }
-
-      setLoading(true);
-      setError(null);
-      try {
-        await shelfApi.removeBook(shelfId, bookId);
-        
-        // Update local state optimistically - filter out removed book and reindex sortOrder
-        setShelf((prev) => {
-          if (!prev) return null;
-          
-          const remainingBooks = prev.books
-            .filter((book) => book.id !== bookId)
-            .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
-          
-          return {
-            ...prev,
-            books: remainingBooks,
-          };
-        });
-
-        toast.success("Book removed from shelf");
-        return true;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to remove book from shelf: ${message}`);
-        
-        // Refresh to ensure consistency
-        await fetchShelfBooks();
-        throw error;
-      } finally {
-        setLoading(false);
-      }
+      return shelfApi.removeBook(shelfId, bookId);
     },
-    [shelfId, fetchShelfBooks]
-  );
+    onMutate: async (bookId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+
+      // Snapshot previous value
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
+        "shelf",
+        shelfId,
+        { orderBy, direction },
+      ]);
+
+      // Optimistically update: filter out removed book and reindex sortOrder
+      if (previousShelf) {
+        const remainingBooks = previousShelf.books
+          .filter((book) => book.id !== bookId)
+          .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
+
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          {
+            ...previousShelf,
+            books: remainingBooks,
+          }
+        );
+      }
+
+      return { previousShelf };
+    },
+    onSuccess: () => {
+      toast.success("Book removed from shelf");
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousShelf) {
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          context.previousShelf
+        );
+      }
+      toast.error(`Failed to remove book from shelf: ${getErrorMessage(err)}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+    },
+  });
 
   /**
-   * Remove multiple books from the shelf (bulk operation)
+   * Mutation: Remove multiple books from the shelf (bulk operation)
    */
-  const removeBooksFromShelf = useCallback(
-    async (bookIds: number[]) => {
+  const removeBooksMutation = useMutation({
+    mutationFn: async (bookIds: number[]) => {
       if (!shelfId || bookIds.length === 0) {
-        return;
+        throw new Error("No shelf ID or book IDs provided");
       }
+      return shelfApi.removeBooks(shelfId, { bookIds });
+    },
+    onMutate: async (bookIds) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
 
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await shelfApi.removeBooks(shelfId, { bookIds });
+      // Snapshot previous value
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
+        "shelf",
+        shelfId,
+        { orderBy, direction },
+      ]);
 
-        // Optimistic update: remove books from local state and reindex
-        setShelf((prev) => {
-          if (!prev) return null;
-          
-          const remainingBooks = prev.books
-            .filter((book) => !bookIds.includes(book.id))
-            .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
-          
-          return {
-            ...prev,
+      // Optimistically update: remove books from local state and reindex
+      if (previousShelf) {
+        const remainingBooks = previousShelf.books
+          .filter((book) => !bookIds.includes(book.id))
+          .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
+
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          {
+            ...previousShelf,
             books: remainingBooks,
-          };
-        });
-
-        const bookWord = result.count === 1 ? "book" : "books";
-        toast.success(`${result.count} ${bookWord} removed from shelf`);
-        return result;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to remove books: ${message}`);
-        
-        // Refresh to ensure consistency
-        await fetchShelfBooks();
-        throw error;
-      } finally {
-        setLoading(false);
+          }
+        );
       }
+
+      return { previousShelf };
     },
-    [shelfId, fetchShelfBooks]
-  );
+    onSuccess: (result) => {
+      const bookWord = result.count === 1 ? "book" : "books";
+      toast.success(`${result.count} ${bookWord} removed from shelf`);
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousShelf) {
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          context.previousShelf
+        );
+      }
+      toast.error(`Failed to remove books: ${getErrorMessage(err)}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+    },
+  });
 
   /**
-   * Update the order of a book on the shelf
+   * Mutation: Batch reorder books on the shelf
    */
-  const updateBookOrder = useCallback(
-    async (bookId: number, sortOrder: number) => {
+  const reorderBooksMutation = useMutation({
+    mutationFn: async (bookIds: number[]) => {
       if (!shelfId) {
-        return;
+        throw new Error("No shelf ID provided");
       }
-
-      setLoading(true);
-      setError(null);
-      try {
-        await shelfApi.updateBookOrder(shelfId, { bookId, sortOrder });
-        
-        // Refresh shelf books after reordering
-        await fetchShelfBooks();
-
-        return true;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to update book order: ${message}`);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
+      return shelfApi.reorderBooks(shelfId, { bookIds });
     },
-    [shelfId, fetchShelfBooks]
-  );
+    onMutate: async (bookIds) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
 
-  /**
-   * Batch reorder books on the shelf
-   */
-  const reorderBooks = useCallback(
-    async (bookIds: number[]) => {
-      if (!shelfId) {
-        return;
-      }
+      // Snapshot previous value
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
+        "shelf",
+        shelfId,
+        { orderBy, direction },
+      ]);
 
-      // Optimistic update - reorder books and update sortOrder to match server behavior
-      if (shelf) {
+      // Optimistically update: reorder books and update sortOrder
+      if (previousShelf) {
         const reorderedBooks = bookIds
           .map((id, index) => {
-            const book = shelf.books.find((book) => book.id === id);
+            const book = previousShelf.books.find((book) => book.id === id);
             if (!book) return undefined;
             return { ...book, sortOrder: index } as BookWithStatus;
           })
           .filter((book): book is BookWithStatus => book !== undefined);
-        
-        setShelf({
-          ...shelf,
-          books: reorderedBooks,
-        });
+
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          {
+            ...previousShelf,
+            books: reorderedBooks,
+          }
+        );
       }
 
-      setError(null);
-      try {
-        await shelfApi.reorderBooks(shelfId, { bookIds });
-        
-        // No need to refetch - optimistic update already reflects correct state
-        // This prevents the jarring page refresh after drag-and-drop
-        // No success toast - the visual feedback of reordering is confirmation enough
-
-        return true;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to reorder books: ${message}`);
-        
-        // Refresh to restore correct state on error
-        await fetchShelfBooks();
-        throw error;
-      }
+      return { previousShelf };
     },
-    [shelfId, shelf, fetchShelfBooks]
-  );
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousShelf) {
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          context.previousShelf
+        );
+      }
+      toast.error(`Failed to reorder books: ${getErrorMessage(err)}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+    },
+    // No success toast - visual feedback of reordering is confirmation enough
+  });
 
   /**
-   * Move books from current shelf to another shelf
+   * Mutation: Move books from current shelf to another shelf
    */
-  const moveBooks = useCallback(
-    async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
+  const moveBooksMutation = useMutation({
+    mutationFn: async ({
+      targetShelfId,
+      bookIds,
+    }: {
+      targetShelfId: number;
+      bookIds: number[];
+      targetShelfName?: string;
+    }) => {
       if (!shelfId || bookIds.length === 0) {
-        return;
+        throw new Error("No shelf ID or book IDs provided");
       }
+      return shelfApi.moveBooks(shelfId, targetShelfId, { bookIds });
+    },
+    onMutate: async ({ bookIds }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
 
-      setLoading(true);
-      setError(null);
+      // Snapshot previous value
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
+        "shelf",
+        shelfId,
+        { orderBy, direction },
+      ]);
 
-      // Optimistic update: remove books from local state
-      setShelf((prev) => {
-        if (!prev) return null;
-        
-        const remainingBooks = prev.books
+      // Optimistically update: remove books from local state
+      if (previousShelf) {
+        const remainingBooks = previousShelf.books
           .filter((book) => !bookIds.includes(book.id))
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
-        
-        return {
-          ...prev,
-          books: remainingBooks,
-        };
-      });
 
-      try {
-        const result = await shelfApi.moveBooks(shelfId, targetShelfId, { bookIds });
-        
-        const bookWord = result.count === 1 ? "book" : "books";
-        const shelfName = targetShelfName ? ` to ${targetShelfName}` : "";
-        toast.success(`${result.count} ${bookWord} moved${shelfName}`);
-        
-        return result;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to move books: ${message}`);
-        
-        // Refresh to ensure consistency
-        await fetchShelfBooks();
-        throw error;
-      } finally {
-        setLoading(false);
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          {
+            ...previousShelf,
+            books: remainingBooks,
+          }
+        );
       }
+
+      return { previousShelf };
     },
-    [shelfId, fetchShelfBooks]
-  );
+    onSuccess: (result, variables) => {
+      const bookWord = result.count === 1 ? "book" : "books";
+      const shelfName = variables.targetShelfName ? ` to ${variables.targetShelfName}` : "";
+      toast.success(`${result.count} ${bookWord} moved${shelfName}`);
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousShelf) {
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          context.previousShelf
+        );
+      }
+      toast.error(`Failed to move books: ${getErrorMessage(err)}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+    },
+  });
 
   /**
-   * Copy books from current shelf to another shelf
+   * Mutation: Copy books from current shelf to another shelf
    */
-  const copyBooks = useCallback(
-    async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
+  const copyBooksMutation = useMutation({
+    mutationFn: async ({
+      targetShelfId,
+      bookIds,
+    }: {
+      targetShelfId: number;
+      bookIds: number[];
+      targetShelfName?: string;
+    }) => {
       if (bookIds.length === 0) {
-        return;
+        throw new Error("No book IDs provided");
       }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const result = await shelfApi.copyBooks(targetShelfId, { bookIds });
-        
-        const bookWord = result.count === 1 ? "book" : "books";
-        const shelfName = targetShelfName ? ` to ${targetShelfName}` : "";
-        toast.success(`${result.count} ${bookWord} copied${shelfName}`);
-        
-        return result;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Unknown error");
-        setError(error);
-        
-        // Extract user-friendly message from ApiError
-        const message = err instanceof ApiError ? err.message : error.message;
-        toast.error(`Failed to copy books: ${message}`);
-        throw error;
-      } finally {
-        setLoading(false);
-      }
+      return shelfApi.copyBooks(targetShelfId, { bookIds });
     },
-    []
-  );
+    onSuccess: (result, variables) => {
+      const bookWord = result.count === 1 ? "book" : "books";
+      const shelfName = variables.targetShelfName ? ` to ${variables.targetShelfName}` : "";
+      toast.success(`${result.count} ${bookWord} copied${shelfName}`);
+    },
+    onError: (err) => {
+      toast.error(`Failed to copy books: ${getErrorMessage(err)}`);
+    },
+  });
 
   return {
     shelf,
     books: shelf?.books || [],
-    loading,
+    loading: isLoading || addBooksMutation.isPending || removeBookMutation.isPending || removeBooksMutation.isPending || reorderBooksMutation.isPending || moveBooksMutation.isPending || copyBooksMutation.isPending,
     error,
-    hasInitialized,
-    fetchShelfBooks,
-    addBookToShelf,
-    addBooksToShelf,
-    removeBookFromShelf,
-    removeBooksFromShelf,
-    updateBookOrder,
-    reorderBooks,
-    moveBooks,
-    copyBooks,
+    hasInitialized: shelf !== null || error !== null,
+    addBooksToShelf: addBooksMutation.mutateAsync,
+    removeBookFromShelf: removeBookMutation.mutateAsync,
+    removeBooksFromShelf: removeBooksMutation.mutateAsync,
+    reorderBooks: reorderBooksMutation.mutateAsync,
+    moveBooks: async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
+      return moveBooksMutation.mutateAsync({ targetShelfId, bookIds, targetShelfName });
+    },
+    copyBooks: async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
+      return copyBooksMutation.mutateAsync({ targetShelfId, bookIds, targetShelfName });
+    },
+    isAddingBooks: addBooksMutation.isPending,
+    isRemovingBook: removeBookMutation.isPending,
+    isRemovingBooks: removeBooksMutation.isPending,
+    isReordering: reorderBooksMutation.isPending,
+    isMoving: moveBooksMutation.isPending,
+    isCopying: copyBooksMutation.isPending,
   };
 }
