@@ -256,8 +256,8 @@ export class StreakService {
     const streak = await streakRepository.upsert(userId || null, {
       currentStreak,
       longestStreak,
-      lastActivityDate: lastActivityDate,
-      streakStartDate: streakStartDate,
+      lastActivityDate: toDateString(lastActivityDate),
+      streakStartDate: toDateString(streakStartDate),
       totalDaysActive,
     });
 
@@ -286,13 +286,13 @@ export class StreakService {
 
     if (!streak) {
       logger.debug("[Streak] No existing streak found, creating new one");
-      const now = new Date();
+      const todayStr = toDateString(new Date());
       streak = await streakRepository.create({
         userId: userId || null,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityDate: now,
-        streakStartDate: now,
+        lastActivityDate: todayStr,
+        streakStartDate: todayStr,
         totalDaysActive: 1,
       });
       logger.info({
