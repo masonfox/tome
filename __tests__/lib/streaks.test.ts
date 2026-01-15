@@ -318,8 +318,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 5,
       });
@@ -378,8 +378,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 3,
-        lastActivityDate: getStreakDate(-1), // Yesterday
-        streakStartDate: getStreakDate(-3),
+        lastActivityDate: toDateString(getStreakDate(-1)), // Yesterday
+        streakStartDate: toDateString(getStreakDate(-3)),
         totalDaysActive: 3,
         dailyThreshold: 20,
       });
@@ -428,8 +428,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 5,
       });
@@ -740,8 +740,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 5,
       });
@@ -831,8 +831,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 10,
       });
@@ -910,8 +910,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 10,
       });
@@ -976,8 +976,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 5,
       });
@@ -1171,8 +1171,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityDate: getStreakDate(-1),
-        streakStartDate: getStreakDate(-1),
+        lastActivityDate: toDateString(getStreakDate(-1)),
+        streakStartDate: toDateString(getStreakDate(-1)),
         totalDaysActive: 1,
         dailyThreshold: 5,
       });
@@ -1228,8 +1228,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 10,
       });
@@ -1287,8 +1287,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
         dailyThreshold: 15,
       });
@@ -1368,8 +1368,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 1,
         dailyThreshold: 1,
       });
@@ -1431,7 +1431,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       // Get streak and manually set lastCheckedDate to today
       const streak = await streakService.getStreakBasic();
       await streakRepository.update(streak.id, {
-        lastCheckedDate: getStreakDate(0),
+        lastCheckedDate: toDateString(getStreakDate(0)),
       } as any);
 
       // Call checkAndResetStreakIfNeeded - should return false (already checked)
@@ -1448,8 +1448,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: threeDaysAgo,
-        streakStartDate: getStreakDate(-8),
+        lastActivityDate: toDateString(threeDaysAgo),
+        streakStartDate: toDateString(getStreakDate(-8)),
         totalDaysActive: 5,
       });
 
@@ -1471,8 +1471,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
         userId: null,
         currentStreak: 3,
         longestStreak: 5,
-        lastActivityDate: yesterday,
-        streakStartDate: getStreakDate(-3),
+        lastActivityDate: toDateString(yesterday),
+        streakStartDate: toDateString(getStreakDate(-3)),
         totalDaysActive: 3,
       });
 
@@ -1509,7 +1509,7 @@ describe("Reading Streak Tracking - Spec 001", () => {
       await streakRepository.update(streak.id, {
         dailyThreshold: 100, // High threshold
         currentStreak: 5,
-        lastActivityDate: getStreakDate(-1), // Yesterday
+        lastActivityDate: toDateString(getStreakDate(-1)), // Yesterday
       } as any);
 
       // Create progress for today but below threshold

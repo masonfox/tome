@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { streaks, Streak, NewStreak } from "@/lib/db/schema/streaks";
 import { db } from "@/lib/db/sqlite";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof streaks> {
   constructor() {
@@ -29,13 +30,13 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
     let streak = await this.findByUserId(userId);
 
     if (!streak) {
-      const now = new Date();
+      const todayStr = toDateString(new Date());
       streak = await this.create({
         userId,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: now,
-        streakStartDate: now,
+        lastActivityDate: todayStr,
+        streakStartDate: todayStr,
         totalDaysActive: 0,
       });
     }
@@ -56,13 +57,13 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
       }
       return updated;
     } else {
-      const now = new Date();
+      const todayStr = toDateString(new Date());
       const created = await this.create({
         userId,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: now,
-        streakStartDate: now,
+        lastActivityDate: todayStr,
+        streakStartDate: todayStr,
         totalDaysActive: 0,
         ...data,
       });
@@ -80,13 +81,13 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
     const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
     const newTotalDays = streak.totalDaysActive + 1;
 
-    const now = new Date();
+    const todayStr = toDateString(new Date());
     const updated = await this.update(streak.id, {
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       totalDaysActive: newTotalDays,
-      lastActivityDate: now,
-      updatedAt: now,
+      lastActivityDate: todayStr,
+      updatedAt: new Date(),
     } as any);
     if (!updated) {
       throw new Error('Failed to update streak');
@@ -100,13 +101,13 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
   async resetCurrentStreak(userId: number | null = null): Promise<Streak> {
     const streak = await this.getOrCreate(userId);
 
-    const now = new Date();
+    const todayStr = toDateString(new Date());
     const updated = await this.update(streak.id, {
       currentStreak: 1,
-      streakStartDate: now,
+      streakStartDate: todayStr,
       totalDaysActive: streak.totalDaysActive + 1,
-      lastActivityDate: now,
-      updatedAt: now,
+      lastActivityDate: todayStr,
+      updatedAt: new Date(),
     } as any);
     if (!updated) {
       throw new Error('Failed to update streak');
@@ -121,7 +122,7 @@ export class StreakRepository extends BaseRepository<Streak, NewStreak, typeof s
     const streak = await this.getOrCreate(userId);
 
     const updated = await this.update(streak.id, {
-      lastActivityDate: activityDate,
+      lastActivityDate: toDateString(activityDate),
       updatedAt: new Date(),
     } as any);
     if (!updated) {

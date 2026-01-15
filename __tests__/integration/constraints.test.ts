@@ -7,6 +7,7 @@ import {
   streakRepository,
 } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 // Use in-memory database for tests
 describe("Database Constraints", () => {
@@ -238,8 +239,8 @@ describe("Database Constraints", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
       });
 
@@ -250,8 +251,8 @@ describe("Database Constraints", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+          lastActivityDate: toDateString(new Date()),
+          streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
         });
       } catch (e) {

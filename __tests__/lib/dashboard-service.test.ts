@@ -3,6 +3,7 @@ import { test, expect, describe, beforeAll, afterAll, beforeEach, vi } from 'vit
 import { getDashboardData } from "@/lib/dashboard-service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 /**
  * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
@@ -431,8 +432,8 @@ describe("Dashboard Service", () => {
         userId: null,
         currentStreak: 5,
         longestStreak: 10,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 5,
         dailyThreshold: 30,
         streakEnabled: true, // Must be enabled to show on dashboard

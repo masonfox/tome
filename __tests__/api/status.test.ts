@@ -218,8 +218,8 @@ describe("POST /api/books/[id]/status - Backward Movement with Session Archival"
       userId: null,
       currentStreak: 1,
       longestStreak: 1,
-      lastActivityDate: new Date("2025-11-17"),
-      streakStartDate: new Date("2025-11-17"),
+      lastActivityDate: "2025-11-17",
+      streakStartDate: "2025-11-17",
       totalDaysActive: 1,
     });
 

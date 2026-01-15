@@ -4,6 +4,7 @@ import { GET } from "@/app/api/dashboard/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { createTestBook } from "@/__tests__/fixtures/test-data";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 /**
  * Dashboard API Tests
@@ -96,7 +97,8 @@ describe("Dashboard API - GET /api/dashboard", () => {
       currentStreak: 0,
       longestStreak: 0,
       dailyThreshold: 10,
-      lastActivityDate: new Date(),
+      lastActivityDate: toDateString(new Date()),
+      streakStartDate: toDateString(new Date()),
       totalDaysActive: 0,
       streakEnabled: true,
     });
@@ -192,7 +194,8 @@ describe("Dashboard API - GET /api/dashboard", () => {
       currentStreak: 5,
       longestStreak: 10,
       dailyThreshold: 15,
-      lastActivityDate: new Date(),
+      lastActivityDate: toDateString(new Date()),
+      streakStartDate: toDateString(new Date()),
       totalDaysActive: 20,
       streakEnabled: true,
     });
@@ -211,7 +214,8 @@ describe("Dashboard API - GET /api/dashboard", () => {
       currentStreak: 1,
       longestStreak: 1,
       dailyThreshold: 10,
-      lastActivityDate: new Date(),
+      lastActivityDate: toDateString(new Date()),
+      streakStartDate: toDateString(new Date()),
       totalDaysActive: 1,
       streakEnabled: true,
     });

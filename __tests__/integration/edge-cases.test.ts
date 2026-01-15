@@ -7,6 +7,7 @@ import {
   streakRepository,
 } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 describe("Edge Case Tests", () => {
   beforeAll(async () => {
@@ -168,8 +169,8 @@ describe("Edge Case Tests", () => {
         userId: null,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 1,
       });
 
@@ -182,8 +183,8 @@ describe("Edge Case Tests", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
       });
 
