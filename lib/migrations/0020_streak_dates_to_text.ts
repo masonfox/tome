@@ -35,23 +35,29 @@ const migration: CompanionMigration = {
     
     logger.info({ timezone }, "Using timezone for date conversion");
     
-    // Get all streak records with INTEGER timestamps
-    // Check column type to determine if migration is needed
+    // Get all streak records with timestamp values (INTEGER or TEXT numeric strings)
+    // This handles both cases:
+    // 1. Pre-schema-migration: last_activity_date is INTEGER
+    // 2. Post-schema-migration: last_activity_date is TEXT but contains numeric timestamp
+    // 
+    // We detect timestamps by checking if the value doesn't contain hyphens (not YYYY-MM-DD)
+    // and is a valid numeric value (can be cast to INTEGER).
     const streaksWithTimestamps = db.prepare(`
       SELECT id, last_activity_date, streak_start_date, last_checked_date
       FROM streaks
-      WHERE typeof(last_activity_date) = 'integer'
+      WHERE last_activity_date NOT LIKE '%-%'
+        AND CAST(last_activity_date AS INTEGER) > 0
     `).all() as Array<{
       id: number;
-      last_activity_date: number;
-      streak_start_date: number;
-      last_checked_date: number | null;
+      last_activity_date: number | string;
+      streak_start_date: number | string;
+      last_checked_date: number | string | null;
     }>;
     
     logger.info({ count: streaksWithTimestamps.length }, "Found streak records to convert");
     
     if (streaksWithTimestamps.length === 0) {
-      logger.info("No INTEGER timestamps found, migration already complete or no data");
+      logger.info("No timestamp values found, migration already complete or no data");
       return;
     }
     
@@ -67,9 +73,19 @@ const migration: CompanionMigration = {
     
     let converted = 0;
     for (const streak of streaksWithTimestamps) {
+      // Handle both INTEGER and TEXT timestamp values
+      // After schema migration, SQLite auto-casts INTEGERs to TEXT strings
+      const lastActivityTimestamp = typeof streak.last_activity_date === 'string' 
+        ? parseInt(streak.last_activity_date, 10) 
+        : streak.last_activity_date;
+      
+      const streakStartTimestamp = typeof streak.streak_start_date === 'string'
+        ? parseInt(streak.streak_start_date, 10)
+        : streak.streak_start_date;
+      
       // Convert Unix seconds to milliseconds, then to date string in user's timezone
-      const lastActivityDate = new Date(streak.last_activity_date * 1000);
-      const streakStartDate = new Date(streak.streak_start_date * 1000);
+      const lastActivityDate = new Date(lastActivityTimestamp * 1000);
+      const streakStartDate = new Date(streakStartTimestamp * 1000);
       
       const lastActivityStr = formatInTimeZone(lastActivityDate, timezone, 'yyyy-MM-dd');
       const streakStartStr = formatInTimeZone(streakStartDate, timezone, 'yyyy-MM-dd');
@@ -77,7 +93,10 @@ const migration: CompanionMigration = {
       // Handle nullable lastCheckedDate
       let lastCheckedStr: string | null = null;
       if (streak.last_checked_date !== null && streak.last_checked_date !== undefined) {
-        const lastCheckedDate = new Date(streak.last_checked_date * 1000);
+        const lastCheckedTimestamp = typeof streak.last_checked_date === 'string'
+          ? parseInt(streak.last_checked_date, 10)
+          : streak.last_checked_date;
+        const lastCheckedDate = new Date(lastCheckedTimestamp * 1000);
         lastCheckedStr = formatInTimeZone(lastCheckedDate, timezone, 'yyyy-MM-dd');
       }
       
