@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Star, ArrowUpDown, ArrowUp, ArrowDown, Trash2, ExternalLink, GripVertical } from "lucide-react";
@@ -305,14 +305,17 @@ export function DraggableBookTable({
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [activeId, setActiveId] = useState<number | null>(null);
   const [localBooks, setLocalBooks] = useState(books);
+  const isDraggingRef = useRef(false);
 
   // Disable drag when in select mode
   const effectiveIsDragEnabled = isDragEnabled && !isSelectMode;
 
-  // Update local state when books prop changes
-  if (books !== localBooks) {
-    setLocalBooks(books);
-  }
+  // Update local state when books prop changes (but not during active drag)
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setLocalBooks(books);
+    }
+  }, [books]);
 
   // Check if all visible books are selected
   const allSelected = books.length > 0 && books.every((book) => selectedBookIds.has(book.id));
@@ -384,6 +387,7 @@ export function DraggableBookTable({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
+    isDraggingRef.current = true;
     setActiveId(event.active.id as number);
   };
 
@@ -402,10 +406,12 @@ export function DraggableBookTable({
       }
     }
 
+    isDraggingRef.current = false;
     setActiveId(null);
   };
 
   const handleDragCancel = () => {
+    isDraggingRef.current = false;
     setActiveId(null);
   };
 

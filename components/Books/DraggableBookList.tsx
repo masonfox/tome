@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import {
   DndContext,
   closestCenter,
@@ -119,14 +119,17 @@ export function DraggableBookList({
 }: DraggableBookListProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [localBooks, setLocalBooks] = useState(books);
+  const isDraggingRef = useRef(false);
 
   // Disable drag when in select mode
   const effectiveIsDragEnabled = isDragEnabled && !isSelectMode;
 
-  // Update local state when books prop changes
-  if (books !== localBooks) {
-    setLocalBooks(books);
-  }
+  // Update local state when books prop changes (but not during active drag)
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setLocalBooks(books);
+    }
+  }, [books]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -146,6 +149,7 @@ export function DraggableBookList({
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    isDraggingRef.current = true;
     setActiveId(event.active.id as number);
   };
 
@@ -163,10 +167,12 @@ export function DraggableBookList({
       onReorder(newBooks.map((book) => book.id));
     }
 
+    isDraggingRef.current = false;
     setActiveId(null);
   };
 
   const handleDragCancel = () => {
+    isDraggingRef.current = false;
     setActiveId(null);
   };
 
