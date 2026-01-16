@@ -1,9 +1,9 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import PullToRefresh from "react-simple-pull-to-refresh";
 import { RefreshIndicator } from "./RefreshIndicator";
 import { usePullToRefreshLogic } from "@/hooks/usePullToRefreshLogic";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 interface PullToRefreshWrapperProps {
   children: ReactNode;
@@ -34,22 +34,30 @@ export function PullToRefreshWrapper({ children }: PullToRefreshWrapperProps) {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
+  // Use our custom pull-to-refresh hook
+  const { pullDistance, isRefreshing, isPulling } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxDistance: 120,
+    resistance: 2,
+    enabled: isMobile,
+  });
+
   // On desktop, just render children without PTR
   if (!isMobile) {
     return <>{children}</>;
   }
 
-  // On mobile, wrap with pull-to-refresh
+  // On mobile, always render the refresh indicator and let it manage its own visibility
   return (
-    <PullToRefresh
-      onRefresh={handleRefresh}
-      pullingContent={<RefreshIndicator distance={50} />}
-      refreshingContent={<RefreshIndicator isRefreshing />}
-      pullDownThreshold={80}
-      maxPullDownDistance={120}
-      resistance={2}
-    >
+    <>
+      <RefreshIndicator 
+        distance={pullDistance} 
+        isRefreshing={isRefreshing}
+        isPulling={isPulling}
+        threshold={80}
+      />
       {children}
-    </PullToRefresh>
+    </>
   );
 }
