@@ -27,6 +27,10 @@
     "db:reset": "bash scripts/reset-database.sh",
     "sync-calibre": "tsx scripts/sync-calibre.ts",
     "test": "TZ=UTC vitest run",
+    "test:unit": "TZ=UTC vitest run __tests__/unit",
+    "test:integration": "TZ=UTC vitest run __tests__/integration",
+    "test:e2e": "TZ=UTC vitest run __tests__/e2e",
+    "test:component": "TZ=UTC vitest run __tests__/components __tests__/hooks",
     "test:watch": "TZ=UTC vitest",
     "test:ui": "TZ=UTC vitest --ui",
     "test:coverage": "TZ=UTC vitest run --coverage"
