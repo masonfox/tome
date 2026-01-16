@@ -31,20 +31,36 @@ export function usePullToRefresh({
     if (!enabled) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      // Only start if at the top of the page
+      // Check if touching a draggable element or its children
+      const target = e.target as HTMLElement;
+      const isDraggable = target.closest('[draggable="true"]') || 
+                          target.closest('[data-draggable]') ||
+                          target.closest('[role="button"]') ||
+                          target.hasAttribute('draggable');
+      
+      // Skip PTR if touching a draggable element
+      if (isDraggable) {
+        return;
+      }
+      
+      // Only record start position if at the top of the page
       if (window.scrollY === 0 && !isRefreshing) {
         startY.current = e.touches[0].clientY;
-        setIsPulling(true);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling || isRefreshing) return;
+      if (isRefreshing || startY.current === 0) return;
 
       currentY.current = e.touches[0].clientY;
       const diff = currentY.current - startY.current;
 
       if (diff > 0) {
+        // User is pulling down - now we can set isPulling
+        if (!isPulling) {
+          setIsPulling(true);
+        }
+        
         // Prevent default scroll behavior
         e.preventDefault();
         
@@ -55,6 +71,9 @@ export function usePullToRefresh({
     };
 
     const handleTouchEnd = async () => {
+      // Reset start position
+      startY.current = 0;
+      
       if (!isPulling) return;
 
       setIsPulling(false);
