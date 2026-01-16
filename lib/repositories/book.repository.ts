@@ -347,7 +347,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
     // Multiple tags use AND logic - book must have ALL selected tags
-    if (filters.tags && filters.tags.length > 0) {
+    // NOTE: noTags takes precedence over tags filter
+    if (filters.noTags) {
+      // No tags filter - books without any tags
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    } else if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
           SELECT 1 FROM json_each(${books.tags})
@@ -355,11 +359,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         )`
       );
       conditions.push(and(...tagConditions)!);
-    }
-
-    // No tags filter - books without any tags
-    if (filters.noTags) {
-      conditions.push(sql`json_array_length(${books.tags}) = 0`);
     }
 
     // Rating filter
@@ -689,7 +688,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
     // Multiple tags use AND logic - book must have ALL selected tags
-    if (filters.tags && filters.tags.length > 0) {
+    // NOTE: noTags takes precedence over tags filter
+    if (filters.noTags) {
+      // No tags filter - books without any tags
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    } else if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
           SELECT 1 FROM json_each(${books.tags})
@@ -697,11 +700,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         )`
       );
       conditions.push(and(...tagConditions)!);
-    }
-
-    // No tags filter - books without any tags
-    if (filters.noTags) {
-      conditions.push(sql`json_array_length(${books.tags}) = 0`);
     }
 
     // Rating filter
