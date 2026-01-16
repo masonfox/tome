@@ -92,7 +92,7 @@ async function main() {
     console.log("Summary:");
     console.log(`  Total backups: ${allBackups.length}`);
     console.log(`  Total size: ${totalSizeMB}MB`);
-    console.log(`  Retention policy: Last ${cfg.maxBackups} backups per database`);
+    console.log(`  Retention policy: Last ${cfg.maxBackups} backup folders (date-based)`);
     console.log("");
     
     if (allBackups.length > cfg.maxBackups * 2) {
