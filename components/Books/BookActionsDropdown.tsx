@@ -48,7 +48,8 @@ export function BookActionsDropdown({
           setShowMenu(!showMenu);
         }}
         disabled={disabled}
-        className="p-1.5 text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ backgroundColor: 'var(--card-bg-emphasis)' }}
+        className="p-1.5 text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="More actions"
         title="More actions"
       >
