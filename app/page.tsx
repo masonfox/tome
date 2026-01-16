@@ -16,7 +16,7 @@ export default function Dashboard() {
     <div className="space-y-6 md:space-y-10">
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-3 md:pb-6">
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-center md:justify-between gap-4 sm:gap-6">
           <div className="hidden md:block">
             <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
               <BookOpen className="w-8 h-8" />
@@ -28,7 +28,7 @@ export default function Dashboard() {
           </div>
 
           {/* Streak Display */}
-          <div className="flex justify-center md:justify-end">
+          <div className="flex justify-center items-center">
             {streak && (
               <StreakDisplay
                 currentStreak={streak.currentStreak}
