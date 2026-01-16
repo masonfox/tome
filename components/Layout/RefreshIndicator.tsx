@@ -47,6 +47,8 @@ export function RefreshIndicator({
         height: isActive ? `${containerHeight}px` : '0px',
         // Only transition when closing (not active), instant when pulling/opening
         transition: isActive ? 'none' : 'height 500ms ease-out',
+        // Inset shadow for subtle depth
+        boxShadow: 'inset 0 -20px 24px -12px rgba(0, 0, 0, 0.10)',
       }}
     >
       <Loader2
