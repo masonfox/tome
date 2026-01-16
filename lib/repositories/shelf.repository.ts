@@ -11,6 +11,9 @@ import {
 import { books, Book } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 
+// Matches FannedBookCovers maxCovers default
+const MAX_SHELF_COVERS = 12;
+
 export interface ShelfWithBookCount extends Shelf {
   bookCount: number;
 }
@@ -104,7 +107,7 @@ export class ShelfRepository extends BaseRepository<
         .innerJoin(books, eq(bookShelves.bookId, books.id))
         .where(eq(bookShelves.shelfId, shelf.id))
         .orderBy(asc(bookShelves.sortOrder))
-        .limit(12)
+        .limit(MAX_SHELF_COVERS)
         .all();
       
       result.push({
@@ -478,6 +481,58 @@ export class ShelfRepository extends BaseRepository<
           .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, book.bookId)))
           .run();
       });
+    });
+  }
+
+  /**
+   * Move a book to the top of a shelf (position 0) and shift all others down
+   * @param shelfId The shelf ID
+   * @param bookId The book ID to move to the top
+   */
+  async moveBookToTop(shelfId: number, bookId: number): Promise<void> {
+    const db = this.getDatabase();
+    
+    // Check if book is on the shelf
+    const bookOnShelf = await db
+      .select()
+      .from(bookShelves)
+      .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
+      .get();
+    
+    if (!bookOnShelf) {
+      throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
+    }
+    
+    // Validate sortOrder is not null
+    const currentOrder = bookOnShelf.sortOrder;
+    if (currentOrder === null || currentOrder === undefined) {
+      throw new Error(`Book ${bookId} on shelf ${shelfId} has null sortOrder`);
+    }
+    
+    // If already at position 0, no-op
+    if (currentOrder === 0) {
+      return;
+    }
+    
+    // Use transaction to update all books atomically with batch queries
+    db.transaction(() => {
+      // Increment all books with order < current order (batch update)
+      db.update(bookShelves)
+        .set({ sortOrder: sql`${bookShelves.sortOrder} + 1` })
+        .where(
+          and(
+            eq(bookShelves.shelfId, shelfId),
+            sql`${bookShelves.sortOrder} < ${currentOrder}`,
+            sql`${bookShelves.sortOrder} IS NOT NULL`
+          )
+        )
+        .run();
+      
+      // Set target book to position 0
+      db.update(bookShelves)
+        .set({ sortOrder: 0 })
+        .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
+        .run();
     });
   }
 

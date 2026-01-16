@@ -467,6 +467,27 @@ export class ShelfService {
     await shelfRepository.reorderBooks(shelfId, orderedBookIds);
     logger.info({ shelfId }, "Books reordered successfully");
   }
+
+  /**
+   * Move a book to the top of a shelf
+   */
+  async moveBookToTop(shelfId: number, bookId: number): Promise<void> {
+    // Validate shelf exists
+    const shelf = await shelfRepository.findById(shelfId);
+    if (!shelf) {
+      throw new Error(`Shelf with ID ${shelfId} not found`);
+    }
+
+    // Validate book is on shelf
+    const isOnShelf = await shelfRepository.isBookOnShelf(shelfId, bookId);
+    if (!isOnShelf) {
+      throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
+    }
+
+    logger.info({ shelfId, bookId }, "Moving book to top of shelf");
+    await shelfRepository.moveBookToTop(shelfId, bookId);
+    logger.info({ shelfId, bookId }, "Book moved to top successfully");
+  }
 }
 
 // Export singleton instance

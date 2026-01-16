@@ -14,8 +14,11 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
 
   if (!streak) {
     logger.debug("[Streak] No existing streak found, creating new one");
+    const userTimezone = 'America/New_York'; // Default timezone for new users
     const now = new Date();
-    const todayStr = toDateString(now);
+    const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+    const todayStr = toDateString(todayUtc);
     streak = await streakRepository.create({
       userId: userId || null,
       currentStreak: 1,
@@ -174,8 +177,12 @@ export async function updateStreaks(userId?: number | null): Promise<Streak> {
 export async function checkAndResetStreakIfNeeded(userId?: number | null): Promise<boolean> {
   const streak = await streakRepository.getOrCreate(userId || null);
 
-  // Get today as YYYY-MM-DD string
-  const todayStr = toDateString(new Date());
+  // Get today as YYYY-MM-DD string using user's timezone
+  const userTimezone = streak.userTimezone || 'America/New_York';
+  const now = new Date();
+  const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+  const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+  const todayStr = toDateString(todayUtc);
 
   // Idempotency check: Have we already checked today?
   if (streak.lastCheckedDate) {

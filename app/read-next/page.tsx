@@ -7,7 +7,7 @@
  * Uses shared abstractions: useBookListView, useBulkOperation, BookListControls
  */
 
-import { Clock, Trash2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useReadNextBooks } from "@/hooks/useReadNextBooks";
@@ -20,12 +20,13 @@ import { BookListItem } from "@/components/Books/BookListItem";
 import { BookListItemSkeleton } from "@/components/Books/BookListItemSkeleton";
 import { BookTable } from "@/components/Books/BookTable";
 import { BulkActionBar } from "@/components/ShelfManagement/BulkActionBar";
+import { BookActionsDropdown } from "@/components/Books/BookActionsDropdown";
 import BaseModal from "@/components/Modals/BaseModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import type { Book } from "@/lib/db/schema/books";
 
 export default function ReadNextPage() {
-  const { sessions, loading, reorderBooks, removeBooks } = useReadNextBooks();
+  const { sessions, loading, reorderBooks, removeBooks, moveToTop } = useReadNextBooks();
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
 
@@ -207,46 +208,46 @@ export default function ReadNextPage() {
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
-              renderActions={!listView.isSelectMode ? (book) => (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setRemovingBook({ id: book.id, title: book.title });
-                  }}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
-                  title="Remove from read-next"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              ) : undefined}
+              renderActions={!listView.isSelectMode ? (book) => {
+                const sessionIndex = sessions.findIndex(s => s.book.id === book.id);
+                const session = sessions[sessionIndex];
+                return session ? (
+                  <BookActionsDropdown
+                    bookId={book.id}
+                    bookTitle={book.title}
+                    isAtTop={sessionIndex === 0}
+                    onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                    onMoveToTop={() => moveToTop(session.id)}
+                  />
+                ) : null;
+              } : undefined}
             />
           ) : (
             <div className="space-y-4">
-              {listView.filteredBooks.map((book) => (
-                <BookListItem
-                  key={book.id}
-                  book={book}
-                  isSelectMode={listView.isSelectMode}
-                  isSelected={listView.selectedBookIds.has(book.id)}
-                  onToggleSelection={() => listView.toggleBookSelection(book.id)}
-                  actions={
-                    !listView.isSelectMode ? (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setRemovingBook({ id: book.id, title: book.title });
-                        }}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-full bg-[var(--background)] transition-colors"
-                        title="Remove from read-next"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    ) : undefined
-                  }
-                />
-              ))}
+              {listView.filteredBooks.map((book) => {
+                const sessionIndex = sessions.findIndex(s => s.book.id === book.id);
+                const session = sessions[sessionIndex];
+                return (
+                  <BookListItem
+                    key={book.id}
+                    book={book}
+                    isSelectMode={listView.isSelectMode}
+                    isSelected={listView.selectedBookIds.has(book.id)}
+                    onToggleSelection={() => listView.toggleBookSelection(book.id)}
+                    actions={
+                      !listView.isSelectMode && session ? (
+                        <BookActionsDropdown
+                          bookId={book.id}
+                          bookTitle={book.title}
+                          isAtTop={sessionIndex === 0}
+                          onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                          onMoveToTop={() => moveToTop(session.id)}
+                        />
+                      ) : undefined
+                    }
+                  />
+                );
+              })}
             </div>
           )
         ) : (
@@ -260,24 +261,37 @@ export default function ReadNextPage() {
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
               onToggleSelectAll={listView.toggleSelectAll}
-              onRemoveBook={(bookId) => {
-                const book = listView.filteredBooks.find((b) => b.id === bookId);
-                if (book) {
-                  setRemovingBook({ id: book.id, title: book.title });
-                }
+              renderActions={(book, index) => {
+                const session = sessions.find((s) => s.book.id === book.id);
+                return session && !listView.isSelectMode ? (
+                  <BookActionsDropdown
+                    bookId={book.id}
+                    bookTitle={book.title}
+                    isAtTop={index === 0}
+                    onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                    onMoveToTop={() => moveToTop(session.id)}
+                  />
+                ) : null;
               }}
             />
           ) : (
             <BookTable
               books={listView.filteredBooks}
-              onToggleSelection={listView.isSelectMode ? listView.toggleBookSelection : undefined}
-              selectedBookIds={listView.isSelectMode ? listView.selectedBookIds : undefined}
-              onToggleSelectAll={listView.isSelectMode ? listView.toggleSelectAll : undefined}
-              onRemoveBook={(bookId) => {
-                const book = listView.filteredBooks.find((b) => b.id === bookId);
-                if (book) {
-                  setRemovingBook({ id: book.id, title: book.title });
-                }
+              isSelectMode={listView.isSelectMode}
+              selectedBookIds={listView.selectedBookIds}
+              onToggleSelection={listView.toggleBookSelection}
+              onToggleSelectAll={listView.toggleSelectAll}
+              renderActions={(book, index) => {
+                const session = sessions.find((s) => s.book.id === book.id);
+                return session && !listView.isSelectMode ? (
+                  <BookActionsDropdown
+                    bookId={book.id}
+                    bookTitle={book.title}
+                    isAtTop={index === 0}
+                    onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
+                    onMoveToTop={() => moveToTop(session.id)}
+                  />
+                ) : null;
               }}
             />
           )
