@@ -16,6 +16,7 @@ export interface BookFilter {
   orphanedOnly?: boolean;
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
   excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
+  noTags?: boolean; // Filter for books without any tags
 }
 
 export interface BookWithStatus extends Book {
@@ -356,6 +357,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(and(...tagConditions)!);
     }
 
+    // No tags filter - books without any tags
+    if (filters.noTags) {
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    }
+
     // Rating filter
     if (filters.rating && filters.rating !== "all") {
       const ratingCondition = this.buildRatingCondition(filters.rating);
@@ -691,6 +697,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         )`
       );
       conditions.push(and(...tagConditions)!);
+    }
+
+    // No tags filter - books without any tags
+    if (filters.noTags) {
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
     }
 
     // Rating filter

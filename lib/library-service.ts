@@ -12,6 +12,7 @@ export interface LibraryFilters {
   };
   showOrphaned?: boolean;
   sortBy?: string;
+  noTags?: boolean;
 }
 
 export interface PaginatedBooks {
@@ -55,6 +56,7 @@ export class LibraryService {
       skip: filters.pagination.skip,
       showOrphaned: filters.showOrphaned,
       sortBy: filters.sortBy,
+      noTags: filters.noTags,
     });
   }
 
@@ -77,7 +79,7 @@ export class LibraryService {
     }
 
     try {
-      const { status, search, tags, rating, shelf, pagination, showOrphaned } = filters;
+      const { status, search, tags, rating, shelf, pagination, showOrphaned, noTags } = filters;
       const { limit, skip } = pagination;
 
       // Build query params for API call
@@ -89,6 +91,7 @@ export class LibraryService {
       if (shelf) params.set("shelf", shelf.toString());
       if (showOrphaned) params.set("showOrphaned", "true");
       if (filters.sortBy) params.set("sortBy", filters.sortBy);
+      if (noTags) params.set("noTags", "true");
       params.set("limit", limit.toString());
       params.set("skip", skip.toString());
 

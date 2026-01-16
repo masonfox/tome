@@ -53,7 +53,7 @@ function LibraryPageContent() {
   // Function to update URL with current filters
   const updateURL = useCallback((currentFilters: any) => {
     const params = new URLSearchParams();
-    
+
     if (currentFilters.search) {
       params.set('search', currentFilters.search);
     }
@@ -72,10 +72,13 @@ function LibraryPageContent() {
     if (currentFilters.sort && currentFilters.sort !== 'created') {
       params.set('sort', currentFilters.sort);
     }
-    
+    if (currentFilters.noTags) {
+      params.set('noTags', 'true');
+    }
+
     const queryString = params.toString();
     const newPath = queryString ? `/library?${queryString}` : '/library';
-    
+
     router.replace(newPath);
   }, [router]);
 
@@ -94,6 +97,7 @@ function LibraryPageContent() {
     setRating,
     setShelf,
     setSortBy,
+    setNoTags,
     filters,
     refresh,
   } = useLibraryData({
@@ -103,6 +107,7 @@ function LibraryPageContent() {
     rating: searchParams?.get("rating") || undefined,
     shelf: searchParams?.get("shelf") ? parseInt(searchParams.get("shelf")!) : undefined,
     sortBy: searchParams?.get("sort") || undefined,
+    noTags: searchParams?.get("noTags") === "true" || undefined,
   });
 
   // Performance monitoring - track page load times
@@ -300,9 +305,10 @@ function LibraryPageContent() {
       status: status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
-      sort: filters.sortBy || 'created'
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
     });
-  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating, filters.sortBy]);
+  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating, filters.sortBy, filters.noTags]);
 
   const handleTagsChange = useCallback((tags: string[] | undefined) => {
     setTags(tags);
@@ -311,9 +317,10 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: tags || [],
       rating: filters.rating || 'all',
-      sort: filters.sortBy || 'created'
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
     });
-  }, [setTags, updateURL, filters.search, filters.status, filters.rating, filters.sortBy]);
+  }, [setTags, updateURL, filters.search, filters.status, filters.rating, filters.sortBy, filters.noTags]);
 
   const handleRatingChange = useCallback((rating: string | undefined) => {
     setRating(rating);
@@ -322,9 +329,10 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: rating || 'all',
-      sort: filters.sortBy || 'created'
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
     });
-  }, [setRating, updateURL, filters.search, filters.status, filters.tags, filters.sortBy]);
+  }, [setRating, updateURL, filters.search, filters.status, filters.tags, filters.sortBy, filters.noTags]);
 
   const handleShelfChange = useCallback((shelfId: number | null) => {
     const shelf = shelfId || undefined;
@@ -335,14 +343,28 @@ function LibraryPageContent() {
       tags: filters.tags || [],
       rating: filters.rating || 'all',
       shelf: shelf,
-      sort: filters.sortBy || 'created'
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
     });
-  }, [setShelf, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sortBy]);
+  }, [setShelf, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags]);
+
+  const handleNoTagsChange = useCallback((noTags: boolean) => {
+    setNoTags(noTags || undefined);
+    updateURL({
+      search: filters.search,
+      status: filters.status || 'all',
+      tags: noTags ? [] : filters.tags || [],
+      rating: filters.rating || 'all',
+      shelf: filters.shelf,
+      sort: filters.sortBy || 'created',
+      noTags: noTags
+    });
+  }, [setNoTags, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.shelf, filters.sortBy]);
 
   // Handle search submission
   const handleSearchSubmit = useCallback(() => {
     if (!isReady) return;
-    
+
     setSearch(searchInput);
     // Update URL with current filters including search
     updateURL({
@@ -350,14 +372,15 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
-      sort: filters.sortBy || 'created'
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
     });
-  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, updateURL]);
+  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags, updateURL]);
 
   // Handle search clear (X button)
   const handleSearchClear = useCallback(() => {
     if (!isReady) return;
-    
+
     setSearch("");
     // Update URL to remove search parameter
     updateURL({
@@ -365,9 +388,10 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
-      sort: filters.sortBy || 'created'
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
     });
-  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, updateURL]);
+  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -452,9 +476,10 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
-      sort: sort
+      sort: sort,
+      noTags: filters.noTags
     });
-  }, [setSortBy, updateURL, filters.search, filters.status, filters.tags, filters.rating]);
+  }, [setSortBy, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.noTags]);
 
   function handleClearAll() {
     setSearchInput("");
@@ -464,7 +489,8 @@ function LibraryPageContent() {
     setRating(undefined);
     setShelf(undefined);
     setSortBy(undefined);
-    
+    setNoTags(undefined);
+
     // Update URL to remove all filter parameters
     router.replace('/library');
   }
@@ -496,6 +522,8 @@ function LibraryPageContent() {
         onShelfFilterChange={handleShelfChange}
         availableShelves={availableShelves}
         loadingShelves={loadingShelves}
+        noTags={filters.noTags || false}
+        onNoTagsChange={handleNoTagsChange}
         sortBy={filters.sortBy || "created"}
         onSortChange={handleSortChange}
         availableTags={availableTags}

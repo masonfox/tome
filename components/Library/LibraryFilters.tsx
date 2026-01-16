@@ -109,6 +109,8 @@ interface LibraryFiltersProps {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   availableTags: string[];
+  noTags?: boolean;
+  onNoTagsChange?: (noTags: boolean) => void;
   sortBy: string;
   onSortChange: (sort: string) => void;
   loading?: boolean;
@@ -132,6 +134,8 @@ export function LibraryFilters({
   selectedTags,
   onTagsChange,
   availableTags,
+  noTags = false,
+  onNoTagsChange,
   sortBy,
   onSortChange,
   loading = false,
@@ -210,9 +214,9 @@ export function LibraryFilters({
   );
 
   // Memoize filter check
-  const hasActiveFilters = useMemo(() => 
-    search || statusFilter !== "all" || ratingFilter !== "all" || shelfFilter || selectedTags.length > 0,
-    [search, statusFilter, ratingFilter, shelfFilter, selectedTags.length]
+  const hasActiveFilters = useMemo(() =>
+    search || statusFilter !== "all" || ratingFilter !== "all" || shelfFilter || selectedTags.length > 0 || noTags,
+    [search, statusFilter, ratingFilter, shelfFilter, selectedTags.length, noTags]
   );
 
   // Clear all filters on Escape key
@@ -511,7 +515,7 @@ export function LibraryFilters({
         </div>
 
         {/* Tag Filter Row */}
-        {(availableTags.length > 0 || loadingTags) && (
+        {(availableTags.length > 0 || loadingTags) && !noTags && (
           <div className="flex gap-3 items-start">
             <div className="flex-1 min-w-0">
               {/* Tag search input */}
@@ -573,7 +577,7 @@ export function LibraryFilters({
         )}
 
         {/* Selected tags */}
-        {selectedTags.length > 0 && (
+        {selectedTags.length > 0 && !noTags && (
           <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => (
               <button
@@ -588,6 +592,28 @@ export function LibraryFilters({
               </button>
             ))}
           </div>
+        )}
+
+        {/* No Tags Checkbox */}
+        {onNoTagsChange && (availableTags.length > 0 || loadingTags) && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={noTags}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                onNoTagsChange(checked);
+                if (checked && selectedTags.length > 0) {
+                  onTagsChange([]);
+                }
+              }}
+              disabled={loading || loadingTags}
+              className="w-4 h-4 accent-[var(--accent)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <span className="text-sm text-[var(--foreground)]/70 select-none">
+              Show only books without tags
+            </span>
+          </label>
         )}
 
         {/* Shelf Filter Row */}
