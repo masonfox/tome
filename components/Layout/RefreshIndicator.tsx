@@ -36,18 +36,17 @@ export function RefreshIndicator({
   // When refreshing or closing, stays at 1.0 (normal size)
   const scale = (isRefreshing || !isPulling) ? 1.0 : 0.6 + (pullProgress * 0.6); // 0.6 -> 1.2
   
-  // Container height grows from py-2 to py-6 based on pull progress
-  const minPadding = 8; // py-2 = 0.5rem = 8px
-  const maxPadding = 24; // py-6 = 1.5rem = 24px
-  const paddingY = isRefreshing ? 16 : minPadding + (pullProgress * (maxPadding - minPadding));
+  // Container height grows from 0 to full height based on pull progress
+  const maxHeight = 56; // Enough for icon (28px) + padding
+  const containerHeight = isRefreshing ? maxHeight : pullProgress * maxHeight; // 0 -> 56px
 
   return (
     <div
-      className="flex items-center justify-center bg-[var(--card-bg-emphasis)] overflow-hidden transition-all duration-500 ease-out"
+      className="flex items-center justify-center bg-[var(--card-bg-emphasis)] overflow-hidden"
       style={{ 
-        paddingTop: isActive ? `${paddingY}px` : '0px',
-        paddingBottom: isActive ? `${paddingY}px` : '0px',
-        maxHeight: isActive ? '100px' : '0px',
+        height: isActive ? `${containerHeight}px` : '0px',
+        // Only transition when closing (not active), instant when pulling/opening
+        transition: isActive ? 'none' : 'height 500ms ease-out',
       }}
     >
       <Loader2
@@ -60,7 +59,7 @@ export function RefreshIndicator({
             : `rotate(${rotation}deg) scale(${scale})`,
           transition: isRefreshing ? undefined : "none",
           transformOrigin: 'center',
-          opacity: isActive ? 1 : 0,
+          opacity: 1, // Always visible when rendered
         }}
       />
     </div>
