@@ -10,7 +10,7 @@ import {
   type BackupOptions,
   type BackupConfig 
 } from "@/lib/db/backup";
-import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import Database from "better-sqlite3";
@@ -355,112 +355,138 @@ describe("Database Backup Module", () => {
   });
 
   describe("cleanupOldBackups()", () => {
-    test("should keep only last N backups", async () => {
-      // Create 5 backups
+    test("should keep only last N date folders", async () => {
       const dbName = "test.db";
-      const dateFolder = join(backupDir, "2025-01-01");
-      mkdirSync(dateFolder, { recursive: true });
 
-      const backupPaths: string[] = [];
-      for (let i = 0; i < 5; i++) {
-        const timestamp = `20250101_${String(i).padStart(6, '0')}`;
-        const backupPath = join(dateFolder, `${dbName}.backup-${timestamp}`);
-        writeFileSync(backupPath, `backup ${i}`);
-        backupPaths.push(backupPath);
-        
-        // Sleep 10ms to ensure different mtimes
-        await new Promise(resolve => setTimeout(resolve, 10));
+      // Create backups across 5 different dates
+      const dates = [
+        "2025-01-01", "2025-01-02", "2025-01-03", "2025-01-04", "2025-01-05"
+      ];
+
+      for (const date of dates) {
+        const dateFolder = join(backupDir, date);
+        mkdirSync(dateFolder, { recursive: true });
+
+        // Create tome.db backup
+        const tomeBackup = join(dateFolder, `tome.db.backup-${date.replace(/-/g, '')}_120000`);
+        writeFileSync(tomeBackup, `tome backup ${date}`);
+
+        // Create metadata.db backup
+        const metadataBackup = join(dateFolder, `metadata.db.backup-${date.replace(/-/g, '')}_120000`);
+        writeFileSync(metadataBackup, `metadata backup ${date}`);
       }
 
-      // Keep only 3 most recent
+      // Keep only 3 most recent folders
       const maxBackups = 3;
       const deleted = await cleanupOldBackups(backupDir, dbName, maxBackups);
 
+      // Should delete 2 folders
       expect(deleted).toBe(2);
-      
-      // Verify only 3 backups remain
-      const remaining = backupPaths.filter(p => existsSync(p));
-      expect(remaining.length).toBe(3);
-      
-      // Verify oldest 2 were deleted (indices 0 and 1)
-      expect(existsSync(backupPaths[0])).toBe(false);
-      expect(existsSync(backupPaths[1])).toBe(false);
-      expect(existsSync(backupPaths[2])).toBe(true);
-      expect(existsSync(backupPaths[3])).toBe(true);
-      expect(existsSync(backupPaths[4])).toBe(true);
+
+      // Verify only 3 most recent folders remain
+      expect(existsSync(join(backupDir, "2025-01-01"))).toBe(false);  // deleted
+      expect(existsSync(join(backupDir, "2025-01-02"))).toBe(false);  // deleted
+      expect(existsSync(join(backupDir, "2025-01-03"))).toBe(true);   // kept
+      expect(existsSync(join(backupDir, "2025-01-04"))).toBe(true);   // kept
+      expect(existsSync(join(backupDir, "2025-01-05"))).toBe(true);   // kept
     });
 
-    test("should remove empty date folders", async () => {
+    test("should delete entire folders including all database backups", async () => {
       const dbName = "test.db";
-      const dateFolder1 = join(backupDir, "2025-01-01");
-      const dateFolder2 = join(backupDir, "2025-01-02");
-      
-      mkdirSync(dateFolder1, { recursive: true });
-      mkdirSync(dateFolder2, { recursive: true });
 
-      // Create 1 backup in folder 1
-      const backupPath1 = join(dateFolder1, `${dbName}.backup-20250101_000000`);
-      writeFileSync(backupPath1, "backup 1");
+      // Create 4 date folders with multiple database backups each
+      const dates = ["2025-01-01", "2025-01-02", "2025-01-03", "2025-01-04"];
 
-      // Create 3 backups in folder 2
-      const backupPath2 = join(dateFolder2, `${dbName}.backup-20250102_000000`);
-      const backupPath3 = join(dateFolder2, `${dbName}.backup-20250102_000001`);
-      const backupPath4 = join(dateFolder2, `${dbName}.backup-20250102_000002`);
-      
-      writeFileSync(backupPath2, "backup 2");
-      await new Promise(resolve => setTimeout(resolve, 10));
-      writeFileSync(backupPath3, "backup 3");
-      await new Promise(resolve => setTimeout(resolve, 10));
-      writeFileSync(backupPath4, "backup 4");
+      for (const date of dates) {
+        const dateFolder = join(backupDir, date);
+        mkdirSync(dateFolder, { recursive: true });
 
-      // Keep only 2 most recent (will delete all from folder 1 and oldest from folder 2)
+        // Create tome.db backup with WAL/SHM
+        const tomeBackup = join(dateFolder, `tome.db.backup-${date.replace(/-/g, '')}_120000`);
+        writeFileSync(tomeBackup, "tome backup");
+        writeFileSync(`${tomeBackup}-wal`, "wal");
+        writeFileSync(`${tomeBackup}-shm`, "shm");
+
+        // Create metadata.db backup
+        const metadataBackup = join(dateFolder, `metadata.db.backup-${date.replace(/-/g, '')}_120000`);
+        writeFileSync(metadataBackup, "metadata backup");
+      }
+
+      // Keep only 2 most recent
       const maxBackups = 2;
       await cleanupOldBackups(backupDir, dbName, maxBackups);
 
-      // Verify folder 1 is removed (empty)
-      expect(existsSync(dateFolder1)).toBe(false);
-      
-      // Verify folder 2 still exists (has 2 backups)
-      expect(existsSync(dateFolder2)).toBe(true);
-      
-      // Verify correct backups remain
-      expect(existsSync(backupPath1)).toBe(false); // deleted (oldest)
-      expect(existsSync(backupPath2)).toBe(false); // deleted (2nd oldest)
-      expect(existsSync(backupPath3)).toBe(true);  // kept
-      expect(existsSync(backupPath4)).toBe(true);  // kept
+      // Verify oldest 2 folders are completely gone
+      expect(existsSync(join(backupDir, "2025-01-01"))).toBe(false);
+      expect(existsSync(join(backupDir, "2025-01-02"))).toBe(false);
+
+      // Verify newest 2 folders still exist with all files
+      const folder3 = join(backupDir, "2025-01-03");
+      const folder4 = join(backupDir, "2025-01-04");
+
+      expect(existsSync(folder3)).toBe(true);
+      expect(existsSync(folder4)).toBe(true);
+
+      // Verify all files still exist in kept folders
+      const folder3Files = readdirSync(folder3);
+      expect(folder3Files.length).toBe(4);  // tome.db + wal + shm + metadata.db
+      expect(folder3Files.some(f => f.startsWith("tome.db"))).toBe(true);
+      expect(folder3Files.some(f => f.startsWith("metadata.db"))).toBe(true);
     });
 
-    test("should delete associated WAL and SHM files", async () => {
+    test("should handle mixed valid and invalid folder names", async () => {
       const dbName = "test.db";
-      const dateFolder = join(backupDir, "2025-01-01");
-      mkdirSync(dateFolder, { recursive: true });
 
-      // Create 2 backups with WAL and SHM files
-      const backup1 = join(dateFolder, `${dbName}.backup-20250101_000000`);
-      const backup2 = join(dateFolder, `${dbName}.backup-20250101_000001`);
-      
-      writeFileSync(backup1, "backup 1");
-      writeFileSync(`${backup1}-wal`, "wal 1");
-      writeFileSync(`${backup1}-shm`, "shm 1");
-      
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      writeFileSync(backup2, "backup 2");
-      writeFileSync(`${backup2}-wal`, "wal 2");
-      writeFileSync(`${backup2}-shm`, "shm 2");
+      // Create valid date folders
+      const validDates = ["2025-01-01", "2025-01-02", "2025-01-03"];
+      for (const date of validDates) {
+        const dateFolder = join(backupDir, date);
+        mkdirSync(dateFolder, { recursive: true });
+        writeFileSync(join(dateFolder, `${dbName}.backup-${date.replace(/-/g, '')}_120000`), "backup");
+      }
 
-      // Keep only 1 backup
-      await cleanupOldBackups(backupDir, dbName, 1);
+      // Create invalid folders (should be ignored)
+      mkdirSync(join(backupDir, "invalid-folder"), { recursive: true });
+      mkdirSync(join(backupDir, "not-a-date"), { recursive: true });
+      writeFileSync(join(backupDir, "loose-file.txt"), "should be ignored");
 
-      // Verify oldest backup and its WAL/SHM were deleted
-      expect(existsSync(backup1)).toBe(false);
-      expect(existsSync(`${backup1}-wal`)).toBe(false);
-      expect(existsSync(`${backup1}-shm`)).toBe(false);
-      
-      // Verify newest backup and its WAL/SHM remain
-      expect(existsSync(backup2)).toBe(true);
-      expect(existsSync(`${backup2}-wal`)).toBe(true);
-      expect(existsSync(`${backup2}-shm`)).toBe(true);
+      // Keep only 2 folders
+      const deleted = await cleanupOldBackups(backupDir, dbName, 2);
+
+      // Should delete 1 valid folder
+      expect(deleted).toBe(1);
+      expect(existsSync(join(backupDir, "2025-01-01"))).toBe(false);
+
+      // Invalid folders should be untouched
+      expect(existsSync(join(backupDir, "invalid-folder"))).toBe(true);
+      expect(existsSync(join(backupDir, "not-a-date"))).toBe(true);
+      expect(existsSync(join(backupDir, "loose-file.txt"))).toBe(true);
+    });
+
+    test("should handle empty date folders", async () => {
+      const dbName = "test.db";
+
+      // Create 3 folders, one empty
+      const dates = ["2025-01-01", "2025-01-02", "2025-01-03"];
+      for (const date of dates) {
+        const dateFolder = join(backupDir, date);
+        mkdirSync(dateFolder, { recursive: true });
+
+        // Only add file to first two
+        if (date !== "2025-01-03") {
+          writeFileSync(join(dateFolder, `${dbName}.backup-${date.replace(/-/g, '')}_120000`), "backup");
+        }
+      }
+
+      // Keep only 2 folders
+      const deleted = await cleanupOldBackups(backupDir, dbName, 2);
+
+      // Should delete oldest folder
+      expect(deleted).toBe(1);
+      expect(existsSync(join(backupDir, "2025-01-01"))).toBe(false);
+
+      // Empty folder should be kept (it's within retention limit)
+      expect(existsSync(join(backupDir, "2025-01-03"))).toBe(true);
     });
 
     test("should handle nonexistent backup directory", async () => {
@@ -794,37 +820,32 @@ describe("Database Backup Module", () => {
         maxBackups: 2
       };
 
-      // Manually create 3 backups with different timestamps to ensure cleanup
-      const dateFolder = join(backupDir, "2025-01-15");
-      mkdirSync(dateFolder, { recursive: true });
+      // Manually create 3 backups in different date folders to ensure cleanup
+      const dates = ["2025-01-13", "2025-01-14", "2025-01-15"];
 
-      // Create old backup (will be deleted)
-      const oldBackup = join(dateFolder, "tome.db.backup-20250115_100000");
-      writeFileSync(oldBackup, "old backup");
-      await new Promise(resolve => setTimeout(resolve, 10));
+      for (const date of dates) {
+        const dateFolder = join(backupDir, date);
+        mkdirSync(dateFolder, { recursive: true });
 
-      // Create newer backups (will be kept)
-      const backup1 = join(dateFolder, "tome.db.backup-20250115_120000");
-      writeFileSync(backup1, "backup 1");
-      await new Promise(resolve => setTimeout(resolve, 10));
+        const backupPath = join(dateFolder, `tome.db.backup-${date.replace(/-/g, '')}_120000`);
+        writeFileSync(backupPath, `backup ${date}`);
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
 
-      const backup2 = join(dateFolder, "tome.db.backup-20250115_130000");
-      writeFileSync(backup2, "backup 2");
-
-      // Run cleanup
+      // Run cleanup (keep only 2 folders)
       await cleanupOldBackups(backupDir, "tome.db", 2);
 
       // List backups
       const backups = await listBackups(backupDir);
       const tomeBackups = backups.filter(b => b.dbName === "tome.db");
 
-      // Should only keep 2 most recent
+      // Should only keep 2 most recent (from 2 folders)
       expect(tomeBackups.length).toBe(2);
-      
-      // Verify oldest was deleted
-      expect(existsSync(oldBackup)).toBe(false);
-      expect(existsSync(backup1)).toBe(true);
-      expect(existsSync(backup2)).toBe(true);
+
+      // Verify oldest folder was deleted
+      expect(existsSync(join(backupDir, "2025-01-13"))).toBe(false);
+      expect(existsSync(join(backupDir, "2025-01-14"))).toBe(true);
+      expect(existsSync(join(backupDir, "2025-01-15"))).toBe(true);
     });
 
     test("should use same timestamp for correlated backups", async () => {

@@ -298,12 +298,17 @@ export async function createBackup(options: BackupOptions): Promise<BackupResult
 }
 
 /**
- * Clean up old backups, keeping only the most recent N backups
- * 
- * @param backupDir - Directory containing backups
- * @param dbName - Database name to clean up (e.g., "tome.db" or "metadata.db")
- * @param maxBackups - Maximum number of backups to keep
- * @returns Promise resolving to number of backups deleted
+ * Clean up old backup folders, keeping only the most recent N date folders
+ *
+ * This function implements folder-based retention rather than file-based retention.
+ * It identifies date folders (YYYY-MM-DD format), sorts by date, and deletes entire
+ * folders beyond the retention limit. This ensures backup consistency (either keep
+ * all databases from a date or none).
+ *
+ * @param backupDir - Directory containing backup date folders
+ * @param dbName - Database name (deprecated, kept for API compatibility)
+ * @param maxBackups - Maximum number of backup folders to keep
+ * @returns Promise resolving to number of folders deleted
  */
 export async function cleanupOldBackups(
   backupDir: string,
@@ -318,74 +323,52 @@ export async function cleanupOldBackups(
       return 0;
     }
     
-    // Find all backups for this database across all date folders
-    const backups: { path: string; mtime: number }[] = [];
-    
-    // Recursively search date folders
-    const dateFolders = readdirSync(backupDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => join(backupDir, dirent.name));
-    
-    for (const folder of dateFolders) {
-      const files = readdirSync(folder, { withFileTypes: true })
-        .filter(dirent => dirent.isFile())
-        .filter(dirent => dirent.name.startsWith(`${dbName}.backup-`))
-        .filter(dirent => !dirent.name.endsWith('-wal') && !dirent.name.endsWith('-shm'))
-        .map(dirent => {
-          const fullPath = join(folder, dirent.name);
-          const stats = statSync(fullPath);
-          return { path: fullPath, mtime: stats.mtimeMs };
-        });
-      
-      backups.push(...files);
+    // Find all date folders (YYYY-MM-DD format)
+    interface DateFolder {
+      name: string;
+      path: string;
     }
-    
-    // Sort by modification time (newest first)
-    backups.sort((a, b) => b.mtime - a.mtime);
-    
-    // Delete backups beyond maxBackups
+
+    const dateFolders: DateFolder[] = readdirSync(backupDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .filter(dirent => /^\d{4}-\d{2}-\d{2}$/.test(dirent.name))  // Validate YYYY-MM-DD format
+      .map(dirent => ({
+        name: dirent.name,
+        path: join(backupDir, dirent.name)
+      }));
+
+    // Sort by folder name (YYYY-MM-DD sorts chronologically, newest first)
+    dateFolders.sort((a, b) => b.name.localeCompare(a.name));
+
+    // Delete entire folders beyond maxBackups
     let deletedCount = 0;
-    const backupsToDelete = backups.slice(maxBackups);
-    
-    for (const backup of backupsToDelete) {
+    const foldersToDelete = dateFolders.slice(maxBackups);
+
+    for (const folder of foldersToDelete) {
       try {
-        log.debug({ path: backup.path }, "Deleting old backup");
-        unlinkSync(backup.path);
-        
-        // Delete associated WAL and SHM files if they exist
-        const walPath = `${backup.path}-wal`;
-        if (existsSync(walPath)) {
-          unlinkSync(walPath);
-          log.debug({ path: walPath }, "Deleted WAL file");
+        log.debug({ folder: folder.path }, "Deleting old backup folder");
+
+        // Delete all files in folder
+        const files = readdirSync(folder.path, { withFileTypes: true });
+        for (const file of files) {
+          if (file.isFile()) {
+            unlinkSync(join(folder.path, file.name));
+            log.debug({ file: file.name }, "Deleted backup file");
+          }
         }
-        
-        const shmPath = `${backup.path}-shm`;
-        if (existsSync(shmPath)) {
-          unlinkSync(shmPath);
-          log.debug({ path: shmPath }, "Deleted SHM file");
-        }
-        
+
+        // Delete the folder itself
+        rmdirSync(folder.path);
+        log.debug({ folder: folder.name }, "Deleted backup folder");
+
         deletedCount++;
       } catch (error: any) {
-        log.warn({ path: backup.path, error: error.message }, "Failed to delete old backup");
+        log.warn({ folder: folder.path, error: error.message }, "Failed to delete old backup folder");
       }
     }
-    
-    // Clean up empty date folders
-    for (const folder of dateFolders) {
-      try {
-        const files = readdirSync(folder);
-        if (files.length === 0) {
-          rmdirSync(folder);
-          log.debug({ folder }, "Removed empty date folder");
-        }
-      } catch (error: any) {
-        log.debug({ folder, error: error.message }, "Failed to remove empty folder");
-      }
-    }
-    
+
     if (deletedCount > 0) {
-      log.info({ dbName, deletedCount, maxBackups }, `Cleaned up ${deletedCount} old backup(s)`);
+      log.info({ deletedCount, maxBackups }, `Cleaned up ${deletedCount} old backup folder(s)`);
     }
     
     return deletedCount;
