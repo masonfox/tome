@@ -446,6 +446,41 @@ describe("BookHeader", () => {
 4. **Don't Share State Between Tests** - Each test creates its own data
 5. **Don't Leave Commented-Out Code** - Remove or explain with comments
 
+### Import Path Standards
+
+**Always use the `@` alias for imports** - both for source code and test utilities.
+
+#### ✅ DO: Use @ alias
+
+```typescript
+// Source code imports
+import { bookRepository } from "@/lib/repositories";
+import { LibraryFilters } from "@/components/Library/LibraryFilters";
+import { GET, POST } from "@/app/api/books/route";
+
+// Test utility imports
+import { setupTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { createMockRequest, createTestBook } from "@/__tests__/fixtures/test-data";
+import { toProgressDate, toSessionDate } from "@/__tests__/test-utils";
+```
+
+#### ❌ DON'T: Use relative paths
+
+```typescript
+// ❌ Bad - Fragile relative paths
+import { setupTestDatabase } from "../../../helpers/db-setup";
+import { createMockRequest } from "../../fixtures/test-data";
+import { toProgressDate } from '../test-utils';
+```
+
+#### Why?
+
+1. **Maintainability** - Tests can be moved without breaking imports
+2. **Consistency** - Matches project-wide import conventions
+3. **Readability** - Clear where imports come from (`@/` = source, `@/__tests__/` = test utils)
+4. **IDE Support** - Better autocomplete and refactoring support
+5. **No Path Counting** - No need to count `../` levels
+
 ---
 
 ## Service Layer Testing Pattern

@@ -339,7 +339,7 @@ import {
   expectDateToMatch,
   createProgressSequence,
   createTestBookWithSession
-} from '../test-utils';
+} from '@/__tests__/test-utils';
 
 // Convert Date to YYYY-MM-DD for progress logs
 const log = await progressRepository.create({

@@ -401,13 +401,30 @@ beforeAll(async () => {
 vi.mock("@/lib/db/sqlite", () => ({ ... }));
 ```
 
-### 3. Test Data Utilities
-Use shared test utilities from `test-utils.tsx` and `fixtures/test-data.ts`:
+### 3. Import Path Standards
+
+**Always use the `@` alias for imports** - both for source code and test utilities.
 
 ```typescript
-import { toProgressDate, createTestBook } from '../test-utils';
-import { createMockRequest } from '../fixtures/test-data';
+// ✅ Good - Use @ alias
+import { setupTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { createMockRequest, createTestBook } from "@/__tests__/fixtures/test-data";
+import { toProgressDate, toSessionDate } from "@/__tests__/test-utils";
+import { bookRepository } from "@/lib/repositories";
+import { LibraryFilters } from "@/components/Library/LibraryFilters";
+
+// ❌ Avoid - Relative paths
+import { setupTestDatabase } from "../../../helpers/db-setup";
+import { createMockRequest } from "../../fixtures/test-data";
+import { toProgressDate } from '../test-utils';
 ```
+
+**Why use @ alias?**
+- **Maintainability**: Tests can be moved without breaking imports
+- **Consistency**: Matches project-wide import conventions  
+- **Readability**: Clear where imports come from (`@/` = source, `@/__tests__/` = test utils)
+- **IDE Support**: Better autocomplete and refactoring
+- **No Path Counting**: No need to count `../` levels
 
 ### 4. Descriptive Test Names
 Use clear, descriptive test names:
@@ -420,7 +437,22 @@ it("should return 404 when book does not exist", async () => { ... });
 it("test1", () => { ... });
 ```
 
-### 5. Arrange-Act-Assert Pattern
+### 5. Test Data Utilities
+
+Use shared test utilities for common test operations:
+
+```typescript
+// From test-utils.tsx
+import { toProgressDate, toSessionDate, generateDateSequence } from "@/__tests__/test-utils";
+
+// From fixtures/test-data.ts  
+import { createMockRequest, createTestBook, mockBook1 } from "@/__tests__/fixtures/test-data";
+
+// From helpers/db-setup.ts
+import { setupTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+```
+
+### 6. Arrange-Act-Assert Pattern
 Structure tests clearly:
 
 ```typescript
