@@ -185,7 +185,7 @@ describe("LibraryFilters - Rating Filter with Visual Stars", () => {
       const { container } = render(<LibraryFilters {...defaultProps} />);
       
       // The status button should have a library icon
-      const statusButton = screen.getByText("All Books").closest("button");
+      const statusButton = screen.getByText("All Statuses").closest("button");
       expect(statusButton).toBeDefined();
       
       // Check for SVG icon presence
