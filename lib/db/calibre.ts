@@ -349,3 +349,124 @@ export function getAllBookTags(bookIds?: number[]): Map<number, string[]> {
   
   return tagsMap;
 }
+
+/**
+ * Format information from Calibre data table
+ */
+export interface CalibreBookFormat {
+  format: string;    // 'EPUB', 'PDF', 'MOBI', etc.
+  name: string;      // filename without extension
+  size: number;      // uncompressed_size in bytes
+}
+
+/**
+ * Get all available formats for a single book
+ * @param bookId - Calibre book ID
+ * @returns Array of format objects, sorted by priority (EPUB first)
+ */
+export function getBookFormats(bookId: number): CalibreBookFormat[] {
+  const db = getCalibreDB();
+
+  const query = `
+    SELECT
+      format,
+      name,
+      uncompressed_size as size
+    FROM data
+    WHERE book = ?
+    ORDER BY
+      CASE format
+        WHEN 'EPUB' THEN 1
+        WHEN 'KEPUB' THEN 2
+        WHEN 'PDF' THEN 3
+        WHEN 'MOBI' THEN 4
+        WHEN 'AZW3' THEN 5
+        WHEN 'AZW' THEN 6
+        ELSE 99
+      END
+  `;
+
+  return db.prepare(query).all(bookId) as CalibreBookFormat[];
+}
+
+/**
+ * Get formats for multiple books in a single query (bulk optimization)
+ * Returns a Map of book ID to array of formats
+ *
+ * This is much more efficient than calling getBookFormats() for each book individually.
+ * Reduces N queries to 1 query.
+ *
+ * @param bookIds - Array of Calibre book IDs to fetch formats for
+ * @returns Map of book ID to array of formats
+ */
+export function getAllBookFormats(bookIds: number[]): Map<number, CalibreBookFormat[]> {
+  const db = getCalibreDB();
+
+  if (!bookIds || bookIds.length === 0) {
+    return new Map<number, CalibreBookFormat[]>();
+  }
+
+  // Fetch formats for all specified book IDs
+  const placeholders = bookIds.map(() => '?').join(',');
+  const query = `
+    SELECT
+      book as bookId,
+      format,
+      name,
+      uncompressed_size as size
+    FROM data
+    WHERE book IN (${placeholders})
+    ORDER BY
+      book,
+      CASE format
+        WHEN 'EPUB' THEN 1
+        WHEN 'KEPUB' THEN 2
+        WHEN 'PDF' THEN 3
+        WHEN 'MOBI' THEN 4
+        WHEN 'AZW3' THEN 5
+        WHEN 'AZW' THEN 6
+        ELSE 99
+      END
+  `;
+
+  const results = db.prepare(query).all(...bookIds) as Array<{
+    bookId: number;
+    format: string;
+    name: string;
+    size: number;
+  }>;
+
+  // Build map: bookId -> [format1, format2, ...]
+  const formatsMap = new Map<number, CalibreBookFormat[]>();
+
+  for (const row of results) {
+    const formats = formatsMap.get(row.bookId) || [];
+    formats.push({
+      format: row.format,
+      name: row.name,
+      size: row.size,
+    });
+    formatsMap.set(row.bookId, formats);
+  }
+
+  return formatsMap;
+}
+
+/**
+ * Get a single book with its formats included
+ * @param bookId - Calibre book ID
+ * @returns CalibreBook with formats array, or undefined if not found
+ */
+export function getBookWithFormats(bookId: number): (CalibreBook & { formats: CalibreBookFormat[] }) | undefined {
+  const book = getBookById(bookId);
+  if (!book) {
+    return undefined;
+  }
+
+  const formats = getBookFormats(bookId);
+
+  return {
+    ...book,
+    formats,
+  };
+}
