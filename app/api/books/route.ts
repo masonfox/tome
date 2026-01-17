@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get("skip") || "0");
     const showOrphaned = searchParams.get("showOrphaned") === "true";
     const sortBy = searchParams.get("sortBy") || undefined;
+    const noTags = searchParams.get("noTags") === "true";
 
     // Parse tags
     const tags = tagsParam ? tagsParam.split(",").map((t) => t.trim()) : undefined;
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
         excludeShelfId,
         showOrphaned,
         orphanedOnly,
+        noTags,
       },
       limit,
       skip,

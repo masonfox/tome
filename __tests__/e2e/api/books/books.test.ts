@@ -1,9 +1,9 @@
-import { toProgressDate, toSessionDate } from '../../../test-utils';
+import { toProgressDate, toSessionDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../../helpers/db-setup";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET, POST } from "@/app/api/books/route";
-import { createMockRequest } from "../../../fixtures/test-data";
+import { createMockRequest } from "@/__tests__/fixtures/test-data";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
@@ -616,6 +616,244 @@ describe("GET /api/books", () => {
 
       expect(response.status).toBe(200);
       expect(data.books).toHaveLength(2);
+    });
+  });
+
+  // ============================================================================
+  // NO TAGS FILTERING TESTS
+  // ============================================================================
+
+  describe("No Tags Filtering", () => {
+    test("should filter books with no tags when noTags=true", async () => {
+      // Create books with and without tags
+      const bookWithoutTags = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Book Without Tags",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Book With Tags",
+        authors: ["Author 2"],
+        tags: ["fantasy", "magic"],
+        totalPages: 400,
+      });
+
+      const request = createMockRequest("GET", "/api/books?noTags=true");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.total).toBe(1);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].id).toBe(bookWithoutTags.id);
+      expect(data.books[0].tags).toEqual([]);
+    });
+
+    test("should return all books when noTags is false or undefined", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Book Without Tags",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Book With Tags",
+        authors: ["Author 2"],
+        tags: ["fantasy"],
+        totalPages: 400,
+      });
+
+      // Test without noTags parameter
+      const request = createMockRequest("GET", "/api/books");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.total).toBe(2);
+      expect(data.books).toHaveLength(2);
+    });
+
+    test("should return empty result when all books have tags", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Book 1",
+        authors: ["Author 1"],
+        tags: ["fantasy"],
+        totalPages: 300,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Book 2",
+        authors: ["Author 2"],
+        tags: ["sci-fi", "adventure"],
+        totalPages: 400,
+      });
+
+      const request = createMockRequest("GET", "/api/books?noTags=true");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.total).toBe(0);
+      expect(data.books).toHaveLength(0);
+    });
+
+    test("should work with search filter", async () => {
+      const matchingBook = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Harry Potter",
+        authors: ["J.K. Rowling"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Other Book",
+        authors: ["Other Author"],
+        tags: [],
+        totalPages: 400,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "Harry Potter Tagged",
+        authors: ["J.K. Rowling"],
+        tags: ["fantasy"],
+        totalPages: 350,
+      });
+
+      const request = createMockRequest("GET", "/api/books?noTags=true&search=harry");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.total).toBe(1);
+      expect(data.books[0].id).toBe(matchingBook.id);
+    });
+
+    test("should work with rating filter", async () => {
+      const matchingBook = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "5 Star Book No Tags",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+        rating: 5,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "3 Star Book No Tags",
+        authors: ["Author 2"],
+        tags: [],
+        totalPages: 400,
+        rating: 3,
+      });
+
+      await bookRepository.create({
+        calibreId: 3,
+        path: "test/path/3",
+        title: "5 Star Book With Tags",
+        authors: ["Author 3"],
+        tags: ["fantasy"],
+        totalPages: 350,
+        rating: 5,
+      });
+
+      const request = createMockRequest("GET", "/api/books?noTags=true&rating=5");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.total).toBe(1);
+      expect(data.books[0].id).toBe(matchingBook.id);
+    });
+
+    test("should support pagination", async () => {
+      // Create 10 books without tags
+      for (let i = 1; i <= 10; i++) {
+        await bookRepository.create({
+          calibreId: i,
+          path: `test/path/${i}`,
+          title: `Book ${i}`,
+          authors: ["Author"],
+          tags: [],
+          totalPages: 300,
+        });
+      }
+
+      // Get first 5
+      const request1 = createMockRequest("GET", "/api/books?noTags=true&limit=5&skip=0");
+      const response1 = await GET(request1);
+      const data1 = await response1.json();
+
+      expect(response1.status).toBe(200);
+      expect(data1.total).toBe(10);
+      expect(data1.books).toHaveLength(5);
+
+      // Get next 5
+      const request2 = createMockRequest("GET", "/api/books?noTags=true&limit=5&skip=5");
+      const response2 = await GET(request2);
+      const data2 = await response2.json();
+
+      expect(response2.status).toBe(200);
+      expect(data2.total).toBe(10);
+      expect(data2.books).toHaveLength(5);
+
+      // Ensure no overlap
+      const page1Ids = data1.books.map((b: any) => b.id);
+      const page2Ids = data2.books.map((b: any) => b.id);
+      const overlap = page1Ids.filter((id: number) => page2Ids.includes(id));
+      expect(overlap).toHaveLength(0);
+    });
+
+    test("noTags filter should take precedence over tags filter", async () => {
+      const bookWithoutTags = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Book Without Tags",
+        authors: ["Author 1"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Fantasy Book",
+        authors: ["Author 2"],
+        tags: ["fantasy"],
+        totalPages: 400,
+      });
+
+      // Apply both noTags and tags filter
+      const request = createMockRequest("GET", "/api/books?noTags=true&tags=fantasy");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.total).toBe(1);
+      expect(data.books[0].id).toBe(bookWithoutTags.id);
     });
   });
 

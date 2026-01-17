@@ -28,6 +28,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     filters.shelf,
     filters.sortBy,
     filters.showOrphaned,
+    filters.noTags,
     filters.pagination.limit,
   ], [
     filters.status,
@@ -37,6 +38,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     filters.shelf,
     filters.sortBy,
     filters.showOrphaned,
+    filters.noTags,
     filters.pagination.limit,
   ]);
 
@@ -97,7 +99,8 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
         newFilters.tags !== undefined ||
         newFilters.rating !== undefined ||
         newFilters.shelf !== undefined ||
-        newFilters.sortBy !== undefined
+        newFilters.sortBy !== undefined ||
+        newFilters.noTags !== undefined
       ) {
         updated.pagination.skip = 0;
       }
@@ -161,6 +164,11 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     updateFilters({ sortBy });
   }, [updateFilters]);
 
+  // No tags filter function
+  const setNoTags = useCallback((noTags: boolean | undefined) => {
+    updateFilters({ noTags });
+  }, [updateFilters]);
+
   // Pagination functions
   const setLimit = useCallback((limit: number) => {
     updateFilters({ pagination: { limit, skip: filters.pagination.skip } });
@@ -192,9 +200,10 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     setRating,
     setShelf,
     setSortBy,
+    setNoTags,
     setLimit,
     setSkip,
-    
+
     // Current filters
     filters,
   };

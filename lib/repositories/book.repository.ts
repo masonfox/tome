@@ -16,6 +16,7 @@ export interface BookFilter {
   orphanedOnly?: boolean;
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
   excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
+  noTags?: boolean; // Filter for books without any tags
 }
 
 export interface BookWithStatus extends Book {
@@ -346,7 +347,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
     // Multiple tags use AND logic - book must have ALL selected tags
-    if (filters.tags && filters.tags.length > 0) {
+    // NOTE: noTags takes precedence over tags filter
+    if (filters.noTags) {
+      // No tags filter - books without any tags
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    } else if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
           SELECT 1 FROM json_each(${books.tags})
@@ -683,7 +688,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
     // Multiple tags use AND logic - book must have ALL selected tags
-    if (filters.tags && filters.tags.length > 0) {
+    // NOTE: noTags takes precedence over tags filter
+    if (filters.noTags) {
+      // No tags filter - books without any tags
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    } else if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
           SELECT 1 FROM json_each(${books.tags})
