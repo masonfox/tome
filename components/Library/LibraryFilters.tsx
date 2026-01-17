@@ -153,7 +153,7 @@ export function LibraryFilters({
   const ratingDropdownRef = useRef<HTMLDivElement>(null);
   const shelfDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdowns when clicking outside
@@ -171,11 +171,21 @@ export function LibraryFilters({
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
         setShowSortDropdown(false);
       }
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
+        setShowTagSuggestions(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Clear tag search input when dropdown closes
+  useEffect(() => {
+    if (!showTagSuggestions) {
+      setTagSearchInput("");
+    }
+  }, [showTagSuggestions]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,8 +200,7 @@ export function LibraryFilters({
 
   const handleTagSelect = (tag: string) => {
     onTagsChange([...selectedTags, tag]);
-    setTagSearchInput("");
-    setShowTagSuggestions(false);
+    setTagSearchInput(""); // Clear search but keep dropdown open
   };
 
   const handleTagRemove = (tagToRemove: string) => {
@@ -203,15 +212,19 @@ export function LibraryFilters({
   };
 
   // Memoize expensive filtering operation
-  const filteredTagSuggestions = useMemo(() => 
-    availableTags
+  const filteredTagSuggestions = useMemo(() => {
+    // Show all unselected tags if no search input
+    if (!tagSearchInput.trim()) {
+      return availableTags.filter((tag) => !selectedTags.includes(tag));
+    }
+    // Otherwise filter by search input
+    return availableTags
       .filter((tag) =>
         tag.toLowerCase().includes(tagSearchInput.toLowerCase()) &&
         !selectedTags.includes(tag)
       )
-      .slice(0, 15),
-    [availableTags, tagSearchInput, selectedTags]
-  );
+      .slice(0, 50); // Increased limit for better UX in dropdown
+  }, [availableTags, tagSearchInput, selectedTags]);
 
   // Memoize filter check
   const hasActiveFilters = useMemo(() =>
@@ -514,69 +527,140 @@ export function LibraryFilters({
           </div>
         </div>
 
-        {/* Tag Filter Row */}
-        {(availableTags.length > 0 || loadingTags) && !noTags && (
-          <div className="flex gap-3 items-start">
-            <div className="flex-1 min-w-0">
-              {/* Tag search input */}
-              <div className="relative" ref={tagInputRef}>
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40" />
-                <input
-                  type="text"
-                  placeholder="Search tags..."
-                  value={tagSearchInput}
-                  onChange={(e) => {
-                    setTagSearchInput(e.target.value);
-                    setShowTagSuggestions(true);
-                  }}
-                  onFocus={() => setShowTagSuggestions(true)}
-                  onBlur={() => {
-                    // Delay to allow clicking on suggestions
-                    setTimeout(() => setShowTagSuggestions(false), 200);
-                  }}
-                  disabled={loading || loadingTags}
-                  className={`w-full pl-10 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50 min-h-[42px]`}
+        {/* Tag Filter Dropdown */}
+        {(availableTags.length > 0 || loadingTags) && (
+          <div className="w-full">
+            <div className="relative" ref={tagDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowTagSuggestions(!showTagSuggestions)}
+                disabled={loading || loadingTags}
+                className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 min-h-[42px]`}
+              >
+                <Tag className="w-4 h-4 shrink-0" />
+                <span className="flex-1 truncate text-left text-sm">
+                  {noTags
+                    ? "Books Without Tags"
+                    : selectedTags.length > 0
+                    ? `${selectedTags.length} tag${selectedTags.length === 1 ? '' : 's'} selected`
+                    : "All Tags"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 transition-transform shrink-0",
+                    showTagSuggestions && "rotate-180"
+                  )}
                 />
+              </button>
 
-                {/* Tag suggestions dropdown */}
-                {showTagSuggestions && tagSearchInput.trim() && !loadingTags && (
-                  <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] max-h-60 overflow-y-auto shadow-lg">
+              {showTagSuggestions && (
+                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden max-h-[70vh] overflow-y-auto">
+                  {/* All Tags Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (noTags) {
+                        onNoTagsChange?.(false);
+                      }
+                      if (selectedTags.length > 0) {
+                        onTagsChange([]);
+                      }
+                      setShowTagSuggestions(false);
+                    }}
+                    disabled={loading || loadingTags}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed",
+                      !noTags && selectedTags.length === 0 && "bg-[var(--accent)]/10"
+                    )}
+                  >
+                    <span>All Tags</span>
+                    {!noTags && selectedTags.length === 0 && (
+                      <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                    )}
+                  </button>
+
+                  {/* Books Without Tags Option */}
+                  {onNoTagsChange && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNoTagsChange(true);
+                        if (selectedTags.length > 0) {
+                          onTagsChange([]);
+                        }
+                        setShowTagSuggestions(false);
+                      }}
+                      disabled={loading || loadingTags}
+                      className={cn(
+                        "w-full px-4 py-2.5 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed",
+                        noTags && "bg-[var(--accent)]/10"
+                      )}
+                    >
+                      <span>Books Without Tags</span>
+                      {noTags && (
+                        <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                      )}
+                    </button>
+                  )}
+
+                  {/* Divider */}
+                  <div className="h-px bg-[var(--border-color)] my-1" />
+
+                  {/* Search input within dropdown */}
+                  <div className="px-2 py-2 sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+                    <input
+                      type="text"
+                      placeholder="Search tags..."
+                      value={tagSearchInput}
+                      onChange={(e) => setTagSearchInput(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={loading || loadingTags}
+                      className="w-full px-3 py-1.5 bg-[var(--background)] border border-[var(--border-color)] rounded text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Tag list */}
+                  <div className="max-h-60 overflow-y-auto">
                     {filteredTagSuggestions.length > 0 ? (
-                      filteredTagSuggestions.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => handleTagSelect(tag)}
-                          disabled={loading}
-                          className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {tag}
-                        </button>
-                      ))
+                      filteredTagSuggestions.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              // Clear noTags if selecting a tag
+                              if (noTags) {
+                                onNoTagsChange?.(false);
+                              }
+                              handleTagSelect(tag);
+                            }}
+                            disabled={loading}
+                            className={cn(
+                              "w-full px-4 py-2.5 text-left text-sm text-[var(--foreground)] hover:bg-[var(--background)] transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed",
+                              isSelected && "bg-[var(--accent)]/10"
+                            )}
+                          >
+                            <span>{tag}</span>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })
                     ) : (
                       <div className="px-4 py-2 text-sm text-[var(--foreground)]/50">
                         No matching tags found
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-
-            {selectedTags.length > 0 && (
-              <button
-                type="button"
-                onClick={clearAllTags}
-                disabled={loading || loadingTags}
-                className={`px-3 py-2 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                Clear ({selectedTags.length})
-              </button>
-            )}
           </div>
         )}
 
-        {/* Selected tags */}
+        {/* Selected tags pills */}
         {selectedTags.length > 0 && !noTags && (
           <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => (
@@ -592,28 +676,6 @@ export function LibraryFilters({
               </button>
             ))}
           </div>
-        )}
-
-        {/* No Tags Checkbox */}
-        {onNoTagsChange && (availableTags.length > 0 || loadingTags) && (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={noTags}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                onNoTagsChange(checked);
-                if (checked && selectedTags.length > 0) {
-                  onTagsChange([]);
-                }
-              }}
-              disabled={loading || loadingTags}
-              className="w-4 h-4 accent-[var(--accent)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <span className="text-sm text-[var(--foreground)]/70 select-none">
-              Show only books without tags
-            </span>
-          </label>
         )}
 
         {/* Shelf Filter Row */}
