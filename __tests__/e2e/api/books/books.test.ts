@@ -1,9 +1,9 @@
-import { toProgressDate, toSessionDate } from '../../../test-utils';
+import { toProgressDate, toSessionDate } from '@/__tests__/test-utils';
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../../helpers/db-setup";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET, POST } from "@/app/api/books/route";
-import { createMockRequest } from "../../../fixtures/test-data";
+import { createMockRequest } from "@/__tests__/fixtures/test-data";
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);

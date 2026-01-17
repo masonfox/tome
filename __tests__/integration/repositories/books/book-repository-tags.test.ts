@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { bookRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { createTestBook } from "../../../fixtures/test-data";
+import { createTestBook } from "@/__tests__/fixtures/test-data";
 
 /**
  * BookRepository Tag Methods Tests
