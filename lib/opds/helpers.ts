@@ -65,9 +65,12 @@ export function parsePaginationParams(
   maxLimit: number = 200
 ): { offset: number; limit: number } {
   const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
+
+  const limitParam = searchParams.get('limit');
+  const parsedLimit = limitParam ? parseInt(limitParam, 10) : defaultLimit;
   const limit = Math.min(
     maxLimit,
-    Math.max(1, parseInt(searchParams.get('limit') || String(defaultLimit), 10) || defaultLimit)
+    Math.max(1, isNaN(parsedLimit) ? defaultLimit : parsedLimit)
   );
 
   return { offset, limit };
