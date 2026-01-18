@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Install build dependencies for better-sqlite3 native module
 # Install bash for running utility scripts (backup, restore, etc.)
-RUN apk add --no-cache python3 make g++ bash
+# Install su-exec for PUID/PGID support (privilege dropping)
+RUN apk add --no-cache python3 make g++ bash su-exec
 
 # Install dependencies
 FROM base AS deps
@@ -49,20 +50,22 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-# Install sqlite3 CLI for debugging
-RUN apk add --no-cache sqlite
+# Install sqlite3 CLI for debugging and su-exec for PUID/PGID support
+RUN apk add --no-cache sqlite su-exec
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_PATH=/app/data/tome.db
 ENV NODE_OPTIONS="--enable-source-maps"
 
-# Create a non-root user (Alpine syntax)
+# Create default non-root user (Alpine syntax)
+# These are fallback defaults if PUID/PGID are not specified
+# The entrypoint script will handle creating/modifying users at runtime
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -u 1001 -S nextjs -G nodejs
 
-# Create data directory and set permissions
-RUN mkdir -p data && chown -R nextjs:nodejs data
+# Create data directory (permissions will be set by entrypoint)
+RUN mkdir -p data
 
 # Copy built application
 COPY --from=builder /app/public ./public
@@ -82,7 +85,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 # This optimization significantly reduces image size by copying only what's needed
 COPY --from=migration-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
-USER nextjs
+# DO NOT set USER here - the entrypoint handles PUID/PGID switching
+# Container starts as root, then drops to specified UID/GID via su-exec
+# This allows users to customize the user ID to match their host system
+# Default: 1001:1001 (nextjs:nodejs) if PUID/PGID are not specified
 
 EXPOSE 3000
 

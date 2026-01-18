@@ -27,6 +27,103 @@ Tome requires two volume mounts for persistent data and Calibre integration:
 | `CALIBRE_DB_PATH` | `/calibre/metadata.db` | Path to Calibre metadata.db inside container |
 | `PORT` | `3000` | Application port |
 | `DATABASE_PATH` | `/app/data/tome.db` | Path to Tome's SQLite database |
+| `PUID` | `1001` | User ID to run as (for fixing volume permissions) |
+| `PGID` | `1001` | Group ID to run as (for fixing volume permissions) |
+
+## PUID/PGID Support
+
+Tome supports PUID (User ID) and PGID (Group ID) environment variables to eliminate volume permission issues. This feature allows the container to run with the same user/group IDs as your host system, ensuring seamless file access.
+
+### Why Use PUID/PGID?
+
+Docker containers often run into permission problems when mounting host directories because the container's internal user ID doesn't match the host's user ID. PUID/PGID support solves this by allowing you to specify which user ID the container should use.
+
+### Finding Your UID/GID
+
+On your host system, run:
+```bash
+id
+```
+
+This will output something like:
+```
+uid=1000(username) gid=1000(groupname) groups=1000(groupname),...
+```
+
+Use the `uid` and `gid` values for PUID and PGID.
+
+### Common PUID/PGID Values
+
+| System | Typical Values | Notes |
+|--------|---------------|-------|
+| Linux (first user) | `1000:1000` | Most common on Linux desktops |
+| Docker default | `1001:1001` | Tome's default if not specified |
+| NAS systems | Varies | Check your NAS user settings |
+| macOS/Windows + Docker Desktop | N/A | Less critical due to virtualization |
+
+### How It Works
+
+1. Container starts as `root` (required for user management)
+2. Reads `PUID` and `PGID` environment variables (defaults to 1001:1001)
+3. Creates/modifies the application user with specified IDs
+4. Fixes ownership of `/app/data` and `/calibre` directories
+5. Drops privileges using `su-exec` to run as the target user
+6. Continues normal startup (migrations, app start)
+
+### Configuration Examples
+
+**Docker Compose** (recommended):
+```yaml
+services:
+  tome:
+    image: ghcr.io/masonfox/tome:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+```
+
+**Docker CLI**:
+```bash
+docker run -d \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  ghcr.io/masonfox/tome:latest
+```
+
+**For issue #237 (1001:100)**:
+```yaml
+services:
+  tome:
+    image: ghcr.io/masonfox/tome:latest
+    environment:
+      - PUID=1001
+      - PGID=100
+```
+
+### Automatic Permission Fixing
+
+Permissions are automatically fixed on **every container startup**. This means:
+- ✅ Fresh installations work immediately
+- ✅ Existing volumes are fixed automatically when upgrading
+- ✅ No manual `chown` commands required
+- ✅ Works with volume mounts and bind mounts
+
+### Troubleshooting
+
+**Permission errors despite PUID/PGID?**
+- Verify PUID/PGID are set correctly: `docker exec tome printenv | grep PUID`
+- Check container logs for permission fix messages
+- Ensure host directory isn't owned by root (requires matching PUID=0)
+
+**Network filesystems (NFS/CIFS)?**
+- Permission fixes may fail with warnings (check logs)
+- The container will continue anyway - it may still work
+- Some network mounts handle permissions differently
+
+**Still having issues?**
+- Check logs: `docker logs tome`
+- Look for "Fixing directory permissions" messages
+- Verify ownership inside container: `docker exec tome ls -la /app/data`
 
 ## Docker Deployment Options
 
@@ -48,6 +145,8 @@ docker run -d \
   -v /path/to/storage:/app/data \
   -v /path/to/calibre/library:/calibre \
   -e NODE_ENV=production \
+  -e PUID=1000 \
+  -e PGID=1000 \
   --restart unless-stopped \
   ghcr.io/masonfox/tome:latest
 ```
@@ -61,17 +160,19 @@ services:
   tome:
     image: ghcr.io/masonfox/tome:latest
     container_name: tome
-    user: "1001:100"
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - AUTH_PASSWORD=hello # remove to disable auth
+      # Set PUID/PGID to match your user (run 'id' to find your values)
+      - PUID=1000  # Change to your UID
+      - PGID=1000  # Change to your GID
     volumes:
       # Persist SQLite database
       - /path/to/storage:/app/data
       # Calibre library
-      - /path/to/calibre/folder:/data/calibre
+      - /path/to/calibre/folder:/calibre
     restart: always
 ```
 
@@ -135,13 +236,25 @@ docker-compose logs -f tome
 
 ### Permission Errors
 
-If you encounter permission errors with the data volume:
+**Recommended Solution**: Use PUID/PGID environment variables (see above). This automatically fixes permissions on container startup.
+
+**Alternative (if needed)**: If you encounter permission errors with the data volume:
 
 ```bash
-sudo chown -R 1001:100 your-tome-directory/
+# Find your user's UID and GID
+id
+
+# Set PUID/PGID in docker-compose.yml or docker run command
+# Example: PUID=1000, PGID=1000
 ```
 
-The entrypoint script automatically fixes permissions on first run.
+**Manual fix (not recommended)**: Only use if PUID/PGID doesn't work for your setup:
+
+```bash
+sudo chown -R 1001:1001 your-tome-directory/
+```
+
+Note: With PUID/PGID support, manual permission fixes are rarely needed.
 
 ### Port Conflicts
 

@@ -54,6 +54,10 @@ interface EntrypointConfig {
   port: number;
   /** Hostname to bind to */
   hostname: string;
+  /** User ID to run as (PUID support) */
+  puid: number;
+  /** Group ID to run as (PGID support) */
+  pgid: number;
 }
 
 /**
@@ -69,11 +73,219 @@ function getEntrypointConfig(): EntrypointConfig {
     retryDelay: parseInt(process.env.RETRY_DELAY || '5000', 10),
     port: parseInt(process.env.PORT || '3000', 10),
     hostname: process.env.HOSTNAME || '0.0.0.0',
+    puid: parseInt(process.env.PUID || '1001', 10),
+    pgid: parseInt(process.env.PGID || '1001', 10),
   };
 }
 
 const config = getEntrypointConfig();
 const logger = getLogger();
+
+/**
+ * Check if we're running as root
+ */
+function isRunningAsRoot(): boolean {
+  return process.getuid !== undefined && process.getuid() === 0;
+}
+
+/**
+ * Setup user and group with specified PUID/PGID
+ * 
+ * Handles creating or modifying the application user to match the specified
+ * UID/GID. This allows the container to run with permissions matching the
+ * host system, eliminating volume permission issues.
+ * 
+ * Strategy:
+ * - If user/group with target IDs exist, use them
+ * - Otherwise, modify the default nextjs user to match target IDs
+ * 
+ * @throws Error if user setup fails
+ */
+async function setupUser(puid: number, pgid: number): Promise<void> {
+  logger.info({ puid, pgid }, 'Setting up user with specified PUID/PGID');
+  console.log(`Setting up user with PUID=${puid}, PGID=${pgid}...`);
+  
+  try {
+    const { execSync } = require('child_process');
+    
+    // Check if group with target GID exists
+    let groupExists = false;
+    try {
+      execSync(`getent group ${pgid}`, { encoding: 'utf-8' });
+      groupExists = true;
+      logger.debug({ pgid }, 'Group with target GID already exists');
+    } catch (e) {
+      // Group doesn't exist
+    }
+    
+    // Create or modify group
+    if (!groupExists) {
+      // Remove existing nodejs group and create with target GID
+      try {
+        execSync('delgroup nodejs', { encoding: 'utf-8' });
+      } catch (e) {
+        // Group might not exist, that's okay
+      }
+      execSync(`addgroup -g ${pgid} -S nodejs`, { encoding: 'utf-8' });
+      logger.info({ pgid }, 'Created group with target GID');
+      console.log(`Created group 'nodejs' with GID=${pgid}`);
+    }
+    
+    // Check if user with target UID exists
+    let userExists = false;
+    try {
+      execSync(`getent passwd ${puid}`, { encoding: 'utf-8' });
+      userExists = true;
+      logger.debug({ puid }, 'User with target UID already exists');
+    } catch (e) {
+      // User doesn't exist
+    }
+    
+    // Create or modify user
+    if (!userExists) {
+      // Remove existing nextjs user and create with target UID
+      try {
+        execSync('deluser nextjs', { encoding: 'utf-8' });
+      } catch (e) {
+        // User might not exist, that's okay
+      }
+      execSync(`adduser -u ${puid} -S nextjs -G nodejs`, { encoding: 'utf-8' });
+      logger.info({ puid }, 'Created user with target UID');
+      console.log(`Created user 'nextjs' with UID=${puid}`);
+    }
+    
+    logger.info({ puid, pgid }, 'User setup complete');
+    
+  } catch (error: any) {
+    logger.fatal({ 
+      error: error.message,
+      puid,
+      pgid,
+      stack: error.stack 
+    }, 'Failed to setup user');
+    
+    console.error('\n❌ Failed to setup user:', error.message);
+    throw new Error(`Failed to setup user: ${error.message}`);
+  }
+}
+
+/**
+ * Fix ownership of application directories
+ * 
+ * Ensures the application user can write to required directories:
+ * - /app/data (Tome database and backups)
+ * - /calibre (Calibre library, if writable)
+ * 
+ * Attempts to fix permissions even on network filesystems, logging warnings
+ * if unsuccessful but continuing anyway (may still work).
+ * 
+ * @throws Error if critical directory permission fix fails
+ */
+async function fixPermissions(puid: number, pgid: number): Promise<void> {
+  logger.info({ puid, pgid }, 'Fixing directory permissions');
+  console.log(`Fixing directory permissions for UID=${puid}, GID=${pgid}...`);
+  
+  try {
+    const { execSync } = require('child_process');
+    
+    // Fix /app/data ownership (critical)
+    if (existsSync(config.dataDir)) {
+      logger.info({ dir: config.dataDir, puid, pgid }, 'Fixing /app/data ownership');
+      try {
+        execSync(`chown -R ${puid}:${pgid} ${config.dataDir}`, { encoding: 'utf-8' });
+        console.log(`✓ Fixed ownership of ${config.dataDir}`);
+      } catch (error: any) {
+        // Log warning but continue (might work anyway on some filesystems)
+        logger.warn({ 
+          error: error.message,
+          dir: config.dataDir 
+        }, 'Failed to chown data directory (may work anyway)');
+        console.warn(`⚠ Warning: Could not change ownership of ${config.dataDir}`);
+        console.warn('  This may cause permission errors, especially on network filesystems.');
+      }
+    }
+    
+    // Fix /calibre ownership if it exists and is writable (best effort)
+    const calibrePath = '/calibre';
+    if (existsSync(calibrePath)) {
+      try {
+        // Check if we can write to it
+        accessSync(calibrePath, constants.W_OK);
+        logger.info({ dir: calibrePath, puid, pgid }, 'Fixing /calibre ownership');
+        execSync(`chown -R ${puid}:${pgid} ${calibrePath}`, { encoding: 'utf-8' });
+        console.log(`✓ Fixed ownership of ${calibrePath}`);
+      } catch (error: any) {
+        // Calibre might be read-only or on network mount, that's okay
+        logger.debug({ 
+          error: error.message,
+          dir: calibrePath 
+        }, 'Could not fix /calibre ownership (may be read-only)');
+        console.log(`ℹ /calibre mount is read-only or not writable (this is okay for read-only Calibre access)`);
+      }
+    }
+    
+    logger.info('Permission fixes complete');
+    
+  } catch (error: any) {
+    logger.fatal({ 
+      error: error.message,
+      puid,
+      pgid,
+      stack: error.stack 
+    }, 'Failed to fix permissions');
+    
+    console.error('\n❌ Failed to fix permissions:', error.message);
+    throw new Error(`Failed to fix permissions: ${error.message}`);
+  }
+}
+
+/**
+ * Drop privileges and re-execute entrypoint as target user
+ * 
+ * Uses su-exec to replace the current process with a new one running as
+ * the specified UID/GID. The entrypoint will then continue with normal
+ * startup flow (migrations, app start) as the non-root user.
+ * 
+ * This function never returns - the process is replaced via exec.
+ */
+async function dropPrivileges(puid: number, pgid: number): Promise<never> {
+  logger.info({ puid, pgid }, 'Dropping privileges and re-executing as target user');
+  console.log(`\nDropping privileges to UID=${puid}, GID=${pgid}...`);
+  console.log('Re-executing entrypoint as non-root user...\n');
+  
+  try {
+    const { execFileSync } = require('child_process');
+    
+    // Set environment variable to indicate we've already handled PUID/PGID
+    process.env.PUID_PGID_HANDLED = '1';
+    
+    // Use su-exec to drop privileges and re-exec
+    // su-exec replaces the current process, so this never returns
+    execFileSync(
+      'su-exec',
+      [`${puid}:${pgid}`, 'npx', 'tsx', 'scripts/entrypoint.ts'],
+      { 
+        stdio: 'inherit',
+        env: process.env,
+      }
+    );
+    
+    // This code is unreachable, but TypeScript requires it
+    throw new Error('su-exec should have replaced the process');
+    
+  } catch (error: any) {
+    logger.fatal({ 
+      error: error.message,
+      puid,
+      pgid,
+      stack: error.stack 
+    }, 'Failed to drop privileges');
+    
+    console.error('\n❌ Failed to drop privileges:', error.message);
+    console.error('This indicates a problem with su-exec or process execution.');
+    process.exit(1);
+  }
+}
 
 /**
  * Display ASCII art banner with version information
@@ -100,6 +312,9 @@ async function showBanner(): Promise<void> {
       }
     }
     
+    const uid = process.getuid ? process.getuid() : 'unknown';
+    const gid = process.getgid ? process.getgid() : 'unknown';
+    
     console.log(`
 ============================================
 
@@ -111,6 +326,7 @@ async function showBanner(): Promise<void> {
       ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚══════╝
 
               Version: ${version}
+           Running as: UID=${uid}, GID=${gid}
 
 ============================================
 `);
@@ -371,8 +587,16 @@ async function startApplication(): Promise<never> {
  * Main entrypoint execution flow
  * 
  * Orchestrates the entire startup sequence:
- * 1. Banner
- * 2. Directory validation
+ * 
+ * If running as root (initial startup):
+ * 1. Display banner
+ * 2. Setup user with PUID/PGID
+ * 3. Fix directory permissions
+ * 4. Drop privileges and re-exec as target user
+ * 
+ * If running as target user (after privilege drop):
+ * 1. Display banner
+ * 2. Validate data directory
  * 3. Database backup
  * 4. Migrations
  * 5. Application startup
@@ -381,8 +605,35 @@ async function startApplication(): Promise<never> {
  */
 async function main(): Promise<never> {
   try {
-    // Display banner
+    // Check if we're running as root and haven't handled PUID/PGID yet
+    if (isRunningAsRoot() && !process.env.PUID_PGID_HANDLED) {
+      // Running as root - handle PUID/PGID setup
+      await showBanner();
+      
+      logger.info({ 
+        puid: config.puid, 
+        pgid: config.pgid 
+      }, 'Running as root, setting up PUID/PGID');
+      
+      console.log('Container starting as root for user setup...');
+      
+      // Setup user and group
+      await setupUser(config.puid, config.pgid);
+      
+      // Fix directory permissions
+      await fixPermissions(config.puid, config.pgid);
+      
+      // Drop privileges and re-exec (never returns)
+      return await dropPrivileges(config.puid, config.pgid);
+    }
+    
+    // Running as target user - continue normal flow
     await showBanner();
+    
+    logger.info({ 
+      uid: process.getuid ? process.getuid() : 'unknown',
+      gid: process.getgid ? process.getgid() : 'unknown'
+    }, 'Running as target user, continuing startup');
     
     // Validate data directory
     await ensureDataDirectory();
