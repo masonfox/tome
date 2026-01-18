@@ -3,7 +3,9 @@
  * Utility functions for URL building and format handling
  */
 
-import { FORMAT_PRIORITY, FORMAT_MIME_TYPES } from './constants';
+import { FORMAT_PRIORITY, FORMAT_MIME_TYPES, OPDS_REL_TYPES } from './constants';
+import type { OPDSEntry } from './types';
+import type { CalibreBook, CalibreBookFormat } from '../db/calibre';
 
 /**
  * Build a full URL path for OPDS endpoints
@@ -122,4 +124,66 @@ export function buildPaginationLinks(
   }
 
   return links;
+}
+
+/**
+ * Build OPDS entry for a single book
+ * Reused across all acquisition feeds to ensure consistent book entry structure
+ */
+export function buildBookEntry(
+  book: CalibreBook,
+  formatsMap: Map<number, CalibreBookFormat[]>
+): OPDSEntry {
+  const formats = formatsMap.get(book.id) || [];
+
+  // Build acquisition links for each format
+  const acquisitionLinks = formats.map(fmt => ({
+    rel: OPDS_REL_TYPES.ACQUISITION,
+    href: buildOPDSUrl(`/download/${book.id}/${fmt.format.toLowerCase()}`),
+    type: getMimeTypeForFormat(fmt.format),
+    title: `Download ${fmt.format}`,
+  }));
+
+  // Build cover links if available
+  const coverLinks = book.has_cover
+    ? [
+        { rel: OPDS_REL_TYPES.COVER, href: `/api/covers/${book.id}`, type: 'image/jpeg' },
+        { rel: OPDS_REL_TYPES.THUMBNAIL, href: `/api/covers/${book.id}`, type: 'image/jpeg' },
+      ]
+    : [];
+
+  // Parse authors
+  const authors = book.authors
+    ? book.authors.split(',').map(name => ({ name: name.trim() }))
+    : [{ name: 'Unknown' }];
+
+  // Build entry
+  const entry: OPDSEntry = {
+    id: `urn:tome:book:${book.id}`,
+    title: book.title,
+    updated: toAtomDate(book.timestamp),
+    authors,
+    links: [...coverLinks, ...acquisitionLinks],
+  };
+
+  // Add optional fields
+  if (book.description) {
+    entry.content = { type: 'text', text: book.description };
+  }
+
+  if (book.pubdate) {
+    entry.published = toAtomDate(book.pubdate);
+  }
+
+  if (book.series) {
+    entry.categories = [{ term: book.series, label: `Series: ${book.series}` }];
+  }
+
+  // Add DC terms
+  entry.dcterms = {};
+  if (book.publisher) entry.dcterms.publisher = book.publisher;
+  if (book.pubdate) entry.dcterms.issued = toAtomDate(book.pubdate);
+  if (book.isbn) entry.dcterms.identifier = `urn:isbn:${book.isbn}`;
+
+  return entry;
 }

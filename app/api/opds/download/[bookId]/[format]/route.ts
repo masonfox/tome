@@ -104,8 +104,10 @@ export async function GET(
     // Create readable stream for Next.js response
     const readableStream = new ReadableStream({
       start(controller) {
-        fileStream.on('data', (chunk: Buffer) => {
-          controller.enqueue(new Uint8Array(chunk));
+        fileStream.on('data', (chunk: string | Buffer) => {
+          // Convert string chunks to Buffer if needed
+          const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+          controller.enqueue(new Uint8Array(buffer));
         });
         fileStream.on('end', () => {
           controller.close();

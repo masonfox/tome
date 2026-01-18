@@ -3,113 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById } from "@/lib/db/calibre";
-import { CACHE_CONFIG } from "@/lib/constants";
+import { coverCache, bookPathCache } from "@/lib/covers/cache";
 
 export const dynamic = 'force-dynamic';
-
-// LRU Cache for cover images
-interface CoverCacheEntry {
-  buffer: Buffer;
-  contentType: string;
-  timestamp: number;
-}
-
-class CoverCache {
-  private cache = new Map<number, CoverCacheEntry>();
-  private maxSize = CACHE_CONFIG.COVER_CACHE.MAX_SIZE;
-  private maxAge = CACHE_CONFIG.COVER_CACHE.MAX_AGE_MS;
-
-  get(bookId: number): CoverCacheEntry | null {
-    const entry = this.cache.get(bookId);
-    if (!entry) return null;
-
-    // Check if expired
-    if (Date.now() - entry.timestamp > this.maxAge) {
-      this.cache.delete(bookId);
-      return null;
-    }
-
-    return entry;
-  }
-
-  set(bookId: number, buffer: Buffer, contentType: string): void {
-    // Implement LRU by deleting oldest entries when at capacity
-    if (this.cache.size >= this.maxSize) {
-      // Delete oldest entry (first entry in Map)
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-
-    this.cache.set(bookId, {
-      buffer,
-      contentType,
-      timestamp: Date.now(),
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  getSize(): number {
-    return this.cache.size;
-  }
-}
-
-// Global cache instance
-const coverCache = new CoverCache();
-
-// Cache for book path lookups (avoid repeated Calibre DB queries)
-interface BookPathCacheEntry {
-  path: string;
-  hasCover: boolean;
-  timestamp: number;
-}
-
-class BookPathCache {
-  private cache = new Map<number, BookPathCacheEntry>();
-  private maxSize = CACHE_CONFIG.BOOK_PATH_CACHE.MAX_SIZE;
-  private maxAge = CACHE_CONFIG.BOOK_PATH_CACHE.MAX_AGE_MS;
-
-  get(bookId: number): BookPathCacheEntry | null {
-    const entry = this.cache.get(bookId);
-    if (!entry) return null;
-
-    if (Date.now() - entry.timestamp > this.maxAge) {
-      this.cache.delete(bookId);
-      return null;
-    }
-
-    return entry;
-  }
-
-  set(bookId: number, path: string, hasCover: boolean): void {
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-
-    this.cache.set(bookId, {
-      path,
-      hasCover,
-      timestamp: Date.now(),
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  getSize(): number {
-    return this.cache.size;
-  }
-}
-
-const bookPathCache = new BookPathCache();
 
 // Helper function to serve the placeholder "no cover" image
 function servePlaceholderImage() {
@@ -162,12 +58,12 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Check book path cache to avoid Calibre DB query
     let bookPath: string;
     let hasCover: boolean;
-    
+
     const cachedBookPath = bookPathCache.get(bookId);
     if (cachedBookPath) {
       bookPath = cachedBookPath.path;
       hasCover = cachedBookPath.hasCover;
-      
+
       if (!hasCover) {
         return servePlaceholderImage();
       }
@@ -246,36 +142,4 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     getLogger().error({ err: error }, "Error serving cover image");
     return servePlaceholderImage();
   }
-}
-
-// Exported cache management functions for use during Calibre sync
-export function clearCoverCache(): void {
-  coverCache.clear();
-}
-
-export function clearBookPathCache(): void {
-  bookPathCache.clear();
-}
-
-// Cache statistics for monitoring and observability
-export interface CacheStats {
-  size: number;
-  maxSize: number;
-  maxAgeMs: number;
-}
-
-export function getCoverCacheStats(): CacheStats {
-  return {
-    size: coverCache.getSize(),
-    maxSize: CACHE_CONFIG.COVER_CACHE.MAX_SIZE,
-    maxAgeMs: CACHE_CONFIG.COVER_CACHE.MAX_AGE_MS,
-  };
-}
-
-export function getBookPathCacheStats(): CacheStats {
-  return {
-    size: bookPathCache.getSize(),
-    maxSize: CACHE_CONFIG.BOOK_PATH_CACHE.MAX_SIZE,
-    maxAgeMs: CACHE_CONFIG.BOOK_PATH_CACHE.MAX_AGE_MS,
-  };
 }

@@ -62,6 +62,108 @@ export async function GET(request: NextRequest) {
           },
         ],
       },
+      {
+        id: 'urn:tome:recent',
+        title: 'Recently Added',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Browse recently added books',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/recent'),
+            type: OPDS_MIME_TYPES.ACQUISITION_FEED,
+          },
+        ],
+      },
+      {
+        id: 'urn:tome:by-author',
+        title: 'Browse by Author',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Browse books organized by author',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/authors'),
+            type: OPDS_MIME_TYPES.NAVIGATION_FEED,
+          },
+        ],
+      },
+      {
+        id: 'urn:tome:by-series',
+        title: 'Browse by Series',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Browse books organized by series',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/series'),
+            type: OPDS_MIME_TYPES.NAVIGATION_FEED,
+          },
+        ],
+      },
+      {
+        id: 'urn:tome:by-tag',
+        title: 'Browse by Tag',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Browse books by tags and categories',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/tags'),
+            type: OPDS_MIME_TYPES.NAVIGATION_FEED,
+          },
+        ],
+      },
+      {
+        id: 'urn:tome:by-status',
+        title: 'Browse by Reading Status',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Filter books by reading progress',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/status'),
+            type: OPDS_MIME_TYPES.NAVIGATION_FEED,
+          },
+        ],
+      },
+      {
+        id: 'urn:tome:shelves',
+        title: 'Browse by Shelf',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Browse your custom book shelves',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/shelves'),
+            type: OPDS_MIME_TYPES.NAVIGATION_FEED,
+          },
+        ],
+      },
     ],
   };
 
