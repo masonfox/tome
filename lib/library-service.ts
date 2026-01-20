@@ -139,8 +139,8 @@ export class LibraryService {
       }
 
       const data = await response.json();
-      // API returns tags array directly, not wrapped in { tags: [...] }
-      const tags = Array.isArray(data) ? data : (data.tags || []);
+      // API now returns { tags: [...] } format
+      const tags = data.tags || [];
       const sortedTags = tags.sort((a: string, b: string) => a.localeCompare(b));
 
       // Cache the result
