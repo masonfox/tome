@@ -6,6 +6,7 @@ import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 
 interface Shelf {
   id: number;
@@ -147,12 +148,11 @@ export default function ShelfEditor({
                 )}
                 style={isSelected ? { borderColor: shelf.color || "#3b82f6" } : undefined}
               >
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: shelf.color || "#3b82f6" }}
-                >
-                  {Icon && <Icon className="w-5 h-5 text-white" />}
-                </div>
+                <ShelfAvatar
+                  color={shelf.color}
+                  icon={shelf.icon}
+                  size="md"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[var(--heading-text)] truncate">
                     {shelf.name}

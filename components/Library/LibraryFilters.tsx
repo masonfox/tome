@@ -5,6 +5,7 @@ import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, 
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 
 // Helper function to render star ratings
 function renderStars(rating: number) {
@@ -759,14 +760,13 @@ export function LibraryFilters({
                             loading && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          <div
-                            className="w-7 h-7 rounded-md flex items-center justify-center"
-                            style={{
-                              backgroundColor: shelf.color || "var(--foreground-20)",
-                            }}
-                          >
-                            <ShelfIcon className="w-4 h-4 text-white" />
-                          </div>
+                          <ShelfAvatar
+                            color={shelf.color || "var(--foreground-20)"}
+                            icon={shelf.icon}
+                            size="sm"
+                            shape="rounded"
+                            className="w-7 h-7"
+                          />
                           <span className="font-medium flex-1">{shelf.name}</span>
                           {shelfFilter === shelf.id && (
                             <Check className="w-5 h-5 text-[var(--accent)]" />
