@@ -222,17 +222,30 @@ export default function BookDetailPage() {
   // Function to update book shelves
   async function updateShelves(shelfIds: number[], addToTop: boolean = false) {
     try {
+      // Capture current state before making changes
+      const previousShelfIds = currentShelfIds;
+
       await bookApi.updateShelves(bookId, { shelfIds, addToTop });
 
-      // Refetch shelf data
+      // Calculate which shelves were affected
+      const addedShelfIds = shelfIds.filter(id => !previousShelfIds.includes(id));
+      const removedShelfIds = previousShelfIds.filter(id => !shelfIds.includes(id));
+      const affectedShelfIds = [...new Set([...addedShelfIds, ...removedShelfIds])];
+
+      // Invalidate all affected shelf queries
+      // Use broad invalidation without orderBy/direction to catch all variants
+      affectedShelfIds.forEach(shelfId => {
+        queryClient.invalidateQueries({ queryKey: ['shelf', shelfId] });
+      });
+
+      // Refetch book's shelf data
       await refetchBookShelves();
-      
+
       const { toast } = await import('@/utils/toast');
-      
+
       // Show appropriate success message
-      const added = shelfIds.filter(id => !currentShelfIds.includes(id)).length;
-      if (addToTop && added > 0) {
-        toast.success(`Added to top of ${added} shelf${added !== 1 ? 's' : ''}`);
+      if (addToTop && addedShelfIds.length > 0) {
+        toast.success(`Added to top of ${addedShelfIds.length} shelf${addedShelfIds.length !== 1 ? 's' : ''}`);
       } else {
         toast.success('Shelves updated successfully');
       }
