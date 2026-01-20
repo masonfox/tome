@@ -10,7 +10,7 @@ export async function GET() {
     const tagStats = await tagService.getTagStats();
     const tags = tagStats.map(stat => stat.name);
 
-    return NextResponse.json(tags);
+    return NextResponse.json({ tags });
   } catch (error) {
     getLogger().error({ err: error }, "Error fetching tags");
     return NextResponse.json({ error: "Failed to fetch tags" }, { status: 500 });
