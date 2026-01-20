@@ -7,6 +7,7 @@ import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Spinner } from "@/components/Utilities/Spinner";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { cn } from "@/utils/cn";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 
 interface Shelf {
   id: number;
@@ -258,21 +259,14 @@ export function ShelfSelectionModal({
                       </div>
 
                       {/* Shelf Icon */}
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor: shelf.color || "var(--accent)",
-                          opacity: 0.9,
-                        }}
-                      >
-                        {(() => {
-                          const IconComponent = shelf.icon ? getShelfIcon(shelf.icon) : null;
-                          if (IconComponent) {
-                            return <IconComponent className="w-5 h-5 text-white" />;
-                          }
-                          return <Layers className="w-5 h-5 text-white" />;
-                        })()}
-                      </div>
+                      <ShelfAvatar
+                        color={shelf.color || "var(--accent)"}
+                        icon={shelf.icon}
+                        size="md"
+                        shape="rounded"
+                        fallbackIcon={Layers}
+                        className="opacity-90"
+                      />
 
                       {/* Shelf Info */}
                       <div className="flex-1 min-w-0">

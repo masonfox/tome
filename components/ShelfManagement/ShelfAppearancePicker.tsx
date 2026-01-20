@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { LucideIcon, Search, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getShelfIcon, SHELF_ICONS, type ShelfIconName } from "@/components/ShelfManagement/ShelfIconPicker";
+import { ShelfAvatar } from "./ShelfAvatar";
 
 interface ShelfAppearancePickerProps {
   color: string;
@@ -139,12 +140,12 @@ export function ShelfAppearancePicker({
       <div className="mb-4 p-4 bg-[var(--hover-bg)] border border-[var(--border-color)] rounded-lg">
         <p className="text-xs text-[var(--foreground)]/60 mb-2">Preview</p>
         <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-[var(--border-color)] flex-shrink-0"
-            style={{ backgroundColor: color }}
-          >
-            {SelectedIcon && <SelectedIcon className="w-6 h-6 text-white" />}
-          </div>
+          <ShelfAvatar
+            color={color}
+            icon={icon}
+            size="lg"
+            className="border-2 border-[var(--border-color)]"
+          />
           <div className="flex-1 min-w-0">
             <p className="font-medium text-[var(--foreground)] truncate">
               {shelfName || "Your Shelf"}
@@ -226,12 +227,12 @@ export function ShelfAppearancePicker({
             <div className="flex items-center gap-2 min-h-[2.5rem]">
               {icon ? (
                 <>
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[var(--border-color)]"
-                    style={{ backgroundColor: color }}
-                  >
-                    {SelectedIcon && <SelectedIcon className="w-5 h-5 text-white" />}
-                  </div>
+                  <ShelfAvatar
+                    color={color}
+                    icon={icon}
+                    size="md"
+                    className="border-2 border-[var(--border-color)]"
+                  />
                   <button
                     type="button"
                     onClick={() => onIconChange(null)}
@@ -319,12 +320,11 @@ export function ShelfAppearancePicker({
                     )}
                     title={name}
                   >
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: color }}
-                    >
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
+                    <ShelfAvatar
+                      color={color}
+                      icon={name}
+                      size="sm"
+                    />
                     <span className="text-[9px] text-[var(--foreground)]/60 text-center leading-tight truncate w-full">
                       {name}
                     </span>

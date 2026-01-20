@@ -104,6 +104,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { ShelfAvatar } from "./ShelfAvatar";
 
 // Curated list of shelf icons - expanded selection
 export const SHELF_ICONS = {
@@ -283,15 +284,12 @@ export function ShelfIconPicker({
       <div className="flex items-center gap-3 mb-3">
         {selectedIcon ? (
           <>
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-[var(--border-color)]"
-              style={{ backgroundColor: color }}
-            >
-              {(() => {
-                const Icon = getShelfIcon(selectedIcon);
-                return Icon ? <Icon className="w-6 h-6 text-white" /> : null;
-              })()}
-            </div>
+            <ShelfAvatar
+              color={color}
+              icon={selectedIcon}
+              size="lg"
+              className="border-2 border-[var(--border-color)]"
+            />
             <div className="flex-1">
               <p className="text-sm font-medium text-[var(--foreground)]">
                 {selectedIcon}
@@ -383,12 +381,11 @@ export function ShelfIconPicker({
                     )}
                     title={name}
                   >
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: color }}
-                    >
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
+                    <ShelfAvatar
+                      color={color}
+                      icon={name}
+                      size="sm"
+                    />
                     <span className="text-[9px] text-[var(--foreground)]/60 text-center leading-tight truncate w-full">
                       {name}
                     </span>

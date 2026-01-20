@@ -29,6 +29,7 @@ import { AddBooksToShelfFAB } from "@/components/ShelfManagement/AddBooksToShelf
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { cn } from "@/utils/cn";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
 type SortOption = ShelfOrderBy;
@@ -220,14 +221,12 @@ export default function ShelfDetailPage() {
   const subtitle = shelf.description || "";
 
   // Build custom icon with shelf color
-  const ShelfIcon = (shelf.icon ? getShelfIcon(shelf.icon) : null) || FolderOpen;
   const customIcon = (
-    <div
-      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-      style={{ backgroundColor: shelf.color || "#3b82f6" }}
-    >
-      <ShelfIcon className="w-5 h-5 text-white" />
-    </div>
+    <ShelfAvatar
+      color={shelf.color}
+      icon={shelf.icon}
+      size="sm"
+    />
   );
 
   return (

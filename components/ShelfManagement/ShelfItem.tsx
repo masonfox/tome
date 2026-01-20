@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import type { ShelfWithBookCountAndCovers } from "@/lib/api";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import FannedBookCovers from "@/components/Utilities/FannedBookCovers";
+import { ShelfAvatar } from "./ShelfAvatar";
 
 interface ShelfItemProps {
   shelf: ShelfWithBookCountAndCovers;
@@ -50,16 +51,12 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
           ) : (
             // Empty state with shelf icon
             <div className="flex items-center justify-center h-full bg-gradient-to-br from-amber-50/50 to-orange-300/20 [html[data-theme='dark']_&]:from-stone-500/40 [html[data-theme='dark']_&]:to-stone-700/30">
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: shelf.color || "#3b82f6" }}
-              >
-                {Icon ? (
-                  <Icon className="w-10 h-10 text-white" />
-                ) : (
-                  <FolderOpen className="w-10 h-10 text-white" />
-                )}
-              </div>
+              <ShelfAvatar
+                color={shelf.color}
+                icon={shelf.icon}
+                size="2xl"
+                className="shadow-lg"
+              />
             </div>
           )}
           
@@ -74,16 +71,12 @@ export function ShelfItem({ shelf, onEdit, onDelete }: ShelfItemProps) {
         <div className="p-4">
           <div className="flex items-start gap-3">
             {/* Icon badge */}
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm"
-              style={{ backgroundColor: shelf.color || "#3b82f6" }}
-            >
-              {Icon ? (
-                <Icon className="w-5 h-5 text-white" />
-              ) : (
-                <FolderOpen className="w-5 h-5 text-white" />
-              )}
-            </div>
+            <ShelfAvatar
+              color={shelf.color}
+              icon={shelf.icon}
+              size="md"
+              className="shadow-sm"
+            />
 
             {/* Content */}
             <div className="flex-1 min-w-0">
