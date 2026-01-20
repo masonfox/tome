@@ -59,8 +59,13 @@ export function JournalEntryList({
   return (
     <div>
       {showTitle && (
-        <h3 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-          {title}
+        <h3 className="text-2xl font-serif font-bold mb-6">
+          <span className="text-[var(--heading-text)]">{title}</span>
+          {entries.length > 0 && (
+            <span className="ml-2 text-[var(--accent)]">
+              ({entries.length})
+            </span>
+          )}
         </h3>
       )}
 
