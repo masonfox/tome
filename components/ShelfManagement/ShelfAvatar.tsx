@@ -11,10 +11,10 @@ type ShelfAvatarShape = 'circle' | 'rounded';
 
 interface ShelfAvatarProps {
   /** Hex color for the avatar background (e.g., "#3b82f6") */
-  color: string | null;
+  color: string | null | undefined;
 
   /** Icon name from SHELF_ICONS */
-  icon: string | null;
+  icon: string | null | undefined;
 
   /** Size variant - defaults to 'md' */
   size?: ShelfAvatarSize;
