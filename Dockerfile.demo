@@ -1,5 +1,7 @@
-# Demo image - includes pre-seeded database with public domain classics
+# Demo image - seeds database at startup from mounted Calibre library
 # Build: docker build -f Dockerfile.demo -t tome:demo .
+#
+# Run: docker run -v /path/to/calibre:/calibre -e CALIBRE_DB_PATH=/calibre/metadata.db tome:demo
 
 # Use Node.js LTS image
 FROM node:22-alpine AS base
@@ -41,16 +43,6 @@ RUN mkdir -p data
 
 RUN npm run build
 
-# Seed the demo database during build
-FROM base AS seeder
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Create data directory and run migrations + seeding
-RUN mkdir -p data
-ENV DATABASE_PATH=/app/data/tome.db
-RUN npx tsx scripts/seed-demo.ts
-
 # Production image
 FROM base AS runner
 WORKDIR /app
@@ -84,9 +76,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 
-# Copy pre-seeded demo database from seeder stage
-COPY --from=seeder --chown=nextjs:nodejs /app/data/tome.db ./data/tome.db
-
 # Copy migration dependencies
 COPY --from=migration-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
@@ -97,5 +86,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Use TypeScript entrypoint
+# Use TypeScript entrypoint (handles migrations and seeding at startup)
 CMD ["npx", "tsx", "scripts/entrypoint.ts"]
