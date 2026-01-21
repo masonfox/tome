@@ -960,7 +960,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .offset(skip)
       .all();
 
-    // Map results to optimized structure (only fields needed by BookCard)
+    // Map results to optimized structure (only fields needed by BookCard and cache busting)
     // This reduces payload size by ~40-50% for large libraries
     const booksWithRelations = results.map((row: any) => ({
       id: row.bookId,
@@ -971,6 +971,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       totalPages: row.totalPages,
       rating: row.rating,
       status: row.sessionStatus,
+      lastSynced: row.lastSynced,
       // Only include minimal progress info needed for display
       latestProgress: row.progressId ? {
         currentPage: row.progressCurrentPage,
