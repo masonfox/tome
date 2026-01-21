@@ -205,6 +205,26 @@ async function fixPermissions(puid: number, pgid: number): Promise<void> {
       }
     }
     
+    // Fix /app/.next ownership (critical for prerender cache writes)
+    // Next.js writes to .next/cache and .next/server/app when using revalidatePath()
+    // Recursive chown handles all subdirectories
+    const nextJsDir = '/app/.next';
+    if (existsSync(nextJsDir)) {
+      logger.info({ dir: nextJsDir, puid, pgid }, 'Fixing /app/.next ownership for cache writes');
+      try {
+        execSync(`chown -R ${puid}:${pgid} ${nextJsDir}`, { encoding: 'utf-8' });
+        console.log(`✓ Fixed ownership of ${nextJsDir}`);
+      } catch (error: any) {
+        // Log warning but continue (may work anyway on some filesystems)
+        logger.warn({ 
+          error: error.message,
+          dir: nextJsDir 
+        }, 'Failed to chown .next directory (may cause cache write errors)');
+        console.warn(`⚠ Warning: Could not change ownership of ${nextJsDir}`);
+        console.warn('  Next.js prerender cache updates may fail.');
+      }
+    }
+    
     // Fix /calibre ownership if it exists and is writable (best effort)
     const calibrePath = '/calibre';
     if (existsSync(calibrePath)) {
