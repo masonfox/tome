@@ -41,7 +41,7 @@ interface BookTableBook {
   rating?: number | null;
   totalPages?: number | null;
   addedToLibrary?: Date | null;
-  dateAddedToShelf?: Date | null;
+  addedAt?: Date | null;
   status?: string | null;
   sortOrder?: number;
   lastSynced?: Date | string | null;
@@ -253,8 +253,8 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
 
       {/* Date Added */}
       <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm">
-        {book.dateAddedToShelf
-          ? format(new Date(book.dateAddedToShelf), "MMM dd, yyyy")
+        {book.addedAt
+          ? format(new Date(book.addedAt), "MMM dd, yyyy")
           : book.addedToLibrary
           ? format(new Date(book.addedToLibrary), "MMM dd, yyyy")
           : "-"}
