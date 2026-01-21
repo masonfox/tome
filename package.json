@@ -24,6 +24,7 @@
     "db:push": "DATABASE_PATH=./data/tome.db npx drizzle-kit push",
     "db:studio": "DATABASE_PATH=./data/tome.db npx drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed:demo": "tsx scripts/seed-demo.ts",
     "db:reset": "bash scripts/reset-database.sh",
     "sync-calibre": "tsx scripts/sync-calibre.ts",
     "test": "TZ=UTC vitest run",
