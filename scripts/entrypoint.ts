@@ -722,7 +722,7 @@ async function main(): Promise<never> {
     await runMigrationsWithRetry();
 
     // Seed demo database if NODE_ENV=demo
-    if (process.env.NODE_ENV === 'demo') {
+    if ((process.env.NODE_ENV as string) === 'demo') {
       await seedDemoIfNeeded();
     }
 

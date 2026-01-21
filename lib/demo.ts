@@ -6,7 +6,7 @@
  */
 
 export function isDemoMode(): boolean {
-  return process.env.NODE_ENV === "demo";
+  return (process.env.NODE_ENV as string) === "demo";
 }
 
 export function getDemoConfig() {
