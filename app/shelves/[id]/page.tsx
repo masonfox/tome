@@ -35,6 +35,17 @@ import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.
 type SortOption = ShelfOrderBy;
 type SortDirection = ShelfSortDirection;
 
+// Sort options for mobile dropdown
+const SORT_OPTIONS = [
+  { value: "sortOrder", label: "Custom Order" },
+  { value: "title", label: "Title" },
+  { value: "author", label: "Author" },
+  { value: "series", label: "Series" },
+  { value: "rating", label: "Rating" },
+  { value: "pages", label: "Page Count" },
+  { value: "dateAdded", label: "Date Added" },
+];
+
 export default function ShelfDetailPage() {
   const params = useParams();
   const shelfId = params?.id ? parseInt(params.id as string) : null;
@@ -269,6 +280,7 @@ export default function ShelfDetailPage() {
               sortDirection={sortDirection}
               onSortChange={(s) => handleSortChange(s as SortOption)}
               onDirectionToggle={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+              sortOptions={SORT_OPTIONS}
             />
           </>
         )}
