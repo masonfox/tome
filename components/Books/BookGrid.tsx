@@ -13,6 +13,7 @@ interface BookGridProps {
     status?: string | null;
     tags?: string[];
     totalPages?: number;
+    lastSynced?: Date | string | null;
   }>;
   loading?: boolean;
   loadingMore?: boolean;
@@ -38,6 +39,7 @@ export function BookGrid({ books, loading = false, loadingMore = false }: BookGr
                 authors={book.authors}
                 calibreId={book.calibreId}
                 status={book.status}
+                lastSynced={book.lastSynced}
               />
             ))}
           </div>

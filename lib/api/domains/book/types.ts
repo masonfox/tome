@@ -285,3 +285,37 @@ export interface UpdateBookShelvesResponse {
     removed: number;
   };
 }
+
+// ============================================================================
+// Minimal Book Display Types
+// ============================================================================
+
+/**
+ * Minimal book data with status for UI display
+ * 
+ * This type is used by API responses and client-side services to reduce payload size
+ * (~40-50% smaller than full Book type). It includes only the fields needed for
+ * book card/grid displays and cover cache busting.
+ * 
+ * Used by: Dashboard, Library, and other list/grid views
+ * 
+ * For full book data with all fields, use the Book type from @/lib/db/schema/books
+ * 
+ * @property lastSynced - Timestamp for cover image cache busting
+ */
+export interface BookWithStatusMinimal {
+  id: number;
+  calibreId: number;
+  title: string;
+  authors: string[];
+  status?: string | null;
+  rating?: number | null;
+  tags?: string[];
+  totalPages?: number;
+  lastSynced?: Date | string | null;
+  latestProgress?: {
+    currentPage: number;
+    currentPercentage: number;
+    progressDate: string;
+  } | null;
+}

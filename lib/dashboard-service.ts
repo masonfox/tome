@@ -3,6 +3,7 @@ import { toDateString } from "@/utils/dateHelpers.server";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
 import { getLogger } from "@/lib/logger";
 import type { ProgressLog } from "@/lib/db/schema";
+import type { BookWithStatusMinimal } from "@/lib/api/domains/book/types";
 
 export interface DashboardStats {
   booksRead: {
@@ -25,15 +26,7 @@ export interface DashboardStreak {
   todayPagesRead: number;
 }
 
-export interface BookWithStatus {
-  id: number;
-  title: string;
-  authors: string[];
-  calibreId: number;
-  status?: string | null;
-  rating?: number | null;
-  latestProgress?: ProgressLog | null;
-}
+export type BookWithStatus = BookWithStatusMinimal;
 
 export interface DashboardData {
   stats: DashboardStats | null;
@@ -228,6 +221,7 @@ async function getBooksByStatus(
         title: book.title,
         authors: book.authors,
         calibreId: book.calibreId,
+        lastSynced: book.lastSynced,
         status: status,
         latestProgress,
       });
