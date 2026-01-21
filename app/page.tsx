@@ -107,6 +107,7 @@ export default function Dashboard() {
                 title={book.title}
                 authors={book.authors}
                 calibreId={book.calibreId}
+                lastSynced={book.lastSynced}
               />
             ))}
           </div>
