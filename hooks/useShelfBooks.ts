@@ -407,7 +407,7 @@ export function useShelfBooks(
   return {
     shelf,
     books: shelf?.books || [],
-    loading: isLoading || addBooksMutation.isPending || removeBookMutation.isPending || removeBooksMutation.isPending || reorderBooksMutation.isPending || moveBooksMutation.isPending || copyBooksMutation.isPending || moveToTopMutation.isPending,
+    loading: isLoading || addBooksMutation.isPending || removeBookMutation.isPending || removeBooksMutation.isPending || moveBooksMutation.isPending || copyBooksMutation.isPending,
     error,
     hasInitialized: shelf !== null || error !== null,
     addBooksToShelf: addBooksMutation.mutateAsync,
