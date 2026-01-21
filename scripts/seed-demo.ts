@@ -16,6 +16,7 @@ config();
 import { bookRepository, sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
 import { shelfRepository } from "@/lib/repositories/shelf.repository";
 import { rebuildStreak } from "@/lib/streaks";
+import { runMigrations } from "@/lib/db/migrate";
 import { format, subDays, subMonths } from "date-fns";
 
 // Public domain classics for the demo
@@ -248,6 +249,11 @@ async function seedDemoDatabase() {
   console.log("\n🌱 Starting demo database seeding...\n");
 
   try {
+    // Phase 0: Run migrations to create database tables
+    console.log("🔧 Phase 0: Running database migrations...");
+    await runMigrations();
+    console.log("  ✓ Database migrations complete\n");
+
     // Phase 1: Create books
     console.log("📚 Phase 1: Creating demo books...");
     const createdBooks: Array<{ id: number; title: string; totalPages: number }> = [];
