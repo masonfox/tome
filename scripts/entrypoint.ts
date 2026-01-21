@@ -346,7 +346,7 @@ async function showBanner(): Promise<void> {
       ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚══════╝
 
               Version: ${version}
-           Running as: UID=${uid}, GID=${gid}
+            UID=${uid}, GID=${gid}
 
 ============================================
 `);
