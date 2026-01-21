@@ -38,6 +38,7 @@ services:
     volumes:
       # Persist SQLite database
       # Permissions are automatically fixed on container startup
+      # This includes /app/data and /app/.next for cache writes
       # No manual chown required!
       - tome-data:/app/data
       # Mount your Calibre library (read-write for rating sync)
@@ -49,4 +50,4 @@ volumes:
   tome-data:
     driver: local
     # Permissions are automatically managed by the container
-    # The entrypoint sets ownership to match PUID/PGID on startup
+    # The entrypoint sets ownership of /app/data and /app/.next to match PUID/PGID on startup

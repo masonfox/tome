@@ -72,6 +72,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Create .next runtime directories that Next.js will write to at runtime
+# These include cache directories and prerender cache files
+# Ownership will be set by entrypoint script based on PUID/PGID
+RUN mkdir -p .next/cache .next/server/app && \
+    chown -R nextjs:nodejs .next
+
 # Copy database files and migration scripts
 COPY --from=builder --chown=nextjs:nodejs /app/data ./data
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
