@@ -281,7 +281,11 @@ async function dropPrivileges(puid: number, pgid: number): Promise<never> {
     
     // Set environment variable to indicate we've already handled PUID/PGID
     process.env.PUID_PGID_HANDLED = '1';
-    
+
+    // Set HOME to writable location so npx/npm can use cache
+    // This avoids permission issues with /root/.npm after privilege drop
+    process.env.HOME = '/tmp';
+
     // Use su-exec to drop privileges and re-exec
     // su-exec replaces the current process, so this never returns
     execFileSync(
