@@ -192,8 +192,111 @@ describe("ReadingGoalRepository", () => {
       expect(count).toBe(0);
     });
 
-    // Note: Testing with actual book data would require setting up books and sessions
-    // This would be done in integration tests
+    test("returns correct count with actual book data", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+      const year = 2026;
+
+      // Create and complete 3 books
+      for (let i = 1; i <= 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i,
+          path: `test/path/${i}`,
+          title: `Book ${i}`,
+          authors: ["Author"],
+          totalPages: 300,
+        });
+
+        await sessionRepository.create({
+          bookId: book.id,
+          sessionNumber: 1,
+          status: "read",
+          startedDate: toSessionDate(new Date(year, 0, 1)),
+          completedDate: toSessionDate(new Date(year, i, 15)),
+          isActive: false,
+        });
+      }
+
+      const count = await readingGoalRepository.getBooksCompletedInYear(null, year);
+      expect(count).toBe(3);
+    });
+
+    test("counts re-reads as separate completions", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+      const year = 2026;
+
+      // Create one book
+      const book = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Re-read Book",
+        authors: ["Author"],
+        totalPages: 300,
+      });
+
+      // Complete it twice in the same year
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        startedDate: toSessionDate(new Date(year, 0, 1)),
+        completedDate: toSessionDate(new Date(year, 2, 15)),
+        isActive: false,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 2,
+        status: "read",
+        startedDate: toSessionDate(new Date(year, 6, 1)),
+        completedDate: toSessionDate(new Date(year, 8, 15)),
+        isActive: false,
+      });
+
+      const count = await readingGoalRepository.getBooksCompletedInYear(null, year);
+      expect(count).toBe(2);
+    });
+
+    test("does not count books from other years", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+
+      // Complete books in 2025 and 2027
+      const book1 = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Book 2025",
+        authors: ["Author"],
+        totalPages: 300,
+      });
+
+      await sessionRepository.create({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "read",
+        startedDate: toSessionDate(new Date(2025, 0, 1)),
+        completedDate: toSessionDate(new Date(2025, 6, 15)),
+        isActive: false,
+      });
+
+      const book2 = await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "Book 2027",
+        authors: ["Author"],
+        totalPages: 300,
+      });
+
+      await sessionRepository.create({
+        bookId: book2.id,
+        sessionNumber: 1,
+        status: "read",
+        startedDate: toSessionDate(new Date(2027, 0, 1)),
+        completedDate: toSessionDate(new Date(2027, 6, 15)),
+        isActive: false,
+      });
+
+      const count = await readingGoalRepository.getBooksCompletedInYear(null, 2026);
+      expect(count).toBe(0);
+    });
   });
 
   describe("getYearsWithCompletedBooks()", () => {
@@ -202,16 +305,81 @@ describe("ReadingGoalRepository", () => {
       expect(years).toEqual([]);
     });
 
-    // Note: Testing with actual book data would require setting up books and sessions
-    // This would be done in integration tests
+    test("returns years with completed books in descending order", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+
+      // Complete books in different years
+      const yearsToCreate = [2023, 2025, 2024, 2026];
+
+      for (let i = 0; i < yearsToCreate.length; i++) {
+        const year = yearsToCreate[i];
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          path: `test/path/${i + 1}`,
+          title: `Book ${year}`,
+          authors: ["Author"],
+          totalPages: 300,
+        });
+
+        await sessionRepository.create({
+          bookId: book.id,
+          sessionNumber: 1,
+          status: "read",
+          startedDate: toSessionDate(new Date(year, 0, 1)),
+          completedDate: toSessionDate(new Date(year, 6, 15)),
+          isActive: false,
+        });
+      }
+
+      const years = await readingGoalRepository.getYearsWithCompletedBooks(null);
+
+      expect(years).toHaveLength(4);
+      // Function returns {year, count} objects
+      expect(years[0].year).toBe(2026);
+      expect(years[1].year).toBe(2025);
+      expect(years[2].year).toBe(2024);
+      expect(years[3].year).toBe(2023);
+      // Each year has 1 book
+      expect(years[0].count).toBe(1);
+    });
+
+    test("returns unique years with counts (no duplicates)", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+
+      // Complete multiple books in the same year
+      for (let i = 1; i <= 3; i++) {
+        const book = await bookRepository.create({
+          calibreId: i,
+          path: `test/path/${i}`,
+          title: `Book ${i}`,
+          authors: ["Author"],
+          totalPages: 300,
+        });
+
+        await sessionRepository.create({
+          bookId: book.id,
+          sessionNumber: 1,
+          status: "read",
+          startedDate: toSessionDate(new Date(2026, 0, 1)),
+          completedDate: toSessionDate(new Date(2026, i, 15)),
+          isActive: false,
+        });
+      }
+
+      const years = await readingGoalRepository.getYearsWithCompletedBooks(null);
+
+      expect(years).toHaveLength(1);
+      expect(years[0].year).toBe(2026);
+      expect(years[0].count).toBe(3);
+    });
   });
 
   describe("getBooksCompletedByMonth()", () => {
     test("returns all 12 months with zero counts when no books completed", async () => {
       const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
-      
+
       expect(monthlyData).toHaveLength(12);
-      
+
       // Verify all months 1-12 are present
       for (let month = 1; month <= 12; month++) {
         const monthData = monthlyData.find(m => m.month === month);
@@ -222,18 +390,136 @@ describe("ReadingGoalRepository", () => {
 
     test("returns months in order (1-12)", async () => {
       const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
-      
+
       expect(monthlyData).toHaveLength(12);
-      
+
       // Verify months are in ascending order
       for (let i = 0; i < 12; i++) {
         expect(monthlyData[i].month).toBe(i + 1);
       }
     });
 
-    // Note: Testing with actual book completion data would require setting up
-    // books and sessions with specific completion dates
-    // This would be done in integration tests
+    test("returns correct counts per month with actual data", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+      const year = 2026;
+
+      // Complete 2 books in January, 3 in June, 1 in December
+      const completions = [
+        { month: 0, day: 15 }, // Jan
+        { month: 0, day: 20 }, // Jan
+        { month: 5, day: 10 }, // Jun
+        { month: 5, day: 15 }, // Jun
+        { month: 5, day: 25 }, // Jun
+        { month: 11, day: 31 }, // Dec
+      ];
+
+      for (let i = 0; i < completions.length; i++) {
+        const { month, day } = completions[i];
+        const book = await bookRepository.create({
+          calibreId: i + 1,
+          path: `test/path/${i + 1}`,
+          title: `Book ${i + 1}`,
+          authors: ["Author"],
+          totalPages: 300,
+        });
+
+        await sessionRepository.create({
+          bookId: book.id,
+          sessionNumber: 1,
+          status: "read",
+          startedDate: toSessionDate(new Date(year, 0, 1)),
+          completedDate: toSessionDate(new Date(year, month, day)),
+          isActive: false,
+        });
+      }
+
+      const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, year);
+
+      expect(monthlyData[0].count).toBe(2); // January
+      expect(monthlyData[1].count).toBe(0); // February
+      expect(monthlyData[5].count).toBe(3); // June
+      expect(monthlyData[11].count).toBe(1); // December
+    });
+
+    test("handles edge case: January 1st completion", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+      const year = 2026;
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "New Year Book",
+        authors: ["Author"],
+        totalPages: 300,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        startedDate: toSessionDate(new Date(year - 1, 11, 1)), // Started previous year
+        completedDate: toSessionDate(new Date(year, 0, 1)), // Jan 1
+        isActive: false,
+      });
+
+      const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, year);
+
+      expect(monthlyData[0].count).toBe(1); // January
+    });
+
+    test("handles edge case: December 31st completion", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+      const year = 2026;
+
+      const book = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Year End Book",
+        authors: ["Author"],
+        totalPages: 300,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        startedDate: toSessionDate(new Date(year, 11, 1)),
+        completedDate: toSessionDate(new Date(year, 11, 31)), // Dec 31
+        isActive: false,
+      });
+
+      const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, year);
+
+      expect(monthlyData[11].count).toBe(1); // December
+    });
+
+    test("does not include completions from other years", async () => {
+      const { bookRepository, sessionRepository } = await import("@/lib/repositories");
+
+      // Complete a book in 2025
+      const book = await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Last Year Book",
+        authors: ["Author"],
+        totalPages: 300,
+      });
+
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read",
+        startedDate: toSessionDate(new Date(2025, 5, 1)),
+        completedDate: toSessionDate(new Date(2025, 5, 15)),
+        isActive: false,
+      });
+
+      const monthlyData = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
+
+      // All months should be zero for 2026
+      const totalCount = monthlyData.reduce((sum, m) => sum + m.count, 0);
+      expect(totalCount).toBe(0);
+    });
   });
 
   describe("getBooksByCompletionYear()", () => {
