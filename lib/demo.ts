@@ -1,12 +1,12 @@
 /**
  * Demo mode utilities
  *
- * When DEMO_MODE=true, the application runs in read-only mode.
+ * When NODE_ENV=demo, the application runs in read-only mode.
  * All data mutations are blocked at the middleware level.
  */
 
 export function isDemoMode(): boolean {
-  return process.env.DEMO_MODE === "true";
+  return (process.env.NODE_ENV as string) === "demo";
 }
 
 export function getDemoConfig() {

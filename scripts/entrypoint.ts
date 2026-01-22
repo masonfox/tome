@@ -31,8 +31,11 @@
 import { config as loadDotenv } from 'dotenv';
 loadDotenv();
 
-import { createBackups } from '@/lib/db/backup';
-import { runMigrations } from '@/lib/db/migrate';
+// NOTE: Database-related imports (createBackups, runMigrations) are dynamically imported
+// to avoid module initialization race conditions when the database doesn't exist yet.
+// This ensures the entrypoint can fix permissions and create directories before
+// any database code tries to initialize connections.
+
 import { getLogger } from '@/lib/logger';
 import { spawn, ChildProcess } from 'child_process';
 import { dirname } from 'path';
@@ -440,17 +443,18 @@ async function ensureDataDirectory(): Promise<void> {
 async function backupDatabase(): Promise<void> {
   // Skip backup if database doesn't exist (first run)
   if (!existsSync(config.databasePath)) {
-    logger.info({ 
-      databasePath: config.databasePath 
+    logger.info({
+      databasePath: config.databasePath
     }, 'Database not found (first run), skipping backup');
     console.log('Database not found (first run), skipping backup');
     return;
   }
-  
+
   logger.info('Creating database backup(s)');
   console.log('Creating database backup(s)...');
-  
+
   try {
+    const { createBackups } = await import('@/lib/db/backup');
     const result = await createBackups();
     
     if (!result.tome.success) {
@@ -492,15 +496,17 @@ async function backupDatabase(): Promise<void> {
  */
 async function runMigrationsWithRetry(): Promise<void> {
   console.log('\n=== Database Migration Process ===\n');
-  
+
+  const { runMigrations } = await import('@/lib/db/migrate');
+
   for (let attempt = 1; attempt <= config.maxRetries; attempt++) {
-    logger.info({ 
-      attempt, 
-      maxRetries: config.maxRetries 
+    logger.info({
+      attempt,
+      maxRetries: config.maxRetries
     }, `Migration attempt ${attempt} of ${config.maxRetries}`);
-    
+
     console.log(`Migration attempt ${attempt} of ${config.maxRetries}...`);
-    
+
     try {
       await runMigrations();
       
@@ -535,11 +541,61 @@ async function runMigrationsWithRetry(): Promise<void> {
 }
 
 /**
+ * Seed demo database if needed (NODE_ENV=demo)
+ *
+ * Checks if the database already has books (seeding already done) and seeds
+ * the database from the Calibre library if not. This is called when the
+ * container is run with NODE_ENV=demo.
+ */
+async function seedDemoIfNeeded(): Promise<void> {
+  console.log('\n=== Demo Database Seeding ===\n');
+
+  // Check if database already has books (seeding already done)
+  const { db } = await import('@/lib/db/sqlite');
+  const { books } = await import('@/lib/db/schema');
+  const { count } = await import('drizzle-orm');
+
+  const result = await db.select({ count: count() }).from(books);
+  const bookCount = result[0]?.count ?? 0;
+
+  if (bookCount > 0) {
+    logger.info({ bookCount }, 'Demo database already seeded, skipping');
+    console.log(`Database already has ${bookCount} books, skipping seeding`);
+    return;
+  }
+
+  // Check for CALIBRE_DB_PATH
+  if (!process.env.CALIBRE_DB_PATH) {
+    logger.warn('CALIBRE_DB_PATH not set, skipping demo seeding');
+    console.log('Warning: CALIBRE_DB_PATH not set, skipping demo seeding');
+    return;
+  }
+
+  logger.info('Seeding demo database from Calibre library...');
+  console.log('Seeding demo database from Calibre library...');
+
+  const { seedDatabase } = await import('@/lib/db/seeders');
+  const seedResult = await seedDatabase();
+
+  if (seedResult.success) {
+    logger.info({
+      booksFromSync: seedResult.booksFromSync,
+      sessionsSeeded: seedResult.sessionsSeeded,
+    }, 'Demo seeding completed');
+    console.log(`Demo seeding complete: ${seedResult.booksFromSync} books, ${seedResult.sessionsSeeded} sessions`);
+  } else {
+    logger.error({ error: seedResult.error }, 'Demo seeding failed');
+    console.error('Demo seeding failed:', seedResult.error);
+    // Don't throw - allow app to start even if seeding fails
+  }
+}
+
+/**
  * Start the Next.js application as a child process
- * 
+ *
  * Spawns node server.js and forwards all stdio.
  * Sets up signal handlers for graceful shutdown.
- * 
+ *
  * @returns Never returns (process exits when app exits)
  */
 async function startApplication(): Promise<never> {
@@ -605,22 +661,23 @@ async function startApplication(): Promise<never> {
 
 /**
  * Main entrypoint execution flow
- * 
+ *
  * Orchestrates the entire startup sequence:
- * 
+ *
  * If running as root (initial startup):
  * 1. Display banner
  * 2. Setup user with PUID/PGID
  * 3. Fix directory permissions
  * 4. Drop privileges and re-exec as target user
- * 
+ *
  * If running as target user (after privilege drop):
  * 1. Display banner
  * 2. Validate data directory
  * 3. Database backup
  * 4. Migrations
- * 5. Application startup
- * 
+ * 5. Demo seeding (if NODE_ENV=demo)
+ * 6. Application startup
+ *
  * Exits with code 1 on any failure.
  */
 async function main(): Promise<never> {
@@ -663,7 +720,12 @@ async function main(): Promise<never> {
     
     // Run migrations with retry
     await runMigrationsWithRetry();
-    
+
+    // Seed demo database if NODE_ENV=demo
+    if ((process.env.NODE_ENV as string) === 'demo') {
+      await seedDemoIfNeeded();
+    }
+
     // Start the application (never returns)
     return await startApplication();
     
@@ -692,5 +754,6 @@ export {
   ensureDataDirectory,
   backupDatabase,
   runMigrationsWithRetry,
+  seedDemoIfNeeded,
   startApplication,
 };
