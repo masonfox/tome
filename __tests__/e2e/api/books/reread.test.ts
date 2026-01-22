@@ -401,4 +401,133 @@ describe("POST /api/books/[id]/reread", () => {
     const activeSessionsFiltered = activeSessions.filter(s => s.isActive);
     expect(activeSessionsFiltered.length).toBe(1);
   });
+
+  // ============================================================================
+  // DNF STATUS HANDLING
+  // ============================================================================
+
+  test("should allow re-read when active session has 'dnf' status", async () => {
+    const book = await bookRepository.create(mockBook1);
+
+    // Create a DNF session (marked as finished but didn't complete)
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      status: "dnf",
+      isActive: false, // Archived when DNF
+    });
+
+    const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+    const response = await POST(request, { params: { id: book.id.toString() } });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.session.sessionNumber).toBe(2);
+    expect(data.session.status).toBe("reading");
+  });
+
+  test("should allow re-read when book has both 'read' and 'dnf' sessions", async () => {
+    const book = await bookRepository.create(mockBook1);
+
+    // First read - completed
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      sessionNumber: 1,
+      status: "read",
+      isActive: false,
+    });
+
+    // Second read - DNF
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      sessionNumber: 2,
+      status: "dnf",
+      isActive: false,
+    });
+
+    const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+    const response = await POST(request, { params: { id: book.id.toString() } });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.session.sessionNumber).toBe(3);
+  });
+
+  // ============================================================================
+  // SESSION NUMBER EDGE CASES
+  // ============================================================================
+
+  test("should handle session number gaps correctly", async () => {
+    const book = await bookRepository.create(mockBook1);
+
+    // Create sessions with gaps in numbering
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      sessionNumber: 1,
+      isActive: false,
+    });
+
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      sessionNumber: 5, // Gap in numbering
+      isActive: false,
+    });
+
+    const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+    const response = await POST(request, { params: { id: book.id.toString() } });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    // Should be max session + 1
+    expect(data.session.sessionNumber).toBe(6);
+  });
+
+  test("should handle very high session numbers", async () => {
+    const book = await bookRepository.create(mockBook1);
+
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      sessionNumber: 100,
+      isActive: false,
+    });
+
+    const request = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+    const response = await POST(request, { params: { id: book.id.toString() } });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.session.sessionNumber).toBe(101);
+  });
+
+  // ============================================================================
+  // UNIQUE CONSTRAINT ERROR HANDLING
+  // ============================================================================
+
+  test("should handle UNIQUE constraint error message in response", async () => {
+    const book = await bookRepository.create(mockBook1);
+
+    // Create completed session
+    await sessionRepository.create({
+      ...mockSessionRead,
+      bookId: book.id,
+      isActive: false,
+    });
+
+    // Start reread
+    const request1 = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+    await POST(request1, { params: { id: book.id.toString() } });
+
+    // Try again - should fail because there's now an active session
+    const request2 = createMockRequest("POST", `/api/books/${book.id}/reread`) as NextRequest;
+    const response2 = await POST(request2, { params: { id: book.id.toString() } });
+    const data2 = await response2.json();
+
+    expect(response2.status).toBe(400);
+    expect(data2.error).toContain("active reading session already exists");
+  });
 });
