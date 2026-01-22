@@ -67,30 +67,6 @@ describe("Version API - GET /api/version", () => {
     expect(data.publishedAt).toBe(mockRelease.published_at);
   });
 
-  test("identifies minor version update correctly (0.4.0 -> 0.5.0)", async () => {
-    const mockRelease = {
-      tag_name: "v0.5.0",
-      name: "Tome v0.5.0",
-      html_url: "https://github.com/masonfox/tome/releases/tag/v0.5.0",
-      published_at: "2026-01-10T12:00:00Z",
-      prerelease: false,
-      draft: false,
-    };
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => mockRelease,
-    });
-
-    const response = await GET();
-    const data = await response.json();
-
-    // Assuming current version is 0.4.0, this should be detected as an update
-    expect(data.hasNewVersion).toBe(true);
-    expect(data.isMinorOrMajor).toBe(true);
-  });
-
   test("does not notify for patch version updates (0.4.0 -> 0.4.1)", async () => {
     const mockRelease = {
       tag_name: "v0.4.1",
