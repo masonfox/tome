@@ -46,7 +46,9 @@ RUN mkdir -p data
 
 RUN npm run build
 
-# Build the entrypoint script (compiles TypeScript to JavaScript)
+# Build the entrypoint script (compile TypeScript → JavaScript)
+# This resolves path aliases (@/) at build time via esbuild
+# Migrations will still use tsx at runtime for companion migrations
 RUN npm run build:entrypoint
 
 # Production image

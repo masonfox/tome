@@ -29,20 +29,32 @@ echo ""
 echo "============================================"
 echo ""
 
-# Setup group with target GID if it doesn't exist
-if ! getent group "${PGID}" > /dev/null 2>&1; then
-    echo "Creating group with GID=${PGID}..."
-    # Remove default nodejs group if it exists
-    delgroup nodejs 2>/dev/null || true
-    addgroup -g "${PGID}" -S nodejs
+# Setup user and group with target PUID/PGID if they don't exist
+# Note: Delete user BEFORE group (user might be member of group)
+if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+	echo "Creating user with UID=${PUID}..."
+	# Remove default nextjs user if it exists (do this first)
+	deluser nextjs 2>/dev/null || true
+fi
+
+if ! getent group "${PGID}" >/dev/null 2>&1; then
+	echo "Creating group with GID=${PGID}..."
+	# Remove default nodejs group if it exists (after removing user)
+	delgroup nodejs 2>/dev/null || true
+	addgroup -g "${PGID}" -S nodejs
+fi
+
+# Create user if it doesn't exist (after group is ready)
+if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+	adduser -u "${PUID}" -S nextjs -G nodejs
 fi
 
 # Setup user with target UID if it doesn't exist
-if ! getent passwd "${PUID}" > /dev/null 2>&1; then
-    echo "Creating user with UID=${PUID}..."
-    # Remove default nextjs user if it exists
-    deluser nextjs 2>/dev/null || true
-    adduser -u "${PUID}" -S nextjs -G nodejs
+if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+	echo "Creating user with UID=${PUID}..."
+	# Remove default nextjs user if it exists
+	deluser nextjs 2>/dev/null || true
+	adduser -u "${PUID}" -S nextjs -G nodejs
 fi
 
 # Get the username for the target UID (might not be 'nextjs' if user already existed)
@@ -53,20 +65,22 @@ echo ""
 
 # Fix ownership of data directory
 if [ -d "/app/data" ]; then
-    echo "Fixing ownership of /app/data..."
-    chown -R "${PUID}:${PGID}" /app/data 2>/dev/null || echo "Warning: Could not change ownership of /app/data (may be a network mount)"
+	echo "Fixing ownership of /app/data..."
+	chown -R "${PUID}:${PGID}" /app/data 2>/dev/null || echo "Warning: Could not change ownership of /app/data (may be a network mount)"
 fi
 
 # Fix ownership of .next directory (needed for runtime cache writes)
 if [ -d "/app/.next" ]; then
-    echo "Fixing ownership of /app/.next..."
-    chown -R "${PUID}:${PGID}" /app/.next 2>/dev/null || echo "Warning: Could not change ownership of /app/.next"
+	echo "Fixing ownership of /app/.next..."
+	chown -R "${PUID}:${PGID}" /app/.next 2>/dev/null || echo "Warning: Could not change ownership of /app/.next"
 fi
 
 echo ""
 echo "Dropping privileges and starting application..."
 echo ""
 
-# Drop privileges and execute Node.js entrypoint
+# Drop privileges and execute compiled Node.js entrypoint
+# Path aliases (@/) already resolved by esbuild during build
+# tsx is NOT needed here - entrypoint is pre-compiled JavaScript
 # su-exec replaces the current process (like exec)
-exec su-exec "${PUID}:${PGID}" npx tsx /app/dist/entrypoint.cjs
+exec su-exec "${PUID}:${PGID}" node /app/dist/entrypoint.cjs

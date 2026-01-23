@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Docker Container Entrypoint (Compiled JS)
+ * Docker Container Entrypoint (Compiled to CommonJS)
  *
- * This script handles application-level startup logic:
+ * This TypeScript file is compiled via esbuild to dist/entrypoint.cjs and executed
+ * with plain Node.js. Path aliases (@/) are resolved at build time by esbuild.
+ * 
+ * Application-level startup logic:
  * 1. Display banner with version
  * 2. Ensure data directory exists and is writable
  * 3. Create database backup(s) (skip on first run)
@@ -14,16 +17,27 @@
  * Docker housekeeping (user setup, permissions, privilege drop) is handled
  * by the shell script docker-entrypoint.sh which runs this script via su-exec.
  *
+ * Path Alias Resolution:
+ * - Entrypoint: Path aliases bundled by esbuild at build time → plain node execution
+ * - Migrations: Runtime TypeScript via tsx → path aliases resolved by tsx
+ * - Companion Migrations: Runtime TypeScript via tsx → path aliases resolved by tsx
+ *
  * Features:
  * - Type-safe configuration from environment variables
  * - Unified structured logging throughout
- * - Proper error handling with try/catch
+ * - Atomic database backups (main + WAL)
  * - Exponential backoff retry for migrations
  * - Graceful shutdown on SIGTERM/SIGINT
  * - Direct function calls (no process spawning for backup/migration)
  *
- * Usage:
+ * Build:
+ *   npm run build:entrypoint
+ * 
+ * Run (compiled):
  *   node dist/entrypoint.cjs
+ * 
+ * Run (development):
+ *   npx tsx scripts/entrypoint.ts
  */
 
 // IMPORTANT: Load environment variables BEFORE any imports that might use them
@@ -264,6 +278,10 @@ async function runMigrationsWithRetry(): Promise<void> {
     console.log(`Migration attempt ${attempt} of ${config.maxRetries}...`);
 
     try {
+      // Note: runMigrations() uses tsx internally to execute companion migrations
+      // which are TypeScript source files with @/ path aliases. The migrations
+      // themselves are TS source (not compiled) because they need to be dynamically
+      // discovered and loaded at runtime.
       await runMigrations();
 
       logger.info('Migrations completed successfully');
