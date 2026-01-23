@@ -14,6 +14,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "build:entrypoint": "esbuild scripts/entrypoint.ts --bundle --platform=node --format=cjs --outfile=dist/entrypoint.cjs --packages=external --alias:@=.",
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "tsx ./lib/db/migrate.ts",
