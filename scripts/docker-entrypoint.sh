@@ -69,4 +69,4 @@ echo ""
 
 # Drop privileges and execute Node.js entrypoint
 # su-exec replaces the current process (like exec)
-exec su-exec "${PUID}:${PGID}" node /app/dist/entrypoint.cjs
+exec su-exec "${PUID}:${PGID}" npx tsx /app/dist/entrypoint.cjs
