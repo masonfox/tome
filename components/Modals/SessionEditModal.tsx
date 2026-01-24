@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
@@ -38,9 +38,7 @@ export default function SessionEditModal({
   const [startedDate, setStartedDate] = useState("");
   const [completedDate, setCompletedDate] = useState("");
   const [review, setReview] = useState("");
-
-  // Track whether we've already restored the draft for this modal session
-  const hasRestoredDraft = useRef(false);
+  const [isFormReady, setIsFormReady] = useState(false);
 
   // Draft management for review field
   const {
@@ -50,9 +48,10 @@ export default function SessionEditModal({
     isInitialized,
   } = useDraftField(`draft-session-edit-${bookId}-${sessionId}`);
 
-  // Reset form when modal opens with current values
+  // Coordinated form initialization - wait for draft hook to initialize before setting values
+  // This prevents the race condition where form resets before draft loads from localStorage
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isInitialized) {
       // Convert ISO datetime to date-only string (YYYY-MM-DD) for input[type="date"]
       setStartedDate(
         currentStartedDate ? currentStartedDate.split("T")[0] : ""
@@ -60,25 +59,30 @@ export default function SessionEditModal({
       setCompletedDate(
         currentCompletedDate ? currentCompletedDate.split("T")[0] : ""
       );
-      setReview(currentReview || "");
-      hasRestoredDraft.current = false; // Reset draft restoration flag
+      
+      // Prioritize current review over draft
+      // If there's a current review, use it; otherwise use draft if available
+      if (currentReview) {
+        setReview(currentReview);
+      } else if (draftReview) {
+        setReview(draftReview);
+      } else {
+        setReview("");
+      }
+      
+      setIsFormReady(true);
+    } else if (!isOpen) {
+      // Reset form ready state when modal closes
+      setIsFormReady(false);
     }
-  }, [isOpen, currentStartedDate, currentCompletedDate, currentReview]);
+  }, [isOpen, isInitialized, currentStartedDate, currentCompletedDate, currentReview, draftReview]);
 
-  // Restore draft only once when modal opens (if no existing review)
+  // Auto-save draft (only after form is ready to prevent race condition)
   useEffect(() => {
-    if (isOpen && isInitialized && !currentReview && draftReview && !hasRestoredDraft.current) {
-      setReview(draftReview);
-      hasRestoredDraft.current = true;
-    }
-  }, [isOpen, isInitialized, currentReview, draftReview]);
-
-  // Auto-save draft (only after initialization to prevent race condition)
-  useEffect(() => {
-    if (isInitialized && review && isOpen) {
+    if (isFormReady && review && isOpen) {
       saveDraft(review);
     }
-  }, [review, isInitialized, saveDraft, isOpen]);
+  }, [review, isFormReady, saveDraft, isOpen]);
 
   function handleSave() {
     // Date inputs already provide YYYY-MM-DD format, send as-is
