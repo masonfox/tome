@@ -46,10 +46,10 @@ RUN mkdir -p data
 
 RUN npm run build
 
-# Build the entrypoint script (compile TypeScript → JavaScript)
+# Build the entrypoint script and companion migrations (compile TypeScript → JavaScript)
 # This resolves path aliases (@/) at build time via esbuild
-# Migrations will still use tsx at runtime for companion migrations
-RUN npm run build:entrypoint
+# Companions must be compiled so plain Node.js can require() them without tsx
+RUN npm run build:docker
 
 # Production image
 FROM base AS runner
@@ -95,6 +95,9 @@ RUN chmod +x ./docker-entrypoint.sh
 
 # Copy compiled JS entrypoint (runs as target user after privilege drop)
 COPY --from=builder --chown=nextjs:nodejs /app/dist/entrypoint.cjs ./dist/
+
+# Copy compiled companion migrations (CommonJS, not TypeScript source)
+COPY --from=builder --chown=nextjs:nodejs /app/dist/companions ./dist/companions
 
 # Copy only migration dependencies instead of all node_modules
 # The standalone build's node_modules don't include deps needed by lib/db/migrate.ts

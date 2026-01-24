@@ -11,13 +11,14 @@ npm test
 
 ## ✅ Current Status
 
-The test infrastructure is **fully functional** and comprehensive with **2740 tests passing** using Vitest with real database testing!
+The test infrastructure is **fully functional** and comprehensive with **3440+ tests passing** using Vitest with real database testing!
 
-**Test Suite (2740 passing):**
-- ✅ **Companion Migrations Framework** - 34 tests (NEW!)
+**Test Suite (3440+ passing):**
+- ✅ **Companion Migrations Framework** - 55 tests (COMPLETE!)
   - Unit tests - 21 tests (completion tracking, table existence checks, error handling)
   - Integration tests - 13 tests (end-to-end execution, transaction rollback, idempotency, fresh database support)
-  - Coverage: 80-90% of companion-migrations.ts
+  - **Compilation tests - 21 tests (NEW!)** (compiled vs source mode, build verification, runtime detection)
+  - Coverage: 90%+ of companion-migrations.ts
 - ✅ **Annual Reading Goals** - 66 tests
   - `/api/reading-goals/books` - 16 tests (parameter validation, data retrieval, response structure)
   - `/api/reading-goals/[id]` PATCH/DELETE - 16 tests (validation, authorization, error handling)
@@ -35,11 +36,11 @@ The test infrastructure is **fully functional** and comprehensive with **2740 te
 
 **Key Achievements:**
 - ✅ **Real database testing** - No complex mocking, uses in-memory SQLite
-- ✅ **Comprehensive coverage** - All core features tested (companion migrations, goals, streaks, sync, progress, stats, queries)
-- ✅ **Fast execution** - ~18.5 seconds for full suite (2740 tests)
+- ✅ **Comprehensive coverage** - All core features tested (companion migrations + compilation, goals, streaks, sync, progress, stats, queries)
+- ✅ **Fast execution** - ~31 seconds for full suite (3440+ tests)
 - ✅ **Test isolation** - Proper cleanup between tests, no cross-file interference
 - ✅ **Production-like testing** - Tests run against real database engines
-- ✅ **Companion Migrations Framework** - Complete test coverage (80-90% coverage)
+- ✅ **Companion Migrations Framework** - Complete test coverage (90%+ coverage including compilation)
 - ✅ **Annual Reading Goals** - Complete test coverage for PR #96 (0% → 79%+ coverage)
 
 ## Test Structure
@@ -48,9 +49,11 @@ The test infrastructure is **fully functional** and comprehensive with **2740 te
 __tests__/
 ├── lib/                         # Library/core functionality tests
 │   └── db/
-│       ├── companion-migrations.test.ts          # Unit tests (21 tests)
-│       ├── companion-migrations-integration.test.ts  # Integration tests (13 tests)
-│       ├── migrate.test.ts                       # Migration framework tests
+│       ├── companion-migrations.test.ts                  # Unit tests (21 tests)
+│       ├── companion-migrations-integration.test.ts      # Integration tests (13 tests)
+│       ├── companion-migrations-compilation.test.ts      # Compilation tests (21 tests) [NEW!]
+│       ├── COMPILATION_TESTS_SUMMARY.md                  # Compilation test documentation
+│       ├── migrate.test.ts                               # Migration framework tests
 │       └── ...
 ├── integration/                 # Integration tests (API routes)
 │   └── api/
@@ -80,9 +83,9 @@ __tests__/
 
 ## Test Coverage
 
-### Companion Migrations Framework (NEW) - 34 tests
+### Companion Migrations Framework (COMPLETE) - 55 tests
 
-Complete test coverage for the Companion Migrations Framework (ADR-013):
+Complete test coverage for the Companion Migrations Framework (ADR-013), including compilation and runtime detection:
 
 #### Unit Tests (`lib/db/companion-migrations.test.ts`) - 21 tests
 - ✅ **`isCompleteMigration()`** - 6 tests
@@ -131,15 +134,48 @@ Complete test coverage for the Companion Migrations Framework (ADR-013):
   - Handles empty companions directory gracefully
   - Handles companion with no data to transform
 
-**Coverage**: 80-90% of `lib/db/companion-migrations.ts` (249 lines)
+#### Compilation Tests (`lib/db/companion-migrations-compilation.test.ts`) - 21 tests [NEW!]
+- ✅ **Suite 1: Compilation Detection** - 4 tests
+  - Detects compiled mode when `dist/companions/` exists
+  - Detects source mode when only `lib/migrations/` exists
+  - Prefers compiled mode over source when both exist
+  - Returns empty array when neither directory exists
+- ✅ **Suite 2: Compiled Companion Loading** - 6 tests
+  - Loads companions from `dist/companions/*.js` in compiled mode
+  - Requires compiled `.js` files without errors
+  - Validates companion structure (name, execute, requiredTables)
+  - Skips `_template.js` file in compiled mode
+  - Loads companions in numeric order
+  - Handles multiple compiled companions
+- ✅ **Suite 3: Source Companion Loading** - 3 tests
+  - Loads companions from `lib/migrations/*.ts` in source mode
+  - Skips `_template.ts` file in source mode
+  - Falls back gracefully when compiled directory doesn't exist
+- ✅ **Suite 4: Build Process Verification** - 4 tests
+  - `npm run build:companions` creates all expected files
+  - Compiled files have correct structure (CJS exports)
+  - Source maps are generated (`.js.map` files)
+  - Template file is compiled but excluded from loading
+- ✅ **Suite 5: End-to-End Execution** - 3 tests
+  - Executes compiled companions successfully
+  - Executes source companions successfully
+  - Handles mixed compiled and source scenarios
+- ✅ **Suite 6: Logger Output Verification** - 1 test
+  - Logs correct `compiled: true/false` flag in structured logs
+
+**Coverage**: 90%+ of `lib/db/companion-migrations.ts` (280 lines)
+
+**See**: `__tests__/integration/external/database/COMPILATION_TESTS_SUMMARY.md` for detailed documentation
 
 **Key Testing Patterns**:
 - Uses in-memory SQLite (`:memory:`) for unit tests
-- Uses temporary directories with real TypeScript files for integration tests
-- Proper test isolation with cleanup (try/finally blocks)
+- Uses temporary directories with real TypeScript/JavaScript files for integration tests
+- Proper test isolation with cleanup (beforeEach/afterEach)
 - Tests both success and failure paths
 - Validates transaction rollback behavior
 - Tests idempotency and fresh database scenarios
+- **Tests compilation detection and runtime mode switching**
+- **Verifies build process and output structure**
 
 ### Annual Reading Goals (NEW - PR #96) - 66 tests
 
@@ -419,14 +455,14 @@ We use **real databases** instead of mocks:
 
 ## Summary
 
-✅ **2740 tests passing** across 132 test files  
-⚡ **~18.5 seconds** execution time  
+✅ **3440+ tests passing** across 164 test files  
+⚡ **~31 seconds** execution time  
 🎯 **Comprehensive coverage** of core features  
 🏗️ **Production-like** testing with real databases  
 🔒 **Test isolation** with proper cleanup  
 📝 **Well documented** with examples and best practices  
-🎊 **NEW: Companion Migrations Framework fully tested** (80-90% coverage)  
-🎊 **NEW: Annual Reading Goals feature fully tested** (PR #96)
+🎊 **Companion Migrations Framework fully tested** (90%+ coverage including compilation!)  
+🎊 **Annual Reading Goals feature fully tested** (PR #96)
 
 The test suite is production-ready and provides confidence in the application's core functionality!
 
@@ -438,12 +474,15 @@ The test suite is production-ready and provides confidence in the application's 
 # Run all tests
 npm test
 
-# Run only companion migration tests
-npm test __tests__/lib/db/companion-migrations
+# Run only companion migration tests (all 55 tests)
+npm test __tests__/integration/external/database/companion-migrations
+
+# Run only compilation tests (21 tests)
+npm test __tests__/integration/external/database/companion-migrations-compilation.test.ts
 
 # Run only reading goals tests
 npm test __tests__/integration/api/reading-goals*.test.ts __tests__/repositories/reading-goals.repository.test.ts
 
 # Run individual test file
-npm test __tests__/lib/db/companion-migrations-integration.test.ts
+npm test __tests__/integration/external/database/companion-migrations-integration.test.ts
 ```

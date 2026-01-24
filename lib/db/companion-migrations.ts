@@ -38,14 +38,26 @@ export interface CompanionMigration {
 }
 
 /**
- * Discover companion migrations in lib/migrations/
- * Returns migrations sorted by number
+ * Discover companion migrations
+ * 
+ * Auto-detects execution context:
+ * - Production (compiled): Loads from dist/companions/*.js
+ * - Development (source): Loads from lib/migrations/*.ts
+ * 
+ * Returns migrations sorted by number.
  * 
  * @param baseDir - Optional base directory for testing (defaults to process.cwd())
  * @internal Exported for testing
  */
 export function discoverCompanions(baseDir?: string): CompanionMigration[] {
-  const migrationsDir = join(baseDir || process.cwd(), 'lib/migrations');
+  const base = baseDir || process.cwd();
+  
+  // Check if we're running compiled code (production)
+  const compiledDir = join(base, 'dist/companions');
+  const sourceDir = join(base, 'lib/migrations');
+  
+  const isCompiled = existsSync(compiledDir);
+  const migrationsDir = isCompiled ? compiledDir : sourceDir;
   
   // Check if directory exists
   if (!existsSync(migrationsDir)) {
@@ -53,16 +65,20 @@ export function discoverCompanions(baseDir?: string): CompanionMigration[] {
     return [];
   }
   
-  // Find all TypeScript/JavaScript files matching pattern {number}_*.ts
+  // Find files - .js in production (compiled), .ts in development
+  const filePattern = isCompiled ? /^\d{4}_.*\.js$/ : /^\d{4}_.*\.ts$/;
+  
   const files = readdirSync(migrationsDir)
-    .filter(f => {
-      // Match pattern: 0015_something.ts or 0015_something.js
-      return /^\d{4}_.*\.(ts|js)$/.test(f);
-    })
+    .filter(f => filePattern.test(f))
     .filter(f => !f.startsWith('_')) // Exclude _template.ts
     .sort(); // Alphabetical = numeric order
   
-  logger.debug({ count: files.length, files }, "Discovered companion files");
+  logger.debug({ 
+    count: files.length, 
+    files,
+    compiled: isCompiled,
+    dir: migrationsDir
+  }, "Discovered companion files");
   
   // Load each companion module
   const companions: CompanionMigration[] = [];
@@ -87,13 +103,18 @@ export function discoverCompanions(baseDir?: string): CompanionMigration[] {
       }
       
       companions.push(companion);
+      logger.debug({ file, name: companion.name }, "Loaded companion migration");
     } catch (error) {
       logger.error({ file, error }, "Failed to load companion file");
       // Don't throw - skip invalid companions
     }
   }
   
-  logger.info({ count: companions.length }, "Loaded companion migrations");
+  logger.info({ 
+    count: companions.length,
+    compiled: isCompiled 
+  }, "Loaded companion migrations");
+  
   return companions;
 }
 
