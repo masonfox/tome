@@ -57,8 +57,7 @@ fi
 # Ensure stdout is flushed before handing off to TypeScript entrypoint
 sync
 
-# Drop privileges and execute compiled Node.js entrypoint
-# Path aliases (@/) already resolved by esbuild during build
-# tsx is NOT needed here - entrypoint is pre-compiled JavaScript
+# Drop privileges and execute TypeScript entrypoint via tsx
+# tsx handles path aliases (@/) at runtime (no compilation needed)
 # su-exec replaces the current process (like exec)
-exec su-exec "${PUID}:${PGID}" node /app/dist/entrypoint.cjs
+exec su-exec "${PUID}:${PGID}" npx tsx /app/scripts/entrypoint.ts
