@@ -7,6 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/utils/toast";
+import { invalidateBookQueries } from "@/hooks/useBookStatus";
 import type { SessionWithBook } from "@/lib/repositories/session.repository";
 
 export function useReadNextBooks(search?: string) {
@@ -130,7 +131,15 @@ export function useReadNextBooks(search?: string) {
       return bookIds;
     },
     onSuccess: (bookIds) => {
+      // Invalidate all book-related queries for each affected book
+      // This ensures library, dashboard, and other pages update correctly
+      bookIds.forEach(bookId => {
+        invalidateBookQueries(queryClient, bookId.toString());
+      });
+      
+      // Also explicitly invalidate read-next query (redundant but clear)
       queryClient.invalidateQueries({ queryKey: ["read-next-books"] });
+      
       const count = bookIds.length;
       toast.success(
         `Removed ${count} ${count === 1 ? "book" : "books"} from Read Next`

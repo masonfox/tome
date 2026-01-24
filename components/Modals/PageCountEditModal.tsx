@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import BaseModal from "./BaseModal";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
+import { invalidateBookQueries } from "@/hooks/useBookStatus";
 
 interface PageCountEditModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export default function PageCountEditModal({
   pendingStatus,
   currentRating,
 }: PageCountEditModalProps) {
+  const queryClient = useQueryClient();
   const [pageCount, setPageCount] = useState(currentPageCount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -84,6 +87,9 @@ export default function PageCountEditModal({
           const error = await statusResponse.json();
           throw new Error(error.error || "Failed to update status");
         }
+
+        // Invalidate caches after status change to ensure all pages update
+        invalidateBookQueries(queryClient, bookId.toString());
 
         toast.success(`Page count updated and status changed to "${pendingStatus}"!`);
       } else {

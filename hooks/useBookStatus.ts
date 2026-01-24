@@ -44,6 +44,7 @@ export function invalidateBookQueries(queryClient: any, bookId: string): void {
   queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
   queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   queryClient.invalidateQueries({ queryKey: ['library-books'] });
+  queryClient.invalidateQueries({ queryKey: ['read-next-books'] });
 
   // Clear entire LibraryService cache to ensure status changes reflect across all filters
   libraryService.clearCache();
