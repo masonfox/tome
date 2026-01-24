@@ -46,6 +46,11 @@ RUN mkdir -p data
 
 RUN npm run build
 
+# Build the entrypoint script (compile TypeScript → JavaScript)
+# This resolves path aliases (@/) at build time via esbuild
+# Migrations will still use tsx at runtime for companion migrations
+RUN npm run build:entrypoint
+
 # Production image
 FROM base AS runner
 WORKDIR /app
@@ -82,8 +87,14 @@ RUN mkdir -p .next/cache .next/server/app && \
 COPY --from=builder --chown=nextjs:nodejs /app/data ./data
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+
+# Copy shell entrypoint (runs as root for user setup, then drops privileges)
+COPY --chown=root:root scripts/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
+
+# Copy compiled JS entrypoint (runs as target user after privilege drop)
+COPY --from=builder --chown=nextjs:nodejs /app/dist/entrypoint.cjs ./dist/
 
 # Copy only migration dependencies instead of all node_modules
 # The standalone build's node_modules don't include deps needed by lib/db/migrate.ts
@@ -104,6 +115,8 @@ ENV HOSTNAME="0.0.0.0"
 # Volume for persistent SQLite database
 VOLUME ["/app/data"]
 
-# Use TypeScript entrypoint (scripts/entrypoint.ts already copied above)
-# This eliminates cross-process boundaries and fixes the "sonic boom is not ready yet" error
-CMD ["npx", "tsx", "scripts/entrypoint.ts"]
+# Use hybrid shell + compiled JS entrypoint
+# Shell handles: user setup, permissions, privilege drop
+# Compiled JS handles: backups, migrations, app start
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD []
