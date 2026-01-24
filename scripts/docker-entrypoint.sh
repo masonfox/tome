@@ -7,7 +7,8 @@
 # - Permission fixes for mounted volumes
 # - Privilege dropping via su-exec
 #
-# After setup, executes the compiled Node.js entrypoint as the target user.
+# Runs silently - all user-facing output is handled by the TypeScript entrypoint.
+# Only critical errors are output to stderr with [shell] prefix.
 #
 
 set -e
@@ -15,69 +16,46 @@ set -e
 PUID=${PUID:-1001}
 PGID=${PGID:-1001}
 
-echo "============================================"
-echo ""
-echo "   ████████╗ ██████╗ ███╗   ███╗███████╗"
-echo "   ╚══██╔══╝██╔═══██╗████╗ ████║██╔════╝"
-echo "      ██║   ██║   ██║██╔████╔██║█████╗  "
-echo "      ██║   ██║   ██║██║╚██╔╝██║██╔══╝  "
-echo "      ██║   ╚██████╔╝██║ ╚═╝ ██║███████╗"
-echo "      ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚══════╝"
-echo ""
-echo "            PUID=${PUID}, PGID=${PGID}"
-echo ""
-echo "============================================"
-echo ""
-
 # Setup user and group with target PUID/PGID if they don't exist
 # Note: Delete user BEFORE group (user might be member of group)
 if ! getent passwd "${PUID}" >/dev/null 2>&1; then
-	echo "Creating user with UID=${PUID}..."
 	# Remove default nextjs user if it exists (do this first)
 	deluser nextjs 2>/dev/null || true
 fi
 
 if ! getent group "${PGID}" >/dev/null 2>&1; then
-	echo "Creating group with GID=${PGID}..."
 	# Remove default nodejs group if it exists (after removing user)
 	delgroup nodejs 2>/dev/null || true
-	addgroup -g "${PGID}" -S nodejs
+	addgroup -g "${PGID}" -S nodejs || {
+		echo "[shell] ERROR: Failed to create group with GID=${PGID}" >&2
+		exit 1
+	}
 fi
 
 # Create user if it doesn't exist (after group is ready)
 if ! getent passwd "${PUID}" >/dev/null 2>&1; then
-	adduser -u "${PUID}" -S nextjs -G nodejs
+	adduser -u "${PUID}" -S nextjs -G nodejs || {
+		echo "[shell] ERROR: Failed to create user with UID=${PUID}" >&2
+		exit 1
+	}
 fi
 
-# Setup user with target UID if it doesn't exist
-if ! getent passwd "${PUID}" >/dev/null 2>&1; then
-	echo "Creating user with UID=${PUID}..."
-	# Remove default nextjs user if it exists
-	deluser nextjs 2>/dev/null || true
-	adduser -u "${PUID}" -S nextjs -G nodejs
-fi
-
-# Get the username for the target UID (might not be 'nextjs' if user already existed)
-USERNAME=$(getent passwd "${PUID}" | cut -d: -f1)
-
-echo "Running as user: ${USERNAME} (${PUID}:${PGID})"
-echo ""
-
-# Fix ownership of data directory
+# Fix ownership of data directory (silent unless error)
 if [ -d "/app/data" ]; then
-	echo "Fixing ownership of /app/data..."
-	chown -R "${PUID}:${PGID}" /app/data 2>/dev/null || echo "Warning: Could not change ownership of /app/data (may be a network mount)"
+	chown -R "${PUID}:${PGID}" /app/data 2>/dev/null || {
+		echo "[shell] WARNING: Could not change ownership of /app/data (may be network mount)" >&2
+	}
 fi
 
 # Fix ownership of .next directory (needed for runtime cache writes)
 if [ -d "/app/.next" ]; then
-	echo "Fixing ownership of /app/.next..."
-	chown -R "${PUID}:${PGID}" /app/.next 2>/dev/null || echo "Warning: Could not change ownership of /app/.next"
+	chown -R "${PUID}:${PGID}" /app/.next 2>/dev/null || {
+		echo "[shell] WARNING: Could not change ownership of /app/.next" >&2
+	}
 fi
 
-echo ""
-echo "Dropping privileges and starting application..."
-echo ""
+# Ensure stdout is flushed before handing off to TypeScript entrypoint
+sync
 
 # Drop privileges and execute compiled Node.js entrypoint
 # Path aliases (@/) already resolved by esbuild during build

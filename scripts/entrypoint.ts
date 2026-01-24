@@ -120,8 +120,19 @@ async function showBanner(): Promise<void> {
     const gid = process.getgid ? process.getgid() : 'unknown';
 
     console.log(`
+============================================
+
+   ████████╗ ██████╗ ███╗   ███╗███████╗
+   ╚══██╔══╝██╔═══██╗████╗ ████║██╔════╝
+      ██║   ██║   ██║██╔████╔██║█████╗  
+      ██║   ██║   ██║██║╚██╔╝██║██╔══╝  
+      ██║   ╚██████╔╝██║ ╚═╝ ██║███████╗
+      ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚══════╝
+
               Version: ${version}
             UID=${uid}, GID=${gid}
+
+============================================
 `);
   } catch (error: any) {
     // Banner is nice-to-have, don't fail if it can't be displayed
@@ -449,6 +460,9 @@ async function startApplication(): Promise<never> {
 async function main(): Promise<never> {
   try {
     await showBanner();
+
+    // Boot message bridges shell completion → structured logs
+    console.log('Booting Tome...\n');
 
     logger.info({
       uid: process.getuid ? process.getuid() : 'unknown',
