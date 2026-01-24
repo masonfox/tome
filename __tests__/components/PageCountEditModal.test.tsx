@@ -1,5 +1,6 @@
 import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { renderWithQueryClient as render } from "../test-utils";
 import "@testing-library/jest-dom";
 
 // Mock toast utility - hoist the mock object
