@@ -7,35 +7,19 @@ WORKDIR /app
 # Install su-exec for PUID/PGID support (privilege dropping)
 RUN apk add --no-cache python3 make g++ bash su-exec
 
-# Install dependencies
+# Install dependencies (optimized single-pass installation)
 FROM base AS deps
+# Copy only package files first for better layer caching
 COPY package.json package-lock.json ./
 # Install all dependencies (including devDependencies for build)
 # Use --legacy-peer-deps due to eslint-config-next@16.1.1 requiring eslint@>=9.0.0
 RUN npm ci --legacy-peer-deps
 
-# Install production dependencies only
-FROM base AS prod-deps
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --legacy-peer-deps
-
-# Install migration dependencies (standalone build doesn't include all dependencies)
-# These packages are needed by lib/db/migrate.ts and companion migrations which run before the app starts
-# Note: date-fns and date-fns-tz are required by companion migrations for timezone conversions
-# Note: dotenv is required by backup/restore/seed scripts for environment variable loading
-FROM base AS migration-deps
-RUN npm install \
-  drizzle-orm@^0.44.7 \
-  pino@^9.3.1 \
-  tsx@^4.7.0 \
-  better-sqlite3@^12.4.1 \
-  date-fns@^3.3.0 \
-  date-fns-tz@^3.2.0 \
-  dotenv@^16.0.0
-
 # Build the application
 FROM base AS builder
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+# Copy only necessary source files (respecting .dockerignore)
 COPY . .
 
 # Set environment variable for build
@@ -44,7 +28,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Create data directory for SQLite database
 RUN mkdir -p data
 
+# Build Next.js application
 RUN npm run build
+
+# Production dependencies (separate stage for minimal runtime image)
+FROM base AS prod-deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Production image
 FROM base AS runner
@@ -85,11 +75,20 @@ COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 
-# Copy only migration dependencies instead of all node_modules
+# Copy production dependencies + additional packages needed for migrations
 # The standalone build's node_modules don't include deps needed by lib/db/migrate.ts
-# and companion migrations (date-fns, date-fns-tz for timezone conversions)
-# This optimization significantly reduces image size by copying only what's needed
-COPY --from=migration-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+# and companion migrations (date-fns, date-fns-tz for timezone conversions, dotenv for env loading)
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Install migration-specific dependencies that aren't in production deps
+# These are needed by lib/db/migrate.ts and companion migrations
+RUN npm install --no-save --legacy-peer-deps \
+  drizzle-orm@^0.44.7 \
+  pino@^9.3.1 \
+  tsx@^4.7.0 \
+  date-fns@^3.3.0 \
+  date-fns-tz@^3.2.0 \
+  dotenv@^16.0.0
 
 # DO NOT set USER here - the entrypoint handles PUID/PGID switching
 # Container starts as root, then drops to specified UID/GID via su-exec

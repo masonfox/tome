@@ -5,6 +5,12 @@ node_modules
 
 # testing
 coverage
+__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+vitest.config.ts
 
 # next.js
 .next/
@@ -40,6 +46,7 @@ bun.lockb
 # git
 .git
 .gitignore
+.gitattributes
 
 # IDE
 .vscode
@@ -49,12 +56,28 @@ bun.lockb
 
 # docker
 Dockerfile
+Dockerfile.*
 docker-compose.yml
+docker-compose.*.yml
 .dockerignore
 
 # documentation
 README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+docs/
+.specify/
+
+# GitHub
+.github/
 
 # local database (will be created in container)
 data/
 !data/.gitkeep
+
+# Other development files
+.editorconfig
+.eslintrc*
+.prettierrc*
+tsconfig.tsbuildinfo
