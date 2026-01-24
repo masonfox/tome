@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build companion migrations
+        run: npm run build:companions
+
       - name: Run test suite with coverage
         env:
           NODE_ENV: test
