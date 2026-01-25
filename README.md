@@ -37,7 +37,7 @@
 
 <br>
 
-[![Release](https://img.shields.io/github/v/release/masonfox/tome?color=4c6ef5&style=for-the-badge&logo=github)](https://github.com/masonfox/tome/releases) [![License](https://img.shields.io/github/license/masonfox/tome?color=fab005&style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/masonfox/tome?style=for-the-badge&color=ffd43b)](https://github.com/masonfox/tome/stargazers) ![Codecov](https://img.shields.io/codecov/c/github/masonfox/tome?style=for-the-badge) ![GitHub Sponsors](https://img.shields.io/github/sponsors/masonfox?style=for-the-badge)
+[![Release](https://img.shields.io/github/v/release/masonfox/tome?color=4c6ef5&style=for-the-badge&logo=github)](https://github.com/masonfox/tome/releases) [![License](https://img.shields.io/github/license/masonfox/tome?color=fab005&style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/masonfox/tome?style=for-the-badge&color=ffd43b)](https://github.com/masonfox/tome/stargazers) [![Codecov](https://img.shields.io/codecov/c/github/masonfox/tome?style=for-the-badge)](https://codecov.io/gh/masonfox/tome) [![GitHub Sponsors](https://img.shields.io/github/sponsors/masonfox?style=for-the-badge)](https://github.com/sponsors/masonfox)
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
 
