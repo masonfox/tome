@@ -19,7 +19,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <DemoProvider>
       <AuthProvider>
-        {/* Demo Mode Banner - visible when DEMO_MODE=true */}
+        {/* Demo Mode Banner - visible when NODE_ENV=demo */}
         <DemoBanner />
 
         {/* Desktop Sidebar - visible on md+ screens */}
