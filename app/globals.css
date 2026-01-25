@@ -283,16 +283,16 @@ body.overflow-hidden {
     margin-left: var(--sidebar-width-expanded);
   }
 
-  /* Bulk action bar - offset for sidebar */
-  #bulk-action-bar {
+  /* Shared utility: Elements that need sidebar offset (fixed position bars) */
+  .sidebar-offset {
     left: var(--sidebar-width-collapsed);
   }
 
-  html.transitions-enabled #bulk-action-bar {
+  html.transitions-enabled .sidebar-offset {
     transition: left 0.3s ease-in-out;
   }
 
-  html[data-sidebar-collapsed="false"] #bulk-action-bar {
+  html[data-sidebar-collapsed="false"] .sidebar-offset {
     left: var(--sidebar-width-expanded);
   }
 }

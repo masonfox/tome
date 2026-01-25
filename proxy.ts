@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { proxyAuthCheck } from "@/lib/auth";
-
-const DEMO_MODE = process.env.DEMO_MODE === "true";
+import { isDemoMode } from "@/lib/demo";
 
 // HTTP methods that modify data
 const MUTATION_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 
 // API routes allowed even in demo mode
-const DEMO_ALLOWED_ROUTES = ["/api/auth/login", "/api/auth/logout", "/api/auth/status", "/api/demo/status"];
+const DEMO_ALLOWED_ROUTES = ["/api/auth/login", "/api/auth/logout", "/api/auth/status"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,7 +23,7 @@ export function proxy(request: NextRequest) {
   }
 
   // Demo mode: block mutation requests on API routes
-  if (DEMO_MODE && MUTATION_METHODS.includes(request.method) && pathname.startsWith("/api/")) {
+  if (isDemoMode() && MUTATION_METHODS.includes(request.method) && pathname.startsWith("/api/")) {
     // Allow whitelisted routes
     if (DEMO_ALLOWED_ROUTES.some((route) => pathname.startsWith(route))) {
       return NextResponse.next();

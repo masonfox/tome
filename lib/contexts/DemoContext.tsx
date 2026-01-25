@@ -21,17 +21,11 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-
-    fetch("/api/demo/status")
-      .then((res) => res.json())
-      .then((data) => {
-        setIsDemoMode(data.enabled);
-        setDemoMessage(data.message || "");
-      })
-      .catch(() => {
-        setIsDemoMode(false);
-        setDemoMessage("");
-      });
+    
+    // Read demo mode from env (available via next.config.ts env injection)
+    const isDemo = process.env.DEMO_MODE === "true";
+    setIsDemoMode(isDemo);
+    setDemoMessage(isDemo ? "This is a read-only demo. Changes are not saved." : "");
   }, []);
 
   return (

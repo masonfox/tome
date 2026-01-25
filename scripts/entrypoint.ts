@@ -11,7 +11,7 @@
  * 2. Ensure data directory exists and is writable
  * 3. Create database backup(s) (skip on first run)
  * 4. Run database migrations with retry logic
- * 5. Seed demo database if NODE_ENV=demo
+ * 5. Seed demo database if DEMO_MODE=true
  * 6. Start Next.js application
  *
  * Docker housekeeping (user setup, permissions, privilege drop) is handled
@@ -323,11 +323,11 @@ async function runMigrationsWithRetry(): Promise<void> {
 }
 
 /**
- * Seed demo database if needed (NODE_ENV=demo)
+ * Seed demo database if needed (DEMO_MODE=true)
  *
  * Checks if the database already has books (seeding already done) and seeds
  * the database from the Calibre library if not. This is called when the
- * container is run with NODE_ENV=demo.
+ * container is run with DEMO_MODE=true.
  */
 async function seedDemoIfNeeded(): Promise<void> {
   console.log('\n=== Demo Database Seeding ===\n');
@@ -449,7 +449,7 @@ async function startApplication(): Promise<never> {
  * 2. Validate data directory
  * 3. Database backup
  * 4. Migrations
- * 5. Demo seeding (if NODE_ENV=demo)
+ * 5. Demo seeding (if DEMO_MODE=true)
  * 6. Application startup
  *
  * Exits with code 1 on any failure.
@@ -475,8 +475,8 @@ async function main(): Promise<never> {
     // Run migrations with retry
     await runMigrationsWithRetry();
 
-    // Seed demo database if NODE_ENV=demo
-    if ((process.env.NODE_ENV as string) === 'demo') {
+    // Seed demo database if DEMO_MODE=true
+    if (process.env.DEMO_MODE === 'true') {
       await seedDemoIfNeeded();
     }
 

@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
       exclude: ['error', 'warn'],
     } : false,
   },
+  // Expose environment variables to client-side code
+  env: {
+    DEMO_MODE: process.env.DEMO_MODE,
+  },
   // Turbopack configuration (empty for now, may need future migration)
   turbopack: {},
   // Externalize native modules for server-side rendering
