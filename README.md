@@ -18,6 +18,12 @@
 **Book Detail**
 ![Book UI](./docs/assets/book-detail.png)
 
+**Shelves**
+![Shelves UI](./docs/assets/shelves.png)
+
+**Shelf**
+![Shelf UI](./docs/assets/shelf.png)
+
 **Series**
 ![Series UI](./docs/assets/series.png)
 
