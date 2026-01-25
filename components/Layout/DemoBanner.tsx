@@ -12,7 +12,10 @@ export function DemoBanner() {
   }
 
   return (
-    <div className="bg-[var(--accent)] text-white px-4 py-2 text-sm flex items-center justify-center gap-2 sticky top-0 z-50">
+    <div 
+      id="demo-banner"
+      className="sidebar-offset fixed top-0 left-0 right-0 bg-[var(--accent)] text-white px-4 py-2 text-sm flex items-center justify-center gap-2 z-50"
+    >
       <Info className="w-4 h-4 flex-shrink-0" />
       <span>This is a read-only demo. Changes are not saved.</span>
       <a
