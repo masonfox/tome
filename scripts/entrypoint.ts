@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Docker Container Entrypoint (Compiled to CommonJS)
+ * Docker Container Entrypoint (TypeScript via tsx)
  *
- * This TypeScript file is compiled via esbuild to dist/entrypoint.cjs and executed
- * with plain Node.js. Path aliases (@/) are resolved at build time by esbuild.
+ * This TypeScript file is executed directly via tsx (no compilation needed).
+ * Path aliases (@/) are resolved at runtime by tsx.
  * 
  * Application-level startup logic:
  * 1. Display banner with version
@@ -18,7 +18,7 @@
  * by the shell script docker-entrypoint.sh which runs this script via su-exec.
  *
  * Path Alias Resolution:
- * - Entrypoint: Path aliases bundled by esbuild at build time → plain node execution
+ * - Entrypoint: Runtime TypeScript via tsx → path aliases resolved by tsx
  * - Migrations: Runtime TypeScript via tsx → path aliases resolved by tsx
  * - Companion Migrations: Runtime TypeScript via tsx → path aliases resolved by tsx
  *
@@ -30,11 +30,8 @@
  * - Graceful shutdown on SIGTERM/SIGINT
  * - Direct function calls (no process spawning for backup/migration)
  *
- * Build:
- *   npm run build:entrypoint
- * 
- * Run (compiled):
- *   node dist/entrypoint.cjs
+ * Run (production):
+ *   npx tsx scripts/entrypoint.ts
  * 
  * Run (development):
  *   npx tsx scripts/entrypoint.ts

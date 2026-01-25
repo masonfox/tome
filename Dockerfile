@@ -46,11 +46,6 @@ RUN mkdir -p data
 
 RUN npm run build
 
-# Build the entrypoint script and companion migrations (compile TypeScript → JavaScript)
-# This resolves path aliases (@/) at build time via esbuild
-# Companions must be compiled so plain Node.js can require() them without tsx
-RUN npm run build:docker
-
 # Production image
 FROM base AS runner
 WORKDIR /app
@@ -93,11 +88,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 COPY --chown=root:root scripts/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# Copy compiled JS entrypoint (runs as target user after privilege drop)
-COPY --from=builder --chown=nextjs:nodejs /app/dist/entrypoint.cjs ./dist/
+# Copy TypeScript entrypoint and all scripts (run via tsx, not compiled)
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
-# Copy compiled companion migrations (CommonJS, not TypeScript source)
-COPY --from=builder --chown=nextjs:nodejs /app/dist/companions ./dist/companions
+# Copy companion migrations source files (run via tsx, not compiled)
+COPY --from=builder --chown=nextjs:nodejs /app/lib/migrations ./lib/migrations
 
 # Copy only migration dependencies instead of all node_modules
 # The standalone build's node_modules don't include deps needed by lib/db/migrate.ts
@@ -118,8 +113,8 @@ ENV HOSTNAME="0.0.0.0"
 # Volume for persistent SQLite database
 VOLUME ["/app/data"]
 
-# Use hybrid shell + compiled JS entrypoint
+# Use hybrid shell + TypeScript entrypoint
 # Shell handles: user setup, permissions, privilege drop
-# Compiled JS handles: backups, migrations, app start
+# TypeScript (via tsx) handles: backups, migrations, app start
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD []
