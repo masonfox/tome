@@ -2,26 +2,13 @@
 
 # 📚 Tome
 
+**Tome** is a self-hosted book tracking web application that integrates directly with Calibre's database to provide reading progress tracking, status management, and streak functionality.
 
 [🚀 Get Started](#get-started) • [🎮 Try Demo](https://demo.tomeapp.dev) • [💬 Community](https://github.com/masonfox/tome/discussions)
 
 <p align="center">
   <img src="./docs/assets/dashboard.png" alt="BookLore Demo" width="800px" style="border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
 </p>
-
-[![Release](https://img.shields.io/github/v/release/masonfox/tome?color=4c6ef5&style=for-the-badge&logo=github)](https://github.com/masonfox/tome/releases) [![License](https://img.shields.io/github/license/masonfox/tome?color=fab005&style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/masonfox/tome?style=for-the-badge&color=ffd43b)](https://github.com/masonfox/tome/stargazers) ![Codecov](https://img.shields.io/codecov/c/github/masonfox/tome?style=for-the-badge) ![GitHub Sponsors](https://img.shields.io/github/sponsors/masonfox?style=for-the-badge)
-
-
-
----
-
-**Tome** is a self-hosted book tracking web application that integrates directly with Calibre's database to provide reading progress tracking, status management, and streak functionality.
-
-</div>
-
-[![Tome - ghcr.io](https://img.shields.io/badge/ghcr.io-tome%3Alatest-blue)](https://github.com/masonfox/tome/pkgs/container/tome) [![codecov](https://codecov.io/gh/masonfox/tome/graph/badge.svg?token=LRN9NISAZ6)](https://codecov.io/gh/masonfox/tome)
-
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
 
 <details> <summary>Additional Screenshots</summary>
 
@@ -47,6 +34,16 @@
 ![Tag Manager UI](./docs/assets/tags.png)
 
 </details>
+
+<br>
+
+[![Release](https://img.shields.io/github/v/release/masonfox/tome?color=4c6ef5&style=for-the-badge&logo=github)](https://github.com/masonfox/tome/releases) [![License](https://img.shields.io/github/license/masonfox/tome?color=fab005&style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/masonfox/tome?style=for-the-badge&color=ffd43b)](https://github.com/masonfox/tome/stargazers) ![Codecov](https://img.shields.io/codecov/c/github/masonfox/tome?style=for-the-badge) ![GitHub Sponsors](https://img.shields.io/github/sponsors/masonfox?style=for-the-badge)
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/masonfox)
+
+---
+
+</div>
 
 ## What is Tome?
 
