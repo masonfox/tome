@@ -133,12 +133,11 @@ export function ShelfAppearancePicker({
   return (
     <div>
       <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
-        Appearance
+        Preview
       </label>
 
       {/* Preview Section */}
-      <div className="mb-4 p-4 bg-[var(--hover-bg)] border border-[var(--border-color)] rounded-lg">
-        <p className="text-xs text-[var(--foreground)]/60 mb-2">Preview</p>
+      <div className="mb-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
         <div className="flex items-center gap-3">
           <ShelfAvatar
             color={color}
