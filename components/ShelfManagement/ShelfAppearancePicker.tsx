@@ -333,9 +333,6 @@ export function ShelfAppearancePicker({
               <p className="font-medium text-[var(--foreground)] truncate">
                 {shelfName || "Your Shelf"}
               </p>
-              <p className="text-xs text-[var(--foreground)]/60">
-                {icon ? icon : "No icon"}
-              </p>
             </div>
           </div>
         </div>
