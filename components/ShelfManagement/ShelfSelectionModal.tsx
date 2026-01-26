@@ -239,10 +239,10 @@ export function ShelfSelectionModal({
                     onClick={() => handleShelfClick(shelf.id)}
                     disabled={submitting}
                     className={cn(
-                      "w-full p-3 rounded-lg text-left transition-all disabled:opacity-50 shadow-sm",
+                      "w-full p-3 rounded-lg border-2 text-left transition-all disabled:opacity-50 shadow-sm",
                       isSelected
-                        ? "border-2 border-[var(--accent)] shadow-md"
-                        : "border border-[var(--border-color)] bg-[var(--background)] hover:border-[var(--accent)]/50 hover:shadow-md"
+                        ? "border-[var(--accent)] shadow-md"
+                        : "border-[var(--border-color)] bg-[var(--background)] hover:border-[var(--accent)]/50 hover:shadow-md"
                     )}
                   >
                     <div className="flex items-center gap-3">
