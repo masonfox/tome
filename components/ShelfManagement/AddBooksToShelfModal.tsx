@@ -201,7 +201,7 @@ export function AddBooksToShelfModal({
       </div>
 
       {/* Results */}
-      <div className="border-t border-[var(--border-color)] pt-4">
+      <div className="pt-4">
         {!hasSearched ? (
           <div className="text-center py-16">
             <Search className="w-16 h-16 mx-auto text-[var(--foreground)]/30 mb-4" />
