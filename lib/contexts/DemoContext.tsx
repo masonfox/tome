@@ -22,10 +22,19 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
     
-    // Read demo mode from env (available via next.config.ts env injection)
-    const isDemo = process.env.DEMO_MODE === "true";
-    setIsDemoMode(isDemo);
-    setDemoMessage(isDemo ? "This is a read-only demo. Changes are not saved." : "");
+    // Fetch demo mode status from API (reads runtime env)
+    fetch("/api/demo/status")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsDemoMode(data.isDemoMode);
+        setDemoMessage(data.isDemoMode ? data.message : "");
+      })
+      .catch((err) => {
+        console.error("Failed to fetch demo status:", err);
+        // Default to non-demo mode on error
+        setIsDemoMode(false);
+        setDemoMessage("");
+      });
   }, []);
 
   return (
