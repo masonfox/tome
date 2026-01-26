@@ -248,7 +248,7 @@ export function ShelfAppearancePicker({
               onClick={() => setShowIconPicker(!showIconPicker)}
               disabled={disabled}
               className={cn(
-                "w-full px-3 py-2 text-sm font-medium bg-[var(--background)] border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                "w-full px-3 py-2 text-sm font-medium bg-[var(--background)] border-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                 showIconPicker
                   ? "border-[var(--accent)]"
                   : "border-[var(--border-color)] hover:border-[var(--accent)]"
