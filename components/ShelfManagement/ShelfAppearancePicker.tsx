@@ -201,14 +201,10 @@ export function ShelfAppearancePicker({
               aria-describedby={colorError ? "color-error" : undefined}
             />
 
-            {/* Error or Helper Text */}
-            {colorError ? (
+            {/* Error Text */}
+            {colorError && (
               <p id="color-error" className="text-xs text-red-500" role="alert">
                 {colorError}
-              </p>
-            ) : (
-              <p className="text-xs text-[var(--foreground)]/60">
-                HEX format
               </p>
             )}
           </div>
@@ -255,10 +251,6 @@ export function ShelfAppearancePicker({
             >
               {showIconPicker ? "Hide Icons" : "Choose Icon"}
             </button>
-
-            <p className="text-xs text-[var(--foreground)]/60">
-              {Object.keys(SHELF_ICONS).length} icons
-            </p>
           </div>
         </div>
       </div>
