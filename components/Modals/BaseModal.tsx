@@ -81,7 +81,7 @@ export default function BaseModal({
               {title}
             </h2>
             {subtitle && (
-              <p className="text-sm text-[var(--foreground)]/70 font-medium">
+              <p className="text-sm text-[var(--subheading-text)] font-medium">
                 {subtitle}
               </p>
             )}
