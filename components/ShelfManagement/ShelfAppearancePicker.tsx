@@ -132,35 +132,11 @@ export function ShelfAppearancePicker({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
-        Preview
-      </label>
-
-      {/* Preview Section */}
-      <div className="mb-4 p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
-        <div className="flex items-center gap-3">
-          <ShelfAvatar
-            color={color}
-            icon={icon}
-            size="lg"
-            className="border-2 border-[var(--border-color)]"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-[var(--foreground)] truncate">
-              {shelfName || "Your Shelf"}
-            </p>
-            <p className="text-xs text-[var(--foreground)]/60">
-              {icon ? icon : "No icon"}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Controls Section - Side by Side */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Color Picker */}
         <div>
-          <label htmlFor="shelf-color" className="block text-sm font-medium text-[var(--foreground)]/80 mb-2">
+          <label htmlFor="shelf-color" className="block text-sm font-medium text-[var(--heading-text)] mb-2">
             Color
           </label>
           <div className="space-y-2">
@@ -218,7 +194,7 @@ export function ShelfAppearancePicker({
 
         {/* Icon Picker */}
         <div>
-          <label className="block text-sm font-medium text-[var(--foreground)]/80 mb-2">
+          <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
             Icon (Optional)
           </label>
           <div className="space-y-2">
@@ -267,7 +243,7 @@ export function ShelfAppearancePicker({
 
       {/* Icon Grid */}
       {showIconPicker && (
-        <div className="mt-4 p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg max-h-[50vh] overflow-y-auto">
+        <div className="mb-4 p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg max-h-[50vh] overflow-y-auto">
           {/* Search input */}
           <div className="mb-3 relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50">
@@ -339,6 +315,31 @@ export function ShelfAppearancePicker({
           )}
         </div>
       )}
+
+      {/* Preview Section */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
+          Preview
+        </label>
+        <div className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
+          <div className="flex items-center gap-3">
+            <ShelfAvatar
+              color={color}
+              icon={icon}
+              size="lg"
+              className="border-2 border-[var(--border-color)]"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[var(--foreground)] truncate">
+                {shelfName || "Your Shelf"}
+              </p>
+              <p className="text-xs text-[var(--foreground)]/60">
+                {icon ? icon : "No icon"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
