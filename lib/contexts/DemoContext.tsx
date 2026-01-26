@@ -2,6 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    __DEMO_MODE__?: boolean;
+  }
+}
+
 interface DemoContextType {
   isDemoMode: boolean;
   demoMessage: string;
@@ -22,19 +29,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
     
-    // Fetch demo mode status from API (reads runtime env)
-    fetch("/api/demo/status")
-      .then((res) => res.json())
-      .then((data) => {
-        setIsDemoMode(data.isDemoMode);
-        setDemoMessage(data.isDemoMode ? data.message : "");
-      })
-      .catch((err) => {
-        console.error("Failed to fetch demo status:", err);
-        // Default to non-demo mode on error
-        setIsDemoMode(false);
-        setDemoMessage("");
-      });
+    // Read demo mode from window (injected by server in app/layout.tsx)
+    const isDemo = window.__DEMO_MODE__ === true;
+    setIsDemoMode(isDemo);
+    setDemoMessage(isDemo ? "This is a read-only demo. Changes are not saved." : "");
   }, []);
 
   return (

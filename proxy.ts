@@ -7,7 +7,7 @@ import { isDemoMode } from "@/lib/demo";
 const MUTATION_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 
 // API routes allowed even in demo mode
-const DEMO_ALLOWED_ROUTES = ["/api/auth/login", "/api/auth/logout", "/api/auth/status", "/api/demo/status"];
+const DEMO_ALLOWED_ROUTES = ["/api/auth/login", "/api/auth/logout", "/api/auth/status"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
