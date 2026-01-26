@@ -43,14 +43,6 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Inject demo mode from server-side runtime env
-              window.__DEMO_MODE__ = ${process.env.DEMO_MODE === "true"};
-            `,
-          }}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
               // Run IMMEDIATELY before anything else
               const sidebarCollapsed = localStorage.getItem("sidebarCollapsed");
               document.documentElement.setAttribute("data-sidebar-collapsed", sidebarCollapsed === "false" ? "false" : "true");
