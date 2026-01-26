@@ -204,7 +204,9 @@ export function AddBooksToShelfModal({
       <div className="pt-4">
         {!hasSearched ? (
           <div className="text-center py-16">
-            <Search className="w-16 h-16 mx-auto text-[var(--foreground)]/30 mb-4" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card-bg)] flex items-center justify-center">
+              <Search className="w-8 h-8 text-[var(--foreground)]/30" />
+            </div>
             <h3 className="text-lg font-semibold text-[var(--heading-text)] mb-2">
               Search for books to add
             </h3>
