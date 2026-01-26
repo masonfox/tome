@@ -132,6 +132,28 @@ export function ShelfAppearancePicker({
 
   return (
     <div>
+      {/* Preview Section */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
+          Preview
+        </label>
+        <div className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
+          <div className="flex items-center gap-3">
+            <ShelfAvatar
+              color={color}
+              icon={icon}
+              size="lg"
+              className="border-2 border-[var(--border-color)]"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[var(--foreground)] truncate">
+                {shelfName || "Your Shelf"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Controls Section - Side by Side */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Color Picker */}
@@ -315,28 +337,6 @@ export function ShelfAppearancePicker({
           )}
         </div>
       )}
-
-      {/* Preview Section */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
-          Preview
-        </label>
-        <div className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
-          <div className="flex items-center gap-3">
-            <ShelfAvatar
-              color={color}
-              icon={icon}
-              size="lg"
-              className="border-2 border-[var(--border-color)]"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-[var(--foreground)] truncate">
-                {shelfName || "Your Shelf"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
