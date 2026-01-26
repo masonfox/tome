@@ -303,7 +303,7 @@ export function ShelfSelectionModal({
                     Keep books selected after action
                   </span>
                 </label>
-                <p className="text-xs text-[var(--foreground)]/60 mt-1 ml-6">
+                <p className="text-xs text-[var(--subheading-text)] mt-1 ml-6">
                   Allows you to perform multiple operations on the same selection
                 </p>
               </div>
