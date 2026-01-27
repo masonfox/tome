@@ -53,7 +53,7 @@ export function StarRating({
                 "transition-all duration-300",
                 isFilled
                   ? "fill-amber-400 text-amber-400"
-                  : "text-[var(--foreground)] opacity-50",
+                  : "text-[var(--foreground)] opacity-30",
                 interactive && "cursor-pointer hover:scale-110"
               )}
             />
