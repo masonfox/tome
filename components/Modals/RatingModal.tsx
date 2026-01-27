@@ -95,7 +95,7 @@ export default function RatingModal({
             ))}
           </div>
           {rating > 0 && (
-            <p className="text-sm text-[var(--foreground)]/70 mt-3 font-medium text-center">
+            <p className="text-sm text-[var(--subheading-text)] mt-3 font-medium text-center">
               {rating} {rating === 1 ? "star" : "stars"}
             </p>
           )}
