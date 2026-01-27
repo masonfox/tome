@@ -177,7 +177,7 @@ export default function TagEditor({
       </div>
 
       {/* Current Tags */}
-      <div className="mb-20">
+      <div className="mb-6">
         <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
           Current Tags {tags.length > 0 && `(${tags.length})`}
         </label>
@@ -202,24 +202,26 @@ export default function TagEditor({
           </p>
         )}
       </div>
+    </>
+  );
 
-      {/* Action Buttons - Sticky */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
-        <button
-          onClick={handleClose}
-          disabled={saving}
-          className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
+  // Shared button elements
+  const buttons = (
+    <>
+      <button
+        onClick={handleClose}
+        disabled={saving}
+        className="px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="px-5 py-2.5 text-sm font-medium rounded-md transition-colors bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {saving ? "Saving..." : "Save Changes"}
+      </button>
     </>
   );
 
@@ -231,10 +233,15 @@ export default function TagEditor({
         onClose={handleClose}
         title="Manage Tags"
         icon={<TagIcon className="w-5 h-5" />}
-        size="large"
+        size="default"
         allowBackdropClose={!saving}
       >
         {tagContent}
+        
+        {/* Action Buttons */}
+        <div className="mt-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end">
+          {buttons}
+        </div>
       </BottomSheet>
     );
   }
@@ -244,15 +251,15 @@ export default function TagEditor({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={handleClose}
     >
       <div 
-        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg p-6 max-w-4xl w-full my-8"
+        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        {/* Header - Fixed */}
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-[var(--border-color)] flex-shrink-0">
           <div className="flex-1 min-w-0 pr-4">
             <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
               Edit Tags
@@ -271,8 +278,15 @@ export default function TagEditor({
           </button>
         </div>
 
-        {/* Content */}
-        {tagContent}
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {tagContent}
+        </div>
+
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="p-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end flex-shrink-0">
+          {buttons}
+        </div>
       </div>
     </div>
   );
