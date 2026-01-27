@@ -31,6 +31,7 @@ interface BookProgressProps {
   setShowProgressModeDropdown: (show: boolean) => void;
   progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
   showEditor?: boolean;
+  showHeader?: boolean;
 }
 
 export default function BookProgress({
@@ -51,6 +52,7 @@ export default function BookProgress({
   setShowProgressModeDropdown,
   progressModeDropdownRef,
   showEditor = true,
+  showHeader = true,
 }: BookProgressProps) {
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
   const editorRef = useRef<MDXEditorMethods>(null);
@@ -64,9 +66,11 @@ export default function BookProgress({
 
   return (
     <div>
-      <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-        Log Progress
-      </h2>
+      {showHeader && (
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
+          Log Progress
+        </h2>
+      )}
       <form onSubmit={onSubmit} className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">

@@ -212,6 +212,7 @@ export default function LogProgressModal({
         setShowProgressModeDropdown={setShowProgressModeDropdown}
         progressModeDropdownRef={progressModeDropdownRef}
         showEditor={showEditor}
+        showHeader={false}
       />
     </div>
   );
