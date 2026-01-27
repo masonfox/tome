@@ -604,9 +604,6 @@ export function LibraryFilters({
                     </button>
                   )}
 
-                  {/* Divider */}
-                  <div className="h-px bg-[var(--border-color)] my-1" />
-
                   {/* Search input within dropdown */}
                   <div className="py-2 sticky top-0 bg-[var(--card-bg-emphasis)]">
                     <input
@@ -616,9 +613,12 @@ export function LibraryFilters({
                       onChange={(e) => setTagSearchInput(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                       disabled={loading || loadingTags}
-                      className="w-full px-4 py-1.5 bg-transparent border-b border-[var(--border-color)] text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+                      className="w-full px-4 py-1.5 bg-transparent text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none transition-colors disabled:opacity-50"
                     />
                   </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-[var(--border-color)]" />
 
                   {/* Tag list */}
                   <div className="max-h-60 overflow-y-auto">
