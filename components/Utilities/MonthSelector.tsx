@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 interface MonthSelectorProps {
   year: number;
@@ -9,6 +9,8 @@ interface MonthSelectorProps {
   minYear?: number;
   maxYear?: number;
   onYearChange?: (year: number) => void;
+  monthsWithBooks?: number[]; // Array of month numbers (1-12) that have books
+  loading?: boolean; // Loading state for when monthsWithBooks is being fetched
 }
 
 const MONTH_NAMES = [
@@ -23,6 +25,8 @@ export function MonthSelector({
   minYear,
   maxYear,
   onYearChange,
+  monthsWithBooks = [],
+  loading = false,
 }: MonthSelectorProps) {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -35,73 +39,144 @@ export function MonthSelector({
     return month > currentMonth;
   };
 
-  // Handle previous month navigation
-  const handlePrevious = () => {
-    if (!selectedMonth) {
-      // From "All Year" -> go to December of this year (or previous year if January)
-      if (year > (minYear ?? 1900)) {
-        onMonthChange(12);
-        onYearChange?.(year - 1);
+  // Check if a month has books
+  const hasBooks = (month: number): boolean => {
+    return monthsWithBooks.includes(month);
+  };
+
+  // Check if a month is available (not future and has books)
+  const isMonthAvailable = (month: number): boolean => {
+    return !isFutureMonth(month) && hasBooks(month);
+  };
+
+  // Find previous month with books (may cross year boundaries)
+  const findPreviousMonthWithBooks = (fromMonth: number | null, fromYear: number): { month: number; year: number } | null => {
+    let searchMonth = fromMonth || 13; // Start from Dec if "All Year"
+    let searchYear = fromYear;
+
+    // Search backward through months
+    while (searchYear >= (minYear ?? 1900)) {
+      searchMonth--;
+      
+      if (searchMonth < 1) {
+        // Move to previous year
+        searchYear--;
+        searchMonth = 12;
+        
+        if (searchYear < (minYear ?? 1900)) {
+          return null; // Hit min year boundary
+        }
       }
-      return;
+
+      // Check if this month would have books (we can only know for current year from props)
+      if (searchYear === year) {
+        if (isMonthAvailable(searchMonth)) {
+          return { month: searchMonth, year: searchYear };
+        }
+      } else {
+        // For other years, assume they might have books (year change will trigger re-fetch)
+        // Only go to previous year if there are books in the current year or we're searching from "All Year"
+        if (searchYear < year) {
+          return { month: searchMonth, year: searchYear };
+        }
+      }
+
+      // Safety check: don't loop forever in the same year
+      if (searchYear === year && searchMonth === (fromMonth || 12)) {
+        return null; // We've looped back to start
+      }
     }
 
-    if (selectedMonth === 1) {
-      // From January -> go to December of previous year
-      if (year > (minYear ?? 1900)) {
-        onMonthChange(12);
-        onYearChange?.(year - 1);
+    return null;
+  };
+
+  // Find next month with books (may cross year boundaries)
+  const findNextMonthWithBooks = (fromMonth: number | null, fromYear: number): { month: number; year: number } | null => {
+    let searchMonth = fromMonth || 0; // Start from Jan if "All Year"
+    let searchYear = fromYear;
+
+    // Search forward through months
+    while (searchYear <= (maxYear ?? 2100)) {
+      searchMonth++;
+      
+      if (searchMonth > 12) {
+        // Move to next year
+        searchYear++;
+        searchMonth = 1;
+        
+        if (searchYear > (maxYear ?? 2100)) {
+          return null; // Hit max year boundary
+        }
       }
+
+      // Check if this month is available (not future and has books)
+      if (searchYear === year) {
+        if (isMonthAvailable(searchMonth)) {
+          return { month: searchMonth, year: searchYear };
+        }
+      } else if (searchYear > year) {
+        // For future years, assume they might have books (year change will trigger re-fetch)
+        // But only if we're moving forward from current year
+        if (!isFutureMonth(searchMonth) || searchYear > currentYear) {
+          return { month: searchMonth, year: searchYear };
+        }
+      }
+
+      // Safety check: don't loop forever in the same year
+      if (searchYear === year && searchMonth === (fromMonth || 0)) {
+        return null; // We've looped back to start
+      }
+    }
+
+    return null;
+  };
+
+  // Handle previous month navigation
+  const handlePrevious = () => {
+    const result = findPreviousMonthWithBooks(selectedMonth, year);
+    
+    if (!result) return; // No previous month available
+
+    if (result.year !== year) {
+      // Change year first, then set month
+      onYearChange?.(result.year);
+      // Month will be set after year change completes
+      setTimeout(() => onMonthChange(result.month), 0);
     } else {
-      // Go to previous month in same year
-      onMonthChange(selectedMonth - 1);
+      onMonthChange(result.month);
     }
   };
 
   // Handle next month navigation
   const handleNext = () => {
-    if (!selectedMonth) {
-      // From "All Year" -> go to January of next year
-      if (year < (maxYear ?? 2100)) {
-        onMonthChange(1);
-        onYearChange?.(year + 1);
-      }
-      return;
-    }
+    const result = findNextMonthWithBooks(selectedMonth, year);
+    
+    if (!result) return; // No next month available
 
-    if (selectedMonth === 12) {
-      // From December -> go to January of next year
-      if (year < (maxYear ?? 2100)) {
-        onMonthChange(1);
-        onYearChange?.(year + 1);
-      }
+    if (result.year !== year) {
+      // Change year first, then set month
+      onYearChange?.(result.year);
+      // Month will be set after year change completes
+      setTimeout(() => onMonthChange(result.month), 0);
     } else {
-      // Go to next month in same year
-      const nextMonth = selectedMonth + 1;
-      // Don't go to future months
-      if (!isFutureMonth(nextMonth)) {
-        onMonthChange(nextMonth);
-      }
+      onMonthChange(result.month);
     }
   };
 
   // Determine if previous/next buttons should be disabled
   const isPreviousDisabled = () => {
-    if (!selectedMonth) {
-      return year <= (minYear ?? 1900);
-    }
-    return selectedMonth === 1 && year <= (minYear ?? 1900);
+    if (loading) return true;
+    return !findPreviousMonthWithBooks(selectedMonth, year);
   };
 
   const isNextDisabled = () => {
-    if (!selectedMonth) {
-      return year >= (maxYear ?? 2100);
-    }
-    if (selectedMonth === 12) {
-      return year >= (maxYear ?? 2100);
-    }
-    // Check if next month would be in the future
-    return isFutureMonth(selectedMonth + 1);
+    if (loading) return true;
+    return !findNextMonthWithBooks(selectedMonth, year);
+  };
+
+  // Check if a month option should be disabled
+  const isMonthDisabled = (monthNumber: number): boolean => {
+    return isFutureMonth(monthNumber) || !hasBooks(monthNumber);
   };
 
   return (
@@ -118,7 +193,11 @@ export function MonthSelector({
           aria-label="Previous month"
           className="p-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm hover:border-[var(--foreground)]/30 focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[var(--border-color)]"
         >
-          <ChevronLeft className="w-4 h-4 text-[var(--foreground)]" />
+          {loading ? (
+            <Loader2 className="w-4 h-4 text-[var(--foreground)] animate-spin" />
+          ) : (
+            <ChevronLeft className="w-4 h-4 text-[var(--foreground)]" />
+          )}
         </button>
 
         {/* Month Dropdown */}
@@ -130,17 +209,18 @@ export function MonthSelector({
               const value = e.target.value;
               onMonthChange(value === "all" ? null : parseInt(value));
             }}
-            className="appearance-none bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-4 py-2 pr-10 text-[var(--foreground)] font-semibold text-sm hover:border-[var(--foreground)]/30 focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent transition-colors cursor-pointer min-w-[140px]"
+            disabled={loading}
+            className="appearance-none bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm px-4 py-2 pr-10 text-[var(--foreground)] font-semibold text-sm hover:border-[var(--foreground)]/30 focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent transition-colors cursor-pointer min-w-[140px] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <option value="all">All Year</option>
             {MONTH_NAMES.map((monthName, index) => {
               const monthNumber = index + 1;
-              const isFuture = isFutureMonth(monthNumber);
+              const disabled = isMonthDisabled(monthNumber);
               return (
                 <option
                   key={monthNumber}
                   value={monthNumber}
-                  disabled={isFuture}
+                  disabled={disabled}
                 >
                   {monthName}
                 </option>
@@ -157,7 +237,11 @@ export function MonthSelector({
           aria-label="Next month"
           className="p-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm hover:border-[var(--foreground)]/30 focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[var(--border-color)]"
         >
-          <ChevronRight className="w-4 h-4 text-[var(--foreground)]" />
+          {loading ? (
+            <Loader2 className="w-4 h-4 text-[var(--foreground)] animate-spin" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-[var(--foreground)]" />
+          )}
         </button>
       </div>
     </div>
