@@ -138,7 +138,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
             className="cursor-grab active:cursor-grabbing p-2 hover:bg-[var(--hover-bg)] rounded transition-colors touch-none"
             aria-label="Drag to reorder"
           >
-            <GripVertical className="w-5 h-5 text-[var(--foreground)]/40" />
+            <GripVertical className="w-5 h-5 text-[var(--foreground)]" />
           </button>
         </td>
       )}
@@ -164,7 +164,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       </td>
 
       {/* Order */}
-      <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm text-center">
+      <td className="px-4 py-3 text-[var(--foreground)] text-sm text-center">
         {book.sortOrder !== undefined ? book.sortOrder + 1 : "-"}
       </td>
 
@@ -172,7 +172,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       <td className="px-4 py-3">
         <Link
           href={`/books/${book.id}`}
-          className="font-medium text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors line-clamp-2"
+          className="text-sm text-[var(--foreground)] hover:text-[var(--accent)] transition-colors line-clamp-2"
         >
           {book.title}
         </Link>
@@ -186,19 +186,19 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
               <span key={author}>
                 <Link
                   href={`/library?search=${encodeURIComponent(author)}`}
-                  className="text-[var(--foreground)]/80 hover:text-[var(--accent)] transition-colors"
+                  className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {author}
                 </Link>
                 {idx < book.authors.length - 1 && (
-                  <span className="text-[var(--foreground)]/80">, </span>
+                  <span className="text-[var(--foreground)]">, </span>
                 )}
               </span>
             ))}
           </div>
         ) : (
-          <span className="text-[var(--foreground)]/40">-</span>
+          <span className="text-[var(--foreground)]">-</span>
         )}
       </td>
 
@@ -207,13 +207,13 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
         {book.series ? (
           <Link
             href={`/series/${encodeURIComponent(book.series)}`}
-            className="text-[var(--foreground)]/80 hover:text-[var(--accent)] transition-colors"
+            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             {seriesInfo}
           </Link>
         ) : (
-          <span className="text-[var(--foreground)]/40">-</span>
+          <span className="text-[var(--foreground)]">-</span>
         )}
       </td>
 
@@ -222,7 +222,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
         {book.rating && book.rating > 0 ? (
           <StarRating rating={book.rating} size="sm" />
         ) : (
-          <span className="text-[var(--foreground)]/40 text-sm">-</span>
+          <span className="text-[var(--foreground)] text-sm">-</span>
         )}
       </td>
 
@@ -231,17 +231,17 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
         {book.status ? (
           <StatusBadge status={book.status as BookStatus} size="sm" />
         ) : (
-          <span className="text-[var(--foreground)]/40 text-sm">-</span>
+          <span className="text-[var(--foreground)] text-sm">-</span>
         )}
       </td>
 
       {/* Pages */}
-      <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm text-center">
+      <td className="px-4 py-3 text-[var(--foreground)] text-sm text-center">
         {book.totalPages || "-"}
       </td>
 
       {/* Date Added */}
-      <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm">
+      <td className="px-4 py-3 text-[var(--foreground)] text-sm">
         {book.addedAt
           ? format(new Date(book.addedAt), "MMM dd, yyyy")
           : book.addedToLibrary
@@ -422,7 +422,7 @@ export function DraggableBookTable({
         <h3 className="text-xl font-serif font-semibold text-[var(--heading-text)] mb-2">
           No books on this shelf
         </h3>
-        <p className="text-[var(--foreground)]/70 mb-6">
+        <p className="text-[var(--foreground)] mb-6">
           Add books to this shelf from your library
         </p>
         <Link

@@ -124,7 +124,7 @@ export function BookTable({
         <h3 className="text-xl font-serif font-semibold text-[var(--heading-text)] mb-2">
           No books on this shelf
         </h3>
-        <p className="text-[var(--foreground)]/70 mb-6">
+        <p className="text-[var(--foreground)] mb-6">
           Add books to this shelf from your library
         </p>
         <Link
@@ -224,7 +224,7 @@ export function BookTable({
                 {/* Cover */}
                 <td className="px-4 py-3">
                   <Link href={`/books/${book.id}`} className="block">
-                    <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
+                    <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-sm hover:shadow-lg transition-shadow duration-300 ease">
                       {!hasImageError ? (
                         <Image
                           src={getCoverUrl(book.calibreId, book.lastSynced)}
@@ -243,7 +243,7 @@ export function BookTable({
 
                 {/* Order */}
                 {showOrderColumn && (
-                  <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm text-center">
+                  <td className="px-4 py-3 text-[var(--foreground)] text-sm text-center">
                     {book.sortOrder !== undefined ? book.sortOrder + 1 : "-"}
                   </td>
                 )}
@@ -252,7 +252,7 @@ export function BookTable({
                 <td className="px-4 py-3">
                   <Link
                     href={`/books/${book.id}`}
-                    className="font-medium text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors line-clamp-2"
+                    className="text-sm font-semibold text-[var(--heading-text)] hover:text-[var(--accent)] transition-colors line-clamp-2"
                   >
                     {book.title}
                   </Link>
@@ -266,19 +266,19 @@ export function BookTable({
                         <span key={author}>
                           <Link
                             href={`/library?search=${encodeURIComponent(author)}`}
-                            className="text-[var(--foreground)]/80 hover:text-[var(--accent)] transition-colors"
+                            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {author}
                           </Link>
                           {idx < book.authors.length - 1 && (
-                            <span className="text-[var(--foreground)]/80">, </span>
+                            <span className="text-[var(--foreground)]">, </span>
                           )}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-[var(--foreground)]/40">-</span>
+                    <span className="text-[var(--foreground)]">-</span>
                   )}
                 </td>
 
@@ -287,13 +287,13 @@ export function BookTable({
                   {book.series ? (
                     <Link
                       href={`/series/${encodeURIComponent(book.series)}`}
-                      className="text-[var(--foreground)]/80 hover:text-[var(--accent)] transition-colors"
+                      className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {seriesInfo}
                     </Link>
                   ) : (
-                    <span className="text-[var(--foreground)]/40">-</span>
+                    <span className="text-[var(--foreground)]">-</span>
                   )}
                 </td>
 
@@ -302,7 +302,7 @@ export function BookTable({
                   {book.rating && book.rating > 0 ? (
                     <StarRating rating={book.rating} size="sm" />
                   ) : (
-                    <span className="text-[var(--foreground)]/40 text-sm">-</span>
+                    <span className="text-[var(--foreground)] text-sm">-</span>
                   )}
                 </td>
 
@@ -311,17 +311,17 @@ export function BookTable({
                   {book.status ? (
                     <StatusBadge status={book.status as BookStatus} size="sm" />
                   ) : (
-                    <span className="text-[var(--foreground)]/40 text-sm">-</span>
+                    <span className="text-[var(--foreground)] text-sm">-</span>
                   )}
                 </td>
 
                 {/* Pages */}
-                <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm text-center">
+                <td className="px-4 py-3 text-[var(--foreground)] text-sm text-center">
                   {book.totalPages || "-"}
                 </td>
 
                 {/* Date Added */}
-                <td className="px-4 py-3 text-[var(--foreground)]/80 text-sm">
+                <td className="px-4 py-3 text-[var(--foreground)] text-sm">
                   {book.addedAt
                     ? format(new Date(book.addedAt), "MMM dd, yyyy")
                     : book.addedToLibrary
