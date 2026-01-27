@@ -92,6 +92,22 @@ body {
   }
 }
 
+/* Subtle pulse animation for goal achievements */
+@keyframes pulse-subtle {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.01);
+    opacity: 0.97;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
 /* Warm theme toast styling - Light mode */
 /* Success toast - Warm green */
 .tome-toast-success {
