@@ -9,7 +9,7 @@ interface BottomSheetProps {
   children: React.ReactNode;
   title?: string;
   icon?: React.ReactNode;
-  size?: "default" | "large" | "full";
+  size?: "small" | "medium" | "default" | "large" | "full";
   allowBackdropClose?: boolean;
 }
 
@@ -17,8 +17,10 @@ interface BottomSheetProps {
 const ANIMATION_DURATION = 300; // ms
 
 const sizeClasses = {
+  small: "h-[33vh] rounded-t-2xl",
+  medium: "h-[50vh] rounded-t-2xl",
   default: "max-h-[80vh] rounded-t-2xl",
-  large: "h-[75vh] rounded-t-3xl",
+  large: "h-[75vh] rounded-t-2xl",
   full: "h-[100dvh] rounded-none",
 };
 
