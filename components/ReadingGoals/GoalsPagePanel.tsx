@@ -13,6 +13,9 @@ import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "@/components/Books/CompletedBooksSection";
 import { GoalsOnboarding } from "./GoalsOnboarding";
 import BaseModal from "@/components/Modals/BaseModal";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -23,10 +26,13 @@ interface GoalsPagePanelProps {
 
 export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProps) {
   const queryClient = useQueryClient();
+  const { createGoalAsync, updateGoalAsync } = useReadingGoals();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [booksGoal, setBooksGoal] = useState<number | "">(""); 
+  const [saving, setSaving] = useState(false);
 
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -120,26 +126,69 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     },
   });
 
+  const currentYear = new Date().getFullYear();
+  const year = modalMode === "edit" && currentGoalData?.goal ? currentGoalData.goal.year : selectedYear;
+  const isPastYear = year < currentYear;
+  const canEdit = !isPastYear || modalMode === "create";
+
   const handleOpenCreateModal = () => {
     setModalMode("create");
+    setBooksGoal("");
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = () => {
     setModalMode("edit");
+    setBooksGoal(currentGoalData?.goal?.booksGoal ?? "");
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setBooksGoal("");
   };
 
-  const handleSuccess = async () => {
-    setIsModalOpen(false);
-    // Invalidate all queries for the current year
-    queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
-    queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
-    queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
+  const handleSubmit = async () => {
+    // Validation
+    if (booksGoal === "" || typeof booksGoal !== "number") {
+      toast.error("Please enter a goal");
+      return;
+    }
+
+    if (booksGoal < 1 || booksGoal > 9999) {
+      toast.error("Goal must be between 1 and 9999 books");
+      return;
+    }
+
+    if (!Number.isInteger(booksGoal)) {
+      toast.error("Goal must be a whole number");
+      return;
+    }
+
+    // Year validation - only allow current year or past years for new goals (no future years)
+    if (modalMode === "create" && year > currentYear) {
+      toast.error("Goals can only be created for the current year or past years");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (modalMode === "create") {
+        await createGoalAsync({ year, booksGoal });
+      } else if (currentGoalData?.goal) {
+        await updateGoalAsync({ id: currentGoalData.goal.id, data: { booksGoal } });
+      }
+      // Invalidate all queries for the current year
+      queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
+      setIsModalOpen(false);
+      setBooksGoal("");
+    } catch (error) {
+      // Error already handled by mutation
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCreateFromOnboarding = async (year: number, booksGoal: number) => {
@@ -224,16 +273,40 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title={modalMode === "create" ? "Create Reading Goal" : "Edit Reading Goal"}
-        subtitle={`Set your reading goal for ${selectedYear}`}
-        actions={<></>}
+        subtitle={modalMode === "create" 
+          ? `How many books do you want to read in ${selectedYear}?`
+          : `Update your reading goal for ${selectedYear}`}
+        actions={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              className="px-6 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canEdit || saving}
+              className="px-6 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {modalMode === "create" ? "Create Goal" : "Update Goal"}
+            </button>
+          </div>
+        }
         size="md"
+        allowBackdropClose={false}
       >
         <ReadingGoalForm
           mode={modalMode}
           existingGoal={modalMode === "edit" ? currentGoalData?.goal : undefined}
           selectedYear={selectedYear}
-          onSuccess={handleSuccess}
-          onCancel={handleCloseModal}
+          booksGoal={booksGoal}
+          onBooksGoalChange={setBooksGoal}
+          disabled={saving}
         />
       </BaseModal>
 
