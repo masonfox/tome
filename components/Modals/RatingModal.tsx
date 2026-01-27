@@ -120,7 +120,7 @@ export default function RatingModal({
           <div className="flex gap-3 ml-auto">
             <button
               onClick={handleClose}
-              className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -128,7 +128,7 @@ export default function RatingModal({
               onClick={handleSubmit}
               disabled={rating === 0}
               className={cn(
-                "px-4 py-2 rounded-lg transition-colors font-semibold",
+                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                 rating > 0
                   ? "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
                   : "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"

@@ -107,7 +107,7 @@ export function MergeTagsModal({
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Close
             </button>
@@ -118,7 +118,7 @@ export function MergeTagsModal({
               type="button"
               onClick={handleCancel}
               disabled={loading}
-              className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -126,7 +126,7 @@ export function MergeTagsModal({
               type="submit"
               onClick={handleSubmit}
               disabled={!targetTag.trim() || loading}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <MergeIcon className="w-4 h-4" />
               {loading ? "Merging..." : "Merge Tags"}
@@ -148,7 +148,7 @@ export function MergeTagsModal({
         <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--foreground)]">
+            <label className="block text-sm font-medium text-[var(--heading-text)]">
               Source tags (will be removed)
             </label>
             <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar">
@@ -175,7 +175,7 @@ export function MergeTagsModal({
           <div>
             <label
               htmlFor="targetTag"
-              className="block text-sm font-medium text-[var(--foreground)] mb-2"
+              className="block text-sm font-medium text-[var(--heading-text)] mb-2"
             >
               Target tag (all books will be tagged with this)
             </label>
@@ -188,7 +188,7 @@ export function MergeTagsModal({
                 setError(null);
               }}
               autoFocus
-              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
+              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
               placeholder="Enter target tag name"
             />
             {error && (
