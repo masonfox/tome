@@ -28,7 +28,7 @@ function renderStars(rating: number) {
 
 // Move static options outside component to avoid recreation
 const statusOptions = [
-  { value: "all", label: "All", icon: LibraryIcon },
+  { value: "all", label: "All Statuses", icon: LibraryIcon },
   { value: "reading", label: "Reading", icon: BookOpen },
   { value: "to-read", label: "To Read", icon: Bookmark },
   { value: "read", label: "Read", icon: BookCheck },
@@ -403,7 +403,7 @@ export function LibraryFilters({
             >
               <LibraryIcon className="w-4 h-4 shrink-0" />
               <span className="flex-1 truncate text-left text-sm">
-                {statusOptions.find(option => option.value === statusFilter)?.label || "All"}
+                {statusOptions.find(option => option.value === statusFilter)?.label || "All Statuses"}
               </span>
               <ChevronDown
                 className={cn(
