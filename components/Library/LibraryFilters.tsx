@@ -608,7 +608,7 @@ export function LibraryFilters({
                   <div className="h-px bg-[var(--border-color)] my-1" />
 
                   {/* Search input within dropdown */}
-                  <div className="px-2 py-2 sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+                  <div className="py-2 sticky top-0 bg-[var(--card-bg)]">
                     <input
                       type="text"
                       placeholder="Search tags..."
@@ -616,7 +616,7 @@ export function LibraryFilters({
                       onChange={(e) => setTagSearchInput(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                       disabled={loading || loadingTags}
-                      className="w-full px-3 py-1.5 bg-[var(--background)] border border-[var(--border-color)] rounded text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+                      className="w-full px-4 py-1.5 bg-transparent border-b border-[var(--border-color)] text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
                     />
                   </div>
 
