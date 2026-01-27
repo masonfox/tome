@@ -21,9 +21,7 @@ export function StreakDisplaySkeleton({ className }: StreakDisplaySkeletonProps)
           <div className="w-5 h-5 bg-[var(--card-bg-emphasis)] rounded-full flex-shrink-0" />
 
           {/* Streak count skeleton - matches text-2xl font-bold leading-none */}
-          <div className="flex flex-col">
-            <div className="h-6 bg-[var(--card-bg-emphasis)] rounded w-20" />
-          </div>
+          <div className="h-6 bg-[var(--card-bg-emphasis)] rounded w-16" />
         </div>
       </div>
     </div>
