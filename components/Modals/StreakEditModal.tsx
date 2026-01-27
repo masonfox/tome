@@ -57,7 +57,7 @@ export function StreakEditModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-6 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded-sm hover:bg-[var(--border-color)]/50 transition-colors font-semibold"
+            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isUpdatingThreshold}
           >
             Cancel
@@ -66,7 +66,7 @@ export function StreakEditModal({
             type="button"
             onClick={handleSubmit}
             disabled={isUpdatingThreshold || threshold === initialThreshold}
-            className="flex-1 px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
+            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isUpdatingThreshold && <Loader2 className="w-4 h-4 animate-spin" />}
             {isUpdatingThreshold ? "Saving..." : "Save"}
@@ -92,7 +92,7 @@ export function StreakEditModal({
               const val = parseInt(e.target.value);
               setThreshold(isNaN(val) ? 1 : val);
             }}
-            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
+            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             disabled={isUpdatingThreshold}
             autoFocus
           />
