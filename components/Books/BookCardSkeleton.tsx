@@ -11,7 +11,7 @@ export function BookCardSkeleton() {
       <div className="aspect-[2/3] bg-[var(--foreground)]/10" />
 
       {/* Content section skeleton */}
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-1">
         {/* Title skeleton - 1.5 lines */}
         <div className="space-y-1.5">
           <div className="h-3.5 bg-[var(--foreground)]/10 rounded w-full" />
