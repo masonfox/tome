@@ -71,7 +71,7 @@ export function CompletedBooksSection({
           </span>
         </h2>
         {monthSelector && (
-          <div className="flex-shrink-0">
+          <div className="flex justify-center sm:justify-end flex-shrink-0">
             {monthSelector}
           </div>
         )}
