@@ -133,45 +133,77 @@ export function MonthSelector({
 
   // Handle previous month navigation
   const handlePrevious = () => {
-    const result = findPreviousMonthWithBooks(selectedMonth, year);
-    
-    if (!result) return; // No previous month available
-
-    if (result.year !== year) {
-      // Change year first, then set month
-      onYearChange?.(result.year);
-      // Month will be set after year change completes
-      setTimeout(() => onMonthChange(result.month), 0);
+    if (selectedMonth === null) {
+      // "All Year" mode → go to previous year, stay on "All Year"
+      if (year > (minYear ?? 1900) && onYearChange) {
+        onYearChange(year - 1);
+        // selectedMonth stays null - don't call onMonthChange
+      }
     } else {
-      onMonthChange(result.month);
+      // Specific month mode → find previous month with books
+      const result = findPreviousMonthWithBooks(selectedMonth, year);
+      
+      if (!result) return; // No previous month available
+
+      if (result.year !== year) {
+        // Change year first, then set month
+        onYearChange?.(result.year);
+        // Month will be set after year change completes
+        setTimeout(() => onMonthChange(result.month), 0);
+      } else {
+        onMonthChange(result.month);
+      }
     }
   };
 
   // Handle next month navigation
   const handleNext = () => {
-    const result = findNextMonthWithBooks(selectedMonth, year);
-    
-    if (!result) return; // No next month available
-
-    if (result.year !== year) {
-      // Change year first, then set month
-      onYearChange?.(result.year);
-      // Month will be set after year change completes
-      setTimeout(() => onMonthChange(result.month), 0);
+    if (selectedMonth === null) {
+      // "All Year" mode → go to next year, stay on "All Year"
+      if (year < (maxYear ?? 2100) && onYearChange) {
+        onYearChange(year + 1);
+        // selectedMonth stays null - don't call onMonthChange
+      }
     } else {
-      onMonthChange(result.month);
+      // Specific month mode → find next month with books
+      const result = findNextMonthWithBooks(selectedMonth, year);
+      
+      if (!result) return; // No next month available
+
+      if (result.year !== year) {
+        // Change year first, then set month
+        onYearChange?.(result.year);
+        // Month will be set after year change completes
+        setTimeout(() => onMonthChange(result.month), 0);
+      } else {
+        onMonthChange(result.month);
+      }
     }
   };
 
   // Determine if previous/next buttons should be disabled
   const isPreviousDisabled = () => {
     if (loading) return true;
-    return !findPreviousMonthWithBooks(selectedMonth, year);
+    
+    if (selectedMonth === null) {
+      // "All Year" mode → disable if at min year
+      return year <= (minYear ?? 1900);
+    } else {
+      // Specific month mode → check for previous months with books
+      return !findPreviousMonthWithBooks(selectedMonth, year);
+    }
   };
 
   const isNextDisabled = () => {
     if (loading) return true;
-    return !findNextMonthWithBooks(selectedMonth, year);
+    
+    if (selectedMonth === null) {
+      // "All Year" mode → disable if at max year
+      return year >= (maxYear ?? 2100);
+    } else {
+      // Specific month mode → check for next months with books
+      return !findNextMonthWithBooks(selectedMonth, year);
+    }
   };
 
   // Check if a month option should be disabled
