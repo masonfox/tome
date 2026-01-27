@@ -45,17 +45,20 @@ export function BottomSheet({
       // Start entering state
       setAnimationState('entering');
       
-      // After a frame, trigger the animation
-      const raf1 = requestAnimationFrame(() => {
-        const raf2 = requestAnimationFrame(() => {
-          setAnimationState('entered');
-          
-          // Focus close button after animation
-          const timeout = setTimeout(() => {
-            closeButtonRef.current?.focus();
-          }, ANIMATION_DURATION);
-        });
-      });
+      // Use setTimeout to ensure the initial state is painted
+      const timeout1 = setTimeout(() => {
+        setAnimationState('entered');
+        
+        // Focus close button after animation
+        const timeout2 = setTimeout(() => {
+          closeButtonRef.current?.focus();
+        }, ANIMATION_DURATION);
+      }, 10); // Small delay to ensure paint
+      
+      return () => {
+        clearTimeout(timeout1);
+        document.body.style.overflow = "";
+      };
     } else {
       // Start exit animation if we were open
       setAnimationState((prev) => {
@@ -75,12 +78,6 @@ export function BottomSheet({
         clearTimeout(timeout);
       };
     }
-    
-    return () => {
-      if (!isOpen) {
-        document.body.style.overflow = "";
-      }
-    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -114,7 +111,7 @@ export function BottomSheet({
         }`}
         style={{
           transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
-          transition: `transform ${ANIMATION_DURATION}ms cubic-bezier(0.32, 0.72, 0, 1)`,
+          transition: animationState === 'entering' ? 'none' : `transform ${ANIMATION_DURATION}ms cubic-bezier(0.32, 0.72, 0, 1)`,
           willChange: 'transform',
           contain: 'layout paint',
         }}
