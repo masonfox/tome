@@ -14,6 +14,7 @@ export function ReadingGoalsSettings({ initialGoals }: ReadingGoalsSettingsProps
   const [goals, setGoals] = useState<ReadingGoal[]>(initialGoals);
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<ReadingGoal | undefined>();
+  const [booksGoal, setBooksGoal] = useState<number | "">(1);
 
   async function refreshGoals() {
     const res = await fetch("/api/reading-goals");
@@ -25,18 +26,14 @@ export function ReadingGoalsSettings({ initialGoals }: ReadingGoalsSettingsProps
 
   function handleCreateNew() {
     setEditingGoal(undefined);
+    setBooksGoal(1);
     setShowForm(true);
   }
 
   function handleEdit(goal: ReadingGoal) {
     setEditingGoal(goal);
+    setBooksGoal(goal.booksGoal);
     setShowForm(true);
-  }
-
-  function handleFormSuccess() {
-    setShowForm(false);
-    setEditingGoal(undefined);
-    refreshGoals();
   }
 
   function handleFormCancel() {
@@ -77,9 +74,17 @@ export function ReadingGoalsSettings({ initialGoals }: ReadingGoalsSettingsProps
           <ReadingGoalForm
             mode={editingGoal ? "edit" : "create"}
             existingGoal={editingGoal}
-            onSuccess={handleFormSuccess}
-            onCancel={handleFormCancel}
+            booksGoal={booksGoal}
+            onBooksGoalChange={setBooksGoal}
           />
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={handleFormCancel}
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--background)] border border-[var(--border-color)] rounded-md hover:bg-[var(--card-bg)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       ) : null}
 
