@@ -146,7 +146,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       {/* Cover */}
       <td className="px-4 py-3">
         <Link href={`/books/${book.id}`} className="block">
-          <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
+          <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-sm hover:shadow-lg transition-shadow duration-300 ease">
             {!hasImageError ? (
               <Image
                 src={getCoverUrl(book.calibreId, book.lastSynced)}
