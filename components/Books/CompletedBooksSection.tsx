@@ -52,9 +52,9 @@ export function CompletedBooksSection({
   // Get display title based on filter
   const displayTitle = useMemo(() => {
     if (selectedMonth) {
-      return `Books Read in ${MONTH_NAMES[selectedMonth - 1]} ${year}`;
+      return `Read in ${MONTH_NAMES[selectedMonth - 1]} ${year}`;
     }
-    return `Books Read in ${year}`;
+    return `Read in ${year}`;
   }, [selectedMonth, year]);
   return (
     <div>
