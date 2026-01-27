@@ -314,46 +314,22 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       {selectedYear <= new Date().getFullYear() && (
         goalLoading || monthlyLoading ? (
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
-                {selectedYear < new Date().getFullYear() 
-                  ? "Monthly Breakdown" 
-                  : "Monthly Progress"}
-              </h2>
-              <MonthSelector
-                year={selectedYear}
-                selectedMonth={selectedMonth}
-                onMonthChange={setSelectedMonth}
-                minYear={availableYears[availableYears.length - 1]}
-                maxYear={availableYears[0]}
-                onYearChange={handleYearChange}
-                monthsWithBooks={monthsWithBooks}
-                loading={monthlyLoading}
-              />
-            </div>
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+              {selectedYear < new Date().getFullYear() 
+                ? "Monthly Breakdown" 
+                : "Monthly Progress"}
+            </h2>
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
               <ReadingGoalChartSkeleton />
             </div>
           </div>
         ) : currentGoalData && monthlyData.length > 0 ? (
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
-                {selectedYear < new Date().getFullYear() 
-                  ? "Monthly Breakdown" 
-                  : "Monthly Progress"}
-              </h2>
-              <MonthSelector
-                year={selectedYear}
-                selectedMonth={selectedMonth}
-                onMonthChange={setSelectedMonth}
-                minYear={availableYears[availableYears.length - 1]}
-                maxYear={availableYears[0]}
-                onYearChange={handleYearChange}
-                monthsWithBooks={monthsWithBooks}
-                loading={monthlyLoading}
-              />
-            </div>
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+              {selectedYear < new Date().getFullYear() 
+                ? "Monthly Breakdown" 
+                : "Monthly Progress"}
+            </h2>
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
               <ReadingGoalChart
                 monthlyData={monthlyData}
@@ -375,6 +351,18 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             loading={true}
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
+            monthSelector={
+              <MonthSelector
+                year={selectedYear}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                minYear={availableYears[availableYears.length - 1]}
+                maxYear={availableYears[0]}
+                onYearChange={handleYearChange}
+                monthsWithBooks={monthsWithBooks}
+                loading={monthlyLoading}
+              />
+            }
           />
         ) : currentGoalData ? (
           <CompletedBooksSection
@@ -384,6 +372,18 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             loading={false}
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
+            monthSelector={
+              <MonthSelector
+                year={selectedYear}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                minYear={availableYears[availableYears.length - 1]}
+                maxYear={availableYears[0]}
+                onYearChange={handleYearChange}
+                monthsWithBooks={monthsWithBooks}
+                loading={monthlyLoading}
+              />
+            }
           />
         ) : null
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, ReactNode } from "react";
 import { BookCheck } from "lucide-react";
 import { BookCard } from "@/components/Books/BookCard";
 import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
@@ -22,6 +22,7 @@ interface CompletedBooksSectionProps {
   loading?: boolean;
   selectedMonth?: number | null;
   onMonthChange?: (month: number | null) => void;
+  monthSelector?: ReactNode;
 }
 
 const MONTH_NAMES = [
@@ -36,6 +37,7 @@ export function CompletedBooksSection({
   loading = false,
   selectedMonth = null,
   onMonthChange,
+  monthSelector,
 }: CompletedBooksSectionProps) {
   // Filter books by selected month
   const filteredBooks = useMemo(() => {
@@ -59,14 +61,21 @@ export function CompletedBooksSection({
   }, [selectedMonth, year]);
   return (
     <div>
-      {/* Heading with Icon */}
-      <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 flex items-center gap-3">
-        <BookCheck className="w-6 h-6 text-[var(--accent)]" />
-        {displayTitle}
-        <span className="text-[var(--accent)]">
-          ({filteredCount})
-        </span>
-      </h2>
+      {/* Heading with Icon and Month Selector */}
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
+          <BookCheck className="w-6 h-6 text-[var(--accent)]" />
+          {displayTitle}
+          <span className="text-[var(--accent)]">
+            ({filteredCount})
+          </span>
+        </h2>
+        {monthSelector && (
+          <div className="flex-shrink-0">
+            {monthSelector}
+          </div>
+        )}
+      </div>
 
       {/* Books Grid - No Panel */}
       {loading ? (
