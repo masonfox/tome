@@ -9,26 +9,23 @@ interface StreakDisplaySkeletonProps {
 /**
  * StreakDisplaySkeleton - Loading skeleton for StreakDisplay
  * Mimics the layout of StreakDisplay with animated placeholders
- * Includes detailed structure: flame icon, streak count with "days" text, and time remaining
+ * Includes detailed structure: flame icon, streak count with "days" text, and optional time remaining
  */
 export function StreakDisplaySkeleton({ className }: StreakDisplaySkeletonProps) {
   return (
     <div className="flex flex-col items-center gap-1 mb-4 sm:mb-0 animate-pulse">
-      <div className={cn("flex items-center gap-2", className)}>
-        {/* Flame icon skeleton - circular placeholder */}
-        <div className="w-5 h-5 bg-[var(--foreground)]/10 rounded-full flex-shrink-0" />
+      {/* Link wrapper matching actual component */}
+      <div className="group transition-opacity">
+        <div className={cn("flex items-center gap-1", className)}>
+          {/* Flame icon skeleton */}
+          <div className="w-5 h-5 bg-[var(--card-bg-emphasis)] rounded-full flex-shrink-0" />
 
-        {/* Streak count skeleton - includes number and "days" text */}
-        <div className="flex items-baseline gap-1.5">
-          {/* Number part */}
-          <div className="h-8 bg-[var(--foreground)]/15 rounded w-10" />
-          {/* "days" text part */}
-          <div className="h-6 bg-[var(--foreground)]/10 rounded w-12" />
+          {/* Streak count skeleton - matches text-2xl font-bold leading-none */}
+          <div className="flex flex-col">
+            <div className="h-6 bg-[var(--card-bg-emphasis)] rounded w-20" />
+          </div>
         </div>
       </div>
-      
-      {/* Time remaining/celebration skeleton - small text below */}
-      <div className="h-3 bg-[var(--foreground)]/10 rounded w-28 mt-1" />
     </div>
   );
 }
