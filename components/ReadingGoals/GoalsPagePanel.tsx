@@ -86,6 +86,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const completedBooks = booksData?.books || [];
   const booksCount = booksData?.count || 0;
 
+  // Calculate months with books from monthly data
+  const monthsWithBooks = useMemo(() => {
+    return monthlyData
+      .filter(m => m.count > 0)
+      .map(m => m.month);
+  }, [monthlyData]);
+
   // Create goal mutation
   const createGoalMutation = useMutation({
     mutationFn: async ({ year, booksGoal }: { year: number; booksGoal: number }) => {
@@ -143,7 +150,12 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   };
 
   const handleMonthClick = (month: number) => {
-    setSelectedMonth(month);
+    // Only set if month has books
+    const monthData = monthlyData.find(m => m.month === month);
+    const hasBooks = monthData ? monthData.count > 0 : false;
+    if (hasBooks) {
+      setSelectedMonth(month);
+    }
   };
 
   // ESC key handler
@@ -253,6 +265,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             minYear={availableYears[availableYears.length - 1]}
             maxYear={availableYears[0]}
             onYearChange={handleYearChange}
+            monthsWithBooks={monthsWithBooks}
+            loading={monthlyLoading}
           />
         </div>
       )}

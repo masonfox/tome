@@ -75,7 +75,8 @@ export function ReadingGoalChart({ monthlyData, onMonthClick, selectedMonth }: R
 
   // Handle bar click
   const handleBarClick = (data: any) => {
-    if (onMonthClick && data && data.monthNumber) {
+    // Only trigger click if bar has books and onMonthClick is provided
+    if (onMonthClick && data && data.monthNumber && data.count > 0) {
       onMonthClick(data.monthNumber);
     }
   };
@@ -84,6 +85,8 @@ export function ReadingGoalChart({ monthlyData, onMonthClick, selectedMonth }: R
   const CustomBar = (props: any) => {
     const { x, y, width, height, payload } = props;
     const isSelected = selectedMonth === payload.monthNumber;
+    const isEmpty = payload.count === 0;
+    const isClickable = onMonthClick && !isEmpty;
     
     return (
       <g>
@@ -103,9 +106,9 @@ export function ReadingGoalChart({ monthlyData, onMonthClick, selectedMonth }: R
           strokeWidth={isSelected ? 3 : 0}
           rx={4}
           ry={4}
-          style={{ cursor: onMonthClick ? "pointer" : "default" }}
+          style={{ cursor: isClickable ? "pointer" : "default" }}
           onClick={() => handleBarClick(payload)}
-          className="transition-all hover:opacity-80"
+          className={isClickable ? "transition-all hover:opacity-80" : ""}
         />
       </g>
     );
