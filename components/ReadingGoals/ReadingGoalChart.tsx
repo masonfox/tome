@@ -91,24 +91,48 @@ export function ReadingGoalChart({ monthlyData, onMonthClick, selectedMonth }: R
     return (
       <g>
         <defs>
+          {/* Standard gradient for unselected bars */}
           <linearGradient id={`barGradient-${payload.monthNumber}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
             <stop offset="95%" stopColor="#10b981" stopOpacity={0.3} />
           </linearGradient>
+          {/* Brighter gradient for selected bar */}
+          <linearGradient id={`barGradientSelected-${payload.monthNumber}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#059669" stopOpacity={1} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0.6} />
+          </linearGradient>
         </defs>
+        {/* Shadow/glow effect for selected bar */}
+        {isSelected && (
+          <rect
+            x={x - 2}
+            y={y - 2}
+            width={width + 4}
+            height={height + 4}
+            fill="none"
+            stroke="#059669"
+            strokeWidth={2}
+            rx={6}
+            ry={6}
+            opacity={0.4}
+          />
+        )}
         <rect
           x={x}
           y={y}
           width={width}
           height={height}
-          fill={`url(#barGradient-${payload.monthNumber})`}
-          stroke={isSelected ? "#059669" : "transparent"}
-          strokeWidth={isSelected ? 3 : 0}
+          fill={isSelected 
+            ? `url(#barGradientSelected-${payload.monthNumber})` 
+            : `url(#barGradient-${payload.monthNumber})`}
+          stroke={isSelected ? "#047857" : "transparent"}
+          strokeWidth={isSelected ? 2 : 0}
           rx={4}
           ry={4}
           style={{ cursor: isClickable ? "pointer" : "default" }}
           onClick={() => handleBarClick(payload)}
           className={isClickable ? "transition-all hover:opacity-80" : ""}
+          opacity={isSelected ? 1 : 0.9}
         />
       </g>
     );
