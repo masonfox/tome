@@ -608,7 +608,7 @@ export function LibraryFilters({
                   <div className="h-px bg-[var(--border-color)] my-1" />
 
                   {/* Search input within dropdown */}
-                  <div className="py-2 sticky top-0 bg-[var(--card-bg)]">
+                  <div className="py-2 sticky top-0 bg-[var(--card-bg-emphasis)]">
                     <input
                       type="text"
                       placeholder="Search tags..."
