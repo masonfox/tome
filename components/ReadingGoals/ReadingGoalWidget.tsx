@@ -78,7 +78,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   // PAST YEAR: Retrospective view
   if (isPastYear) {
     return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 hover:shadow-md transition-shadow relative">
         {/* Header Section - Status Badge */}
         <div className="flex items-center justify-between mb-6">
           <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${
@@ -180,7 +180,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
   // CURRENT YEAR: Active tracking view
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
+    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 hover:shadow-md transition-shadow relative">
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
         <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${

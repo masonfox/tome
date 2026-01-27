@@ -240,7 +240,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       {/* Monthly Chart - Only show for past and current years */}
       {selectedYear <= new Date().getFullYear() && (
         goalLoading || monthlyLoading ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 pb-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6 pb-4">
             <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
               {selectedYear < new Date().getFullYear() 
                 ? "Monthly Breakdown" 
@@ -249,7 +249,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             <ReadingGoalChartSkeleton />
           </div>
         ) : currentGoalData && monthlyData.length > 0 ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 pb-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6 pb-4">
             <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
               {selectedYear < new Date().getFullYear() 
                 ? "Monthly Breakdown" 
