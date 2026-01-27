@@ -72,7 +72,7 @@ export function CompletedBooksSection({
       </div>
 
       {/* Content - Always visible */}
-      <div className="px-6 pb-6 pt-6">
+      <div className="px-6 pb-6 pt-6 bg-[var(--card-bg-emphasis)]">
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
