@@ -669,7 +669,7 @@ export function LibraryFilters({
                 type="button"
                 onClick={() => handleTagRemove(tag)}
                 disabled={loading}
-                className={`px-3 py-1 text-sm bg-[var(--accent)] text-white border border-[var(--accent)] flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`px-3 py-1 text-sm bg-[var(--accent)] text-white border border-[var(--accent)] rounded flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {tag}
                 <X className="w-3 h-3" />
