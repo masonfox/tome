@@ -7,6 +7,7 @@ import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "@/components/Utilities/YearSelector";
 import { MonthSelector } from "@/components/Utilities/MonthSelector";
+import { MonthSelectorSkeleton } from "@/components/Utilities/MonthSelectorSkeleton";
 import { ReadingGoalChart } from "./ReadingGoalChart";
 import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "@/components/Books/CompletedBooksSection";
@@ -34,7 +35,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   }, [allGoals]);
 
   // Goal data query
-  const { data: currentGoalData, isLoading: goalLoading, error: goalError } = useQuery({
+  const { data: currentGoalData, isPending: goalLoading, error: goalError } = useQuery({
     queryKey: ['reading-goal', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
@@ -48,11 +49,12 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       const data = await response.json();
       return data.success ? data.data as ReadingGoalWithProgress : null;
     },
+    initialData: selectedYear === initialGoalData?.goal.year ? initialGoalData : undefined,
     staleTime: 30000, // 30 seconds
   });
 
   // Monthly breakdown query
-  const { data: monthlyData = [], isLoading: monthlyLoading } = useQuery({
+  const { data: monthlyData = [], isPending: monthlyLoading } = useQuery({
     queryKey: ['monthly-breakdown', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
@@ -68,7 +70,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   // Completed books query
   const { 
     data: booksData, 
-    isLoading: booksLoading 
+    isPending: booksLoading 
   } = useQuery({
     queryKey: ['completed-books', selectedYear],
     queryFn: async () => {
@@ -236,10 +238,17 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       </BaseModal>
 
       {/* Monthly Chart - Only show for past and current years */}
-      {currentGoalData && selectedYear <= new Date().getFullYear() && (
-        monthlyLoading ? (
-          <ReadingGoalChartSkeleton />
-        ) : monthlyData.length > 0 ? (
+      {selectedYear <= new Date().getFullYear() && (
+        goalLoading || monthlyLoading ? (
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 pb-4">
+            <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
+              {selectedYear < new Date().getFullYear() 
+                ? "Monthly Breakdown" 
+                : "Monthly Progress"}
+            </h3>
+            <ReadingGoalChartSkeleton />
+          </div>
+        ) : currentGoalData && monthlyData.length > 0 ? (
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 pb-4">
             <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
               {selectedYear < new Date().getFullYear() 
@@ -256,31 +265,48 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       )}
 
       {/* Month Selector - Only show for past and current years with books */}
-      {currentGoalData && selectedYear <= new Date().getFullYear() && booksCount > 0 && (
-        <div className="flex justify-start">
-          <MonthSelector
-            year={selectedYear}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-            minYear={availableYears[availableYears.length - 1]}
-            maxYear={availableYears[0]}
-            onYearChange={handleYearChange}
-            monthsWithBooks={monthsWithBooks}
-            loading={monthlyLoading}
-          />
-        </div>
+      {selectedYear <= new Date().getFullYear() && (
+        goalLoading || booksLoading ? (
+          <div className="flex justify-start">
+            <MonthSelectorSkeleton />
+          </div>
+        ) : currentGoalData && booksCount > 0 ? (
+          <div className="flex justify-start">
+            <MonthSelector
+              year={selectedYear}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              minYear={availableYears[availableYears.length - 1]}
+              maxYear={availableYears[0]}
+              onYearChange={handleYearChange}
+              monthsWithBooks={monthsWithBooks}
+              loading={monthlyLoading}
+            />
+          </div>
+        ) : null
       )}
 
       {/* Completed Books Section - Only show for past and current years */}
-      {currentGoalData && selectedYear <= new Date().getFullYear() && (
-        <CompletedBooksSection
-          year={selectedYear}
-          books={completedBooks}
-          count={booksCount}
-          loading={booksLoading}
-          selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
-        />
+      {selectedYear <= new Date().getFullYear() && (
+        goalLoading || booksLoading ? (
+          <CompletedBooksSection
+            year={selectedYear}
+            books={[]}
+            count={0}
+            loading={true}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+          />
+        ) : currentGoalData ? (
+          <CompletedBooksSection
+            year={selectedYear}
+            books={completedBooks}
+            count={booksCount}
+            loading={false}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+          />
+        ) : null
       )}
     </div>
   );

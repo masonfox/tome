@@ -73,14 +73,7 @@ export function CompletedBooksSection({
 
       {/* Content - Always visible */}
       <div className="px-6 pb-6 pt-6 bg-[var(--card-bg-emphasis)]">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-[var(--foreground)]/70 mt-4 font-medium">
-              Loading books...
-            </p>
-          </div>
-        ) : filteredCount === 0 ? (
+        {!loading && filteredCount === 0 ? (
           <div className="py-12 text-center">
             <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
             <p className="text-[var(--foreground)]/70 font-medium">
@@ -93,7 +86,7 @@ export function CompletedBooksSection({
             </p>
           </div>
         ) : (
-          <BookGrid books={filteredBooks} loading={false} />
+          <BookGrid books={filteredBooks} loading={loading} />
         )}
       </div>
     </div>
