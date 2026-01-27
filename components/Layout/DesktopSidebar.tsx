@@ -115,8 +115,8 @@ export function DesktopSidebar() {
                   className={clsx(
                     "flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all",
                     active
-                      ? "text-[var(--accent)] bg-[var(--background)]"
-                      : "text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--card-bg-emphasis)]"
+                      ? "text-[var(--accent)] bg-[var(--card-bg-emphasis)]"
+                      : "text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--background)]"
                   )}
                   title={collapsed ? link.label : undefined}
                   aria-label={link.label}
@@ -141,7 +141,7 @@ export function DesktopSidebar() {
           {/* Collapse Toggle */}
           <button
             onClick={toggleCollapsed}
-            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--card-bg-emphasis)] w-full"
+            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--background)] w-full"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -166,8 +166,8 @@ export function DesktopSidebar() {
             className={clsx(
               "flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all",
               isActiveRoute(pathname, SETTINGS_LINK.href)
-                ? "text-[var(--accent)] bg-[var(--background)]"
-                : "text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--card-bg-emphasis)]"
+                ? "text-[var(--accent)] bg-[var(--accent)]"
+                : "text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--background)]"
             )}
             title={collapsed ? SETTINGS_LINK.label : undefined}
             aria-label={SETTINGS_LINK.label}
@@ -186,7 +186,7 @@ export function DesktopSidebar() {
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--card-bg-emphasis)] w-full"
+            className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all text-[var(--foreground)] hover:text-[var(--accent)] hover:bg-[var(--background)] w-full"
             title={collapsed ? "Logout" : undefined}
             aria-label="Logout"
           >
