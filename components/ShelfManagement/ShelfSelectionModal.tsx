@@ -239,10 +239,10 @@ export function ShelfSelectionModal({
                     onClick={() => handleShelfClick(shelf.id)}
                     disabled={submitting}
                     className={cn(
-                      "w-full p-3 rounded-lg border text-left transition-all disabled:opacity-50 shadow-sm",
+                      "w-full p-3 rounded-lg border-2 text-left transition-all disabled:opacity-50 shadow-sm",
                       isSelected
-                        ? "border-[var(--accent)] bg-[var(--accent)]/10 shadow-md"
-                        : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:shadow-md"
+                        ? "border-[var(--accent)] shadow-md"
+                        : "border-[var(--border-color)] bg-[var(--background)] hover:border-[var(--accent)]/50 hover:shadow-md"
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -252,7 +252,7 @@ export function ShelfSelectionModal({
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
                           isSelected
                             ? "border-[var(--accent)] bg-[var(--accent)]"
-                            : "border-[var(--foreground)]/30"
+                            : "border-[var(--accent)] opacity-40"
                         )}
                       >
                         {isSelected && <Check className="w-3 h-3 text-white" />}
@@ -271,15 +271,12 @@ export function ShelfSelectionModal({
                       {/* Shelf Info */}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[var(--heading-text)] mb-0.5 truncate">
-                          {shelf.name}
+                          {shelf.name} <span className="text-sm text-[var(--accent)] font-normal">({shelf.bookCount})</span>
                         </h4>
-                        <p className="text-sm text-[var(--foreground)]/60">
-                          {shelf.bookCount} {shelf.bookCount === 1 ? "book" : "books"}
-                        </p>
                         
                         {/* Description */}
                         {shelf.description && (
-                          <p className="text-xs text-[var(--foreground)]/50 mt-0.5 truncate">
+                          <p className="text-xs text-[var(--subheading-text)] truncate">
                             {shelf.description}
                           </p>
                         )}
@@ -306,7 +303,7 @@ export function ShelfSelectionModal({
                     Keep books selected after action
                   </span>
                 </label>
-                <p className="text-xs text-[var(--foreground)]/60 mt-1 ml-6">
+                <p className="text-xs text-[var(--subheading-text)] mt-1 ml-6">
                   Allows you to perform multiple operations on the same selection
                 </p>
               </div>

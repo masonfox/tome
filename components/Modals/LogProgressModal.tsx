@@ -49,6 +49,7 @@ export default function LogProgressModal({
   const editorRef = useRef<MDXEditorMethods | null>(null);
   const [showLocalCompletionModal, setShowLocalCompletionModal] = useState(false);
   const [completedSessionId, setCompletedSessionId] = useState<number | undefined>();
+  const [showEditor, setShowEditor] = useState(false);
 
   const bookProgressHook = useBookProgress(book.id.toString(), book as any, async () => {
     // Invalidate dashboard queries to refresh data
@@ -62,9 +63,22 @@ export default function LogProgressModal({
   const { draftNote, saveDraft, clearDraft } = useDraftNote(book.id);
   const [isDraftInitialized, setIsDraftInitialized] = useState(false);
 
+  // Delay showing heavy editor until after animation completes
+  useEffect(() => {
+    if (isOpen) {
+      setShowEditor(false);
+      const timer = setTimeout(() => {
+        setShowEditor(true);
+      }, 320); // Slightly after the 300ms BottomSheet animation
+      return () => clearTimeout(timer);
+    } else {
+      setShowEditor(false);
+    }
+  }, [isOpen]);
+
   // Restore draft note on mount and when modal opens
   useEffect(() => {
-    if (isOpen && draftNote && bookProgressHook.notes === "") {
+    if (isOpen && showEditor && draftNote && bookProgressHook.notes === "") {
       bookProgressHook.setNotes(draftNote);
       // Also update the editor directly if it's ready
       if (editorRef.current) {
@@ -75,11 +89,11 @@ export default function LogProgressModal({
         }
       }
     }
-    if (isOpen) {
+    if (isOpen && showEditor) {
       setIsDraftInitialized(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, draftNote]);
+  }, [isOpen, showEditor, draftNote]);
 
   // Save draft when notes change
   useEffect(() => {
@@ -197,6 +211,7 @@ export default function LogProgressModal({
         showProgressModeDropdown={showProgressModeDropdown}
         setShowProgressModeDropdown={setShowProgressModeDropdown}
         progressModeDropdownRef={progressModeDropdownRef}
+        showEditor={showEditor}
       />
     </div>
   );

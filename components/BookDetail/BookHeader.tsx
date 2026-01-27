@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, ChevronDown, Check, Lock, Pencil, Star } from "lucide-react";
+import { BookOpen, ChevronDown, Check, Lock, Pencil } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG, type BookStatus } from "@/utils/statusConfig";
+import { StarRating } from "@/components/Utilities/StarRating";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface BookHeaderProps {
@@ -170,19 +171,7 @@ export default function BookHeader({
           onClick={onRatingClick}
         >
           <div className="flex justify-center items-center gap-2">
-            <div className="flex gap-1 items-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={cn(
-                    "w-5 h-5 transition-colors",
-                    star <= (rating || 0)
-                      ? "fill-[var(--accent)] text-[var(--accent)]"
-                      : "text-[var(--foreground)]/30"
-                  )}
-                />
-              ))}
-            </div>
+            <StarRating rating={rating || 0} size="md" />
             <Pencil className="w-4 h-4 text-[var(--subheading-text)]" />
           </div>
           <div className="text-center mt-3">

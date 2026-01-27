@@ -132,36 +132,33 @@ export function ShelfAppearancePicker({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
-        Appearance
-      </label>
-
       {/* Preview Section */}
-      <div className="mb-4 p-4 bg-[var(--hover-bg)] border border-[var(--border-color)] rounded-lg">
-        <p className="text-xs text-[var(--foreground)]/60 mb-2">Preview</p>
-        <div className="flex items-center gap-3">
-          <ShelfAvatar
-            color={color}
-            icon={icon}
-            size="lg"
-            className="border-2 border-[var(--border-color)]"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-[var(--foreground)] truncate">
-              {shelfName || "Your Shelf"}
-            </p>
-            <p className="text-xs text-[var(--foreground)]/60">
-              {icon ? icon : "No icon"}
-            </p>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
+          Preview
+        </label>
+        <div className="p-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
+          <div className="flex items-center gap-3">
+            <ShelfAvatar
+              color={color}
+              icon={icon}
+              size="lg"
+              className="border-2 border-[var(--border-color)]"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[var(--foreground)] truncate">
+                {shelfName || "Your Shelf"}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Controls Section - Side by Side */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Color Picker */}
         <div>
-          <label htmlFor="shelf-color" className="block text-sm font-medium text-[var(--foreground)]/80 mb-2">
+          <label htmlFor="shelf-color" className="block text-sm font-medium text-[var(--heading-text)] mb-2">
             Color
           </label>
           <div className="space-y-2">
@@ -204,14 +201,10 @@ export function ShelfAppearancePicker({
               aria-describedby={colorError ? "color-error" : undefined}
             />
 
-            {/* Error or Helper Text */}
-            {colorError ? (
+            {/* Error Text */}
+            {colorError && (
               <p id="color-error" className="text-xs text-red-500" role="alert">
                 {colorError}
-              </p>
-            ) : (
-              <p className="text-xs text-[var(--foreground)]/60">
-                HEX format
               </p>
             )}
           </div>
@@ -219,7 +212,7 @@ export function ShelfAppearancePicker({
 
         {/* Icon Picker */}
         <div>
-          <label className="block text-sm font-medium text-[var(--foreground)]/80 mb-2">
+          <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
             Icon (Optional)
           </label>
           <div className="space-y-2">
@@ -254,21 +247,22 @@ export function ShelfAppearancePicker({
               type="button"
               onClick={() => setShowIconPicker(!showIconPicker)}
               disabled={disabled}
-              className="w-full px-3 py-2 text-sm font-medium bg-[var(--background)] border border-[var(--border-color)] rounded-lg hover:border-[var(--accent-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn(
+                "w-full px-3 py-2 text-sm font-medium bg-[var(--background)] border border-[var(--border-color)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                showIconPicker
+                  ? "ring-2 ring-[var(--accent)]"
+                  : "hover:border-[var(--accent)]"
+              )}
             >
               {showIconPicker ? "Hide Icons" : "Choose Icon"}
             </button>
-
-            <p className="text-xs text-[var(--foreground)]/60">
-              {Object.keys(SHELF_ICONS).length} icons
-            </p>
           </div>
         </div>
       </div>
 
       {/* Icon Grid */}
       {showIconPicker && (
-        <div className="mt-4 p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg max-h-[50vh] overflow-y-auto">
+        <div className="mb-4 p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg max-h-[50vh] overflow-y-auto">
           {/* Search input */}
           <div className="mb-3 relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50">

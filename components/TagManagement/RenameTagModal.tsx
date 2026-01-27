@@ -73,7 +73,7 @@ export function RenameTagModal({
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Close
             </button>
@@ -84,7 +84,7 @@ export function RenameTagModal({
               type="button"
               onClick={handleCancel}
               disabled={loading}
-              className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -92,7 +92,7 @@ export function RenameTagModal({
               type="submit"
               onClick={handleSubmit}
               disabled={!newName.trim() || newName === tagName || loading}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Renaming..." : "Rename"}
             </button>
@@ -115,7 +115,7 @@ export function RenameTagModal({
           <div>
             <label
               htmlFor="newTagName"
-              className="block text-sm font-medium text-[var(--foreground)] mb-2"
+              className="block text-sm font-medium text-[var(--heading-text)] mb-2"
             >
               New tag name
             </label>
@@ -128,7 +128,7 @@ export function RenameTagModal({
                 setError(null);
               }}
               autoFocus
-              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
+              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
               placeholder="Enter new tag name"
             />
             {error && (

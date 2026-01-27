@@ -110,7 +110,7 @@ export default function ShelfEditor({
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="Filter shelves..."
             disabled={saving}
-            className="w-full pl-10 pr-10 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+            className="w-full pl-10 pr-10 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors disabled:opacity-50"
           />
           {filterQuery && (
             <button
@@ -142,11 +142,10 @@ export default function ShelfEditor({
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all text-left",
                   isSelected
-                    ? "bg-[var(--accent-color)]/15 shadow-sm"
-                    : "border-[var(--border-color)] hover:border-[var(--accent-color)]/50 hover:bg-[var(--border-color)]",
+                    ? "bg-[var(--accent)]/10 border-[var(--accent)] shadow-sm"
+                    : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:bg-[var(--background)]",
                   saving && "opacity-50 cursor-not-allowed"
                 )}
-                style={isSelected ? { borderColor: shelf.color || "#3b82f6" } : undefined}
               >
                 <ShelfAvatar
                   color={shelf.color}
@@ -158,13 +157,13 @@ export default function ShelfEditor({
                     {shelf.name}
                   </div>
                   {shelf.description && (
-                    <div className="text-sm text-[var(--foreground)]/60 truncate">
+                    <div className="text-sm text-[var(--subheading-text)] truncate">
                       {shelf.description}
                     </div>
                   )}
                 </div>
                 {isSelected && (
-                  <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
                     <Check className="w-4 h-4 text-white stroke-[3]" />
                   </div>
                 )}
@@ -187,7 +186,7 @@ export default function ShelfEditor({
           </p>
           <a
             href="/shelves"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium text-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Create Shelf
@@ -225,14 +224,14 @@ export default function ShelfEditor({
       <button
         onClick={handleClose}
         disabled={saving}
-        className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
+        className="px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancel
       </button>
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-5 py-2.5 text-sm font-medium rounded-md transition-colors bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {saving ? "Saving..." : "Save Changes"}
       </button>

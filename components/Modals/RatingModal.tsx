@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -20,13 +21,11 @@ export default function RatingModal({
   currentRating,
 }: RatingModalProps) {
   const [rating, setRating] = useState(currentRating || 0);
-  const [hoverRating, setHoverRating] = useState(0);
 
   // Reset rating when modal opens
   useEffect(() => {
     if (isOpen) {
       setRating(currentRating || 0);
-      setHoverRating(0);
     }
   }, [isOpen, currentRating]);
 
@@ -44,7 +43,6 @@ export default function RatingModal({
 
   const handleClose = () => {
     setRating(currentRating || 0);
-    setHoverRating(0);
     onClose();
   };
 
@@ -73,70 +71,45 @@ export default function RatingModal({
 
         {/* Rating */}
         <div className="mb-7">
-          {/* <label className="block text-sm font-semibold text-[var(--foreground)] mb-5">
-            {currentRating ? "Change your rating" : "Rate this book"}
-          </label> */}
-          <div className="flex gap-2 justify-center">
-            {[1, 2, 3, 4, 5].map((star) => (
+          <StarRating 
+            rating={rating} 
+            size="xl" 
+            interactive={true} 
+            onRatingChange={setRating}
+            showCount={true}
+          />
+          {currentRating && (
+            <div className="text-center mt-2">
               <button
-                key={star}
-                type="button"
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                className="focus:outline-none transition-transform hover:scale-110"
+                onClick={handleRemove}
+                className="text-xs text-red-600 dark:text-red-400 hover:underline transition-colors"
               >
-                <Star
-                  className={cn(
-                    "w-10 h-10 transition-colors",
-                    star <= (hoverRating || rating)
-                      ? "fill-[var(--accent)] text-[var(--accent)]"
-                      : "text-[var(--foreground)]/30"
-                  )}
-                />
+                Remove rating
               </button>
-            ))}
-          </div>
-          {rating > 0 && (
-            <p className="text-sm text-[var(--foreground)]/70 mt-3 font-medium text-center">
-              {rating} {rating === 1 ? "star" : "stars"}
-            </p>
+            </div>
           )}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 justify-between">
-          {/* Remove Rating Button (left side) */}
-          {currentRating && (
-            <button
-              onClick={handleRemove}
-              className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-semibold text-sm"
-            >
-              Remove Rating
-            </button>
-          )}
-          
-          {/* Cancel & Save Buttons (right side) */}
-          <div className="flex gap-3 ml-auto">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={rating === 0}
-              className={cn(
-                "px-4 py-2 rounded-lg transition-colors font-semibold",
-                rating > 0
-                  ? "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
-                  : "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"
-              )}
-            >
-              Save Rating
-            </button>
-          </div>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={rating === 0}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              rating > 0
+                ? "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
+                : "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"
+            )}
+          >
+            Save Rating
+          </button>
         </div>
       </div>
     </div>

@@ -5,10 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Star, BookMarked } from "lucide-react";
+import { BookOpen, BookMarked } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
+import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
@@ -166,31 +167,14 @@ export default function SeriesDetailPage() {
                   {book.status === 'read' && (
                     <div className="flex items-center justify-center sm:justify-start gap-1 mb-3">
                       {book.rating ? (
-                        // Show filled stars for rated books
-                        [...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={cn(
-                              "w-4 h-4",
-                              i < book.rating!
-                                ? "fill-[var(--accent)] text-[var(--accent)]"
-                                : "text-[var(--foreground)]/20"
-                            )}
-                          />
-                        ))
+                        <StarRating rating={book.rating} size="sm" />
                       ) : (
-                        // Show empty stars with prompt for unrated read books
-                        <>
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className="w-4 h-4 text-[var(--foreground)]/20"
-                            />
-                          ))}
+                        <div className="flex items-center gap-1">
+                          <StarRating rating={0} size="sm" />
                           <span className="ml-2 text-xs text-[var(--accent)] italic font-medium">
                             Not rated yet
                           </span>
-                        </>
+                        </div>
                       )}
                     </div>
                   )}

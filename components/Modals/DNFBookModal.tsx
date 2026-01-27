@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getTodayLocalDate } from "@/utils/dateHelpers";
 import { getLogger } from "@/lib/logger";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 const logger = getLogger().child({ component: "DNFBookModal" });
 
@@ -33,7 +33,6 @@ export default function DNFBookModal({
   lastProgressPercentage,
 }: DNFBookModalProps) {
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [review, setReview] = useState("");
   const [dnfDate, setDnfDate] = useState("");
 
@@ -86,7 +85,6 @@ export default function DNFBookModal({
     );
     clearDraft(); // Clear draft after successful submission
     setRating(0);
-    setHoverRating(0);
     setReview("");
     setDnfDate("");
     onClose();
@@ -94,7 +92,6 @@ export default function DNFBookModal({
 
   const handleClose = () => {
     setRating(0);
-    setHoverRating(0);
     setReview("");
     setDnfDate("");
     onClose();
@@ -111,13 +108,13 @@ export default function DNFBookModal({
         <div className="flex gap-3 justify-end">
           <button
             onClick={handleClose}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
+            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+            className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
           >
             Mark as DNF
           </button>
@@ -136,7 +133,7 @@ export default function DNFBookModal({
 
       {/* DNF Date */}
       <div className="mb-6">
-        <label htmlFor="dnfDate" className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+        <label htmlFor="dnfDate" className="block text-sm font-medium text-[var(--heading-text)] mb-2">
           Stopped Reading Date
         </label>
         <input
@@ -150,42 +147,23 @@ export default function DNFBookModal({
 
       {/* Rating */}
       <div className="mb-6">
-        <label className="block text-sm text-[var(--foreground)] mb-3">
-          <span className="font-semibold">Rating</span> <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
+        <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
+          Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className="focus:outline-none transition-transform hover:scale-110"
-            >
-              <Star
-                className={cn(
-                  "w-8 h-8 transition-colors",
-                  star <= (hoverRating || rating)
-                    ? "fill-[var(--accent)] text-[var(--accent)]"
-                    : "text-[var(--foreground)]/30"
-                )}
-              />
-            </button>
-          ))}
-        </div>
-        {rating > 0 && (
-          <p className="text-xs text-[var(--foreground)]/50 mt-2 font-medium">
-            {rating} {rating === 1 ? "star" : "stars"}
-          </p>
-        )}
+        <StarRating 
+          rating={rating} 
+          size="lg" 
+          interactive={true} 
+          onRatingChange={setRating}
+          showCount={true}
+        />
       </div>
 
       {/* Review (Optional) */}
       <div className="mb-6">
         <label
           htmlFor="review"
-          className="block text-sm font-semibold text-[var(--foreground)] mb-2"
+          className="block text-sm font-medium text-[var(--heading-text)] mb-2"
         >
           <span>Notes / Reasoning</span>
           <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>

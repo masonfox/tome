@@ -201,10 +201,12 @@ export function AddBooksToShelfModal({
       </div>
 
       {/* Results */}
-      <div className="border-t border-[var(--border-color)] pt-4">
+      <div className="pt-4">
         {!hasSearched ? (
           <div className="text-center py-16">
-            <Search className="w-16 h-16 mx-auto text-[var(--foreground)]/30 mb-4" />
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--background)] flex items-center justify-center">
+              <Search className="w-6 h-6 text-[var(--accent)]" />
+            </div>
             <h3 className="text-lg font-semibold text-[var(--heading-text)] mb-2">
               Search for books to add
             </h3>
@@ -318,25 +320,25 @@ export function AddBooksToShelfModal({
         size="full"
         allowBackdropClose={false}
       >
-        {/* Subtitle */}
-        <div className="mb-4">
-          <p className="text-sm text-[var(--foreground)]/70 mb-3">
-            {shelfName}
-          </p>
-          {selectedBookIds.size > 0 && (
-            <p className="text-sm text-[var(--foreground)]/70">
-              {selectedBookIds.size} {selectedBookIds.size === 1 ? "book" : "books"} selected
+        <div className="pb-20">
+          {/* Subtitle */}
+          <div className="mb-4">
+            <p className="text-sm text-[var(--foreground)]/70 mb-3">
+              {shelfName}
             </p>
-          )}
-        </div>
+            {selectedBookIds.size > 0 && (
+              <p className="text-sm text-[var(--foreground)]/70">
+                {selectedBookIds.size} {selectedBookIds.size === 1 ? "book" : "books"} selected
+              </p>
+            )}
+          </div>
 
-        {/* Content */}
-        <div className="mb-20">
+          {/* Content */}
           {searchAndResults}
         </div>
 
         {/* Fixed bottom buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
+        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
           <button
             onClick={handleClose}
             disabled={submitting}

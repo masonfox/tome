@@ -35,15 +35,14 @@ export function JournalArchiveDrawer({
       title="Archive"
       icon={<Archive className="w-5 h-5" />}
     >
-      <div className="max-h-[calc(80vh-8rem)] overflow-y-auto">
-        <JournalArchiveTree
-          archiveData={archiveData}
-          currentDateRange={currentDateRange}
-          onNavigate={handleNavigate}
-          loading={loading}
-          showHeader={false}
-        />
-      </div>
+      <JournalArchiveTree
+        archiveData={archiveData}
+        currentDateRange={currentDateRange}
+        onNavigate={handleNavigate}
+        loading={loading}
+        showHeader={false}
+        minimal={true}
+      />
     </BottomSheet>
   );
 }
