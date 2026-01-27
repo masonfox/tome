@@ -36,8 +36,8 @@ export function CurrentlyReadingCardSkeleton() {
               <div className="h-2 bg-[var(--foreground)]/15 rounded-full w-[55%]" />
             </div>
             
-            {/* Update button - p-1.5 with icon w-4 h-4 */}
-            <div className="w-7 h-7 bg-[var(--card-bg-emphasis)] rounded flex-shrink-0" />
+            {/* Update button placeholder - invisible to maintain spacing */}
+            <div className="w-7 h-7 flex-shrink-0" />
           </div>
         </div>
       </div>
