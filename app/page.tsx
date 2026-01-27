@@ -2,7 +2,9 @@
 
 import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
 import { StatsCard } from "@/components/Utilities/StatsCard";
+import { StatsCardSkeleton } from "@/components/Utilities/StatsCardSkeleton";
 import { StreakDisplay } from "@/components/Streaks/StreakDisplay";
+import { StreakDisplaySkeleton } from "@/components/Streaks/StreakDisplaySkeleton";
 import { BookCard } from "@/components/Books/BookCard";
 import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
 import CurrentlyReadingSection from "@/components/CurrentlyReading/CurrentlyReadingSection";
@@ -29,7 +31,9 @@ export default function Dashboard() {
 
           {/* Streak Display */}
           <div className="flex justify-center items-center">
-            {streak && (
+            {isLoading ? (
+              <StreakDisplaySkeleton className="flex-shrink-0" />
+            ) : streak ? (
               <StreakDisplay
                 currentStreak={streak.currentStreak}
                 longestStreak={streak.longestStreak}
@@ -38,17 +42,19 @@ export default function Dashboard() {
                 todayPagesRead={streak.todayPagesRead}
                 className="flex-shrink-0"
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
       {/* Currently Reading */}
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold">
+        <div className="flex items-center justify-between mb-6 min-h-[40px]">
+          <h2 className="text-2xl font-serif font-bold flex items-center">
             <span className="text-[var(--heading-text)]">Currently Reading</span>
-            {!isLoading && (
+            {isLoading ? (
+              <span className="ml-2 inline-block min-w-[2.5rem] h-7 bg-[var(--card-bg-emphasis)] rounded-full animate-pulse" />
+            ) : (
               <span className="ml-2 text-[var(--accent)]">
                 ({currentlyReadingTotal})
               </span>
@@ -71,10 +77,12 @@ export default function Dashboard() {
 
       {/* Read Next */}
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold">
+        <div className="flex items-center justify-between mb-6 min-h-[40px]">
+          <h2 className="text-2xl font-serif font-bold flex items-center">
             <span className="text-[var(--heading-text)]">Read Next</span>
-            {!isLoading && (
+            {isLoading ? (
+              <span className="ml-2 inline-block min-w-[2.5rem] h-7 bg-[var(--card-bg-emphasis)] rounded-full animate-pulse" />
+            ) : (
               <span className="ml-2 text-[var(--accent)]">
                 ({readNextTotal})
               </span>
@@ -93,7 +101,7 @@ export default function Dashboard() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4 min-h-[200px]">
             {[...Array(8)].map((_, i) => (
               <BookCardSkeleton key={i} />
             ))}
@@ -112,7 +120,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center min-h-[200px] flex flex-col items-center justify-center">
             <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
             <p className="text-[var(--foreground)]/70 font-medium">
               No books in your reading queue. Add books from your{" "}
@@ -129,34 +137,43 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-[var(--border-color)]">
-          <StatsCard
-            title="Books Read This Year"
-            value={stats.booksRead.thisYear}
-            subtitle={`${stats.booksRead.total} total`}
-            icon={<BookCheck className="w-6 h-6" />}
-          />
-          <StatsCard
-            title="Currently Reading"
-            value={stats.currentlyReading}
-            subtitle="Active books"
-            icon={<BookOpen className="w-6 h-6" />}
-          />
-          <StatsCard
-            title="Pages Today"
-            value={stats.pagesRead.today}
-            subtitle={`${stats.pagesRead.thisMonth} this month`}
-            icon={<TrendingUp className="w-6 h-6" />}
-          />
-          <StatsCard
-            title="Avg. Pages/Day"
-            value={stats.avgPagesPerDay}
-            subtitle="Last 30 days"
-            icon={<Flame className="w-6 h-6" />}
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-[var(--border-color)]">
+        {isLoading ? (
+          <>
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+          </>
+        ) : stats ? (
+          <>
+            <StatsCard
+              title="Books Read This Year"
+              value={stats.booksRead.thisYear}
+              subtitle={`${stats.booksRead.total} total`}
+              icon={<BookCheck className="w-6 h-6" />}
+            />
+            <StatsCard
+              title="Currently Reading"
+              value={stats.currentlyReading}
+              subtitle="Active books"
+              icon={<BookOpen className="w-6 h-6" />}
+            />
+            <StatsCard
+              title="Pages Today"
+              value={stats.pagesRead.today}
+              subtitle={`${stats.pagesRead.thisMonth} this month`}
+              icon={<TrendingUp className="w-6 h-6" />}
+            />
+            <StatsCard
+              title="Avg. Pages/Day"
+              value={stats.avgPagesPerDay}
+              subtitle="Last 30 days"
+              icon={<Flame className="w-6 h-6" />}
+            />
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
