@@ -416,40 +416,49 @@ export function LibraryFilters({
 
               {showStatusDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                  {statusOptions.map((option) => {
+                  {statusOptions.map((option, index) => {
                     const Icon = option.icon;
                     const statusConfig = option.value !== "all" ? STATUS_CONFIG[option.value as keyof typeof STATUS_CONFIG] : null;
+                    const isFirstItem = index === 0;
+                    const showDivider = isFirstItem;
+                    
                     return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          onStatusFilterChange(option.value);
-                          setShowStatusDropdown(false);
-                        }}
-                        disabled={loading}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                          "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                          statusFilter === option.value && "bg-[var(--accent)]/10",
-                          loading && "opacity-50 cursor-not-allowed"
+                      <div key={option.value}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onStatusFilterChange(option.value);
+                            setShowStatusDropdown(false);
+                          }}
+                          disabled={loading}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            statusFilter === option.value && "bg-[var(--accent)]/10",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {statusConfig ? (
+                            <div className={cn(
+                              "w-7 h-7 rounded-md flex items-center justify-center bg-gradient-to-r shadow-sm",
+                              statusConfig.lightGradient
+                            )}>
+                              <Icon className="w-4 h-4 text-white" />
+                            </div>
+                          ) : (
+                            <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
+                          )}
+                          <span className="font-medium flex-1">{option.label}</span>
+                          {statusFilter === option.value && (
+                            <Check className="w-5 h-5 text-[var(--accent)]" />
+                          )}
+                        </button>
+                        
+                        {/* Divider after "All Statuses" */}
+                        {showDivider && (
+                          <div className="h-px bg-[var(--border-color)]" />
                         )}
-                      >
-                        {statusConfig ? (
-                          <div className={cn(
-                            "w-7 h-7 rounded-md flex items-center justify-center bg-gradient-to-r shadow-sm",
-                            statusConfig.lightGradient
-                          )}>
-                            <Icon className="w-4 h-4 text-white" />
-                          </div>
-                        ) : (
-                          <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
-                        )}
-                        <span className="font-medium flex-1">{option.label}</span>
-                        {statusFilter === option.value && (
-                          <Check className="w-5 h-5 text-[var(--accent)]" />
-                        )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
