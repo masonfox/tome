@@ -6,24 +6,11 @@ import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 // Helper function to render star ratings
 function renderStars(rating: number) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={cn(
-            "w-4 h-4",
-            star <= rating 
-              ? "fill-[var(--accent)] text-[var(--accent)]" 
-              : "text-[var(--foreground)]/30"
-          )}
-        />
-      ))}
-    </span>
-  );
+  return <StarRating rating={rating} size="sm" />;
 }
 
 // Move static options outside component to avoid recreation

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Star } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo, ReactNode } from "react";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
+import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
@@ -165,19 +166,7 @@ export const BookListItem = memo(function BookListItem({
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 {/* Rating */}
                 {book.rating && book.rating > 0 && (
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={cn(
-                          "w-3.5 h-3.5",
-                          i < book.rating!
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-[var(--foreground)]/20"
-                        )}
-                      />
-                    ))}
-                  </div>
+                  <StarRating rating={book.rating} size="xs" />
                 )}
 
                 {/* Status Badge */}

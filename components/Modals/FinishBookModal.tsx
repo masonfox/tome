@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getLogger } from "@/lib/logger";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 const logger = getLogger().child({ component: "FinishBookModal" });
 
@@ -28,7 +28,6 @@ export default function FinishBookModal({
   sessionId,
 }: FinishBookModalProps) {
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [review, setReview] = useState("");
 
   // Track whether we've already restored the draft for this modal session
@@ -84,7 +83,6 @@ export default function FinishBookModal({
       clearDraft();
     }
     setRating(0);
-    setHoverRating(0);
     setReview("");
     onClose();
   };
@@ -123,32 +121,13 @@ export default function FinishBookModal({
         <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
           Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className="focus:outline-none transition-transform hover:scale-110"
-            >
-              <Star
-                className={cn(
-                  "w-8 h-8 transition-colors",
-                  star <= (hoverRating || rating)
-                    ? "fill-[var(--accent)] text-[var(--accent)]"
-                    : "text-[var(--foreground)]/30"
-                )}
-              />
-            </button>
-          ))}
-        </div>
-        {rating > 0 && (
-          <p className="text-xs text-[var(--foreground)]/50 mt-2 font-medium">
-            {rating} {rating === 1 ? "star" : "stars"}
-          </p>
-        )}
+        <StarRating 
+          rating={rating} 
+          size="lg" 
+          interactive={true} 
+          onRatingChange={setRating}
+          showCount={true}
+        />
       </div>
 
       {/* Review (Optional) */}

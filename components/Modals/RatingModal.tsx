@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -20,13 +21,11 @@ export default function RatingModal({
   currentRating,
 }: RatingModalProps) {
   const [rating, setRating] = useState(currentRating || 0);
-  const [hoverRating, setHoverRating] = useState(0);
 
   // Reset rating when modal opens
   useEffect(() => {
     if (isOpen) {
       setRating(currentRating || 0);
-      setHoverRating(0);
     }
   }, [isOpen, currentRating]);
 
@@ -44,7 +43,6 @@ export default function RatingModal({
 
   const handleClose = () => {
     setRating(currentRating || 0);
-    setHoverRating(0);
     onClose();
   };
 
@@ -73,32 +71,13 @@ export default function RatingModal({
 
         {/* Rating */}
         <div className="mb-7">
-          <div className="flex gap-2 justify-center">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                className="focus:outline-none transition-transform hover:scale-110"
-              >
-                <Star
-                  className={cn(
-                    "w-10 h-10 transition-colors",
-                    star <= (hoverRating || rating)
-                      ? "fill-[var(--accent)] text-[var(--accent)]"
-                      : "text-[var(--foreground)]/30"
-                  )}
-                />
-              </button>
-            ))}
-          </div>
-          {rating > 0 && (
-            <p className="text-sm text-[var(--subheading-text)] mt-3 font-medium text-center">
-              {rating} {rating === 1 ? "star" : "stars"}
-            </p>
-          )}
+          <StarRating 
+            rating={rating} 
+            size="xl" 
+            interactive={true} 
+            onRatingChange={setRating}
+            showCount={true}
+          />
           {currentRating && (
             <div className="text-center mt-2">
               <button

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getTodayLocalDate } from "@/utils/dateHelpers";
 import { getLogger } from "@/lib/logger";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 const logger = getLogger().child({ component: "DNFBookModal" });
 
@@ -33,7 +33,6 @@ export default function DNFBookModal({
   lastProgressPercentage,
 }: DNFBookModalProps) {
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [review, setReview] = useState("");
   const [dnfDate, setDnfDate] = useState("");
 
@@ -86,7 +85,6 @@ export default function DNFBookModal({
     );
     clearDraft(); // Clear draft after successful submission
     setRating(0);
-    setHoverRating(0);
     setReview("");
     setDnfDate("");
     onClose();
@@ -94,7 +92,6 @@ export default function DNFBookModal({
 
   const handleClose = () => {
     setRating(0);
-    setHoverRating(0);
     setReview("");
     setDnfDate("");
     onClose();
@@ -153,32 +150,13 @@ export default function DNFBookModal({
         <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
           Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className="focus:outline-none transition-transform hover:scale-110"
-            >
-              <Star
-                className={cn(
-                  "w-8 h-8 transition-colors",
-                  star <= (hoverRating || rating)
-                    ? "fill-[var(--accent)] text-[var(--accent)]"
-                    : "text-[var(--foreground)]/30"
-                )}
-              />
-            </button>
-          ))}
-        </div>
-        {rating > 0 && (
-          <p className="text-xs text-[var(--foreground)]/50 mt-2 font-medium">
-            {rating} {rating === 1 ? "star" : "stars"}
-          </p>
-        )}
+        <StarRating 
+          rating={rating} 
+          size="lg" 
+          interactive={true} 
+          onRatingChange={setRating}
+          showCount={true}
+        />
       </div>
 
       {/* Review (Optional) */}

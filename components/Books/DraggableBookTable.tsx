@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Star, ArrowUpDown, ArrowUp, ArrowDown, Trash2, ExternalLink, GripVertical } from "lucide-react";
+import { BookOpen, ArrowUpDown, ArrowUp, ArrowDown, Trash2, ExternalLink, GripVertical } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
+import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 import {
@@ -219,19 +220,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       {/* Rating */}
       <td className="px-4 py-3">
         {book.rating && book.rating > 0 ? (
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={cn(
-                  "w-4 h-4",
-                  i < book.rating!
-                    ? "fill-amber-400 text-amber-400"
-                    : "text-[var(--foreground)]/20"
-                )}
-              />
-            ))}
-          </div>
+          <StarRating rating={book.rating} size="sm" />
         ) : (
           <span className="text-[var(--foreground)]/40 text-sm">-</span>
         )}
