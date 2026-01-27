@@ -604,6 +604,9 @@ export function LibraryFilters({
                     </button>
                   )}
 
+                  {/* Divider */}
+                  <div className="h-px bg-[var(--border-color)]" />
+
                   {/* Search input within dropdown */}
                   <div className="py-2 sticky top-0 bg-[var(--card-bg-emphasis)]">
                     <input
