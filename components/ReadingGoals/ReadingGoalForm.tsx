@@ -120,11 +120,11 @@ export function ReadingGoalForm({
         </div>
       </div>
 
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-3 pt-4 justify-end">
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 px-6 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={saving}
         >
           Cancel
@@ -132,7 +132,7 @@ export function ReadingGoalForm({
         <button
           type="submit"
           disabled={!canEdit || saving}
-          className="flex-1 px-6 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="px-6 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
           {mode === "create" ? "Create Goal" : "Update Goal"}
