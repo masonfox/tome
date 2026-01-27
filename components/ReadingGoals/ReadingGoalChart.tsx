@@ -18,16 +18,19 @@ interface MonthlyData {
 
 interface ReadingGoalChartProps {
   monthlyData: MonthlyData[];
+  onMonthClick?: (month: number) => void;
+  selectedMonth?: number | null;
 }
 
 // Month names for X-axis (defined outside component to avoid recreating)
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
+export function ReadingGoalChart({ monthlyData, onMonthClick, selectedMonth }: ReadingGoalChartProps) {
   // Prepare chart data
   const chartData = useMemo(() => {
     return monthlyData.map((item) => ({
       month: monthNames[item.month - 1],
+      monthNumber: item.month,
       count: item.count,
     }));
   }, [monthlyData]);
@@ -70,6 +73,44 @@ export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
     return null;
   };
 
+  // Handle bar click
+  const handleBarClick = (data: any) => {
+    if (onMonthClick && data && data.monthNumber) {
+      onMonthClick(data.monthNumber);
+    }
+  };
+
+  // Custom Bar Shape with click handler and hover effect
+  const CustomBar = (props: any) => {
+    const { x, y, width, height, payload } = props;
+    const isSelected = selectedMonth === payload.monthNumber;
+    
+    return (
+      <g>
+        <defs>
+          <linearGradient id={`barGradient-${payload.monthNumber}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0.3} />
+          </linearGradient>
+        </defs>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill={`url(#barGradient-${payload.monthNumber})`}
+          stroke={isSelected ? "#059669" : "transparent"}
+          strokeWidth={isSelected ? 3 : 0}
+          rx={4}
+          ry={4}
+          style={{ cursor: onMonthClick ? "pointer" : "default" }}
+          onClick={() => handleBarClick(payload)}
+          className="transition-all hover:opacity-80"
+        />
+      </g>
+    );
+  };
+
   return (
     <div className="w-full h-64 md:h-80">
       <ResponsiveContainer width="100%" height="100%">
@@ -77,12 +118,6 @@ export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
           data={chartData}
           margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
         >
-          <defs>
-            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.3} />
-            </linearGradient>
-          </defs>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <XAxis
             dataKey="month"
@@ -105,9 +140,8 @@ export function ReadingGoalChart({ monthlyData }: ReadingGoalChartProps) {
           <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="count"
-            fill="url(#barGradient)"
+            shape={<CustomBar />}
             name="Books Completed"
-            radius={[4, 4, 0, 0]}
           />
         </ComposedChart>
       </ResponsiveContainer>

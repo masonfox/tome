@@ -6,6 +6,7 @@ import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "@/components/Utilities/YearSelector";
+import { MonthSelector } from "@/components/Utilities/MonthSelector";
 import { ReadingGoalChart } from "./ReadingGoalChart";
 import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "@/components/Books/CompletedBooksSection";
@@ -24,6 +25,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -137,6 +139,11 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
+    setSelectedMonth(null); // Reset month filter when year changes
+  };
+
+  const handleMonthClick = (month: number) => {
+    setSelectedMonth(month);
   };
 
   // ESC key handler
@@ -229,9 +236,25 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             </h3>
             <ReadingGoalChart
               monthlyData={monthlyData}
+              onMonthClick={handleMonthClick}
+              selectedMonth={selectedMonth}
             />
           </div>
         ) : null
+      )}
+
+      {/* Month Selector - Only show for past and current years with books */}
+      {currentGoalData && selectedYear <= new Date().getFullYear() && booksCount > 0 && (
+        <div className="flex justify-start">
+          <MonthSelector
+            year={selectedYear}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            minYear={availableYears[availableYears.length - 1]}
+            maxYear={availableYears[0]}
+            onYearChange={handleYearChange}
+          />
+        </div>
       )}
 
       {/* Completed Books Section - Only show for past and current years */}
@@ -241,6 +264,8 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           books={completedBooks}
           count={booksCount}
           loading={booksLoading}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
         />
       )}
     </div>
