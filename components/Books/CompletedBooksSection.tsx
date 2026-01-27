@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { BookCheck } from "lucide-react";
-import { BookGrid } from "@/components/Books/BookGrid";
+import { BookCard } from "@/components/Books/BookCard";
+import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
 
 interface CompletedBooksSectionProps {
   year: number;
@@ -68,7 +69,13 @@ export function CompletedBooksSection({
       </h2>
 
       {/* Books Grid - No Panel */}
-      {!loading && filteredCount === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <BookCardSkeleton key={index} variant="with-status" />
+          ))}
+        </div>
+      ) : filteredCount === 0 ? (
         <div className="py-12 text-center">
           <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
           <p className="text-[var(--foreground)]/70 font-medium">
@@ -81,7 +88,18 @@ export function CompletedBooksSection({
           </p>
         </div>
       ) : (
-        <BookGrid books={filteredBooks} loading={loading} skeletonCount={6} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+          {filteredBooks.map((book) => (
+            <BookCard
+              key={book.id}
+              id={book.id.toString()}
+              title={book.title}
+              authors={book.authors}
+              calibreId={book.calibreId}
+              status={book.status}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
