@@ -18,6 +18,7 @@ const statusOptions = [
   { value: "all", label: "All Statuses", icon: LibraryIcon },
   { value: "reading", label: "Reading", icon: BookOpen },
   { value: "to-read", label: "To Read", icon: Bookmark },
+  { value: "read-next", label: "Read Next", icon: Clock },
   { value: "read", label: "Read", icon: BookCheck },
   { value: "dnf", label: "DNF", icon: BookX },
 ];
