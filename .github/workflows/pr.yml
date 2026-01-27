@@ -44,7 +44,6 @@ jobs:
   docker-build:
     name: Validate Docker Build (PRs only)
     runs-on: ubuntu-latest
-    needs: test
     if: github.event_name == 'pull_request'
 
     steps:
