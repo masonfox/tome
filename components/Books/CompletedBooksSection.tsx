@@ -67,24 +67,22 @@ export function CompletedBooksSection({
         </span>
       </h2>
 
-      {/* Books Grid Panel */}
-      <div className="bg-[var(--card-bg-emphasis)] border border-[var(--border-color)] rounded-md p-6">
-        {!loading && filteredCount === 0 ? (
-          <div className="py-12 text-center">
-            <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
-            <p className="text-[var(--foreground)]/70 font-medium">
-              {selectedMonth 
-                ? `No books read in ${MONTH_NAMES[selectedMonth - 1]}` 
-                : "No books read yet this year"}
-            </p>
-            <p className="text-[var(--foreground)]/50 text-sm mt-2">
-              Start reading and mark books as read to see them here!
-            </p>
-          </div>
-        ) : (
-          <BookGrid books={filteredBooks} loading={loading} skeletonCount={6} />
-        )}
-      </div>
+      {/* Books Grid - No Panel */}
+      {!loading && filteredCount === 0 ? (
+        <div className="py-12 text-center">
+          <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
+          <p className="text-[var(--foreground)]/70 font-medium">
+            {selectedMonth 
+              ? `No books read in ${MONTH_NAMES[selectedMonth - 1]}` 
+              : "No books read yet this year"}
+          </p>
+          <p className="text-[var(--foreground)]/50 text-sm mt-2">
+            Start reading and mark books as read to see them here!
+          </p>
+        </div>
+      ) : (
+        <BookGrid books={filteredBooks} loading={loading} skeletonCount={6} />
+      )}
     </div>
   );
 }
