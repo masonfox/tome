@@ -46,7 +46,7 @@ export function BulkDeleteTagsModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Close
             </button>
@@ -57,7 +57,7 @@ export function BulkDeleteTagsModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 rounded-md text-[var(--foreground)] hover:bg-[var(--foreground)]/10 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -65,7 +65,7 @@ export function BulkDeleteTagsModal({
               type="button"
               onClick={handleConfirm}
               disabled={loading}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Deleting..." : `Delete ${tagCount} ${tagCount === 1 ? "Tag" : "Tags"}`}
             </button>
