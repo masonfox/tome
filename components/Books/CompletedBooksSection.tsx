@@ -68,7 +68,7 @@ export function CompletedBooksSection({
       </h2>
 
       {/* Books Grid Panel */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+      <div className="bg-[var(--card-bg-emphasis)] border border-[var(--border-color)] rounded-md p-6">
         {!loading && filteredCount === 0 ? (
           <div className="py-12 text-center">
             <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
