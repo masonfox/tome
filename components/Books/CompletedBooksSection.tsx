@@ -62,7 +62,7 @@ export function CompletedBooksSection({
       <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 flex items-center gap-3">
         <BookCheck className="w-6 h-6 text-[var(--accent)]" />
         {displayTitle}
-        <span className="text-[var(--foreground)]/60 font-normal">
+        <span className="text-[var(--accent)]">
           ({filteredCount})
         </span>
       </h2>
