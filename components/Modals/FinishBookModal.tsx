@@ -100,13 +100,13 @@ export default function FinishBookModal({
         <div className="flex gap-3 justify-end">
           <button
             onClick={handleClose}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
+            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
           >
             Skip
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
+            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
           >
             Save Rating & Review
           </button>
@@ -120,7 +120,7 @@ export default function FinishBookModal({
 
       {/* Rating */}
       <div className="mb-6">
-        <label className="block text-sm text-[var(--foreground)] mb-3">
+        <label className="block text-sm font-medium text-[var(--heading-text)] mb-3">
           Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
         <div className="flex gap-2">
@@ -155,7 +155,7 @@ export default function FinishBookModal({
       <div className="mb-6">
         <label
           htmlFor="review"
-          className="block text-sm font-semibold text-[var(--foreground)] mb-2"
+          className="block text-sm font-medium text-[var(--heading-text)] mb-2"
         >
           <span>Review</span>
           <span className="ml-1 text-[var(--subheading-text)] font-normal">(optional)</span>

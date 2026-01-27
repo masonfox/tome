@@ -120,18 +120,18 @@ export default function PageCountEditModal({
       subtitle={currentPageCount ? `Current: ${currentPageCount} pages` : undefined}
       allowBackdropClose={false}
       actions={
-        <div className="flex gap-2">
+        <div className="flex gap-3 justify-end">
           <button
             onClick={handleClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 border border-[var(--border-color)] text-[var(--foreground)] rounded hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !pageCount || parseInt(pageCount) <= 0}
-            className="flex-1 px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
@@ -156,7 +156,7 @@ export default function PageCountEditModal({
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+          <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
             Total Pages
           </label>
           <input
@@ -166,7 +166,7 @@ export default function PageCountEditModal({
             min="1"
             step="1"
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors disabled:opacity-50"
             placeholder="e.g. 320"
             autoFocus
           />

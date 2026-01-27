@@ -117,16 +117,16 @@ export default function SessionEditModal({
       size="2xl"
       allowBackdropClose={false}
       actions={
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] font-semibold rounded hover:bg-[var(--background)] transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-[var(--accent)] text-white font-semibold rounded hover:bg-[var(--light-accent)] transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
           >
             Save
           </button>
@@ -139,7 +139,7 @@ export default function SessionEditModal({
           <div>
             <label
               htmlFor="startedDate"
-              className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
+              className="block text-sm font-medium text-[var(--heading-text)] mb-2"
             >
               Started Date
             </label>
@@ -149,14 +149,14 @@ export default function SessionEditModal({
               value={startedDate}
               onChange={(e) => setStartedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
             />
           </div>
 
           <div>
             <label
               htmlFor="completedDate"
-              className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
+              className="block text-sm font-medium text-[var(--heading-text)] mb-2"
             >
               Completed Date
             </label>
@@ -166,7 +166,7 @@ export default function SessionEditModal({
               value={completedDate}
               onChange={(e) => setCompletedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
             />
           </div>
 
@@ -184,7 +184,7 @@ export default function SessionEditModal({
         <div>
           <label
             htmlFor="review"
-            className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
+            className="block text-sm font-medium text-[var(--heading-text)] mb-2"
           >
             Review
           </label>
