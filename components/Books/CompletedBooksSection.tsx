@@ -57,22 +57,18 @@ export function CompletedBooksSection({
     return `Books Read in ${year}`;
   }, [selectedMonth, year]);
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md overflow-hidden">
-      {/* Header - Static */}
-      <div className="px-6 py-4 border-b border-[var(--border-color)]">
-        <div className="flex items-center gap-3">
-          <BookCheck className="w-5 h-5 text-[var(--accent)]" />
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            {displayTitle}
-            <span className="ml-2 text-[var(--foreground)]/60 font-normal">
-              ({filteredCount})
-            </span>
-          </h2>
-        </div>
-      </div>
+    <div>
+      {/* Heading with Icon */}
+      <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 flex items-center gap-3">
+        <BookCheck className="w-6 h-6 text-[var(--accent)]" />
+        {displayTitle}
+        <span className="text-[var(--foreground)]/60 font-normal">
+          ({filteredCount})
+        </span>
+      </h2>
 
-      {/* Content - Always visible */}
-      <div className="px-6 pb-6 pt-6 bg-[var(--card-bg-emphasis)]">
+      {/* Books Grid Panel */}
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
         {!loading && filteredCount === 0 ? (
           <div className="py-12 text-center">
             <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />

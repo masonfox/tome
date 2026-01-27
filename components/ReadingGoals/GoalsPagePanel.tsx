@@ -313,48 +313,54 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       {/* Monthly Chart - Only show for past and current years */}
       {selectedYear <= new Date().getFullYear() && (
         goalLoading || monthlyLoading ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6 pb-4">
-            <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
-              {selectedYear < new Date().getFullYear() 
-                ? "Monthly Breakdown" 
-                : "Monthly Progress"}
-            </h3>
-            <ReadingGoalChartSkeleton />
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
+                {selectedYear < new Date().getFullYear() 
+                  ? "Monthly Breakdown" 
+                  : "Monthly Progress"}
+              </h2>
+              <MonthSelector
+                year={selectedYear}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                minYear={availableYears[availableYears.length - 1]}
+                maxYear={availableYears[0]}
+                onYearChange={handleYearChange}
+                monthsWithBooks={monthsWithBooks}
+                loading={monthlyLoading}
+              />
+            </div>
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+              <ReadingGoalChartSkeleton />
+            </div>
           </div>
         ) : currentGoalData && monthlyData.length > 0 ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6 pb-4">
-            <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
-              {selectedYear < new Date().getFullYear() 
-                ? "Monthly Breakdown" 
-                : "Monthly Progress"}
-            </h3>
-            <ReadingGoalChart
-              monthlyData={monthlyData}
-              onMonthClick={handleMonthClick}
-              selectedMonth={selectedMonth}
-            />
-          </div>
-        ) : null
-      )}
-
-      {/* Month Selector - Only show for past and current years with books */}
-      {selectedYear <= new Date().getFullYear() && (
-        goalLoading || booksLoading ? (
-          <div className="flex justify-start">
-            <MonthSelectorSkeleton />
-          </div>
-        ) : currentGoalData && booksCount > 0 ? (
-          <div className="flex justify-start">
-            <MonthSelector
-              year={selectedYear}
-              selectedMonth={selectedMonth}
-              onMonthChange={setSelectedMonth}
-              minYear={availableYears[availableYears.length - 1]}
-              maxYear={availableYears[0]}
-              onYearChange={handleYearChange}
-              monthsWithBooks={monthsWithBooks}
-              loading={monthlyLoading}
-            />
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+              <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)]">
+                {selectedYear < new Date().getFullYear() 
+                  ? "Monthly Breakdown" 
+                  : "Monthly Progress"}
+              </h2>
+              <MonthSelector
+                year={selectedYear}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                minYear={availableYears[availableYears.length - 1]}
+                maxYear={availableYears[0]}
+                onYearChange={handleYearChange}
+                monthsWithBooks={monthsWithBooks}
+                loading={monthlyLoading}
+              />
+            </div>
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+              <ReadingGoalChart
+                monthlyData={monthlyData}
+                onMonthClick={handleMonthClick}
+                selectedMonth={selectedMonth}
+              />
+            </div>
           </div>
         ) : null
       )}
