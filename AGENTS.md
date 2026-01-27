@@ -435,7 +435,6 @@ If unsure about:
 
 ## 📌 Remember
 
-- **Beads for issue tracking** - Use `bd` commands for workflow
 - **Documentation is the source of truth** - Follow it unless explicitly asked to change
 - **Constitution defines principles** - Read `.specify/memory/constitution.md` first
 - **Patterns provide implementations** - Use `.specify/memory/patterns.md` for code
