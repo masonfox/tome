@@ -86,7 +86,7 @@ export function CompletedBooksSection({
             </p>
           </div>
         ) : (
-          <BookGrid books={filteredBooks} loading={loading} />
+          <BookGrid books={filteredBooks} loading={loading} skeletonCount={6} />
         )}
       </div>
     </div>
