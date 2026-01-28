@@ -430,7 +430,7 @@ export default function BookDetailPage() {
                 <span key={author}>
                   <Link
                     href={`/library?search=${encodeURIComponent(author)}`}
-                    className="hover:text-[var(--accent)] transition-colors hover:underline"
+                    className="hover:underline"
                   >
                     {author}
                   </Link>
