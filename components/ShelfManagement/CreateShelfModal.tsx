@@ -156,18 +156,12 @@ export function CreateShelfModal({
         icon={<FolderPlus className="w-5 h-5" />}
         size="full"
         allowBackdropClose={false}
+        actions={actionButtons}
       >
-        <div className="pb-20">
-          <p className="text-sm text-[var(--subheading-text)] mb-4">
-            Organize your books into custom shelves
-          </p>
-          {formContent}
-        </div>
-
-        {/* Fixed bottom buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
-          {actionButtons}
-        </div>
+        <p className="text-sm text-[var(--subheading-text)] mb-4">
+          Organize your books into custom shelves
+        </p>
+        {formContent}
       </BottomSheet>
     );
   }

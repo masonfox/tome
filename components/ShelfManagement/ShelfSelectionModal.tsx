@@ -324,6 +324,24 @@ export function ShelfSelectionModal({
         icon={<LibraryIcon className="w-5 h-5" />}
         size="full"
         allowBackdropClose={false}
+        actions={
+          <>
+            <button
+              onClick={handleClose}
+              disabled={submitting}
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={selectedShelfId === null || submitting}
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Processing..." : confirmButtonText}
+            </button>
+          </>
+        }
       >
         {/* Subtitle */}
         <div className="mb-4">
@@ -333,27 +351,7 @@ export function ShelfSelectionModal({
         </div>
 
         {/* Content */}
-        <div className="mb-20">
-          {searchAndResults}
-        </div>
-
-        {/* Fixed bottom buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
-          <button
-            onClick={handleClose}
-            disabled={submitting}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={selectedShelfId === null || submitting}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? "Processing..." : confirmButtonText}
-          </button>
-        </div>
+        {searchAndResults}
       </BottomSheet>
     );
   }

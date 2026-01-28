@@ -238,20 +238,6 @@ export default function ShelfEditor({
     </>
   );
 
-  // Mobile wrapper (fixed at bottom)
-  const mobileButtons = buttons && (
-    <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
-      {buttons}
-    </div>
-  );
-
-  // Desktop wrapper (relative positioning)
-  const desktopButtons = buttons && (
-    <div className="mt-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end">
-      {buttons}
-    </div>
-  );
-
   // Mobile: Use BottomSheet
   if (isMobile) {
     return (
@@ -262,6 +248,7 @@ export default function ShelfEditor({
         icon={<FolderOpen className="w-5 h-5" />}
         size="full"
         allowBackdropClose={!saving}
+        actions={buttons}
       >
         {/* Book Title and Summary */}
         <div className="mb-4">
@@ -272,10 +259,7 @@ export default function ShelfEditor({
             {summaryText}
           </p>
         </div>
-        <div className="mb-20">
-          {shelfContent}
-        </div>
-        {mobileButtons}
+        {shelfContent}
       </BottomSheet>
     );
   }
@@ -321,7 +305,7 @@ export default function ShelfEditor({
         </div>
 
         {/* Action Buttons - Fixed at bottom */}
-        {desktopButtons && (
+        {buttons && (
           <div className="p-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end flex-shrink-0">
             {buttons}
           </div>

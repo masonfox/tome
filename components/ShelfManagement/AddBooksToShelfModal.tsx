@@ -319,44 +319,42 @@ export function AddBooksToShelfModal({
         icon={<LibraryIcon className="w-5 h-5" />}
         size="full"
         allowBackdropClose={false}
+        actions={
+          <>
+            <button
+              onClick={handleClose}
+              disabled={submitting}
+              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={selectedBookIds.size === 0 || submitting}
+              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting 
+                ? "Adding..." 
+                : `Add ${selectedBookIds.size || ""} ${selectedBookIds.size === 1 ? "Book" : "Books"}`
+              }
+            </button>
+          </>
+        }
       >
-        <div className="pb-20">
-          {/* Subtitle */}
-          <div className="mb-4">
-            <p className="text-sm text-[var(--foreground)]/70 mb-3">
-              {shelfName}
+        {/* Subtitle */}
+        <div className="mb-4">
+          <p className="text-sm text-[var(--foreground)]/70 mb-3">
+            {shelfName}
+          </p>
+          {selectedBookIds.size > 0 && (
+            <p className="text-sm text-[var(--foreground)]/70">
+              {selectedBookIds.size} {selectedBookIds.size === 1 ? "book" : "books"} selected
             </p>
-            {selectedBookIds.size > 0 && (
-              <p className="text-sm text-[var(--foreground)]/70">
-                {selectedBookIds.size} {selectedBookIds.size === 1 ? "book" : "books"} selected
-              </p>
-            )}
-          </div>
-
-          {/* Content */}
-          {searchAndResults}
+          )}
         </div>
 
-        {/* Fixed bottom buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
-          <button
-            onClick={handleClose}
-            disabled={submitting}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={selectedBookIds.size === 0 || submitting}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting 
-              ? "Adding..." 
-              : `Add ${selectedBookIds.size || ""} ${selectedBookIds.size === 1 ? "Book" : "Books"}`
-            }
-          </button>
-        </div>
+        {/* Content */}
+        {searchAndResults}
       </BottomSheet>
     );
   }

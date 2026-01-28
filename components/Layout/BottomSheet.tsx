@@ -11,6 +11,7 @@ interface BottomSheetProps {
   icon?: React.ReactNode;
   size?: "small" | "medium" | "default" | "large" | "full";
   allowBackdropClose?: boolean;
+  actions?: React.ReactNode;
 }
 
 // Animation timing
@@ -32,6 +33,7 @@ export function BottomSheet({
   icon, 
   size = "default",
   allowBackdropClose = true,
+  actions,
 }: BottomSheetProps) {
   // Animation states: null = not rendered, 'entering' = animating in, 'entered' = visible, 'exiting' = animating out
   const [animationState, setAnimationState] = useState<'entering' | 'entered' | 'exiting' | null>(null);
@@ -108,7 +110,7 @@ export function BottomSheet({
       {/* Bottom Sheet */}
       <div 
         ref={contentRef}
-        className={`fixed bottom-0 left-0 right-0 z-[101] bg-[var(--card-bg)] border-t border-[var(--border-color)] shadow-2xl flex flex-col ${
+        className={`fixed bottom-0 left-0 right-0 z-[101] bg-[var(--card-bg)] border-t border-[var(--border-color)] shadow-2xl flex flex-col pb-safe ${
           sizeClasses[size]
         }`}
         style={{
@@ -141,6 +143,13 @@ export function BottomSheet({
         <div className="flex-1 overflow-y-auto p-4">
           {children}
         </div>
+
+        {/* Optional action buttons */}
+        {actions && (
+          <div className="flex-shrink-0 border-t border-[var(--border-color)] p-4 bg-[var(--card-bg)] flex gap-3 justify-end">
+            {actions}
+          </div>
+        )}
       </div>
     </>
   );
