@@ -3,23 +3,16 @@
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
 import { Target, TrendingUp, TrendingDown } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
+import { getGoalStatusColors, type PaceStatus } from "@/lib/utils/reading-goal-styles";
 
 interface PaceIndicatorProps {
-  paceStatus: "ahead" | "on-track" | "behind";
+  paceStatus: PaceStatus;
   booksAheadBehind: number;
 }
 
 export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorProps) {
-  const getStatusColor = () => {
-    switch (paceStatus) {
-      case "ahead":
-        return "text-emerald-700";
-      case "on-track":
-        return "text-[var(--accent)]";
-      case "behind":
-        return "text-orange-600";
-    }
-  };
+  const colors = getGoalStatusColors(paceStatus, false, false, false);
+  const getStatusColor = () => colors.text;
 
   const getStatusText = () => {
     if (paceStatus === "on-track") {
@@ -85,56 +78,22 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
     }
   }, []);
 
+  // Get colors based on current status
+  const statusColors = getGoalStatusColors(paceStatus, isGoalMet, isExceeded, isPastYear);
+
   // Helper function to get banner gradient
-  const getBannerGradient = () => {
-    if (isPastYear) {
-      if (isExceeded || isGoalMet) {
-        return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/40";
-      }
-      return "bg-gradient-to-r from-orange-600/10 via-orange-500/10 to-orange-400/10 border-b border-orange-600/40";
-    }
-    
-    if (isExceeded || isGoalMet) {
-      return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/40";
-    }
-    if (paceStatus === "ahead") {
-      return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/40";
-    }
-    if (paceStatus === "on-track") {
-      return "bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent)]/8 to-[var(--light-accent)]/10 border-b border-[var(--border-color)]";
-    }
-    return "bg-gradient-to-r from-orange-600/10 via-orange-500/10 to-orange-400/10 border-b border-orange-600/40";
-  };
+  const getBannerGradient = () => statusColors.banner;
 
   // Helper function to get progress bar gradient and animation
   const getProgressBarClasses = () => {
     const shouldPulse = isExceeded || isGoalMet;
     const baseClasses = "h-12 transition-all duration-500 ease-out flex items-center justify-center relative";
-    
-    let gradientClasses = "";
-    if (isPastYear) {
-      if (isExceeded || isGoalMet) {
-        gradientClasses = "bg-gradient-to-r from-emerald-700 to-emerald-600";
-      } else {
-        gradientClasses = "bg-gradient-to-r from-orange-600 to-orange-500";
-      }
-    } else {
-      if (isExceeded) {
-        gradientClasses = "bg-gradient-to-r from-emerald-600 to-emerald-500";
-      } else if (isGoalMet) {
-        gradientClasses = "bg-gradient-to-r from-emerald-700 to-emerald-600";
-      } else if (paceStatus === "ahead") {
-        gradientClasses = "bg-gradient-to-r from-emerald-700 to-emerald-600";
-      } else if (paceStatus === "on-track") {
-        gradientClasses = "bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)]";
-      } else {
-        gradientClasses = "bg-gradient-to-r from-orange-600 to-orange-500";
-      }
-    }
-    
     const pulseClasses = shouldPulse ? "animate-pulse-subtle" : "";
-    return `${baseClasses} ${gradientClasses} ${pulseClasses}`;
+    return `${baseClasses} ${statusColors.gradient} ${pulseClasses}`;
   };
+
+  // Helper function to get color for the books completed number based on pacing
+  const getBooksCompletedColor = () => statusColors.text;
 
   // PAST YEAR: Retrospective view
   if (isPastYear) {
@@ -172,7 +131,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
             </span>
             <span className="text-base font-bold text-[var(--heading-text)]">
-              {booksCompleted}/{goal.booksGoal} books
+              <span className={getBooksCompletedColor()}>{booksCompleted}</span>/{goal.booksGoal} books
             </span>
           </div>
 
@@ -220,7 +179,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               </p>
             </div>
             {!isExceeded && booksRemaining > 0 && (
-              <div className="bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] border-orange-400">
+              <div className={`bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] ${statusColors.border}`}>
                 <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
                   Fell Short By
                 </p>
@@ -230,7 +189,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               </div>
             )}
             {isExceeded && (
-              <div className="bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] border-emerald-400">
+              <div className={`bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] ${statusColors.border}`}>
                 <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
                   Exceeded By
                 </p>
@@ -240,7 +199,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               </div>
             )}
             {!isExceeded && booksRemaining === 0 && (
-              <div className="bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] border-emerald-400">
+              <div className={`bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] ${statusColors.border}`}>
                 <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
                   Goal
                 </p>
@@ -299,7 +258,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
           </span>
           <span className="text-base font-bold text-[var(--heading-text)]">
-            {booksCompleted}/{goal.booksGoal} books
+            <span className={getBooksCompletedColor()}>{booksCompleted}</span>/{goal.booksGoal} books
           </span>
         </div>
 
