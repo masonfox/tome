@@ -2,6 +2,7 @@
 
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
 import { Target, TrendingUp, TrendingDown } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 
 interface PaceIndicatorProps {
   paceStatus: "ahead" | "on-track" | "behind";
@@ -74,26 +75,35 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const isExceeded = booksCompleted > goal.booksGoal;
   const isGoalMet = booksCompleted === goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
+  
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const [barWidth, setBarWidth] = useState(0);
+
+  useEffect(() => {
+    if (progressBarRef.current) {
+      setBarWidth(progressBarRef.current.offsetWidth);
+    }
+  }, []);
 
   // Helper function to get banner gradient
   const getBannerGradient = () => {
     if (isPastYear) {
       if (isExceeded || isGoalMet) {
-        return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/20";
+        return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/40";
       }
-      return "bg-gradient-to-r from-orange-600/10 via-orange-500/10 to-orange-400/10 border-b border-orange-600/20";
+      return "bg-gradient-to-r from-orange-600/10 via-orange-500/10 to-orange-400/10 border-b border-orange-600/40";
     }
     
     if (isExceeded || isGoalMet) {
-      return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/20";
+      return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/40";
     }
     if (paceStatus === "ahead") {
-      return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/20";
+      return "bg-gradient-to-r from-emerald-700/10 via-emerald-600/10 to-emerald-500/10 border-b border-emerald-600/40";
     }
     if (paceStatus === "on-track") {
-      return "bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent)]/8 to-[var(--light-accent)]/10 border-b border-[var(--accent)]/20";
+      return "bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent)]/8 to-[var(--light-accent)]/10 border-b border-[var(--border-color)]";
     }
-    return "bg-gradient-to-r from-orange-600/10 via-orange-500/10 to-orange-400/10 border-b border-orange-600/20";
+    return "bg-gradient-to-r from-orange-600/10 via-orange-500/10 to-orange-400/10 border-b border-orange-600/40";
   };
 
   // Helper function to get progress bar gradient and animation
@@ -168,25 +178,34 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
           {/* Hero Progress Bar */}
           <div className="mb-6">
-            <div className="relative w-full bg-[var(--border-color)] rounded-lg h-12 overflow-hidden shadow-inner">
+            <div ref={progressBarRef} className="relative w-full bg-[var(--card-bg-emphasis)] rounded-lg h-12 overflow-hidden">
+              {/* Progress bar fill */}
               <div
                 className={getProgressBarClasses()}
                 style={{ width: `${displayPercentage}%` }}
-              >
-                {/* Percentage inside bar - positioned based on bar width */}
-                {displayPercentage > 0 && (
-                  <span 
-                    className={`text-2xl font-bold font-serif text-white drop-shadow-md ${
-                      displayPercentage < 30 ? 'absolute right-2' : ''
-                    }`}
-                    style={{
-                      textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)'
-                    }}
-                  >
-                    {displayPercentage}%
-                  </span>
-                )}
+              />
+              {/* Background text layer (shows on unfilled portion) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <span className="text-2xl font-bold font-serif text-[var(--foreground)]">
+                  {displayPercentage}%
+                </span>
               </div>
+              {/* Overlay text layer (white text on colored progress bar) */}
+              {barWidth > 0 && (
+                <div 
+                  className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none z-20"
+                  style={{ width: `${displayPercentage}%` }}
+                >
+                  <div 
+                    className="h-full flex items-center justify-center" 
+                    style={{ width: `${barWidth}px` }}
+                  >
+                    <span className="text-2xl font-bold font-serif text-white whitespace-nowrap">
+                      {displayPercentage}%
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -287,32 +306,44 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         {/* Hero Progress Bar */}
         <div className="mb-6">
           <div 
-            className="relative w-full bg-[var(--border-color)] rounded-lg h-12 overflow-hidden shadow-inner"
+            ref={progressBarRef}
+            className="relative w-full bg-[var(--card-bg-emphasis)] rounded-lg h-12 overflow-hidden"
             role="progressbar"
             aria-valuenow={displayPercentage}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label={`Reading progress: ${displayPercentage}% complete`}
           >
+            {/* Progress bar fill */}
             <div
               className={getProgressBarClasses()}
               style={{ width: `${displayPercentage}%` }}
-            >
-              {/* Percentage inside bar - positioned based on bar width */}
-              {displayPercentage > 0 && (
-                <span 
-                  className={`text-2xl font-bold font-serif text-white drop-shadow-md ${
-                    displayPercentage < 30 ? 'absolute right-2' : ''
-                  }`}
-                  style={{
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)'
-                  }}
-                  aria-hidden="true"
-                >
-                  {displayPercentage}%
-                </span>
-              )}
+            />
+            {/* Background text layer (shows on unfilled portion) */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <span className="text-2xl font-bold font-serif text-[var(--foreground)]">
+                {displayPercentage}%
+              </span>
             </div>
+            {/* Overlay text layer (white text on colored progress bar) */}
+            {barWidth > 0 && (
+              <div 
+                className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none z-20"
+                style={{ width: `${displayPercentage}%` }}
+              >
+                <div 
+                  className="h-full flex items-center justify-center" 
+                  style={{ width: `${barWidth}px` }}
+                >
+                  <span 
+                    className="text-2xl font-bold font-serif text-white whitespace-nowrap"
+                    aria-hidden="true"
+                  >
+                    {displayPercentage}%
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
