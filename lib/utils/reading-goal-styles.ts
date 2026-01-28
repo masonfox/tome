@@ -67,7 +67,7 @@ export function getGoalStatusColors(
       return {
         text: "text-[var(--accent)]",
         gradient: "bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)]",
-        banner: "bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent)]/8 to-[var(--light-accent)]/10 border-b border-[var(--border-color)]",
+        banner: "bg-[var(--card-bg-emphasis)] border-b border-[var(--border-color)]",
         border: "border-[var(--accent)]",
       };
     
