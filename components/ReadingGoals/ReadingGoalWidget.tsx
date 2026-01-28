@@ -141,7 +141,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
     return (
       <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md hover:shadow-lg transition-all duration-300 overflow-hidden">
         {/* Status Banner */}
-        <div className={`px-6 py-4 flex items-center justify-between ${getBannerGradient()}`}>
+        <div className={`px-6 py-4 h-[56px] flex items-center justify-between ${getBannerGradient()}`}>
           <div className="flex items-center gap-2">
             {!isExceeded && booksRemaining > 0 && (
               <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600">
@@ -172,7 +172,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
               Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
             </span>
             <span className="text-base font-bold text-[var(--heading-text)]">
-              {displayPercentage}%
+              {booksCompleted}/{goal.booksGoal} books
             </span>
           </div>
 
@@ -259,7 +259,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   return (
     <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md hover:shadow-lg transition-all duration-300 overflow-hidden">
       {/* Status Banner */}
-      <div className={`px-6 py-4 flex items-center justify-between ${getBannerGradient()}`}>
+      <div className={`px-6 py-4 h-[56px] flex items-center justify-between ${getBannerGradient()}`}>
         <div className="flex items-center gap-2">
           {!isExceeded && !isGoalMet && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
           {isGoalMet && (
@@ -279,7 +279,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         {onEditClick && (
           <button
             onClick={onEditClick}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] rounded-md transition-all"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] transition-colors"
             aria-label="Edit reading goal"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -299,7 +299,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
           </span>
           <span className="text-base font-bold text-[var(--heading-text)]">
-            {displayPercentage}%
+            {booksCompleted}/{goal.booksGoal} books
           </span>
         </div>
 
