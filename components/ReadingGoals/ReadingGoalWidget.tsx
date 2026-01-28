@@ -116,7 +116,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             )}
             {!isExceeded && isGoalMet && (
               <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                <Target className="w-4 h-4" />
+                <Trophy className="w-4 h-4" />
                 Goal Achieved!
               </span>
             )}
@@ -226,7 +226,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
           {!isExceeded && !isGoalMet && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
           {isGoalMet && (
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-              <Target className="w-4 h-4" />
+              <Trophy className="w-4 h-4" />
               Goal Met!
             </span>
           )}
