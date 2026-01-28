@@ -88,7 +88,7 @@ export function BottomNavigation() {
   if (!mounted) {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
-        <div className="grid grid-cols-4 h-24">
+        <div className="grid grid-cols-4 h-20">
           {skeletonNavItems}
           <div className="flex flex-col items-center justify-center gap-1 text-[var(--foreground)]/60">
             <MoreHorizontal className="w-6 h-6" />
@@ -102,7 +102,7 @@ export function BottomNavigation() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)] border-t border-[var(--border-color)] pb-safe">
-        <div className="grid grid-cols-4 h-24">
+        <div className="grid grid-cols-4 h-20">
           {activeNavItems}
 
           {/* More Button */}
