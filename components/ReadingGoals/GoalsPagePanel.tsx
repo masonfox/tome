@@ -314,7 +314,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       {selectedYear <= new Date().getFullYear() && (
         goalLoading || monthlyLoading ? (
           <div>
-            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 text-center sm:text-left">
               {selectedYear < new Date().getFullYear() 
                 ? "Monthly Breakdown" 
                 : "Monthly Progress"}
@@ -325,7 +325,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           </div>
         ) : currentGoalData && monthlyData.length > 0 ? (
           <div>
-            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4">
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 text-center sm:text-left">
               {selectedYear < new Date().getFullYear() 
                 ? "Monthly Breakdown" 
                 : "Monthly Progress"}
