@@ -60,12 +60,12 @@ export default function CurrentlyReadingList({
           return (
             <div
               key={book.id}
-              className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 hover:shadow-md transition-shadow group"
             >
               <div className="flex gap-4 items-center">
                 {/* Book Cover Thumbnail */}
                 <Link href={`/books/${book.id}`} className="flex-shrink-0">
-                  <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative">
+                  <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-md group-hover:shadow-lg transition-shadow">
                     {!hasImageError ? (
                       <Image
                         src={getCoverUrl(book.calibreId, book.lastSynced)}
