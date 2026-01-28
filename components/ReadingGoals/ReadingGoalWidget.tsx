@@ -127,8 +127,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         <div className="p-6">
           {/* Goal Info Header */}
           <div className="flex items-center justify-between mb-4">
-            <span className="inline-flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0 relative bottom-.5" />
+            <span className="inline-flex items-center gap-2">
+              <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0" />
               <span className="text-base font-semibold text-[var(--foreground)]">
                 Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
               </span>
@@ -257,8 +257,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       <div className="p-6">
         {/* Goal Info Header */}
         <div className="flex items-center justify-between mb-4">
-          <span className="inline-flex items-center gap-1.5">
-            <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0 relative bottom-.5" />
+          <span className="inline-flex items-center gap-2">
+            <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0" />
             <span className="text-base font-semibold text-[var(--foreground)]">
               Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
             </span>
