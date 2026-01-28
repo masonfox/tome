@@ -52,20 +52,14 @@ export function MonthSelector({
   // Find previous month with books (may cross year boundaries)
   const findPreviousMonthWithBooks = (fromMonth: number | null, fromYear: number): { month: number; year: number } | null => {
     // Special case: When in "All Year" mode (fromMonth === null), 
-    // navigate to the last available month in the current year
+    // navigate to the previous year (last month with books)
     if (fromMonth === null) {
-      // Search backward from December to find last available month in current year
-      for (let month = 12; month >= 1; month--) {
-        if (isMonthAvailable(month)) {
-          return { month, year: fromYear };
-        }
-      }
-      // If no months available in current year, go to previous year
+      // When in "All Year" mode, navigate to previous year
       const prevYear = fromYear - 1;
       if (prevYear < (minYear ?? 1900)) {
         return null; // Hit min year boundary
       }
-      // Return December of previous year (we'll check for books after year change)
+      // Return December of previous year (last month - we'll check for books after year change)
       return { month: 12, year: prevYear };
     }
 
@@ -111,20 +105,14 @@ export function MonthSelector({
   // Find next month with books (may cross year boundaries)
   const findNextMonthWithBooks = (fromMonth: number | null, fromYear: number): { month: number; year: number } | null => {
     // Special case: When in "All Year" mode (fromMonth === null),
-    // navigate to the first available month in the current year
+    // navigate to the next year (first month with books)
     if (fromMonth === null) {
-      // Search forward from January to find first available month in current year
-      for (let month = 1; month <= 12; month++) {
-        if (isMonthAvailable(month)) {
-          return { month, year: fromYear };
-        }
-      }
-      // If no months available in current year, go to next year
+      // When in "All Year" mode, navigate to next year
       const nextYear = fromYear + 1;
       if (nextYear > (maxYear ?? 2100)) {
         return null; // Hit max year boundary
       }
-      // Return January of next year (we'll check for books after year change)
+      // Return January of next year (first month - we'll check for books after year change)
       return { month: 1, year: nextYear };
     }
 
