@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 interface BookProgressProps {
   book: {
@@ -30,6 +30,7 @@ interface BookProgressProps {
   showProgressModeDropdown: boolean;
   setShowProgressModeDropdown: (show: boolean) => void;
   progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
+  /** Optional override for editor visibility. If not provided, component manages loading state internally with a delay. */
   showEditor?: boolean;
   showHeader?: boolean;
 }
@@ -56,6 +57,24 @@ export default function BookProgress({
 }: BookProgressProps) {
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
   const editorRef = useRef<MDXEditorMethods>(null);
+  
+  // Internal state for managing editor visibility with delay
+  const [internalShowEditor, setInternalShowEditor] = useState(false);
+  
+  // Determine whether to show editor: use prop override if provided, otherwise use internal state
+  const shouldShowEditor = showEditor !== undefined ? showEditor : internalShowEditor;
+
+  // Delay showing heavy editor to prevent content shift during initial render
+  useEffect(() => {
+    // Only manage internal state if showEditor prop is not provided
+    if (showEditor === undefined) {
+      setInternalShowEditor(false);
+      const timer = setTimeout(() => {
+        setInternalShowEditor(true);
+      }, 320); // 320ms gives smooth perceived performance
+      return () => clearTimeout(timer);
+    }
+  }, [showEditor]);
 
   // Notify parent when editor ref is ready
   useEffect(() => {
@@ -181,7 +200,7 @@ export default function BookProgress({
                 Notes
               </label>
               <div>
-                {showEditor ? (
+                {shouldShowEditor ? (
                   <MarkdownEditor
                     ref={editorRef}
                     value={notes}
