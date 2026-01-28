@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 
 interface BookProgressProps {
   book: {
@@ -30,8 +30,6 @@ interface BookProgressProps {
   showProgressModeDropdown: boolean;
   setShowProgressModeDropdown: (show: boolean) => void;
   progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
-  /** Optional override for editor visibility. If not provided, component manages loading state internally with a delay. */
-  showEditor?: boolean;
   showHeader?: boolean;
 }
 
@@ -52,29 +50,10 @@ export default function BookProgress({
   showProgressModeDropdown,
   setShowProgressModeDropdown,
   progressModeDropdownRef,
-  showEditor = true,
   showHeader = true,
 }: BookProgressProps) {
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
   const editorRef = useRef<MDXEditorMethods>(null);
-  
-  // Internal state for managing editor visibility with delay
-  const [internalShowEditor, setInternalShowEditor] = useState(false);
-  
-  // Determine whether to show editor: use prop override if provided, otherwise use internal state
-  const shouldShowEditor = showEditor !== undefined ? showEditor : internalShowEditor;
-
-  // Delay showing heavy editor to prevent content shift during initial render
-  useEffect(() => {
-    // Only manage internal state if showEditor prop is not provided
-    if (showEditor === undefined) {
-      setInternalShowEditor(false);
-      const timer = setTimeout(() => {
-        setInternalShowEditor(true);
-      }, 320); // 320ms gives smooth perceived performance
-      return () => clearTimeout(timer);
-    }
-  }, [showEditor]);
 
   // Notify parent when editor ref is ready
   useEffect(() => {
@@ -199,38 +178,13 @@ export default function BookProgress({
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                 Notes
               </label>
-              <div>
-                {shouldShowEditor ? (
-                  <MarkdownEditor
-                    ref={editorRef}
-                    value={notes}
-                    onChange={onNotesChange}
-                    placeholder="Add notes about your reading session..."
-                    height={280}
-                  />
-                ) : (
-                  <div className="animate-pulse border border-[var(--border-color)] rounded-lg bg-[var(--background)] overflow-hidden">
-                    {/* Toolbar skeleton */}
-                    <div className="border-b border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-2 flex gap-2">
-                      <div className="w-6 h-6 bg-[var(--border-color)] rounded"></div>
-                      <div className="w-6 h-6 bg-[var(--border-color)] rounded"></div>
-                      <div className="w-6 h-6 bg-[var(--border-color)] rounded"></div>
-                      <div className="w-px h-6 bg-[var(--border-color)]"></div>
-                      <div className="w-20 h-6 bg-[var(--border-color)] rounded"></div>
-                      <div className="w-px h-6 bg-[var(--border-color)]"></div>
-                      <div className="w-6 h-6 bg-[var(--border-color)] rounded"></div>
-                      <div className="w-6 h-6 bg-[var(--border-color)] rounded"></div>
-                    </div>
-                    {/* Editor content skeleton */}
-                    <div className="p-4 space-y-3 h-[238px]">
-                      <div className="h-4 bg-[var(--border-color)] rounded w-3/4"></div>
-                      <div className="h-4 bg-[var(--border-color)] rounded w-full"></div>
-                      <div className="h-4 bg-[var(--border-color)] rounded w-5/6"></div>
-                      <div className="h-4 bg-[var(--border-color)] rounded w-2/3"></div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <MarkdownEditor
+                ref={editorRef}
+                value={notes}
+                onChange={onNotesChange}
+                placeholder="Add notes about your reading session..."
+                height={280}
+              />
             </div>
 
             <button
