@@ -1,7 +1,7 @@
 "use client";
 
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
-import { Target, TrendingUp, TrendingDown } from "lucide-react";
+import { Target, TrendingUp, TrendingDown, CheckCircle2 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { getGoalStatusColors, type PaceStatus } from "@/lib/utils/reading-goal-styles";
 
@@ -34,7 +34,7 @@ export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorPro
       case "ahead":
         return <TrendingUp className="w-4 h-4" />;
       case "on-track":
-        return <Target className="w-4 h-4" />;
+        return <CheckCircle2 className="w-4 h-4" />;
       case "behind":
         return <TrendingDown className="w-4 h-4" />;
     }
@@ -127,8 +127,11 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         <div className="p-6">
           {/* Goal Info Header */}
           <div className="flex items-center justify-between mb-4">
-            <span className="text-base font-semibold text-[var(--foreground)]">
-              Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0 relative bottom-.5" />
+              <span className="text-base font-semibold text-[var(--foreground)]">
+                Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
+              </span>
             </span>
             <span className="text-base font-bold text-[var(--heading-text)]">
               <span className={getBooksCompletedColor()}>{booksCompleted}</span>/{goal.booksGoal} books
@@ -254,8 +257,11 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
       <div className="p-6">
         {/* Goal Info Header */}
         <div className="flex items-center justify-between mb-4">
-          <span className="text-base font-semibold text-[var(--foreground)]">
-            Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0 relative bottom-.5" />
+            <span className="text-base font-semibold text-[var(--foreground)]">
+              Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
+            </span>
           </span>
           <span className="text-base font-bold text-[var(--heading-text)]">
             <span className={getBooksCompletedColor()}>{booksCompleted}</span>/{goal.booksGoal} books
