@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
@@ -93,33 +93,30 @@ export function useBookStatus(
   onRefresh?: () => void
 ): UseBookStatusReturn {
   const queryClient = useQueryClient();
-  // Initialize status from book prop or default to "to-read"
-  // This prevents the status flash by using the correct initial value
-  const [selectedStatus, setSelectedStatus] = useState(() => {
+  
+  // Derive the correct status from book data
+  const derivedStatus = useMemo(() => {
     if (book?.activeSession) {
       return book.activeSession.status;
     } else if (book?.hasCompletedReads) {
       return "read";
     }
     return "to-read";
-  });
+  }, [book?.activeSession?.status, book?.hasCompletedReads]);
+  
+  // Keep local state for optimistic updates, but initialize and sync with derived status
+  const [selectedStatus, setSelectedStatus] = useState(derivedStatus);
+  
+  // Synchronize local state with derived status whenever it changes
+  useEffect(() => {
+    setSelectedStatus(derivedStatus);
+  }, [derivedStatus]);
+  
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
   const [showCompleteBookModal, setShowCompleteBookModal] = useState(false);
   const [showDNFModal, setShowDNFModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
-
-  // Update status when book data changes (e.g., navigating between books)
-  useEffect(() => {
-    if (book?.activeSession) {
-      setSelectedStatus(book.activeSession.status);
-    } else if (book?.hasCompletedReads) {
-      setSelectedStatus("read");
-    } else if (book) {
-      // Only reset to "to-read" if we have book data (not null)
-      setSelectedStatus("to-read");
-    }
-  }, [book?.activeSession?.id, book?.activeSession?.status, book?.hasCompletedReads, book?.id]);
 
   // Mutation for status updates - uses bookApi
   const statusMutation = useMutation({
