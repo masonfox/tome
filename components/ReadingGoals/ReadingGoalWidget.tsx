@@ -1,7 +1,7 @@
 "use client";
 
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
-import { Target, TrendingUp, TrendingDown, CheckCircle2 } from "lucide-react";
+import { Target, TrendingUp, TrendingDown, CheckCircle2, Trophy } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { getGoalStatusColors, type PaceStatus } from "@/lib/utils/reading-goal-styles";
 
@@ -110,7 +110,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
             )}
             {isExceeded && (
               <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                <Target className="w-4 h-4" />
+                <Trophy className="w-4 h-4" />
                 Goal Exceeded!
               </span>
             )}
@@ -232,7 +232,7 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
           )}
           {isExceeded && (
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-              <Target className="w-4 h-4" />
+              <Trophy className="w-4 h-4" />
               Goal Exceeded!
             </span>
           )}
