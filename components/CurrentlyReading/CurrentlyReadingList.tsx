@@ -116,7 +116,7 @@ export default function CurrentlyReadingList({
                     {/* Update Button - Icon Only */}
                     <button
                       onClick={() => handleLogProgress(book)}
-                      className="p-1.5 text-[var(--light-accent)] hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors"
+                      className="p-1.5 text-[var(--light-accent)] hover:text-[var(--accent)] hover:bg-[var(--background)] rounded-full transition-colors"
                       title="Update progress"
                     >
                       <Pencil className="w-4 h-4" />
