@@ -95,6 +95,7 @@ export function useBookStatus(
   const queryClient = useQueryClient();
   
   // Derive the correct status from book data
+  // Include book?.id to ensure recalculation when navigating between books
   const derivedStatus = useMemo(() => {
     if (book?.activeSession) {
       return book.activeSession.status;
@@ -102,15 +103,19 @@ export function useBookStatus(
       return "read";
     }
     return "to-read";
-  }, [book?.activeSession?.status, book?.hasCompletedReads]);
+  }, [book?.id, book?.activeSession?.status, book?.hasCompletedReads]);
   
   // Keep local state for optimistic updates, but initialize and sync with derived status
   const [selectedStatus, setSelectedStatus] = useState(derivedStatus);
   
   // Synchronize local state with derived status whenever it changes
+  // This ensures status updates when: 
+  // 1. Book data loads initially
+  // 2. Navigating between books
+  // 3. Status changes via API
   useEffect(() => {
     setSelectedStatus(derivedStatus);
-  }, [derivedStatus]);
+  }, [derivedStatus, bookId]); // Include bookId to force sync on navigation
   
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
