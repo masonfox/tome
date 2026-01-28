@@ -25,6 +25,7 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   // Annual goals state
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<ReadingGoal | undefined>();
+  const [booksGoal, setBooksGoal] = useState<number | "">(1);
 
   // Daily goal state
   const [threshold, setThreshold] = useState(initialThreshold);
@@ -33,18 +34,14 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   // Annual goals handlers
   function handleCreateNew() {
     setEditingGoal(undefined);
+    setBooksGoal(1);
     setShowForm(true);
   }
 
   function handleEdit(goal: ReadingGoal) {
     setEditingGoal(goal);
+    setBooksGoal(goal.booksGoal);
     setShowForm(true);
-  }
-
-  function handleFormSuccess() {
-    setShowForm(false);
-    setEditingGoal(undefined);
-    // Goals will auto-refresh via TanStack Query
   }
 
   function handleFormCancel() {
@@ -161,9 +158,17 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
             <ReadingGoalForm
               mode={editingGoal ? "edit" : "create"}
               existingGoal={editingGoal}
-              onSuccess={handleFormSuccess}
-              onCancel={handleFormCancel}
+              booksGoal={booksGoal}
+              onBooksGoalChange={setBooksGoal}
             />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={handleFormCancel}
+                className="px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--background)] border border-[var(--border-color)] rounded-md hover:bg-[var(--card-bg)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : null}
 

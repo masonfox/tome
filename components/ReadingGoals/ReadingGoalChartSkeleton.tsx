@@ -3,15 +3,13 @@
 /**
  * ReadingGoalChartSkeleton - Loading skeleton for monthly chart
  * Mimics the bar chart layout with animated placeholders
+ * NOTE: Does NOT include card wrapper - parent should provide it
  */
 export function ReadingGoalChartSkeleton() {
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 animate-pulse">
-      {/* Title skeleton */}
-      <div className="h-5 bg-[var(--foreground)]/10 rounded w-40 mb-4" />
-      
-      {/* Chart area */}
-      <div className="h-64 flex items-end justify-between gap-2">
+    <div className="animate-pulse">
+      {/* Chart area - matches h-64 md:h-80 from actual chart */}
+      <div className="h-64 md:h-80 flex items-end justify-between gap-1 md:gap-2">
         {/* 12 bar skeletons representing months */}
         {Array.from({ length: 12 }).map((_, i) => {
           // Vary heights for more realistic appearance

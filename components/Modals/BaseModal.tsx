@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Children } from "react";
 import { createPortal } from "react-dom";
 import { Spinner } from "@/components/Utilities/Spinner";
 
@@ -39,6 +39,9 @@ export default function BaseModal({
 }: BaseModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Check if actions has any children (to handle <></> case)
+  const hasActions = Children.count(actions) > 0;
 
   useEffect(() => {
     setMounted(true);
@@ -97,7 +100,7 @@ export default function BaseModal({
         </div>
 
         {/* Content */}
-        <div className="mb-6">
+        <div className={cn(hasActions && "mb-6")}>
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner size="md" />
@@ -108,9 +111,11 @@ export default function BaseModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3">
-          {actions}
-        </div>
+        {hasActions && (
+          <div className="flex justify-end gap-3">
+            {actions}
+          </div>
+        )}
       </div>
     </div>
   );
