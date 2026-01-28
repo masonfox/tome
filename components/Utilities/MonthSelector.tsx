@@ -259,7 +259,7 @@ export function MonthSelector({
 
   return (
     <div className="flex items-center justify-center sm:justify-start gap-3">
-      <label htmlFor="month-select" className="text-sm font-semibold text-[var(--subheading-text)]">
+      <label htmlFor="month-select" className="text-sm font-semibold text-[var(--foreground)]">
         Month
       </label>
       

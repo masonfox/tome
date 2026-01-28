@@ -31,7 +31,7 @@ export function YearSelector({ years, selectedYear, onYearChange }: YearSelector
 
   return (
     <div className="flex items-center justify-center sm:justify-start gap-3">
-      <label htmlFor="year-select" className="text-sm font-semibold text-[var(--subheading-text)]">
+      <label htmlFor="year-select" className="text-sm font-semibold text-[var(--foreground)]">
         Year
       </label>
       
