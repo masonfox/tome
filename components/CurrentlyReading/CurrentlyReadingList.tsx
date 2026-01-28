@@ -88,9 +88,19 @@ export default function CurrentlyReadingList({
                       {book.title}
                     </h3>
                   </Link>
-                  <p className="text-sm text-[var(--subheading-text)] line-clamp-1 font-serif font-medium">
-                    {book.authors.join(", ")}
-                  </p>
+                  <div className="text-sm text-[var(--subheading-text)] line-clamp-1 font-serif font-medium">
+                    {book.authors.map((author, index) => (
+                      <span key={author}>
+                        <Link
+                          href={`/library?search=${encodeURIComponent(author)}`}
+                          className="hover:underline"
+                        >
+                          {author}
+                        </Link>
+                        {index < book.authors.length - 1 && ", "}
+                      </span>
+                    ))}
+                  </div>
 
                   {/* Progress Bar */}
                   <div className="mt-2 flex items-center gap-3">
@@ -106,7 +116,7 @@ export default function CurrentlyReadingList({
                     {/* Update Button - Icon Only */}
                     <button
                       onClick={() => handleLogProgress(book)}
-                      className="p-1.5 text-[var(--accent)] hover:text-[var(--light-accent)] hover:bg-[var(--background)] rounded transition-colors"
+                      className="p-1.5 text-[var(--light-accent)] hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors"
                       title="Update progress"
                     >
                       <Pencil className="w-4 h-4" />
