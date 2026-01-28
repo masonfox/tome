@@ -63,7 +63,7 @@ export function CompletedBooksSection({
     <div>
       {/* Heading with Icon and Month Selector */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-4 mb-4">
-        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] flex items-center justify-center sm:justify-start gap-3">
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] flex items-center justify-center sm:justify-start gap-2">
           <BookCheck className="w-6 h-6 text-[var(--accent)]" />
           {displayTitle}
           <span className="text-[var(--accent)]">
