@@ -97,25 +97,24 @@ export function useBookStatus(
   // Derive the correct status from book data
   // Include book?.id to ensure recalculation when navigating between books
   const derivedStatus = useMemo(() => {
-    if (book?.activeSession) {
-      return book.activeSession.status;
-    } else if (book?.hasCompletedReads) {
-      return "read";
-    }
-    return "to-read";
-  }, [book?.id, book?.activeSession?.status, book?.hasCompletedReads]);
+    return book?.activeSession ? book.activeSession.status 
+      : book?.hasCompletedReads ? "read" 
+      : "to-read";
+  }, [book?.id, book?.activeSession?.status, book?.hasCompletedReads, bookId]);
   
-  // Keep local state for optimistic updates, but initialize and sync with derived status
-  const [selectedStatus, setSelectedStatus] = useState(derivedStatus);
+  // Only keep optimistic override state - null means "use derived status"
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
   
-  // Synchronize local state with derived status whenever it changes
-  // This ensures status updates when: 
-  // 1. Book data loads initially
-  // 2. Navigating between books
-  // 3. Status changes via API
+  // Compute selectedStatus: use optimistic override if present, otherwise use derived
+  const selectedStatus = optimisticStatus ?? derivedStatus;
+  
+  // Clear optimistic status when derived status catches up
+  // This ensures we fall back to real data after mutations complete
   useEffect(() => {
-    setSelectedStatus(derivedStatus);
-  }, [derivedStatus, bookId]); // Include bookId to force sync on navigation
+    if (optimisticStatus !== null && optimisticStatus === derivedStatus) {
+      setOptimisticStatus(null);
+    }
+  }, [optimisticStatus, derivedStatus]);
   
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
@@ -135,17 +134,17 @@ export function useBookStatus(
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
 
       // Snapshot previous value
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
       
       // Optimistic update
-      setSelectedStatus(status);
+      setOptimisticStatus(status);
 
-      return { previousStatus };
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback on error
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
       
       if (error instanceof ApiError) {
@@ -190,16 +189,16 @@ export function useBookStatus(
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
 
       // Optimistic update
-      setSelectedStatus("read");
-      return { previousStatus };
+      setOptimisticStatus("read");
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
 
       getLogger().error({ err: error }, "Failed to mark book as read");
@@ -253,16 +252,16 @@ export function useBookStatus(
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
 
       // Optimistic update
-      setSelectedStatus("read");
-      return { previousStatus };
+      setOptimisticStatus("read");
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
 
       if (error instanceof ApiError) {
@@ -311,16 +310,16 @@ export function useBookStatus(
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
 
       // Optimistic update
-      setSelectedStatus("dnf");
-      return { previousStatus };
+      setOptimisticStatus("dnf");
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
 
       if (error instanceof ApiError) {
