@@ -58,3 +58,5 @@ bun.lock
 
 # AI plans
 /docs/plans
+/.opencode/plans/*
+/.opencode/plan/*
