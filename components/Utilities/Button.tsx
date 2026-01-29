@@ -2,7 +2,6 @@
 
 import { ButtonHTMLAttributes, ReactNode, forwardRef } from "react";
 import { cn } from "@/utils/cn";
-import { buttonStyles } from "@/utils/buttonStyles";
 
 export type ButtonVariant = "primary" | "secondary" | "tertiary" | "danger" | "icon-danger";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -25,6 +24,23 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Button content */
   children?: ReactNode;
 }
+
+/**
+ * Button style variants matching the elegant serif theme
+ * 
+ * Shadow hierarchy:
+ * - Primary/Danger: shadow-md → shadow-lg on hover
+ * - Secondary: shadow-sm → shadow-md on hover
+ * - Tertiary: No shadows (lightweight text buttons)
+ * - Icon-danger: No shadows (icon-only delete buttons)
+ */
+const buttonStyles: Record<ButtonVariant, string> = {
+  primary: "bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
+  secondary: "border border-[var(--border-color)] text-[var(--foreground)] rounded-md hover:bg-[var(--card-bg)] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+  tertiary: "text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
+  danger: "bg-red-600 text-white rounded-md hover:bg-red-700 shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
+  "icon-danger": "p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+};
 
 const sizeStyles: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-sm",
