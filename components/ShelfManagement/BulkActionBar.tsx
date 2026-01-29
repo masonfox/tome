@@ -78,7 +78,7 @@ export function BulkActionBar({
     <div
       id="bulk-action-bar"
       className={cn(
-        "sidebar-offset fixed bottom-24 md:bottom-0 left-0 right-0 z-30",
+        "sidebar-offset fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-30",
         "bg-[var(--card-bg-emphasis)] backdrop-blur-sm",
         "border-t border-[var(--border-color)]",
         "shadow-lg",
