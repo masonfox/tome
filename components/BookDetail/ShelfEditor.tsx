@@ -227,7 +227,7 @@ export default function ShelfEditor({
         onClick={handleClose}
         disabled={saving}
         variant="ghost"
-        size="sm"
+        size="md"
       >
         Cancel
       </Button>
@@ -235,7 +235,7 @@ export default function ShelfEditor({
         onClick={handleSave}
         disabled={saving}
         variant="primary"
-        size="sm"
+        size="md"
         isLoading={saving}
       >
         {saving ? "Saving..." : "Save Changes"}

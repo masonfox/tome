@@ -83,7 +83,7 @@ export default function RatingModal({
               <Button
                 variant="danger-ghost"
                 onClick={handleRemove}
-                size="sm"
+                size="md"
                 className="text-xs"
               >
                 Remove rating

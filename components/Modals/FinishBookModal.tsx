@@ -100,14 +100,14 @@ export default function FinishBookModal({
           <Button
             variant="ghost"
             onClick={handleClose}
-            size="sm"
+            size="md"
           >
             Skip
           </Button>
           <Button
             variant="primary"
             onClick={handleSubmit}
-            size="sm"
+            size="md"
           >
             Save Rating & Review
           </Button>

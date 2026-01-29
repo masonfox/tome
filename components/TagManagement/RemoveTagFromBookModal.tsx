@@ -36,7 +36,7 @@ export function RemoveTagFromBookModal({
         <div className="flex items-center justify-end gap-3">
           <Button
             variant="ghost"
-            size="sm"
+            size="md"
             onClick={onClose}
             disabled={loading}
           >
@@ -44,7 +44,7 @@ export function RemoveTagFromBookModal({
           </Button>
           <Button
             variant="danger"
-            size="sm"
+            size="md"
             onClick={handleConfirm}
             disabled={loading}
           >

@@ -73,7 +73,7 @@ export function RenameTagModal({
           <div className="flex items-center justify-end">
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               onClick={handleCancel}
             >
               Close
@@ -83,7 +83,7 @@ export function RenameTagModal({
           <div className="flex items-center justify-end gap-3">
             <Button
               variant="ghost"
-              size="sm"
+              size="md"
               onClick={handleCancel}
               disabled={loading}
             >
@@ -91,7 +91,7 @@ export function RenameTagModal({
             </Button>
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               type="submit"
               onClick={handleSubmit}
               disabled={!newName.trim() || newName === tagName || loading}

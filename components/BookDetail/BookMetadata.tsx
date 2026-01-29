@@ -35,7 +35,7 @@ export default function BookMetadata({
         <Button
           type="submit"
           variant="primary"
-          size="sm"
+          size="md"
           className="rounded-sm"
         >
           Save

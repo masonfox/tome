@@ -126,7 +126,7 @@ export default function PageCountEditModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="sm"
+            size="md"
           >
             Cancel
           </Button>
@@ -134,7 +134,7 @@ export default function PageCountEditModal({
             variant="primary"
             onClick={handleSubmit}
             disabled={isSubmitting || !pageCount || parseInt(pageCount) <= 0}
-            size="sm"
+            size="md"
           >
             {isSubmitting ? "Saving..." : "Save"}
           </Button>

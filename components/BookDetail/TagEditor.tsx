@@ -101,7 +101,7 @@ export default function TagEditor({
               onClick={() => setTags([])}
               disabled={saving}
               variant="danger-ghost"
-              size="sm"
+              size="md"
               className="text-xs"
             >
               Remove All
@@ -117,7 +117,7 @@ export default function TagEditor({
                 onClick={() => handleRemoveTag(tag)}
                 disabled={saving}
                 variant="primary"
-                size="sm"
+                size="md"
                 iconAfter={<X className="w-3.5 h-3.5" />}
               >
                 {tag}
@@ -140,7 +140,7 @@ export default function TagEditor({
         onClick={handleClose}
         disabled={saving}
         variant="ghost"
-        size="sm"
+        size="md"
       >
         Cancel
       </Button>
@@ -148,7 +148,7 @@ export default function TagEditor({
         onClick={handleSave}
         disabled={saving}
         variant="primary"
-        size="sm"
+        size="md"
         isLoading={saving}
       >
         {saving ? "Saving..." : "Save Changes"}

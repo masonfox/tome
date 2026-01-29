@@ -37,7 +37,7 @@ export default function SessionDetails({
           <Button
             onClick={onCancelEdit}
             variant="secondary"
-            size="sm"
+            size="md"
             className="text-xs"
           >
             Cancel
@@ -45,7 +45,7 @@ export default function SessionDetails({
           <Button
             onClick={onSaveStartDate}
             variant="primary"
-            size="sm"
+            size="md"
             className="text-xs"
           >
             Save

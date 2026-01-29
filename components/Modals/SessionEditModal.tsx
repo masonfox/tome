@@ -122,14 +122,14 @@ export default function SessionEditModal({
           <Button
             variant="ghost"
             onClick={onClose}
-            size="sm"
+            size="md"
           >
             Cancel
           </Button>
           <Button
             variant="primary"
             onClick={handleSave}
-            size="sm"
+            size="md"
           >
             Save
           </Button>
@@ -177,7 +177,7 @@ export default function SessionEditModal({
             <Button
               variant="danger-ghost"
               onClick={handleClearDates}
-              size="sm"
+              size="md"
             >
               Clear Dates
             </Button>
@@ -205,7 +205,7 @@ export default function SessionEditModal({
             <Button
               variant="danger-ghost"
               onClick={handleRemoveReview}
-              size="sm"
+              size="md"
               className="mt-2"
             >
               Clear Review

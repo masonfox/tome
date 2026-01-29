@@ -110,14 +110,14 @@ export default function DNFBookModal({
           <Button
             variant="ghost"
             onClick={handleClose}
-            size="sm"
+            size="md"
           >
             Cancel
           </Button>
           <Button
             variant="danger"
             onClick={handleSubmit}
-            size="sm"
+            size="md"
           >
             Mark as DNF
           </Button>

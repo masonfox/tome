@@ -60,7 +60,7 @@ export function StreakEditModal({
             variant="ghost"
             onClick={onClose}
             disabled={isUpdatingThreshold}
-            size="sm"
+            size="md"
           >
             Cancel
           </Button>
@@ -69,7 +69,7 @@ export function StreakEditModal({
             variant="primary"
             onClick={handleSubmit}
             disabled={isUpdatingThreshold || threshold === initialThreshold}
-            size="sm"
+            size="md"
             icon={isUpdatingThreshold ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
           >
             {isUpdatingThreshold ? "Saving..." : "Save"}

@@ -45,7 +45,7 @@ export function DeleteTagModal({
           <div className="flex items-center justify-end">
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               onClick={onClose}
             >
               Close
@@ -55,7 +55,7 @@ export function DeleteTagModal({
           <div className="flex items-center justify-end gap-3">
             <Button
               variant="ghost"
-              size="sm"
+              size="md"
               onClick={onClose}
               disabled={loading}
             >
@@ -63,7 +63,7 @@ export function DeleteTagModal({
             </Button>
             <Button
               variant="danger"
-              size="sm"
+              size="md"
               onClick={handleConfirm}
               disabled={loading}
             >
