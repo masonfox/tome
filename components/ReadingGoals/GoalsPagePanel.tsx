@@ -283,7 +283,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
             <Button
               type="button"
               onClick={handleCloseModal}
-              variant="tertiary"
+              variant="ghost"
               size="md"
               disabled={saving}
             >

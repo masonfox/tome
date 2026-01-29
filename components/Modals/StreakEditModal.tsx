@@ -57,7 +57,7 @@ export function StreakEditModal({
         <div className="flex gap-3">
           <Button
             type="button"
-            variant="tertiary"
+            variant="ghost"
             onClick={onClose}
             disabled={isUpdatingThreshold}
             size="sm"

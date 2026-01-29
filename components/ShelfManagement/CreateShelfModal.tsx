@@ -131,7 +131,7 @@ export function CreateShelfModal({
   const actionButtons = (
     <div className="flex gap-3 justify-end">
       <Button
-        variant="tertiary"
+        variant="ghost"
         size="sm"
         onClick={handleClose}
         disabled={loading}

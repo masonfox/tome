@@ -321,7 +321,7 @@ export default function ReadNextPage() {
               <Button
                 onClick={() => setRemovingBook(null)}
                 disabled={removeLoading}
-                variant="tertiary"
+                variant="ghost"
                 size="sm"
               >
                 Cancel
@@ -357,7 +357,7 @@ export default function ReadNextPage() {
               <Button
                 onClick={bulkRemove.cancel}
                 disabled={bulkRemove.loading}
-                variant="tertiary"
+                variant="ghost"
                 size="sm"
               >
                 Cancel

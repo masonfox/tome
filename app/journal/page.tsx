@@ -335,7 +335,7 @@ export default function JournalPage() {
           <p className="text-red-800">{error instanceof Error ? error.message : "Failed to load journal entries"}</p>
           <Button 
             onClick={() => fetchNextPage()}
-            variant="tertiary"
+            variant="ghost"
             size="sm"
             className="mt-2 text-red-600 hover:text-red-800"
           >

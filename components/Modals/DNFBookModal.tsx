@@ -108,7 +108,7 @@ export default function DNFBookModal({
       actions={
         <div className="flex gap-3 justify-end">
           <Button
-            variant="tertiary"
+            variant="ghost"
             onClick={handleClose}
             size="sm"
           >

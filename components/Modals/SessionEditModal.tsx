@@ -120,7 +120,7 @@ export default function SessionEditModal({
       actions={
         <div className="flex justify-end gap-3">
           <Button
-            variant="tertiary"
+            variant="ghost"
             onClick={onClose}
             size="sm"
           >
@@ -175,7 +175,7 @@ export default function SessionEditModal({
 
           {(startedDate || completedDate) && (
             <Button
-              variant="tertiary"
+              variant="ghost"
               onClick={handleClearDates}
               size="sm"
               className="text-red-500 hover:text-red-600"
@@ -204,7 +204,7 @@ export default function SessionEditModal({
           </div>
           {review && (
             <Button
-              variant="tertiary"
+              variant="ghost"
               onClick={handleRemoveReview}
               size="sm"
               className="mt-2 text-red-500 hover:text-red-600"

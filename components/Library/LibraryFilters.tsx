@@ -260,7 +260,7 @@ export function LibraryFilters({
               type="button"
               onClick={onClearAll}
               disabled={loading || !hasActiveFilters}
-              variant="tertiary"
+              variant="ghost"
               size="sm"
               className={`${!hasActiveFilters ? 'invisible' : ''}`}
             >

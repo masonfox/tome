@@ -209,7 +209,7 @@ export default function LogProgressModal({
     <>
       <Button
         type="button"
-        variant="tertiary"
+        variant="ghost"
         onClick={onClose}
       >
         Cancel

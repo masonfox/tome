@@ -329,7 +329,7 @@ export function ShelfSelectionModal({
         actions={
           <>
             <Button
-              variant="tertiary"
+              variant="ghost"
               size="sm"
               onClick={handleClose}
               disabled={submitting}
@@ -372,7 +372,7 @@ export function ShelfSelectionModal({
       actions={
         <div className="flex gap-3 justify-end w-full">
           <Button
-            variant="tertiary"
+            variant="ghost"
             size="sm"
             onClick={handleClose}
             disabled={submitting}

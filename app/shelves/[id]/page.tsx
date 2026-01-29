@@ -457,7 +457,7 @@ export default function ShelfDetailPage() {
             <Button
               onClick={() => setRemovingBook(null)}
               disabled={removeLoading}
-              variant="tertiary"
+              variant="ghost"
               size="sm"
             >
               Cancel
@@ -520,7 +520,7 @@ export default function ShelfDetailPage() {
             <Button
               onClick={bulkDelete.cancel}
               disabled={bulkDelete.loading}
-              variant="tertiary"
+              variant="ghost"
               size="sm"
             >
               Cancel

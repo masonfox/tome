@@ -323,7 +323,7 @@ export function AddBooksToShelfModal({
         actions={
           <>
             <Button
-              variant="tertiary"
+              variant="ghost"
               size="sm"
               onClick={handleClose}
               disabled={submitting}
@@ -382,7 +382,7 @@ export function AddBooksToShelfModal({
           </div>
           <div className="flex gap-3">
             <Button
-              variant="tertiary"
+              variant="ghost"
               size="sm"
               onClick={handleClose}
               disabled={submitting}

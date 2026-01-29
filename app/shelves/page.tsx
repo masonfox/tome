@@ -147,7 +147,7 @@ export default function ShelvesPage() {
             <Button
               onClick={() => setDeletingShelf(null)}
               disabled={deleteLoading}
-              variant="tertiary"
+              variant="ghost"
               size="sm"
             >
               Cancel

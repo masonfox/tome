@@ -116,7 +116,7 @@ export function MergeTagsModal({
         ) : (
           <div className="flex items-center justify-end gap-3">
             <Button
-              variant="tertiary"
+              variant="ghost"
               size="sm"
               onClick={handleCancel}
               disabled={loading}

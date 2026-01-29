@@ -123,7 +123,7 @@ export default function PageCountEditModal({
       actions={
         <div className="flex gap-3 justify-end">
           <Button
-            variant="tertiary"
+            variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
             size="sm"
