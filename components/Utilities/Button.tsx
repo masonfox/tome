@@ -42,14 +42,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * - Icon-danger: No shadows (icon-only delete buttons)
  * 
  * Hover behavior (consistent darker states):
- * - Primary: accent → dark-accent (darker)
- * - Secondary: card-bg → card-bg-emphasis (darker)
- * - Ghost: foreground → accent (color change, no bg)
- * - Danger: red-600 → red-700 (darker)
+ * - Primary: accent bg → dark-accent bg (darker background)
+ * - Secondary: foreground text → accent text (text color change, no bg change)
+ * - Ghost: foreground text → accent text (text color change, no bg)
+ * - Danger: red-600 bg → red-700 bg (darker background)
  */
 const buttonStyles: Record<ButtonVariant, string> = {
   primary: "bg-[var(--accent)] text-white rounded-md hover:bg-[var(--dark-accent)] shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
-  secondary: "bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded-md hover:bg-[var(--card-bg-emphasis)] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+  secondary: "bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded-md hover:text-[var(--accent)] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed",
   ghost: "text-[var(--foreground)] hover:text-[var(--accent)] rounded-md transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed",
   danger: "bg-red-600 text-white rounded-md hover:bg-red-700 shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
   "icon-danger": "p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
