@@ -2,6 +2,7 @@
 
 import { RefreshCw, Library as LibraryIcon } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { Button } from "@/components/Utilities/Button";
 
 interface LibraryHeaderProps {
   totalBooks: number;
@@ -29,20 +30,19 @@ export function LibraryHeader({ totalBooks, syncing, onSync, loading = false }: 
         )}
       </div>
 
-      <button
+      <Button
         onClick={onSync}
         disabled={syncing}
-        className={cn(
-          "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-md text-white hover:bg-[var(--light-accent)] transition-colors font-medium mt-3 sm:mt-2",
-          syncing && "opacity-50 cursor-not-allowed"
-        )}
+        variant="primary"
+        size="xl"
+        icon={<RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />}
+        className="mt-3 sm:mt-2"
         title={syncing ? "Syncing..." : "Sync Calibre"}
       >
-        <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
         <span className="hidden sm:inline">
           {syncing ? "Syncing..." : "Sync Calibre"}
         </span>
-      </button>
+      </Button>
     </div>
   );
 }

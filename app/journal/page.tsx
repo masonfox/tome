@@ -11,6 +11,7 @@ import Image from "next/image";
 import { JournalArchiveTree } from "@/components/Journal/JournalArchiveTree";
 import { JournalArchiveDrawer } from "@/components/Journal/JournalArchiveDrawer";
 import { JournalEntryCard } from "@/components/Journal/JournalEntryList";
+import { Button } from "@/components/Utilities/Button";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
 import { matchesDateKey } from "@/lib/utils/archive-builder";
 import { journalApi, type GroupedJournalEntry, type JournalEntry } from "@/lib/api";
@@ -332,12 +333,14 @@ export default function JournalPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <p className="text-red-800">{error instanceof Error ? error.message : "Failed to load journal entries"}</p>
-          <button 
+          <Button 
             onClick={() => fetchNextPage()}
-            className="mt-2 text-red-600 underline hover:text-red-800"
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-red-600 hover:text-red-800"
           >
             Retry
-          </button>
+          </Button>
         </div>
       )}
 

@@ -2,6 +2,7 @@
 
 import BaseModal from "@/components/Modals/BaseModal";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { TagOperationResults } from "./TagOperationResults";
 import type { TagOperationResult } from "@/types/tag-operations";
 
@@ -43,32 +44,32 @@ export function BulkDeleteTagsModal({
       actions={
         showingResults ? (
           <div className="flex items-center justify-end">
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="md"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Close
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="md"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
               onClick={handleConfirm}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Deleting..." : `Delete ${tagCount} ${tagCount === 1 ? "Tag" : "Tags"}`}
-            </button>
+            </Button>
           </div>
         )
       }

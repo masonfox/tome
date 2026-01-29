@@ -8,6 +8,7 @@ import { useDraftField } from "@/hooks/useDraftField";
 import { getTodayLocalDate } from "@/utils/dateHelpers";
 import { getLogger } from "@/lib/logger";
 import { StarRating } from "@/components/Utilities/StarRating";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "DNFBookModal" });
 
@@ -106,18 +107,20 @@ export default function DNFBookModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+            size="md"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            size="md"
           >
             Mark as DNF
-          </button>
+          </Button>
         </div>
       }
     >

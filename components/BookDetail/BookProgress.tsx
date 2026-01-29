@@ -6,6 +6,7 @@ import { getTodayLocalDate } from '@/utils/dateHelpers';
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { useRef, useEffect } from "react";
+import { Button } from "@/components/Utilities/Button";
 
 interface BookProgressProps {
   book: {
@@ -192,13 +193,15 @@ export default function BookProgress({
             </div>
 
             {showSubmitButton && (
-              <button
+              <Button
                 type="submit"
-                className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg font-semibold hover:bg-[var(--light-accent)] transition-colors flex items-center justify-center gap-2"
+                variant="primary"
+                size="lg"
+                icon={<TrendingUp className="w-5 h-5" />}
+                fullWidth
               >
-                <TrendingUp className="w-5 h-5" />
                 Log Progress
-              </button>
+              </Button>
             )}
           </form>
     </div>

@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { Button } from "@/components/Utilities/Button";
 
 type SortDirection = "asc" | "desc";
 
@@ -344,13 +345,13 @@ export function BookTable({
                         <ExternalLink className="w-4 h-4" />
                       </Link>
                       {onRemoveBook && !isSelectMode && (
-                        <button
+                        <Button
                           onClick={() => onRemoveBook(book.id)}
-                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          variant="icon-danger"
                           title="Remove from shelf"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </Button>
                       )}
                     </div>
                   )}

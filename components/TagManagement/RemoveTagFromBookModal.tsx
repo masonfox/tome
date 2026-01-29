@@ -2,6 +2,7 @@
 
 import BaseModal from "@/components/Modals/BaseModal";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 
 interface RemoveTagFromBookModalProps {
   isOpen: boolean;
@@ -33,22 +34,22 @@ export function RemoveTagFromBookModal({
       loading={loading}
       actions={
         <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="md"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
+            size="md"
             onClick={handleConfirm}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Removing..." : "Remove Tag"}
-          </button>
+          </Button>
         </div>
       }
     >

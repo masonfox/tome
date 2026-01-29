@@ -5,6 +5,7 @@ import { X, Tag as TagIcon } from "lucide-react";
 import { getLogger } from "@/lib/logger";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { TagSelector } from "@/components/TagManagement/TagSelector";
+import { Button } from "@/components/Utilities/Button";
 
 interface TagEditorProps {
   isOpen: boolean;
@@ -95,29 +96,32 @@ export default function TagEditor({
             Current Tags {tags.length > 0 && `(${tags.length})`}
           </label>
           {tags.length > 0 && (
-            <button
+            <Button
               type="button"
               onClick={() => setTags([])}
               disabled={saving}
-              className="text-sm text-[var(--subheading-text)] hover:text-[var(--text)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="danger-ghost"
+              size="md"
+              className="text-xs"
             >
               Remove All
-            </button>
+            </Button>
           )}
         </div>
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <button
+              <Button
                 key={tag}
                 type="button"
                 onClick={() => handleRemoveTag(tag)}
                 disabled={saving}
-                className="px-3 py-1.5 text-sm bg-[var(--accent)] text-white rounded flex items-center gap-2 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                size="md"
+                iconAfter={<X className="w-3.5 h-3.5" />}
               >
                 {tag}
-                <X className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             ))}
           </div>
         ) : (
@@ -132,20 +136,23 @@ export default function TagEditor({
   // Shared button elements
   const buttons = (
     <>
-      <button
+      <Button
         onClick={handleClose}
         disabled={saving}
-        className="px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="ghost"
+        size="md"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={handleSave}
         disabled={saving}
-        className="px-5 py-2.5 text-sm font-medium rounded-md transition-colors bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="primary"
+        size="md"
+        isLoading={saving}
       >
         {saving ? "Saving..." : "Save Changes"}
-      </button>
+      </Button>
     </>
   );
 

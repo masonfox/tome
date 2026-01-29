@@ -5,6 +5,7 @@ import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
+import { Button } from "@/components/Utilities/Button";
 
 interface SessionEditModalProps {
   isOpen: boolean;
@@ -118,18 +119,20 @@ export default function SessionEditModal({
       allowBackdropClose={false}
       actions={
         <div className="flex justify-end gap-3">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+            size="md"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
+            size="md"
           >
             Save
-          </button>
+          </Button>
         </div>
       }
     >
@@ -171,12 +174,13 @@ export default function SessionEditModal({
           </div>
 
           {(startedDate || completedDate) && (
-            <button
+            <Button
+              variant="danger-ghost"
               onClick={handleClearDates}
-              className="text-sm text-red-500 hover:text-red-600 font-semibold transition-colors"
+              size="md"
             >
               Clear Dates
-            </button>
+            </Button>
           )}
         </div>
 
@@ -198,12 +202,14 @@ export default function SessionEditModal({
             />
           </div>
           {review && (
-            <button
+            <Button
+              variant="danger-ghost"
               onClick={handleRemoveReview}
-              className="mt-2 text-sm text-red-500 hover:text-red-600 font-semibold transition-colors"
+              size="md"
+              className="mt-2"
             >
               Clear Review
-            </button>
+            </Button>
           )}
         </div>
       </div>

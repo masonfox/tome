@@ -10,6 +10,7 @@ import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 import { useDraftField } from "@/hooks/useDraftField";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "ProgressEditModal" });
 
@@ -164,18 +165,18 @@ export default function ProgressEditModal({
         size="2xl"
         actions={
           <div className="flex justify-end gap-4">
-            <button
+            <Button
+              variant="ghost"
               onClick={handleCancelDelete}
-              className="px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] font-semibold rounded hover:bg-[var(--background)] transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
               onClick={handleConfirmDelete}
-              className="px-4 py-2 bg-red-500 text-white font-semibold rounded hover:bg-red-600 transition-colors"
             >
               Delete
-            </button>
+            </Button>
           </div>
         }
       >
@@ -217,26 +218,26 @@ export default function ProgressEditModal({
       allowBackdropClose={false}
       actions={
         <div className="flex justify-between w-full">
-          <button
+          <Button
+            variant="danger"
             onClick={handleDeleteClick}
-            className="px-4 py-2 bg-red-500 text-white font-semibold rounded hover:bg-red-600 transition-colors flex items-center gap-2"
+            icon={<Trash2 className="w-4 h-4" />}
           >
-            <Trash2 className="w-4 h-4" />
             Delete
-          </button>
+          </Button>
           <div className="flex gap-4">
-            <button
+            <Button
+              variant="ghost"
               onClick={onClose}
-              className="px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] font-semibold rounded hover:bg-[var(--background)] transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSave}
-              className="px-4 py-2 bg-[var(--accent)] text-white font-semibold rounded hover:bg-[var(--light-accent)] transition-colors"
             >
               Save
-            </button>
+            </Button>
           </div>
         </div>
       }

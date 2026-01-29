@@ -11,6 +11,7 @@
 
 import { Search, X, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { Button } from "@/components/Utilities/Button";
 
 interface BookListControlsProps {
   // Filter props
@@ -89,17 +90,12 @@ export function BookListControls({
         </div>
 
         {/* Select/Cancel Button */}
-        <button
+        <Button
           onClick={onToggleSelectMode}
-          className={cn(
-            "px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap",
-            isSelectMode
-              ? "bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:bg-[var(--hover-bg)]"
-              : "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
-          )}
+          variant={isSelectMode ? "secondary" : "primary"}
         >
           {isSelectMode ? selectButtonText.active : selectButtonText.inactive}
-        </button>
+        </Button>
       </div>
 
       {/* Sort Controls - Only show on mobile when NOT in select mode and when enabled */}
@@ -121,9 +117,10 @@ export function BookListControls({
           </div>
 
           {/* Direction Toggle Button */}
-          <button
+          <Button
             onClick={onDirectionToggle}
-            className="h-[42px] px-3 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] transition-colors flex items-center justify-center"
+            variant="secondary"
+            className="h-[42px] px-3"
             aria-label={sortDirection === "asc" ? "Sort ascending" : "Sort descending"}
           >
             {sortDirection === "asc" ? (
@@ -131,7 +128,7 @@ export function BookListControls({
             ) : (
               <ArrowDown className="w-5 h-5" />
             )}
-          </button>
+          </Button>
         </div>
       )}
 

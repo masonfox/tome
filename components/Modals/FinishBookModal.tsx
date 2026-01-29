@@ -7,6 +7,7 @@ import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getLogger } from "@/lib/logger";
 import { StarRating } from "@/components/Utilities/StarRating";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "FinishBookModal" });
 
@@ -96,18 +97,20 @@ export default function FinishBookModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+            size="md"
           >
             Skip
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
+            size="md"
           >
             Save Rating & Review
-          </button>
+          </Button>
         </div>
       }
     >

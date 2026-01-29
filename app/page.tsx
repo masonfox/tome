@@ -10,6 +10,7 @@ import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
 import CurrentlyReadingSection from "@/components/CurrentlyReading/CurrentlyReadingSection";
 import Link from "next/link";
 import { useDashboard } from "@/hooks/useDashboard";
+import { Button } from "@/components/Utilities/Button";
 
 export default function Dashboard() {
   const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal, isLoading } = useDashboard();
@@ -63,7 +64,7 @@ export default function Dashboard() {
           {currentlyReadingTotal > 6 && (
             <Link
               href="/library?status=reading"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-lg text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
               title="View all currently reading books"
             >
               <span className="hidden md:inline">View all</span>
@@ -91,7 +92,7 @@ export default function Dashboard() {
           {readNextTotal > 8 && (
             <Link
               href="/read-next"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-lg text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
               title="View all read next books"
             >
               <span className="hidden md:inline">View all</span>

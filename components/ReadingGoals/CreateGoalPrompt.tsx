@@ -1,6 +1,7 @@
 "use client";
 
 import { Target } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 
 interface CreateGoalPromptProps {
   onCreateClick?: () => void;
@@ -20,12 +21,13 @@ export function CreateGoalPrompt({ onCreateClick }: CreateGoalPromptProps) {
           Track your reading progress and stay motivated throughout the year.
         </p>
         {onCreateClick ? (
-          <button
+          <Button
             onClick={onCreateClick}
-            className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold text-sm"
+            variant="primary"
+            size="md"
           >
             Create Goal
-          </button>
+          </Button>
         ) : (
           <a
             href="/settings"

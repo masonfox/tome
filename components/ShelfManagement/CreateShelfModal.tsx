@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { FolderPlus } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
+import { Button } from "@/components/Utilities/Button";
 import { ShelfAppearancePicker } from "@/components/ShelfManagement/ShelfAppearancePicker";
 import type { CreateShelfRequest } from "@/lib/api";
 
@@ -129,20 +130,22 @@ export function CreateShelfModal({
   // Shared action buttons
   const actionButtons = (
     <div className="flex gap-3 justify-end">
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={handleClose}
         disabled={loading}
-        className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="primary"
+        size="sm"
         onClick={handleSubmit}
         disabled={!name.trim() || loading}
-        className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Creating..." : "Create Shelf"}
-      </button>
+      </Button>
     </div>
   );
 
