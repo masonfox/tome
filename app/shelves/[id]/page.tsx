@@ -343,12 +343,13 @@ export default function ShelfDetailPage() {
             <p className="text-[var(--foreground)]/60 mb-6">
               No books match your filter. Try a different search term.
             </p>
-            <button
+            <Button
               onClick={() => listView.setFilterText("")}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
+              variant="primary"
+              size="lg"
             >
               Clear Filter
-            </button>
+            </Button>
           </div>
         ) : listView.isMobile ? (
           // Mobile/Tablet: List View
