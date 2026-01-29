@@ -322,11 +322,10 @@ export default function ShelfDetailPage() {
             <p className="text-[var(--foreground)]/60 mb-6">
               Add books to this shelf from your library
             </p>
-            <Link
-              href="/library"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
-            >
-              Go to Library
+            <Link href="/library">
+              <Button variant="primary" size="md">
+                Go to Library
+              </Button>
             </Link>
           </div>
         ) : listView.filteredBooks.length === 0 ? (
