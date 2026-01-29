@@ -31,6 +31,8 @@ interface BookProgressProps {
   setShowProgressModeDropdown: (show: boolean) => void;
   progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
   showHeader?: boolean;
+  showSubmitButton?: boolean;
+  formId?: string;
 }
 
 export default function BookProgress({
@@ -51,6 +53,8 @@ export default function BookProgress({
   setShowProgressModeDropdown,
   progressModeDropdownRef,
   showHeader = true,
+  showSubmitButton = true,
+  formId,
 }: BookProgressProps) {
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
   const editorRef = useRef<MDXEditorMethods>(null);
@@ -69,7 +73,7 @@ export default function BookProgress({
           Log Progress
         </h2>
       )}
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form id={formId} onSubmit={onSubmit} className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
@@ -187,13 +191,15 @@ export default function BookProgress({
               />
             </div>
 
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg font-semibold hover:bg-[var(--light-accent)] transition-colors flex items-center justify-center gap-2"
-            >
-              <TrendingUp className="w-5 h-5" />
-              Log Progress
-            </button>
+            {showSubmitButton && (
+              <button
+                type="submit"
+                className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg font-semibold hover:bg-[var(--light-accent)] transition-colors flex items-center justify-center gap-2"
+              >
+                <TrendingUp className="w-5 h-5" />
+                Log Progress
+              </button>
+            )}
           </form>
     </div>
   );

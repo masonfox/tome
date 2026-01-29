@@ -198,8 +198,30 @@ export default function LogProgressModal({
         setShowProgressModeDropdown={setShowProgressModeDropdown}
         progressModeDropdownRef={progressModeDropdownRef}
         showHeader={false}
+        showSubmitButton={false}
+        formId="log-progress-form"
       />
     </div>
+  );
+
+  const actionButtons = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        form="log-progress-form"
+        className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors flex items-center gap-2"
+      >
+        <TrendingUp className="w-5 h-5" />
+        Log Progress
+      </button>
+    </>
   );
 
   // Use BottomSheet for mobile, BaseModal for desktop
@@ -212,6 +234,7 @@ export default function LogProgressModal({
           title={book.title}
           icon={<TrendingUp className="w-5 h-5" />}
           size="default"
+          actions={actionButtons}
         >
           {progressForm}
         </BottomSheet>
@@ -235,7 +258,7 @@ export default function LogProgressModal({
         isOpen={isOpen}
         onClose={onClose}
         title={`Log Progress - ${book.title}`}
-        actions={<></>}
+        actions={actionButtons}
         size="2xl"
         allowBackdropClose={false}
       >
