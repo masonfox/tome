@@ -226,7 +226,7 @@ export default function ShelfEditor({
       <Button
         onClick={handleClose}
         disabled={saving}
-        variant="secondary"
+        variant="ghost"
         size="sm"
       >
         Cancel

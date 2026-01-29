@@ -96,14 +96,16 @@ export default function TagEditor({
             Current Tags {tags.length > 0 && `(${tags.length})`}
           </label>
           {tags.length > 0 && (
-            <button
+            <Button
               type="button"
               onClick={() => setTags([])}
               disabled={saving}
-              className="text-sm text-[var(--subheading-text)] hover:text-[var(--text)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="danger-ghost"
+              size="sm"
+              className="text-xs"
             >
               Remove All
-            </button>
+            </Button>
           )}
         </div>
         {tags.length > 0 ? (
@@ -137,7 +139,7 @@ export default function TagEditor({
       <Button
         onClick={handleClose}
         disabled={saving}
-        variant="secondary"
+        variant="ghost"
         size="sm"
       >
         Cancel
