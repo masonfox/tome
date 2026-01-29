@@ -4,7 +4,7 @@ import { ButtonHTMLAttributes, ReactNode, forwardRef } from "react";
 import { cn } from "@/utils/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-ghost" | "icon-danger";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "sm" | "md" | "lg" | "xl";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Button style variant */
@@ -62,6 +62,7 @@ const sizeStyles: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-sm",
   md: "px-4 py-2 text-base",
   lg: "px-6 py-3 text-lg",
+  xl: "px-5 py-2.5 text-base",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
