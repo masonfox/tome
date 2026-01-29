@@ -6,6 +6,7 @@ import BaseModal from "./BaseModal";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { invalidateBookQueries } from "@/hooks/useBookStatus";
+import { Button } from "@/components/Utilities/Button";
 
 interface PageCountEditModalProps {
   isOpen: boolean;
@@ -121,20 +122,22 @@ export default function PageCountEditModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="tertiary"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            size="sm"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={isSubmitting || !pageCount || parseInt(pageCount) <= 0}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            size="sm"
           >
             {isSubmitting ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       }
     >

@@ -12,6 +12,7 @@ import { ReadingGoalChart } from "./ReadingGoalChart";
 import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "@/components/Books/CompletedBooksSection";
 import { GoalsOnboarding } from "./GoalsOnboarding";
+import { Button } from "@/components/Utilities/Button";
 import BaseModal from "@/components/Modals/BaseModal";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -259,12 +260,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           <p className="text-[var(--subheading-text)] font-medium mb-4">
             No goal set for {selectedYear}
           </p>
-          <button
+          <Button
             onClick={handleOpenCreateModal}
-            className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold text-sm"
+            variant="primary"
+            size="md"
           >
             Create Goal for {selectedYear}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -278,23 +280,25 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           : `Update your reading goal for ${selectedYear}`}
         actions={
           <div className="flex gap-3">
-            <button
+            <Button
               type="button"
               onClick={handleCloseModal}
-              className="px-6 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="tertiary"
+              size="md"
               disabled={saving}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSubmit}
               disabled={!canEdit || saving}
-              className="px-6 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              variant="primary"
+              size="md"
+              icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
             >
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {modalMode === "create" ? "Create Goal" : "Update Goal"}
-            </button>
+            </Button>
           </div>
         }
         size="md"

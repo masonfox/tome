@@ -3,10 +3,11 @@
  */
 
 export const buttonStyles = {
-  primary: "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] transition-colors font-semibold",
-  secondary: "border border-[var(--border-color)] text-[var(--foreground)] hover:bg-[var(--card-bg)] transition-colors",
-  tertiary: "text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold",
-  danger: "bg-red-600 text-white hover:bg-red-700 transition-colors font-semibold",
+  primary: "bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
+  secondary: "border border-[var(--border-color)] text-[var(--foreground)] rounded-md hover:bg-[var(--card-bg)] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+  tertiary: "text-[var(--accent)] hover:text-[var(--light-accent)] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
+  danger: "bg-red-600 text-white rounded-md hover:bg-red-700 shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed",
+  "icon-danger": "p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
   disabled: "opacity-50 cursor-not-allowed",
 };
 

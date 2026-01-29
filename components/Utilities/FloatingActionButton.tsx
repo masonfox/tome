@@ -38,7 +38,7 @@ export function FloatingActionButton({
   return (
     <button
       onClick={onClick}
-      className={`fixed ${bottom} md:bottom-6 ${right} ${zIndex} w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform ${visibility} ${className}`.trim()}
+      className={`fixed ${bottom} md:bottom-6 ${right} ${zIndex} w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform ${visibility} ${className}`.trim()}
       aria-label={ariaLabel}
     >
       {Icon ? <Icon className="w-6 h-6" /> : children}

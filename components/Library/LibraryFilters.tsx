@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
@@ -255,16 +256,16 @@ export function LibraryFilters({
         <div className="flex items-center gap-2">
           {/* Clear All Button */}
           {onClearAll && (
-            <button
+            <Button
               type="button"
               onClick={onClearAll}
               disabled={loading || !hasActiveFilters}
-              className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                !hasActiveFilters ? 'invisible' : ''
-              }`}
+              variant="tertiary"
+              size="sm"
+              className={`${!hasActiveFilters ? 'invisible' : ''}`}
             >
               Clear All
-            </button>
+            </Button>
           )}
           
           {/* Sort Dropdown */}
@@ -369,13 +370,15 @@ export function LibraryFilters({
                 </button>
               )}
             </div>
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shrink-0 self-stretch"
+              variant="primary"
+              size="md"
+              className="shrink-0 self-stretch"
             >
               Search
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -664,16 +667,17 @@ export function LibraryFilters({
         {selectedTags.length > 0 && !noTags && (
           <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => (
-              <button
+              <Button
                 key={tag}
                 type="button"
                 onClick={() => handleTagRemove(tag)}
                 disabled={loading}
-                className={`px-3 py-1 text-sm bg-[var(--accent)] text-white border border-[var(--accent)] rounded flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                variant="primary"
+                size="sm"
+                iconAfter={<X className="w-3 h-3" />}
               >
                 {tag}
-                <X className="w-3 h-3" />
-              </button>
+              </Button>
             ))}
           </div>
         )}

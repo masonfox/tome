@@ -6,6 +6,7 @@ import Image from "next/image";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Spinner } from "@/components/Utilities/Spinner";
+import { Button } from "@/components/Utilities/Button";
 import { cn } from "@/utils/cn";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
@@ -321,23 +322,25 @@ export function AddBooksToShelfModal({
         allowBackdropClose={false}
         actions={
           <>
-            <button
+            <Button
+              variant="tertiary"
+              size="sm"
               onClick={handleClose}
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSubmit}
               disabled={selectedBookIds.size === 0 || submitting}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting 
                 ? "Adding..." 
                 : `Add ${selectedBookIds.size || ""} ${selectedBookIds.size === 1 ? "Book" : "Books"}`
               }
-            </button>
+            </Button>
           </>
         }
       >
@@ -378,23 +381,25 @@ export function AddBooksToShelfModal({
             )}
           </div>
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="tertiary"
+              size="sm"
               onClick={handleClose}
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSubmit}
               disabled={selectedBookIds.size === 0 || submitting}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting 
                 ? "Adding..." 
                 : `Add ${selectedBookIds.size || ""} ${selectedBookIds.size === 1 ? "Book" : "Books"}`
               }
-            </button>
+            </Button>
           </div>
         </div>
       }

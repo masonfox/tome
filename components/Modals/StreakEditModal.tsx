@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import BaseModal from "./BaseModal";
 import { useStreak } from "@/hooks/useStreak";
+import { Button } from "@/components/Utilities/Button";
 
 interface StreakEditModalProps {
   isOpen: boolean;
@@ -54,23 +55,25 @@ export function StreakEditModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="tertiary"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isUpdatingThreshold}
+            size="sm"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
             onClick={handleSubmit}
             disabled={isUpdatingThreshold || threshold === initialThreshold}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            size="sm"
+            icon={isUpdatingThreshold ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
           >
-            {isUpdatingThreshold && <Loader2 className="w-4 h-4 animate-spin" />}
             {isUpdatingThreshold ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       }
     >

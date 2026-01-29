@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
+import { Button } from "@/components/Utilities/Button";
 import { TagOperationResults } from "./TagOperationResults";
 import type { TagOperationResult } from "@/types/tag-operations";
 
@@ -70,32 +71,33 @@ export function RenameTagModal({
       actions={
         showingResults ? (
           <div className="flex items-center justify-end">
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleCancel}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Close
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
+            <Button
+              variant="tertiary"
+              size="sm"
               onClick={handleCancel}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               type="submit"
               onClick={handleSubmit}
               disabled={!newName.trim() || newName === tagName || loading}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Renaming..." : "Rename"}
-            </button>
+            </Button>
           </div>
         )
       }

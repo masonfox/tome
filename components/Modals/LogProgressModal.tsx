@@ -13,6 +13,7 @@ import { TrendingUp } from "lucide-react";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
 import { toast } from "@/utils/toast";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "LogProgressModal" });
 
@@ -206,21 +207,21 @@ export default function LogProgressModal({
 
   const actionButtons = (
     <>
-      <button
+      <Button
         type="button"
+        variant="tertiary"
         onClick={onClose}
-        className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         type="submit"
+        variant="primary"
         form="log-progress-form"
-        className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors flex items-center gap-2"
+        icon={<TrendingUp className="w-5 h-5" />}
       >
-        <TrendingUp className="w-5 h-5" />
         Log Progress
-      </button>
+      </Button>
     </>
   );
 

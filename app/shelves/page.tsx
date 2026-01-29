@@ -10,6 +10,7 @@ import { EditShelfModal } from "@/components/ShelfManagement/EditShelfModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import BaseModal from "@/components/Modals/BaseModal";
 import { NewShelfFAB } from "@/components/ShelfManagement/NewShelfFAB";
+import { Button } from "@/components/Utilities/Button";
 
 export default function ShelvesPage() {
   const {
@@ -54,13 +55,15 @@ export default function ShelvesPage() {
         subtitle="Organize your books into custom collections"
         icon={Library}
         actions={
-          <button
+          <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            variant="primary"
+            size="md"
+            icon={<Plus className="w-5 h-5" />}
+            className="hidden lg:flex"
           >
-            <Plus className="w-5 h-5" />
             New Shelf
-          </button>
+          </Button>
         }
       />
 
@@ -75,13 +78,14 @@ export default function ShelvesPage() {
             <p className="text-[var(--foreground)]/70 mb-6">
               Create your first shelf to start organizing your books
             </p>
-            <button
+            <Button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+              variant="primary"
+              size="lg"
+              icon={<Plus className="w-5 h-5" />}
             >
-              <Plus className="w-5 h-5" />
               Create Shelf
-            </button>
+            </Button>
           </div>
         )}
 
@@ -140,20 +144,22 @@ export default function ShelvesPage() {
         loading={deleteLoading}
         actions={
           <div className="flex gap-3 justify-end">
-            <button
+            <Button
               onClick={() => setDeletingShelf(null)}
               disabled={deleteLoading}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="tertiary"
+              size="sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleDeleteShelf}
               disabled={deleteLoading}
-              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="danger"
+              size="sm"
             >
               {deleteLoading ? "Deleting..." : "Delete Shelf"}
-            </button>
+            </Button>
           </div>
         }
       >

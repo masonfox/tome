@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { X, FolderOpen, Plus, Check, Search } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
+import { Button } from "@/components/Utilities/Button";
 
 interface Shelf {
   id: number;
@@ -184,13 +186,13 @@ export default function ShelfEditor({
           <p className="text-sm text-[var(--foreground)]/70 mb-4">
             No shelves available. Create a shelf first.
           </p>
-          <a
+          <Link
             href="/shelves"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Create Shelf
-          </a>
+          </Link>
         </div>
       )}
 
@@ -221,20 +223,23 @@ export default function ShelfEditor({
   // Shared button elements
   const buttons = availableShelves.length > 0 && (
     <>
-      <button
+      <Button
         onClick={handleClose}
         disabled={saving}
-        className="px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="secondary"
+        size="sm"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={handleSave}
         disabled={saving}
-        className="px-5 py-2.5 text-sm font-medium rounded-md transition-colors bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="primary"
+        size="sm"
+        isLoading={saving}
       >
         {saving ? "Saving..." : "Save Changes"}
-      </button>
+      </Button>
     </>
   );
 

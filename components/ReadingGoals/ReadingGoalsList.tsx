@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BookOpen, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -79,26 +80,21 @@ export function ReadingGoalsList({ goals, onEdit, onDelete }: ReadingGoalsListPr
 
             {!isPastYear && (
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   onClick={() => onEdit(goal)}
                   disabled={deletingId === goal.id}
-                  className="p-2 text-[var(--foreground)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded transition-colors disabled:opacity-50"
+                  variant="icon-danger"
+                  className="text-[var(--foreground)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
                   title="Edit goal"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
+                  icon={<Pencil className="w-4 h-4" />}
+                />
+                <Button
                   onClick={() => handleDelete(goal)}
                   disabled={deletingId === goal.id}
-                  className="p-2 text-[var(--foreground)]/60 hover:text-red-600 hover:bg-red-600/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="icon-danger"
                   title="Delete goal"
-                >
-                  {deletingId === goal.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
+                  icon={deletingId === goal.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                />
               </div>
             )}
           </div>

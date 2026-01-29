@@ -1,6 +1,7 @@
 "use client";
 
 import { X, BookOpen } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 
 interface RereadConfirmModalProps {
   isOpen: boolean;
@@ -53,18 +54,18 @@ export default function RereadConfirmModal({
 
         {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={onConfirm}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
           >
             Start Re-reading
-          </button>
+          </Button>
         </div>
       </div>
     </div>

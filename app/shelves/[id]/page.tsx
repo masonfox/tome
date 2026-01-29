@@ -30,6 +30,7 @@ import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { cn } from "@/utils/cn";
 import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
+import { Button } from "@/components/Utilities/Button";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
 
 type SortOption = ShelfOrderBy;
@@ -252,13 +253,15 @@ export default function ShelfDetailPage() {
           label: "Back to Shelves"
         }}
         actions={
-          <button
+          <Button
             onClick={() => setShowAddBooksModal(true)}
-            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+            variant="primary"
+            size="md"
+            icon={<Plus className="w-5 h-5" />}
+            className="hidden lg:flex"
           >
-            <Plus className="w-5 h-5" />
             Add Books
-          </button>
+          </Button>
         }
       />
 
@@ -321,7 +324,7 @@ export default function ShelfDetailPage() {
             </p>
             <Link
               href="/library"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
             >
               Go to Library
             </Link>
@@ -342,7 +345,7 @@ export default function ShelfDetailPage() {
             </p>
             <button
               onClick={() => listView.setFilterText("")}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
             >
               Clear Filter
             </button>
@@ -450,20 +453,22 @@ export default function ShelfDetailPage() {
         loading={removeLoading}
         actions={
           <div className="flex gap-3 justify-end">
-            <button
+            <Button
               onClick={() => setRemovingBook(null)}
               disabled={removeLoading}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="tertiary"
+              size="sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleRemoveBook()}
               disabled={removeLoading}
-              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="danger"
+              size="sm"
             >
               {removeLoading ? "Removing..." : "Remove"}
-            </button>
+            </Button>
           </div>
         }
       >
@@ -511,20 +516,22 @@ export default function ShelfDetailPage() {
         loading={bulkDelete.loading}
         actions={
           <div className="flex gap-3 justify-end">
-            <button
+            <Button
               onClick={bulkDelete.cancel}
               disabled={bulkDelete.loading}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="tertiary"
+              size="sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => bulkDelete.execute(Array.from(listView.selectedBookIds))}
               disabled={bulkDelete.loading}
-              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="danger"
+              size="sm"
             >
               {bulkDelete.loading ? "Removing..." : "Remove"}
-            </button>
+            </Button>
           </div>
         }
       >

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Target, Plus } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { ReadingGoalsList } from "./ReadingGoalsList";
 import type { ReadingGoal } from "@/lib/db/schema";
@@ -55,13 +56,14 @@ export function ReadingGoalsSettings({ initialGoals }: ReadingGoalsSettingsProps
           </h3>
         </div>
         {!showForm && (
-          <button
+          <Button
             onClick={handleCreateNew}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold flex items-center gap-2"
+            variant="primary"
+            size="md"
+            icon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
             New Goal
-          </button>
+          </Button>
         )}
       </div>
 
@@ -78,12 +80,13 @@ export function ReadingGoalsSettings({ initialGoals }: ReadingGoalsSettingsProps
             onBooksGoalChange={setBooksGoal}
           />
           <div className="flex justify-end gap-2 mt-4">
-            <button
+            <Button
               onClick={handleFormCancel}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--background)] border border-[var(--border-color)] rounded-md hover:bg-[var(--card-bg)] transition-colors"
+              variant="secondary"
+              size="md"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

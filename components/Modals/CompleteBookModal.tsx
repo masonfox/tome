@@ -8,6 +8,7 @@ import { useDraftField } from "@/hooks/useDraftField";
 import { getLogger } from "@/lib/logger";
 import { toast } from "@/utils/toast";
 import { StarRating } from "@/components/Utilities/StarRating";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "CompleteBookModal" });
 
@@ -210,20 +211,20 @@ export default function CompleteBookModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="secondary"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Completing..." : "Complete Book"}
-          </button>
+          </Button>
         </div>
       }
     >

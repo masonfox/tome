@@ -1,3 +1,5 @@
+import { Button } from "@/components/Utilities/Button";
+
 interface BookMetadataProps {
   hasTotalPages: boolean;
   totalPagesInput: string;
@@ -30,12 +32,14 @@ export default function BookMetadata({
           className="flex-1 px-3 py-2 border border-[var(--border-color)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
           placeholder="e.g. 320"
         />
-        <button
+        <Button
           type="submit"
-          className="px-4 py-2 bg-[var(--accent)] text-white rounded-sm text-sm hover:bg-[var(--light-accent)] transition-colors font-semibold"
+          variant="primary"
+          size="sm"
+          className="rounded-sm"
         >
           Save
-        </button>
+        </Button>
       </form>
     </div>
   );

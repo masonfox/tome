@@ -5,6 +5,7 @@ import { Search, X, Check, Library as LibraryIcon, Layers } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Spinner } from "@/components/Utilities/Spinner";
+import { Button } from "@/components/Utilities/Button";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { cn } from "@/utils/cn";
 import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
@@ -194,12 +195,13 @@ export function ShelfSelectionModal({
             <p className="text-sm text-[var(--foreground)]/60 mb-4">
               {error}
             </p>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => window.location.reload()}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Reload Page
-            </button>
+            </Button>
           </div>
         ) : loading ? (
           <div className="text-center py-16">
@@ -326,20 +328,22 @@ export function ShelfSelectionModal({
         allowBackdropClose={false}
         actions={
           <>
-            <button
+            <Button
+              variant="tertiary"
+              size="sm"
               onClick={handleClose}
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSubmit}
               disabled={selectedShelfId === null || submitting}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Processing..." : confirmButtonText}
-            </button>
+            </Button>
           </>
         }
       >
@@ -367,20 +371,22 @@ export function ShelfSelectionModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end w-full">
-          <button
+          <Button
+            variant="tertiary"
+            size="sm"
             onClick={handleClose}
             disabled={submitting}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
             disabled={selectedShelfId === null || submitting}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Processing..." : confirmButtonText}
-          </button>
+          </Button>
         </div>
       }
     >
