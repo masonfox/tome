@@ -212,7 +212,7 @@ export default function CompleteBookModal({
       actions={
         <div className="flex gap-3 justify-end">
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
           >

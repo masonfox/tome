@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/utils/cn";
 import { StarRating } from "@/components/Utilities/StarRating";
+import { Button } from "@/components/Utilities/Button";
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -80,36 +80,33 @@ export default function RatingModal({
           />
           {currentRating && (
             <div className="text-center mt-2">
-              <button
+              <Button
+                variant="danger-ghost"
                 onClick={handleRemove}
-                className="text-xs text-red-600 dark:text-red-400 hover:underline transition-colors"
+                size="sm"
+                className="text-xs"
               >
                 Remove rating
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={rating === 0}
-            className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-              rating > 0
-                ? "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
-                : "bg-[var(--border-color)] text-[var(--foreground)]/50 cursor-not-allowed"
-            )}
           >
             Save Rating
-          </button>
+          </Button>
         </div>
       </div>
     </div>

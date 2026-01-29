@@ -55,7 +55,7 @@ export default function RereadConfirmModal({
         {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={onClose}
           >
             Cancel

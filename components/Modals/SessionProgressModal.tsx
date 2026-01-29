@@ -126,7 +126,7 @@ export default function SessionProgressModal({
       size="2xl"
       actions={
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={onClose}
           className="w-full"
         >

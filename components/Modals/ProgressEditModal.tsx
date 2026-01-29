@@ -166,7 +166,7 @@ export default function ProgressEditModal({
         actions={
           <div className="flex justify-end gap-4">
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={handleCancelDelete}
             >
               Cancel
@@ -227,7 +227,7 @@ export default function ProgressEditModal({
           </Button>
           <div className="flex gap-4">
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={onClose}
             >
               Cancel

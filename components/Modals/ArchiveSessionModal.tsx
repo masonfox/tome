@@ -28,7 +28,7 @@ export default function ArchiveSessionModal({
       actions={
         <div className="flex gap-3 justify-end">
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={onClose}
           >
             Cancel

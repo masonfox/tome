@@ -175,10 +175,9 @@ export default function SessionEditModal({
 
           {(startedDate || completedDate) && (
             <Button
-              variant="ghost"
+              variant="danger-ghost"
               onClick={handleClearDates}
               size="sm"
-              className="text-red-500 hover:text-red-600"
             >
               Clear Dates
             </Button>
@@ -204,10 +203,10 @@ export default function SessionEditModal({
           </div>
           {review && (
             <Button
-              variant="ghost"
+              variant="danger-ghost"
               onClick={handleRemoveReview}
               size="sm"
-              className="mt-2 text-red-500 hover:text-red-600"
+              className="mt-2"
             >
               Clear Review
             </Button>
