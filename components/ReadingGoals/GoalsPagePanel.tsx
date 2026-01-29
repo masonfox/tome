@@ -284,7 +284,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
               type="button"
               onClick={handleCloseModal}
               variant="ghost"
-              size="md"
+              size="sm"
               disabled={saving}
             >
               Cancel
@@ -294,7 +294,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
               onClick={handleSubmit}
               disabled={!canEdit || saving}
               variant="primary"
-              size="md"
+              size="sm"
               icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
             >
               {modalMode === "create" ? "Create Goal" : "Update Goal"}
