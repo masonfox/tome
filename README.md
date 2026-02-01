@@ -98,13 +98,21 @@ Visit [http://localhost:3000](http://localhost:3000) and sync your Calibre libra
 
 ## ⚠️ Calibre Safety
 
-Tome reads from and writes to Calibre’s `metadata.db`. **Concurrent writes** (for example, editing tags or ratings in Tome while Calibre is running) can lead to database locks or unpredictable results. **Read-only access is safe!**
+Tome reads from and writes to Calibre's `metadata.db`. **Concurrent writes** (for example, editing tags or ratings in Tome while Calibre is running) can lead to database locks or unpredictable results. **Read-only access is safe!**
 
-**Recommendation**: Close Calibre before using Tome for metadata edits.
+### Calibre 9.x Compatibility
+
+**Good News**: Tome is fully compatible with Calibre 9.0+ which uses WAL (Write-Ahead Logging) mode by default.
+
+**What This Means for You**:
+- ✅ **Rating Updates**: Can be performed with Calibre open! Tome automatically retries if the database is temporarily locked.
+- ⚠️ **Tag Operations**: Still require Calibre to be closed to prevent lock conflicts. Close Calibre, wait 5-10 seconds, then perform tag operations.
+
+**Recommendation**: Close Calibre before using Tome for metadata edits, especially tag operations.
 
 Tome writes to Calibre when you:
-- Rate a book
-- Manage tags, whether on `/books/:id` or `/tags` pages
+- Rate a book (works with Calibre open in 9.x)
+- Manage tags on `/books/:id` or `/tags` pages (requires Calibre closed)
 
 ## Roadmap
 Active development can be viewed [here](https://github.com/users/masonfox/projects/2/views/6), representing the upcoming release. Additionally, checkout repo [discussions](https://github.com/masonfox/tome/discussions) for [release](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3ARelease) and [feature](https://github.com/masonfox/tome/discussions?discussions_q=is%3Aopen+label%3Afeature) announcements and more!
