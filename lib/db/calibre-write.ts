@@ -97,13 +97,25 @@ export function getCalibreWriteDB(): SQLiteDatabase {
   if (!writeDbInstance) {
     try {
       // Create write-enabled Calibre database connection using factory
+      // Use 'auto' mode to detect and respect Calibre's journal mode (Calibre 9.x uses WAL)
       writeDbInstance = createDatabase({
         path: CALIBRE_DB_PATH,
         readonly: false,
         foreignKeys: false, // Calibre DB manages its own schema
-        wal: false, // Don't modify journal mode on Calibre DB
+        wal: 'auto', // Auto-detect WAL mode (Calibre 9.x compatibility)
       });
-      getLoggerSafe().debug('Calibre Write DB: Using better-sqlite3 - WRITE ENABLED');
+      
+      // Set busy timeout to 5 seconds
+      // This makes SQLite wait instead of immediately returning LOCKED errors
+      // Critical for concurrent access when Calibre is open
+      writeDbInstance.sqlite.pragma('busy_timeout = 5000');
+      
+      const journalMode = writeDbInstance.sqlite.pragma('journal_mode', { simple: true });
+      getLoggerSafe().info(
+        { journalMode, busyTimeout: 5000 },
+        '[Calibre Write DB] Initialized with auto-detected journal mode and 5s busy timeout'
+      );
+      
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }
