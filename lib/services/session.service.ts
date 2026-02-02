@@ -1149,6 +1149,114 @@ export class SessionService {
   }
 
   /**
+   * Delete a reading session and all associated progress logs
+   *
+   * This permanently deletes a session and its progress logs (cascading via foreign key).
+   * If the session being deleted is active, a new "to-read" session is automatically created
+   * to ensure the book maintains an active session.
+   *
+   * Use Cases:
+   * - Fixing mistakes (wrong book logged, test data)
+   * - Cleaning up reading history
+   * - Removing unwanted sessions
+   *
+   * @param bookId - The ID of the book
+   * @param sessionId - The ID of the session to delete
+   * @returns Promise resolving to metadata about the deletion
+   * @throws {Error} If session not found or bookId mismatch
+   *
+   * @example
+   * // Delete an archived session
+   * const result = await sessionService.deleteSession(123, 456);
+   * // result: { deletedSessionNumber: 2, wasActive: false, newSessionCreated: false }
+   *
+   * @example
+   * // Delete active session (creates new "to-read" session)
+   * const result = await sessionService.deleteSession(123, 789);
+   * // result: { deletedSessionNumber: 1, wasActive: true, newSessionCreated: true }
+   */
+  async deleteSession(bookId: number, sessionId: number): Promise<{
+    deletedSessionNumber: number;
+    wasActive: boolean;
+    newSessionCreated: boolean;
+  }> {
+    const logger = getLogger();
+
+    logger.info({ bookId, sessionId }, "Starting deleteSession workflow");
+
+    // Get session to verify it exists and belongs to book
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) {
+      throw new Error("Session not found");
+    }
+
+    if (session.bookId !== bookId) {
+      throw new Error("Session does not belong to specified book");
+    }
+
+    // Store metadata before deletion
+    const deletedSessionNumber = session.sessionNumber;
+    const wasActive = session.isActive;
+
+    logger.info({
+      bookId,
+      sessionId,
+      sessionNumber: deletedSessionNumber,
+      wasActive,
+    }, "Deleting session");
+
+    // Delete session (cascades to progress logs via foreign key)
+    await sessionRepository.delete(sessionId);
+
+    logger.info({ bookId, sessionId, deletedSessionNumber }, "Session deleted");
+
+    // If session was active, create new "to-read" session
+    let newSessionCreated = false;
+    if (wasActive) {
+      logger.info({ bookId }, "Creating new 'to-read' session after active session deletion");
+
+      await sessionRepository.create({
+        bookId,
+        sessionNumber: 1,
+        status: "to-read",
+        isActive: true,
+        userId: session.userId,
+      });
+
+      newSessionCreated = true;
+      logger.info({ bookId }, "New 'to-read' session created");
+    }
+
+    // Best-effort: Update streak system
+    try {
+      await this.updateStreakSystem();
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to update streak (continuing)");
+    }
+
+    // Best-effort: Invalidate cache
+    try {
+      await this.invalidateCache(bookId);
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to invalidate cache (continuing)");
+    }
+
+    logger.info({
+      bookId,
+      sessionId,
+      deletedSessionNumber,
+      wasActive,
+      newSessionCreated,
+    }, "Successfully completed deleteSession workflow");
+
+    return {
+      deletedSessionNumber,
+      wasActive,
+      newSessionCreated,
+    };
+  }
+
+  /**
    * Update streak system (best effort)
    */
   private async updateStreakSystem(): Promise<void> {
