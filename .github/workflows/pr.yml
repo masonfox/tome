@@ -12,6 +12,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     
     steps:
       - name: Checkout repository
@@ -44,7 +45,7 @@ jobs:
   docker-build:
     name: Validate Docker Build (PRs only)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
 
     steps:
       - name: Checkout code
