@@ -110,10 +110,10 @@ describe("DELETE /api/books/[id]/sessions/[sessionId]", () => {
       expect(data).toEqual({
         deletedSessionNumber: 1,
         wasActive: false,
-        newSessionCreated: false,
+        newSessionCreated: true, // Changed: Now creates session even for inactive sessions
       });
 
-      // Verify session is deleted
+      // Verify original session is deleted
       const deletedSession = await sessionRepository.findById(session.id);
       expect(deletedSession).toBeUndefined();
 
@@ -121,9 +121,15 @@ describe("DELETE /api/books/[id]/sessions/[sessionId]", () => {
       const progressLogs = await progressRepository.findBySessionId(session.id);
       expect(progressLogs.length).toBe(0);
 
-      // Verify no new session was created
+      // Verify new to-read session was created (bug fix)
+      const newSession = await sessionRepository.findActiveByBookId(book.id);
+      expect(newSession).toBeDefined();
+      expect(newSession!.status).toBe("to-read");
+      expect(newSession!.isActive).toBe(true);
+      
+      // Verify book has exactly one session
       const allSessions = await sessionRepository.findAllByBookId(book.id);
-      expect(allSessions.length).toBe(0);
+      expect(allSessions.length).toBe(1);
     });
 
     test("should delete active session, create new to-read session, and return metadata", async () => {

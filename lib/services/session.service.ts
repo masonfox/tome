@@ -1210,10 +1210,14 @@ export class SessionService {
 
     logger.info({ bookId, sessionId, deletedSessionNumber }, "Session deleted");
 
-    // If session was active, create new "to-read" session
+    // Check if book still has an active session after deletion
+    const remainingActiveSession = await sessionRepository.findActiveByBookId(bookId);
+    
+    // Always create new "to-read" session if book has no active session
+    // This ensures books are never left without a way to track reading status
     let newSessionCreated = false;
-    if (wasActive) {
-      logger.info({ bookId }, "Creating new 'to-read' session after active session deletion");
+    if (!remainingActiveSession) {
+      logger.info({ bookId }, "Creating new 'to-read' session - no active session remains");
 
       await sessionRepository.create({
         bookId,
@@ -1225,6 +1229,8 @@ export class SessionService {
 
       newSessionCreated = true;
       logger.info({ bookId }, "New 'to-read' session created");
+    } else {
+      logger.info({ bookId }, "Book still has active session - no new session needed");
     }
 
     // Best-effort: Update streak system
