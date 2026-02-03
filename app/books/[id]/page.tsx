@@ -656,7 +656,7 @@ export default function BookDetailPage() {
         bookId={bookId}
         currentPageCount={book.totalPages ?? null}
         currentRating={book.rating}
-        defaultStartDate={book.activeSession?.startedDate ? new Date(book.activeSession.startedDate) : undefined}
+        defaultStartDate={book.activeSession?.startedDate ?? undefined}
       />
 
       {/* Manual status change from "reading" to "read" - uses mark-as-read API */}

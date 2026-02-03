@@ -33,12 +33,10 @@ export function JournalEntryList({
 
   // Group entries by date
   const groupedByDate = entries.reduce((acc, entry) => {
-    // Parse ISO timestamp and extract LOCAL calendar date using date-fns
-    // For Tokyo user with "2025-01-07T15:00:00.000Z":
-    // - new Date() creates Date object for that moment in time
-    // - format() extracts date in LOCAL timezone (browser timezone)
-    // - In Tokyo: Jan 8 00:00 → dateKey = "2025-01-08" ✅
-    const dateKey = format(new Date(entry.progressDate), 'yyyy-MM-dd');
+    // ADR-014: progressDate is already a YYYY-MM-DD string - use it directly
+    // No Date conversion needed, as this would cause timezone shift
+    // (new Date("2021-01-01") treats as UTC midnight, becomes Dec 31 in EST)
+    const dateKey = entry.progressDate;
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
