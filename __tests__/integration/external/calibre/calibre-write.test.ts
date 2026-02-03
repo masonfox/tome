@@ -1,5 +1,6 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import Database from "better-sqlite3";
+import { join } from 'path';
 
 // Import real production functions
 import { 
@@ -1080,6 +1081,216 @@ describe("Calibre Write Operations - Batch Tag Updates", () => {
       expect(result2.failures).toEqual([]);
       expect(readCalibreTags(1, batchTestDb)).toEqual(["Adventure", "Science Fiction"]);
       expect(readCalibreTags(2, batchTestDb)).toEqual(["Biography"]);
+    });
+  });
+});
+
+/**
+ * Calibre 9.x WAL Mode Compatibility Tests
+ * 
+ * Tests that our write operations work correctly with WAL mode,
+ * which is the default in Calibre 9.0+. This prevents SQLITE_BUSY
+ * and SQLITE_LOCKED errors when Calibre is open.
+ */
+describe("Calibre 9.x WAL Mode Compatibility", () => {
+  let walTestDb: Database.Database;
+  const tempDbPath = join(process.cwd(), '__tests__', 'fixtures', 'calibre-wal-test.db');
+
+  beforeEach(() => {
+    // Clean up any existing test database
+    if (require('fs').existsSync(tempDbPath)) {
+      require('fs').unlinkSync(tempDbPath);
+      // Also clean up WAL and SHM files
+      if (require('fs').existsSync(`${tempDbPath}-wal`)) {
+        require('fs').unlinkSync(`${tempDbPath}-wal`);
+      }
+      if (require('fs').existsSync(`${tempDbPath}-shm`)) {
+        require('fs').unlinkSync(`${tempDbPath}-shm`);
+      }
+    }
+
+    // Create test database in WAL mode (simulating Calibre 9.x)
+    // Must use file-based database for WAL mode to work
+    walTestDb = new Database(tempDbPath);
+    walTestDb.pragma('journal_mode = WAL');
+    
+    // Verify WAL mode is active
+    const mode = walTestDb.pragma('journal_mode', { simple: true });
+    expect(mode).toBe('wal');
+    
+    // Create schema
+    createCalibreRatingsSchema(walTestDb);
+    insertTestBooks(walTestDb);
+  });
+
+  afterEach(() => {
+    walTestDb.close();
+    
+    // Clean up test database files
+    if (require('fs').existsSync(tempDbPath)) {
+      require('fs').unlinkSync(tempDbPath);
+    }
+    if (require('fs').existsSync(`${tempDbPath}-wal`)) {
+      require('fs').unlinkSync(`${tempDbPath}-wal`);
+    }
+    if (require('fs').existsSync(`${tempDbPath}-shm`)) {
+      require('fs').unlinkSync(`${tempDbPath}-shm`);
+    }
+  });
+
+  describe("Rating operations in WAL mode", () => {
+    test("should update ratings successfully in WAL mode", () => {
+      updateCalibreRating(1, 5, walTestDb);
+      expect(readCalibreRating(1, walTestDb)).toBe(5);
+    });
+
+    test("should handle multiple rating updates in WAL mode", () => {
+      updateCalibreRating(1, 5, walTestDb);
+      updateCalibreRating(2, 4, walTestDb);
+      updateCalibreRating(3, 3, walTestDb);
+
+      expect(readCalibreRating(1, walTestDb)).toBe(5);
+      expect(readCalibreRating(2, walTestDb)).toBe(4);
+      expect(readCalibreRating(3, walTestDb)).toBe(3);
+    });
+
+    test("should remove ratings in WAL mode", () => {
+      updateCalibreRating(1, 5, walTestDb);
+      expect(readCalibreRating(1, walTestDb)).toBe(5);
+
+      updateCalibreRating(1, null, walTestDb);
+      expect(readCalibreRating(1, walTestDb)).toBeFalsy();
+    });
+  });
+
+  describe("Tag operations in WAL mode", () => {
+    test("should update tags successfully in WAL mode", () => {
+      updateCalibreTags(1, ['Fantasy', 'Adventure'], walTestDb);
+      const tags = readCalibreTags(1, walTestDb);
+      expect(tags).toEqual(['Adventure', 'Fantasy']);
+    });
+
+    test("should handle multiple tag operations in WAL mode", () => {
+      updateCalibreTags(1, ['Fiction'], walTestDb);
+      updateCalibreTags(2, ['Non-Fiction'], walTestDb);
+      updateCalibreTags(3, ['Classic'], walTestDb);
+
+      expect(readCalibreTags(1, walTestDb)).toEqual(['Fiction']);
+      expect(readCalibreTags(2, walTestDb)).toEqual(['Non-Fiction']);
+      expect(readCalibreTags(3, walTestDb)).toEqual(['Classic']);
+    });
+
+    test("should clear tags in WAL mode", () => {
+      updateCalibreTags(1, ['Fantasy', 'Adventure'], walTestDb);
+      expect(readCalibreTags(1, walTestDb)).toEqual(['Adventure', 'Fantasy']);
+
+      updateCalibreTags(1, [], walTestDb);
+      expect(readCalibreTags(1, walTestDb)).toEqual([]);
+    });
+
+    test("should handle tag merge operations in WAL mode", () => {
+      // Set initial tags
+      updateCalibreTags(1, ['Fantasy'], walTestDb);
+      updateCalibreTags(2, ['Sci-Fi'], walTestDb);
+
+      // Merge: update both books with same tag
+      updateCalibreTags(1, ['Fiction'], walTestDb);
+      updateCalibreTags(2, ['Fiction'], walTestDb);
+
+      // Verify shared tag
+      expect(readCalibreTags(1, walTestDb)).toEqual(['Fiction']);
+      expect(readCalibreTags(2, walTestDb)).toEqual(['Fiction']);
+
+      // Verify only one 'Fiction' tag exists
+      const tagCount = walTestDb.prepare(
+        "SELECT COUNT(*) as count FROM tags WHERE name = 'Fiction'"
+      ).get() as { count: number };
+      expect(tagCount.count).toBe(1);
+    });
+  });
+
+  describe("Batch operations in WAL mode", () => {
+    test("should handle batch tag updates in WAL mode", () => {
+      const updates = [
+        { calibreId: 1, tags: ['Fiction', 'Classic'] },
+        { calibreId: 2, tags: ['Non-Fiction'] },
+        { calibreId: 3, tags: ['Science Fiction', 'Adventure'] },
+      ];
+
+      const result = batchUpdateCalibreTags(updates, walTestDb);
+
+      expect(result.totalAttempted).toBe(3);
+      expect(result.successCount).toBe(3);
+      expect(result.failures).toEqual([]);
+
+      expect(readCalibreTags(1, walTestDb)).toEqual(['Classic', 'Fiction']);
+      expect(readCalibreTags(2, walTestDb)).toEqual(['Non-Fiction']);
+      expect(readCalibreTags(3, walTestDb)).toEqual(['Adventure', 'Science Fiction']);
+    });
+
+    test("should handle large batch operations in WAL mode", () => {
+      const updates = Array.from({ length: 5 }, (_, i) => ({
+        calibreId: i + 1,
+        tags: [`Tag${i}`, `Genre${i}`],
+      }));
+
+      const result = batchUpdateCalibreTags(updates, walTestDb);
+
+      expect(result.totalAttempted).toBe(5);
+      expect(result.successCount).toBe(5);
+      expect(result.failures).toEqual([]);
+
+      // Verify first and last book
+      expect(readCalibreTags(1, walTestDb)).toEqual(['Genre0', 'Tag0']);
+      expect(readCalibreTags(5, walTestDb)).toEqual(['Genre4', 'Tag4']);
+    });
+  });
+
+  describe("Journal mode verification", () => {
+    test("should maintain WAL mode after operations", () => {
+      // Perform various operations
+      updateCalibreRating(1, 5, walTestDb);
+      updateCalibreTags(1, ['Fiction'], walTestDb);
+      updateCalibreRating(2, 4, walTestDb);
+      updateCalibreTags(2, ['Classic'], walTestDb);
+
+      // Verify WAL mode still active
+      const mode = walTestDb.pragma('journal_mode', { simple: true });
+      expect(mode).toBe('wal');
+    });
+
+    test("should not create lock conflicts in WAL mode", () => {
+      // Simulate rapid sequential updates (would cause locks in DELETE mode)
+      for (let i = 1; i <= 5; i++) {
+        updateCalibreRating(i, 5, walTestDb);
+        updateCalibreTags(i, [`Tag${i}`], walTestDb);
+      }
+
+      // Verify all operations succeeded
+      for (let i = 1; i <= 5; i++) {
+        expect(readCalibreRating(i, walTestDb)).toBe(5);
+        expect(readCalibreTags(i, walTestDb)).toEqual([`Tag${i}`]);
+      }
+    });
+  });
+
+  describe("DELETE mode comparison", () => {
+    test("should work in both WAL and DELETE modes", () => {
+      // Test in WAL mode
+      updateCalibreTags(1, ['Fiction'], walTestDb);
+      expect(readCalibreTags(1, walTestDb)).toEqual(['Fiction']);
+
+      // Create DELETE mode database
+      const deleteDb = new Database(":memory:");
+      deleteDb.pragma('journal_mode = DELETE');
+      createCalibreRatingsSchema(deleteDb);
+      insertTestBooks(deleteDb);
+
+      // Test in DELETE mode
+      updateCalibreTags(1, ['Fiction'], deleteDb);
+      expect(readCalibreTags(1, deleteDb)).toEqual(['Fiction']);
+
+      deleteDb.close();
     });
   });
 });

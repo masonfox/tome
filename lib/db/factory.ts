@@ -7,6 +7,7 @@
 
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { existsSync } from 'fs';
 import { getLogger } from "@/lib/logger";
 
 export interface DatabaseConfig {
@@ -14,8 +15,12 @@ export interface DatabaseConfig {
   path: string;
   /** Drizzle schema for type-safe queries (optional) */
   schema?: any;
-  /** Enable WAL mode (default: true for file-based, false for in-memory) */
-  wal?: boolean;
+  /** Enable WAL mode (default: true for file-based, false for in-memory)
+   * - true: Force WAL mode
+   * - false: Force DELETE mode
+   * - 'auto': Auto-detect from existing WAL files (Calibre 9.x compatibility)
+   */
+  wal?: boolean | 'auto';
   /** Enable foreign keys (default: true) */
   foreignKeys?: boolean;
   /** Create database if it doesn't exist (default: true) */
@@ -29,6 +34,48 @@ export interface DatabaseInstance<TSchema = any> {
   db: any;
   /** Raw SQLite instance (better-sqlite3) */
   sqlite: Database.Database;
+}
+
+/**
+ * Detect if a SQLite database is using WAL (Write-Ahead Logging) mode
+ * 
+ * WAL mode is indicated by the presence of -wal and -shm files alongside
+ * the database file. This is used to detect Calibre 9.x's default journal mode.
+ * 
+ * @param dbPath - Path to SQLite database file
+ * @returns true if -wal file exists, false otherwise
+ * 
+ * @example
+ * if (isWalMode('/path/to/metadata.db')) {
+ *   console.log('Database is using WAL mode');
+ * }
+ */
+export function isWalMode(dbPath: string): boolean {
+  // WAL mode creates a -wal file (Write-Ahead Log)
+  // The -shm file (shared memory) is also created but -wal is the definitive indicator
+  const walPath = `${dbPath}-wal`;
+  return existsSync(walPath);
+}
+
+/**
+ * Get recommended journal mode for a database based on existing files
+ * 
+ * If WAL files exist, returns 'wal' to match the existing mode and avoid
+ * journal mode conflicts. Otherwise returns 'delete' as the default.
+ * 
+ * This is critical for Calibre 9.x compatibility, which uses WAL mode by default.
+ * Attempting to change journal mode while another process has the DB open causes
+ * SQLITE_BUSY errors.
+ * 
+ * @param dbPath - Path to SQLite database file
+ * @returns 'wal' if WAL files exist, 'delete' otherwise
+ * 
+ * @example
+ * const mode = detectJournalMode('/calibre/metadata.db');
+ * // Returns 'wal' if Calibre 9.x is using WAL mode
+ */
+export function detectJournalMode(dbPath: string): 'wal' | 'delete' {
+  return isWalMode(dbPath) ? 'wal' : 'delete';
 }
 
 /**
@@ -53,10 +100,11 @@ export interface DatabaseInstance<TSchema = any> {
  * });
  *
  * @example
- * // Calibre database (read-only, no schema)
+ * // Calibre database (auto-detect journal mode)
  * const { db, sqlite } = createDatabase({
  *   path: '/calibre/metadata.db',
- *   readonly: true
+ *   readonly: false,
+ *   wal: 'auto' // Detects WAL mode in Calibre 9.x
  * });
  */
 export function createDatabase<TSchema = any>(
@@ -83,10 +131,27 @@ export function createDatabase<TSchema = any>(
     if (foreignKeys) {
       sqlite.pragma('foreign_keys = ON');
     }
-    if (wal) {
-      sqlite.pragma('journal_mode = WAL');
+    
+    // Handle WAL mode configuration
+    if (wal === 'auto') {
+      // Auto-detect journal mode from existing files but DON'T set pragma
+      // This respects Calibre's existing mode without requiring a write lock
+      // Critical: Setting journal_mode requires SQLITE_RESERVED lock, which fails
+      // if another process (Calibre, Calibre-Web-Automated) has the DB open
+      const detectedMode = detectJournalMode(path);
+      getLogger().info(
+        { path, detectedMode },
+        `[DB Factory] Using existing journal mode: ${detectedMode.toUpperCase()} (auto-detected, not modified)`
+      );
+      // Skip pragma - use whatever mode the database already has
     } else {
-      sqlite.pragma('journal_mode = DELETE');
+      // Explicit mode requested - set pragma
+      const useWal = wal as boolean;
+      if (useWal) {
+        sqlite.pragma('journal_mode = WAL');
+      } else {
+        sqlite.pragma('journal_mode = DELETE');
+      }
     }
   }
 

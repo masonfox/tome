@@ -1,8 +1,9 @@
 import { watch } from "fs";
-import { stat } from "fs/promises";
+import { stat, access } from "fs/promises";
 import type { SyncResult } from "./sync-service";
 import { getLogger } from "@/lib/logger";
 import { delay } from "@/lib/utils/delay";
+import { isWalMode } from "@/lib/db/factory";
 
 type SyncCallback = () => Promise<SyncResult>;
 
@@ -16,8 +17,8 @@ type SyncCallback = () => Promise<SyncResult>;
 const MAX_RETRIES = 3;
 
 class CalibreWatcher {
-  private watcher: ReturnType<typeof watch> | null = null;
-  private lastModified: number = 0;
+  private watchers: ReturnType<typeof watch>[] = [];
+  private lastModified: Map<string, number> = new Map();
   private syncing: boolean = false;
   private syncCallback: SyncCallback | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
@@ -27,7 +28,7 @@ class CalibreWatcher {
   async start(calibreDbPath: string, onSync: SyncCallback) {
     const logger = getLogger();
 
-    if (this.watcher) {
+    if (this.watchers.length > 0) {
       logger.debug("Calibre watcher already running");
       return;
     }
@@ -35,34 +36,98 @@ class CalibreWatcher {
     this.syncCallback = onSync;
 
     try {
-      const stats = await stat(calibreDbPath);
-      this.lastModified = stats.mtimeMs;
+      // Determine which files to watch
+      const filesToWatch: string[] = [calibreDbPath];
+      
+      // Check if database is using WAL mode (Calibre 9.x default)
+      if (isWalMode(calibreDbPath)) {
+        const walPath = `${calibreDbPath}-wal`;
+        filesToWatch.push(walPath);
+        logger.info(
+          { calibreDbPath, walPath },
+          "Calibre using WAL mode, watching both .db and .db-wal files"
+        );
+      } else {
+        logger.info(
+          { calibreDbPath },
+          "Calibre using DELETE mode, watching .db file only"
+        );
+      }
 
-      logger.info({ calibreDbPath }, `Starting Calibre database watcher on: ${calibreDbPath}`);
-
-      this.watcher = watch(calibreDbPath, async (eventType) => {
-        if (eventType === "change") {
-          logger.info("[WATCHER] Calibre database change detected");
-          if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-          }
-
-          this.debounceTimer = setTimeout(async () => {
-            try {
-              const newStats = await stat(calibreDbPath);
-              if (newStats.mtimeMs > this.lastModified) {
-                logger.info("[WATCHER] Calibre database modified, triggering sync...");
-                this.lastModified = newStats.mtimeMs;
-                await this.triggerSync();
-              } else {
-                logger.info("[WATCHER] Calibre database change was not a modification, skipping sync");
-              }
-            } catch (error) {
-              logger.error({ err: error }, "[WATCHER] Error checking Calibre database");
-            }
-          }, 2000);
+      // Initialize modification times for all files
+      for (const filePath of filesToWatch) {
+        try {
+          const stats = await stat(filePath);
+          this.lastModified.set(filePath, stats.mtimeMs);
+        } catch (error) {
+          logger.warn(
+            { filePath, err: error },
+            `Could not stat file, will watch anyway`
+          );
+          this.lastModified.set(filePath, 0);
         }
-      });
+      }
+
+      logger.info(
+        { files: filesToWatch },
+        `Starting Calibre database watcher`
+      );
+
+      // Create a watcher for each file
+      for (const filePath of filesToWatch) {
+        const watcher = watch(filePath, async (eventType) => {
+          if (eventType === "change") {
+            logger.info(
+              { file: filePath },
+              `[WATCHER] Calibre database change detected`
+            );
+            
+            if (this.debounceTimer) {
+              clearTimeout(this.debounceTimer);
+            }
+
+            this.debounceTimer = setTimeout(async () => {
+              try {
+                // Check if ANY watched file was modified
+                let anyModified = false;
+                
+                for (const watchedFile of filesToWatch) {
+                  try {
+                    const newStats = await stat(watchedFile);
+                    const lastMtime = this.lastModified.get(watchedFile) || 0;
+                    
+                    if (newStats.mtimeMs > lastMtime) {
+                      logger.info(
+                        { file: watchedFile, oldMtime: lastMtime, newMtime: newStats.mtimeMs },
+                        "[WATCHER] File modified"
+                      );
+                      this.lastModified.set(watchedFile, newStats.mtimeMs);
+                      anyModified = true;
+                    }
+                  } catch (error) {
+                    // File might be temporarily unavailable during write
+                    logger.debug(
+                      { file: watchedFile, err: error },
+                      "[WATCHER] Could not stat file (may be temporary)"
+                    );
+                  }
+                }
+                
+                if (anyModified) {
+                  logger.info("[WATCHER] Calibre database modified, triggering sync...");
+                  await this.triggerSync();
+                } else {
+                  logger.info("[WATCHER] Calibre database change was not a modification, skipping sync");
+                }
+              } catch (error) {
+                logger.error({ err: error }, "[WATCHER] Error checking Calibre database");
+              }
+            }, 2000);
+          }
+        });
+        
+        this.watchers.push(watcher);
+      }
 
       logger.info("Calibre watcher started successfully");
       await this.triggerSync();
@@ -215,9 +280,11 @@ class CalibreWatcher {
   stop() {
     const logger = getLogger();
 
-    if (this.watcher) {
-      this.watcher.close();
-      this.watcher = null;
+    if (this.watchers.length > 0) {
+      for (const watcher of this.watchers) {
+        watcher.close();
+      }
+      this.watchers = [];
       logger.info("Calibre watcher stopped");
     }
 
