@@ -56,27 +56,9 @@ export default function CurrentlyReadingSection({
 
   if (books.length === 0) {
     return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center h-[156px] flex flex-col items-center justify-center">
-        <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-        <p className="text-[var(--foreground)]/70 font-medium">
-          No books in progress. Start reading from your{" "}
-          <Link
-            href="/library"
-            className="text-[var(--accent)} hover:text-[var(--light-accent)] font-semibold"
-          >
-            library
-          </Link>
-          !
-        </p>
-      </div>
-    );
-  }
-
-  if (books.length === 0) {
-    return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center min-h-[140px] flex flex-col items-center justify-center">
-        <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-        <p className="text-[var(--foreground)]/70 font-medium">
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 text-center h-[156px] flex flex-col items-center justify-center">
+        <BookOpen className="w-12 h-12 text-[var(--light-accent)] mx-auto mb-3" />
+        <p className="text-[var(--foreground)] font-medium">
           No books in progress. Start reading from your{" "}
           <Link
             href="/library"
