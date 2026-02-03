@@ -150,15 +150,16 @@ export function getCalibreWriteDB(): SQLiteDatabase {
         wal: 'auto', // Auto-detect WAL mode (Calibre 9.x compatibility)
       });
       
-      // Set busy timeout to 5 seconds
+      // Set busy timeout to 30 seconds
       // This makes SQLite wait instead of immediately returning LOCKED errors
       // Critical for concurrent access when Calibre is open
-      writeDbInstance.sqlite.pragma('busy_timeout = 5000');
+      // 30 seconds accommodates long-running operations from Calibre-Web-Automated
+      writeDbInstance.sqlite.pragma('busy_timeout = 30000');
       
       const journalMode = writeDbInstance.sqlite.pragma('journal_mode', { simple: true });
       getLoggerSafe().info(
-        { journalMode, busyTimeout: 5000 },
-        '[Calibre Write DB] Initialized with auto-detected journal mode and 5s busy timeout'
+        { journalMode, busyTimeout: 30000 },
+        '[Calibre Write DB] Initialized with auto-detected journal mode and 30s busy timeout'
       );
       
     } catch (error) {

@@ -133,24 +133,25 @@ export function createDatabase<TSchema = any>(
     }
     
     // Handle WAL mode configuration
-    let useWal: boolean;
-    
     if (wal === 'auto') {
-      // Auto-detect journal mode from existing files
-      useWal = detectJournalMode(path) === 'wal';
+      // Auto-detect journal mode from existing files but DON'T set pragma
+      // This respects Calibre's existing mode without requiring a write lock
+      // Critical: Setting journal_mode requires SQLITE_RESERVED lock, which fails
+      // if another process (Calibre, Calibre-Web-Automated) has the DB open
+      const detectedMode = detectJournalMode(path);
       getLogger().info(
-        { path, detectedMode: useWal ? 'wal' : 'delete' },
-        `[DB Factory] Auto-detected journal mode: ${useWal ? 'WAL' : 'DELETE'}`
+        { path, detectedMode },
+        `[DB Factory] Using existing journal mode: ${detectedMode.toUpperCase()} (auto-detected, not modified)`
       );
+      // Skip pragma - use whatever mode the database already has
     } else {
-      // Use explicit true/false setting
-      useWal = wal as boolean;
-    }
-    
-    if (useWal) {
-      sqlite.pragma('journal_mode = WAL');
-    } else {
-      sqlite.pragma('journal_mode = DELETE');
+      // Explicit mode requested - set pragma
+      const useWal = wal as boolean;
+      if (useWal) {
+        sqlite.pragma('journal_mode = WAL');
+      } else {
+        sqlite.pragma('journal_mode = DELETE');
+      }
     }
   }
 
