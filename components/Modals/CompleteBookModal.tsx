@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
@@ -28,7 +28,7 @@ interface CompleteBookModalProps {
   bookId: string;
   currentPageCount: number | null;
   currentRating?: number | null;
-  defaultStartDate?: Date;
+  defaultStartDate?: string; // YYYY-MM-DD format (ADR-014)
 }
 
 export default function CompleteBookModal({
@@ -44,11 +44,10 @@ export default function CompleteBookModal({
   // Page count state (only shown if not already set)
   const [pageCount, setPageCount] = useState("");
 
-  // Date states
-  const today = new Date().toISOString().split('T')[0];
-  const [startDate, setStartDate] = useState(
-    defaultStartDate ? defaultStartDate.toISOString().split('T')[0] : today
-  );
+  // Date states (ADR-014: All dates are YYYY-MM-DD strings)
+  // Use useMemo to prevent 'today' from changing on re-renders
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [startDate, setStartDate] = useState(defaultStartDate ?? today);
   const [endDate, setEndDate] = useState(today);
 
   // Rating state
@@ -74,9 +73,8 @@ export default function CompleteBookModal({
     if (isOpen) {
       hasRestoredDraft.current = false;
       setPageCount(currentPageCount?.toString() || "");
-      const defaultStart = defaultStartDate
-        ? defaultStartDate.toISOString().split('T')[0]
-        : today;
+      // ADR-014: defaultStartDate is already YYYY-MM-DD string, no conversion needed
+      const defaultStart = defaultStartDate ?? today;
       setStartDate(defaultStart);
       setEndDate(today);
       setRating(currentRating || 0);
