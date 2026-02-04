@@ -141,7 +141,7 @@ export function getAllBooks(options?: PaginationOptions): CalibreBook[] {
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
     LEFT JOIN ratings r ON brl.rating = r.id
     GROUP BY b.id
-    ORDER BY b.id
+    ORDER BY b.title COLLATE NOCASE
     ${options?.limit ? `LIMIT ${options.limit}` : ''}
     ${options?.offset && options.limit ? `OFFSET ${options.offset}` : ''}
   `;
