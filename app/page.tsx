@@ -121,7 +121,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 text-center min-h-[200px] flex flex-col items-center justify-center">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 text-center h-[156px] flex flex-col items-center justify-center">
             <BookOpen className="w-12 h-12 text-[var(--light-accent)] mx-auto mb-3" />
             <p className="text-[var(--foreground)] font-medium">
               No books in your reading queue. Add books from your{" "}
