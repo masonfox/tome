@@ -467,7 +467,7 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain("Invalid date format");
+      expect(data.error).toContain("Invalid completed date format");
     });
 
     test("should return 400 for date with invalid month (13)", async () => {
@@ -485,9 +485,9 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
       const data = await response.json();
 
-      // The regex only validates format, not validity
-      // This tests the format validation
-      expect(response.status).toBe(200); // Format is valid (YYYY-MM-DD)
+      // Now we validate actual date validity, not just format
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("Invalid completed date format");
     });
 
     test("should return 400 for date with invalid day (32)", async () => {
@@ -503,9 +503,11 @@ describe("POST /api/books/[id]/mark-as-read", () => {
         completedDate: "2025-01-32", // Invalid day
       });
       const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
 
-      // The regex only validates format
-      expect(response.status).toBe(200); // Format is valid
+      // Now we validate actual date validity, not just format
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("Invalid completed date format");
     });
 
     test("should return 400 for non-string date", async () => {
@@ -524,7 +526,7 @@ describe("POST /api/books/[id]/mark-as-read", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain("Invalid date format");
+      expect(data.error).toContain("Invalid completed date format");
     });
   });
 

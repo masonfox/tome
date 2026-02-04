@@ -1,6 +1,7 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionService } from "@/lib/services";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -44,10 +45,9 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     // Validate dnfDate format if provided
     if (dnfDate) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(dnfDate)) {
+      if (!validateDateString(dnfDate)) {
         return NextResponse.json(
-          { error: "Invalid date format. Expected YYYY-MM-DD" },
+          { error: "Invalid DNF date format. Expected valid YYYY-MM-DD" },
           { status: 400 }
         );
       }
