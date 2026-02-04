@@ -14,6 +14,7 @@ export const OPDS_NAMESPACES = {
   OPDS: 'http://opds-spec.org/2010/catalog',
   DC: 'http://purl.org/dc/terms/',
   OPENSEARCH: 'http://a9.com/-/spec/opensearch/1.1/',
+  THREAD: 'http://purl.org/syndication/thread/1.0',
 } as const;
 
 export const OPDS_REL_TYPES = {
