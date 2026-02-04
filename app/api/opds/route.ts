@@ -43,6 +43,12 @@ export async function GET(request: NextRequest) {
         type: OPDS_MIME_TYPES.ACQUISITION_FEED,
         title: 'Search Books',
       },
+      {
+        rel: OPDS_REL_TYPES.SEARCH,
+        href: buildOPDSUrl('/opensearch.xml'),
+        type: 'application/opensearchdescription+xml',
+        title: 'Search Books',
+      },
     ],
     entries: [
       {
