@@ -88,6 +88,13 @@ body {
   body {
     overscroll-behavior-y: none;
   }
+
+  /* Add safe area spacing to main content bottom padding in PWA mode
+     This ensures comfortable spacing above the bottom navigation on all devices
+     by combining the base padding (8rem/128px) with device-specific safe areas */
+  #main-content {
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @layer utilities {
