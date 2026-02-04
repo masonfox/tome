@@ -13,7 +13,7 @@ import type { Book } from "@/lib/db/schema/books";
  * 
  * This tests the DNF (Did Not Finish) marking flow which includes:
  * - Validation (must have active reading session)
- * - Session archival with dnfDate
+ * - Session archival with completedDate
  * - Optional rating updates (best-effort)
  * - Optional review updates (best-effort)
  * - Last progress retrieval for UI prefilling
@@ -104,7 +104,7 @@ describe("SessionService - markAsDNF", () => {
       });
 
       expect(result.session.status).toBe("dnf");
-      expect(result.session.dnfDate).toBeDefined();
+      expect(result.session.completedDate).toBeDefined();
       expect(result.session.id).toBe(session.id);
       expect(result.ratingUpdated).toBe(false);
       expect(result.reviewUpdated).toBe(false);
@@ -123,14 +123,14 @@ describe("SessionService - markAsDNF", () => {
       const customDate = "2026-01-10";
       const result = await sessionService.markAsDNF({
         bookId: book1.id,
-        dnfDate: customDate,
+        completedDate: customDate,
       });
 
       expect(result.session.status).toBe("dnf");
-      expect(result.session.dnfDate).toBe(customDate);
+      expect(result.session.completedDate).toBe(customDate);
     });
 
-    test("should use last progress date if no dnfDate provided and progress exists", async () => {
+    test("should use last progress date if no completedDate provided and progress exists", async () => {
       const session = await sessionRepository.create(createTestSession({
         bookId: book1.id,
         sessionNumber: 1,
@@ -160,7 +160,7 @@ describe("SessionService - markAsDNF", () => {
         bookId: book1.id,
       });
 
-      expect(result.session.dnfDate).toBe("2026-01-08");
+      expect(result.session.completedDate).toBe("2026-01-08");
       expect(result.lastProgress).toBeDefined();
       expect(result.lastProgress?.currentPage).toBe(100);
       expect(result.lastProgress?.progressDate).toBe("2026-01-08");
@@ -354,11 +354,11 @@ describe("SessionService - markAsDNF", () => {
         bookId: book1.id,
         rating: 2,
         review: "Not my cup of tea",
-        dnfDate: "2026-01-10",
+        completedDate: "2026-01-10",
       });
 
       expect(result.session.status).toBe("dnf");
-      expect(result.session.dnfDate).toBe("2026-01-10");
+      expect(result.session.completedDate).toBe("2026-01-10");
       expect(result.session.review).toBe("Not my cup of tea");
       expect(result.ratingUpdated).toBe(true);
       expect(result.reviewUpdated).toBe(true);

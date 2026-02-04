@@ -13,8 +13,7 @@ export interface StatusUpdateData {
   rating?: number | null;
   review?: string;
   startedDate?: string; // YYYY-MM-DD format
-  completedDate?: string; // YYYY-MM-DD format
-  dnfDate?: string; // YYYY-MM-DD format
+  completedDate?: string; // YYYY-MM-DD format (used for both "read" and "dnf" status)
 }
 
 /**
@@ -53,7 +52,7 @@ export interface MarkAsDNFParams {
   bookId: number;
   rating?: number;
   review?: string;
-  dnfDate?: string; // YYYY-MM-DD format
+  completedDate?: string; // YYYY-MM-DD format - when the book was abandoned
 }
 
 /**
@@ -1018,12 +1017,12 @@ export class SessionService {
    * This method handles the workflow for marking a book as abandoned mid-read.
    * Unlike markAsRead() which has multiple strategies, DNF follows a single path:
    * - Must have active session in "reading" status
-   * - Archives the session (sets isActive = false, adds dnfDate)
+   * - Archives the session (sets isActive = false, adds completedDate)
    * - Optionally updates rating (best-effort, syncs to Calibre)
    * - Optionally updates review (best-effort, attaches to archived session)
    * - Returns last progress log for prefilling date in UI
    *
-   * @param params - Mark as DNF parameters (bookId, rating, review, dnfDate)
+   * @param params - Mark as DNF parameters (bookId, rating, review, completedDate)
    * @returns Promise resolving to result with session and update flags
    * @throws {Error} If book not found or no active reading session
    *
@@ -1037,11 +1036,11 @@ export class SessionService {
    *   bookId: 123,
    *   rating: 2,
    *   review: "Started strong but couldn't get into it",
-   *   dnfDate: "2026-01-12",
+   *   completedDate: "2026-01-12",
    * });
    */
   async markAsDNF(params: MarkAsDNFParams): Promise<MarkAsDNFResult> {
-    const { bookId, rating, review, dnfDate } = params;
+    const { bookId, rating, review, completedDate } = params;
     const logger = getLogger();
 
     logger.info({ bookId, hasRating: !!rating, hasReview: !!review }, "Starting markAsDNF workflow");
@@ -1079,13 +1078,13 @@ export class SessionService {
     }
 
     // Mark session as DNF (keep active - archived only on re-read)
-    const finalDnfDate = dnfDate || lastProgress?.progressDate || await this.getTodayDateString();
+    const finalCompletedDate = completedDate || lastProgress?.progressDate || await this.getTodayDateString();
     
-    logger.info({ bookId, sessionId: activeSession.id, dnfDate: finalDnfDate }, "Marking session as DNF");
+    logger.info({ bookId, sessionId: activeSession.id, completedDate: finalCompletedDate }, "Marking session as DNF");
 
     await sessionRepository.update(activeSession.id, {
       status: "dnf",
-      dnfDate: finalDnfDate,
+      completedDate: finalCompletedDate,
     } as any);
 
     // Best-effort: Update rating

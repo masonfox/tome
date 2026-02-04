@@ -17,7 +17,6 @@ interface ReadingSession {
   status: string;
   startedDate?: string;
   completedDate?: string;
-  dnfDate?: string;
   review?: string;
   isActive: boolean;
   progressSummary: {
@@ -200,14 +199,14 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   </span>
                 </div>
               )}
-              {(session.completedDate || session.dnfDate) && (
+              {(session.completedDate) && (
                 <div className={`flex items-center gap-2 text-sm font-medium ${
-                  session.dnfDate ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]/70'
+                  session.status === 'dnf' ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]/70'
                 }`}>
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {session.dnfDate 
-                      ? `Stopped Reading: ${formatDateOnly(session.dnfDate)}`
+                    {session.status === 'dnf'
+                      ? `Stopped Reading: ${formatDateOnly(session.completedDate!)}`
                       : `Completed: ${formatDateOnly(session.completedDate!)}`
                     }
                   </span>

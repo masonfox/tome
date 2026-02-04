@@ -15,10 +15,10 @@ const logger = getLogger().child({ component: "DNFBookModal" });
 interface DNFBookModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (rating?: number, review?: string, dnfDate?: string) => void;
+  onConfirm: (rating?: number, review?: string, completedDate?: string) => void;
   bookTitle: string;
   bookId: string;
-  lastProgressDate?: string; // Prefill for DNF date
+  lastProgressDate?: string; // Prefill for completed date
   lastProgressPage?: number; // Show context
   lastProgressPercentage?: number; // Show context
 }
@@ -35,7 +35,7 @@ export default function DNFBookModal({
 }: DNFBookModalProps) {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
-  const [dnfDate, setDnfDate] = useState("");
+  const [completedDate, setCompletedDate] = useState("");
 
   // Track whether we've already restored the draft for this modal session
   const hasRestoredDraft = useRef(false);
@@ -52,8 +52,8 @@ export default function DNFBookModal({
   useEffect(() => {
     if (isOpen) {
       hasRestoredDraft.current = false;
-      // Prefill DNF date with last progress date, or today if no progress
-      setDnfDate(lastProgressDate || getTodayLocalDate());
+      // Prefill completed date with last progress date, or today if no progress
+      setCompletedDate(lastProgressDate || getTodayLocalDate());
     }
   }, [isOpen, lastProgressDate]);
 
@@ -82,19 +82,19 @@ export default function DNFBookModal({
     await onConfirm(
       rating > 0 ? rating : undefined,
       review || undefined,
-      dnfDate || undefined
+      completedDate || undefined
     );
     clearDraft(); // Clear draft after successful submission
     setRating(0);
     setReview("");
-    setDnfDate("");
+    setCompletedDate("");
     onClose();
   };
 
   const handleClose = () => {
     setRating(0);
     setReview("");
-    setDnfDate("");
+    setCompletedDate("");
     onClose();
   };
 
@@ -134,16 +134,16 @@ export default function DNFBookModal({
         )}
       </p>
 
-      {/* DNF Date */}
+      {/* Completed Date */}
       <div className="mb-6">
-        <label htmlFor="dnfDate" className="block text-sm font-medium text-[var(--heading-text)] mb-2">
+        <label htmlFor="completedDate" className="block text-sm font-medium text-[var(--heading-text)] mb-2">
           Stopped Reading Date
         </label>
         <input
           type="date"
-          id="dnfDate"
-          value={dnfDate}
-          onChange={(e) => setDnfDate(e.target.value)}
+          id="completedDate"
+          value={completedDate}
+          onChange={(e) => setCompletedDate(e.target.value)}
           className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         />
       </div>

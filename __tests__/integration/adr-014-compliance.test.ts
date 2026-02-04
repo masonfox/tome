@@ -20,7 +20,7 @@ import { glob } from "glob";
 describe("ADR-014: Date String Storage Compliance", () => {
   const violationPatterns = [
     // Frontend violations: Converting YYYY-MM-DD strings to Date objects for display
-    /new Date\(.*(?:startedDate|completedDate|progressDate|dnfDate)\)/,
+    /new Date\(.*(?:startedDate|completedDate|progressDate|completedDate)\)/,
     /new Date\(entry\.progressDate\)/,
     /new Date\(.*session.*Date\)/,
   ];
@@ -103,7 +103,7 @@ describe("ADR-014: Date String Storage Compliance", () => {
 
       lines.forEach((line, index) => {
         // Look for interface properties that use Date type for calendar dates
-        if (/(?:startedDate|completedDate|progressDate|dnfDate|startDate|endDate).*:\s*Date/.test(line)) {
+        if (/(?:startedDate|completedDate|progressDate|completedDate|startDate|endDate).*:\s*Date/.test(line)) {
           // Exception: If there's a comment saying this is intentional, skip
           if (line.includes("// timestamp") || line.includes("// point in time")) {
             return;
