@@ -106,7 +106,7 @@ describe("POST /api/books/[id]/status - Date Validation Coverage", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain("Invalid startedDate format");
+    expect(data.error).toContain("Invalid started date format");
   });
 
   test("should return 400 for invalid completedDate format (line 51-55)", async () => {
@@ -129,7 +129,7 @@ describe("POST /api/books/[id]/status - Date Validation Coverage", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain("Invalid completedDate format");
+    expect(data.error).toContain("Invalid completed date format");
   });
 
   test("should accept valid YYYY-MM-DD date formats", async () => {
@@ -323,7 +323,7 @@ describe("POST /api/books/[id]/status - Date Format Edge Cases", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain("Invalid startedDate format");
+    expect(data.error).toContain("Invalid started date format");
   });
 
   test("should reject date with single-digit month/day", async () => {
@@ -340,7 +340,7 @@ describe("POST /api/books/[id]/status - Date Format Edge Cases", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain("Invalid startedDate format");
+    expect(data.error).toContain("Invalid started date format");
   });
 
   test("should accept date at year boundaries", async () => {

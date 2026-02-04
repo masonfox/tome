@@ -3,6 +3,7 @@ import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { sessionService, progressService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
 import { parseLocalDateToUtc } from "@/utils/dateHelpers.server";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 const logger = getLogger().child({ endpoint: "complete-book" });
 
@@ -58,10 +59,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     // Validate date format (YYYY-MM-DD)
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+    if (!validateDateString(startDate)) {
       return NextResponse.json(
-        { error: "Invalid date format. Expected YYYY-MM-DD" },
+        { error: "Invalid start date format. Expected valid YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+    if (!validateDateString(endDate)) {
+      return NextResponse.json(
+        { error: "Invalid end date format. Expected valid YYYY-MM-DD" },
         { status: 400 }
       );
     }

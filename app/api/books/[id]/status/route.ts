@@ -1,6 +1,7 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -41,16 +42,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     const { status, rating, review, startedDate, completedDate } = body;
 
     // Validate date formats if provided
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (startedDate && !dateRegex.test(startedDate)) {
+    if (startedDate && !validateDateString(startedDate)) {
       return NextResponse.json(
-        { error: "Invalid startedDate format. Expected YYYY-MM-DD" },
+        { error: "Invalid started date format. Expected valid YYYY-MM-DD" },
         { status: 400 }
       );
     }
-    if (completedDate && !dateRegex.test(completedDate)) {
+    if (completedDate && !validateDateString(completedDate)) {
       return NextResponse.json(
-        { error: "Invalid completedDate format. Expected YYYY-MM-DD" },
+        { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
         { status: 400 }
       );
     }

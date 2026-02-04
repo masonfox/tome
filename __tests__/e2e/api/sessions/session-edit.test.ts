@@ -384,13 +384,11 @@ describe("PATCH /api/books/[id]/sessions/[sessionId]", () => {
         startedDate: "not-a-valid-date",
       });
 
-      // JavaScript Date constructor creates Invalid Date
-      // Which will be handled by the API
-      expect(response.status).toBe(200);
+      // Now we validate date format strictly
+      expect(response.status).toBe(400);
       const data = await response.json();
       
-      // Invalid Date becomes NaN timestamp, check it's handled
-      expect(data.startedDate).toBeDefined();
+      expect(data.error).toContain("Invalid started date format");
     });
 
     test("should handle malformed JSON body", async () => {

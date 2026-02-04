@@ -2,6 +2,7 @@ import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories";
 import { sessionService } from "@/lib/services/session.service";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -61,22 +62,29 @@ export async function PATCH(
     // Build update object with only provided fields
     const updateData: any = {};
     
-    // Handle dates - normalize to YYYY-MM-DD format
-    // Frontend may send ISO strings (2026-01-12T00:00:00.000Z) or YYYY-MM-DD strings
+    // Handle dates - strict YYYY-MM-DD validation (no ISO string normalization)
     if ('startedDate' in body) {
       if (startedDate) {
-        // Extract YYYY-MM-DD from ISO string or use as-is if already in correct format
-        const normalized = startedDate.includes('T') ? startedDate.split('T')[0] : startedDate;
-        updateData.startedDate = normalized;
+        if (!validateDateString(startedDate)) {
+          return NextResponse.json(
+            { error: "Invalid started date format. Expected valid YYYY-MM-DD" },
+            { status: 400 }
+          );
+        }
+        updateData.startedDate = startedDate;
       } else {
         updateData.startedDate = null;
       }
     }
     if ('completedDate' in body) {
       if (completedDate) {
-        // Extract YYYY-MM-DD from ISO string or use as-is if already in correct format
-        const normalized = completedDate.includes('T') ? completedDate.split('T')[0] : completedDate;
-        updateData.completedDate = normalized;
+        if (!validateDateString(completedDate)) {
+          return NextResponse.json(
+            { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
+            { status: 400 }
+          );
+        }
+        updateData.completedDate = completedDate;
       } else {
         updateData.completedDate = null;
       }
