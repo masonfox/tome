@@ -97,12 +97,14 @@ describe("Calibre Query Functions with Full Schema", () => {
       expect(noTagsBook).toBeDefined();
     });
 
-    test("orders books by ID", () => {
+    test("orders books alphabetically by title", () => {
       const books = getAllBooks();
 
-      // Should be ordered by ID
+      // Should be ordered alphabetically by title (case-insensitive)
       for (let i = 1; i < books.length; i++) {
-        expect(books[i - 1].id).toBeLessThan(books[i].id);
+        const prevTitle = books[i - 1].title.toLowerCase();
+        const currTitle = books[i].title.toLowerCase();
+        expect(prevTitle.localeCompare(currTitle)).toBeLessThanOrEqual(0);
       }
     });
 
