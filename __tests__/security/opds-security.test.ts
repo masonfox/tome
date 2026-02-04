@@ -7,13 +7,23 @@ import { GET as GET_DOWNLOAD } from '@/app/api/opds/download/[bookId]/[format]/r
 import { GET as GET_SEARCH } from '@/app/api/opds/search/route';
 import { createMockRequest } from '../fixtures/test-data';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from '../helpers/db-setup';
+import { resetCalibreDB } from '@/lib/db/calibre';
+import path from 'path';
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
+  
+  // Set up Calibre test database
+  const calibreDbPath = path.join(__dirname, '../fixtures/calibre-test-comprehensive.db');
+  process.env.CALIBRE_DB_PATH = calibreDbPath;
 });
 
 afterAll(async () => {
   await teardownTestDatabase(__filename);
+  
+  // Clean up Calibre DB
+  delete process.env.CALIBRE_DB_PATH;
+  resetCalibreDB();
 });
 
 beforeEach(async () => {

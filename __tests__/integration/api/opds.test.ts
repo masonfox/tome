@@ -2,13 +2,15 @@
  * Integration tests for OPDS API endpoints
  */
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { GET as GET_ROOT } from '@/app/api/opds/route';
 import { GET as GET_BOOKS } from '@/app/api/opds/books/route';
 import { GET as GET_SEARCH } from '@/app/api/opds/search/route';
 import { GET as GET_DOWNLOAD } from '@/app/api/opds/download/[bookId]/[format]/route';
 import { createMockRequest } from '../../fixtures/test-data';
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from '../../helpers/db-setup';
+import { resetCalibreDB } from '@/lib/db/calibre';
+import path from 'path';
 
 // Mock Next.js cache revalidation
 vi.mock('next/cache', () => ({
@@ -16,19 +18,34 @@ vi.mock('next/cache', () => ({
 }));
 
 const originalEnv = process.env.AUTH_PASSWORD;
+const originalCalibreDbPath = process.env.CALIBRE_DB_PATH;
 
 beforeAll(async () => {
   await setupTestDatabase(__filename);
+  
+  // Set up Calibre test database
+  const calibreDbPath = path.join(__dirname, '../../fixtures/calibre-test-comprehensive.db');
+  process.env.CALIBRE_DB_PATH = calibreDbPath;
 });
 
 afterAll(async () => {
   await teardownTestDatabase(__filename);
-  // Restore original auth password
+  
+  // Restore original environment variables
   if (originalEnv) {
     process.env.AUTH_PASSWORD = originalEnv;
   } else {
     delete process.env.AUTH_PASSWORD;
   }
+  
+  if (originalCalibreDbPath) {
+    process.env.CALIBRE_DB_PATH = originalCalibreDbPath;
+  } else {
+    delete process.env.CALIBRE_DB_PATH;
+  }
+  
+  // Reset Calibre DB singleton
+  resetCalibreDB();
 });
 
 beforeEach(async () => {
@@ -37,6 +54,11 @@ beforeEach(async () => {
 
 describe('OPDS API Integration', () => {
   describe('Authentication', () => {
+    afterEach(() => {
+      // Clean up AUTH_PASSWORD after each test to avoid pollution
+      delete process.env.AUTH_PASSWORD;
+    });
+
     test('should allow access when AUTH_PASSWORD is not set', async () => {
       delete process.env.AUTH_PASSWORD;
 
@@ -189,7 +211,8 @@ describe('OPDS API Integration', () => {
 
       const xml = await response.text();
 
-      expect(xml).toContain('Search results for "test"');
+      // XML escapes quotes as &quot;
+      expect(xml).toContain('Search results for &quot;test&quot;');
       expect(xml).toContain('xmlns:opensearch');
     });
 

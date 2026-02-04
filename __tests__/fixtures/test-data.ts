@@ -279,11 +279,19 @@ export function getTodayStartOfDay(): Date {
 export function createMockRequest(
   method: string,
   url: string,
-  body?: any
+  body?: any,
+  customHeaders?: Record<string, string>
 ): Request & { nextUrl: URL } {
   const headers = new Headers({
     "content-type": "application/json",
   });
+
+  // Add custom headers if provided
+  if (customHeaders) {
+    Object.entries(customHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+  }
 
   const requestInit: RequestInit = {
     method,

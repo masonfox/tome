@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET } from "@/app/api/cache/stats/route";
-import * as coverRoute from "@/app/api/books/[id]/cover/route";
+import * as cache from "@/lib/covers/cache";
 
 // Mock the cache stats functions
-vi.mock("@/app/api/books/[id]/cover/route", async () => {
-  const actual = await vi.importActual<typeof coverRoute>(
-    "@/app/api/books/[id]/cover/route"
+vi.mock("@/lib/covers/cache", async () => {
+  const actual = await vi.importActual<typeof cache>(
+    "@/lib/covers/cache"
   );
   return {
     ...actual,
@@ -21,13 +21,13 @@ describe("GET /api/cache/stats", () => {
 
   it("should return cache statistics with utilization percentages", async () => {
     // Mock cache stats
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 50,
       maxSize: 100,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 25,
       maxSize: 200,
       maxAgeMs: 3600000,
@@ -56,13 +56,13 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should handle empty caches", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 0,
       maxSize: 100,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 0,
       maxSize: 200,
       maxAgeMs: 3600000,
@@ -77,13 +77,13 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should handle full caches", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 100,
       maxSize: 100,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 200,
       maxSize: 200,
       maxAgeMs: 3600000,
@@ -98,13 +98,13 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should calculate utilization with decimal precision", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 33,
       maxSize: 100,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 67,
       maxSize: 200,
       maxAgeMs: 3600000,
@@ -119,13 +119,13 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should handle zero maxSize gracefully", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 0,
       maxSize: 0,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 0,
       maxSize: 0,
       maxAgeMs: 3600000,
@@ -140,7 +140,7 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should return 500 on error", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockImplementation(() => {
+    vi.mocked(cache.getCoverCacheStats).mockImplementation(() => {
       throw new Error("Cache unavailable");
     });
 
@@ -159,13 +159,13 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should include all required fields", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 10,
       maxSize: 100,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 20,
       maxSize: 200,
       maxAgeMs: 7200000,
@@ -194,13 +194,13 @@ describe("GET /api/cache/stats", () => {
   });
 
   it("should return current timestamp", async () => {
-    vi.mocked(coverRoute.getCoverCacheStats).mockReturnValue({
+    vi.mocked(cache.getCoverCacheStats).mockReturnValue({
       size: 10,
       maxSize: 100,
       maxAgeMs: 3600000,
     });
 
-    vi.mocked(coverRoute.getBookPathCacheStats).mockReturnValue({
+    vi.mocked(cache.getBookPathCacheStats).mockReturnValue({
       size: 20,
       maxSize: 200,
       maxAgeMs: 3600000,
