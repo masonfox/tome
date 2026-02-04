@@ -1,14 +1,19 @@
+import { getLogger } from "@/lib/logger";
+import type { BookWithStatusMinimal } from "@/lib/api/domains/book/types";
+
 export interface LibraryFilters {
   status?: string;
   search?: string;
   tags?: string[];
   rating?: string;
+  shelf?: number;
   pagination: {
     limit: number;
     skip: number;
   };
   showOrphaned?: boolean;
   sortBy?: string;
+  noTags?: boolean;
 }
 
 export interface PaginatedBooks {
@@ -19,22 +24,7 @@ export interface PaginatedBooks {
   hasMore: boolean;
 }
 
-export interface BookWithStatus {
-  id: number;
-  calibreId: number;
-  title: string;
-  authors: string[];
-  coverPath?: string;
-  status: string | null;
-  rating?: number | null;
-  tags: string[];
-  totalPages?: number;
-  latestProgress: {
-    currentPage: number;
-    currentPercentage: number;
-    progressDate: string;
-  } | null;
-}
+export type BookWithStatus = BookWithStatusMinimal;
 
 export class LibraryService {
   private cache = new Map<string, PaginatedBooks>();
@@ -47,10 +37,12 @@ export class LibraryService {
       search: filters.search,
       tags: filters.tags?.sort(),
       rating: filters.rating,
+      shelf: filters.shelf,
       limit: filters.pagination.limit,
       skip: filters.pagination.skip,
       showOrphaned: filters.showOrphaned,
       sortBy: filters.sortBy,
+      noTags: filters.noTags,
     });
   }
 
@@ -73,7 +65,7 @@ export class LibraryService {
     }
 
     try {
-      const { status, search, tags, rating, pagination, showOrphaned } = filters;
+      const { status, search, tags, rating, shelf, pagination, showOrphaned, noTags } = filters;
       const { limit, skip } = pagination;
 
       // Build query params for API call
@@ -82,8 +74,10 @@ export class LibraryService {
       if (search) params.set("search", search);
       if (tags && tags.length > 0) params.set("tags", tags.join(","));
       if (rating && rating !== "all") params.set("rating", rating);
+      if (shelf) params.set("shelf", shelf.toString());
       if (showOrphaned) params.set("showOrphaned", "true");
       if (filters.sortBy) params.set("sortBy", filters.sortBy);
+      if (noTags) params.set("noTags", "true");
       params.set("limit", limit.toString());
       params.set("skip", skip.toString());
 
@@ -112,7 +106,6 @@ export class LibraryService {
 
       return result;
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "LibraryService: Failed to fetch books");
       throw new Error("Failed to fetch books");
     }
@@ -132,14 +125,15 @@ export class LibraryService {
       }
 
       const data = await response.json();
-      const sortedTags = (data.tags || []).sort((a: string, b: string) => a.localeCompare(b));
+      // API now returns { tags: [...] } format
+      const tags = data.tags || [];
+      const sortedTags = tags.sort((a: string, b: string) => a.localeCompare(b));
 
       // Cache the result
       this.tagsCache = sortedTags;
 
       return sortedTags;
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "LibraryService: Failed to fetch tags");
       throw new Error("Failed to fetch tags");
     }
@@ -165,7 +159,6 @@ export class LibraryService {
 
       return result;
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "LibraryService: Failed to sync Calibre");
       throw new Error("Failed to sync with Calibre");
     }

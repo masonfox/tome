@@ -1,5 +1,6 @@
 import { Calendar, Pencil } from "lucide-react";
 import { formatDateOnly, getTodayLocalDate } from '@/utils/dateHelpers';
+import { Button } from "@/components/Utilities/Button";
 
 interface SessionDetailsProps {
   startedDate: string | null | undefined;
@@ -33,18 +34,22 @@ export default function SessionDetails({
             max={getTodayLocalDate()}
             className="px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
           />
-          <button
+          <Button
             onClick={onCancelEdit}
-            className="px-2 py-1 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded text-xs font-semibold hover:bg-[var(--background)] transition-colors"
+            variant="secondary"
+            size="md"
+            className="text-xs"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onSaveStartDate}
-            className="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs font-semibold hover:bg-[var(--light-accent)] transition-colors"
+            variant="primary"
+            size="md"
+            className="text-xs"
           >
             Save
-          </button>
+          </Button>
         </div>
       ) : (
         <button

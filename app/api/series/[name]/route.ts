@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { seriesService } from "@/lib/services/series.service";
 
@@ -5,11 +6,8 @@ import { seriesService } from "@/lib/services/series.service";
  * GET /api/series/:name
  * Get all books in a specific series
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: { name: string } }
-) {
-  const { getLogger } = require("@/lib/logger");
+export async function GET(_request: Request, props: { params: Promise<{ name: string }> }) {
+  const params = await props.params;
   const logger = getLogger();
 
   try {

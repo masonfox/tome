@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
+import { toProgressDate } from '../test-utils';
+import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import {
   bookRepository,
   sessionRepository,
@@ -6,6 +7,7 @@ import {
   streakRepository,
 } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 // Use in-memory database for tests
 describe("Database Constraints", () => {
@@ -33,15 +35,15 @@ describe("Database Constraints", () => {
       });
 
       // Attempt to create duplicate
-      expect(async () => {
-        await bookRepository.create({
+      await expect(
+        bookRepository.create({
           calibreId: 1,
           title: "Another Book",
           authors: ["Author 2"],
           tags: [],
           path: "/path/to/another",
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
   });
 
@@ -65,14 +67,14 @@ describe("Database Constraints", () => {
       });
 
       // Attempt to create second active session - should fail
-      expect(async () => {
-        await sessionRepository.create({
+      await expect(
+        sessionRepository.create({
           bookId: book.id,
           sessionNumber: 2,
           status: "reading",
           isActive: true,
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
 
     test("should allow multiple inactive sessions for same book", async () => {
@@ -125,14 +127,14 @@ describe("Database Constraints", () => {
       await sessionRepository.archive(sessions[0].id);
 
       // Attempt to create another with same bookId + sessionNumber - should fail
-      expect(async () => {
-        await sessionRepository.create({
+      await expect(
+        sessionRepository.create({
           bookId: book.id,
           sessionNumber: 1,
           status: "reading",
           isActive: true,
-        });
-      }).toThrow();
+        })
+      ).rejects.toThrow();
     });
   });
 
@@ -147,16 +149,16 @@ describe("Database Constraints", () => {
       });
 
       // Attempt to create progress log with non-existent sessionId
-      expect(async () => {
-        await progressRepository.create({
+      await expect(
+        progressRepository.create({
           bookId: book.id,
           sessionId: 99999, // Non-existent
           currentPage: 50,
           currentPercentage: 50,
           pagesRead: 50,
-          progressDate: new Date(),
-        });
-      }).toThrow();
+          progressDate: toProgressDate(new Date()),
+        })
+      ).rejects.toThrow();
     });
 
     test("should cascade delete sessions when book deleted", async () => {
@@ -181,7 +183,7 @@ describe("Database Constraints", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       // Delete book
@@ -218,7 +220,7 @@ describe("Database Constraints", () => {
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
 
       // Delete session
@@ -237,8 +239,8 @@ describe("Database Constraints", () => {
         userId: null,
         currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date(),
-        streakStartDate: new Date(),
+        lastActivityDate: toDateString(new Date()),
+        streakStartDate: toDateString(new Date()),
         totalDaysActive: 0,
       });
 
@@ -249,8 +251,8 @@ describe("Database Constraints", () => {
           userId: null,
           currentStreak: 0,
           longestStreak: 0,
-          lastActivityDate: new Date(),
-          streakStartDate: new Date(),
+          lastActivityDate: toDateString(new Date()),
+          streakStartDate: toDateString(new Date()),
           totalDaysActive: 0,
         });
       } catch (e) {
@@ -314,7 +316,7 @@ describe("Database Constraints", () => {
           currentPage: -1,
           currentPercentage: 0,
           pagesRead: 0,
-          progressDate: new Date(),
+          progressDate: toProgressDate(new Date()),
         });
       } catch (e) {
         error = e;
@@ -345,7 +347,7 @@ describe("Database Constraints", () => {
         currentPage: 100,
         currentPercentage: 100,
         pagesRead: 100,
-        progressDate: new Date(),
+        progressDate: toProgressDate(new Date()),
       });
       expect(validProgress.currentPercentage).toBe(100);
 
@@ -358,7 +360,7 @@ describe("Database Constraints", () => {
           currentPage: 200,
           currentPercentage: 150, // Out of range
           pagesRead: 100,
-          progressDate: new Date(),
+          progressDate: toProgressDate(new Date()),
         });
       } catch (e) {
         error = e;

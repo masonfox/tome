@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { getDashboardData } from "@/lib/dashboard-service";
 
@@ -8,7 +9,6 @@ export async function GET() {
     const data = await getDashboardData();
     return NextResponse.json(data);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching dashboard data");
     return NextResponse.json(
       { error: "Failed to fetch dashboard data" },

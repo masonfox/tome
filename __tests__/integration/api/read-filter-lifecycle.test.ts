@@ -1,14 +1,15 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { GET as GET_BOOKS } from "@/app/api/books/route";
 import { POST as UPDATE_STATUS } from "@/app/api/books/[id]/status/route";
 import { POST as LOG_PROGRESS } from "@/app/api/books/[id]/progress/route";
 import { POST as START_REREAD } from "@/app/api/books/[id]/reread/route";
 import { createMockRequest, createTestBook } from "../../fixtures/test-data";
+import { toSessionDate } from "../../test-utils";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 
 // Mock Next.js cache revalidation - required for integration tests
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
@@ -106,7 +107,7 @@ describe("Integration: Read Filter Lifecycle", () => {
     const sessions = await sessionRepository.findAllByBookId(book.id);
     const archivedSession = sessions.find(s => s.status === "read");
     expect(archivedSession).not.toBeNull();
-    expect(archivedSession?.isActive).toBe(false);
+    expect(archivedSession?.isActive).toBe(true); // Terminal states stay active
     expect(archivedSession?.completedDate).not.toBeNull();
     
     // Verify rating is on the book (not the session)
@@ -148,7 +149,7 @@ describe("Integration: Read Filter Lifecycle", () => {
 
     // Verify old session still archived
     const oldSession = await sessionRepository.findByBookIdAndSessionNumber(book.id, 1);
-    expect(oldSession?.isActive).toBe(false);
+    expect(oldSession?.isActive).toBe(false); // Archived when re-read started
     expect(oldSession?.status).toBe("read");
 
     // ========================================================================
@@ -227,13 +228,20 @@ describe("Integration: Read Filter Lifecycle", () => {
     await UPDATE_STATUS(request, { params: { id: book.id.toString() } });
 
     // ========================================================================
-    // STEP 5: Verify both archived sessions exist
+    // ========================================================================
+    // STEP 5: Verify sessions - 1 archived, 1 active (both "read" status)
     // ========================================================================
     const allSessions = await sessionRepository.findAllByBookId(book.id);
-    const archivedSessions = allSessions.filter(
-      s => s.isActive === false && s.status === "read"
-    );
-    expect(archivedSessions).toHaveLength(2);
+    const readSessions = allSessions.filter(s => s.status === "read");
+    expect(readSessions).toHaveLength(2); // Both completed reads
+    
+    const archivedReadSessions = readSessions.filter(s => s.isActive === false);
+    expect(archivedReadSessions).toHaveLength(1); // First read (archived when re-read started)
+    
+    const currentActiveReadSession = readSessions.find(s => s.isActive === true);
+    expect(currentActiveReadSession).not.toBeNull(); // Second read (currently active)
+    expect(archivedReadSessions).toHaveLength(1); // First read (archived when re-read started)
+    
 
     // ========================================================================
     // STEP 6: CRITICAL TEST - Verify still appears in "read" filter
@@ -352,8 +360,8 @@ describe("Integration: Read Filter Lifecycle", () => {
       bookId: book.id,
       sessionNumber: 1,
       status: "read",
-      startedDate: new Date("2024-01-01"),
-      completedDate: new Date("2024-01-15"),
+      startedDate: toSessionDate(new Date("2024-01-01")),
+      completedDate: toSessionDate(new Date("2024-01-15")),
       isActive: false,
       rating: 4,
     });

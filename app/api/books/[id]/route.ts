@@ -1,12 +1,11 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookService } from "@/lib/services/book.service";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -22,16 +21,13 @@ export async function GET(
 
     return NextResponse.json(book);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching book");
     return NextResponse.json({ error: "Failed to fetch book" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -46,7 +42,6 @@ export async function PATCH(
 
     return NextResponse.json(book);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error updating book");
     
     // Handle specific errors

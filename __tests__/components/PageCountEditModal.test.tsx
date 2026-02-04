@@ -1,29 +1,31 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
+import { screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { renderWithQueryClient as render } from "../test-utils";
 import "@testing-library/jest-dom";
-import PageCountEditModal from "@/components/PageCountEditModal";
 
-// Mock toast utility
-const mockToast = {
-  success: mock(() => {}),
-  error: mock(() => {}),
-  info: mock(() => {}),
-  warning: mock(() => {}),
-  loading: mock(() => {}),
-  promise: mock(() => {}),
-  dismiss: mock(() => {}),
-};
+// Mock toast utility - hoist the mock object
+const mockToast = vi.hoisted(() => ({
+  success: vi.fn(() => {}),
+  error: vi.fn(() => {}),
+  info: vi.fn(() => {}),
+  warning: vi.fn(() => {}),
+  loading: vi.fn(() => {}),
+  promise: vi.fn(() => {}),
+  dismiss: vi.fn(() => {}),
+}));
 
-mock.module("@/utils/toast", () => ({
+vi.mock("@/utils/toast", () => ({
   toast: mockToast,
 }));
 
 // Mock lucide-react icons used in BaseModal
-mock.module("lucide-react", () => ({
+vi.mock("lucide-react", () => ({
   X: ({ className }: { className?: string }) => (
     <span className={className} data-testid="x-icon">×</span>
   ),
 }));
+
+import PageCountEditModal from "@/components/Modals/PageCountEditModal";
 
 afterEach(() => {
   cleanup();
@@ -32,10 +34,10 @@ afterEach(() => {
 });
 
 // Mock fetch globally
-let mockFetch: ReturnType<typeof mock>;
+let mockFetch: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
-  mockFetch = mock(() =>
+  mockFetch = vi.fn(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve({ success: true }),
@@ -47,10 +49,10 @@ beforeEach(() => {
 describe("PageCountEditModal", () => {
   const defaultProps = {
     isOpen: true,
-    onClose: mock(() => {}),
+    onClose: vi.fn(() => {}),
     bookId: 1,
     currentPageCount: 300,
-    onSuccess: mock(() => {}),
+    onSuccess: vi.fn(() => {}),
   };
 
   describe("Component Rendering", () => {
@@ -208,7 +210,7 @@ describe("PageCountEditModal", () => {
 
     test("should show loading state during submission", async () => {
       // Mock slow fetch
-      mockFetch = mock(
+      mockFetch = vi.fn(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -236,7 +238,7 @@ describe("PageCountEditModal", () => {
 
     test("should disable input and buttons during submission", async () => {
       // Mock slow fetch
-      mockFetch = mock(
+      mockFetch = vi.fn(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -266,8 +268,8 @@ describe("PageCountEditModal", () => {
     });
 
     test("should call onSuccess and onClose on successful save", async () => {
-      const onSuccess = mock(() => {});
-      const onClose = mock(() => {});
+      const onSuccess = vi.fn(() => {});
+      const onClose = vi.fn(() => {});
 
       render(
         <PageCountEditModal
@@ -306,7 +308,7 @@ describe("PageCountEditModal", () => {
 
   describe("Error Handling", () => {
     test("should show error toast when API returns error response", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () => Promise.resolve({ error: "Book not found" }),
@@ -328,7 +330,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should show generic error toast when API returns error without message", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () => Promise.resolve({}),
@@ -350,7 +352,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should handle network error", async () => {
-      mockFetch = mock(() => Promise.reject(new Error("Network error")));
+      mockFetch = vi.fn(() => Promise.reject(new Error("Network error")));
       global.fetch = mockFetch as any;
 
       render(<PageCountEditModal {...defaultProps} />);
@@ -367,7 +369,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should not call onSuccess or onClose on error", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () => Promise.resolve({ error: "Server error" }),
@@ -375,8 +377,8 @@ describe("PageCountEditModal", () => {
       );
       global.fetch = mockFetch as any;
 
-      const onSuccess = mock(() => {});
-      const onClose = mock(() => {});
+      const onSuccess = vi.fn(() => {});
+      const onClose = vi.fn(() => {});
 
       render(
         <PageCountEditModal
@@ -401,7 +403,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should re-enable input and buttons after error", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           json: () => Promise.resolve({ error: "Server error" }),
@@ -426,7 +428,7 @@ describe("PageCountEditModal", () => {
 
   describe("Modal Controls", () => {
     test("should call onClose when Cancel button is clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
 
       render(<PageCountEditModal {...defaultProps} onClose={onClose} />);
 
@@ -437,7 +439,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should call onClose when X button is clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
 
       render(<PageCountEditModal {...defaultProps} onClose={onClose} />);
 
@@ -449,7 +451,7 @@ describe("PageCountEditModal", () => {
 
     test("should not allow closing while submitting", () => {
       // Mock slow fetch
-      mockFetch = mock(
+      mockFetch = vi.fn(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -464,7 +466,7 @@ describe("PageCountEditModal", () => {
       );
       global.fetch = mockFetch as any;
 
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
 
       render(<PageCountEditModal {...defaultProps} onClose={onClose} />);
 
@@ -526,7 +528,7 @@ describe("PageCountEditModal", () => {
 
   describe("Sequential API Calls with Pending Status", () => {
     test("should make PATCH then POST when pendingStatus provided", async () => {
-      const mockFetchSequential = mock((url: string, options: any) => {
+      const mockFetchSequential = vi.fn((url: string, options: any) => {
         if (options.method === "PATCH") {
           return Promise.resolve({
             ok: true,
@@ -546,10 +548,10 @@ describe("PageCountEditModal", () => {
       render(
         <PageCountEditModal
           isOpen={true}
-          onClose={mock(() => {})}
+          onClose={vi.fn(() => {})}
           bookId={1}
           currentPageCount={null}
-          onSuccess={mock(() => {})}
+          onSuccess={vi.fn(() => {})}
           pendingStatus="reading"
         />
       );
@@ -577,7 +579,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should include rating in status POST when currentRating provided", async () => {
-      const mockFetchWithRating = mock((url: string, options: any) => {
+      const mockFetchWithRating = vi.fn((url: string, options: any) => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),
@@ -588,10 +590,10 @@ describe("PageCountEditModal", () => {
       render(
         <PageCountEditModal
           isOpen={true}
-          onClose={mock(() => {})}
+          onClose={vi.fn(() => {})}
           bookId={1}
           currentPageCount={null}
-          onSuccess={mock(() => {})}
+          onSuccess={vi.fn(() => {})}
           pendingStatus="reading"
           currentRating={4}
         />
@@ -617,7 +619,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should NOT include rating when currentRating is undefined", async () => {
-      const mockFetchNoRating = mock((url: string, options: any) => {
+      const mockFetchNoRating = vi.fn((url: string, options: any) => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),
@@ -628,10 +630,10 @@ describe("PageCountEditModal", () => {
       render(
         <PageCountEditModal
           isOpen={true}
-          onClose={mock(() => {})}
+          onClose={vi.fn(() => {})}
           bookId={1}
           currentPageCount={null}
-          onSuccess={mock(() => {})}
+          onSuccess={vi.fn(() => {})}
           pendingStatus="reading"
           currentRating={undefined}
         />
@@ -656,7 +658,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should show combined success message when pendingStatus provided", async () => {
-      global.fetch = mock(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),
@@ -666,10 +668,10 @@ describe("PageCountEditModal", () => {
       render(
         <PageCountEditModal
           isOpen={true}
-          onClose={mock(() => {})}
+          onClose={vi.fn(() => {})}
           bookId={1}
           currentPageCount={null}
-          onSuccess={mock(() => {})}
+          onSuccess={vi.fn(() => {})}
           pendingStatus="reading"
         />
       );
@@ -686,7 +688,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should abort status POST if PATCH fails", async () => {
-      const mockFetchPatchFail = mock((url: string, options: any) => {
+      const mockFetchPatchFail = vi.fn((url: string, options: any) => {
         if (options.method === "PATCH") {
           return Promise.resolve({
             ok: false,
@@ -703,10 +705,10 @@ describe("PageCountEditModal", () => {
       render(
         <PageCountEditModal
           isOpen={true}
-          onClose={mock(() => {})}
+          onClose={vi.fn(() => {})}
           bookId={1}
           currentPageCount={null}
-          onSuccess={mock(() => {})}
+          onSuccess={vi.fn(() => {})}
           pendingStatus="reading"
         />
       );
@@ -725,7 +727,7 @@ describe("PageCountEditModal", () => {
     });
 
     test("should handle status POST failure after successful PATCH", async () => {
-      const mockFetchStatusFail = mock((url: string, options: any) => {
+      const mockFetchStatusFail = vi.fn((url: string, options: any) => {
         if (options.method === "PATCH") {
           return Promise.resolve({
             ok: true,
@@ -742,12 +744,12 @@ describe("PageCountEditModal", () => {
       });
       global.fetch = mockFetchStatusFail as any;
 
-      const onSuccess = mock(() => {});
+      const onSuccess = vi.fn(() => {});
 
       render(
         <PageCountEditModal
           isOpen={true}
-          onClose={mock(() => {})}
+          onClose={vi.fn(() => {})}
           bookId={1}
           currentPageCount={null}
           onSuccess={onSuccess}
@@ -771,7 +773,7 @@ describe("PageCountEditModal", () => {
 
   describe("Decimal Input Validation", () => {
     test("should reject decimal input and show error", async () => {
-      const mockFetchDecimal = mock(() => {});
+      const mockFetchDecimal = vi.fn(() => {});
       global.fetch = mockFetchDecimal as any;
 
       render(<PageCountEditModal {...defaultProps} />);
@@ -793,7 +795,7 @@ describe("PageCountEditModal", () => {
       const testCases = [".5", "320.", "3.2.0", "100.99"];
 
       for (const value of testCases) {
-        const mockFetchFormat = mock(() => {});
+        const mockFetchFormat = vi.fn(() => {});
         global.fetch = mockFetchFormat as any;
 
         const { unmount } = render(<PageCountEditModal {...defaultProps} />);

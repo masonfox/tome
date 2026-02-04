@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, within } from "@testing-library/react";
-import MarkdownRenderer from "@/components/MarkdownRenderer";
+import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 
 describe("MarkdownRenderer", () => {
   // Ensure cleanup before and after each test

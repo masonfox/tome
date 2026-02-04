@@ -1,5 +1,9 @@
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
+import { toDateString } from "@/utils/dateHelpers.server";
 import { startOfYear, startOfMonth, startOfDay } from "date-fns";
+import { getLogger } from "@/lib/logger";
+import type { ProgressLog } from "@/lib/db/schema";
+import type { BookWithStatusMinimal } from "@/lib/api/domains/book/types";
 
 export interface DashboardStats {
   booksRead: {
@@ -22,15 +26,7 @@ export interface DashboardStreak {
   todayPagesRead: number;
 }
 
-export interface BookWithStatus {
-  id: number;
-  title: string;
-  authors: string[];
-  calibreId: number;
-  status?: string | null;
-  rating?: number | null;
-  latestProgress?: any;
-}
+export type BookWithStatus = BookWithStatusMinimal;
 
 export interface DashboardData {
   stats: DashboardStats | null;
@@ -67,7 +63,6 @@ export async function getDashboardData(): Promise<DashboardData> {
       readNextTotal,
     };
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Failed to fetch dashboard data");
     return {
       stats: null,
@@ -104,7 +99,7 @@ async function getStats(): Promise<DashboardStats | null> {
     const thirtyDaysAgoUtc = fromZonedTime(thirtyDaysAgoInUserTz, userTimezone);
 
     // Books read this year (using user's year boundary)
-    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(yearStartUtc);
+    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(toDateString(yearStartUtc));
 
     // Total books read
     const totalBooksRead = await sessionRepository.countByStatus("read", false);
@@ -113,13 +108,13 @@ async function getStats(): Promise<DashboardStats | null> {
     const currentlyReadingCount = await sessionRepository.countByStatus("reading", true);
 
     // Pages read today (using user's today)
-    const pagesToday = await progressRepository.getPagesReadAfterDate(todayUtc);
+    const pagesToday = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
 
     // Pages read this month (using user's month boundary)
-    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(monthStartUtc);
+    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(toDateString(monthStartUtc));
 
     // Average pages per day (last 30 days in user's timezone)
-    const avgPages = await progressRepository.getAveragePagesPerDay(thirtyDaysAgoUtc, userTimezone);
+    const avgPages = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgoUtc), userTimezone);
 
     return {
       booksRead: {
@@ -134,7 +129,6 @@ async function getStats(): Promise<DashboardStats | null> {
       avgPagesPerDay: avgPages,
     };
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Failed to fetch stats");
     return null;
   }
@@ -161,7 +155,7 @@ async function getStreak(): Promise<DashboardStreak | null> {
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
     const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    const todayPages = await progressRepository.getPagesReadAfterDate(todayUtc);
+    const todayPages = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
 
     return {
       currentStreak: streak.currentStreak,
@@ -171,7 +165,6 @@ async function getStreak(): Promise<DashboardStreak | null> {
       todayPagesRead: todayPages,
     };
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Failed to fetch streak");
     return null;
   }
@@ -228,6 +221,7 @@ async function getBooksByStatus(
         title: book.title,
         authors: book.authors,
         calibreId: book.calibreId,
+        lastSynced: book.lastSynced,
         status: status,
         latestProgress,
       });
@@ -235,7 +229,6 @@ async function getBooksByStatus(
 
     return { books: booksWithStatus, total };
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error, status }, "Failed to fetch books by status");
     return { books: [], total: 0 };
   }

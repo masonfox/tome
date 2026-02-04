@@ -1,55 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { dashboardApi, type DashboardData } from "@/lib/api";
 
-export interface DashboardStats {
-  booksRead: {
-    thisYear: number;
-    total: number;
-  };
-  currentlyReading: number;
-  pagesRead: {
-    today: number;
-    thisMonth: number;
-  };
-  avgPagesPerDay: number;
-}
-
-export interface DashboardStreak {
-  currentStreak: number;
-  longestStreak: number;
-  dailyThreshold: number;
-  hoursRemainingToday: number;
-  todayPagesRead: number;
-}
-
-export interface BookWithStatus {
-  id: number;
-  title: string;
-  authors: string[];
-  calibreId: number;
-  status?: string | null;
-  rating?: number | null;
-  latestProgress?: any;
-}
-
-export interface DashboardData {
-  stats: DashboardStats | null;
-  streak: DashboardStreak | null;
-  currentlyReading: BookWithStatus[];
-  currentlyReadingTotal: number;
-  readNext: BookWithStatus[];
-  readNextTotal: number;
-}
+export type {
+  DashboardStats,
+  DashboardStreak,
+  BookWithStatus,
+  DashboardData,
+} from "@/lib/api";
 
 async function fetchDashboardData(): Promise<DashboardData> {
-  const response = await fetch("/api/dashboard", {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch dashboard data");
-  }
-
-  return response.json();
+  return dashboardApi.get();
 }
 
 export function useDashboard() {

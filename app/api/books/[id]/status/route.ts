@@ -1,14 +1,14 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
 const sessionService = new SessionService();
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -24,16 +24,13 @@ export async function GET(
 
     return NextResponse.json(session);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching status");
     return NextResponse.json({ error: "Failed to fetch status" }, { status: 500 });
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -44,13 +41,27 @@ export async function POST(
     const body = await request.json();
     const { status, rating, review, startedDate, completedDate } = body;
 
-    // Convert date strings to Date objects if provided
+    // Validate date formats if provided
+    if (startedDate && !validateDateString(startedDate)) {
+      return NextResponse.json(
+        { error: "Invalid started date format. Expected valid YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+    if (completedDate && !validateDateString(completedDate)) {
+      return NextResponse.json(
+        { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+
+    // Pass date strings directly (YYYY-MM-DD format)
     const statusData = {
       status,
       rating,
       review,
-      startedDate: startedDate ? new Date(startedDate) : undefined,
-      completedDate: completedDate ? new Date(completedDate) : undefined,
+      startedDate,  // YYYY-MM-DD string
+      completedDate,  // YYYY-MM-DD string
     };
 
     const result = await sessionService.updateStatus(bookId, statusData);
@@ -68,7 +79,6 @@ export async function POST(
 
     return NextResponse.json(result.session);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error updating status");
     
     // Handle specific errors

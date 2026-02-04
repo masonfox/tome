@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository } from "@/lib/repositories";
 
@@ -10,13 +11,22 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || undefined;
     const tagsParam = searchParams.get("tags");
     const rating = searchParams.get("rating") || undefined;
+    const shelfParam = searchParams.get("shelf");
+    const excludeShelfParam = searchParams.get("excludeShelfId");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = parseInt(searchParams.get("skip") || "0");
     const showOrphaned = searchParams.get("showOrphaned") === "true";
     const sortBy = searchParams.get("sortBy") || undefined;
+    const noTags = searchParams.get("noTags") === "true";
 
     // Parse tags
     const tags = tagsParam ? tagsParam.split(",").map((t) => t.trim()) : undefined;
+
+    // Parse shelf ID
+    const shelfIds = shelfParam ? [parseInt(shelfParam)] : undefined;
+    
+    // Parse exclude shelf ID
+    const excludeShelfId = excludeShelfParam ? parseInt(excludeShelfParam) : undefined;
 
     // Determine orphaned filter
     const orphanedOnly = showOrphaned;
@@ -30,8 +40,11 @@ export async function GET(request: NextRequest) {
         search,
         tags,
         rating,
+        shelfIds,
+        excludeShelfId,
         showOrphaned,
         orphanedOnly,
+        noTags,
       },
       limit,
       skip,
@@ -45,7 +58,6 @@ export async function GET(request: NextRequest) {
       skip,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching books");
     return NextResponse.json({ error: "Failed to fetch books" }, { status: 500 });
   }
@@ -73,7 +85,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(book);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error updating book");
     return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
   }

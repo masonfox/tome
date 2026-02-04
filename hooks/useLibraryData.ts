@@ -25,16 +25,20 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     filters.search,
     filters.tags,
     filters.rating,
+    filters.shelf,
     filters.sortBy,
     filters.showOrphaned,
+    filters.noTags,
     filters.pagination.limit,
   ], [
     filters.status,
     filters.search,
     filters.tags,
     filters.rating,
+    filters.shelf,
     filters.sortBy,
     filters.showOrphaned,
+    filters.noTags,
     filters.pagination.limit,
   ]);
 
@@ -94,7 +98,9 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
         newFilters.search !== undefined ||
         newFilters.tags !== undefined ||
         newFilters.rating !== undefined ||
-        newFilters.sortBy !== undefined
+        newFilters.shelf !== undefined ||
+        newFilters.sortBy !== undefined ||
+        newFilters.noTags !== undefined
       ) {
         updated.pagination.skip = 0;
       }
@@ -125,7 +131,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
   // Clear cache and refresh
   const refresh = useCallback(async () => {
     service.clearCache();
-    queryClient.invalidateQueries({ queryKey: ['library-books'] });
+    await queryClient.refetchQueries({ queryKey: ['library-books'] });
   }, [service, queryClient]);
 
   // Search function with debouncing logic
@@ -148,9 +154,19 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     updateFilters({ rating });
   }, [updateFilters]);
 
+  // Shelf filter function
+  const setShelf = useCallback((shelf: number | undefined) => {
+    updateFilters({ shelf });
+  }, [updateFilters]);
+
   // Sort function
   const setSortBy = useCallback((sortBy: string | undefined) => {
     updateFilters({ sortBy });
+  }, [updateFilters]);
+
+  // No tags filter function
+  const setNoTags = useCallback((noTags: boolean | undefined) => {
+    updateFilters({ noTags });
   }, [updateFilters]);
 
   // Pagination functions
@@ -182,10 +198,12 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     setStatus,
     setTags,
     setRating,
+    setShelf,
     setSortBy,
+    setNoTags,
     setLimit,
     setSkip,
-    
+
     // Current filters
     filters,
   };

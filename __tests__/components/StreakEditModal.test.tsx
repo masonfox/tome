@@ -1,30 +1,35 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { StreakEditModal } from "@/components/StreakEditModal";
+import { StreakEditModal } from "@/components/Modals/StreakEditModal";
 import { createTestQueryClient } from "../test-utils";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { streakApi } from "@/lib/api";
+
+// Mock the streakApi module
+vi.mock("@/lib/api", () => ({
+  streakApi: {
+    updateThreshold: vi.fn(),
+  },
+}));
+
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });
 
-// Mock fetch globally
-let mockFetch: ReturnType<typeof mock>;
-
 beforeEach(() => {
-  mockFetch = mock(() =>
-    Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    } as Response)
-  );
-  global.fetch = mockFetch as any;
+  // Setup default mock implementation
+  vi.mocked(streakApi.updateThreshold).mockResolvedValue({ 
+    success: true, 
+    data: {} as any 
+  });
 });
 
 describe("StreakEditModal", () => {
-  const mockOnClose = mock(() => {});
-  const mockOnSuccess = mock(() => {});
+  const mockOnClose = vi.fn(() => {});
+  const mockOnSuccess = vi.fn(() => {});
   let queryClient: ReturnType<typeof createTestQueryClient>;
 
   beforeEach(() => {
@@ -125,7 +130,7 @@ describe("StreakEditModal", () => {
 
   describe("User Interaction", () => {
     test("should call onClose when close button is clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       renderModal(
         <StreakEditModal
           isOpen={true}
@@ -142,7 +147,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should call onClose when cancel button is clicked", () => {
-      const onClose = mock(() => {});
+      const onClose = vi.fn(() => {});
       renderModal(
         <StreakEditModal
           isOpen={true}
@@ -210,7 +215,7 @@ describe("StreakEditModal", () => {
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(streakApi.updateThreshold).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -231,20 +236,13 @@ describe("StreakEditModal", () => {
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          "/api/streak",
-          expect.objectContaining({
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dailyThreshold: 15 }),
-          })
-        );
+        expect(streakApi.updateThreshold).toHaveBeenCalledWith({ dailyThreshold: 15 });
       });
     });
 
     test("should call onSuccess and onClose on successful save", async () => {
-      const onClose = mock(() => {});
-      const onSuccess = mock(() => {});
+      const onClose = vi.fn(() => {});
+      const onSuccess = vi.fn(() => {});
 
       renderModal(
         <StreakEditModal
@@ -268,13 +266,7 @@ describe("StreakEditModal", () => {
     });
 
     test("should show error message on API failure", async () => {
-      mockFetch = mock(() =>
-        Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ error: { message: "Update failed" } }),
-        } as Response)
-      );
-      global.fetch = mockFetch as any;
+      vi.mocked(streakApi.updateThreshold).mockRejectedValue(new Error("Update failed"));
 
       renderModal(
         <StreakEditModal
@@ -293,7 +285,7 @@ describe("StreakEditModal", () => {
 
       // Note: toast.error would be called here, but we can't easily test that without mocking sonner
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(streakApi.updateThreshold).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -304,7 +296,7 @@ describe("StreakEditModal", () => {
       // may prevent entering 0 in some browsers. The validation is still present
       // as a safety net for programmatic changes or edge cases.
       let fetchCallCount = 0;
-      const fetchSpy = mock(() => {
+      const fetchSpy = vi.fn(() => {
         fetchCallCount++;
         return Promise.resolve({
           ok: true,
@@ -338,7 +330,7 @@ describe("StreakEditModal", () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Should not call fetch for invalid values
-      expect(fetchCallCount).toBe(0);
+      expect(streakApi.updateThreshold).not.toHaveBeenCalled();
     });
 
     test("should not allow threshold greater than 9999", async () => {
@@ -359,7 +351,7 @@ describe("StreakEditModal", () => {
 
       // Should not call API for invalid values
       await waitFor(() => {
-        expect(mockFetch).not.toHaveBeenCalled();
+        expect(streakApi.updateThreshold).not.toHaveBeenCalled();
       });
     });
 
@@ -382,13 +374,11 @@ describe("StreakEditModal", () => {
 
   describe("Loading States", () => {
     test("should disable save button while saving", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
-
-      mockFetch = mock(() => fetchPromise);
-      global.fetch = mockFetch as any;
+      vi.mocked(streakApi.updateThreshold).mockReturnValue(apiPromise as any);
 
       renderModal(
         <StreakEditModal
@@ -411,20 +401,15 @@ describe("StreakEditModal", () => {
       });
 
       // Resolve the fetch to clean up
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      resolveApi!({ success: true, data: {} });
     });
 
     test("should show saving text while saving", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
-
-      mockFetch = mock(() => fetchPromise);
-      global.fetch = mockFetch as any;
+      vi.mocked(streakApi.updateThreshold).mockReturnValue(apiPromise as any);
 
       renderModal(
         <StreakEditModal
@@ -447,20 +432,15 @@ describe("StreakEditModal", () => {
       });
 
       // Resolve the fetch to clean up
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      resolveApi!({ success: true, data: {} });
     });
 
     test("should disable cancel button while saving", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
-
-      mockFetch = mock(() => fetchPromise);
-      global.fetch = mockFetch as any;
+      vi.mocked(streakApi.updateThreshold).mockReturnValue(apiPromise as any);
 
       renderModal(
         <StreakEditModal
@@ -483,20 +463,15 @@ describe("StreakEditModal", () => {
       });
 
       // Resolve the fetch to clean up
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      resolveApi!({ success: true, data: {} });
     });
 
     test("should disable input while saving", async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise((resolve) => {
-        resolveFetch = resolve;
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
       });
-
-      mockFetch = mock(() => fetchPromise);
-      global.fetch = mockFetch as any;
+      vi.mocked(streakApi.updateThreshold).mockReturnValue(apiPromise as any);
 
       renderModal(
         <StreakEditModal
@@ -518,10 +493,7 @@ describe("StreakEditModal", () => {
       });
 
       // Resolve the fetch to clean up
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      resolveApi!({ success: true, data: {} });
     });
   });
 });

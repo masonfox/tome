@@ -2,11 +2,12 @@ import { sql, asc, eq, and, isNotNull } from "drizzle-orm";
 import { books } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { BaseRepository } from "./base.repository";
+import { getLogger } from "@/lib/logger";
 
 export interface SeriesInfo {
   name: string;
   bookCount: number;
-  bookCoverIds: number[]; // First 3 Calibre IDs for cover display
+  bookCoverIds: number[]; // Calibre IDs for cover display (up to 12)
   totalBooks?: number;
 }
 
@@ -21,6 +22,7 @@ export interface SeriesBook {
   status?: string | null;
   tags: string[];
   description?: string | null;
+  lastSynced?: Date | null;
 }
 
 // Type definitions for repository
@@ -50,7 +52,6 @@ export class SeriesRepository extends BaseRepository<
    * @returns Array of series info objects
    */
   async getAllSeries(): Promise<SeriesInfo[]> {
-    const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
     const db = this.getDatabase();
 
@@ -79,7 +80,7 @@ export class SeriesRepository extends BaseRepository<
       logger.debug({ firstBook: allBooks[0] }, "[SeriesRepository.getAllSeries] First book");
     }
 
-    // Group books by series and extract first 3 covers in-memory (much faster than N queries)
+    // Group books by series and extract first 12 covers in-memory (much faster than N queries)
     const seriesMap = new Map<string, { bookCount: number; bookCoverIds: number[] }>();
     
     for (const book of allBooks) {
@@ -92,8 +93,8 @@ export class SeriesRepository extends BaseRepository<
       const seriesData = seriesMap.get(seriesName)!;
       seriesData.bookCount++;
       
-      // Only keep first 3 cover IDs
-      if (seriesData.bookCoverIds.length < 3) {
+      // Keep first 12 cover IDs (matches FannedBookCovers maxCovers default)
+      if (seriesData.bookCoverIds.length < 12) {
         seriesData.bookCoverIds.push(book.calibreId);
       }
     }
@@ -149,6 +150,7 @@ export class SeriesRepository extends BaseRepository<
         rating: books.rating,
         tags: books.tags,
         description: books.description,
+        lastSynced: books.lastSynced,
         // Get status from the selected session (active or most recent)
         status: readingSessions.status,
       })
@@ -176,6 +178,7 @@ export class SeriesRepository extends BaseRepository<
       status: r.status,
       tags: r.tags,
       description: r.description ?? undefined,
+      lastSynced: r.lastSynced ?? undefined,
     }));
   }
 
@@ -206,7 +209,7 @@ export class SeriesRepository extends BaseRepository<
       return null;
     }
 
-    // Get the first 3 calibre IDs for cover display
+    // Get the first 12 calibre IDs for cover display (matches FannedBookCovers maxCovers default)
     const covers = await db
       .select({
         calibreId: books.calibreId,
@@ -219,7 +222,7 @@ export class SeriesRepository extends BaseRepository<
         )
       )
       .orderBy(asc(books.seriesIndex), asc(books.title))
-      .limit(3);
+      .limit(12);
 
     return {
       name: result[0].name!,

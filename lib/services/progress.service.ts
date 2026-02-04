@@ -7,7 +7,9 @@ import {
   calculatePercentage,
   calculatePageFromPercentage
 } from "@/lib/utils/progress-calculations";
-import { getCurrentDateInUserTimezone } from "@/utils/dateHelpers.server";
+import { getCurrentUserTimezone } from "@/utils/dateHelpers.server";
+import { getLogger } from "@/lib/logger";
+import { formatInTimeZone } from "date-fns-tz";
 
 /**
  * Progress log data for creating new entries
@@ -16,7 +18,7 @@ export interface ProgressLogData {
   currentPage?: number;
   currentPercentage?: number;
   notes?: string;
-  progressDate?: Date;
+  progressDate?: string; // YYYY-MM-DD format (timezone handled internally via cache)
 }
 
 /**
@@ -26,7 +28,7 @@ export interface ProgressUpdateData {
   currentPage?: number;
   currentPercentage?: number;
   notes?: string;
-  progressDate?: Date;
+  progressDate?: string; // YYYY-MM-DD format (timezone handled internally via cache)
 }
 
 /**
@@ -61,24 +63,30 @@ export class ProgressService {
   /**
    * Get progress logs for a specific reading session
    * 
-   * Returns all progress entries for the session, ordered by progress date (most recent first).
+   * Returns all progress entries for the session with dates as YYYY-MM-DD strings,
+   * ordered by progress date (most recent first).
    * 
    * @param sessionId - The ID of the reading session
-   * @returns Promise resolving to array of progress logs
+   * @returns Promise resolving to array of progress logs with YYYY-MM-DD dates
    * @throws {Error} If database query fails
    * 
    * @example
    * const progress = await progressService.getProgressForSession(42);
-   * // returns: [{ id: 1, currentPage: 100, progressDate: ..., }, ...]
+   * // returns: [{ id: 1, currentPage: 100, progressDate: "2025-01-08", }, ...]
    */
   async getProgressForSession(sessionId: number): Promise<ProgressLog[]> {
-    return progressRepository.findBySessionId(sessionId);
+    const progressLogs = await progressRepository.findBySessionId(sessionId);
+    
+    // Progress dates are already YYYY-MM-DD strings in the database
+    // No conversion needed - just return as-is
+    return progressLogs;
   }
 
   /**
    * Get progress logs for the active reading session of a book
    * 
-   * Finds the active session for the book and returns all its progress entries.
+   * Finds the active session for the book and returns all its progress entries with dates
+   * as YYYY-MM-DD strings.
    * Returns empty array if the book has no active session.
    * 
    * @param bookId - The ID of the book
@@ -87,7 +95,7 @@ export class ProgressService {
    * 
    * @example
    * const progress = await progressService.getProgressForActiveSession(123);
-   * // returns: [{ currentPage: 50, progressDate: ..., }, ...]
+   * // returns: [{ currentPage: 50, progressDate: "2025-01-08", }, ...]
    */
   async getProgressForActiveSession(bookId: number): Promise<ProgressLog[]> {
     const activeSession = await sessionRepository.findActiveByBookId(bookId);
@@ -96,7 +104,7 @@ export class ProgressService {
       return [];
     }
 
-    return progressRepository.findBySessionId(activeSession.id);
+    return this.getProgressForSession(activeSession.id);
   }
 
   /**
@@ -170,11 +178,17 @@ export class ProgressService {
     // Calculate progress metrics
     const metrics = await this.calculateProgressMetrics(book, progressData, lastProgress);
 
-    // Temporal validation: Check if progress is consistent with existing timeline
-    const requestedDate = progressDate || await getCurrentDateInUserTimezone();
+    // Use progressDate string or get today in YYYY-MM-DD format
+    const requestedDateString = progressDate 
+      ? progressDate  // Already YYYY-MM-DD from API
+      : formatInTimeZone(new Date(), await getCurrentUserTimezone(), 'yyyy-MM-dd');
+    
     const usePercentage = currentPercentage !== undefined;
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
 
+    // Temporal validation: Check if progress is consistent with existing timeline
+    // Note: validation still uses Date objects internally for comparison
+    const requestedDate = new Date(requestedDateString + "T00:00:00");
     const validationResult = await validateProgressTimeline(
       activeSession.id,
       requestedDate,
@@ -186,13 +200,13 @@ export class ProgressService {
       throw new Error(validationResult.error);
     }
 
-    // Create progress log
+    // Create progress log with date string
     const progressLog = await progressRepository.create({
       bookId,
       sessionId: activeSession.id,
       currentPage: metrics.currentPage,
       currentPercentage: metrics.currentPercentage,
-      progressDate: requestedDate,
+      progressDate: requestedDateString,  // Store as YYYY-MM-DD string
       notes,
       pagesRead: metrics.pagesRead,
     }, tx);
@@ -213,7 +227,6 @@ export class ProgressService {
     let completedSessionId: number | undefined;
     if (shouldShowCompletionModal) {
       // Auto-complete the book with the progress date as the completion date
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
       logger.info({ bookId, progressDate: requestedDate }, 'Auto-completing book at 100% progress');
 
@@ -221,7 +234,7 @@ export class ProgressService {
       // to avoid circular dependency and maintain transaction context
       await sessionRepository.update(activeSession.id, {
         status: "read",
-        completedDate: requestedDate,  // Use the progress date, including backdated entries!
+        completedDate: requestedDateString,  // Use string YYYY-MM-DD format
         isActive: false,
       } as any, tx);
 
@@ -291,13 +304,21 @@ export class ProgressService {
       throw new Error("Session not found");
     }
 
+    // Get requestedDateString (YYYY-MM-DD format)
+    const requestedDateString = updateData.progressDate 
+      ? updateData.progressDate  // Already YYYY-MM-DD from API
+      : existingProgress.progressDate;  // Already YYYY-MM-DD from database
+
+    // Convert to Date for validation
+    const requestedDate = new Date(requestedDateString + "T00:00:00");
+
     // Calculate new metrics
     // Only pass the value that was actually updated to calculateProgressMetrics
     // If both are undefined, use existing values
-    const progressData: ProgressLogData = {
+    const progressData: any = { // TODO: Create internal interface for this
       currentPage: updateData.currentPage,
       currentPercentage: updateData.currentPercentage,
-      progressDate: updateData.progressDate ?? existingProgress.progressDate,
+      progressDate: requestedDate,
       notes: updateData.notes ?? (existingProgress.notes || undefined),
     };
 
@@ -310,7 +331,6 @@ export class ProgressService {
     const metrics = await this.calculateProgressMetrics(book, progressData);
 
     // Validate updated position in timeline (exclude this entry from validation)
-    const requestedDate = updateData.progressDate || new Date(existingProgress.progressDate);
     const usePercentage = updateData.currentPercentage !== undefined;
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
     
@@ -336,7 +356,7 @@ export class ProgressService {
     
     // Find the entry immediately before this one by date (use findLast to get the closest previous entry)
     const previousProgress = sortedProgress.findLast(
-      p => new Date(p.progressDate).getTime() < requestedDate.getTime()
+      p => new Date(p.progressDate).getTime() < (requestedDate instanceof Date ? requestedDate.getTime() : new Date(requestedDate).getTime())
     );
     
     // Recalculate pagesRead based on previous entry
@@ -348,7 +368,7 @@ export class ProgressService {
     const updated = await progressRepository.update(progressId, {
       currentPage: metrics.currentPage,
       currentPercentage: metrics.currentPercentage,
-      progressDate: requestedDate,
+      progressDate: requestedDateString,  // Store as YYYY-MM-DD string
       notes: updateData.notes ?? (existingProgress.notes || undefined),
       pagesRead,
     } as any);
@@ -455,17 +475,15 @@ export class ProgressService {
    */
   private async updateStreakSystem(): Promise<void> {
     try {
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
       logger.info("[ProgressService] Rebuilding streak after progress log change");
       const updatedStreak = await streakService.rebuildStreak();
-      logger.info("[ProgressService] Streak rebuilt:", {
+      logger.info({
         currentStreak: updatedStreak.currentStreak,
         longestStreak: updatedStreak.longestStreak,
         totalDaysActive: updatedStreak.totalDaysActive,
-      });
+      }, "[ProgressService] Streak rebuilt");
     } catch (streakError) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: streakError }, "[ProgressService] Failed to rebuild streak");
       // Don't fail the entire request if streak rebuild fails
     }
@@ -484,7 +502,6 @@ export class ProgressService {
       revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
-            const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "[ProgressService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
     }

@@ -1,8 +1,7 @@
 import { sqlite } from "@/lib/db/sqlite";
 import { runMigrationsOnDatabase } from "@/lib/db/migrate";
 import { __registerTestDatabase, __unregisterTestDatabase } from "@/lib/db/context";
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { createDatabase } from "@/lib/db/factory";
 import * as schema from "@/lib/db/schema";
 
 /**
@@ -30,19 +29,19 @@ const databases = new Map<string, TestDatabaseInstance>();
 export async function setupTestDatabase(testFilePath: string): Promise<TestDatabaseInstance> {
   // Check if already setup for this test file
   if (databases.has(testFilePath)) {
-    console.log(`Test database already exists for: ${testFilePath}`);
     return databases.get(testFilePath)!;
   }
 
   // Create separate test database in memory for complete isolation
-  const testSqlite = new Database(":memory:");
-  testSqlite.exec("PRAGMA foreign_keys = ON");
-  // Use DELETE journal mode instead of WAL for better test isolation
-  testSqlite.exec("PRAGMA journal_mode = DELETE");
-  testSqlite.exec("PRAGMA synchronous = FULL");
+  const { db: testDb, sqlite: testSqlite } = createDatabase({
+    path: ":memory:",
+    schema,
+    wal: false, // Use DELETE journal mode for better test isolation
+    foreignKeys: true,
+  });
 
-  const testDb = drizzle(testSqlite, { schema });
-  console.log(`Test database created for: ${testFilePath}`);
+  // Set synchronous mode for test stability (better-sqlite3)
+  testSqlite.pragma("synchronous = FULL");
 
   const instance: TestDatabaseInstance = {
     db: testDb,
@@ -138,13 +137,16 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
   try {
     const progressResult = rawDb.prepare("DELETE FROM progress_logs").run();
     const sessionsResult = rawDb.prepare("DELETE FROM reading_sessions").run();
+    const bookShelvesResult = rawDb.prepare("DELETE FROM book_shelves").run();
+    const shelvesResult = rawDb.prepare("DELETE FROM shelves").run();
     const booksResult = rawDb.prepare("DELETE FROM books").run();
     const streaksResult = rawDb.prepare("DELETE FROM streaks").run();
     const goalsResult = rawDb.prepare("DELETE FROM reading_goals").run();
 
     // console.log(
     //   `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
-    //   `${sessionsResult.changes} sessions, ${booksResult.changes} books, ` +
+    //   `${sessionsResult.changes} sessions, ${bookShelvesResult.changes} book_shelves, ` +
+    //   `${shelvesResult.changes} shelves, ${booksResult.changes} books, ` +
     //   `${streaksResult.changes} streaks, ${goalsResult.changes} goals`
     // );
 

@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
-import { parseISO, startOfDay } from "date-fns";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import { getLogger } from "@/lib/logger";
+import { bookApi } from "@/lib/api";
 
 const logger = getLogger().child({ hook: "useBookProgress" });
 
@@ -81,16 +81,7 @@ export function useBookProgress(
   const { data: progress = [], isLoading } = useQuery({
     queryKey: ['progress', bookId],
     queryFn: async () => {
-      const response = await fetch(`/api/books/${bookId}/progress`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch progress');
-      }
-      return response.json() as Promise<ProgressEntry[]>;
+      return bookApi.listProgress(bookId);
     },
     staleTime: 30000, // 30 seconds
   });
@@ -103,18 +94,7 @@ export function useBookProgress(
       notes: string;
       progressDate?: string;
     }) => {
-      const response = await fetch(`/api/books/${bookId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to log progress");
-      }
-
-      return response.json();
+      return bookApi.createProgress(bookId, payload);
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -151,18 +131,7 @@ export function useBookProgress(
         notes?: string;
       };
     }) => {
-      const response = await fetch(`/api/books/${bookId}/progress/${params.progressId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params.data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update progress");
-      }
-
-      return response.json();
+      return bookApi.updateProgress(bookId, params.progressId, params.data);
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -190,15 +159,7 @@ export function useBookProgress(
   // Mutation for deleting progress
   const deleteProgressMutation = useMutation({
     mutationFn: async (progressId: number) => {
-      const response = await fetch(`/api/books/${bookId}/progress/${progressId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete progress entry");
-      }
-
-      return response.json();
+      return bookApi.deleteProgress(bookId, progressId);
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -319,14 +280,9 @@ export function useBookProgress(
 
     payload.notes = notes;
 
-    // Add progressDate to payload if provided
+    // Add progressDate to payload if provided (already in YYYY-MM-DD format)
     if (progressDate) {
-      // Parse the selected date and get midnight in LOCAL timezone
-      // This ensures the timestamp represents the intended calendar day in the user's timezone
-      const localMidnight = startOfDay(parseISO(progressDate));
-
-      // Send as ISO string (will be stored as UTC but represents local midnight)
-      payload.progressDate = localMidnight.toISOString();
+      payload.progressDate = progressDate;
     }
 
     try {

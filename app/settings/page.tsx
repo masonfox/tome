@@ -1,7 +1,8 @@
 import { Settings as SettingsIcon } from "lucide-react";
-import { ThemeSettings } from "@/components/ThemeSettings";
-import { TimezoneSettings } from "@/components/TimezoneSettings";
-import { PageHeader } from "@/components/PageHeader";
+import { ThemeSettings } from "@/components/Settings/ThemeSettings";
+import { TimezoneSettings } from "@/components/Settings/TimezoneSettings";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import { VersionSettings } from "@/components/Settings/VersionSettings";
 import { streakService } from "@/lib/services/streak.service";
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,9 @@ export default async function SettingsPage() {
 
       {/* Timezone Settings */}
       <TimezoneSettings initialTimezone={initialTimezone} />
+
+      {/* Version Information */}
+      <VersionSettings />
     </div>
   );
 }

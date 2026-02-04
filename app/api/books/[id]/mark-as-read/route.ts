@@ -1,5 +1,7 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionService } from "@/lib/services";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,10 +15,8 @@ export const dynamic = 'force-dynamic';
  * - Updates review
  * - Handles books without totalPages
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -43,18 +43,27 @@ export async function POST(
       }
     }
 
+    // Validate completedDate format if provided
+    if (completedDate) {
+      if (!validateDateString(completedDate)) {
+        return NextResponse.json(
+          { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
+          { status: 400 }
+        );
+      }
+    }
+
     const result = await sessionService.markAsRead({
       bookId,
       rating,
       review,
-      completedDate: completedDate ? new Date(completedDate) : undefined,
+      completedDate,  // Pass YYYY-MM-DD string directly
     });
 
     // Note: Cache invalidation handled by SessionService.invalidateCache()
 
     return NextResponse.json(result);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error marking book as read");
 
     // Handle specific errors

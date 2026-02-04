@@ -1,17 +1,13 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from "bun:test";
+import { test, expect, describe, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import FinishBookModal from "@/components/FinishBookModal";
 
-// Use shared mock to avoid conflicts with other test files
-import { MarkdownEditorMock } from "../mocks/createMarkdownEditorMock";
+// MarkdownEditor is mocked globally in test-setup.ts
 
-mock.module("@/components/MarkdownEditor", () => ({
-  default: MarkdownEditorMock
-}));
+import FinishBookModal from "@/components/Modals/FinishBookModal";
 
 // Mock lucide-react icons
-mock.module("lucide-react", () => ({
+vi.mock("lucide-react", () => ({
   Star: ({ className, onClick, onMouseEnter, onMouseLeave }: any) => (
     <span
       className={className}
@@ -26,13 +22,19 @@ mock.module("lucide-react", () => ({
   X: ({ className }: any) => (
     <span className={className} data-testid="x-icon">×</span>
   ),
+  Maximize2: ({ className }: any) => (
+    <span className={className} data-testid="maximize-icon">⛶</span>
+  ),
+  Minimize2: ({ className }: any) => (
+    <span className={className} data-testid="minimize-icon">⛶</span>
+  ),
 }));
 
 describe("FinishBookModal", () => {
   const defaultProps = {
     isOpen: true,
-    onClose: mock(() => {}),
-    onConfirm: mock(() => {}),
+    onClose: vi.fn(() => {}),
+    onConfirm: vi.fn(() => {}),
     bookTitle: "Test Book",
     bookId: "123",
   };
@@ -144,7 +146,7 @@ describe("FinishBookModal", () => {
     test("should clear draft after successful submit", async () => {
       // Arrange: Type a review (creates draft)
       localStorage.setItem("draft-finish-review-123", "My review");
-      const onConfirm = mock(async () => {});
+      const onConfirm = vi.fn(async () => {});
 
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
       const stars = screen.getAllByTestId("star-icon");
@@ -214,7 +216,7 @@ describe("FinishBookModal", () => {
 
   describe("Form Submission", () => {
     test("should call onConfirm with rating and review", () => {
-      const onConfirm = mock(() => {});
+      const onConfirm = vi.fn(() => {});
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
 
       const stars = screen.getAllByTestId("star-icon");
@@ -231,7 +233,7 @@ describe("FinishBookModal", () => {
     });
 
     test("should call onConfirm with rating only when review is empty", () => {
-      const onConfirm = mock(() => {});
+      const onConfirm = vi.fn(() => {});
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
 
       const stars = screen.getAllByTestId("star-icon");
@@ -246,7 +248,7 @@ describe("FinishBookModal", () => {
     });
 
     test("should submit with rating=undefined if no star selected", () => {
-      const onConfirm = mock(() => {});
+      const onConfirm = vi.fn(() => {});
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
 
       // Submit without selecting rating
@@ -259,8 +261,8 @@ describe("FinishBookModal", () => {
 
   describe("Modal Controls", () => {
     test("should call onConfirm and onClose when Skip button is clicked (manual flow)", async () => {
-      const onClose = mock(() => {});
-      const onConfirm = mock(() => Promise.resolve());
+      const onClose = vi.fn(() => {});
+      const onConfirm = vi.fn(() => Promise.resolve());
       render(<FinishBookModal {...defaultProps} onClose={onClose} onConfirm={onConfirm} />);
 
       fireEvent.click(screen.getByText("Skip"));
@@ -273,8 +275,8 @@ describe("FinishBookModal", () => {
     });
 
     test("should only call onClose when Skip button is clicked (auto-completion flow)", () => {
-      const onClose = mock(() => {});
-      const onConfirm = mock(() => {});
+      const onClose = vi.fn(() => {});
+      const onConfirm = vi.fn(() => {});
       render(<FinishBookModal {...defaultProps} onClose={onClose} onConfirm={onConfirm} sessionId={123} />);
 
       fireEvent.click(screen.getByText("Skip"));
@@ -285,8 +287,8 @@ describe("FinishBookModal", () => {
     });
 
     test("should call onClose when X button is clicked", () => {
-      const onClose = mock(() => {});
-      const onConfirm = mock(() => {});
+      const onClose = vi.fn(() => {});
+      const onConfirm = vi.fn(() => {});
       render(<FinishBookModal {...defaultProps} onClose={onClose} onConfirm={onConfirm} sessionId={123} />);
 
       const closeButton = screen.getByTestId("x-icon");
@@ -317,7 +319,7 @@ describe("FinishBookModal", () => {
 
   describe("Edge Cases", () => {
     test("should handle whitespace-only review as undefined", () => {
-      const onConfirm = mock(() => {});
+      const onConfirm = vi.fn(() => {});
       render(<FinishBookModal {...defaultProps} onConfirm={onConfirm} />);
 
       const stars = screen.getAllByTestId("star-icon");

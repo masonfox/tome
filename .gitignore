@@ -14,6 +14,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -35,11 +36,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# bun
+# bun (no longer used)
 bun.lockb
+bun.lock
 
 # npm
-package-lock.json
+# package-lock.json is now tracked (needed for Docker builds)
 
 # database
 /data/*
@@ -47,6 +49,14 @@ package-lock.json
 *.db-shm
 *.db-wal
 
+# Test fixtures (exclude from *.db rule)
+!__tests__/fixtures/*.db
+
 # database backups
 /data/backups/
 *.backup-*
+
+# AI plans
+/docs/plans
+/.opencode/plans/*
+/.opencode/plan/*

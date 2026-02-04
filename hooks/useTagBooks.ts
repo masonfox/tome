@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Book } from "@/lib/db/schema/books";
+import { tagApi } from "@/lib/api";
 
 const BOOKS_PER_PAGE = 50;
 
@@ -53,16 +54,12 @@ export function useTagBooks(tagName: string | null) {
       setError(null);
       skipRef.current = 0;
       
-      const response = await fetch(
-        `/api/tags/${encodeURIComponent(tagName)}?limit=${BOOKS_PER_PAGE}&skip=0`,
+      const data = await tagApi.listBooks(
+        tagName,
+        { limit: BOOKS_PER_PAGE, skip: 0 },
         { signal: abortController.signal }
       );
       
-      if (!response.ok) {
-        throw new Error("Failed to fetch books");
-      }
-
-      const data = await response.json();
       setBooks(data.books || []);
       setTotal(data.total || 0);
       skipRef.current = BOOKS_PER_PAGE;
@@ -105,16 +102,12 @@ export function useTagBooks(tagName: string | null) {
       setLoadingMore(true);
       setError(null);
       
-      const response = await fetch(
-        `/api/tags/${encodeURIComponent(tagName)}?limit=${BOOKS_PER_PAGE}&skip=${skipRef.current}`,
+      const data = await tagApi.listBooks(
+        tagName,
+        { limit: BOOKS_PER_PAGE, skip: skipRef.current },
         { signal: abortController.signal }
       );
       
-      if (!response.ok) {
-        throw new Error("Failed to fetch more books");
-      }
-
-      const data = await response.json();
       setBooks(prev => [...prev, ...(data.books || [])]);
       setTotal(data.total || 0);
       skipRef.current += BOOKS_PER_PAGE;
@@ -151,20 +144,7 @@ export function useTagBooks(tagName: string | null) {
     if (!tagName) return;
 
     try {
-      const response = await fetch("/api/tags/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookIds: [bookId],
-          tags: [tagName],
-          action: "remove",
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to remove tag");
-      }
+      await tagApi.bulkOperation([bookId], [tagName], "remove");
 
       // Refresh books after successful removal
       await fetchInitialBooks();
@@ -181,20 +161,7 @@ export function useTagBooks(tagName: string | null) {
     if (!tagName || bookIds.length === 0) return;
 
     try {
-      const response = await fetch("/api/tags/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookIds,
-          tags: [tagName],
-          action: "add",
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to add tag");
-      }
+      await tagApi.bulkOperation(bookIds, [tagName], "add");
 
       // Refresh books after successful addition
       await fetchInitialBooks();
@@ -211,20 +178,7 @@ export function useTagBooks(tagName: string | null) {
     if (!tagName || bookIds.length === 0) return;
 
     try {
-      const response = await fetch("/api/tags/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookIds,
-          tags: [tagName],
-          action: "remove",
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to remove tag from books");
-      }
+      const data = await tagApi.bulkOperation(bookIds, [tagName], "remove");
 
       // Refresh books after successful bulk removal
       await fetchInitialBooks();
@@ -233,7 +187,6 @@ export function useTagBooks(tagName: string | null) {
       queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
       queryClient.invalidateQueries({ queryKey: ['availableTags'] });
       
-      const data = await response.json();
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to remove tag from books");

@@ -3,8 +3,23 @@
  *
  * ⚠️ APPROVED WRITE OPERATIONS ONLY:
  * - Update book ratings (ratings table + books_ratings_link table)
+ * - Update book tags (tags table + books_tags_link table)
  *
  * All other operations MUST use read-only connection from calibre.ts.
+ *
+ * SAFETY MECHANISMS:
+ * ------------------
+ * 1. Lock Error Detection - Catches SQLite BUSY/LOCKED errors
+ * 2. Enhanced Error Messages - Clear, actionable guidance for users
+ * 3. Structured Logging - Operation context for troubleshooting
+ * 4. Validation - Input validation prevents invalid writes
+ *
+ * USER REQUIREMENTS:
+ * -----------------
+ * - Close Calibre before tag operations (adding/removing from shelves)
+ * - Rating updates work with Calibre open (watcher has retry logic)
+ *
+ * For complete safety documentation, see: docs/CALIBRE_SAFETY.md
  *
  * VALIDATED CALIBRE SCHEMA:
  * -------------------------
@@ -19,6 +34,16 @@
  *   - rating: INTEGER NOT NULL (FK to ratings.id - NOT the rating value!)
  *   - UNIQUE(book, rating)
  *
+ * tags table (lookup table):
+ *   - id: INTEGER PRIMARY KEY
+ *   - name: TEXT NOT NULL COLLATE NOCASE, UNIQUE
+ *
+ * books_tags_link table (junction table):
+ *   - id: INTEGER PRIMARY KEY
+ *   - book: INTEGER NOT NULL (FK to books.id)
+ *   - tag: INTEGER NOT NULL (FK to tags.id)
+ *   - UNIQUE(book, tag)
+ *
  * RATING SCALE:
  * ------------
  * UI Display: 1-5 stars
@@ -26,7 +51,9 @@
  * Conversion: calibre_value = stars * 2
  */
 
-import { createDatabase } from "./factory";
+import { createDatabase, isWalMode } from "./factory";
+import { getLogger } from "@/lib/logger";
+import { existsSync } from "fs";
 
 // Type definition for SQLite database interface
 type SQLiteDatabase = any;
@@ -41,17 +68,55 @@ const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH || "";
  * which also has test-specific behavior.
  */
 function getLoggerSafe() {
+  // In test mode, return no-op logger to avoid require() issues in Vitest
   if (process.env.NODE_ENV === 'test') {
-    // Return a no-op logger for tests to avoid module mocking issues
-    return {
-      info: () => {},
-      error: () => {},
-      debug: () => {},
-      warn: () => {},
-    };
+    return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
-  const { getLogger } = require("../logger");
   return getLogger();
+}
+
+/**
+ * Create enhanced error message for database lock errors
+ * 
+ * Provides context-aware guidance based on:
+ * - WAL file existence (indicates recent/active Calibre usage)
+ * - Operation type (ratings vs tags)
+ * - Journal mode configuration
+ */
+function createLockErrorMessage(
+  operation: 'rating' | 'tags' | 'batch',
+  context: { calibreId?: number; bookCount?: number }
+): string {
+  const walFilesExist = CALIBRE_DB_PATH && isWalMode(CALIBRE_DB_PATH);
+  
+  let message = `Calibre database is locked. `;
+  
+  // Provide context-specific guidance
+  if (walFilesExist) {
+    // WAL files exist - Calibre is likely open or was recently open
+    message += `Calibre appears to be open or was recently closed. `;
+    
+    if (operation === 'rating') {
+      message += `Rating updates should work with Calibre open. This lock may be temporary - the system will automatically retry. `;
+      message += `If the error persists, try closing Calibre completely and waiting 5-10 seconds before retrying.`;
+    } else {
+      message += `Tag operations require Calibre to be completely closed. `;
+      message += `Please close Calibre, wait 5-10 seconds for the lock to clear, then try again.`;
+    }
+  } else {
+    // No WAL files - likely stale lock or permission issue
+    message += `The database lock may be stale (from a previous crash) or there may be a permissions issue. `;
+    message += `Try waiting 5-10 seconds and retrying. If the issue persists, restart your system or check file permissions.`;
+  }
+  
+  // Add context details
+  if (context.calibreId) {
+    message += ` (Book ID: ${context.calibreId})`;
+  } else if (context.bookCount) {
+    message += ` (Batch operation: ${context.bookCount} books)`;
+  }
+  
+  return message;
 }
 
 if (!CALIBRE_DB_PATH) {
@@ -77,13 +142,26 @@ export function getCalibreWriteDB(): SQLiteDatabase {
   if (!writeDbInstance) {
     try {
       // Create write-enabled Calibre database connection using factory
+      // Use 'auto' mode to detect and respect Calibre's journal mode (Calibre 9.x uses WAL)
       writeDbInstance = createDatabase({
         path: CALIBRE_DB_PATH,
         readonly: false,
         foreignKeys: false, // Calibre DB manages its own schema
-        wal: false, // Don't modify journal mode on Calibre DB
+        wal: 'auto', // Auto-detect WAL mode (Calibre 9.x compatibility)
       });
-      getLoggerSafe().debug(`Calibre Write DB: Using ${writeDbInstance.runtime === 'bun' ? 'bun:sqlite' : 'better-sqlite3'} - WRITE ENABLED`);
+      
+      // Set busy timeout to 10 seconds
+      // This makes SQLite wait instead of immediately returning LOCKED errors
+      // Critical for concurrent access when Calibre is open
+      // 10 seconds accommodates transient locks from concurrent access
+      writeDbInstance.sqlite.pragma('busy_timeout = 10000');
+      
+      const journalMode = writeDbInstance.sqlite.pragma('journal_mode', { simple: true });
+      getLoggerSafe().info(
+        { journalMode, busyTimeout: 10000 },
+        '[Calibre Write DB] Initialized with auto-detected journal mode and 10s busy timeout'
+      );
+      
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }
@@ -166,8 +244,20 @@ export function updateCalibreRating(
       }
     }
   } catch (error) {
-    getLoggerSafe().error({ err: error }, `[Calibre] Failed to update rating for book ${calibreId}`);
-    throw new Error(`Failed to update rating in Calibre database: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                       errorMessage.toLowerCase().includes('busy');
+    
+    getLoggerSafe().error(
+      { err: error, calibreId, operation: 'updateRating', isLockError },
+      `[Calibre] Failed to update rating for book ${calibreId}`
+    );
+    
+    if (isLockError) {
+      throw new Error(createLockErrorMessage('rating', { calibreId }));
+    }
+    
+    throw new Error(`Failed to update rating in Calibre database: ${errorMessage}`);
   }
 }
 
@@ -299,8 +389,20 @@ export function updateCalibreTags(
     getLoggerSafe().info({ calibreId, linksCreated, tags: validTags }, "[Calibre] Updated tags for book")
     
   } catch (error) {
-    getLoggerSafe().error({ err: error }, `[Calibre] Failed to update tags for book ${calibreId}`);
-    throw new Error(`Failed to update tags in Calibre database: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                       errorMessage.toLowerCase().includes('busy');
+    
+    getLoggerSafe().error(
+      { err: error, calibreId, operation: 'updateTags', isLockError, tags: validTags },
+      `[Calibre] Failed to update tags for book ${calibreId}`
+    );
+    
+    if (isLockError) {
+      throw new Error(createLockErrorMessage('tags', { calibreId }));
+    }
+    
+    throw new Error(`Failed to update tags in Calibre database: ${errorMessage}`);
   }
 }
 
@@ -379,8 +481,20 @@ export function batchUpdateCalibreTags(
       failures
     };
   } catch (error) {
-    getLoggerSafe().error({ err: error }, "[Calibre] Batch tag update failed catastrophically");
-    throw new Error(`Batch tag update failed: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isLockError = errorMessage.toLowerCase().includes('locked') || 
+                       errorMessage.toLowerCase().includes('busy');
+    
+    getLoggerSafe().error(
+      { err: error, operation: 'batchUpdateTags', totalUpdates: updates.length, isLockError },
+      "[Calibre] Batch tag update failed catastrophically"
+    );
+    
+    if (isLockError) {
+      throw new Error(createLockErrorMessage('batch', { bookCount: updates.length }));
+    }
+    
+    throw new Error(`Batch tag update failed: ${errorMessage}`);
   }
 }
 

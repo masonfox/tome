@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { toSessionDate } from '@/__tests__/test-utils';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import { PATCH as PATCH_BOOK } from "@/app/api/books/[id]/route";
 import { POST as POST_PROGRESS } from "@/app/api/books/[id]/progress/route";
@@ -22,7 +23,7 @@ import type { NextRequest } from "next/server";
  */
 
 // Mock Next.js cache revalidation
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
@@ -57,7 +58,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
       sessionNumber: 1,
       status: "reading",
       isActive: true,
-      startedDate: new Date("2025-12-01"),
+      startedDate: toSessionDate(new Date("2025-12-01")),
     }));
 
     // User has logged progress to page 100
@@ -67,7 +68,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
       currentPage: 100,
       currentPercentage: 33, // 100/300 = 33.33% → 33%
       pagesRead: 100,
-      progressDate: new Date("2025-12-08T10:00:00Z"),
+      progressDate: "2025-12-08T10:00:00Z",
     }));
 
     // ========================================================================
@@ -91,7 +92,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
     
     const progressRequest = createMockRequest("POST", `/api/books/${book.id}/progress`, {
       currentPage: 150,
-      progressDate: new Date("2025-12-08T14:00:00Z").toISOString(),
+      progressDate: "2025-12-09",
     }) as NextRequest;
     
     const progressResponse = await POST_PROGRESS(progressRequest, { params: { id: book.id.toString() } });
@@ -159,7 +160,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
       currentPage: 200,
       currentPercentage: 50,
       pagesRead: 200,
-      progressDate: new Date("2025-12-07"),
+      progressDate: "2025-12-07",
     }));
 
     // ========================================================================
@@ -178,7 +179,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
     
     const progressRequest = createMockRequest("POST", `/api/books/${book.id}/progress`, {
       currentPercentage: 60,
-      progressDate: new Date("2025-12-08").toISOString(),
+      progressDate: "2025-12-08",
     }) as NextRequest;
     
     const progressResponse = await POST_PROGRESS(progressRequest, { params: { id: book.id.toString() } });
@@ -228,7 +229,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
       currentPage: 50,
       currentPercentage: 25,
       pagesRead: 50,
-      progressDate: new Date("2025-12-01"),
+      progressDate: "2025-12-01",
     }));
 
     // ========================================================================
@@ -243,7 +244,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
     await POST_PROGRESS(
       createMockRequest("POST", `/api/books/${book.id}/progress`, {
         currentPage: 100,
-        progressDate: new Date("2025-12-02").toISOString(),
+        progressDate: "2025-12-02",
       }) as NextRequest,
       { params: { id: book.id.toString() } }
     );
@@ -260,7 +261,7 @@ describe("Integration: Page Edit Then Progress Log Bug", () => {
     const finalProgressResponse = await POST_PROGRESS(
       createMockRequest("POST", `/api/books/${book.id}/progress`, {
         currentPage: 150,
-        progressDate: new Date("2025-12-03").toISOString(),
+        progressDate: "2025-12-03",
       }) as NextRequest,
       { params: { id: book.id.toString() } }
     );

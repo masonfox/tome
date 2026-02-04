@@ -3,16 +3,17 @@ import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import { rebuildStreak } from "@/lib/streaks";
 import { calibreService } from "@/lib/services/calibre.service";
 import { progressService } from "@/lib/services/progress.service";
+import { getLogger } from "@/lib/logger";
 
 /**
  * Status update data structure
  */
 export interface StatusUpdateData {
-  status: "to-read" | "read-next" | "reading" | "read";
+  status: "to-read" | "read-next" | "reading" | "read" | "dnf";
   rating?: number | null;
   review?: string;
-  startedDate?: Date;
-  completedDate?: Date;
+  startedDate?: string; // YYYY-MM-DD format
+  completedDate?: string; // YYYY-MM-DD format (used for both "read" and "dnf" status)
 }
 
 /**
@@ -31,7 +32,7 @@ export interface MarkAsReadParams {
   bookId: number;
   rating?: number;
   review?: string;
-  completedDate?: Date;
+  completedDate?: string; // YYYY-MM-DD format
 }
 
 /**
@@ -45,6 +46,30 @@ export interface MarkAsReadResult {
 }
 
 /**
+ * Mark as DNF (Did Not Finish) parameters
+ */
+export interface MarkAsDNFParams {
+  bookId: number;
+  rating?: number;
+  review?: string;
+  completedDate?: string; // YYYY-MM-DD format - when the book was abandoned
+}
+
+/**
+ * Mark as DNF result
+ */
+export interface MarkAsDNFResult {
+  session: ReadingSession;
+  ratingUpdated: boolean;
+  reviewUpdated: boolean;
+  lastProgress?: {
+    currentPage: number;
+    currentPercentage: number;
+    progressDate: string;
+  };
+}
+
+/**
  * Context data passed to mark-as-read strategies
  */
 interface MarkAsReadStrategyContext {
@@ -53,16 +78,16 @@ interface MarkAsReadStrategyContext {
   activeSession: ReadingSession | null | undefined;
   has100Progress: boolean;
   isAlreadyRead: boolean;
-  completedDate?: Date;
+  completedDate?: string; // YYYY-MM-DD format
   tx?: any; // Optional transaction context
   ensureReadingStatus: (bookId: number, tx?: any) => Promise<ReadingSession>;
-  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: Date, tx?: any) => Promise<void>;
+  create100PercentProgress: (bookId: number, totalPages: number, completedDate?: string, tx?: any) => Promise<void>;
   updateStatus: (bookId: number, statusData: StatusUpdateData, tx?: any) => Promise<StatusUpdateResult>;
   invalidateCache: (bookId: number) => Promise<void>;
   findMostRecentCompletedSession: (bookId: number, tx?: any) => Promise<ReadingSession | null>;
-  getCurrentDateInUserTimezone: () => Promise<Date>;
-  sessionRepository: typeof sessionRepository;
-  logger: any; // Logger type
+  getTodayDateString: () => Promise<string>;
+  sessionRepository: any; // Session repository instance
+  logger: any; // Logger instance
 }
 
 /**
@@ -93,22 +118,21 @@ type MarkAsReadStrategy = (
  */
 export class SessionService {
   /**
-   * Get the current date as midnight in user's timezone, converted to UTC.
+   * Get the current date as YYYY-MM-DD string in user's timezone.
    * 
    * Used for default date values when creating sessions or progress logs.
-   * Follows ADR-006 "The Right Way™" pattern.
    * 
-   * @returns UTC Date representing midnight today in user's timezone
+   * @returns YYYY-MM-DD string representing today in user's timezone
    */
-  private async getCurrentDateInUserTimezone(): Promise<Date> {
+  private async getTodayDateString(): Promise<string> {
     try {
-      const { getCurrentDateInUserTimezone } = await import('@/utils/dateHelpers.server');
-      return await getCurrentDateInUserTimezone();
+      const { getTodayDateString } = await import('@/lib/utils/date-validation');
+      return getTodayDateString();
     } catch (error) {
-      // Fallback to current UTC time if timezone conversion fails
-      const { getLogger } = require("@/lib/logger");
-      getLogger().warn({ err: error }, 'Failed to get current date in user timezone, using UTC');
-      return new Date();
+      // Fallback to UTC date if import fails
+      getLogger().warn({ err: error }, 'Failed to get today date string, using UTC');
+      const now = new Date();
+      return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
     }
   }
 
@@ -242,6 +266,7 @@ export class SessionService {
 
     // Find active reading session or prepare to create new one
     let readingSession = await sessionRepository.findActiveByBookId(bookId, tx);
+    const oldStatus = readingSession?.status;
 
     // Detect "backward movement" from "reading" to planning statuses
     const isBackwardMovement =
@@ -257,19 +282,16 @@ export class SessionService {
 
     // If moving backward with progress, archive current session and create new one
     if (isBackwardMovement && hasProgress && readingSession) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().info(`[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`);
 
       // Get last progress date for completedDate (use last activity or current date)
       const latestProgress = await progressRepository.findLatestBySessionId(readingSession.id, tx);
-      const completedDate = latestProgress?.progressDate
-        ? new Date(latestProgress.progressDate)
-        : new Date();
+      const archiveCompletedDate = latestProgress?.progressDate || await this.getTodayDateString();
 
       // Archive current session WITH completedDate
       await sessionRepository.update(readingSession.id, {
         isActive: false,
-        completedDate,
+        completedDate: archiveCompletedDate,
       } as any, tx);
 
       // Create new session with new status
@@ -304,18 +326,26 @@ export class SessionService {
       status,
     };
 
+    // Handle read-next ordering logic
+    if (status === "read-next" && oldStatus !== "read-next") {
+      // Entering read-next: Assign next order
+      updateData.readNextOrder = await sessionRepository.getNextReadNextOrder();
+    } else if (oldStatus === "read-next" && status !== "read-next") {
+      // Leaving read-next: Reset order to 0
+      updateData.readNextOrder = 0;
+    }
+
     // Set dates based on status
     if (status === "reading" && !readingSession?.startedDate) {
-      updateData.startedDate = startedDate || await this.getCurrentDateInUserTimezone();
+      updateData.startedDate = startedDate || await this.getTodayDateString();
     }
 
     if (status === "read") {
       if (!updateData.startedDate && !readingSession?.startedDate) {
-        updateData.startedDate = startedDate || await this.getCurrentDateInUserTimezone();
+        updateData.startedDate = startedDate || await this.getTodayDateString();
       }
-      updateData.completedDate = completedDate || await this.getCurrentDateInUserTimezone();
-      // Auto-archive session when marked as read
-      updateData.isActive = false;
+      updateData.completedDate = completedDate || await this.getTodayDateString();
+      // Keep session active for terminal "read" state (archived only on re-read)
     }
 
     if (review !== undefined) {
@@ -341,6 +371,14 @@ export class SessionService {
       }, tx);
     }
 
+    // Auto-compact read-next queue only when LEAVING read-next status
+    // This eliminates gaps created by removed books while reducing reindex frequency by 50%
+    // Entering read-next: new book gets next available order (may have gaps, but that's OK)
+    // Leaving read-next: renumber remaining books to maintain clean sequential order
+    if (!tx && oldStatus === "read-next" && status !== "read-next") {
+      await sessionRepository.reindexReadNextOrders();
+    }
+
     // Update book rating if provided (single source of truth: books table)
     // NOTE: Rating updates happen outside transaction (best-effort)
     if (rating !== undefined && !tx) {
@@ -359,14 +397,21 @@ export class SessionService {
    * Start a re-read of a book (creates new active session)
    */
   async startReread(bookId: number): Promise<ReadingSession> {
-    // Verify book has completed reads (business rule enforcement)
-    const hasCompletedReads = await sessionRepository.hasCompletedReads(bookId);
-    if (!hasCompletedReads) {
-      throw new Error("Cannot start re-read: no completed reads found");
+    // Verify book has finished sessions (business rule enforcement)
+    const hasFinishedSessions = await sessionRepository.hasFinishedSessions(bookId);
+    if (!hasFinishedSessions) {
+      throw new Error("Cannot start re-read: book has not been finished");
     }
 
-    // Get most recent completed session to preserve userId
-    const previousSession = await sessionRepository.findMostRecentCompletedByBookId(bookId);
+    // Get most recent finished session to preserve userId
+    const previousSession = await sessionRepository.findMostRecentFinishedByBookId(bookId);
+
+    // Archive the previous finished session
+    if (previousSession && previousSession.isActive) {
+      await sessionRepository.update(previousSession.id, {
+        isActive: false,
+      } as any);
+    }
 
     // Get next session number
     const sessionNumber = await sessionRepository.getNextSessionNumber(bookId);
@@ -377,7 +422,7 @@ export class SessionService {
       sessionNumber,
       status: "reading",
       isActive: true,
-      startedDate: await this.getCurrentDateInUserTimezone(),
+      startedDate: await this.getTodayDateString(),
       userId: previousSession?.userId ?? null,
     });
 
@@ -393,7 +438,7 @@ export class SessionService {
   async updateSessionDate(
     sessionId: number,
     field: "startedDate" | "completedDate",
-    date: Date
+    date: string
   ): Promise<ReadingSession> {
     const session = await sessionRepository.findById(sessionId);
     if (!session) {
@@ -429,7 +474,6 @@ export class SessionService {
    * // Now safe to log progress for this book
    */
   async ensureReadingStatus(bookId: number, tx?: any): Promise<ReadingSession> {
-    const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
     // Check if book already has reading status
@@ -468,18 +512,20 @@ export class SessionService {
    * await sessionService.create100PercentProgress(123, 350);
    * // Book is now marked as "read" with 100% progress logged
    */
-  async create100PercentProgress(bookId: number, totalPages: number, completedDate?: Date, tx?: any): Promise<void> {
-    const { getLogger } = require("@/lib/logger");
+  async create100PercentProgress(bookId: number, totalPages: number, completedDate?: string, tx?: any): Promise<void> {
     const logger = getLogger();
 
     logger.info({ bookId, totalPages, completedDate }, "Creating 100% progress entry");
+
+    // completedDate is already a YYYY-MM-DD string, use directly
+    const progressDate = completedDate;
 
     // Log 100% progress (this will trigger auto-completion in ProgressService)
     await progressService.logProgress(bookId, {
       currentPage: totalPages,
       currentPercentage: 100,
       notes: "Marked as read",
-      progressDate: completedDate,
+      progressDate,
     }, tx);
 
     logger.info({ bookId }, "Successfully created 100% progress entry (book auto-completed)");
@@ -506,7 +552,6 @@ export class SessionService {
    * // Rating removed
    */
   async updateBookRating(bookId: number, rating: number | null): Promise<void> {
-    const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
     // Verify book exists and get calibreId
@@ -545,7 +590,6 @@ export class SessionService {
    * console.log(session.review); // "Great book!"
    */
   async updateSessionReview(sessionId: number, review: string): Promise<ReadingSession> {
-    const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
     const session = await sessionRepository.findById(sessionId);
@@ -676,7 +720,7 @@ export class SessionService {
     if (activeSession) {
       const updated = await sessionRepository.update(activeSession.id, {
         status: "read",
-        completedDate: completedDate || await context.getCurrentDateInUserTimezone(),
+        completedDate: completedDate || await context.getTodayDateString(),
         isActive: false,
       } as any, tx);
       sessionId = updated?.id;
@@ -687,8 +731,8 @@ export class SessionService {
         sessionNumber: nextSessionNumber,
         status: "read",
         isActive: false,
-        startedDate: completedDate || await context.getCurrentDateInUserTimezone(),
-        completedDate: completedDate || await context.getCurrentDateInUserTimezone(),
+        startedDate: completedDate || await context.getTodayDateString(),
+        completedDate: completedDate || await context.getTodayDateString(),
       }, tx);
       sessionId = newSession.id;
     }
@@ -804,7 +848,6 @@ export class SessionService {
    */
   async markAsRead(params: MarkAsReadParams): Promise<MarkAsReadResult> {
     const { bookId, rating, review, completedDate } = params;
-    const { getLogger } = require("@/lib/logger");
     const logger = getLogger();
 
     logger.info({ bookId, hasRating: !!rating, hasReview: !!review }, "Starting markAsRead workflow");
@@ -870,7 +913,7 @@ export class SessionService {
         updateStatus: this.updateStatus.bind(this),
         invalidateCache: this.invalidateCache.bind(this),
         findMostRecentCompletedSession: this.findMostRecentCompletedSession.bind(this),
-        getCurrentDateInUserTimezone: this.getCurrentDateInUserTimezone.bind(this),
+        getTodayDateString: this.getTodayDateString.bind(this),
         sessionRepository,
         logger,
       };
@@ -969,15 +1012,263 @@ export class SessionService {
   }
 
   /**
+   * Mark a book as DNF (Did Not Finish)
+   *
+   * This method handles the workflow for marking a book as abandoned mid-read.
+   * Unlike markAsRead() which has multiple strategies, DNF follows a single path:
+   * - Must have active session in "reading" status
+   * - Archives the session (sets isActive = false, adds completedDate)
+   * - Optionally updates rating (best-effort, syncs to Calibre)
+   * - Optionally updates review (best-effort, attaches to archived session)
+   * - Returns last progress log for prefilling date in UI
+   *
+   * @param params - Mark as DNF parameters (bookId, rating, review, completedDate)
+   * @returns Promise resolving to result with session and update flags
+   * @throws {Error} If book not found or no active reading session
+   *
+   * @example
+   * // Simple mark as DNF
+   * const result = await sessionService.markAsDNF({ bookId: 123 });
+   *
+   * @example
+   * // Mark as DNF with rating and review
+   * const result = await sessionService.markAsDNF({
+   *   bookId: 123,
+   *   rating: 2,
+   *   review: "Started strong but couldn't get into it",
+   *   completedDate: "2026-01-12",
+   * });
+   */
+  async markAsDNF(params: MarkAsDNFParams): Promise<MarkAsDNFResult> {
+    const { bookId, rating, review, completedDate } = params;
+    const logger = getLogger();
+
+    logger.info({ bookId, hasRating: !!rating, hasReview: !!review }, "Starting markAsDNF workflow");
+
+    // Get book data
+    const book = await bookRepository.findById(bookId);
+    if (!book) {
+      throw new Error("Book not found");
+    }
+
+    // Get active session - must be in "reading" status
+    const activeSession = await sessionRepository.findActiveByBookId(bookId);
+    if (!activeSession) {
+      throw new Error("No active reading session found for this book");
+    }
+
+    if (activeSession.status !== "reading") {
+      throw new Error(`Cannot mark as DNF from status "${activeSession.status}". Must be "reading".`);
+    }
+
+    // Get last progress for prefilling date
+    let lastProgress;
+    const progressLogs = await progressRepository.findBySessionId(activeSession.id);
+    if (progressLogs.length > 0) {
+      // Sort by date descending to get most recent
+      const sortedLogs = [...progressLogs].sort((a, b) => 
+        b.progressDate.localeCompare(a.progressDate)
+      );
+      const mostRecent = sortedLogs[0];
+      lastProgress = {
+        currentPage: mostRecent.currentPage,
+        currentPercentage: mostRecent.currentPercentage,
+        progressDate: mostRecent.progressDate,
+      };
+    }
+
+    // Mark session as DNF (keep active - archived only on re-read)
+    const finalCompletedDate = completedDate || lastProgress?.progressDate || await this.getTodayDateString();
+    
+    logger.info({ bookId, sessionId: activeSession.id, completedDate: finalCompletedDate }, "Marking session as DNF");
+
+    await sessionRepository.update(activeSession.id, {
+      status: "dnf",
+      completedDate: finalCompletedDate,
+    } as any);
+
+    // Best-effort: Update rating
+    let ratingUpdated = false;
+    if (rating !== undefined && rating > 0) {
+      try {
+        await this.updateBookRating(bookId, rating);
+        ratingUpdated = true;
+        logger.info({ bookId, rating }, "Rating updated successfully");
+      } catch (error) {
+        logger.error({ err: error, bookId, rating }, "Failed to update rating (continuing)");
+      }
+    }
+
+    // Best-effort: Update review
+    let reviewUpdated = false;
+    if (review) {
+      try {
+        await this.updateSessionReview(activeSession.id, review);
+        reviewUpdated = true;
+        logger.info({ bookId, sessionId: activeSession.id }, "Review updated successfully");
+      } catch (error) {
+        logger.error({ err: error, bookId, sessionId: activeSession.id }, "Failed to update review (continuing)");
+      }
+    }
+
+    // Best-effort: Update streak system
+    try {
+      await this.updateStreakSystem();
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to update streak (continuing)");
+    }
+
+    // Best-effort: Invalidate cache
+    try {
+      await this.invalidateCache(bookId);
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to invalidate cache (continuing)");
+    }
+
+    // Get the final archived session
+    const finalSession = await sessionRepository.findById(activeSession.id);
+    if (!finalSession) {
+      throw new Error("Could not find session after marking as DNF");
+    }
+
+    logger.info({
+      bookId,
+      sessionId: finalSession.id,
+      ratingUpdated,
+      reviewUpdated,
+      hasLastProgress: !!lastProgress,
+    }, "Successfully completed markAsDNF workflow");
+
+    return {
+      session: finalSession,
+      ratingUpdated,
+      reviewUpdated,
+      lastProgress,
+    };
+  }
+
+  /**
+   * Delete a reading session and all associated progress logs
+   *
+   * This permanently deletes a session and its progress logs (cascading via foreign key).
+   * If the session being deleted is active, a new "to-read" session is automatically created
+   * to ensure the book maintains an active session.
+   *
+   * Use Cases:
+   * - Fixing mistakes (wrong book logged, test data)
+   * - Cleaning up reading history
+   * - Removing unwanted sessions
+   *
+   * @param bookId - The ID of the book
+   * @param sessionId - The ID of the session to delete
+   * @returns Promise resolving to metadata about the deletion
+   * @throws {Error} If session not found or bookId mismatch
+   *
+   * @example
+   * // Delete an archived session
+   * const result = await sessionService.deleteSession(123, 456);
+   * // result: { deletedSessionNumber: 2, wasActive: false, newSessionCreated: false }
+   *
+   * @example
+   * // Delete active session (creates new "to-read" session)
+   * const result = await sessionService.deleteSession(123, 789);
+   * // result: { deletedSessionNumber: 1, wasActive: true, newSessionCreated: true }
+   */
+  async deleteSession(bookId: number, sessionId: number): Promise<{
+    deletedSessionNumber: number;
+    wasActive: boolean;
+    newSessionCreated: boolean;
+  }> {
+    const logger = getLogger();
+
+    logger.info({ bookId, sessionId }, "Starting deleteSession workflow");
+
+    // Get session to verify it exists and belongs to book
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) {
+      throw new Error("Session not found");
+    }
+
+    if (session.bookId !== bookId) {
+      throw new Error("Session does not belong to specified book");
+    }
+
+    // Store metadata before deletion
+    const deletedSessionNumber = session.sessionNumber;
+    const wasActive = session.isActive;
+
+    logger.info({
+      bookId,
+      sessionId,
+      sessionNumber: deletedSessionNumber,
+      wasActive,
+    }, "Deleting session");
+
+    // Delete session (cascades to progress logs via foreign key)
+    await sessionRepository.delete(sessionId);
+
+    logger.info({ bookId, sessionId, deletedSessionNumber }, "Session deleted");
+
+    // Check if book still has an active session after deletion
+    const remainingActiveSession = await sessionRepository.findActiveByBookId(bookId);
+    
+    // Always create new "to-read" session if book has no active session
+    // This ensures books are never left without a way to track reading status
+    let newSessionCreated = false;
+    if (!remainingActiveSession) {
+      logger.info({ bookId }, "Creating new 'to-read' session - no active session remains");
+
+      await sessionRepository.create({
+        bookId,
+        sessionNumber: 1,
+        status: "to-read",
+        isActive: true,
+        userId: session.userId,
+      });
+
+      newSessionCreated = true;
+      logger.info({ bookId }, "New 'to-read' session created");
+    } else {
+      logger.info({ bookId }, "Book still has active session - no new session needed");
+    }
+
+    // Best-effort: Update streak system
+    try {
+      await this.updateStreakSystem();
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to update streak (continuing)");
+    }
+
+    // Best-effort: Invalidate cache
+    try {
+      await this.invalidateCache(bookId);
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to invalidate cache (continuing)");
+    }
+
+    logger.info({
+      bookId,
+      sessionId,
+      deletedSessionNumber,
+      wasActive,
+      newSessionCreated,
+    }, "Successfully completed deleteSession workflow");
+
+    return {
+      deletedSessionNumber,
+      wasActive,
+      newSessionCreated,
+    };
+  }
+
+  /**
    * Update streak system (best effort)
    */
   private async updateStreakSystem(): Promise<void> {
     try {
-      const { getLogger } = require("@/lib/logger");
       getLogger().info("[SessionService] Rebuilding streak after session change");
       await rebuildStreak();
     } catch (streakError) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: streakError }, "[SessionService] Failed to rebuild streak");
       // Don't fail the request if streak rebuild fails
     }
@@ -996,7 +1287,6 @@ export class SessionService {
       revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "[SessionService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
     }

@@ -1,5 +1,8 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories";
+import { sessionService } from "@/lib/services/session.service";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +12,8 @@ export const dynamic = 'force-dynamic';
  * 
  * Request Body:
  * {
- *   "startedDate": string | null   // ISO date string or null
- *   "completedDate": string | null // ISO date string or null
+ *   "startedDate": string | null   // YYYY-MM-DD string or null
+ *   "completedDate": string | null // YYYY-MM-DD string or null
  *   "review": string | null        // Review text or null to remove
  * }
  * 
@@ -22,8 +25,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; sessionId: string } }
+  props: { params: Promise<{ id: string; sessionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     const sessionId = parseInt(params.sessionId);
@@ -58,12 +62,32 @@ export async function PATCH(
     // Build update object with only provided fields
     const updateData: any = {};
     
-    // Handle dates
+    // Handle dates - strict YYYY-MM-DD validation (no ISO string normalization)
     if ('startedDate' in body) {
-      updateData.startedDate = startedDate ? new Date(startedDate) : null;
+      if (startedDate) {
+        if (!validateDateString(startedDate)) {
+          return NextResponse.json(
+            { error: "Invalid started date format. Expected valid YYYY-MM-DD" },
+            { status: 400 }
+          );
+        }
+        updateData.startedDate = startedDate;
+      } else {
+        updateData.startedDate = null;
+      }
     }
     if ('completedDate' in body) {
-      updateData.completedDate = completedDate ? new Date(completedDate) : null;
+      if (completedDate) {
+        if (!validateDateString(completedDate)) {
+          return NextResponse.json(
+            { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
+            { status: 400 }
+          );
+        }
+        updateData.completedDate = completedDate;
+      } else {
+        updateData.completedDate = null;
+      }
     }
     
     // Handle review
@@ -90,19 +114,95 @@ export async function PATCH(
     }
     
     {
-      const { getLogger } = require("@/lib/logger");
       getLogger().info({ sessionId, bookId, sessionNumber: session.sessionNumber }, "[Session API] Updated session");
     }
     
     return NextResponse.json(updatedSession);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "[Session API] Unexpected error");
     return NextResponse.json(
       { 
         error: "Failed to update session",
         details: error instanceof Error ? error.message : String(error)
       },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/books/:id/sessions/:sessionId
+ * Delete a reading session and all associated progress logs
+ * 
+ * If the session is active, a new "to-read" session will be created automatically.
+ * 
+ * Responses:
+ * - 200: Session deleted successfully (returns metadata)
+ * - 400: Invalid request (invalid IDs, bookId mismatch)
+ * - 404: Session not found
+ * - 500: Deletion failed
+ */
+export async function DELETE(
+  request: NextRequest,
+  props: { params: Promise<{ id: string; sessionId: string }> }
+) {
+  const params = await props.params;
+  const logger = getLogger().child({ route: "DELETE /api/books/[id]/sessions/[sessionId]" });
+
+  try {
+    // Parse and validate IDs
+    const bookId = parseInt(params.id);
+    const sessionId = parseInt(params.sessionId);
+
+    if (isNaN(bookId) || isNaN(sessionId)) {
+      logger.warn({ bookId: params.id, sessionId: params.sessionId }, "Invalid ID format");
+      return NextResponse.json(
+        { error: "Invalid book ID or session ID" },
+        { status: 400 }
+      );
+    }
+
+    logger.info({ bookId, sessionId }, "Deleting session");
+
+    // Delete session via service
+    const result = await sessionService.deleteSession(bookId, sessionId);
+
+    logger.info({
+      bookId,
+      sessionId,
+      deletedSessionNumber: result.deletedSessionNumber,
+      wasActive: result.wasActive,
+      newSessionCreated: result.newSessionCreated,
+    }, "Session deleted successfully");
+
+    return NextResponse.json(result);
+  } catch (error) {
+    const err = error as Error;
+    
+    // Handle specific error cases
+    if (err.message === "Session not found") {
+      logger.warn({ bookId: params.id, sessionId: params.sessionId }, "Session not found");
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      );
+    }
+
+    if (err.message === "Session does not belong to specified book") {
+      logger.warn({
+        bookId: params.id,
+        sessionId: params.sessionId,
+      }, "Session bookId mismatch");
+      return NextResponse.json(
+        { error: "Session does not belong to specified book" },
+        { status: 400 }
+      );
+    }
+
+    // Generic server error
+    logger.error({ err, bookId: params.id, sessionId: params.sessionId }, "Failed to delete session");
+    return NextResponse.json(
+      { error: "Failed to delete session" },
       { status: 500 }
     );
   }

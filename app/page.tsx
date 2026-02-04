@@ -1,13 +1,16 @@
 "use client";
 
 import { BookOpen, BookCheck, TrendingUp, Flame, ArrowRight } from "lucide-react";
-import { StatsCard } from "@/components/ui/StatsCard";
-import { StreakDisplay } from "@/components/StreakDisplay";
-import { BookCard } from "@/components/BookCard";
-import { BookCardSkeleton } from "@/components/BookCardSkeleton";
-import CurrentlyReadingSection from "@/components/CurrentlyReadingSection";
+import { StatsCard } from "@/components/Utilities/StatsCard";
+import { StatsCardSkeleton } from "@/components/Utilities/StatsCardSkeleton";
+import { StreakDisplay } from "@/components/Streaks/StreakDisplay";
+import { StreakDisplaySkeleton } from "@/components/Streaks/StreakDisplaySkeleton";
+import { BookCard } from "@/components/Books/BookCard";
+import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
+import CurrentlyReadingSection from "@/components/CurrentlyReading/CurrentlyReadingSection";
 import Link from "next/link";
 import { useDashboard } from "@/hooks/useDashboard";
+import { Button } from "@/components/Utilities/Button";
 
 export default function Dashboard() {
   const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal, isLoading } = useDashboard();
@@ -16,7 +19,7 @@ export default function Dashboard() {
     <div className="space-y-6 md:space-y-10">
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-3 md:pb-6">
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-center md:justify-between gap-4 sm:gap-6">
           <div className="hidden md:block">
             <h1 className="text-5xl font-serif font-bold text-[var(--heading-text)] flex items-center gap-3">
               <BookOpen className="w-8 h-8" />
@@ -28,8 +31,10 @@ export default function Dashboard() {
           </div>
 
           {/* Streak Display */}
-          <div className="flex justify-center md:justify-end">
-            {streak && (
+          <div className="flex justify-center items-center">
+            {isLoading ? (
+              <StreakDisplaySkeleton className="flex-shrink-0" />
+            ) : streak ? (
               <StreakDisplay
                 currentStreak={streak.currentStreak}
                 longestStreak={streak.longestStreak}
@@ -38,17 +43,19 @@ export default function Dashboard() {
                 todayPagesRead={streak.todayPagesRead}
                 className="flex-shrink-0"
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
       {/* Currently Reading */}
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold">
+        <div className="flex items-center justify-between mb-6 min-h-[40px]">
+          <h2 className="text-2xl font-serif font-bold flex items-center">
             <span className="text-[var(--heading-text)]">Currently Reading</span>
-            {!isLoading && (
+            {isLoading ? (
+              <span className="ml-2 inline-block min-w-[2.5rem] h-7 bg-[var(--card-bg-emphasis)] rounded-full animate-pulse" />
+            ) : (
               <span className="ml-2 text-[var(--accent)]">
                 ({currentlyReadingTotal})
               </span>
@@ -57,7 +64,7 @@ export default function Dashboard() {
           {currentlyReadingTotal > 6 && (
             <Link
               href="/library?status=reading"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
               title="View all currently reading books"
             >
               <span className="hidden md:inline">View all</span>
@@ -71,10 +78,12 @@ export default function Dashboard() {
 
       {/* Read Next */}
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold">
+        <div className="flex items-center justify-between mb-6 min-h-[40px]">
+          <h2 className="text-2xl font-serif font-bold flex items-center">
             <span className="text-[var(--heading-text)]">Read Next</span>
-            {!isLoading && (
+            {isLoading ? (
+              <span className="ml-2 inline-block min-w-[2.5rem] h-7 bg-[var(--card-bg-emphasis)] rounded-full animate-pulse" />
+            ) : (
               <span className="ml-2 text-[var(--accent)]">
                 ({readNextTotal})
               </span>
@@ -82,8 +91,8 @@ export default function Dashboard() {
           </h2>
           {readNextTotal > 8 && (
             <Link
-              href="/library?status=read-next"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-sm text-white hover:bg-[var(--light-accent)] transition-colors font-medium"
+              href="/read-next"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] shadow-md hover:shadow-lg transition-all font-semibold"
               title="View all read next books"
             >
               <span className="hidden md:inline">View all</span>
@@ -93,7 +102,7 @@ export default function Dashboard() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4 min-h-[200px]">
             {[...Array(8)].map((_, i) => (
               <BookCardSkeleton key={i} />
             ))}
@@ -107,13 +116,14 @@ export default function Dashboard() {
                 title={book.title}
                 authors={book.authors}
                 calibreId={book.calibreId}
+                lastSynced={book.lastSynced}
               />
             ))}
           </div>
         ) : (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center">
-            <BookOpen className="w-12 h-12 text-[var(--accent)]/40 mx-auto mb-3" />
-            <p className="text-[var(--foreground)]/70 font-medium">
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 text-center h-[156px] flex flex-col items-center justify-center">
+            <BookOpen className="w-12 h-12 text-[var(--light-accent)] mx-auto mb-3" />
+            <p className="text-[var(--foreground)] font-medium">
               No books in your reading queue. Add books from your{" "}
               <Link
                 href="/library"
@@ -128,34 +138,43 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-[var(--border-color)]">
-          <StatsCard
-            title="Books Read This Year"
-            value={stats.booksRead.thisYear}
-            subtitle={`${stats.booksRead.total} total`}
-            icon={<BookCheck className="w-6 h-6" />}
-          />
-          <StatsCard
-            title="Currently Reading"
-            value={stats.currentlyReading}
-            subtitle="Active books"
-            icon={<BookOpen className="w-6 h-6" />}
-          />
-          <StatsCard
-            title="Pages Today"
-            value={stats.pagesRead.today}
-            subtitle={`${stats.pagesRead.thisMonth} this month`}
-            icon={<TrendingUp className="w-6 h-6" />}
-          />
-          <StatsCard
-            title="Avg. Pages/Day"
-            value={stats.avgPagesPerDay}
-            subtitle="Last 30 days"
-            icon={<Flame className="w-6 h-6" />}
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-[var(--border-color)]">
+        {isLoading ? (
+          <>
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+          </>
+        ) : stats ? (
+          <>
+            <StatsCard
+              title="Books Read This Year"
+              value={stats.booksRead.thisYear}
+              subtitle={`${stats.booksRead.total} total`}
+              icon={<BookCheck className="w-6 h-6" />}
+            />
+            <StatsCard
+              title="Currently Reading"
+              value={stats.currentlyReading}
+              subtitle="Active books"
+              icon={<BookOpen className="w-6 h-6" />}
+            />
+            <StatsCard
+              title="Pages Today"
+              value={stats.pagesRead.today}
+              subtitle={`${stats.pagesRead.thisMonth} this month`}
+              icon={<TrendingUp className="w-6 h-6" />}
+            />
+            <StatsCard
+              title="Avg. Pages/Day"
+              value={stats.avgPagesPerDay}
+              subtitle="Last 30 days"
+              icon={<Flame className="w-6 h-6" />}
+            />
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

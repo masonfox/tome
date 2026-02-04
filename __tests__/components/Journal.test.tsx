@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach } from 'vitest';
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Journal from "@/components/BookDetail/Journal";
@@ -16,7 +16,7 @@ describe("Journal", () => {
       id: 1,
       currentPage: 50,
       currentPercentage: 16.67,
-      progressDate: "2024-01-01T00:00:00Z",
+      progressDate: "2024-01-01",
       pagesRead: 50,
       notes: "Great start!",
     },
@@ -24,7 +24,7 @@ describe("Journal", () => {
       id: 2,
       currentPage: 100,
       currentPercentage: 33.33,
-      progressDate: "2024-01-02T00:00:00Z",
+      progressDate: "2024-01-02",
       pagesRead: 50,
       notes: "",
     },

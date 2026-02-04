@@ -1,14 +1,15 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { ProgressService } from "@/lib/services/progress.service";
+import { createProgressSchema } from "@/lib/api/schemas/progress.schemas";
+import { ZodError } from "zod";
 
 export const dynamic = 'force-dynamic';
 
 const progressService = new ProgressService();
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -34,16 +35,13 @@ export async function GET(
       return NextResponse.json(progressLogs);
     }
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching progress");
     return NextResponse.json({ error: "Failed to fetch progress" }, { status: 500 });
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -52,13 +50,15 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { currentPage, currentPercentage, notes, progressDate } = body;
+    
+    // Validate request body with Zod
+    const validatedData = createProgressSchema.parse(body);
 
     const progressData = {
-      currentPage,
-      currentPercentage,
-      notes,
-      progressDate: progressDate ? new Date(progressDate) : undefined,
+      currentPage: validatedData.currentPage,
+      currentPercentage: validatedData.currentPercentage,
+      notes: validatedData.notes,
+      progressDate: validatedData.progressDate,
     };
 
     const result = await progressService.logProgress(bookId, progressData);
@@ -67,8 +67,13 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error logging progress");
+    
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const errorMessage = error.issues.map((e) => e.message).join(", ");
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
     
     // Handle specific errors
     if (error instanceof Error) {

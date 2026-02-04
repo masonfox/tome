@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "@/utils/toast";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
+import { sessionApi } from "@/lib/api";
 
 interface Session {
   id: number;
@@ -33,17 +34,10 @@ export function useSessionDetails(
     if (!session?.id) return;
 
     try {
-      const startedISO = editStartDate
-        ? new Date(editStartDate + "T00:00:00.000Z").toISOString()
-        : null;
-
-      const response = await fetch(`/api/books/${bookId}/sessions/${session.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ startedDate: startedISO }),
+      // Send YYYY-MM-DD format directly - backend expects this format
+      await sessionApi.update(bookId, session.id, { 
+        startedDate: editStartDate || null 
       });
-
-      if (!response.ok) throw new Error("Failed to update start date");
 
       setIsEditingStartDate(false);
       toast.success("Start date updated");

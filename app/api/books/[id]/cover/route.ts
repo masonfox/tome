@@ -1,110 +1,22 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById } from "@/lib/db/calibre";
-import { CACHE_CONFIG } from "@/lib/constants";
+import {
+  coverCache,
+  bookPathCache,
+  clearCoverCache,
+  clearBookPathCache,
+  getCoverCacheStats,
+  getBookPathCacheStats,
+  type CacheStats,
+} from "@/lib/cache/cover-cache";
 
 export const dynamic = 'force-dynamic';
 
-// LRU Cache for cover images
-interface CoverCacheEntry {
-  buffer: Buffer;
-  contentType: string;
-  timestamp: number;
-}
-
-class CoverCache {
-  private cache = new Map<number, CoverCacheEntry>();
-  private maxSize = CACHE_CONFIG.COVER_CACHE.MAX_SIZE;
-  private maxAge = CACHE_CONFIG.COVER_CACHE.MAX_AGE_MS;
-
-  get(bookId: number): CoverCacheEntry | null {
-    const entry = this.cache.get(bookId);
-    if (!entry) return null;
-
-    // Check if expired
-    if (Date.now() - entry.timestamp > this.maxAge) {
-      this.cache.delete(bookId);
-      return null;
-    }
-
-    return entry;
-  }
-
-  set(bookId: number, buffer: Buffer, contentType: string): void {
-    // Implement LRU by deleting oldest entries when at capacity
-    if (this.cache.size >= this.maxSize) {
-      // Delete oldest entry (first entry in Map)
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-
-    this.cache.set(bookId, {
-      buffer,
-      contentType,
-      timestamp: Date.now(),
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  getSize(): number {
-    return this.cache.size;
-  }
-}
-
-// Global cache instance
-const coverCache = new CoverCache();
-
-// Cache for book path lookups (avoid repeated Calibre DB queries)
-interface BookPathCacheEntry {
-  path: string;
-  hasCover: boolean;
-  timestamp: number;
-}
-
-class BookPathCache {
-  private cache = new Map<number, BookPathCacheEntry>();
-  private maxSize = CACHE_CONFIG.BOOK_PATH_CACHE.MAX_SIZE;
-  private maxAge = CACHE_CONFIG.BOOK_PATH_CACHE.MAX_AGE_MS;
-
-  get(bookId: number): BookPathCacheEntry | null {
-    const entry = this.cache.get(bookId);
-    if (!entry) return null;
-
-    if (Date.now() - entry.timestamp > this.maxAge) {
-      this.cache.delete(bookId);
-      return null;
-    }
-
-    return entry;
-  }
-
-  set(bookId: number, path: string, hasCover: boolean): void {
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-
-    this.cache.set(bookId, {
-      path,
-      hasCover,
-      timestamp: Date.now(),
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-const bookPathCache = new BookPathCache();
+// Re-export cache functions for backward compatibility
+export { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats, type CacheStats };
 
 // Helper function to serve the placeholder "no cover" image
 function servePlaceholderImage() {
@@ -114,20 +26,19 @@ function servePlaceholderImage() {
   return new NextResponse(new Uint8Array(imageBuffer), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": "public, max-age=604800", // 1 week
     },
   });
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  // NOTE: Query params like ?t=<timestamp> are used for cache busting on the client
+  // but are intentionally ignored by the server. The server caches by bookId only.
+  const params = await props.params;
   try {
     const CALIBRE_DB_PATH = process.env.CALIBRE_DB_PATH;
 
     if (!CALIBRE_DB_PATH) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ envVar: "CALIBRE_DB_PATH" }, "CALIBRE_DB_PATH not configured");
       return servePlaceholderImage();
     }
@@ -139,7 +50,6 @@ export async function GET(
     const bookId = parseInt(params.id, 10);
 
     if (isNaN(bookId)) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ bookId: params.id }, "Invalid book ID");
       return servePlaceholderImage();
     }
@@ -150,7 +60,7 @@ export async function GET(
       return new NextResponse(new Uint8Array(cachedCover.buffer), {
         headers: {
           "Content-Type": cachedCover.contentType,
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=604800", // 1 week
           "X-Cache": "HIT",
         },
       });
@@ -173,7 +83,6 @@ export async function GET(
       const calibreBook = getBookById(bookId);
 
       if (!calibreBook) {
-        const { getLogger } = require("@/lib/logger");
         getLogger().error({ bookId }, "Book not found in Calibre");
         return servePlaceholderImage();
       }
@@ -185,7 +94,6 @@ export async function GET(
       bookPathCache.set(bookId, bookPath, hasCover);
 
       if (!hasCover) {
-        const { getLogger } = require("@/lib/logger");
         getLogger().warn({ bookId }, "Book has no cover");
         return servePlaceholderImage();
       }
@@ -199,7 +107,6 @@ export async function GET(
     const resolvedLibrary = path.resolve(libraryPath);
 
     if (!resolvedPath.startsWith(resolvedLibrary)) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({
         resolvedPath,
         resolvedLibrary,
@@ -212,7 +119,6 @@ export async function GET(
 
     // Check if file exists
     if (!existsSync(resolvedPath)) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ resolvedPath }, "Image not found");
       return servePlaceholderImage();
     }
@@ -239,13 +145,13 @@ export async function GET(
     return new NextResponse(new Uint8Array(imageBuffer), {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "public, max-age=604800", // 1 week
         "X-Cache": "MISS",
       },
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error serving cover image");
     return servePlaceholderImage();
   }
 }
+

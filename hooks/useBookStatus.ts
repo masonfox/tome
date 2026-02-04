@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
@@ -44,6 +44,7 @@ export function invalidateBookQueries(queryClient: any, bookId: string): void {
   queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
   queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   queryClient.invalidateQueries({ queryKey: ['library-books'] });
+  queryClient.invalidateQueries({ queryKey: ['read-next-books'] });
 
   // Clear entire LibraryService cache to ensure status changes reflect across all filters
   libraryService.clearCache();
@@ -62,6 +63,7 @@ export interface UseBookStatusReturn {
   showReadConfirmation: boolean;
   showStatusChangeConfirmation: boolean;
   showCompleteBookModal: boolean;
+  showDNFModal: boolean;
   pendingStatusChange: string | null;
   handleUpdateStatus: (newStatus: string) => Promise<void>;
   handleConfirmStatusChange: () => Promise<void>;
@@ -69,6 +71,7 @@ export interface UseBookStatusReturn {
   handleConfirmRead: (rating?: number, review?: string) => Promise<void>;
   handleCompleteBook: (data: CompleteBookData) => Promise<void>;
   handleStartReread: () => Promise<void>;
+  handleMarkAsDNF: (rating?: number, review?: string, completedDate?: string) => Promise<void>;
 }
 
 /**
@@ -90,20 +93,34 @@ export function useBookStatus(
   onRefresh?: () => void
 ): UseBookStatusReturn {
   const queryClient = useQueryClient();
-  const [selectedStatus, setSelectedStatus] = useState("to-read");
+  
+  // Derive the correct status from book data
+  // Include book?.id to ensure recalculation when navigating between books
+  const derivedStatus = useMemo(() => {
+    return book?.activeSession ? book.activeSession.status 
+      : book?.hasCompletedReads ? "read" 
+      : "to-read";
+  }, [book?.id, book?.activeSession?.status, book?.hasCompletedReads, bookId]);
+  
+  // Only keep optimistic override state - null means "use derived status"
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  
+  // Compute selectedStatus: use optimistic override if present, otherwise use derived
+  const selectedStatus = optimisticStatus ?? derivedStatus;
+  
+  // Clear optimistic status when derived status catches up
+  // This ensures we fall back to real data after mutations complete
+  useEffect(() => {
+    if (optimisticStatus !== null && optimisticStatus === derivedStatus) {
+      setOptimisticStatus(null);
+    }
+  }, [optimisticStatus, derivedStatus]);
+  
   const [showReadConfirmation, setShowReadConfirmation] = useState(false);
   const [showStatusChangeConfirmation, setShowStatusChangeConfirmation] = useState(false);
   const [showCompleteBookModal, setShowCompleteBookModal] = useState(false);
+  const [showDNFModal, setShowDNFModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
-
-  // Initialize status from book data
-  useEffect(() => {
-    if (book?.activeSession) {
-      setSelectedStatus(book.activeSession.status);
-    } else if (book?.hasCompletedReads) {
-      setSelectedStatus("read");
-    }
-  }, [book]);
 
   // Mutation for status updates - uses bookApi
   const statusMutation = useMutation({
@@ -117,17 +134,17 @@ export function useBookStatus(
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
 
       // Snapshot previous value
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
       
       // Optimistic update
-      setSelectedStatus(status);
+      setOptimisticStatus(status);
 
-      return { previousStatus };
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback on error
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
       
       if (error instanceof ApiError) {
@@ -172,16 +189,16 @@ export function useBookStatus(
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
 
       // Optimistic update
-      setSelectedStatus("read");
-      return { previousStatus };
+      setOptimisticStatus("read");
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
 
       getLogger().error({ err: error }, "Failed to mark book as read");
@@ -235,16 +252,16 @@ export function useBookStatus(
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
       await queryClient.cancelQueries({ queryKey: ['book', bookId] });
-      const previousStatus = selectedStatus;
+      const previousOptimistic = optimisticStatus;
 
       // Optimistic update
-      setSelectedStatus("read");
-      return { previousStatus };
+      setOptimisticStatus("read");
+      return { previousOptimistic };
     },
     onError: (error, _variables, context) => {
       // Rollback
-      if (context?.previousStatus) {
-        setSelectedStatus(context.previousStatus);
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
       }
 
       if (error instanceof ApiError) {
@@ -269,6 +286,69 @@ export function useBookStatus(
     },
   });
 
+  // Mutation for marking as DNF
+  const markAsDNFMutation = useMutation({
+    mutationFn: async ({ rating, review, completedDate }: { rating?: number; review?: string; completedDate?: string }) => {
+      const response = await fetch(`/api/books/${bookId}/mark-as-dnf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, review, completedDate }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.error || "Failed to mark as DNF",
+          response.status,
+          `/api/books/${bookId}/mark-as-dnf`,
+          errorData
+        );
+      }
+      
+      return response.json();
+    },
+    onMutate: async () => {
+      // Cancel outgoing queries and snapshot state
+      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      const previousOptimistic = optimisticStatus;
+
+      // Optimistic update
+      setOptimisticStatus("dnf");
+      return { previousOptimistic };
+    },
+    onError: (error, _variables, context) => {
+      // Rollback
+      if (context?.previousOptimistic !== undefined) {
+        setOptimisticStatus(context.previousOptimistic);
+      }
+
+      if (error instanceof ApiError) {
+        getLogger().error({
+          statusCode: error.statusCode,
+          endpoint: error.endpoint,
+          details: error.details
+        }, "Failed to mark book as DNF");
+      } else {
+        getLogger().error({ err: error }, "Failed to mark book as DNF");
+      }
+      toast.error("Failed to mark book as DNF");
+    },
+    onSuccess: (data) => {
+      // Invalidate all related queries
+      invalidateBookQueries(queryClient, bookId);
+
+      // Build success message based on what was updated
+      const messages = ["Marked as Did Not Finish"];
+      if (data.ratingUpdated) messages.push("Rating saved");
+      if (data.reviewUpdated) messages.push("Review saved");
+
+      toast.success(messages.join(" • "));
+
+      // Legacy callbacks for compatibility
+      onRefresh?.();
+    },
+  });
+
   const handleUpdateStatus = useCallback(async (newStatus: string) => {
     // If marking as "read" from non-reading status, show CompleteBookModal
     if (newStatus === "read" && selectedStatus !== "read" && selectedStatus !== "reading") {
@@ -279,6 +359,12 @@ export function useBookStatus(
     // If marking as "read" from "reading" status, show FinishBookModal
     if (newStatus === "read" && selectedStatus === "reading") {
       setShowReadConfirmation(true);
+      return;
+    }
+
+    // If marking as "dnf" from "reading" status, show DNFBookModal
+    if (newStatus === "dnf" && selectedStatus === "reading") {
+      setShowDNFModal(true);
       return;
     }
 
@@ -305,6 +391,7 @@ export function useBookStatus(
     setShowStatusChangeConfirmation(false);
     setShowReadConfirmation(false);
     setShowCompleteBookModal(false);
+    setShowDNFModal(false);
     setPendingStatusChange(null);
   }, []);
 
@@ -321,11 +408,17 @@ export function useBookStatus(
     await rereadMutation.mutateAsync();
   }, [rereadMutation]);
 
+  const handleMarkAsDNF = useCallback(async (rating?: number, review?: string, completedDate?: string) => {
+    await markAsDNFMutation.mutateAsync({ rating, review, completedDate });
+    setShowDNFModal(false);
+  }, [markAsDNFMutation]);
+
   return {
     selectedStatus,
     showReadConfirmation,
     showStatusChangeConfirmation,
     showCompleteBookModal,
+    showDNFModal,
     pendingStatusChange,
     handleUpdateStatus,
     handleConfirmStatusChange,
@@ -333,5 +426,6 @@ export function useBookStatus(
     handleConfirmRead,
     handleCompleteBook,
     handleStartReread,
+    handleMarkAsDNF,
   };
 }

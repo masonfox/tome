@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { tagService } from "@/lib/services/tag.service";
@@ -19,10 +20,8 @@ export const dynamic = 'force-dynamic';
  * - 404: Book not found
  * - 500: Update failed
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
     
@@ -68,7 +67,6 @@ export async function PATCH(
     
     return NextResponse.json(updatedBook);
    } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "[Tags API] Error");
     
     // Handle specific errors

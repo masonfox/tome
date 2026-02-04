@@ -5,6 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { buildArchiveHierarchy, type ArchiveNode } from "@/lib/utils/archive-builder";
 import { toZonedTime } from "date-fns-tz";
 import { format } from "date-fns";
+import { getLogger } from "@/lib/logger";
 
 export interface JournalEntry {
   id: number;
@@ -15,7 +16,7 @@ export interface JournalEntry {
   sessionId: number | null;
   currentPage: number;
   currentPercentage: number;
-  progressDate: Date;
+  progressDate: string; // YYYY-MM-DD format
   notes: string | null;
   pagesRead: number;
 }
@@ -76,10 +77,11 @@ export class JournalService {
         progressDate: progressLogs.progressDate,
         notes: progressLogs.notes,
         pagesRead: progressLogs.pagesRead,
+        createdAt: progressLogs.createdAt,
       })
       .from(progressLogs)
       .innerJoin(books, eq(progressLogs.bookId, books.id))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(desc(progressLogs.progressDate), desc(progressLogs.createdAt))
       .limit(limit)
       .offset(skip)
       .all();
@@ -88,10 +90,9 @@ export class JournalService {
     const grouped = new Map<string, Map<number, JournalEntry[]>>();
 
     for (const entry of entries) {
-      // Convert UTC date to user's timezone, then extract date portion
-      // This ensures entries are grouped by the user's local date
-      const dateInUserTz = toZonedTime(entry.progressDate, timezone);
-      const dateKey = format(dateInUserTz, 'yyyy-MM-dd');
+      // progressDate is already YYYY-MM-DD string (calendar day)
+      // Use it directly as the date key for grouping
+      const dateKey = entry.progressDate;
 
       // Get or create date group
       if (!grouped.has(dateKey)) {
@@ -115,7 +116,7 @@ export class JournalService {
         sessionId: entry.sessionId,
         currentPage: entry.currentPage,
         currentPercentage: entry.currentPercentage,
-        progressDate: entry.progressDate,
+        progressDate: entry.progressDate,  // Already YYYY-MM-DD string from database
         notes: entry.notes,
         pagesRead: entry.pagesRead,
       });
@@ -140,7 +141,7 @@ export class JournalService {
           bookTitle: entries[0].bookTitle,
           bookAuthors: entries[0].bookAuthors,
           bookCalibreId: entries[0].bookCalibreId,
-          entries: entries.sort((a: JournalEntry, b: JournalEntry) => b.progressDate.getTime() - a.progressDate.getTime()),
+          entries: entries.sort((a: JournalEntry, b: JournalEntry) => b.progressDate.localeCompare(a.progressDate)),
         });
       }
 
@@ -180,20 +181,19 @@ export class JournalService {
       .orderBy(desc(progressLogs.progressDate))
       .all();
 
-    // Extract dates as Date objects
-    const dates = entries.map((entry: { progressDate: Date }) => entry.progressDate);
+    // Extract dates as strings (already YYYY-MM-DD from database)
+    // Keep as strings to avoid timezone conversion issues
+    const dates = entries.map((entry: { progressDate: string }) => entry.progressDate);
 
     // Debug: Log date range and sample dates
-    const { getLogger } = require("@/lib/logger");
     if (dates.length > 0) {
-      const dateStrings = dates.map((d: Date) => d.toISOString().split('T')[0]);
-      const uniqueMonths = Array.from(new Set(dateStrings.map((d: string) => d.substring(0, 7)))).sort();
+      const uniqueMonths = Array.from(new Set(dates.map((d: string) => d.substring(0, 7)))).sort();
       getLogger().debug({
         totalDates: dates.length,
-        firstDate: dateStrings[0],
-        lastDate: dateStrings[dateStrings.length - 1],
+        firstDate: dates[0],
+        lastDate: dates[dates.length - 1],
         uniqueMonths,
-        sampleDates: dateStrings.slice(0, 10)
+        sampleDates: dates.slice(0, 10)
       }, "Archive metadata - fetched dates");
     }
 

@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TagOperationResult } from "@/types/tag-operations";
+import { tagApi } from "@/lib/api";
 
 export interface TagWithStats {
   name: string;
@@ -20,19 +21,7 @@ export function useTagManagement() {
     refetch: refetchQuery 
   } = useQuery({
     queryKey: ['tags-stats'],
-    queryFn: async () => {
-      const response = await fetch("/api/tags/stats");
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch tags");
-      }
-
-      const data = await response.json();
-      return {
-        tags: (data.tags || []) as TagWithStats[],
-        totalBooks: data.totalBooks || 0,
-      };
-    },
+    queryFn: () => tagApi.getStats(),
     staleTime: 30000, // 30 seconds - data stays fresh for 30s
     gcTime: 300000, // 5 minutes - cache stays in memory for 5 min
   });
@@ -51,21 +40,8 @@ export function useTagManagement() {
 
   // Rename tag mutation
   const renameTagMutation = useMutation({
-    mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
-      const response = await fetch(`/api/tags/${encodeURIComponent(oldName)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newName }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to rename tag");
-      }
-
-      return data;
-    },
+    mutationFn: ({ oldName, newName }: { oldName: string; newName: string }) => 
+      tagApi.rename(oldName, newName),
     onSuccess: () => {
       // Invalidate tags query to refetch
       queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
@@ -76,19 +52,7 @@ export function useTagManagement() {
 
   // Delete tag mutation
   const deleteTagMutation = useMutation({
-    mutationFn: async (tagName: string) => {
-      const response = await fetch(`/api/tags/${encodeURIComponent(tagName)}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to delete tag");
-      }
-
-      return data;
-    },
+    mutationFn: (tagName: string) => tagApi.delete(tagName),
     onSuccess: () => {
       // Invalidate tags query to refetch
       queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
@@ -99,21 +63,8 @@ export function useTagManagement() {
 
   // Merge tags mutation
   const mergeTagsMutation = useMutation({
-    mutationFn: async ({ sourceTags, targetTag }: { sourceTags: string[]; targetTag: string }) => {
-      const response = await fetch("/api/tags/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceTags, targetTag }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to merge tags");
-      }
-
-      return data;
-    },
+    mutationFn: ({ sourceTags, targetTag }: { sourceTags: string[]; targetTag: string }) =>
+      tagApi.merge(sourceTags, targetTag),
     onSuccess: () => {
       // Invalidate tags query to refetch
       queryClient.invalidateQueries({ queryKey: ['tags-stats'] });

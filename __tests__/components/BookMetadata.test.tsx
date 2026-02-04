@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach } from 'vitest';
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BookMetadata from "@/components/BookDetail/BookMetadata";

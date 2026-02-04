@@ -3,9 +3,10 @@
 import { ChevronDown, Check, TrendingUp } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
-import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { useRef, useEffect } from "react";
+import { Button } from "@/components/Utilities/Button";
 
 interface BookProgressProps {
   book: {
@@ -13,7 +14,7 @@ interface BookProgressProps {
     latestProgress?: {
       currentPage: number;
       currentPercentage: number;
-    };
+    } | null;
   };
   currentPage: string;
   currentPercentage: string;
@@ -29,7 +30,10 @@ interface BookProgressProps {
   onEditorReady?: (methods: MDXEditorMethods) => void;
   showProgressModeDropdown: boolean;
   setShowProgressModeDropdown: (show: boolean) => void;
-  progressModeDropdownRef?: React.RefObject<HTMLDivElement>;
+  progressModeDropdownRef?: React.RefObject<HTMLDivElement | null>;
+  showHeader?: boolean;
+  showSubmitButton?: boolean;
+  formId?: string;
 }
 
 export default function BookProgress({
@@ -49,6 +53,9 @@ export default function BookProgress({
   showProgressModeDropdown,
   setShowProgressModeDropdown,
   progressModeDropdownRef,
+  showHeader = true,
+  showSubmitButton = true,
+  formId,
 }: BookProgressProps) {
   const progressPercentage = book.latestProgress?.currentPercentage || 0;
   const editorRef = useRef<MDXEditorMethods>(null);
@@ -62,10 +69,12 @@ export default function BookProgress({
 
   return (
     <div>
-      <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
-        Log Progress
-      </h2>
-      <form onSubmit={onSubmit} className="space-y-4">
+      {showHeader && (
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-6">
+          Log Progress
+        </h2>
+      )}
+      <form id={formId} onSubmit={onSubmit} className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
@@ -174,24 +183,26 @@ export default function BookProgress({
               <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                 Notes
               </label>
-              <div>
-                <MarkdownEditor
-                  ref={editorRef}
-                  value={notes}
-                  onChange={onNotesChange}
-                  placeholder="Add notes about your reading session..."
-                  height={280}
-                />
-              </div>
+              <MarkdownEditor
+                ref={editorRef}
+                value={notes}
+                onChange={onNotesChange}
+                placeholder="Add notes about your reading session..."
+                height={280}
+              />
             </div>
 
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-[var(--accent)] text-white rounded-lg font-semibold hover:bg-[var(--light-accent)] transition-colors flex items-center justify-center gap-2"
-            >
-              <TrendingUp className="w-5 h-5" />
-              Log Progress
-            </button>
+            {showSubmitButton && (
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                icon={<TrendingUp className="w-5 h-5" />}
+                fullWidth
+              >
+                Log Progress
+              </Button>
+            )}
           </form>
     </div>
   );

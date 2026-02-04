@@ -1,0 +1,321 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { X, FolderOpen, Plus, Check, Search } from "lucide-react";
+import { cn } from "@/utils/cn";
+import { getLogger } from "@/lib/logger";
+import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
+import { Button } from "@/components/Utilities/Button";
+
+interface Shelf {
+  id: number;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+}
+
+interface ShelfEditorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (shelfIds: number[], addToTop: boolean) => Promise<void>;
+  bookTitle: string;
+  currentShelfIds: number[];
+  availableShelves: Shelf[];
+  isMobile?: boolean;
+}
+
+export default function ShelfEditor({
+  isOpen,
+  onClose,
+  onSave,
+  bookTitle,
+  currentShelfIds,
+  availableShelves,
+  isMobile = false,
+}: ShelfEditorProps) {
+  const [selectedShelfIds, setSelectedShelfIds] = useState<number[]>(currentShelfIds);
+  const [saving, setSaving] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
+  const [addToTop, setAddToTop] = useState(false);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedShelfIds(currentShelfIds);
+      setSaving(false);
+      setFilterQuery("");
+      setAddToTop(false);
+    }
+  }, [isOpen, currentShelfIds]);
+
+  const toggleShelf = (shelfId: number) => {
+    if (selectedShelfIds.includes(shelfId)) {
+      setSelectedShelfIds(selectedShelfIds.filter((id) => id !== shelfId));
+    } else {
+      setSelectedShelfIds([...selectedShelfIds, shelfId]);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(selectedShelfIds, addToTop);
+      onClose();
+    } catch (error) {
+      // Error is handled by the parent component with toast
+      getLogger().error({ err: error }, "Failed to save shelf assignments");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!saving) {
+      setSelectedShelfIds(currentShelfIds);
+      setFilterQuery("");
+      setAddToTop(false);
+      onClose();
+    }
+  };
+
+  // Filter shelves based on search query
+  const filteredShelves = availableShelves.filter((shelf) => {
+    if (!filterQuery) return true;
+    const query = filterQuery.toLowerCase();
+    return (
+      shelf.name.toLowerCase().includes(query) ||
+      shelf.description?.toLowerCase().includes(query)
+    );
+  });
+
+  // Summary text for header
+  const summaryText = selectedShelfIds.length === 0 
+    ? "No shelves selected"
+    : selectedShelfIds.length === 1
+    ? "On 1 shelf"
+    : `On ${selectedShelfIds.length} shelves`;
+
+  // Shared content for both mobile and desktop
+  const shelfContent = (
+    <>
+      {/* Filter Input */}
+      {availableShelves.length > 0 && (
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--foreground)]/40 pointer-events-none" />
+          <input
+            type="text"
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            placeholder="Filter shelves..."
+            disabled={saving}
+            className="w-full pl-10 pr-10 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors disabled:opacity-50"
+          />
+          {filterQuery && (
+            <button
+              type="button"
+              onClick={() => setFilterQuery("")}
+              disabled={saving}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/40 hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+              aria-label="Clear filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+      
+      {/* Shelves List */}
+      {filteredShelves.length > 0 ? (
+        <div className="space-y-2 mb-6">
+          {filteredShelves.map((shelf) => {
+            const isSelected = selectedShelfIds.includes(shelf.id);
+            const Icon = shelf.icon ? getShelfIcon(shelf.icon) : null;
+            
+            return (
+              <button
+                key={shelf.id}
+                type="button"
+                onClick={() => toggleShelf(shelf.id)}
+                disabled={saving}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all text-left",
+                  isSelected
+                    ? "bg-[var(--accent)]/10 border-[var(--accent)] shadow-sm"
+                    : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:bg-[var(--background)]",
+                  saving && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <ShelfAvatar
+                  color={shelf.color}
+                  icon={shelf.icon}
+                  size="md"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-[var(--heading-text)] truncate">
+                    {shelf.name}
+                  </div>
+                  {shelf.description && (
+                    <div className="text-sm text-[var(--subheading-text)] truncate">
+                      {shelf.description}
+                    </div>
+                  )}
+                </div>
+                {isSelected && (
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
+                    <Check className="w-4 h-4 text-white stroke-[3]" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : availableShelves.length > 0 ? (
+        <div className="text-center py-8 mb-6">
+          <Search className="w-12 h-12 mx-auto mb-3 text-[var(--foreground)]/30" />
+          <p className="text-sm text-[var(--foreground)]/70">
+            No shelves match &quot;{filterQuery}&quot;
+          </p>
+        </div>
+      ) : (
+        <div className="text-center py-8 mb-6">
+          <FolderOpen className="w-12 h-12 mx-auto mb-3 text-[var(--foreground)]/30" />
+          <p className="text-sm text-[var(--foreground)]/70 mb-4">
+            No shelves available. Create a shelf first.
+          </p>
+          <Link
+            href="/shelves"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Create Shelf
+          </Link>
+        </div>
+      )}
+
+      {/* Add to Top Option */}
+      {filteredShelves.length > 0 && (
+        <div className="flex items-center gap-2 px-1 mb-4">
+          <input
+            type="checkbox"
+            id="addToTop"
+            checked={addToTop}
+            onChange={(e) => setAddToTop(e.target.checked)}
+            disabled={saving}
+            className="w-4 h-4 rounded border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ accentColor: 'var(--accent)' }}
+          />
+          <label
+            htmlFor="addToTop"
+            className="text-sm text-[var(--foreground)] cursor-pointer select-none"
+          >
+            Add to top of shelf
+          </label>
+        </div>
+      )}
+
+    </>
+  );
+
+  // Shared button elements
+  const buttons = availableShelves.length > 0 && (
+    <>
+      <Button
+        onClick={handleClose}
+        disabled={saving}
+        variant="ghost"
+        size="md"
+      >
+        Cancel
+      </Button>
+      <Button
+        onClick={handleSave}
+        disabled={saving}
+        variant="primary"
+        size="md"
+        isLoading={saving}
+      >
+        {saving ? "Saving..." : "Save Changes"}
+      </Button>
+    </>
+  );
+
+  // Mobile: Use BottomSheet
+  if (isMobile) {
+    return (
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="Add to Shelves"
+        icon={<FolderOpen className="w-5 h-5" />}
+        size="full"
+        allowBackdropClose={!saving}
+        actions={buttons}
+      >
+        {/* Book Title and Summary */}
+        <div className="mb-4">
+          <p className="text-sm text-[var(--foreground)]/70 font-medium mb-1">
+            {bookTitle}
+          </p>
+          <p className="text-xs text-[var(--subheading-text)]">
+            {summaryText}
+          </p>
+        </div>
+        {shelfContent}
+      </BottomSheet>
+    );
+  }
+
+  // Desktop: Use centered modal
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={handleClose}
+    >
+      <div 
+        className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header - Fixed */}
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-[var(--border-color)] flex-shrink-0">
+          <div className="flex-1 min-w-0 pr-4">
+            <h2 className="text-xl font-serif font-bold text-[var(--heading-text)] mb-1">
+              Add to Shelves
+            </h2>
+            <p className="text-sm text-[var(--foreground)]/70 font-medium truncate mb-1">
+              {bookTitle}
+            </p>
+            <p className="text-xs text-[var(--subheading-text)]">
+              {summaryText}
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            disabled={saving}
+            className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors disabled:opacity-50 flex-shrink-0"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {shelfContent}
+        </div>
+
+        {/* Action Buttons - Fixed at bottom */}
+        {buttons && (
+          <div className="p-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end flex-shrink-0">
+            {buttons}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

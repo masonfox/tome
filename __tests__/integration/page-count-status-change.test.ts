@@ -1,6 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, mock } from "bun:test";
+import { toSessionDate } from '@/__tests__/test-utils';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import { createMockRequest, createTestBook, createTestSession, createTestProgress } from "../fixtures/test-data";
+import { createMockRequest, createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import type { NextRequest } from "next/server";
 
@@ -23,7 +24,7 @@ import type { NextRequest } from "next/server";
  */
 
 // Mock Next.js cache revalidation
-mock.module("next/cache", () => ({
+vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
@@ -38,14 +39,14 @@ let calibreRatingCalls: Array<{ calibreId: number; rating: number | null }> = []
  * ARCHITECTURE FIX: Now mocking CalibreService instead of calibre-write module.
  * This prevents mock leakage to calibre-write.test.ts since they're different modules.
  */
-mock.module("@/lib/services/calibre.service", () => ({
+vi.mock("@/lib/services/calibre.service", () => ({
   calibreService: {
     updateRating: (calibreId: number, rating: number | null) => {
       calibreRatingCalls.push({ calibreId, rating });
     },
-    updateTags: mock(() => {}),
-    readRating: mock(() => null),
-    readTags: mock(() => []),
+    updateTags: vi.fn(() => {}),
+    readRating: vi.fn(() => null),
+    readTags: vi.fn(() => []),
   },
   CalibreService: class {},
 }));
@@ -89,7 +90,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-12-01"),
+        startedDate: toSessionDate(new Date("2025-12-01")),
       }));
 
       // User has logged progress up to page 300 (100% of 300-page book)
@@ -99,7 +100,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 300,
         currentPercentage: 100,
         pagesRead: 300,
-        progressDate: new Date("2025-12-08"),
+        progressDate: "2025-12-08",
       }));
 
       // ========================================================================
@@ -130,7 +131,7 @@ describe("Integration: Page Count Update + Status Change", () => {
       const statusRequest = createMockRequest("POST", `/api/books/${book.id}/status`, {
         status: "read",
         rating: 5,
-        completedDate: new Date("2025-12-08").toISOString(),
+        completedDate: toSessionDate(new Date("2025-12-08")),
       }) as NextRequest;
       
       const statusResponse = await UPDATE_STATUS(statusRequest, { params: { id: book.id.toString() } });
@@ -144,7 +145,7 @@ describe("Integration: Page Count Update + Status Change", () => {
       const completedSession = await sessionRepository.findById(session.id);
       expect(completedSession?.status).toBe("read");
       expect(completedSession?.completedDate).toBeTruthy();
-      expect(completedSession?.isActive).toBe(false); // Marked inactive when completed
+      expect(completedSession?.isActive).toBe(true); // Terminal states stay active
 
       // Assert: Rating synced to Tome DB
       const updatedBook = await bookRepository.findById(book.id);
@@ -183,7 +184,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 100,
         currentPercentage: 33, // 100/300
         pagesRead: 100,
-        progressDate: new Date("2025-12-01"),
+        progressDate: "2025-12-01",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -192,7 +193,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 200,
         currentPercentage: 66, // 200/300
         pagesRead: 100,
-        progressDate: new Date("2025-12-04"),
+        progressDate: "2025-12-04",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -201,7 +202,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 300,
         currentPercentage: 100, // 300/300
         pagesRead: 100,
-        progressDate: new Date("2025-12-08"),
+        progressDate: "2025-12-08",
       }));
 
       // ========================================================================
@@ -229,7 +230,7 @@ describe("Integration: Page Count Update + Status Change", () => {
       
       const statusRequest = createMockRequest("POST", `/api/books/${book.id}/status`, {
         status: "read",
-        completedDate: new Date("2025-12-08").toISOString(),
+        completedDate: toSessionDate(new Date("2025-12-08")),
       }) as NextRequest;
       
       const statusResponse = await UPDATE_STATUS(statusRequest, { params: { id: book.id.toString() } });
@@ -285,7 +286,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         status: "read",
         rating: 4,
         review: "Great book! Really enjoyed the ending.",
-        completedDate: new Date("2025-12-08").toISOString(),
+        completedDate: toSessionDate(new Date("2025-12-08")),
       }) as NextRequest;
       
       const statusResponse = await UPDATE_STATUS(statusRequest, { params: { id: book.id.toString() } });
@@ -451,7 +452,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         sessionNumber: 1,
         status: "reading",
         isActive: true,
-        startedDate: new Date("2025-11-15"),
+        startedDate: toSessionDate(new Date("2025-11-15")),
       }));
 
       // User has been reading, logged several progress points
@@ -461,7 +462,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 50,
         currentPercentage: 27, // 50/180 = 27.77% → 27%
         pagesRead: 50,
-        progressDate: new Date("2025-11-20"),
+        progressDate: "2025-11-20",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -470,7 +471,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 100,
         currentPercentage: 55, // 100/180 = 55.55% → 55%
         pagesRead: 50,
-        progressDate: new Date("2025-11-25"),
+        progressDate: "2025-11-25",
       }));
 
       await progressRepository.create(createTestProgress({
@@ -479,7 +480,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         currentPage: 180,
         currentPercentage: 100, // 180/180 = 100%
         pagesRead: 80,
-        progressDate: new Date("2025-12-08"),
+        progressDate: "2025-12-08",
       }));
 
       // User finishes, checks physical book: "Wait, this is 218 pages, not 180!"
@@ -515,7 +516,7 @@ describe("Integration: Page Count Update + Status Change", () => {
         status: "read",
         rating: 5,
         review: "A masterpiece of American literature!",
-        completedDate: new Date("2025-12-08").toISOString(),
+        completedDate: toSessionDate(new Date("2025-12-08")),
       }) as NextRequest;
       
       const statusResponse = await UPDATE_STATUS(statusRequest, { params: { id: book.id.toString() } });

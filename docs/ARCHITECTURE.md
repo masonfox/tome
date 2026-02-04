@@ -12,10 +12,40 @@
 
 ### Integration with Calibre
 
-- **Read-only access** to Calibre's SQLite database (metadata.db)
+- **Read-only access** to Calibre's SQLite database (metadata.db) for most operations
+- **Limited write access**: Only for ratings and tag management (see [Write Safety](#calibre-write-safety) below)
 - **Automatic sync**: File watcher monitors Calibre database for changes and syncs within 2 seconds
 - **Rating sync**: Bidirectional sync with Calibre's rating system (Tome 1-5 stars ↔ Calibre 2/4/6/8/10)
+- **Tag sync**: Tome uses Calibre tags for shelving (writing tags back to Calibre)
 - **No data export**: Calibre remains the source of truth for book metadata
+
+#### Calibre Write Safety
+
+Tome implements multiple safety mechanisms when writing to the Calibre database:
+
+**Approved Write Operations:**
+- `updateCalibreRating(calibreId, stars)` - Updates `ratings` and `books_ratings_link` tables
+- `updateCalibreTags(calibreId, tags)` - Updates `tags` and `books_tags_link` tables
+- `batchUpdateCalibreTags(operations)` - Bulk tag updates for shelving
+
+**Safety Mechanisms:**
+1. **Retry Logic** (`lib/calibre-watcher.ts`) - Automatically retries sync on database lock errors
+   - 3 retries with exponential backoff (1s, 2s, 3s)
+   - Detects `SQLITE_BUSY` / `SQLITE_LOCKED` errors
+   - Non-lock errors fail immediately
+2. **Watcher Suspension** - Pauses file watcher during writes to prevent re-syncing self-inflicted changes
+   - `suspend()` - Stops watching
+   - `resume()` - Resumes immediately
+   - `resumeWithIgnorePeriod(ms)` - Resumes after ignore period
+3. **Debouncing** - 2-second debounce on file changes to prevent sync storms
+4. **Single-Instance Guard** - `isSyncing` flag prevents concurrent syncs
+5. **Enhanced Error Messages** - Clear, actionable lock error messages with operation context
+
+**User Requirements:**
+- **Close Calibre before tag operations** (adding/removing books from shelves)
+- Rating updates and auto-sync work fine with Calibre open (retry logic handles transient locks)
+
+**For details:** See [Calibre Database Safety Guide](./CALIBRE_SAFETY.md)
 
 ### Core User Flows
 
@@ -50,9 +80,10 @@
   - Location: `data/tome.db`
   - Driver: `bun:sqlite` (Bun) / `better-sqlite3` (Node.js)
   - Factory Pattern: `lib/db/factory.ts` handles runtime detection
-- **Calibre Database**: SQLite (read-only, metadata.db from Calibre library)
-  - Read operations: `lib/db/calibre.ts`
-  - Write operations (ratings only): `lib/db/calibre-write.ts`
+- **Calibre Database**: SQLite (metadata.db from Calibre library)
+  - Read operations: `lib/db/calibre.ts` (read-only connection)
+  - Write operations: `lib/db/calibre-write.ts` (ratings and tags only)
+  - Safety: See [Calibre Write Safety](#calibre-write-safety) above
 
 ### Deployment
 - **Containerization**: Docker + Docker Compose
@@ -96,9 +127,15 @@
 - `sessionNumber` - Enables re-reading (1, 2, 3...)
 - `isActive` - Only one active session per book
 - `status` - Enum: to-read, read-next, reading, read
-- `startedDate`, `completedDate`, `review`
+- `readNextOrder` - Custom sort order for read-next queue (0, 1, 2...)
+- `startedDate`, `completedDate` (TEXT: YYYY-MM-DD) - Calendar days, not timestamps
+- `review`
 
-**Indexes:** Unique on (bookId, sessionNumber); Partial unique on (bookId) WHERE isActive=1
+**Date Storage:** Uses YYYY-MM-DD strings (not timestamps) for semantic correctness. See [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md)
+
+**Read-Next Ordering:** Auto-compaction on status changes (see Pattern 12). Partial index on (readNextOrder, id) WHERE status='read-next'.
+
+**Indexes:** Unique on (bookId, sessionNumber); Partial unique on (bookId) WHERE isActive=1; Partial on (readNextOrder, id) WHERE status='read-next'
 **Repository:** `sessionRepository` | **Schema:** `lib/db/schema/reading-sessions.ts`
 
 ---
@@ -110,7 +147,10 @@
 - `bookId`, `sessionId` (FK with CASCADE DELETE)
 - `currentPage`, `currentPercentage` (0-100)
 - `pagesRead` - Delta from previous entry
-- `progressDate`, `notes`
+- `progressDate` (TEXT: YYYY-MM-DD) - Calendar day, not timestamp
+- `notes`
+
+**Date Storage:** Uses YYYY-MM-DD strings (not timestamps) for semantic correctness. See [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md)
 
 **Indexes:** (bookId, progressDate DESC), (sessionId, progressDate DESC)
 **Repository:** `progressRepository` | **Schema:** `lib/db/schema/progress-logs.ts`
@@ -190,7 +230,7 @@ All Tome database access goes through repositories:
 
 - **BaseRepository**: Generic CRUD (findById, create, update, delete, find, count, exists, etc.)
 - **BookRepository**: findByCalibreId, findWithFilters (complex filtering), getAllTags, markAsOrphaned
-- **SessionRepository**: findActiveByBookId, getNextSessionNumber, deactivateOtherSessions
+- **SessionRepository**: findActiveByBookId, getNextSessionNumber, deactivateOtherSessions, getNextReadNextOrder, reorderReadNextBooks, reindexReadNextOrders
 - **ProgressRepository**: findBySessionId, findLatestByBookId, getUniqueDatesWithProgress
 - **StreakRepository**: getActiveStreak, upsertStreak
 
@@ -251,7 +291,7 @@ Database (SQLite + Drizzle ORM)
 5. **Settings** (Client Component)
    - Calibre path display, sync status, manual sync button
 
-### API Routes (13 total)
+### API Routes (15 total)
 
 #### Books Management
 
@@ -304,6 +344,19 @@ Database (SQLite + Drizzle ORM)
   2. Creates new session (sessionNumber++, status="reading", isActive=true)
   3. Rebuilds streak from all progress logs
 - Returns: new session + archived session info
+
+**GET /api/sessions/read-next**
+- Fetch all read-next books sorted by custom order
+- Query params: `search` (optional - filters by title/author)
+- Returns: array of ReadingSession with status='read-next', sorted by readNextOrder ASC
+- Used by: `/read-next` page
+
+**PUT /api/sessions/read-next/reorder**
+- Batch reorder read-next books (drag-and-drop)
+- Body: `{ updates: Array<{ id: number, readNextOrder: number }> }`
+- Validation: Zod schema (id=number, readNextOrder>=0)
+- Returns: `{ success: true }`
+- Transaction safety: All updates in single transaction
 
 ---
 
@@ -489,6 +542,33 @@ See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
 - **Notes**: User notes attached to each entry
 - **Backdating**: Can add historical entries for book club scenarios
 
+### Read-Next Queue Ordering
+
+**Purpose**: Dedicated page for managing "read-next" status books with custom ordering
+
+**Features**:
+- **Custom order persistence**: Users drag-and-drop to reorder books
+- **Auto-compaction**: Gaps eliminated automatically when books leave queue
+- **Default behavior**: New books append to end (natural queue behavior)
+- **Search/filter**: In-page search by title/author (300ms debounce)
+- **Bulk actions**: Remove multiple books from read-next (→ to-read status)
+- **Navigation**: Dedicated `/read-next` page accessible from main nav and dashboard
+
+**Implementation (Pattern 12)**:
+- `readNextOrder` column on `reading_sessions` table (default 0)
+- Partial index: `(readNextOrder, id) WHERE status='read-next'`
+- Auto-assignment: Sequential order when entering read-next status
+- Auto-compact trigger: Service layer on all read-next transitions
+- API: Batch reorder endpoint for drag-and-drop efficiency
+
+**User Flow**:
+1. User changes book status to "read-next" → Auto-assigned next order (e.g., 3)
+2. User drags books on `/read-next` page → Batch reorder API call
+3. User changes book to "reading" → Order reset to 0, remaining books renumbered (0, 1, 2...)
+4. Dashboard card "View all" links to `/read-next` (not filtered library)
+
+**See**: Pattern 12 in `.specify/memory/patterns.md` for complete implementation details
+
 ### Reading Streaks
 
 **Overview**: Timezone-aware streak tracking with configurable thresholds and automatic reset detection.
@@ -619,6 +699,61 @@ const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
 4. **Test Isolation** - Use `setDatabase(testDb)` and `resetDatabase()`, no global mocks
 5. **Client Service Layer** - Page → Hook → Service → API pattern for complex pages
 
+### Date Handling Patterns
+
+**Storage Format**: All calendar day dates (progress dates, session dates) are stored as **YYYY-MM-DD strings** (TEXT columns) in the database, representing calendar days independent of timezone.
+
+**Why Strings?** Calendar days are semantically different from timestamps. When a user logs "I read on January 8th," they mean a calendar day in their life, not a specific moment in time. Storing as strings ensures dates never shift when users change timezones.
+
+**Key Principle:** What the user logs is what they see. A date logged as "2025-01-08" remains "2025-01-08" regardless of timezone changes.
+
+**See:** [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md) for complete rationale and migration details.
+
+**Two Patterns for Creating Date Strings:**
+
+#### Pattern 1: UTC Conversion (Database Queries)
+
+Use `toDateString(date)` from `utils/dateHelpers.server.ts` when:
+- Converting Date objects for database queries
+- Working with dates already in UTC
+- Comparing calendar days at UTC midnight
+
+```typescript
+import { toDateString } from "@/utils/dateHelpers.server";
+
+// Example: Converting Date for database query
+const dateStr = toDateString(new Date()); // "2025-01-10"
+await progressRepository.findAfterDate(dateStr);
+```
+
+**Used in:**
+- `lib/repositories/progress.repository.ts` (10 usages) - Date range queries
+- `lib/dashboard-service.ts` (2 usages) - Year/month start calculations
+
+#### Pattern 2: Timezone-Aware Conversion
+
+Use `formatInTimeZone()` from `date-fns-tz` when:
+- Getting "today" in user's timezone
+- Converting dates for display or comparison in user's local context
+- Timezone matters semantically (e.g., "today's progress")
+
+```typescript
+import { formatInTimeZone } from 'date-fns-tz';
+import { getCurrentUserTimezone } from '@/utils/dateHelpers.server';
+
+// Example: Getting today in user's timezone
+const userTimezone = await getCurrentUserTimezone();
+const todayInUserTz = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+```
+
+**Used in:**
+- `lib/services/progress.service.ts` (1 usage) - Getting today's date
+- `lib/services/streak.service.ts` (2 usages) - Date comparisons with timezone awareness
+
+**Rule of Thumb:** If timezone matters semantically, use `formatInTimeZone()`. Otherwise, use `toDateString()`.
+
+**Historical Note:** Before v0.5.0, dates were stored as INTEGER timestamps and required a complex timezone conversion layer (242 lines). This was removed in favor of string storage for semantic correctness and simplicity. See migrations in `scripts/migrations/migrate-*-dates-to-text.ts` and [ADR-014: Date String Storage](./ADRs/ADR-014-DATE-STRING-STORAGE.md).
+
 ---
 
 ## Section 7: File Organization
@@ -659,6 +794,8 @@ For detailed code examples and implementation patterns, see:
 - **ADR-002**: Book rating system (completed Nov 20, 2025)
 - **ADR-003**: Book detail page refactoring (in progress)
 - **ADR-004**: Backend service layer (completed Nov 21, 2025)
+- **ADR-006**: Timezone-aware date handling (superseded Jan 10, 2026)
+- **ADR-014**: Date string storage for calendar days (completed Jan 10, 2026)
 
 ### Documentation Files
 

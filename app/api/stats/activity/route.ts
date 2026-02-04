@@ -1,7 +1,9 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { getActivityCalendar } from "@/lib/streaks";
 import { progressRepository, streakRepository } from "@/lib/repositories";
 import { startOfYear } from "date-fns";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
     const yearEnd = new Date(year, 11, 31);
 
     // Get activity calendar data for the whole year to calculate monthly totals (with timezone)
-    const yearlyActivity = await progressRepository.getActivityCalendar(yearStart, yearEnd, userTimezone);
+    const yearlyActivity = await progressRepository.getActivityCalendar(toDateString(yearStart), toDateString(yearEnd), userTimezone);
     
     // Group by month
     const monthlyMap = new Map<number, { pagesRead: number }>();
@@ -46,7 +48,6 @@ export async function GET(request: NextRequest) {
       monthly: monthlyData,
     });
   } catch (error) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error fetching activity");
     return NextResponse.json(
       { error: "Failed to fetch activity" },

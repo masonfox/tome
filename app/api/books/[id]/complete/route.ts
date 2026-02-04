@@ -3,6 +3,7 @@ import { bookRepository, sessionRepository } from "@/lib/repositories";
 import { sessionService, progressService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
 import { parseLocalDateToUtc } from "@/utils/dateHelpers.server";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 const logger = getLogger().child({ endpoint: "complete-book" });
 
@@ -35,10 +36,8 @@ interface CompleteBookRequest {
  * - If no pages: Directly marks session as read with dates
  * - Rating and review updates are best-effort (won't fail the operation)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -59,13 +58,27 @@ export async function POST(
       );
     }
 
-    // Parse dates as midnight in user's timezone, converted to UTC (per ADR-006)
-    let start: Date;
-    let end: Date;
+    // Validate date format (YYYY-MM-DD)
+    if (!validateDateString(startDate)) {
+      return NextResponse.json(
+        { error: "Invalid start date format. Expected valid YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+    if (!validateDateString(endDate)) {
+      return NextResponse.json(
+        { error: "Invalid end date format. Expected valid YYYY-MM-DD" },
+        { status: 400 }
+      );
+    }
+
+    // Parse dates for validation (comparing midnight in user's timezone)
+    let startDateForValidation: Date;
+    let endDateForValidation: Date;
     
     try {
-      start = await parseLocalDateToUtc(startDate);
-      end = await parseLocalDateToUtc(endDate);
+      startDateForValidation = await parseLocalDateToUtc(startDate);
+      endDateForValidation = await parseLocalDateToUtc(endDate);
     } catch (error) {
       logger.error({ err: error, startDate, endDate }, "Failed to parse dates");
       return NextResponse.json(
@@ -74,7 +87,7 @@ export async function POST(
       );
     }
 
-    if (end < start) {
+    if (endDateForValidation < startDateForValidation) {
       return NextResponse.json(
         { error: "End date must be on or after start date" },
         { status: 400 }
@@ -131,14 +144,14 @@ export async function POST(
         status: "reading",  // Must be "reading" to allow progress logging
         isActive: true,
         sessionNumber,
-        startedDate: start,
+        startedDate: startDate,  // YYYY-MM-DD string
       });
     } else {
       // Update session to "reading" status and set start date
       logger.info({ bookId, sessionId: session.id }, "Updating session to reading status");
       const updated = await sessionRepository.update(session.id, {
         status: "reading",  // Must be "reading" to allow progress logging
-        startedDate: start,
+        startedDate: startDate,  // YYYY-MM-DD string
       } as any);
       if (updated) {
         session = updated;
@@ -154,7 +167,7 @@ export async function POST(
         currentPage: 1,
         currentPercentage: Math.round((1 / finalPageCount) * 100),
         notes: "Started reading",
-        progressDate: start,
+        progressDate: startDate,  // Pass YYYY-MM-DD string directly
       });
 
       // Create 100% progress entry (triggers auto-completion to "read")
@@ -162,14 +175,14 @@ export async function POST(
         currentPage: finalPageCount,
         currentPercentage: 100,
         notes: "Finished reading",
-        progressDate: end,
+        progressDate: endDate,  // Pass YYYY-MM-DD string directly
       });
     } else {
       // No pages - directly update session to "read"
       logger.info({ bookId, sessionId: session.id }, "No pages - directly marking as read");
       await sessionRepository.update(session.id, {
         status: "read",
-        completedDate: end,
+        completedDate: endDate,  // YYYY-MM-DD string
         isActive: false,
       } as any);
 

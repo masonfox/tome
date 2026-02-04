@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 /**
  * Database seeding script
@@ -12,6 +12,10 @@
  *   - CALIBRE_DB_PATH environment variable must be set
  *   - Calibre library must contain books
  */
+
+// Load environment variables from .env file
+import { config } from 'dotenv';
+config();
 
 import { seedDatabase } from "@/lib/db/seeders";
 import { getLogger } from "@/lib/logger";
@@ -73,6 +77,9 @@ async function main() {
       console.log(`  ⭐ Longest streak: ${result.longestStreak} ${result.longestStreak === 1 ? 'day' : 'days'}`);
       console.log(`  📅 Total active days: ${result.totalDaysActive}`);
     }
+    if (result.shelvesCreated !== undefined) {
+      console.log(`  📚 Shelves created: ${result.shelvesCreated}`);
+    }
     console.log(`  ⏱️  Duration: ${duration}s\n`);
 
     console.log("Next steps:");
@@ -99,6 +106,10 @@ async function main() {
   }
 }
 
-if (import.meta.main) {
+// Run if executed directly
+// ESM-compatible main detection (works with tsx, Node.js ESM, Bun)
+// tsx doesn't support import.meta.main, so we use the standard ESM approach
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   main();
 }

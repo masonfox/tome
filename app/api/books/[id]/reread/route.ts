@@ -1,3 +1,4 @@
+import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { SessionService } from "@/lib/services/session.service";
 import { sessionRepository } from "@/lib/repositories";
@@ -6,10 +7,8 @@ export const dynamic = 'force-dynamic';
 
 const sessionService = new SessionService();
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const bookId = parseInt(params.id);
 
@@ -20,27 +19,27 @@ export async function POST(
     // Check if there's already an active session
     const existingActiveSession = await sessionRepository.findActiveByBookId(bookId);
 
-    // Check if there are completed reads (must have at least one completed read to re-read)
-    const hasCompletedReads = await sessionRepository.hasCompletedReads(bookId);
+    // Check if there are finished sessions (must have finished to re-read)
+    const hasFinishedSessions = await sessionRepository.hasFinishedSessions(bookId);
     
-    if (!hasCompletedReads) {
+    if (!hasFinishedSessions) {
       // If active session is to-read or read-next, provide specific error message
       if (existingActiveSession && (existingActiveSession.status === "to-read" || existingActiveSession.status === "read-next")) {
         return NextResponse.json(
-          { error: "Can only re-read books with completed reads" },
+          { error: "Can only re-read books that have been finished" },
           { status: 400 }
         );
       }
       
-      // Default error message for no completed reads
+      // Default error message for no finished sessions
       return NextResponse.json(
-        { error: "Cannot start re-read: no completed reads found" },
+        { error: "Cannot start re-read: book has not been finished" },
         { status: 400 }
       );
     }
 
-    // If there are completed reads AND active session exists, reject
-    if (existingActiveSession) {
+    // If there are finished sessions AND active session exists in non-finished state, reject
+    if (existingActiveSession && existingActiveSession.status !== "read" && existingActiveSession.status !== "dnf") {
       return NextResponse.json(
         { error: "An active reading session already exists for this book" },
         { status: 400 }
@@ -63,7 +62,6 @@ export async function POST(
       } : undefined,
     });
   } catch (error: any) {
-    const { getLogger } = require("@/lib/logger");
     getLogger().error({ err: error }, "Error starting re-read");
 
     // Handle specific errors

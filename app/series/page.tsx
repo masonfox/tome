@@ -3,10 +3,10 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Library, BookMarked, Search, X } from "lucide-react";
-import SeriesCard from "@/components/SeriesCard";
-import SeriesCardSkeleton from "@/components/SeriesCardSkeleton";
-import { PageHeader } from "@/components/PageHeader";
-import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import SeriesCard from "@/components/Books/SeriesCard";
+import SeriesCardSkeleton from "@/components/Books/SeriesCardSkeleton";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
 
 interface SeriesInfo {
   name: string;

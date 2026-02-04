@@ -1,6 +1,6 @@
 "use client";
 
-import { BottomSheet } from "../BottomSheet";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { JournalArchiveTree } from "./JournalArchiveTree";
 import { Archive } from "lucide-react";
 import type { ArchiveNode } from "@/lib/utils/archive-builder";
@@ -35,15 +35,14 @@ export function JournalArchiveDrawer({
       title="Archive"
       icon={<Archive className="w-5 h-5" />}
     >
-      <div className="max-h-[calc(80vh-8rem)] overflow-y-auto">
-        <JournalArchiveTree
-          archiveData={archiveData}
-          currentDateRange={currentDateRange}
-          onNavigate={handleNavigate}
-          loading={loading}
-          showHeader={false}
-        />
-      </div>
+      <JournalArchiveTree
+        archiveData={archiveData}
+        currentDateRange={currentDateRange}
+        onNavigate={handleNavigate}
+        loading={loading}
+        showHeader={false}
+        minimal={true}
+      />
     </BottomSheet>
   );
 }

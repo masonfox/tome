@@ -2,8 +2,9 @@ import { streakRepository } from "@/lib/repositories/streak.repository";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
-import { differenceInHours, endOfDay, differenceInDays, startOfDay, isEqual, format } from "date-fns";
+import { differenceInHours, endOfDay, differenceInDays, startOfDay, isEqual, format, parseISO } from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
+import { toDateString } from "@/utils/dateHelpers.server";
 
 const logger = getLogger();
 
@@ -66,31 +67,31 @@ export class StreakService {
   async checkAndResetStreakIfNeeded(userId: number | null = null): Promise<boolean> {
     const streak = await streakRepository.getOrCreate(userId);
 
-    // Get today in user's timezone
+    // Get today in user's timezone as YYYY-MM-DD string
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, streak.userTimezone));
+    const todayString = toDateString(todayInUserTz);
 
     // Idempotency check: Have we already checked today?
     if (streak.lastCheckedDate) {
-      const lastChecked = startOfDay(toZonedTime(streak.lastCheckedDate, streak.userTimezone));
-      
-      if (isEqual(todayInUserTz, lastChecked)) {
+      if (streak.lastCheckedDate === todayString) {
         logger.debug(
-          { lastChecked: lastChecked.toISOString() },
+          { lastChecked: streak.lastCheckedDate },
           "[Streak] Already checked today, skipping"
         );
         return false; // Already checked today, no need to check again
       }
     }
 
-    // Update last checked timestamp (convert back to UTC for storage)
-    const lastCheckedUtc = fromZonedTime(todayInUserTz, streak.userTimezone);
+    // Update last checked date
     await streakRepository.update(streak.id, {
-      lastCheckedDate: lastCheckedUtc,
+      lastCheckedDate: todayString,
     } as any);
 
     // Check if streak should be reset due to missed days
-    const lastActivity = startOfDay(toZonedTime(streak.lastActivityDate, streak.userTimezone));
+    // Parse YYYY-MM-DD string as local midnight
+    const lastActivityParts = streak.lastActivityDate.split('-').map(Number);
+    const lastActivity = new Date(lastActivityParts[0], lastActivityParts[1] - 1, lastActivityParts[2]);
     const daysSinceLastActivity = differenceInDays(todayInUserTz, lastActivity);
 
     // If last activity was more than 1 day ago, streak is broken
@@ -170,10 +171,9 @@ export class StreakService {
     const qualifyingDates = new Set<string>(); // Only dates that meet the threshold
 
     allProgress.forEach((progress) => {
-      // Convert progress date to user's timezone for day boundary calculation
-      const dateInUserTz = toZonedTime(progress.progressDate, userTimezone);
-      const dayStart = startOfDay(dateInUserTz);
-      const dateKey = format(dayStart, 'yyyy-MM-dd');
+      // progressDate is stored as a UTC date string in YYYY-MM-DD format
+      // Use it directly as the date key (it's already normalized to UTC calendar day)
+      const dateKey = progress.progressDate;
       const pagesRead = progress.pagesRead || 0;
 
       if (pagesRead > 0) {
@@ -194,16 +194,9 @@ export class StreakService {
     // Calculate streak from consecutive active days
     let currentStreak = 0;
     let longestStreak = 0;
-    // Convert date strings back to proper timezone-aware dates
+    // Parse first date as UTC midnight
     const firstDateStr = sortedDates[0];
-    let firstDateInTz: Date;
-    if (firstDateStr) {
-      const [year, month, day] = firstDateStr.split('-').map(Number);
-      firstDateInTz = new Date(year, month - 1, day);
-    } else {
-      firstDateInTz = new Date();
-    }
-    const firstDateUtc = firstDateStr ? fromZonedTime(firstDateInTz, userTimezone) : new Date();
+    const firstDateUtc = firstDateStr ? parseISO(`${firstDateStr}T00:00:00.000Z`) : new Date();
     let streakStartDate = firstDateUtc;
     let lastActivityDate = firstDateUtc;
 
@@ -212,14 +205,12 @@ export class StreakService {
       longestStreak = 1;
 
       for (let i = 1; i < sortedDates.length; i++) {
-        // Convert date strings to timezone-aware dates
+        // Parse date strings as UTC midnight and calculate difference
         const dateInLoopStr = sortedDates[i];
         const prevDateStr = sortedDates[i - 1];
-        const [year1, month1, day1] = dateInLoopStr.split('-').map(Number);
-        const [year2, month2, day2] = prevDateStr.split('-').map(Number);
-        const dateInLoopInTz = new Date(year1, month1 - 1, day1);
-        const prevDateInTz = new Date(year2, month2 - 1, day2);
-        const daysDiff = differenceInDays(dateInLoopInTz, prevDateInTz);
+        const dateInLoop = parseISO(`${dateInLoopStr}T00:00:00.000Z`);
+        const prevDate = parseISO(`${prevDateStr}T00:00:00.000Z`);
+        const daysDiff = differenceInDays(dateInLoop, prevDate);
 
         if (daysDiff === 1) {
           // Consecutive day
@@ -228,19 +219,21 @@ export class StreakService {
           // Gap in streak
           longestStreak = Math.max(longestStreak, currentStreak);
           currentStreak = 1;
-          streakStartDate = fromZonedTime(dateInLoopInTz, userTimezone);
+          streakStartDate = dateInLoop;
         }
-        lastActivityDate = fromZonedTime(dateInLoopInTz, userTimezone);
+        lastActivityDate = dateInLoop;
       }
 
       longestStreak = Math.max(longestStreak, currentStreak);
 
       // Check if last activity was more than 1 day ago (streak is broken)
-      // Use user's timezone for day boundary comparison
+      // Compare UTC calendar days
       const now = currentDate || new Date();
-      const today = startOfDay(toZonedTime(now, userTimezone));
-      const lastActivityDayStart = startOfDay(toZonedTime(lastActivityDate, userTimezone));
-      const daysSinceLastActivity = differenceInDays(today, lastActivityDayStart);
+      const todayStr = toDateString(now);
+      const lastActivityStr = toDateString(lastActivityDate);
+      const today = parseISO(`${todayStr}T00:00:00.000Z`);
+      const lastActivityDay = parseISO(`${lastActivityStr}T00:00:00.000Z`);
+      const daysSinceLastActivity = differenceInDays(today, lastActivityDay);
 
       if (daysSinceLastActivity > 1) {
         // Streak is broken - last activity was more than 1 day ago
@@ -263,8 +256,8 @@ export class StreakService {
     const streak = await streakRepository.upsert(userId || null, {
       currentStreak,
       longestStreak,
-      lastActivityDate: lastActivityDate,
-      streakStartDate: streakStartDate,
+      lastActivityDate: toDateString(lastActivityDate),
+      streakStartDate: toDateString(streakStartDate),
       totalDaysActive,
     });
 
@@ -293,13 +286,13 @@ export class StreakService {
 
     if (!streak) {
       logger.debug("[Streak] No existing streak found, creating new one");
-      const now = new Date();
+      const todayStr = toDateString(new Date());
       streak = await streakRepository.create({
         userId: userId || null,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityDate: now,
-        streakStartDate: now,
+        lastActivityDate: todayStr,
+        streakStartDate: todayStr,
         totalDaysActive: 1,
       });
       logger.info({
@@ -316,14 +309,14 @@ export class StreakService {
     const userTimezone = streak.userTimezone || 'America/New_York';
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+    const todayString = toDateString(todayInUserTz);
     
     // Need end of day for date range query
     const tomorrowInUserTz = new Date(todayInUserTz);
     tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
-    const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
+    const tomorrowString = toDateString(tomorrowInUserTz);
     
-    const todayProgress = await progressRepository.getProgressForDate(todayUtc, tomorrowUtc);
+    const todayProgress = await progressRepository.getProgressForDate(todayString, tomorrowString);
 
     if (!todayProgress || todayProgress.pagesRead === 0) {
       // No activity today, return existing streak
@@ -342,7 +335,9 @@ export class StreakService {
     }, "[Streak] Checking daily threshold");
 
     // Has activity today, check if it's consecutive (using user's timezone)
-    const lastActivity = startOfDay(toZonedTime(streak.lastActivityDate, userTimezone));
+    // Parse YYYY-MM-DD string as local date
+    const lastActivityParts = streak.lastActivityDate.split('-').map(Number);
+    const lastActivity = new Date(lastActivityParts[0], lastActivityParts[1] - 1, lastActivityParts[2]);
     const daysDiff = differenceInDays(todayInUserTz, lastActivity);
 
     if (daysDiff === 0) {
@@ -356,7 +351,7 @@ export class StreakService {
           currentStreak: 1,
         longestStreak: Math.max(1, streak.longestStreak),
         totalDaysActive: newTotalDays,
-        lastActivityDate: todayUtc,
+        lastActivityDate: todayString,
       } as any);
         logger.info({
           currentStreak: updated?.currentStreak,
@@ -374,7 +369,7 @@ export class StreakService {
         }, "[Streak] Threshold no longer met, resetting streak to 0");
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 0,
-        lastActivityDate: todayUtc,
+        lastActivityDate: todayString,
       } as any);
         logger.info({
           currentStreak: updated?.currentStreak,
@@ -408,7 +403,7 @@ export class StreakService {
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       totalDaysActive: newTotalDays,
-      lastActivityDate: todayUtc,
+      lastActivityDate: todayString,
     } as any);
       logger.info({
         from: oldStreak,
@@ -422,9 +417,9 @@ export class StreakService {
       const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 1,
-        streakStartDate: todayUtc,
+        streakStartDate: todayString,
         totalDaysActive: newTotalDays,
-        lastActivityDate: todayUtc,
+        lastActivityDate: todayString,
       } as any);
       return updated!;
     }
@@ -556,18 +551,32 @@ export class StreakService {
     endDateInUserTz.setHours(23, 59, 59, 999);
     const endDate = fromZonedTime(endDateInUserTz, userTimezone);
     
-    // Get the earliest progress date to avoid showing empty days before tracking started
-    const earliestProgressDate = await progressRepository.getEarliestProgressDate();
+    // Get the earliest progress date as a string to avoid timezone conversion issues
+    const earliestProgressDateStr = await progressRepository.getEarliestProgressDateString();
+    
+    // Calculate the requested start date as a string in YYYY-MM-DD format
+    const requestedStartDateStr = formatInTimeZone(
+      requestedStartDate,
+      userTimezone,
+      'yyyy-MM-dd'
+    );
     
     // Use the later of: requested start date OR earliest progress date
     // This prevents showing empty data before the user started tracking
-    const actualStartDate = earliestProgressDate && earliestProgressDate > requestedStartDate
-      ? earliestProgressDate
-      : requestedStartDate;
+    // Compare as strings to avoid timezone issues
+    const actualStartDateStr = earliestProgressDateStr && earliestProgressDateStr > requestedStartDateStr
+      ? earliestProgressDateStr
+      : requestedStartDateStr;
+    
+    // Parse the actualStartDateStr back to a Date in the user's timezone
+    const [year, month, day] = actualStartDateStr.split('-').map(Number);
+    const actualStartDateInUserTz = new Date(year, month - 1, day);
+    actualStartDateInUserTz.setHours(0, 0, 0, 0);
+    const actualStartDate = fromZonedTime(actualStartDateInUserTz, userTimezone);
     
     const history = await progressRepository.getActivityCalendar(
-      actualStartDate,
-      endDate,
+      toDateString(actualStartDate),
+      toDateString(endDate),
       userTimezone
     );
 

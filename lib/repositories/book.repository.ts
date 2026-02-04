@@ -3,7 +3,9 @@ import { BaseRepository } from "./base.repository";
 import { books, Book, NewBook } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
+import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
+import { getLogger } from "@/lib/logger";
 
 export interface BookFilter {
   status?: string;
@@ -12,6 +14,9 @@ export interface BookFilter {
   rating?: string; // "all" | "rated" | "5" | "4" | "3" | "2" | "1" | "unrated"
   showOrphaned?: boolean;
   orphanedOnly?: boolean;
+  shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
+  excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
+  noTags?: boolean; // Filter for books without any tags
 }
 
 export interface BookWithStatus extends Book {
@@ -80,6 +85,36 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Find all books by their Calibre IDs in a single query (performance optimization for bulk sync)
+   * Returns a Map of calibreId to Book for O(1) lookup
+   * 
+   * This is much more efficient than calling findByCalibreId() for each book individually.
+   * For a library with 150k books, this reduces 150k queries to 1 query.
+   * 
+   * @param calibreIds - Array of Calibre book IDs to look up
+   * @returns Map of calibreId to Book object
+   */
+  async findAllByCalibreIds(calibreIds: number[]): Promise<Map<number, Book>> {
+    if (calibreIds.length === 0) {
+      return new Map();
+    }
+
+    const results = this.getDatabase()
+      .select()
+      .from(books)
+      .where(inArray(books.calibreId, calibreIds))
+      .all();
+
+    // Build map: calibreId -> Book
+    const booksMap = new Map<number, Book>();
+    for (const book of results) {
+      booksMap.set(book.calibreId, book);
+    }
+
+    return booksMap;
+  }
+
+  /**
    * Find a book by ID with enriched details (session, progress, read count) - OPTIMIZED
    * Uses a single query with LEFT JOINs and subqueries instead of 3 separate queries
    */
@@ -106,6 +141,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         calibreId: books.calibreId,
         title: books.title,
         authors: books.authors,
+        authorSort: books.authorSort,
         isbn: books.isbn,
         totalPages: books.totalPages,
         addedToLibrary: books.addedToLibrary,
@@ -224,6 +260,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       calibreId: result.calibreId,
       title: result.title,
       authors: result.authors,
+      authorSort: result.authorSort,
       isbn: result.isbn,
       totalPages: result.totalPages,
       addedToLibrary: result.addedToLibrary,
@@ -301,7 +338,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(
         or(
           like(books.title, searchPattern),
-          like(books.authors, searchPattern)
+          like(books.authors, searchPattern),
+          like(books.authorSort, searchPattern)
         )!
       );
     }
@@ -309,7 +347,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
     // Multiple tags use AND logic - book must have ALL selected tags
-    if (filters.tags && filters.tags.length > 0) {
+    // NOTE: noTags takes precedence over tags filter
+    if (filters.noTags) {
+      // No tags filter - books without any tags
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    } else if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
           SELECT 1 FROM json_each(${books.tags})
@@ -353,6 +395,39 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
     }
 
+    // Shelf filter (books must be on ANY of the selected shelves - OR logic)
+    if (filters.shelfIds && filters.shelfIds.length > 0) {
+      const shelfQuery = this.getDatabase()
+        .selectDistinct({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(inArray(bookShelves.shelfId, filters.shelfIds));
+
+      const shelfBooks = shelfQuery.all() as Array<{ bookId: number }>;
+      const shelfBookIds = shelfBooks.map((s) => s.bookId);
+
+      if (shelfBookIds.length === 0) {
+        return { books: [], total: 0 };
+      }
+
+      conditions.push(inArray(books.id, shelfBookIds));
+    }
+
+    // Exclude shelf filter (exclude books on specific shelf - used for "Add Books to Shelf" modal)
+    if (filters.excludeShelfId) {
+      const excludeQuery = this.getDatabase()
+        .select({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(eq(bookShelves.shelfId, filters.excludeShelfId));
+
+      const excludedBooks = excludeQuery.all() as Array<{ bookId: number }>;
+      const excludedBookIds = excludedBooks.map((s) => s.bookId);
+
+      // Only add condition if there are books to exclude
+      if (excludedBookIds.length > 0) {
+        conditions.push(sql`${books.id} NOT IN (${sql.join(excludedBookIds.map(id => sql`${id}`), sql`, `)})`);
+      }
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
@@ -373,10 +448,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.title);
         break;
       case "author":
-        orderBy = asc(books.authors);
+        // Sort by pre-computed authorSort field for efficient last name sorting
+        orderBy = sql`${books.authorSort} ASC NULLS LAST`;
         break;
       case "author_desc":
-        orderBy = desc(books.authors);
+        orderBy = sql`${books.authorSort} DESC NULLS LAST`;
         break;
       case "created":
         // Sort by when the book was added to Calibre library (not tome database)
@@ -447,6 +523,51 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
+   * Bulk upsert books (insert new, update existing) for sync performance optimization
+   * 
+   * Uses INSERT OR REPLACE to handle both new books and updates in a single operation.
+   * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * 
+   * This is much more efficient than individual insert/update calls.
+   * For a library with 150k books, this reduces 150k-300k operations to ~150 operations.
+   * 
+   * @param booksData - Array of book data to upsert
+   * @returns Number of books processed
+   */
+  async bulkUpsert(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalProcessed = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          // INSERT OR REPLACE will update if calibreId exists, insert if not
+          tx.insert(books)
+            .values(bookData)
+            .onConflictDoUpdate({
+              target: books.calibreId,
+              set: bookData,
+            })
+            .run();
+        }
+      });
+
+      totalProcessed += batch.length;
+    }
+
+    return totalProcessed;
+  }
+
+  /**
    * Find books not in a list of calibreIds (for orphaning)
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
@@ -498,7 +619,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return results.map((r) => r.tag);
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error fetching tags");
       return [];
     }
@@ -559,7 +679,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(
         or(
           like(books.title, searchPattern),
-          like(books.authors, searchPattern)
+          like(books.authors, searchPattern),
+          like(books.authorSort, searchPattern)
         )!
       );
     }
@@ -567,7 +688,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Tags filter (JSON contains)
     // Use json_each for accurate JSON array searching instead of LIKE
     // Multiple tags use AND logic - book must have ALL selected tags
-    if (filters.tags && filters.tags.length > 0) {
+    // NOTE: noTags takes precedence over tags filter
+    if (filters.noTags) {
+      // No tags filter - books without any tags
+      conditions.push(sql`json_array_length(${books.tags}) = 0`);
+    } else if (filters.tags && filters.tags.length > 0) {
       const tagConditions = filters.tags.map((tag) =>
         sql`EXISTS (
           SELECT 1 FROM json_each(${books.tags})
@@ -611,6 +736,39 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
     }
 
+    // Shelf filter (books must be on ANY of the selected shelves - OR logic)
+    if (filters.shelfIds && filters.shelfIds.length > 0) {
+      const shelfQuery = this.getDatabase()
+        .selectDistinct({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(inArray(bookShelves.shelfId, filters.shelfIds));
+
+      const shelfBooks = shelfQuery.all() as Array<{ bookId: number }>;
+      const shelfBookIds = shelfBooks.map((s) => s.bookId);
+
+      if (shelfBookIds.length === 0) {
+        return { books: [], total: 0 };
+      }
+
+      conditions.push(inArray(books.id, shelfBookIds));
+    }
+
+    // Exclude shelf filter (exclude books on specific shelf - used for "Add Books to Shelf" modal)
+    if (filters.excludeShelfId) {
+      const excludeQuery = this.getDatabase()
+        .select({ bookId: bookShelves.bookId })
+        .from(bookShelves)
+        .where(eq(bookShelves.shelfId, filters.excludeShelfId));
+
+      const excludedBooks = excludeQuery.all() as Array<{ bookId: number }>;
+      const excludedBookIds = excludedBooks.map((s) => s.bookId);
+
+      // Only add condition if there are books to exclude
+      if (excludedBookIds.length > 0) {
+        conditions.push(sql`${books.id} NOT IN (${sql.join(excludedBookIds.map(id => sql`${id}`), sql`, `)})`);
+      }
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
@@ -631,10 +789,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         orderBy = desc(books.title);
         break;
       case "author":
-        orderBy = asc(books.authors);
+        // Sort by pre-computed authorSort field for efficient last name sorting
+        orderBy = sql`${books.authorSort} ASC NULLS LAST`;
         break;
       case "author_desc":
-        orderBy = desc(books.authors);
+        orderBy = sql`${books.authorSort} DESC NULLS LAST`;
         break;
       case "created":
         // Sort by when the book was added to Calibre library (not tome database)
@@ -703,6 +862,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         calibreId: books.calibreId,
         title: books.title,
         authors: books.authors,
+        authorSort: books.authorSort,
         isbn: books.isbn,
         totalPages: books.totalPages,
         addedToLibrary: books.addedToLibrary,
@@ -800,7 +960,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .offset(skip)
       .all();
 
-    // Map results to optimized structure (only fields needed by BookCard)
+    // Map results to optimized structure (only fields needed by BookCard and cache busting)
     // This reduces payload size by ~40-50% for large libraries
     const booksWithRelations = results.map((row: any) => ({
       id: row.bookId,
@@ -811,6 +971,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       totalPages: row.totalPages,
       rating: row.rating,
       status: row.sessionStatus,
+      lastSynced: row.lastSynced,
       // Only include minimal progress info needed for display
       latestProgress: row.progressId ? {
         currentPage: row.progressCurrentPage,
@@ -850,7 +1011,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         bookCount: Number(row.bookCount),
       }));
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error fetching tag statistics");
       return [];
     }
@@ -870,10 +1030,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           eq(books.orphaned, false)
         ))
         .get();
-      
+
       return result?.count || 0;
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error }, "Error counting books with tags");
       return 0;
     }
@@ -919,7 +1078,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
       return { books: results, total };
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, tag }, "Error finding books by tag");
       return { books: [], total: 0 };
     }
@@ -935,7 +1093,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async renameTag(oldName: string, newName: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -970,7 +1127,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, oldName, newName }, "Error renaming tag");
       throw error;
     }
@@ -986,7 +1142,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async deleteTag(tagName: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1021,7 +1176,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, tagName }, "Error deleting tag");
       throw error;
     }
@@ -1037,7 +1191,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   async mergeTags(sourceTags: string[], targetTag: string): Promise<number> {
     try {
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1096,7 +1249,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, sourceTags, targetTag }, "Error merging tags");
       throw error;
     }
@@ -1120,7 +1272,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
 
       const db = this.getDatabase();
-      const { getLogger } = require("@/lib/logger");
       const logger = getLogger();
 
       // Use transaction for atomic update across all books
@@ -1159,7 +1310,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         return updatedCount;
       });
     } catch (error) {
-      const { getLogger } = require("@/lib/logger");
       getLogger().error({ err: error, bookIds, tagsToAdd, tagsToRemove }, "Error bulk updating tags");
       throw error;
     }

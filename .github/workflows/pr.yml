@@ -12,6 +12,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     
     steps:
       - name: Checkout repository
@@ -30,7 +31,7 @@ jobs:
       - name: Run tests with coverage
         env:
           NODE_ENV: test
-        run: bun test --coverage
+        run: npm run test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -44,8 +45,7 @@ jobs:
   docker-build:
     name: Validate Docker Build (PRs only)
     runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
 
     steps:
       - name: Checkout code

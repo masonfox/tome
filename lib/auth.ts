@@ -66,7 +66,7 @@ export function createAuthResponse(request: NextRequest): NextResponse {
   return response;
 }
 
-export function middlewareAuthCheck(request: NextRequest): NextResponse | null {
+export function proxyAuthCheck(request: NextRequest): NextResponse | null {
   // If auth is disabled, redirect /login to home
   if (!isAuthEnabled()) {
     if (request.nextUrl.pathname === "/login") {

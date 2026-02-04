@@ -25,13 +25,21 @@ services:
     environment:
       - NODE_ENV=production
       - CALIBRE_DB_PATH=/calibre/metadata.db
+      # PUID/PGID: Customize user/group ID to match your host system
+      # This eliminates permission issues with mounted volumes
+      # Default: 1001:1001 (if not specified)
+      # Common values:
+      #   - Linux first user: 1000:1000
+      #   - NAS systems: varies (run 'id' on your system)
+      #   - From issue #237: 1001:100
+      # Uncomment and set to your user's UID/GID:
+      # - PUID=1000
+      # - PGID=1000
     volumes:
       # Persist SQLite database
-      # NOTE: The container runs as user 'nextjs' (UID 1001)
-      # On first run, the entrypoint will ensure the directory is writable
-      # If you encounter permission errors, you can either:
-      #   1. Let the container handle permissions (recommended)
-      #   2. Or run with: docker-compose run --user 1001:1001 tome
+      # Permissions are automatically fixed on container startup
+      # This includes /app/data and /app/.next for cache writes
+      # No manual chown required!
       - tome-data:/app/data
       # Mount your Calibre library (read-write for rating sync)
       # Replace with your actual Calibre library path
@@ -41,5 +49,5 @@ services:
 volumes:
   tome-data:
     driver: local
-    # Volume will be created with default permissions
-    # The entrypoint script ensures proper permissions on first run
+    # Permissions are automatically managed by the container
+    # The entrypoint sets ownership of /app/data and /app/.next to match PUID/PGID on startup
