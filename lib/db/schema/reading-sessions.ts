@@ -15,8 +15,7 @@ export const readingSessions = sqliteTable(
       enum: ["to-read", "read-next", "reading", "read", "dnf"],
     }).notNull().default("to-read"),
     startedDate: text("started_date"), // YYYY-MM-DD format
-    completedDate: text("completed_date"), // YYYY-MM-DD format
-    dnfDate: text("dnf_date"), // YYYY-MM-DD format - when book was abandoned
+    completedDate: text("completed_date"), // YYYY-MM-DD format - when reading ended (for both "read" and "dnf" status)
     review: text("review"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     readNextOrder: integer("read_next_order").notNull().default(0),

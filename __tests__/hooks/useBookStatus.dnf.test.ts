@@ -10,7 +10,7 @@ const originalFetch = global.fetch;
  * 
  * Tests cover:
  * - DNF modal triggering
- * - DNF API call with rating/review/dnfDate
+ * - DNF API call with rating/review/completedDate
  * - Optimistic updates and rollbacks
  * - Error handling
  * - Query invalidation
@@ -241,7 +241,7 @@ describe("useBookStatus - DNF workflow", () => {
       expect(result.current.selectedStatus).toBe("dnf");
     });
 
-    test("should mark book as DNF with custom dnfDate", async () => {
+    test("should mark book as DNF with custom completedDate", async () => {
       const readingBook: Book = {
         id: 123,
         calibreId: 1,
@@ -278,7 +278,7 @@ describe("useBookStatus - DNF workflow", () => {
           "/api/books/123/mark-as-dnf",
           expect.objectContaining({
             method: "POST",
-            body: JSON.stringify({ dnfDate: "2026-01-10" }),
+            body: JSON.stringify({ completedDate: "2026-01-10" }),
           })
         );
       });
@@ -324,7 +324,7 @@ describe("useBookStatus - DNF workflow", () => {
             body: JSON.stringify({ 
               rating: 2, 
               review: "Not for me",
-              dnfDate: "2026-01-10",
+              completedDate: "2026-01-10",
             }),
           })
         );

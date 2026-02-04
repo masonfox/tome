@@ -71,7 +71,7 @@ export interface UseBookStatusReturn {
   handleConfirmRead: (rating?: number, review?: string) => Promise<void>;
   handleCompleteBook: (data: CompleteBookData) => Promise<void>;
   handleStartReread: () => Promise<void>;
-  handleMarkAsDNF: (rating?: number, review?: string, dnfDate?: string) => Promise<void>;
+  handleMarkAsDNF: (rating?: number, review?: string, completedDate?: string) => Promise<void>;
 }
 
 /**
@@ -288,11 +288,11 @@ export function useBookStatus(
 
   // Mutation for marking as DNF
   const markAsDNFMutation = useMutation({
-    mutationFn: async ({ rating, review, dnfDate }: { rating?: number; review?: string; dnfDate?: string }) => {
+    mutationFn: async ({ rating, review, completedDate }: { rating?: number; review?: string; completedDate?: string }) => {
       const response = await fetch(`/api/books/${bookId}/mark-as-dnf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, review, dnfDate }),
+        body: JSON.stringify({ rating, review, completedDate }),
       });
       
       if (!response.ok) {
@@ -408,8 +408,8 @@ export function useBookStatus(
     await rereadMutation.mutateAsync();
   }, [rereadMutation]);
 
-  const handleMarkAsDNF = useCallback(async (rating?: number, review?: string, dnfDate?: string) => {
-    await markAsDNFMutation.mutateAsync({ rating, review, dnfDate });
+  const handleMarkAsDNF = useCallback(async (rating?: number, review?: string, completedDate?: string) => {
+    await markAsDNFMutation.mutateAsync({ rating, review, completedDate });
     setShowDNFModal(false);
   }, [markAsDNFMutation]);
 

@@ -159,13 +159,13 @@ export async function seedDatabase(): Promise<SeedResult> {
           
           // Calculate DNF date (2-8 weeks ago for DNF books)
           const dnfWeeksAgo = 2 + Math.floor(Math.random() * 7);
-          const dnfDateString = format(subDays(new Date(), dnfWeeksAgo * 7), 'yyyy-MM-dd');
+          const completedDateString = format(subDays(new Date(), dnfWeeksAgo * 7), 'yyyy-MM-dd');
           
           await sessionRepository.update(existingSession.id, {
             status: plan.status,
             startedDate: plan.status !== "to-read" ? (existingSession.startedDate || todayString) : null,
             completedDate: plan.status === "read" ? todayString : existingSession.completedDate,
-            dnfDate: plan.status === "dnf" ? dnfDateString : existingSession.dnfDate,
+            completedDate: plan.status === "dnf" ? completedDateString : existingSession.completedDate,
           });
 
           getLoggerSafe().info({
@@ -202,7 +202,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       
       // Calculate DNF date (2-8 weeks ago for DNF books)
       const dnfWeeksAgo = 2 + Math.floor(Math.random() * 7);
-      const dnfDateString = format(subDays(new Date(), dnfWeeksAgo * 7), 'yyyy-MM-dd');
+      const completedDateString = format(subDays(new Date(), dnfWeeksAgo * 7), 'yyyy-MM-dd');
 
       // Create session
       const session = await sessionRepository.create({
@@ -211,7 +211,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         status: plan.status,
         startedDate: plan.status !== "to-read" ? todayString : null,
         completedDate: plan.status === "read" ? todayString : null,
-        dnfDate: plan.status === "dnf" ? dnfDateString : null,
+        completedDate: plan.status === "dnf" ? completedDateString : null,
       });
 
       sessions.push({
