@@ -36,7 +36,6 @@ docker run -d \
   -p 3000:3000 \
   -v /path/to/storage:/app/data \
   -v /path/to/calibre/library:/calibre \
-  -e NODE_ENV=production \
   -e PUID=1000 \
   -e PGID=1000 \
   --restart unless-stopped \
@@ -55,7 +54,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
       - AUTH_PASSWORD=hello # remove to disable auth
       # Set PUID/PGID to match your user (run 'id' to find your values)
       - PUID=1000  # Change to your UID
@@ -77,7 +75,7 @@ services:
 |----------|---------|-------------|
 | `NODE_ENV` | `production` | Runtime environment |
 | `AUTH_PASSWORD` | (none) | Enables authentication when set. Example: `helloworld` |
-| `CALIBRE_DB_PATH` | `/calibre/metadata.db` | Path to Calibre metadata.db inside container |
+| `CALIBRE_DB_PATH` | (none) | Path to Calibre metadata.db inside container. Recommended: `/calibre/metadata.db` |
 | `PORT` | `3000` | Application port |
 | `DATABASE_PATH` | `/app/data/tome.db` | Path to Tome's SQLite database |
 | `PUID` | `1001` | User ID to run as (for fixing volume permissions) |
@@ -109,15 +107,6 @@ Use the `uid` and `gid` values for PUID and PGID.
 | Docker default | `1001` | `1001` | Tome's default if not specified |
 | Synology | `1026` | `100` | Check your NAS user settings |
 | macOS/Windows + Docker Desktop | N/A | N/A | Less critical due to virtualization |
-
-### How It Works
-
-1. Container starts as `root` (required for user management)
-2. Reads `PUID` and `PGID` environment variables (defaults to 1001:1001)
-3. Creates/modifies the application user with specified IDs
-4. Fixes ownership of `/app/data` and `/calibre` directories
-5. Drops privileges using `su-exec` to run as the target user
-6. Continues normal startup (migrations, app start)
 
 ### Configuration Examples
 
@@ -174,24 +163,6 @@ docker exec -it tome npm run db:migrate
 docker exec tome npm run db:backup
 ```
 This is done automatically on container startup.
-
-### Handling Container Updates
-
-To update to a new version:
-
-```bash
-# Pull latest image
-docker-compose pull
-
-# Stop current container
-docker-compose down
-
-# Start new container (migrations run automatically)
-docker-compose up -d
-
-# Check logs for successful startup
-docker-compose logs -f tome
-```
 
 ## Common Issues
 
