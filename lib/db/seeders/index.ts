@@ -164,8 +164,7 @@ export async function seedDatabase(): Promise<SeedResult> {
           await sessionRepository.update(existingSession.id, {
             status: plan.status,
             startedDate: plan.status !== "to-read" ? (existingSession.startedDate || todayString) : null,
-            completedDate: plan.status === "read" ? todayString : existingSession.completedDate,
-            completedDate: plan.status === "dnf" ? completedDateString : existingSession.completedDate,
+            completedDate: plan.status === "read" ? todayString : plan.status === "dnf" ? completedDateString : existingSession.completedDate,
           });
 
           getLoggerSafe().info({
@@ -210,8 +209,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         sessionNumber,
         status: plan.status,
         startedDate: plan.status !== "to-read" ? todayString : null,
-        completedDate: plan.status === "read" ? todayString : null,
-        completedDate: plan.status === "dnf" ? completedDateString : null,
+        completedDate: plan.status === "read" ? todayString : plan.status === "dnf" ? completedDateString : null,
       });
 
       sessions.push({

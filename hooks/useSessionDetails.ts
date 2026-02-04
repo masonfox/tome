@@ -34,11 +34,10 @@ export function useSessionDetails(
     if (!session?.id) return;
 
     try {
-      const startedISO = editStartDate
-        ? new Date(editStartDate + "T00:00:00.000Z").toISOString()
-        : null;
-
-      await sessionApi.update(bookId, session.id, { startedDate: startedISO });
+      // Send YYYY-MM-DD format directly - backend expects this format
+      await sessionApi.update(bookId, session.id, { 
+        startedDate: editStartDate || null 
+      });
 
       setIsEditingStartDate(false);
       toast.success("Start date updated");
