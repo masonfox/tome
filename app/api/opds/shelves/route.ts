@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // Build navigation feed
     const feed: OPDSFeed = {
       id: 'urn:tome:shelves',
-      title: 'Browse by Shelf',
+      title: 'Shelves',
       updated: now,
       subtitle: 'Browse your custom book shelves',
       links: [

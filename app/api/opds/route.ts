@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       },
       {
         id: 'urn:tome:by-author',
-        title: 'Browse by Author',
+        title: 'Author',
         updated: now,
         content: {
           type: 'text',
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       },
       {
         id: 'urn:tome:by-series',
-        title: 'Browse by Series',
+        title: 'Series',
         updated: now,
         content: {
           type: 'text',
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       },
       {
         id: 'urn:tome:by-tag',
-        title: 'Browse by Tag',
+        title: 'Tags',
         updated: now,
         content: {
           type: 'text',
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       },
       {
         id: 'urn:tome:by-status',
-        title: 'Browse by Reading Status',
+        title: 'Reading Status',
         updated: now,
         content: {
           type: 'text',
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       },
       {
         id: 'urn:tome:shelves',
-        title: 'Browse by Shelf',
+        title: 'Shelves',
         updated: now,
         content: {
           type: 'text',

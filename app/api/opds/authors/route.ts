@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // Build navigation feed
     const feed: OPDSFeed = {
       id: 'urn:tome:by-author',
-      title: 'Browse by Author',
+      title: 'Author',
       updated: now,
       subtitle: 'Browse books organized by author',
       links: [

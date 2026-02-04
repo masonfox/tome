@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // Build navigation feed
     const feed: OPDSFeed = {
       id: 'urn:tome:by-tag',
-      title: 'Browse by Tag',
+      title: 'Tags',
       updated: now,
       subtitle: 'Browse books by tags and categories',
       links: [
