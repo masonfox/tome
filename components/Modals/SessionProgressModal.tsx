@@ -6,6 +6,7 @@ import BaseModal from "./BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { JournalEntryList } from "@/components/Journal/JournalEntryList";
 import { useSessionProgress } from "@/hooks/useSessionProgress";
+import { Button } from "@/components/Utilities/Button";
 
 interface SessionProgressModalProps {
   isOpen: boolean;
@@ -69,12 +70,12 @@ export default function SessionProgressModal({
   const ErrorState = () => (
     <div className="text-center py-8">
       <p className="text-[var(--foreground)]/60 mb-4">Failed to load progress logs</p>
-      <button
+      <Button
+        variant="primary"
         onClick={() => window.location.reload()}
-        className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-semibold hover:bg-[var(--light-accent)] transition-colors"
       >
         Retry
-      </button>
+      </Button>
     </div>
   );
 
@@ -124,12 +125,13 @@ export default function SessionProgressModal({
       subtitle={`${bookTitle} - Read #${sessionNumber}`}
       size="2xl"
       actions={
-        <button
+        <Button
+          variant="ghost"
           onClick={onClose}
-          className="w-full px-6 py-3 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded-lg font-semibold hover:bg-[var(--background)] transition-colors"
+          className="w-full"
         >
           Close
-        </button>
+        </Button>
       }
     >
       <div className="max-h-[60vh] overflow-y-auto -mx-6 px-6">

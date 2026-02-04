@@ -2,6 +2,7 @@
 
 import { RefreshCw, Tag } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { Button } from "@/components/Utilities/Button";
 
 interface TagManagementHeaderProps {
   totalTags: number;
@@ -41,18 +42,17 @@ export function TagManagementHeader({
           )}
         </div>
 
-        <button
+        <Button
           onClick={onRefresh}
           disabled={loading}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-md text-white hover:bg-[var(--light-accent)] transition-colors font-medium mt-3 sm:mt-2",
-            loading && "opacity-50 cursor-not-allowed"
-          )}
+          variant="primary"
+          size="xl"
+          icon={<RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />}
+          className="mt-3 sm:mt-2"
           title="Refresh tags"
         >
-          <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
           <span className="hidden sm:inline">Refresh</span>
-        </button>
+        </Button>
       </div>
 
       {/* Settings row */}

@@ -17,17 +17,6 @@ Tome requires two volume mounts for persistent data and Calibre integration:
 | `/path/to/storage` | `/app/data` | Tome SQLite database, backups, logs | Yes |
 | `/path/to/calibre/library` | `/calibre` | Location of your Calibre library | Yes |
 
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NODE_ENV` | `production` | Runtime environment |
-| `AUTH_PASSWORD` | (none) | Enables authentication when set. Example: `helloworld` |
-| `CALIBRE_DB_PATH` | `/calibre/metadata.db` | Path to Calibre metadata.db inside container |
-| `PORT` | `3000` | Application port |
-| `DATABASE_PATH` | `/app/data/tome.db` | Path to Tome's SQLite database |
-
 ## Docker Deployment Options
 
 Currently, the *only way* to run Tome is through [Docker](https://www.docker.com/). If you're unfamiliar with Docker, I suggest option #1.
@@ -47,7 +36,8 @@ docker run -d \
   -p 3000:3000 \
   -v /path/to/storage:/app/data \
   -v /path/to/calibre/library:/calibre \
-  -e NODE_ENV=production \
+  -e PUID=1000 \
+  -e PGID=1000 \
   --restart unless-stopped \
   ghcr.io/masonfox/tome:latest
 ```
@@ -61,21 +51,82 @@ services:
   tome:
     image: ghcr.io/masonfox/tome:latest
     container_name: tome
-    user: "1001:100"
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
       - AUTH_PASSWORD=hello # remove to disable auth
+      # Set PUID/PGID to match your user (run 'id' to find your values)
+      - PUID=1000  # Change to your UID
+      - PGID=1000  # Change to your GID
     volumes:
       # Persist SQLite database
       - /path/to/storage:/app/data
       # Calibre library
-      - /path/to/calibre/folder:/data/calibre
-    restart: always
+      - /path/to/calibre/folder:/calibre
+    restart: unless-stopped
 ```
 
 **Access the application** at http://localhost:3000. If needed, the `PORT` value in the `.env` can be adjusted to change your local port.
+
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NODE_ENV` | `production` | Runtime environment |
+| `AUTH_PASSWORD` | (none) | Enables authentication when set. Example: `helloworld` |
+| `CALIBRE_DB_PATH` | (none) | Path to Calibre metadata.db inside container. Recommended: `/calibre/metadata.db` |
+| `PORT` | `3000` | Application port |
+| `DATABASE_PATH` | `/app/data/tome.db` | Path to Tome's SQLite database |
+| `PUID` | `1001` | User ID to run as (for fixing volume permissions) |
+| `PGID` | `1001` | Group ID to run as (for fixing volume permissions) |
+
+## PUID/PGID Support
+
+Tome supports PUID (User ID) and PGID (Group ID) environment variables to eliminate volume permission issues. This feature allows the container to run with the same user/group IDs as your host system, ensuring seamless file access.
+
+### Finding Your UID/GID
+
+On your host system, run:
+```bash
+id
+```
+
+This will output something like:
+```
+uid=1000(username) gid=1000(groupname) groups=1000(groupname),...
+```
+
+Use the `uid` and `gid` values for PUID and PGID.
+
+### Common PUID/PGID Values
+
+| System | Typical PUID | Typical PGID | Notes |
+|--------|---------------|-------|-------|
+| Linux (first user) | `1000` | `1000` | Most common on Linux machines |
+| Docker default | `1001` | `1001` | Tome's default if not specified |
+| Synology | `1026` | `100` | Check your NAS user settings |
+| macOS/Windows + Docker Desktop | N/A | N/A | Less critical due to virtualization |
+
+### Configuration Examples
+
+**Docker Compose** (recommended):
+```yaml
+services:
+  tome:
+    image: ghcr.io/masonfox/tome:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+```
+
+**Docker CLI**:
+```bash
+docker run -d \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  ghcr.io/masonfox/tome:latest
+```
 
 ## Database Backups
 
@@ -113,35 +164,11 @@ docker exec tome npm run db:backup
 ```
 This is done automatically on container startup.
 
-### Handling Container Updates
-
-To update to a new version:
-
-```bash
-# Pull latest image
-docker-compose pull
-
-# Stop current container
-docker-compose down
-
-# Start new container (migrations run automatically)
-docker-compose up -d
-
-# Check logs for successful startup
-docker-compose logs -f tome
-```
-
 ## Common Issues
 
 ### Permission Errors
 
-If you encounter permission errors with the data volume:
-
-```bash
-sudo chown -R 1001:100 your-tome-directory/
-```
-
-The entrypoint script automatically fixes permissions on first run.
+**Recommended Solution**: Use PUID/PGID environment variables (see above). This automatically fixes permissions on container startup.
 
 ### Port Conflicts
 

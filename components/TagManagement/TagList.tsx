@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Search, CheckSquare, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, X, CheckCheck } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { TagItem, type TagWithStats } from "./TagItem";
 import { TagListSkeleton } from "./TagListSkeleton";
 import { cn } from "@/utils/cn";
@@ -289,15 +290,17 @@ export const TagList = forwardRef<TagListRef, TagListProps>(function TagList({
                   <CheckSquare className="w-4 h-4" />
                   Select Multiple
                 </button>
-                <button
+                <Button
                   onClick={handleToggleAllFiltered}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white border border-[var(--accent)] rounded-lg hover:bg-[var(--light-accent)] hover:border-[var(--light-accent)] transition-colors font-medium"
+                  variant="primary"
+                  size="md"
+                  className="flex-1"
                   title={allFilteredChecked ? "Uncheck all filtered tags" : "Check all filtered tags"}
+                  icon={<CheckCheck className="w-4 h-4" />}
                 >
-                  <CheckCheck className="w-4 h-4" />
                   <span className="hidden sm:inline">{allFilteredChecked ? "Uncheck" : "Check"} All</span>
                   <span className="sm:hidden">All</span>
-                </button>
+                </Button>
               </div>
             ) : (
               // Show single button when not filtering
@@ -332,18 +335,15 @@ export const TagList = forwardRef<TagListRef, TagListProps>(function TagList({
               >
                 Merge Selected
               </button>
-              <button
+              <Button
                 onClick={handleBulkDeleteClick}
                 disabled={checkedTags.size < 1}
-                className={cn(
-                  "w-full px-4 py-2 rounded-lg font-medium transition-colors",
-                  checkedTags.size >= 1
-                    ? "bg-red-600 text-white hover:bg-red-700 [html[data-theme='dark']_&]:bg-red-700 [html[data-theme='dark']_&]:hover:bg-red-800"
-                    : "bg-[var(--foreground)]/10 text-[var(--subheading-text)] cursor-not-allowed"
-                )}
+                variant="danger"
+                size="md"
+                fullWidth
               >
                 Delete Selected
-              </button>
+              </Button>
             </div>
           )}
         </div>

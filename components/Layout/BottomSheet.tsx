@@ -9,17 +9,20 @@ interface BottomSheetProps {
   children: React.ReactNode;
   title?: string;
   icon?: React.ReactNode;
-  size?: "default" | "large" | "full";
+  size?: "small" | "medium" | "default" | "large" | "full";
   allowBackdropClose?: boolean;
+  actions?: React.ReactNode;
 }
 
-// Animation duration for closing transition
-const CLOSE_ANIMATION_MS = 300;
+// Animation timing
+const ANIMATION_DURATION = 300; // ms
 
 const sizeClasses = {
+  small: "h-[33vh] rounded-t-2xl",
+  medium: "h-[50vh] rounded-t-2xl",
   default: "max-h-[80vh] rounded-t-2xl",
-  large: "h-[75vh] rounded-t-3xl",
-  full: "h-screen rounded-none",
+  large: "h-[75vh] rounded-t-2xl",
+  full: "h-[100dvh] rounded-none",
 };
 
 export function BottomSheet({ 
@@ -30,63 +33,95 @@ export function BottomSheet({
   icon, 
   size = "default",
   allowBackdropClose = true,
+  actions,
 }: BottomSheetProps) {
-  const [isClosing, setIsClosing] = useState(false);
+  // Animation states: null = not rendered, 'entering' = animating in, 'entered' = visible, 'exiting' = animating out
+  const [animationState, setAnimationState] = useState<'entering' | 'entered' | 'exiting' | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
+  // Handle opening and closing
   useEffect(() => {
     if (isOpen) {
+      // Lock body scroll
       document.body.style.overflow = "hidden";
-      setIsClosing(false);
       
-      // Focus the close button to prevent browser from auto-focusing action items
-      // Use double RAF to ensure this happens after browser layout and paint
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      // Start entering state
+      setAnimationState('entering');
+      
+      // Use setTimeout to ensure the initial state is painted
+      const timeout1 = setTimeout(() => {
+        setAnimationState('entered');
+        
+        // Focus close button after animation
+        const timeout2 = setTimeout(() => {
           closeButtonRef.current?.focus();
-        });
-      });
+        }, ANIMATION_DURATION);
+      }, 10); // Small delay to ensure paint
+      
+      return () => {
+        clearTimeout(timeout1);
+        document.body.style.overflow = "";
+      };
     } else {
-      document.body.style.overflow = "";
+      // Start exit animation if we were open
+      setAnimationState((prev) => {
+        if (prev === 'entered' || prev === 'entering') {
+          return 'exiting';
+        }
+        return prev;
+      });
+      
+      // Clean up after animation completes
+      const timeout = setTimeout(() => {
+        setAnimationState(null);
+        document.body.style.overflow = "";
+      }, ANIMATION_DURATION);
+      
+      return () => {
+        clearTimeout(timeout);
+      };
     }
-    
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isOpen]);
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, CLOSE_ANIMATION_MS);
+    onClose();
   };
 
-  if (!isOpen && !isClosing) return null;
+  // Don't render if not in any animation state
+  if (!animationState) return null;
+
+  const isVisible = animationState === 'entered';
+  const isExiting = animationState === 'exiting';
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300 ${
-          isClosing ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
+        className="fixed inset-0 bg-black z-[100] transition-opacity"
+        style={{
+          opacity: isVisible ? 0.5 : 0,
+          transitionDuration: `${ANIMATION_DURATION}ms`,
+          pointerEvents: isExiting ? 'none' : 'auto',
+        }}
         onClick={allowBackdropClose ? handleClose : undefined}
       />
       
       {/* Bottom Sheet */}
-      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-[var(--card-bg)] border-t border-[var(--border-color)] shadow-lg transition-transform duration-300 ${
-        sizeClasses[size]
-      } ${
-        isClosing ? "translate-y-full pointer-events-none" : "translate-y-0 animate-slide-up"
-      } ${
-        size === "full" || size === "large" ? "flex flex-col" : "overflow-y-auto pb-safe"
-      }`}>
-        {/* Header - fixed for full/large size, sticky for default */}
-        <div className={`bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between ${
-          size === "full" || size === "large" ? "flex-shrink-0" : "sticky top-0 z-10"
-        } ${
+      <div 
+        ref={contentRef}
+        className={`fixed bottom-0 left-0 right-0 z-[101] bg-[var(--card-bg)] border-t border-[var(--border-color)] shadow-2xl flex flex-col pb-safe ${
+          sizeClasses[size]
+        }`}
+        style={{
+          transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
+          transition: animationState === 'entering' ? 'none' : `transform ${ANIMATION_DURATION}ms cubic-bezier(0.32, 0.72, 0, 1)`,
+          willChange: 'transform',
+          contain: 'layout paint',
+        }}
+      >
+        {/* Header - fixed */}
+        <div className={`bg-[var(--card-bg)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between flex-shrink-0 ${
           size === "large" ? "rounded-t-3xl" : ""
         }`}>
           <div className="flex items-center gap-2">
@@ -99,15 +134,22 @@ export function BottomSheet({
             tabIndex={0}
             className="text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors p-1 focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 rounded"
             aria-label="Close"
-            autoFocus
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        {/* Content - scrollable for full/large size, regular for default */}
-        <div className={size === "full" || size === "large" ? "flex-1 overflow-y-auto p-4 pb-12" : "p-4 pb-12"}>
+        
+        {/* Content - scrollable */}
+        <div className="flex-1 overflow-y-auto p-4">
           {children}
         </div>
+
+        {/* Optional action buttons */}
+        {actions && (
+          <div className="flex-shrink-0 border-t border-[var(--border-color)] p-4 bg-[var(--card-bg)] flex gap-3 justify-end">
+            {actions}
+          </div>
+        )}
       </div>
     </>
   );

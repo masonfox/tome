@@ -523,4 +523,129 @@ describe("PATCH /api/books/[id]/rating", () => {
       expect(updatedBook?.rating).toBe(5);
     });
   });
+
+  describe("Review Updates", () => {
+    test("should return 400 when updating review without active session", async () => {
+      // Create book without any session
+      const book = await bookRepository.create(mockBook1);
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
+        review: "Great book!",
+      });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("No active reading session");
+    });
+
+    test("should handle empty review string", async () => {
+      const book = await bookRepository.create(mockBook1);
+
+      // Import sessionRepository to create an active session
+      const { sessionRepository } = await import("@/lib/repositories");
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        startedDate: "2025-01-15",
+      });
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
+        rating: 5,
+        review: "",
+      });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+
+      expect(response.status).toBe(200);
+    });
+
+    test("should handle null review value", async () => {
+      const book = await bookRepository.create(mockBook1);
+
+      const { sessionRepository } = await import("@/lib/repositories");
+      await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        startedDate: "2025-01-15",
+      });
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
+        rating: 4,
+        review: null,
+      });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+
+      expect(response.status).toBe(200);
+    });
+
+    test("should update review when active session exists", async () => {
+      const book = await bookRepository.create(mockBook1);
+
+      const { sessionRepository } = await import("@/lib/repositories");
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        startedDate: "2025-01-15",
+      });
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
+        review: "Amazing read!",
+      });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+
+      expect(response.status).toBe(200);
+
+      // Verify review was saved
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.review).toBe("Amazing read!");
+    });
+  });
+
+  describe("Malformed Request Handling", () => {
+    test("should handle empty request body", async () => {
+      const book = await bookRepository.create(mockBook1);
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {});
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      // Empty body should return book as-is
+      expect(response.status).toBe(200);
+      expect(data.id).toBe(book.id);
+    });
+
+    test("should handle undefined rating", async () => {
+      const book = await bookRepository.create(mockBook1);
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
+        rating: undefined,
+      });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+
+      // undefined rating means no update
+      expect(response.status).toBe(200);
+    });
+
+    test("should handle extra fields in body gracefully", async () => {
+      const book = await bookRepository.create(mockBook1);
+
+      const request = createMockRequest("PATCH", `/api/books/${book.id}/rating`, {
+        rating: 5,
+        unexpectedField: "should be ignored",
+        anotherField: 123,
+      });
+      const response = await PATCH(request as NextRequest, { params: { id: book.id.toString() } });
+
+      expect(response.status).toBe(200);
+
+      const updatedBook = await bookRepository.findById(book.id);
+      expect(updatedBook?.rating).toBe(5);
+    });
+  });
 });

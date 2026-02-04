@@ -148,6 +148,13 @@
       "when": 1768479429087,
       "tag": "0020_yellow_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1770212841932,
+      "tag": "0021_windy_loki",
+      "breakpoints": true
     }
   ]
 }

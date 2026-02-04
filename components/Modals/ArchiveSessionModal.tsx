@@ -1,6 +1,7 @@
 "use client";
 
 import BaseModal from "./BaseModal";
+import { Button } from "@/components/Utilities/Button";
 
 interface ArchiveSessionModalProps {
   isOpen: boolean;
@@ -26,18 +27,18 @@ export default function ArchiveSessionModal({
       title="Archive Reading Session?"
       actions={
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={onConfirm}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold"
           >
             Archive & Change Status
-          </button>
+          </Button>
         </div>
       }
     >

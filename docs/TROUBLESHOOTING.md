@@ -64,6 +64,60 @@ This guide covers common issues and their solutions when running Tome.
    - File watcher monitors for changes automatically
    - If not working, manual sync is always available
 
+### Calibre 9.x Database Lock Errors
+
+**Symptoms**: `SQLITE_BUSY` or `SQLITE_LOCKED` errors when rating books or managing tags
+
+**Background**: Calibre 9.0+ uses WAL (Write-Ahead Logging) mode by default, which improves concurrent access but can still cause locks under certain conditions.
+
+**Solutions**:
+
+1. **For Rating Updates** (Usually works with Calibre open):
+   - Tome automatically retries rating updates (5-second timeout)
+   - If error persists: Close Calibre, wait 5-10 seconds, retry
+   - Check logs for retry attempts
+
+2. **For Tag Operations** (Requires Calibre closed):
+   - Close Calibre completely (not just minimize)
+   - Wait 5-10 seconds for locks to clear
+   - Verify Calibre processes are terminated:
+     ```bash
+     # Linux/macOS
+     ps aux | grep calibre
+     
+     # Windows (PowerShell)
+     Get-Process | Where-Object {$_.ProcessName -like "*calibre*"}
+     ```
+   - Retry the operation
+
+3. **For Stale Locks** (Calibre already closed):
+   - Wait 10-15 seconds and retry
+   - Check for WAL files:
+     ```bash
+     ls -la /path/to/calibre/library/metadata.db*
+     # Should show: metadata.db, metadata.db-wal, metadata.db-shm
+     ```
+   - If issue persists, restart Tome
+   - Last resort: Restart your system to clear all locks
+
+4. **Check WAL Mode**:
+   ```bash
+   # Verify Calibre is using WAL mode
+   sqlite3 /path/to/calibre/library/metadata.db "PRAGMA journal_mode;"
+   # Should return: wal
+   ```
+
+5. **Enhanced Error Messages**:
+   - Tome provides context-aware error messages
+   - Read the error carefully - it includes specific guidance
+   - Error message indicates if Calibre appears to be open
+   - Follow the suggested action in the error message
+
+**Prevention**:
+- Close Calibre before bulk tag operations
+- Rating updates should work even with Calibre open
+- Use manual sync button after making changes in Calibre
+
 ## Database Issues
 
 ### Tome Database Not Found

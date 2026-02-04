@@ -19,7 +19,7 @@ describe("DraggableBookTable", () => {
       rating: 5,
       totalPages: 300,
       addedToLibrary: new Date("2024-01-01"),
-      dateAddedToShelf: new Date("2024-01-02"),
+      addedAt: new Date("2024-01-02"),
       status: "reading",
       sortOrder: 0,
     },
@@ -33,7 +33,7 @@ describe("DraggableBookTable", () => {
       rating: 4,
       totalPages: 250,
       addedToLibrary: new Date("2024-01-03"),
-      dateAddedToShelf: new Date("2024-01-04"),
+      addedAt: new Date("2024-01-04"),
       status: "read",
       sortOrder: 1,
     },
@@ -47,7 +47,7 @@ describe("DraggableBookTable", () => {
       rating: 3,
       totalPages: 400,
       addedToLibrary: new Date("2024-01-05"),
-      dateAddedToShelf: new Date("2024-01-06"),
+      addedAt: new Date("2024-01-06"),
       status: "to-read",
       sortOrder: 2,
     },
@@ -500,7 +500,7 @@ describe("DraggableBookTable", () => {
       expect(dataRow.textContent).toContain("-");
     });
 
-    test("should render date when dateAddedToShelf is available", () => {
+    test("should render date when addedAt is available", () => {
       render(
         <DraggableBookTable
           books={mockBooks}
@@ -510,7 +510,7 @@ describe("DraggableBookTable", () => {
         />
       );
 
-      // mockBooks[0] has dateAddedToShelf: 2024-01-02
+      // mockBooks[0] has addedAt: 2024-01-02
       // Should display date (format may vary)
       const rows = screen.getAllByRole("row");
       const bookOneRow = rows.find((row) => row.textContent?.includes("Book One"));
@@ -521,7 +521,7 @@ describe("DraggableBookTable", () => {
       const booksWithoutShelfDate = [
         {
           ...mockBooks[0],
-          dateAddedToShelf: null,
+          addedAt: null,
           addedToLibrary: new Date("2024-03-15"),
         },
       ];

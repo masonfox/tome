@@ -36,7 +36,7 @@ export const BookCard = memo(function BookCard({
     <Link href={`/books/${id}`}>
       <div
         className={cn(
-          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl rounded-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group",
+          "bg-[var(--card-bg)] border border-[var(--border-color)] shadow-lg rounded-md hover:shadow-xl transition-shadow cursor-pointer overflow-hidden group",
           className
         )}
       >
@@ -55,7 +55,7 @@ export const BookCard = memo(function BookCard({
           )}
         </div>
 
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-1">
           <h3 className="text-md font-semibold text-[var(--heading-text)] line-clamp-2 leading-snug">
             {title}
           </h3>

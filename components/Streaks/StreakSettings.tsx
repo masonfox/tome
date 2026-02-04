@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Target, Loader2, Globe } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 
 interface StreakSettingsProps {
   initialThreshold: number;
@@ -112,14 +113,15 @@ export function StreakSettings({ initialThreshold, initialTimezone }: StreakSett
           </div>
 
           <div className="pt-7">
-            <button
+            <Button
               onClick={handleSave}
               disabled={saving || threshold === initialThreshold}
-              className="px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
+              variant="primary"
+              size="md"
+              icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
             >
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

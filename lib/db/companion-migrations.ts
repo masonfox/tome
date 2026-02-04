@@ -11,6 +11,7 @@
 
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
+import { pathToFileURL } from "url";
 import { getLogger } from "@/lib/logger";
 import type { Database } from "better-sqlite3";
 
@@ -38,39 +39,50 @@ export interface CompanionMigration {
 }
 
 /**
- * Discover companion migrations in lib/migrations/
- * Returns migrations sorted by number
+ * Discover companion migrations
  * 
- * @param baseDir - Optional base directory for testing (defaults to process.cwd())
- * @internal Exported for testing
+ * Loads TypeScript companion migrations from lib/migrations/*.ts.
+ * Runs via tsx in both development and production (tsx is installed
+ * as a migration dependency in Docker).
+ * 
+ * Returns migrations sorted by number.
+ * 
+ * @param baseDir - Base directory to search (defaults to cwd)
+ * @returns Array of companion migrations
  */
-export function discoverCompanions(baseDir?: string): CompanionMigration[] {
-  const migrationsDir = join(baseDir || process.cwd(), 'lib/migrations');
+export async function discoverCompanions(baseDir?: string): Promise<CompanionMigration[]> {
+  const base = baseDir || process.cwd();
+  const migrationsDir = join(base, 'lib/migrations');
   
   // Check if directory exists
   if (!existsSync(migrationsDir)) {
-    logger.debug({ dir: migrationsDir }, "Migrations directory does not exist");
+    logger.info({ dir: migrationsDir }, "No companions directory found");
     return [];
   }
   
-  // Find all TypeScript/JavaScript files matching pattern {number}_*.ts
+  // Find .ts files (executed via tsx)
   const files = readdirSync(migrationsDir)
-    .filter(f => {
-      // Match pattern: 0015_something.ts or 0015_something.js
-      return /^\d{4}_.*\.(ts|js)$/.test(f);
-    })
+    .filter(f => /^\d{4}_.*\.ts$/.test(f))
     .filter(f => !f.startsWith('_')) // Exclude _template.ts
     .sort(); // Alphabetical = numeric order
   
-  logger.debug({ count: files.length, files }, "Discovered companion files");
+  logger.debug({ 
+    count: files.length, 
+    files,
+    dir: migrationsDir
+  }, "Discovered companion files");
   
   // Load each companion module
   const companions: CompanionMigration[] = [];
   for (const file of files) {
     try {
-      // Dynamic import (works with both .ts and .js)
+      // Dynamic import (tsx handles TypeScript execution)
+      // Convert to file URL for dynamic import
       const modulePath = join(migrationsDir, file);
-      const module = require(modulePath);
+      const fileURL = pathToFileURL(modulePath).href;
+      // Add cache-busting timestamp for testing scenarios where files are created dynamically
+      const moduleURL = `${fileURL}?t=${Date.now()}`;
+      const module = await import(moduleURL);
       
       // Support both default export and named export
       const companion = module.default || module.migration;
@@ -87,13 +99,15 @@ export function discoverCompanions(baseDir?: string): CompanionMigration[] {
       }
       
       companions.push(companion);
+      logger.debug({ file, name: companion.name }, "Loaded companion migration");
     } catch (error) {
-      logger.error({ file, error }, "Failed to load companion file");
+      logger.error({ file, error, message: error instanceof Error ? error.message : String(error) }, "Failed to load companion file");
       // Don't throw - skip invalid companions
     }
   }
   
   logger.info({ count: companions.length }, "Loaded companion migrations");
+  
   return companions;
 }
 
@@ -192,7 +206,7 @@ export async function runCompanionMigrations(db: Database, baseDir?: string): Pr
   logger.info("Running companion migrations...");
   
   // Discover companions
-  const companions = discoverCompanions(baseDir);
+  const companions = await discoverCompanions(baseDir);
   
   if (companions.length === 0) {
     logger.info("No companion migrations found");

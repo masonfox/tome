@@ -1,6 +1,6 @@
 {
   "name": "tome",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A Calibre-integrated book tracker",
   "homepage": "https://github.com/masonfox/tome",
   "author": "Mason Fox <masonfox22@gmail.com> (https://github.com/masonfox)",
@@ -12,8 +12,8 @@
     "reading"
   ],
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "tsx ./lib/db/migrate.ts",

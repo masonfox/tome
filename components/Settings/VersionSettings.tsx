@@ -1,6 +1,7 @@
 "use client";
 
 import { useVersion } from "@/hooks/useVersion";
+import { Button } from "@/components/Utilities/Button";
 import { PackageCheck, ExternalLink, AlertCircle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 

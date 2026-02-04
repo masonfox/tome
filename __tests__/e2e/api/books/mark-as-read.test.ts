@@ -445,4 +445,207 @@ describe("POST /api/books/[id]/mark-as-read", () => {
     expect(data.ratingUpdated).toBe(false);
     expect(data.reviewUpdated).toBe(false);
   });
+
+  // ============================================================================
+  // Invalid Date Handling
+  // ============================================================================
+
+  describe("Invalid Date Handling", () => {
+    test("should return 400 for invalid date format (not YYYY-MM-DD)", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        completedDate: "01-15-2025", // Wrong format
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("Invalid completed date format");
+    });
+
+    test("should return 400 for date with invalid month (13)", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        completedDate: "2025-13-15", // Invalid month
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      // Now we validate actual date validity, not just format
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("Invalid completed date format");
+    });
+
+    test("should return 400 for date with invalid day (32)", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        completedDate: "2025-01-32", // Invalid day
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      // Now we validate actual date validity, not just format
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("Invalid completed date format");
+    });
+
+    test("should return 400 for non-string date", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        completedDate: 20250115, // Number instead of string
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("Invalid completed date format");
+    });
+  });
+
+  // ============================================================================
+  // Status-specific Handling
+  // ============================================================================
+
+  describe("Status-specific Handling", () => {
+    test("should mark book in 'read-next' status as read", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "read-next",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        rating: 4,
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.session.status).toBe("read");
+      expect(data.ratingUpdated).toBe(true);
+    });
+
+    test("should mark book in 'to-read' status as read", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "to-read",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {});
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.session.status).toBe("read");
+    });
+  });
+
+  // ============================================================================
+  // Null Rating and Review
+  // ============================================================================
+
+  describe("Null Rating and Review", () => {
+    test("should handle both rating and review as null", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        rating: null,
+        review: null,
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.session.status).toBe("read");
+      expect(data.ratingUpdated).toBe(false);
+      expect(data.reviewUpdated).toBe(false);
+    });
+
+    test("should handle explicit undefined rating and review", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        rating: undefined,
+        review: undefined,
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.session.status).toBe("read");
+    });
+  });
+
+  // ============================================================================
+  // Future Dates
+  // ============================================================================
+
+  describe("Future Dates", () => {
+    test("should accept future completion date", async () => {
+      const book = await bookRepository.create(createTestBook({ totalPages: 300 }));
+      await sessionRepository.create(createTestSession({
+        bookId: book.id,
+        status: "reading",
+        isActive: true,
+        sessionNumber: 1,
+      }));
+
+      // Set completion date to next year
+      const futureDate = "2099-12-31";
+      const request = createMockRequest("POST", `/api/books/${book.id}/mark-as-read`, {
+        completedDate: futureDate,
+      });
+      const response = await POST(request as NextRequest, { params: { id: book.id.toString() } });
+      const data = await response.json();
+
+      // API accepts future dates (no validation against current date)
+      expect(response.status).toBe(200);
+      expect(data.session.completedDate).toBe(futureDate);
+    });
+  });
 });

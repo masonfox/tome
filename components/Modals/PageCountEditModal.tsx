@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import BaseModal from "./BaseModal";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
+import { invalidateBookQueries } from "@/hooks/useBookStatus";
+import { Button } from "@/components/Utilities/Button";
 
 interface PageCountEditModalProps {
   isOpen: boolean;
@@ -26,6 +29,7 @@ export default function PageCountEditModal({
   pendingStatus,
   currentRating,
 }: PageCountEditModalProps) {
+  const queryClient = useQueryClient();
   const [pageCount, setPageCount] = useState(currentPageCount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,6 +89,9 @@ export default function PageCountEditModal({
           throw new Error(error.error || "Failed to update status");
         }
 
+        // Invalidate caches after status change to ensure all pages update
+        invalidateBookQueries(queryClient, bookId.toString());
+
         toast.success(`Page count updated and status changed to "${pendingStatus}"!`);
       } else {
         toast.success("Page count updated");
@@ -114,21 +121,23 @@ export default function PageCountEditModal({
       subtitle={currentPageCount ? `Current: ${currentPageCount} pages` : undefined}
       allowBackdropClose={false}
       actions={
-        <div className="flex gap-2">
-          <button
+        <div className="flex gap-3 justify-end">
+          <Button
+            variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 border border-[var(--border-color)] text-[var(--foreground)] rounded hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            size="md"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={isSubmitting || !pageCount || parseInt(pageCount) <= 0}
-            className="flex-1 px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            size="md"
           >
             {isSubmitting ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -150,7 +159,7 @@ export default function PageCountEditModal({
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+          <label className="block text-sm font-medium text-[var(--heading-text)] mb-2">
             Total Pages
           </label>
           <input
@@ -160,7 +169,7 @@ export default function PageCountEditModal({
             min="1"
             step="1"
             disabled={isSubmitting}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors disabled:opacity-50"
             placeholder="e.g. 320"
             autoFocus
           />

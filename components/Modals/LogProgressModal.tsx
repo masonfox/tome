@@ -13,6 +13,7 @@ import { TrendingUp } from "lucide-react";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
 import { toast } from "@/utils/toast";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "LogProgressModal" });
 
@@ -197,8 +198,31 @@ export default function LogProgressModal({
         showProgressModeDropdown={showProgressModeDropdown}
         setShowProgressModeDropdown={setShowProgressModeDropdown}
         progressModeDropdownRef={progressModeDropdownRef}
+        showHeader={false}
+        showSubmitButton={false}
+        formId="log-progress-form"
       />
     </div>
+  );
+
+  const actionButtons = (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={onClose}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="submit"
+        variant="primary"
+        form="log-progress-form"
+        icon={<TrendingUp className="w-5 h-5" />}
+      >
+        Log Progress
+      </Button>
+    </>
   );
 
   // Use BottomSheet for mobile, BaseModal for desktop
@@ -210,7 +234,8 @@ export default function LogProgressModal({
           onClose={onClose}
           title={book.title}
           icon={<TrendingUp className="w-5 h-5" />}
-          size="full"
+          size="default"
+          actions={actionButtons}
         >
           {progressForm}
         </BottomSheet>
@@ -234,7 +259,7 @@ export default function LogProgressModal({
         isOpen={isOpen}
         onClose={onClose}
         title={`Log Progress - ${book.title}`}
-        actions={<></>}
+        actions={actionButtons}
         size="2xl"
         allowBackdropClose={false}
       >

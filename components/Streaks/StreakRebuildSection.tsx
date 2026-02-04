@@ -1,6 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { useStreak } from "@/hooks/useStreak";
 
 export function StreakRebuildSection() {
@@ -22,14 +23,16 @@ export function StreakRebuildSection() {
           </p>
         </div>
         
-        <button
+        <Button
           onClick={handleRebuild}
           disabled={isRebuilding}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent)]/90 disabled:bg-[var(--accent)]/50 text-white rounded-md transition-colors text-sm font-medium whitespace-nowrap"
+          variant="primary"
+          size="md"
+          className="whitespace-nowrap"
+          icon={<RefreshCw className={`w-4 h-4 ${isRebuilding ? "animate-spin" : ""}`} />}
         >
-          <RefreshCw className={`w-4 h-4 ${isRebuilding ? "animate-spin" : ""}`} />
           {isRebuilding ? "Recalculating..." : "Recalculate Streak"}
-        </button>
+        </Button>
       </div>
     </div>
   );

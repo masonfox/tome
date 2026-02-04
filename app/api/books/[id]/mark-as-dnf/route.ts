@@ -1,6 +1,7 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionService } from "@/lib/services";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
  *
  * This endpoint orchestrates the full "mark as DNF" workflow:
  * - Validates active reading session exists
- * - Archives the session with dnfDate
+ * - Archives the session with completedDate (when the book was abandoned)
  * - Updates rating (syncs to Calibre) - optional
  * - Updates review - optional
  * - Returns last progress log for UI prefilling
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     const body = await request.json();
-    const { rating, review, dnfDate } = body;
+    const { rating, review, completedDate } = body;
 
     // Validate rating if provided
     if (rating !== undefined && rating !== null) {
@@ -42,12 +43,11 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       }
     }
 
-    // Validate dnfDate format if provided
-    if (dnfDate) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(dnfDate)) {
+    // Validate completedDate format if provided
+    if (completedDate) {
+      if (!validateDateString(completedDate)) {
         return NextResponse.json(
-          { error: "Invalid date format. Expected YYYY-MM-DD" },
+          { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
           { status: 400 }
         );
       }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       bookId,
       rating,
       review,
-      dnfDate,
+      completedDate,
     });
 
     // Note: Cache invalidation handled by SessionService.invalidateCache()

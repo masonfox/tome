@@ -284,7 +284,7 @@ describe("POST /api/books/[id]/complete", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain("Invalid date format");
+      expect(data.error).toContain("Invalid start date format");
     });
 
     test("should accept same date for start and end", async () => {

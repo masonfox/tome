@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, BookOpen, Pencil, ChevronRight } from "lucide-react";
+import { Calendar, BookOpen, ChevronRight } from "lucide-react";
 import SessionEditModal from "@/components/Modals/SessionEditModal";
 import SessionProgressModal from "@/components/Modals/SessionProgressModal";
+import DeleteSessionModal from "@/components/Modals/DeleteSessionModal";
+import { SessionActionsDropdown } from "@/components/CurrentlyReading/SessionActionsDropdown";
 import { toast } from "@/utils/toast";
 import { formatDateOnly } from '@/utils/dateHelpers';
 import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
@@ -15,7 +17,6 @@ interface ReadingSession {
   status: string;
   startedDate?: string;
   completedDate?: string;
-  dnfDate?: string;
   review?: string;
   isActive: boolean;
   progressSummary: {
@@ -41,6 +42,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
   const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSession, setEditingSession] = useState<ReadingSession | null>(null);
+  const [deletingSession, setDeletingSession] = useState<ReadingSession | null>(null);
   const [viewProgressModal, setViewProgressModal] = useState<{
     sessionId: number;
     sessionNumber: number;
@@ -83,6 +85,14 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     setEditingSession(null);
   }
 
+  function handleOpenDeleteModal(session: ReadingSession) {
+    setDeletingSession(session);
+  }
+
+  function handleCloseDeleteModal() {
+    setDeletingSession(null);
+  }
+
   async function handleSaveSession(data: {
     startedDate: string | null;
     completedDate: string | null;
@@ -110,6 +120,30 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
     } catch (error) {
       // Suppress console; toast shows failure
       toast.error("Failed to save session. Please try again.");
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingSession) return;
+
+    try {
+      const response = await fetch(`/api/books/${bookId}/sessions/${deletingSession.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete session");
+      }
+
+      // Invalidate queries to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
+      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+
+      handleCloseDeleteModal();
+      toast.success("Session deleted");
+    } catch (error) {
+      // Suppress console; toast shows failure
+      toast.error("Failed to delete session. Please try again.");
     }
   }
 
@@ -149,14 +183,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   )
                 )}
               </div>
-              <button
-                onClick={() => handleOpenEditModal(session)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--accent)] hover:text-[var(--light-accent)] hover:bg-[var(--accent)]/5 rounded transition-colors group"
-                title="Edit session"
-              >
-                <span>Edit</span>
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
+              <SessionActionsDropdown
+                onEdit={() => handleOpenEditModal(session)}
+                onDelete={() => handleOpenDeleteModal(session)}
+              />
             </div>
 
             {/* Dates */}
@@ -169,14 +199,14 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   </span>
                 </div>
               )}
-              {(session.completedDate || session.dnfDate) && (
+              {(session.completedDate) && (
                 <div className={`flex items-center gap-2 text-sm font-medium ${
-                  session.dnfDate ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]/70'
+                  session.status === 'dnf' ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]/70'
                 }`}>
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {session.dnfDate 
-                      ? `Stopped Reading: ${formatDateOnly(session.dnfDate)}`
+                    {session.status === 'dnf'
+                      ? `Stopped Reading: ${formatDateOnly(session.completedDate!)}`
                       : `Completed: ${formatDateOnly(session.completedDate!)}`
                     }
                   </span>
@@ -249,6 +279,16 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         currentStartedDate={editingSession?.startedDate ?? null}
         currentCompletedDate={editingSession?.completedDate ?? null}
         currentReview={editingSession?.review ?? null}
+      />
+
+      <DeleteSessionModal
+        isOpen={!!deletingSession}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        sessionNumber={deletingSession?.sessionNumber ?? 0}
+        progressCount={deletingSession?.progressSummary.totalEntries ?? 0}
+        bookTitle={bookTitle}
+        isActive={deletingSession?.isActive ?? false}
       />
 
       {viewProgressModal && (

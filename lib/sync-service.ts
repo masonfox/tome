@@ -4,7 +4,7 @@ import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { getLogger } from "@/lib/logger";
 import { generateAuthorSort } from "@/lib/utils/author-sort";
-import { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats } from "@/lib/covers/cache";
+import { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats } from "@/lib/cache/cover-cache";
 
 export interface SyncResult {
   success: boolean;

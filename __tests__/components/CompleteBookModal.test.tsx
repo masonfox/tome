@@ -142,7 +142,7 @@ describe("CompleteBookModal", () => {
     });
 
     test("should render with custom default start date", () => {
-      const defaultStartDate = new Date("2024-01-15");
+      const defaultStartDate = "2024-01-15"; // ADR-014: Pass string, not Date
       render(<CompleteBookModal {...defaultProps} defaultStartDate={defaultStartDate} />);
       
       const startDateInput = screen.getByLabelText("Start Date");
@@ -802,8 +802,9 @@ describe("CompleteBookModal", () => {
       const startDateInput = screen.getByLabelText("Start Date") as HTMLInputElement;
       expect(startDateInput.value).toBe(new Date().toISOString().split('T')[0]);
       
-      rerender(<CompleteBookModal {...defaultProps} defaultStartDate={new Date("2024-01-15")} isOpen={false} />);
-      rerender(<CompleteBookModal {...defaultProps} defaultStartDate={new Date("2024-01-15")} isOpen={true} />);
+      // ADR-014: Pass string, not Date
+      rerender(<CompleteBookModal {...defaultProps} defaultStartDate="2024-01-15" isOpen={false} />);
+      rerender(<CompleteBookModal {...defaultProps} defaultStartDate="2024-01-15" isOpen={true} />);
       
       const updatedStartDateInput = screen.getByLabelText("Start Date") as HTMLInputElement;
       expect(updatedStartDateInput.value).toBe("2024-01-15");

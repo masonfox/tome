@@ -1,6 +1,6 @@
 # Tome Constitution
 
-**Version**: | 1.0.0 | **Ratified**: 2025-11-24
+**Version**: | 1.1.0 | **Ratified**: 2025-11-24 | **Last Amended**: 2026-02-02
 
 ---
 
@@ -116,8 +116,8 @@ These constraints define Tome's identity. Violating them means building a differ
 4. **Zero External Service Dependencies**
    Tome must run in complete isolation. No Redis, no cloud APIs, no message queues.
 
-5. **Reading History is Never Deleted**
-   Sessions can be archived, hidden, or marked inactive—but never destroyed.
+5. **Reading History Preservation**
+   Reading history is durable and permanent. Sessions can be archived, hidden, or marked inactive by the system. Users may permanently delete sessions via explicit action with confirmation, but deletion is never automatic or implicit.
 
 ---
 
@@ -194,6 +194,12 @@ Constitution follows semantic versioning:
 ---
 
 ## Change Log
+
+**v1.1.0** (2026-02-02)
+- MINOR: Amended Non-Negotiable #5 to allow explicit user-initiated session deletion with confirmation
+- Rationale: Users need ability to remove incorrect or mistakenly created sessions
+- Impact: Added DELETE endpoint for sessions with confirmation modal in UI
+- Migration: No schema changes; deletion uses existing CASCADE foreign keys
 
 **v1.0.0** (2025-11-24)
 Initial constitution ratified with five core principles.

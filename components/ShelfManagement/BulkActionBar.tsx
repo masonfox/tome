@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Trash2, MoveHorizontal, Copy, ChevronDown } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { Button } from "@/components/Utilities/Button";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -78,7 +79,7 @@ export function BulkActionBar({
     <div
       id="bulk-action-bar"
       className={cn(
-        "fixed bottom-24 md:bottom-0 left-0 right-0 z-30",
+        "sidebar-offset fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-30",
         "bg-[var(--card-bg-emphasis)] backdrop-blur-sm",
         "border-t border-[var(--border-color)]",
         "shadow-lg",
@@ -97,38 +98,28 @@ export function BulkActionBar({
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <button
+            <Button
               onClick={onCancel}
               disabled={loading}
-              className={cn(
-                "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                "bg-[var(--card-bg)] text-[var(--foreground)] hover:bg-[var(--hover-bg)]",
-                "border border-[var(--border-color)]",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
+              variant="secondary"
+              size="sm"
             >
               Cancel
-            </button>
+            </Button>
 
             {/* Desktop: Show all buttons */}
             <div className="hidden md:flex items-center gap-2">
               {actions.map((action) => (
-                <button
+                <Button
                   key={action.key}
                   onClick={action.onClick}
                   disabled={loading || selectedCount === 0}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    "flex items-center gap-2",
-                    action.variant === "danger"
-                      ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]"
-                  )}
+                  variant={action.variant === "danger" ? "danger" : "primary"}
+                  size="sm"
+                  icon={<action.icon className="w-4 h-4" />}
                 >
-                  <action.icon className="w-4 h-4" />
                   {action.label}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -136,19 +127,15 @@ export function BulkActionBar({
             <div className="md:hidden flex items-center gap-2">
               {actions.length > 0 && (
                 <div className="relative" ref={dropdownRef}>
-                  <button
+                  <Button
                     onClick={() => setShowDropdown(!showDropdown)}
                     disabled={loading || selectedCount === 0}
-                    className={cn(
-                      "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                      "bg-[var(--accent)] text-white hover:bg-[var(--light-accent)]",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "flex items-center gap-1"
-                    )}
+                    variant="primary"
+                    size="sm"
+                    iconAfter={<ChevronDown className="w-4 h-4" />}
                   >
                     Actions
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
+                  </Button>
 
                   {/* Dropdown Menu */}
                   {showDropdown && (

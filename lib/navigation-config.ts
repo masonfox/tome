@@ -38,13 +38,13 @@ export const MORE_MENU_LINKS: NavLink[] = [
 // Bottom utility link (shown in bottom section of desktop sidebar)
 export const SETTINGS_LINK: NavLink = { href: "/settings", label: "Settings", icon: Settings };
 
-// Additional links shown in bottom sheet "More" menu on mobile (includes read-next, journal, series, tags, shelves and settings)
+// Additional links shown in bottom sheet "More" menu on mobile (includes read-next, shelves, series, tags, journal and settings)
 export const BOTTOM_SHEET_LINKS: NavLink[] = [
   READ_NEXT_LINK,
-  JOURNAL_LINK,
+  SHELVES_LINK,
   SERIES_LINK,
   TAGS_LINK,
-  SHELVES_LINK,
+  JOURNAL_LINK,
   ...MORE_MENU_LINKS,
   SETTINGS_LINK,
 ];

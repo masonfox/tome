@@ -206,7 +206,7 @@ describe("BulkActionBar", () => {
       );
 
       const deleteButton = screen.getByText("Remove");
-      expect(deleteButton).toHaveClass("bg-red-500");
+      expect(deleteButton).toHaveClass("bg-red-600");
     });
   });
 

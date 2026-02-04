@@ -6,6 +6,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 import ReadingHistoryTab from "@/components/CurrentlyReading/ReadingHistoryTab";
 import FinishBookModal from "@/components/Modals/FinishBookModal";
 import CompleteBookModal from "@/components/Modals/CompleteBookModal";
@@ -221,17 +222,30 @@ export default function BookDetailPage() {
   // Function to update book shelves
   async function updateShelves(shelfIds: number[], addToTop: boolean = false) {
     try {
+      // Capture current state before making changes
+      const previousShelfIds = currentShelfIds;
+
       await bookApi.updateShelves(bookId, { shelfIds, addToTop });
 
-      // Refetch shelf data
+      // Calculate which shelves were affected
+      const addedShelfIds = shelfIds.filter(id => !previousShelfIds.includes(id));
+      const removedShelfIds = previousShelfIds.filter(id => !shelfIds.includes(id));
+      const affectedShelfIds = [...new Set([...addedShelfIds, ...removedShelfIds])];
+
+      // Invalidate all affected shelf queries
+      // Use broad invalidation without orderBy/direction to catch all variants
+      affectedShelfIds.forEach(shelfId => {
+        queryClient.invalidateQueries({ queryKey: ['shelf', shelfId] });
+      });
+
+      // Refetch book's shelf data
       await refetchBookShelves();
-      
+
       const { toast } = await import('@/utils/toast');
-      
+
       // Show appropriate success message
-      const added = shelfIds.filter(id => !currentShelfIds.includes(id)).length;
-      if (addToTop && added > 0) {
-        toast.success(`Added to top of ${added} shelf${added !== 1 ? 's' : ''}`);
+      if (addToTop && addedShelfIds.length > 0) {
+        toast.success(`Added to top of ${addedShelfIds.length} shelf${addedShelfIds.length !== 1 ? 's' : ''}`);
       } else {
         toast.success('Shelves updated successfully');
       }
@@ -416,7 +430,7 @@ export default function BookDetailPage() {
                 <span key={author}>
                   <Link
                     href={`/library?search=${encodeURIComponent(author)}`}
-                    className="hover:text-[var(--accent)] transition-colors hover:underline"
+                    className="hover:underline"
                   >
                     {author}
                   </Link>
@@ -596,12 +610,11 @@ export default function BookDetailPage() {
                       href={`/shelves/${shelf.id}`}
                       className="px-3 py-2 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium flex items-center gap-2"
                     >
-                      <div
-                        className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center"
-                        style={{ backgroundColor: shelf.color || '#3b82f6' }}
-                      >
-                        {Icon && <Icon className="w-3 h-3 text-white" />}
-                      </div>
+                      <ShelfAvatar
+                        color={shelf.color}
+                        icon={shelf.icon}
+                        size="xs"
+                      />
                       {shelf.name}
                     </Link>
                   );
@@ -643,7 +656,7 @@ export default function BookDetailPage() {
         bookId={bookId}
         currentPageCount={book.totalPages ?? null}
         currentRating={book.rating}
-        defaultStartDate={book.activeSession?.startedDate ? new Date(book.activeSession.startedDate) : undefined}
+        defaultStartDate={book.activeSession?.startedDate ?? undefined}
       />
 
       {/* Manual status change from "reading" to "read" - uses mark-as-read API */}

@@ -308,6 +308,54 @@ if (transformed % 100 === 0) {
 
 ---
 
+## Production Build
+
+Companion migrations are compiled to JavaScript for production use in Docker containers:
+
+```bash
+npm run build:companions
+```
+
+This generates compiled CommonJS files in `dist/companions/`:
+- `dist/companions/0015_progress_dates_timezone.js` (+ .js.map)
+- `dist/companions/0016_session_dates_timezone.js` (+ .js.map)
+- `dist/companions/0019_initialize_read_next_order.js` (+ .js.map)
+- `dist/companions/0020_streak_dates_to_text.js` (+ .js.map)
+
+### Why Compile?
+
+The Docker entrypoint runs as compiled JavaScript (`node dist/entrypoint.cjs`):
+- Plain Node.js cannot `require()` TypeScript files
+- Compiling resolves path aliases (`@/lib/*`) at build time via esbuild
+- Faster execution (no tsx runtime overhead)
+- Consistent with hybrid entrypoint architecture
+
+### Development vs Production
+
+The companion loader (`lib/db/companion-migrations.ts`) automatically detects the execution context:
+
+- **Development**: Loads from `lib/migrations/*.ts` (TypeScript source files)
+- **Production**: Loads from `dist/companions/*.js` (compiled CommonJS)
+
+No code changes needed when switching between environments.
+
+### Docker Build
+
+The Dockerfile builds both the entrypoint and companions:
+
+```dockerfile
+RUN npm run build:docker  # Runs: build:entrypoint && build:companions
+```
+
+Compiled artifacts are copied to the production image:
+
+```dockerfile
+COPY --from=builder /app/dist/entrypoint.cjs ./dist/
+COPY --from=builder /app/dist/companions ./dist/companions
+```
+
+---
+
 ## Related Documentation
 
 - **ADR-013**: [Companion Migrations Pattern](../../docs/ADRs/ADR-013-COMPANION-MIGRATIONS.md)

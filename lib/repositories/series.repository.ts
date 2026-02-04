@@ -22,6 +22,7 @@ export interface SeriesBook {
   status?: string | null;
   tags: string[];
   description?: string | null;
+  lastSynced?: Date | null;
 }
 
 // Type definitions for repository
@@ -149,6 +150,7 @@ export class SeriesRepository extends BaseRepository<
         rating: books.rating,
         tags: books.tags,
         description: books.description,
+        lastSynced: books.lastSynced,
         // Get status from the selected session (active or most recent)
         status: readingSessions.status,
       })
@@ -176,6 +178,7 @@ export class SeriesRepository extends BaseRepository<
       status: r.status,
       tags: r.tags,
       description: r.description ?? undefined,
+      lastSynced: r.lastSynced ?? undefined,
     }));
   }
 

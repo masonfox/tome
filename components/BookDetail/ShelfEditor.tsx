@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { X, FolderOpen, Plus, Check, Search } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { getLogger } from "@/lib/logger";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
+import { Button } from "@/components/Utilities/Button";
 
 interface Shelf {
   id: number;
@@ -109,7 +112,7 @@ export default function ShelfEditor({
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="Filter shelves..."
             disabled={saving}
-            className="w-full pl-10 pr-10 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+            className="w-full pl-10 pr-10 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors disabled:opacity-50"
           />
           {filterQuery && (
             <button
@@ -141,30 +144,28 @@ export default function ShelfEditor({
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all text-left",
                   isSelected
-                    ? "bg-[var(--accent-color)]/15 shadow-sm"
-                    : "border-[var(--border-color)] hover:border-[var(--accent-color)]/50 hover:bg-[var(--border-color)]",
+                    ? "bg-[var(--accent)]/10 border-[var(--accent)] shadow-sm"
+                    : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:bg-[var(--background)]",
                   saving && "opacity-50 cursor-not-allowed"
                 )}
-                style={isSelected ? { borderColor: shelf.color || "#3b82f6" } : undefined}
               >
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: shelf.color || "#3b82f6" }}
-                >
-                  {Icon && <Icon className="w-5 h-5 text-white" />}
-                </div>
+                <ShelfAvatar
+                  color={shelf.color}
+                  icon={shelf.icon}
+                  size="md"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[var(--heading-text)] truncate">
                     {shelf.name}
                   </div>
                   {shelf.description && (
-                    <div className="text-sm text-[var(--foreground)]/60 truncate">
+                    <div className="text-sm text-[var(--subheading-text)] truncate">
                       {shelf.description}
                     </div>
                   )}
                 </div>
                 {isSelected && (
-                  <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
                     <Check className="w-4 h-4 text-white stroke-[3]" />
                   </div>
                 )}
@@ -185,13 +186,13 @@ export default function ShelfEditor({
           <p className="text-sm text-[var(--foreground)]/70 mb-4">
             No shelves available. Create a shelf first.
           </p>
-          <a
+          <Link
             href="/shelves"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-color)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-medium text-sm"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Create Shelf
-          </a>
+          </Link>
         </div>
       )}
 
@@ -222,35 +223,24 @@ export default function ShelfEditor({
   // Shared button elements
   const buttons = availableShelves.length > 0 && (
     <>
-      <button
+      <Button
         onClick={handleClose}
         disabled={saving}
-        className="px-5 py-2.5 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50"
+        variant="ghost"
+        size="md"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={handleSave}
         disabled={saving}
-        className="px-5 py-2.5 rounded-lg transition-colors font-semibold bg-[var(--accent)] text-white hover:bg-[var(--light-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="primary"
+        size="md"
+        isLoading={saving}
       >
         {saving ? "Saving..." : "Save Changes"}
-      </button>
+      </Button>
     </>
-  );
-
-  // Mobile wrapper (fixed at bottom)
-  const mobileButtons = buttons && (
-    <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
-      {buttons}
-    </div>
-  );
-
-  // Desktop wrapper (relative positioning)
-  const desktopButtons = buttons && (
-    <div className="mt-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end">
-      {buttons}
-    </div>
   );
 
   // Mobile: Use BottomSheet
@@ -263,6 +253,7 @@ export default function ShelfEditor({
         icon={<FolderOpen className="w-5 h-5" />}
         size="full"
         allowBackdropClose={!saving}
+        actions={buttons}
       >
         {/* Book Title and Summary */}
         <div className="mb-4">
@@ -273,10 +264,7 @@ export default function ShelfEditor({
             {summaryText}
           </p>
         </div>
-        <div className="mb-20">
-          {shelfContent}
-        </div>
-        {mobileButtons}
+        {shelfContent}
       </BottomSheet>
     );
   }
@@ -322,7 +310,7 @@ export default function ShelfEditor({
         </div>
 
         {/* Action Buttons - Fixed at bottom */}
-        {desktopButtons && (
+        {buttons && (
           <div className="p-6 pt-4 border-t border-[var(--border-color)] flex gap-3 justify-end flex-shrink-0">
             {buttons}
           </div>

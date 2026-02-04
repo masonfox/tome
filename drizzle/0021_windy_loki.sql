@@ -1,0 +1,1 @@
+ALTER TABLE `reading_sessions` DROP COLUMN `dnf_date`;

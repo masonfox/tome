@@ -13,18 +13,20 @@ interface BookGridProps {
     status?: string | null;
     tags?: string[];
     totalPages?: number;
+    lastSynced?: Date | string | null;
   }>;
   loading?: boolean;
   loadingMore?: boolean;
+  skeletonCount?: number; // Number of skeleton cards to show when loading
 }
 
-export function BookGrid({ books, loading = false, loadingMore = false }: BookGridProps) {
+export function BookGrid({ books, loading = false, loadingMore = false, skeletonCount = 18 }: BookGridProps) {
   return (
     <>
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 18 }).map((_, index) => (
-            <BookCardSkeleton key={index} />
+          {Array.from({ length: skeletonCount }).map((_, index) => (
+            <BookCardSkeleton key={index} variant="with-status" />
           ))}
         </div>
       ) : books.length > 0 ? (
@@ -38,6 +40,7 @@ export function BookGrid({ books, loading = false, loadingMore = false }: BookGr
                 authors={book.authors}
                 calibreId={book.calibreId}
                 status={book.status}
+                lastSynced={book.lastSynced}
               />
             ))}
           </div>

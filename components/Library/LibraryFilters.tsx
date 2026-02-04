@@ -2,27 +2,16 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
+import { StarRating } from "@/components/Utilities/StarRating";
 
 // Helper function to render star ratings
 function renderStars(rating: number) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={cn(
-            "w-4 h-4",
-            star <= rating 
-              ? "fill-[var(--accent)] text-[var(--accent)]" 
-              : "text-[var(--foreground)]/30"
-          )}
-        />
-      ))}
-    </span>
-  );
+  return <StarRating rating={rating} size="sm" />;
 }
 
 // Move static options outside component to avoid recreation
@@ -32,7 +21,7 @@ const statusOptions = [
   { value: "read-next", label: "Read Next", icon: Clock },
   { value: "reading", label: "Reading", icon: BookOpen },
   { value: "read", label: "Read", icon: BookCheck },
-  { value: "dnf", label: "Did Not Finish", icon: BookX },
+  { value: "dnf", label: "DNF", icon: BookX },
 ];
 
 // Grouped rating options with star rendering support
@@ -267,16 +256,16 @@ export function LibraryFilters({
         <div className="flex items-center gap-2">
           {/* Clear All Button */}
           {onClearAll && (
-            <button
+            <Button
               type="button"
               onClick={onClearAll}
               disabled={loading || !hasActiveFilters}
-              className={`px-3 py-1 text-sm text-[var(--foreground)]/70 hover:text-[var(--accent)] hover:bg-[var(--background)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                !hasActiveFilters ? 'invisible' : ''
-              }`}
+              variant="ghost"
+              size="sm"
+              className={`${!hasActiveFilters ? 'invisible' : ''}`}
             >
               Clear All
-            </button>
+            </Button>
           )}
           
           {/* Sort Dropdown */}
@@ -381,13 +370,15 @@ export function LibraryFilters({
                 </button>
               )}
             </div>
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shrink-0 self-stretch"
+              variant="primary"
+              size="md"
+              className="shrink-0 self-stretch"
             >
               Search
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -415,40 +406,49 @@ export function LibraryFilters({
 
               {showStatusDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden">
-                  {statusOptions.map((option) => {
+                  {statusOptions.map((option, index) => {
                     const Icon = option.icon;
                     const statusConfig = option.value !== "all" ? STATUS_CONFIG[option.value as keyof typeof STATUS_CONFIG] : null;
+                    const isFirstItem = index === 0;
+                    const showDivider = isFirstItem;
+                    
                     return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          onStatusFilterChange(option.value);
-                          setShowStatusDropdown(false);
-                        }}
-                        disabled={loading}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                          "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                          statusFilter === option.value && "bg-[var(--accent)]/10",
-                          loading && "opacity-50 cursor-not-allowed"
+                      <div key={option.value}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onStatusFilterChange(option.value);
+                            setShowStatusDropdown(false);
+                          }}
+                          disabled={loading}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            statusFilter === option.value && "bg-[var(--accent)]/10",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {statusConfig ? (
+                            <div className={cn(
+                              "w-7 h-7 rounded-md flex items-center justify-center bg-gradient-to-r shadow-sm",
+                              statusConfig.lightGradient
+                            )}>
+                              <Icon className="w-4 h-4 text-white" />
+                            </div>
+                          ) : (
+                            <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
+                          )}
+                          <span className="font-medium flex-1">{option.label}</span>
+                          {statusFilter === option.value && (
+                            <Check className="w-5 h-5 text-[var(--accent)]" />
+                          )}
+                        </button>
+                        
+                        {/* Divider after "All Statuses" */}
+                        {showDivider && (
+                          <div className="h-px bg-[var(--border-color)]" />
                         )}
-                      >
-                        {statusConfig ? (
-                          <div className={cn(
-                            "w-7 h-7 rounded-md flex items-center justify-center bg-gradient-to-r shadow-sm",
-                            statusConfig.lightGradient
-                          )}>
-                            <Icon className="w-4 h-4 text-white" />
-                          </div>
-                        ) : (
-                          <Icon className="w-4 h-4 text-[var(--foreground)]/60" />
-                        )}
-                        <span className="font-medium flex-1">{option.label}</span>
-                        {statusFilter === option.value && (
-                          <Check className="w-5 h-5 text-[var(--accent)]" />
-                        )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -604,10 +604,10 @@ export function LibraryFilters({
                   )}
 
                   {/* Divider */}
-                  <div className="h-px bg-[var(--border-color)] my-1" />
+                  <div className="h-px bg-[var(--border-color)]" />
 
                   {/* Search input within dropdown */}
-                  <div className="px-2 py-2 sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+                  <div className="py-2 sticky top-0 bg-[var(--card-bg-emphasis)]">
                     <input
                       type="text"
                       placeholder="Search tags..."
@@ -615,9 +615,12 @@ export function LibraryFilters({
                       onChange={(e) => setTagSearchInput(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                       disabled={loading || loadingTags}
-                      className="w-full px-3 py-1.5 bg-[var(--background)] border border-[var(--border-color)] rounded text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
+                      className="w-full px-4 py-1.5 bg-transparent text-sm text-[var(--foreground)] placeholder-[var(--foreground)]/50 focus:outline-none transition-colors disabled:opacity-50"
                     />
                   </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-[var(--border-color)]" />
 
                   {/* Tag list */}
                   <div className="max-h-60 overflow-y-auto">
@@ -664,16 +667,17 @@ export function LibraryFilters({
         {selectedTags.length > 0 && !noTags && (
           <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => (
-              <button
+              <Button
                 key={tag}
                 type="button"
                 onClick={() => handleTagRemove(tag)}
                 disabled={loading}
-                className={`px-3 py-1 text-sm bg-[var(--accent)] text-white border border-[var(--accent)] flex items-center gap-1 hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                variant="primary"
+                size="sm"
+                iconAfter={<X className="w-3 h-3" />}
               >
                 {tag}
-                <X className="w-3 h-3" />
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -759,14 +763,13 @@ export function LibraryFilters({
                             loading && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          <div
-                            className="w-7 h-7 rounded-md flex items-center justify-center"
-                            style={{
-                              backgroundColor: shelf.color || "var(--foreground-20)",
-                            }}
-                          >
-                            <ShelfIcon className="w-4 h-4 text-white" />
-                          </div>
+                          <ShelfAvatar
+                            color={shelf.color || "var(--foreground-20)"}
+                            icon={shelf.icon}
+                            size="sm"
+                            shape="rounded"
+                            className="w-7 h-7"
+                          />
                           <span className="font-medium flex-1">{shelf.name}</span>
                           {shelfFilter === shelf.id && (
                             <Check className="w-5 h-5 text-[var(--accent)]" />

@@ -1,31 +1,25 @@
 "use client";
 
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
-import { Target, TrendingUp, TrendingDown } from "lucide-react";
+import { Target, TrendingUp, TrendingDown, CheckCircle2, Trophy } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { getGoalStatusColors, type PaceStatus } from "@/lib/utils/reading-goal-styles";
 
 interface PaceIndicatorProps {
-  paceStatus: "ahead" | "on-track" | "behind";
+  paceStatus: PaceStatus;
   booksAheadBehind: number;
 }
 
 export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorProps) {
-  const getStatusColor = () => {
-    switch (paceStatus) {
-      case "ahead":
-        return "text-emerald-700";
-      case "on-track":
-        return "text-[var(--accent)]";
-      case "behind":
-        return "text-orange-600";
-    }
-  };
+  const colors = getGoalStatusColors(paceStatus, false, false, false);
+  const getStatusColor = () => colors.text;
 
   const getStatusText = () => {
     if (paceStatus === "on-track") {
       return "On Track";
     }
     
-    const books = Math.round(Math.abs(booksAheadBehind)); // Changed to whole number
+    const books = Math.round(Math.abs(booksAheadBehind));
     const bookText = books === 1 ? "book" : "books";
     
     if (paceStatus === "ahead") {
@@ -38,16 +32,16 @@ export function PaceIndicator({ paceStatus, booksAheadBehind }: PaceIndicatorPro
   const getIcon = () => {
     switch (paceStatus) {
       case "ahead":
-        return <TrendingUp className="w-3.5 h-3.5" />;
+        return <TrendingUp className="w-4 h-4" />;
       case "on-track":
-        return <Target className="w-3.5 h-3.5" />;
+        return <CheckCircle2 className="w-4 h-4" />;
       case "behind":
-        return <TrendingDown className="w-3.5 h-3.5" />;
+        return <TrendingDown className="w-4 h-4" />;
     }
   };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${getStatusColor()}`}>
+    <span className={`inline-flex items-center gap-2 text-sm font-semibold ${getStatusColor()}`}>
       {getIcon()}
       {getStatusText()}
     </span>
@@ -74,105 +68,150 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const isExceeded = booksCompleted > goal.booksGoal;
   const isGoalMet = booksCompleted === goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
+  
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const [barWidth, setBarWidth] = useState(0);
+
+  useEffect(() => {
+    if (progressBarRef.current) {
+      setBarWidth(progressBarRef.current.offsetWidth);
+    }
+  }, []);
+
+  // Get colors based on current status
+  const statusColors = getGoalStatusColors(paceStatus, isGoalMet, isExceeded, isPastYear);
+
+  // Helper function to get banner gradient
+  const getBannerGradient = () => statusColors.banner;
+
+  // Helper function to get progress bar gradient and animation
+  const getProgressBarClasses = () => {
+    const shouldPulse = isExceeded || isGoalMet;
+    const baseClasses = "h-12 transition-all duration-500 ease-out flex items-center justify-center relative";
+    const pulseClasses = shouldPulse ? "animate-pulse-subtle" : "";
+    return `${baseClasses} ${statusColors.gradient} ${pulseClasses}`;
+  };
+
+  // Helper function to get color for the books completed number based on pacing
+  const getBooksCompletedColor = () => statusColors.text;
 
   // PAST YEAR: Retrospective view
   if (isPastYear) {
     return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-        {/* Header Section - Status Badge */}
-        <div className="flex items-center justify-between mb-6">
-          <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${
-            isExceeded
-              ? "border-2 border-emerald-600"
-              : booksCompleted === goal.booksGoal
-              ? "border-2 border-emerald-600"
-              : "border-2 border-orange-600"
-          }`}>
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+        {/* Status Banner */}
+        <div className={`px-6 py-4 h-[56px] flex items-center justify-between ${getBannerGradient()}`}>
+          <div className="flex items-center gap-2">
             {!isExceeded && booksRemaining > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600">
-                <TrendingDown className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600">
+                <TrendingDown className="w-4 h-4" />
                 Fell short
               </span>
             )}
             {isExceeded && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                <Target className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                <Trophy className="w-4 h-4" />
                 Goal Exceeded!
               </span>
             )}
-            {!isExceeded && booksCompleted === goal.booksGoal && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                <Target className="w-3.5 h-3.5" />
+            {!isExceeded && isGoalMet && (
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                <Trophy className="w-4 h-4" />
                 Goal Achieved!
               </span>
             )}
           </div>
         </div>
 
-        {/* Achievement Bar */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
-              <span className="font-bold">Goal:</span> {goal.booksGoal}
+        {/* Card Content */}
+        <div className="p-6">
+          {/* Goal Info Header */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="inline-flex items-center gap-[6px]">              
+              <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0" />
+              <span className="text-base font-semibold text-[var(--foreground)]">
+                Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
+              </span>
             </span>
-            <span className="text-sm font-bold text-[var(--heading-text)]">
-              {displayPercentage}%
+            <span className="text-base font-bold text-[var(--heading-text)]">
+              <span className={getBooksCompletedColor()}>{booksCompleted}</span>/{goal.booksGoal} books
             </span>
           </div>
-          <div className="w-full bg-[var(--border-color)] rounded-sm h-5 overflow-hidden">
-            <div
-              className={`h-5 transition-all duration-500 ease-out ${
-                isExceeded
-                  ? "bg-gradient-to-r from-emerald-600 to-emerald-500"
-                  : booksCompleted === goal.booksGoal
-                  ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
-                  : "bg-gradient-to-r from-orange-600 to-orange-500"
-              }`}
-              style={{ width: `${displayPercentage}%` }}
-            />
-          </div>
-        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="border-l-2 border-[var(--accent)] pl-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-              Books Read
-            </p>
-            <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-              {booksCompleted}
-            </p>
+          {/* Hero Progress Bar */}
+          <div className="mb-6">
+            <div ref={progressBarRef} className="relative w-full bg-[var(--card-bg-emphasis)] rounded-lg h-12 overflow-hidden">
+              {/* Progress bar fill */}
+              <div
+                className={getProgressBarClasses()}
+                style={{ width: `${displayPercentage}%` }}
+              />
+              {/* Background text layer (shows on unfilled portion) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <span className="text-2xl font-bold font-serif text-[var(--foreground)]">
+                  {displayPercentage}%
+                </span>
+              </div>
+              {/* Overlay text layer (white text on colored progress bar) */}
+              {barWidth > 0 && (
+                <div 
+                  className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none z-20"
+                  style={{ width: `${displayPercentage}%` }}
+                >
+                  <div 
+                    className="h-full flex items-center justify-center" 
+                    style={{ width: `${barWidth}px` }}
+                  >
+                    <span className="text-2xl font-bold font-serif text-white whitespace-nowrap">
+                      {displayPercentage}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          {!isExceeded && booksRemaining > 0 && (
-            <div className="border-l-2 border-orange-300 pl-4">
-              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-                Fell Short By
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] border-[var(--accent)]">
+              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
+                Books Read
               </p>
-              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-                {booksRemaining}
-              </p>
-            </div>
-          )}
-          {isExceeded && (
-            <div className="border-l-2 border-emerald-300 pl-4">
-              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-                Exceeded By
-              </p>
-              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-                {booksCompleted - goal.booksGoal}
+              <p className="text-5xl font-serif font-bold text-[var(--heading-text)]">
+                {booksCompleted}
               </p>
             </div>
-          )}
-          {!isExceeded && booksRemaining === 0 && (
-            <div className="border-l-2 border-emerald-300 pl-4">
-              <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-                Goal
-              </p>
-              <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-                {goal.booksGoal}
-              </p>
-            </div>
-          )}
+            {!isExceeded && booksRemaining > 0 && (
+              <div className={`bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] ${statusColors.border}`}>
+                <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
+                  Fell Short By
+                </p>
+                <p className="text-5xl font-serif font-bold text-[var(--heading-text)]">
+                  {booksRemaining}
+                </p>
+              </div>
+            )}
+            {isExceeded && (
+              <div className={`bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] ${statusColors.border}`}>
+                <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
+                  Exceeded By
+                </p>
+                <p className="text-5xl font-serif font-bold text-[var(--heading-text)]">
+                  {booksCompleted - goal.booksGoal}
+                </p>
+              </div>
+            )}
+            {!isExceeded && booksRemaining === 0 && (
+              <div className={`bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] ${statusColors.border}`}>
+                <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
+                  Goal
+                </p>
+                <p className="text-5xl font-serif font-bold text-[var(--heading-text)]">
+                  {goal.booksGoal}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -180,28 +219,20 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
   // CURRENT YEAR: Active tracking view
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-8 hover:shadow-md transition-shadow relative">
-      {/* Header Section */}
-      <div className="flex items-center justify-between mb-6">
-        <div className={`inline-flex items-center bg-[var(--card-bg)] rounded-sm px-3 py-2 ${
-          isExceeded || isGoalMet
-            ? "border-2 border-emerald-600"
-            : paceStatus === "ahead"
-            ? "border-2 border-emerald-600"
-            : paceStatus === "on-track"
-            ? "border-2 border-[var(--accent)]"
-            : "border-2 border-orange-600"
-        }`}>
+    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+      {/* Status Banner */}
+      <div className={`px-6 py-4 h-[56px] flex items-center justify-between ${getBannerGradient()}`}>
+        <div className="flex items-center gap-2">
           {!isExceeded && !isGoalMet && <PaceIndicator paceStatus={paceStatus} booksAheadBehind={booksAheadBehind} />}
           {isGoalMet && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <Target className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+              <Trophy className="w-4 h-4" />
               Goal Met!
             </span>
           )}
           {isExceeded && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <Target className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+              <Trophy className="w-4 h-4" />
               Goal Exceeded!
             </span>
           )}
@@ -210,7 +241,8 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         {onEditClick && (
           <button
             onClick={onEditClick}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--subheading-text)] hover:text-[var(--foreground)] transition-colors"
+            aria-label="Edit reading goal"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -221,51 +253,83 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
         )}
       </div>
 
-      {/* Progress Bar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold">
-            <span className="font-bold">Goal:</span> {goal.booksGoal}
+      {/* Card Content */}
+      <div className="p-6">
+        {/* Goal Info Header */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="inline-flex items-center gap-[6px]">
+            <Target className="w-4 h-4 text-[var(--accent)] flex-shrink-0" />
+            <span className="text-base font-semibold text-[var(--foreground)]">
+              Goal: <span className="text-[var(--heading-text)]">{goal.booksGoal} books</span>
+            </span>
           </span>
-          <span className="text-sm font-bold text-[var(--heading-text)]">
-            {displayPercentage}%
+          <span className="text-base font-bold text-[var(--heading-text)]">
+            <span className={getBooksCompletedColor()}>{booksCompleted}</span>/{goal.booksGoal} books
           </span>
         </div>
-        <div className="w-full bg-[var(--border-color)] rounded-sm h-5 overflow-hidden">
-          <div
-            className={`h-5 transition-all duration-500 ease-out ${
-              isExceeded
-                ? "bg-gradient-to-r from-emerald-600 to-emerald-500"
-                : isGoalMet
-                ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
-                : paceStatus === "ahead"
-                ? "bg-gradient-to-r from-emerald-700 to-emerald-600"
-                : paceStatus === "on-track"
-                ? "bg-gradient-to-r from-[var(--accent)] to-[var(--light-accent)]"
-                : "bg-gradient-to-r from-orange-600 to-orange-500"
-            }`}
-            style={{ width: `${displayPercentage}%` }}
-          />
-        </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="border-l-2 border-[var(--accent)] pl-4">
-          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-            Completed
-          </p>
-          <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-            {booksCompleted}
-          </p>
+        {/* Hero Progress Bar */}
+        <div className="mb-6">
+          <div 
+            ref={progressBarRef}
+            className="relative w-full bg-[var(--card-bg-emphasis)] rounded-lg h-12 overflow-hidden"
+            role="progressbar"
+            aria-valuenow={displayPercentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Reading progress: ${displayPercentage}% complete`}
+          >
+            {/* Progress bar fill */}
+            <div
+              className={getProgressBarClasses()}
+              style={{ width: `${displayPercentage}%` }}
+            />
+            {/* Background text layer (shows on unfilled portion) */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <span className="text-2xl font-bold font-serif text-[var(--foreground)]">
+                {displayPercentage}%
+              </span>
+            </div>
+            {/* Overlay text layer (white text on colored progress bar) */}
+            {barWidth > 0 && (
+              <div 
+                className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none z-20"
+                style={{ width: `${displayPercentage}%` }}
+              >
+                <div 
+                  className="h-full flex items-center justify-center" 
+                  style={{ width: `${barWidth}px` }}
+                >
+                  <span 
+                    className="text-2xl font-bold font-serif text-white whitespace-nowrap"
+                    aria-hidden="true"
+                  >
+                    {displayPercentage}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="border-l-2 border-[var(--border-color)] pl-4">
-          <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-1">
-            Remaining
-          </p>
-          <p className="text-3xl font-serif font-bold text-[var(--heading-text)]">
-            {booksRemaining}
-          </p>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] border-[var(--accent)]">
+            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
+              Completed
+            </p>
+            <p className="text-5xl font-serif font-bold text-[var(--heading-text)]">
+              {booksCompleted}
+            </p>
+          </div>
+          <div className="bg-[var(--card-bg-emphasis)] rounded-md p-4 border-l-[3px] border-[var(--border-color)]">
+            <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/70 font-semibold mb-2">
+              Remaining
+            </p>
+            <p className="text-5xl font-serif font-bold text-[var(--heading-text)]">
+              {booksRemaining}
+            </p>
+          </div>
         </div>
       </div>
     </div>

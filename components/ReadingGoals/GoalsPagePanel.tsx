@@ -6,11 +6,17 @@ import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { YearSelector } from "@/components/Utilities/YearSelector";
+import { MonthSelector } from "@/components/Utilities/MonthSelector";
+import { MonthSelectorSkeleton } from "@/components/Utilities/MonthSelectorSkeleton";
 import { ReadingGoalChart } from "./ReadingGoalChart";
 import { ReadingGoalChartSkeleton } from "./ReadingGoalChartSkeleton";
 import { CompletedBooksSection } from "@/components/Books/CompletedBooksSection";
 import { GoalsOnboarding } from "./GoalsOnboarding";
+import { Button } from "@/components/Utilities/Button";
 import BaseModal from "@/components/Modals/BaseModal";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
@@ -21,9 +27,13 @@ interface GoalsPagePanelProps {
 
 export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProps) {
   const queryClient = useQueryClient();
+  const { createGoalAsync, updateGoalAsync } = useReadingGoals();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [booksGoal, setBooksGoal] = useState<number | "">(""); 
+  const [saving, setSaving] = useState(false);
 
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -32,7 +42,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   }, [allGoals]);
 
   // Goal data query
-  const { data: currentGoalData, isLoading: goalLoading, error: goalError } = useQuery({
+  const { data: currentGoalData, isPending: goalLoading, error: goalError } = useQuery({
     queryKey: ['reading-goal', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
@@ -46,11 +56,12 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       const data = await response.json();
       return data.success ? data.data as ReadingGoalWithProgress : null;
     },
+    initialData: selectedYear === initialGoalData?.goal.year ? initialGoalData : undefined,
     staleTime: 30000, // 30 seconds
   });
 
   // Monthly breakdown query
-  const { data: monthlyData = [], isLoading: monthlyLoading } = useQuery({
+  const { data: monthlyData = [], isPending: monthlyLoading } = useQuery({
     queryKey: ['monthly-breakdown', selectedYear],
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
@@ -66,7 +77,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
   // Completed books query
   const { 
     data: booksData, 
-    isLoading: booksLoading 
+    isPending: booksLoading 
   } = useQuery({
     queryKey: ['completed-books', selectedYear],
     queryFn: async () => {
@@ -83,6 +94,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
   const completedBooks = booksData?.books || [];
   const booksCount = booksData?.count || 0;
+
+  // Calculate months with books from monthly data
+  const monthsWithBooks = useMemo(() => {
+    return monthlyData
+      .filter(m => m.count > 0)
+      .map(m => m.month);
+  }, [monthlyData]);
 
   // Create goal mutation
   const createGoalMutation = useMutation({
@@ -109,26 +127,69 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     },
   });
 
+  const currentYear = new Date().getFullYear();
+  const year = modalMode === "edit" && currentGoalData?.goal ? currentGoalData.goal.year : selectedYear;
+  const isPastYear = year < currentYear;
+  const canEdit = !isPastYear || modalMode === "create";
+
   const handleOpenCreateModal = () => {
     setModalMode("create");
+    setBooksGoal("");
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = () => {
     setModalMode("edit");
+    setBooksGoal(currentGoalData?.goal?.booksGoal ?? "");
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setBooksGoal("");
   };
 
-  const handleSuccess = async () => {
-    setIsModalOpen(false);
-    // Invalidate all queries for the current year
-    queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
-    queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
-    queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
+  const handleSubmit = async () => {
+    // Validation
+    if (booksGoal === "" || typeof booksGoal !== "number") {
+      toast.error("Please enter a goal");
+      return;
+    }
+
+    if (booksGoal < 1 || booksGoal > 9999) {
+      toast.error("Goal must be between 1 and 9999 books");
+      return;
+    }
+
+    if (!Number.isInteger(booksGoal)) {
+      toast.error("Goal must be a whole number");
+      return;
+    }
+
+    // Year validation - only allow current year or past years for new goals (no future years)
+    if (modalMode === "create" && year > currentYear) {
+      toast.error("Goals can only be created for the current year or past years");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (modalMode === "create") {
+        await createGoalAsync({ year, booksGoal });
+      } else if (currentGoalData?.goal) {
+        await updateGoalAsync({ id: currentGoalData.goal.id, data: { booksGoal } });
+      }
+      // Invalidate all queries for the current year
+      queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
+      setIsModalOpen(false);
+      setBooksGoal("");
+    } catch (error) {
+      // Error already handled by mutation
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCreateFromOnboarding = async (year: number, booksGoal: number) => {
@@ -137,6 +198,16 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
+    setSelectedMonth(null); // Reset month filter when year changes
+  };
+
+  const handleMonthClick = (month: number) => {
+    // Only set if month has books
+    const monthData = monthlyData.find(m => m.month === month);
+    const hasBooks = monthData ? monthData.count > 0 : false;
+    if (hasBooks) {
+      setSelectedMonth(month);
+    }
   };
 
   // ESC key handler
@@ -158,7 +229,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     <div className="space-y-8 rounded-md">
       {/* Year Selector */}
       {availableYears.length > 0 && (
-        <div className="flex items-center justify-start">
+        <div className="flex items-center justify-center sm:justify-start">
           <YearSelector
             years={availableYears}
             selectedYear={selectedYear}
@@ -189,12 +260,13 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
           <p className="text-[var(--subheading-text)] font-medium mb-4">
             No goal set for {selectedYear}
           </p>
-          <button
+          <Button
             onClick={handleOpenCreateModal}
-            className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold text-sm"
+            variant="primary"
+            size="md"
           >
             Create Goal for {selectedYear}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -203,45 +275,121 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title={modalMode === "create" ? "Create Reading Goal" : "Edit Reading Goal"}
-        subtitle={`Set your reading goal for ${selectedYear}`}
-        actions={<></>}
+        subtitle={modalMode === "create" 
+          ? `How many books do you want to read in ${selectedYear}?`
+          : `Update your reading goal for ${selectedYear}`}
+        actions={
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              onClick={handleCloseModal}
+              variant="ghost"
+              size="md"
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canEdit || saving}
+              variant="primary"
+              size="md"
+              icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
+            >
+              {modalMode === "create" ? "Create Goal" : "Update Goal"}
+            </Button>
+          </div>
+        }
         size="md"
+        allowBackdropClose={false}
       >
         <ReadingGoalForm
           mode={modalMode}
           existingGoal={modalMode === "edit" ? currentGoalData?.goal : undefined}
           selectedYear={selectedYear}
-          onSuccess={handleSuccess}
-          onCancel={handleCloseModal}
+          booksGoal={booksGoal}
+          onBooksGoalChange={setBooksGoal}
+          disabled={saving}
         />
       </BaseModal>
 
       {/* Monthly Chart - Only show for past and current years */}
-      {currentGoalData && selectedYear <= new Date().getFullYear() && (
-        monthlyLoading ? (
-          <ReadingGoalChartSkeleton />
-        ) : monthlyData.length > 0 ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm p-6 pb-4">
-            <h3 className="text-base font-serif font-bold text-[var(--heading-text)] mb-4">
+      {selectedYear <= new Date().getFullYear() && (
+        goalLoading || monthlyLoading ? (
+          <div>
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 text-center sm:text-left">
               {selectedYear < new Date().getFullYear() 
                 ? "Monthly Breakdown" 
                 : "Monthly Progress"}
-            </h3>
-            <ReadingGoalChart
-              monthlyData={monthlyData}
-            />
+            </h2>
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+              <ReadingGoalChartSkeleton />
+            </div>
+          </div>
+        ) : currentGoalData && monthlyData.length > 0 ? (
+          <div>
+            <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] mb-4 text-center sm:text-left">
+              {selectedYear < new Date().getFullYear() 
+                ? "Monthly Breakdown" 
+                : "Monthly Progress"}
+            </h2>
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+              <ReadingGoalChart
+                monthlyData={monthlyData}
+                onMonthClick={handleMonthClick}
+                selectedMonth={selectedMonth}
+              />
+            </div>
           </div>
         ) : null
       )}
 
       {/* Completed Books Section - Only show for past and current years */}
-      {currentGoalData && selectedYear <= new Date().getFullYear() && (
-        <CompletedBooksSection
-          year={selectedYear}
-          books={completedBooks}
-          count={booksCount}
-          loading={booksLoading}
-        />
+      {selectedYear <= new Date().getFullYear() && (
+        goalLoading || booksLoading ? (
+          <CompletedBooksSection
+            year={selectedYear}
+            books={[]}
+            count={0}
+            loading={true}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            monthSelector={
+              <MonthSelector
+                year={selectedYear}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                minYear={availableYears[availableYears.length - 1]}
+                maxYear={availableYears[0]}
+                onYearChange={handleYearChange}
+                monthsWithBooks={monthsWithBooks}
+                loading={monthlyLoading}
+              />
+            }
+          />
+        ) : currentGoalData ? (
+          <CompletedBooksSection
+            year={selectedYear}
+            books={completedBooks}
+            count={booksCount}
+            loading={false}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            monthSelector={
+              <MonthSelector
+                year={selectedYear}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                minYear={availableYears[availableYears.length - 1]}
+                maxYear={availableYears[0]}
+                onYearChange={handleYearChange}
+                monthsWithBooks={monthsWithBooks}
+                loading={monthlyLoading}
+              />
+            }
+          />
+        ) : null
       )}
     </div>
   );

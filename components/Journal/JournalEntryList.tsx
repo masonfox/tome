@@ -33,7 +33,9 @@ export function JournalEntryList({
 
   // Group entries by date
   const groupedByDate = entries.reduce((acc, entry) => {
-    // progressDate is already in YYYY-MM-DD format from the API
+    // ADR-014: progressDate is already a YYYY-MM-DD string - use it directly
+    // No Date conversion needed, as this would cause timezone shift
+    // (new Date("2021-01-01") treats as UTC midnight, becomes Dec 31 in EST)
     const dateKey = entry.progressDate;
     if (!acc[dateKey]) {
       acc[dateKey] = [];

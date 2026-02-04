@@ -92,9 +92,9 @@ function compareVersions(current: string, latest: string): {
   }
   
   // Patch version increase (e.g., 0.4.0 → 0.4.1)
-  // Don't notify for patch updates in pre-1.0
+  // TODO: after 1.0.0 release, return this to falses; don't notify on patch
   if (lat.major === curr.major && lat.minor === curr.minor && lat.patch > curr.patch) {
-    return { hasUpdate: false, isMinorOrMajor: false };
+    return { hasUpdate: true, isMinorOrMajor: true };
   }
   
   return { hasUpdate: false, isMinorOrMajor: false };

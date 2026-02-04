@@ -140,7 +140,7 @@ describe("SessionRepository - Edge Cases", () => {
         sessionNumber: 2,
         status: "dnf",
         isActive: false,
-        dnfDate: "2024-02-01",
+        completedDate: "2024-02-01",
       });
 
       // Third session with progress (active)
@@ -484,7 +484,7 @@ describe("SessionRepository - Edge Cases", () => {
         sessionNumber: 2,
         status: "dnf",
         isActive: false,
-        dnfDate: "2025-01-15",
+        completedDate: "2025-01-15",
       });
 
       const count = await sessionRepository.countCompletedAfterDate("2025-01-01");

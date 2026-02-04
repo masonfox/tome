@@ -11,6 +11,7 @@
   --subheading-text: #5F5F5F;
   --accent: #8b6f47;
   --light-accent: #c9a876;
+  --dark-accent: #6d5636;
   --card-bg: #f5f1e8;
   --card-bg-emphasis: #e8e0d1;
   --border-color: #d4cbbe;
@@ -29,6 +30,7 @@ html[data-theme="dark"] {
   --subheading-text: #bdb4a1;
   --accent: #a89968;
   --light-accent: #c9a876;
+  --dark-accent: #8b7550;
   --card-bg: #3d3935;
   --card-bg-emphasis: #4a4640;
   --border-color: #4a4640;
@@ -42,6 +44,7 @@ html[data-theme="light"] {
   --subheading-text: #5F5F5F;
   --accent: #8b6f47;
   --light-accent: #c9a876;
+  --dark-accent: #6d5636;
   --card-bg: #f5f1e8;
   --card-bg-emphasis: #e8e0d1;
   --border-color: #d4cbbe;
@@ -56,6 +59,7 @@ html[data-theme="light"] {
     --subheading-text: #bdb4a1;
     --accent: #a89968;
     --light-accent: #c9a876;
+    --dark-accent: #8b7550;
     --card-bg: #3d3935;
     --card-bg-emphasis: #4a4640;
     --border-color: #4a4640;
@@ -84,12 +88,35 @@ body {
   body {
     overscroll-behavior-y: none;
   }
+
+  /* Add safe area spacing to main content bottom padding in PWA mode
+     This ensures comfortable spacing above the bottom navigation on all devices
+     by combining the base padding (8rem/128px) with device-specific safe areas */
+  #main-content {
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Subtle pulse animation for goal achievements */
+@keyframes pulse-subtle {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.01);
+    opacity: 0.97;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
 }
 
 /* Warm theme toast styling - Light mode */
@@ -283,16 +310,16 @@ body.overflow-hidden {
     margin-left: var(--sidebar-width-expanded);
   }
 
-  /* Bulk action bar - offset for sidebar */
-  #bulk-action-bar {
+  /* Shared utility: Elements that need sidebar offset (fixed position bars) */
+  .sidebar-offset {
     left: var(--sidebar-width-collapsed);
   }
 
-  html.transitions-enabled #bulk-action-bar {
+  html.transitions-enabled .sidebar-offset {
     transition: left 0.3s ease-in-out;
   }
 
-  html[data-sidebar-collapsed="false"] #bulk-action-bar {
+  html[data-sidebar-collapsed="false"] .sidebar-offset {
     left: var(--sidebar-width-expanded);
   }
 }

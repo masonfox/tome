@@ -59,7 +59,7 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
   // Fetch book data with automatic caching and background refetching
   const {
     data: book = null,
-    isLoading: loading,
+    isPending,
     error,
     refetch,
   } = useQuery<Book>({
@@ -67,6 +67,10 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     queryFn: () => bookApi.getDetail(bookId),
     staleTime: 5000, // Data is fresh for 5 seconds
   });
+
+  // Determine if we're truly loading: either pending or book ID doesn't match
+  // This prevents flash when navigating between books with cached data
+  const loading = isPending || (book !== null && book.id.toString() !== bookId);
 
   // Mutation for updating total pages
   const updateTotalPagesMutation = useMutation({

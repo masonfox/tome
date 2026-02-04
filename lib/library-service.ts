@@ -1,4 +1,5 @@
 import { getLogger } from "@/lib/logger";
+import type { BookWithStatusMinimal } from "@/lib/api/domains/book/types";
 
 export interface LibraryFilters {
   status?: string;
@@ -23,22 +24,7 @@ export interface PaginatedBooks {
   hasMore: boolean;
 }
 
-export interface BookWithStatus {
-  id: number;
-  calibreId: number;
-  title: string;
-  authors: string[];
-  coverPath?: string;
-  status: string | null;
-  rating?: number | null;
-  tags: string[];
-  totalPages?: number;
-  latestProgress: {
-    currentPage: number;
-    currentPercentage: number;
-    progressDate: string;
-  } | null;
-}
+export type BookWithStatus = BookWithStatusMinimal;
 
 export class LibraryService {
   private cache = new Map<string, PaginatedBooks>();
@@ -139,8 +125,8 @@ export class LibraryService {
       }
 
       const data = await response.json();
-      // API returns tags array directly, not wrapped in { tags: [...] }
-      const tags = Array.isArray(data) ? data : (data.tags || []);
+      // API now returns { tags: [...] } format
+      const tags = data.tags || [];
       const sortedTags = tags.sort((a: string, b: string) => a.localeCompare(b));
 
       // Cache the result

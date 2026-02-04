@@ -5,8 +5,10 @@ import { Search, X, Check, Library as LibraryIcon, Layers } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Spinner } from "@/components/Utilities/Spinner";
+import { Button } from "@/components/Utilities/Button";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { cn } from "@/utils/cn";
+import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 
 interface Shelf {
   id: number;
@@ -193,12 +195,13 @@ export function ShelfSelectionModal({
             <p className="text-sm text-[var(--foreground)]/60 mb-4">
               {error}
             </p>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => window.location.reload()}
-              className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors"
             >
               Reload Page
-            </button>
+            </Button>
           </div>
         ) : loading ? (
           <div className="text-center py-16">
@@ -238,10 +241,10 @@ export function ShelfSelectionModal({
                     onClick={() => handleShelfClick(shelf.id)}
                     disabled={submitting}
                     className={cn(
-                      "w-full p-3 rounded-lg border text-left transition-all disabled:opacity-50 shadow-sm",
+                      "w-full p-3 rounded-lg border-2 text-left transition-all disabled:opacity-50 shadow-sm",
                       isSelected
-                        ? "border-[var(--accent)] bg-[var(--accent)]/10 shadow-md"
-                        : "border-[var(--border-color)] hover:border-[var(--accent)]/50 hover:shadow-md"
+                        ? "border-[var(--accent)] shadow-md"
+                        : "border-[var(--border-color)] bg-[var(--background)] hover:border-[var(--accent)]/50 hover:shadow-md"
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -251,41 +254,31 @@ export function ShelfSelectionModal({
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
                           isSelected
                             ? "border-[var(--accent)] bg-[var(--accent)]"
-                            : "border-[var(--foreground)]/30"
+                            : "border-[var(--accent)] opacity-40"
                         )}
                       >
                         {isSelected && <Check className="w-3 h-3 text-white" />}
                       </div>
 
                       {/* Shelf Icon */}
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor: shelf.color || "var(--accent)",
-                          opacity: 0.9,
-                        }}
-                      >
-                        {(() => {
-                          const IconComponent = shelf.icon ? getShelfIcon(shelf.icon) : null;
-                          if (IconComponent) {
-                            return <IconComponent className="w-5 h-5 text-white" />;
-                          }
-                          return <Layers className="w-5 h-5 text-white" />;
-                        })()}
-                      </div>
+                      <ShelfAvatar
+                        color={shelf.color || "var(--accent)"}
+                        icon={shelf.icon}
+                        size="md"
+                        shape="rounded"
+                        fallbackIcon={Layers}
+                        className="opacity-90"
+                      />
 
                       {/* Shelf Info */}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[var(--heading-text)] mb-0.5 truncate">
-                          {shelf.name}
+                          {shelf.name} <span className="text-sm text-[var(--accent)] font-normal">({shelf.bookCount})</span>
                         </h4>
-                        <p className="text-sm text-[var(--foreground)]/60">
-                          {shelf.bookCount} {shelf.bookCount === 1 ? "book" : "books"}
-                        </p>
                         
                         {/* Description */}
                         {shelf.description && (
-                          <p className="text-xs text-[var(--foreground)]/50 mt-0.5 truncate">
+                          <p className="text-xs text-[var(--subheading-text)] truncate">
                             {shelf.description}
                           </p>
                         )}
@@ -312,7 +305,7 @@ export function ShelfSelectionModal({
                     Keep books selected after action
                   </span>
                 </label>
-                <p className="text-xs text-[var(--foreground)]/60 mt-1 ml-6">
+                <p className="text-xs text-[var(--subheading-text)] mt-1 ml-6">
                   Allows you to perform multiple operations on the same selection
                 </p>
               </div>
@@ -333,6 +326,26 @@ export function ShelfSelectionModal({
         icon={<LibraryIcon className="w-5 h-5" />}
         size="full"
         allowBackdropClose={false}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={selectedShelfId === null || submitting}
+            >
+              {submitting ? "Processing..." : confirmButtonText}
+            </Button>
+          </>
+        }
       >
         {/* Subtitle */}
         <div className="mb-4">
@@ -342,27 +355,7 @@ export function ShelfSelectionModal({
         </div>
 
         {/* Content */}
-        <div className="mb-20">
-          {searchAndResults}
-        </div>
-
-        {/* Fixed bottom buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[var(--card-bg)] border-t border-[var(--border-color)] p-4 flex gap-3 justify-end z-10">
-          <button
-            onClick={handleClose}
-            disabled={submitting}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={selectedShelfId === null || submitting}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? "Processing..." : confirmButtonText}
-          </button>
-        </div>
+        {searchAndResults}
       </BottomSheet>
     );
   }
@@ -378,20 +371,22 @@ export function ShelfSelectionModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end w-full">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClose}
             disabled={submitting}
-            className="px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
             disabled={selectedShelfId === null || submitting}
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Processing..." : confirmButtonText}
-          </button>
+          </Button>
         </div>
       }
     >

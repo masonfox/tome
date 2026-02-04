@@ -3,10 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById } from "@/lib/db/calibre";
-import { coverCache, bookPathCache } from "@/lib/covers/cache";
+import {
+  coverCache,
+  bookPathCache,
+  clearCoverCache,
+  clearBookPathCache,
+  getCoverCacheStats,
+  getBookPathCacheStats,
+  type CacheStats,
+} from "@/lib/cache/cover-cache";
 
 export const dynamic = 'force-dynamic';
 
+// Re-export cache functions for backward compatibility
+export { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats, type CacheStats };
 // Helper function to serve the placeholder "no cover" image
 function servePlaceholderImage() {
   const placeholderPath = path.join(process.cwd(), "public", "cover-fallback.png");

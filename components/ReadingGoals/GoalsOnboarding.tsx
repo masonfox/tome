@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Target, TrendingUp, BookOpen } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { toast } from "sonner";
 
 interface GoalsOnboardingProps {
@@ -123,13 +124,15 @@ export function GoalsOnboarding({ onCreateGoal }: GoalsOnboardingProps) {
           </p>
 
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={handleCreate}
               disabled={isCreating}
-              className="flex-1 px-6 py-3 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg"
+              variant="primary"
+              size="lg"
+              fullWidth
             >
               {isCreating ? "Creating..." : "Create Reading Goal"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

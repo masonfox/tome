@@ -131,7 +131,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
   // Clear cache and refresh
   const refresh = useCallback(async () => {
     service.clearCache();
-    queryClient.invalidateQueries({ queryKey: ['library-books'] });
+    await queryClient.refetchQueries({ queryKey: ['library-books'] });
   }, [service, queryClient]);
 
   // Search function with debouncing logic

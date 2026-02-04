@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import BaseModal from "./BaseModal";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
+import { Button } from "@/components/Utilities/Button";
 
 interface SessionEditModalProps {
   isOpen: boolean;
@@ -38,9 +39,7 @@ export default function SessionEditModal({
   const [startedDate, setStartedDate] = useState("");
   const [completedDate, setCompletedDate] = useState("");
   const [review, setReview] = useState("");
-
-  // Track whether we've already restored the draft for this modal session
-  const hasRestoredDraft = useRef(false);
+  const [isFormReady, setIsFormReady] = useState(false);
 
   // Draft management for review field
   const {
@@ -50,9 +49,10 @@ export default function SessionEditModal({
     isInitialized,
   } = useDraftField(`draft-session-edit-${bookId}-${sessionId}`);
 
-  // Reset form when modal opens with current values
+  // Coordinated form initialization - wait for draft hook to initialize before setting values
+  // This prevents the race condition where form resets before draft loads from localStorage
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isInitialized) {
       // Convert ISO datetime to date-only string (YYYY-MM-DD) for input[type="date"]
       setStartedDate(
         currentStartedDate ? currentStartedDate.split("T")[0] : ""
@@ -60,25 +60,30 @@ export default function SessionEditModal({
       setCompletedDate(
         currentCompletedDate ? currentCompletedDate.split("T")[0] : ""
       );
-      setReview(currentReview || "");
-      hasRestoredDraft.current = false; // Reset draft restoration flag
+      
+      // Prioritize current review over draft
+      // If there's a current review, use it; otherwise use draft if available
+      if (currentReview) {
+        setReview(currentReview);
+      } else if (draftReview) {
+        setReview(draftReview);
+      } else {
+        setReview("");
+      }
+      
+      setIsFormReady(true);
+    } else if (!isOpen) {
+      // Reset form ready state when modal closes
+      setIsFormReady(false);
     }
-  }, [isOpen, currentStartedDate, currentCompletedDate, currentReview]);
+  }, [isOpen, isInitialized, currentStartedDate, currentCompletedDate, currentReview, draftReview]);
 
-  // Restore draft only once when modal opens (if no existing review)
+  // Auto-save draft (only after form is ready to prevent race condition)
   useEffect(() => {
-    if (isOpen && isInitialized && !currentReview && draftReview && !hasRestoredDraft.current) {
-      setReview(draftReview);
-      hasRestoredDraft.current = true;
-    }
-  }, [isOpen, isInitialized, currentReview, draftReview]);
-
-  // Auto-save draft (only after initialization to prevent race condition)
-  useEffect(() => {
-    if (isInitialized && review && isOpen) {
+    if (isFormReady && review && isOpen) {
       saveDraft(review);
     }
-  }, [review, isInitialized, saveDraft, isOpen]);
+  }, [review, isFormReady, saveDraft, isOpen]);
 
   function handleSave() {
     // Date inputs already provide YYYY-MM-DD format, send as-is
@@ -113,19 +118,21 @@ export default function SessionEditModal({
       size="2xl"
       allowBackdropClose={false}
       actions={
-        <div className="flex justify-end gap-4">
-          <button
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] font-semibold rounded hover:bg-[var(--background)] transition-colors"
+            size="md"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
-            className="px-4 py-2 bg-[var(--accent)] text-white font-semibold rounded hover:bg-[var(--light-accent)] transition-colors"
+            size="md"
           >
             Save
-          </button>
+          </Button>
         </div>
       }
     >
@@ -135,7 +142,7 @@ export default function SessionEditModal({
           <div>
             <label
               htmlFor="startedDate"
-              className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
+              className="block text-sm font-medium text-[var(--heading-text)] mb-2"
             >
               Started Date
             </label>
@@ -145,14 +152,14 @@ export default function SessionEditModal({
               value={startedDate}
               onChange={(e) => setStartedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
             />
           </div>
 
           <div>
             <label
               htmlFor="completedDate"
-              className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
+              className="block text-sm font-medium text-[var(--heading-text)] mb-2"
             >
               Completed Date
             </label>
@@ -162,17 +169,18 @@ export default function SessionEditModal({
               value={completedDate}
               onChange={(e) => setCompletedDate(e.target.value)}
               max={getTodayLocalDate()}
-              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 max-h-[42px] text-left"
+              className="w-full px-3 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] max-h-[42px] text-left"
             />
           </div>
 
           {(startedDate || completedDate) && (
-            <button
+            <Button
+              variant="danger-ghost"
               onClick={handleClearDates}
-              className="text-sm text-red-500 hover:text-red-600 font-semibold transition-colors"
+              size="md"
             >
               Clear Dates
-            </button>
+            </Button>
           )}
         </div>
 
@@ -180,7 +188,7 @@ export default function SessionEditModal({
         <div>
           <label
             htmlFor="review"
-            className="block text-sm font-semibold text-[var(--foreground)]/80 mb-2"
+            className="block text-sm font-medium text-[var(--heading-text)] mb-2"
           >
             Review
           </label>
@@ -194,12 +202,14 @@ export default function SessionEditModal({
             />
           </div>
           {review && (
-            <button
+            <Button
+              variant="danger-ghost"
               onClick={handleRemoveReview}
-              className="mt-2 text-sm text-red-500 hover:text-red-600 font-semibold transition-colors"
+              size="md"
+              className="mt-2"
             >
               Clear Review
-            </button>
+            </Button>
           )}
         </div>
       </div>

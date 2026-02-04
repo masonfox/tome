@@ -1,6 +1,8 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionRepository } from "@/lib/repositories";
+import { sessionService } from "@/lib/services/session.service";
+import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
 
@@ -60,22 +62,29 @@ export async function PATCH(
     // Build update object with only provided fields
     const updateData: any = {};
     
-    // Handle dates - normalize to YYYY-MM-DD format
-    // Frontend may send ISO strings (2026-01-12T00:00:00.000Z) or YYYY-MM-DD strings
+    // Handle dates - strict YYYY-MM-DD validation (no ISO string normalization)
     if ('startedDate' in body) {
       if (startedDate) {
-        // Extract YYYY-MM-DD from ISO string or use as-is if already in correct format
-        const normalized = startedDate.includes('T') ? startedDate.split('T')[0] : startedDate;
-        updateData.startedDate = normalized;
+        if (!validateDateString(startedDate)) {
+          return NextResponse.json(
+            { error: "Invalid started date format. Expected valid YYYY-MM-DD" },
+            { status: 400 }
+          );
+        }
+        updateData.startedDate = startedDate;
       } else {
         updateData.startedDate = null;
       }
     }
     if ('completedDate' in body) {
       if (completedDate) {
-        // Extract YYYY-MM-DD from ISO string or use as-is if already in correct format
-        const normalized = completedDate.includes('T') ? completedDate.split('T')[0] : completedDate;
-        updateData.completedDate = normalized;
+        if (!validateDateString(completedDate)) {
+          return NextResponse.json(
+            { error: "Invalid completed date format. Expected valid YYYY-MM-DD" },
+            { status: 400 }
+          );
+        }
+        updateData.completedDate = completedDate;
       } else {
         updateData.completedDate = null;
       }
@@ -116,6 +125,84 @@ export async function PATCH(
         error: "Failed to update session",
         details: error instanceof Error ? error.message : String(error)
       },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/books/:id/sessions/:sessionId
+ * Delete a reading session and all associated progress logs
+ * 
+ * If the session is active, a new "to-read" session will be created automatically.
+ * 
+ * Responses:
+ * - 200: Session deleted successfully (returns metadata)
+ * - 400: Invalid request (invalid IDs, bookId mismatch)
+ * - 404: Session not found
+ * - 500: Deletion failed
+ */
+export async function DELETE(
+  request: NextRequest,
+  props: { params: Promise<{ id: string; sessionId: string }> }
+) {
+  const params = await props.params;
+  const logger = getLogger().child({ route: "DELETE /api/books/[id]/sessions/[sessionId]" });
+
+  try {
+    // Parse and validate IDs
+    const bookId = parseInt(params.id);
+    const sessionId = parseInt(params.sessionId);
+
+    if (isNaN(bookId) || isNaN(sessionId)) {
+      logger.warn({ bookId: params.id, sessionId: params.sessionId }, "Invalid ID format");
+      return NextResponse.json(
+        { error: "Invalid book ID or session ID" },
+        { status: 400 }
+      );
+    }
+
+    logger.info({ bookId, sessionId }, "Deleting session");
+
+    // Delete session via service
+    const result = await sessionService.deleteSession(bookId, sessionId);
+
+    logger.info({
+      bookId,
+      sessionId,
+      deletedSessionNumber: result.deletedSessionNumber,
+      wasActive: result.wasActive,
+      newSessionCreated: result.newSessionCreated,
+    }, "Session deleted successfully");
+
+    return NextResponse.json(result);
+  } catch (error) {
+    const err = error as Error;
+    
+    // Handle specific error cases
+    if (err.message === "Session not found") {
+      logger.warn({ bookId: params.id, sessionId: params.sessionId }, "Session not found");
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      );
+    }
+
+    if (err.message === "Session does not belong to specified book") {
+      logger.warn({
+        bookId: params.id,
+        sessionId: params.sessionId,
+      }, "Session bookId mismatch");
+      return NextResponse.json(
+        { error: "Session does not belong to specified book" },
+        { status: 400 }
+      );
+    }
+
+    // Generic server error
+    logger.error({ err, bookId: params.id, sessionId: params.sessionId }, "Failed to delete session");
+    return NextResponse.json(
+      { error: "Failed to delete session" },
       { status: 500 }
     );
   }

@@ -13,8 +13,7 @@ export interface StatusUpdateData {
   rating?: number | null;
   review?: string;
   startedDate?: string; // YYYY-MM-DD format
-  completedDate?: string; // YYYY-MM-DD format
-  dnfDate?: string; // YYYY-MM-DD format
+  completedDate?: string; // YYYY-MM-DD format (used for both "read" and "dnf" status)
 }
 
 /**
@@ -53,7 +52,7 @@ export interface MarkAsDNFParams {
   bookId: number;
   rating?: number;
   review?: string;
-  dnfDate?: string; // YYYY-MM-DD format
+  completedDate?: string; // YYYY-MM-DD format - when the book was abandoned
 }
 
 /**
@@ -1018,12 +1017,12 @@ export class SessionService {
    * This method handles the workflow for marking a book as abandoned mid-read.
    * Unlike markAsRead() which has multiple strategies, DNF follows a single path:
    * - Must have active session in "reading" status
-   * - Archives the session (sets isActive = false, adds dnfDate)
+   * - Archives the session (sets isActive = false, adds completedDate)
    * - Optionally updates rating (best-effort, syncs to Calibre)
    * - Optionally updates review (best-effort, attaches to archived session)
    * - Returns last progress log for prefilling date in UI
    *
-   * @param params - Mark as DNF parameters (bookId, rating, review, dnfDate)
+   * @param params - Mark as DNF parameters (bookId, rating, review, completedDate)
    * @returns Promise resolving to result with session and update flags
    * @throws {Error} If book not found or no active reading session
    *
@@ -1037,11 +1036,11 @@ export class SessionService {
    *   bookId: 123,
    *   rating: 2,
    *   review: "Started strong but couldn't get into it",
-   *   dnfDate: "2026-01-12",
+   *   completedDate: "2026-01-12",
    * });
    */
   async markAsDNF(params: MarkAsDNFParams): Promise<MarkAsDNFResult> {
-    const { bookId, rating, review, dnfDate } = params;
+    const { bookId, rating, review, completedDate } = params;
     const logger = getLogger();
 
     logger.info({ bookId, hasRating: !!rating, hasReview: !!review }, "Starting markAsDNF workflow");
@@ -1079,13 +1078,13 @@ export class SessionService {
     }
 
     // Mark session as DNF (keep active - archived only on re-read)
-    const finalDnfDate = dnfDate || lastProgress?.progressDate || await this.getTodayDateString();
+    const finalCompletedDate = completedDate || lastProgress?.progressDate || await this.getTodayDateString();
     
-    logger.info({ bookId, sessionId: activeSession.id, dnfDate: finalDnfDate }, "Marking session as DNF");
+    logger.info({ bookId, sessionId: activeSession.id, completedDate: finalCompletedDate }, "Marking session as DNF");
 
     await sessionRepository.update(activeSession.id, {
       status: "dnf",
-      dnfDate: finalDnfDate,
+      completedDate: finalCompletedDate,
     } as any);
 
     // Best-effort: Update rating
@@ -1145,6 +1144,120 @@ export class SessionService {
       ratingUpdated,
       reviewUpdated,
       lastProgress,
+    };
+  }
+
+  /**
+   * Delete a reading session and all associated progress logs
+   *
+   * This permanently deletes a session and its progress logs (cascading via foreign key).
+   * If the session being deleted is active, a new "to-read" session is automatically created
+   * to ensure the book maintains an active session.
+   *
+   * Use Cases:
+   * - Fixing mistakes (wrong book logged, test data)
+   * - Cleaning up reading history
+   * - Removing unwanted sessions
+   *
+   * @param bookId - The ID of the book
+   * @param sessionId - The ID of the session to delete
+   * @returns Promise resolving to metadata about the deletion
+   * @throws {Error} If session not found or bookId mismatch
+   *
+   * @example
+   * // Delete an archived session
+   * const result = await sessionService.deleteSession(123, 456);
+   * // result: { deletedSessionNumber: 2, wasActive: false, newSessionCreated: false }
+   *
+   * @example
+   * // Delete active session (creates new "to-read" session)
+   * const result = await sessionService.deleteSession(123, 789);
+   * // result: { deletedSessionNumber: 1, wasActive: true, newSessionCreated: true }
+   */
+  async deleteSession(bookId: number, sessionId: number): Promise<{
+    deletedSessionNumber: number;
+    wasActive: boolean;
+    newSessionCreated: boolean;
+  }> {
+    const logger = getLogger();
+
+    logger.info({ bookId, sessionId }, "Starting deleteSession workflow");
+
+    // Get session to verify it exists and belongs to book
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) {
+      throw new Error("Session not found");
+    }
+
+    if (session.bookId !== bookId) {
+      throw new Error("Session does not belong to specified book");
+    }
+
+    // Store metadata before deletion
+    const deletedSessionNumber = session.sessionNumber;
+    const wasActive = session.isActive;
+
+    logger.info({
+      bookId,
+      sessionId,
+      sessionNumber: deletedSessionNumber,
+      wasActive,
+    }, "Deleting session");
+
+    // Delete session (cascades to progress logs via foreign key)
+    await sessionRepository.delete(sessionId);
+
+    logger.info({ bookId, sessionId, deletedSessionNumber }, "Session deleted");
+
+    // Check if book still has an active session after deletion
+    const remainingActiveSession = await sessionRepository.findActiveByBookId(bookId);
+    
+    // Always create new "to-read" session if book has no active session
+    // This ensures books are never left without a way to track reading status
+    let newSessionCreated = false;
+    if (!remainingActiveSession) {
+      logger.info({ bookId }, "Creating new 'to-read' session - no active session remains");
+
+      await sessionRepository.create({
+        bookId,
+        sessionNumber: 1,
+        status: "to-read",
+        isActive: true,
+        userId: session.userId,
+      });
+
+      newSessionCreated = true;
+      logger.info({ bookId }, "New 'to-read' session created");
+    } else {
+      logger.info({ bookId }, "Book still has active session - no new session needed");
+    }
+
+    // Best-effort: Update streak system
+    try {
+      await this.updateStreakSystem();
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to update streak (continuing)");
+    }
+
+    // Best-effort: Invalidate cache
+    try {
+      await this.invalidateCache(bookId);
+    } catch (error) {
+      logger.error({ err: error, bookId }, "Failed to invalidate cache (continuing)");
+    }
+
+    logger.info({
+      bookId,
+      sessionId,
+      deletedSessionNumber,
+      wasActive,
+      newSessionCreated,
+    }, "Successfully completed deleteSession workflow");
+
+    return {
+      deletedSessionNumber,
+      wasActive,
+      newSessionCreated,
     };
   }
 

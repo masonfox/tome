@@ -51,8 +51,9 @@
  * Conversion: calibre_value = stars * 2
  */
 
-import { createDatabase } from "./factory";
+import { createDatabase, isWalMode } from "./factory";
 import { getLogger } from "@/lib/logger";
+import { existsSync } from "fs";
 
 // Type definition for SQLite database interface
 type SQLiteDatabase = any;
@@ -72,6 +73,50 @@ function getLoggerSafe() {
     return { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} };
   }
   return getLogger();
+}
+
+/**
+ * Create enhanced error message for database lock errors
+ * 
+ * Provides context-aware guidance based on:
+ * - WAL file existence (indicates recent/active Calibre usage)
+ * - Operation type (ratings vs tags)
+ * - Journal mode configuration
+ */
+function createLockErrorMessage(
+  operation: 'rating' | 'tags' | 'batch',
+  context: { calibreId?: number; bookCount?: number }
+): string {
+  const walFilesExist = CALIBRE_DB_PATH && isWalMode(CALIBRE_DB_PATH);
+  
+  let message = `Calibre database is locked. `;
+  
+  // Provide context-specific guidance
+  if (walFilesExist) {
+    // WAL files exist - Calibre is likely open or was recently open
+    message += `Calibre appears to be open or was recently closed. `;
+    
+    if (operation === 'rating') {
+      message += `Rating updates should work with Calibre open. This lock may be temporary - the system will automatically retry. `;
+      message += `If the error persists, try closing Calibre completely and waiting 5-10 seconds before retrying.`;
+    } else {
+      message += `Tag operations require Calibre to be completely closed. `;
+      message += `Please close Calibre, wait 5-10 seconds for the lock to clear, then try again.`;
+    }
+  } else {
+    // No WAL files - likely stale lock or permission issue
+    message += `The database lock may be stale (from a previous crash) or there may be a permissions issue. `;
+    message += `Try waiting 5-10 seconds and retrying. If the issue persists, restart your system or check file permissions.`;
+  }
+  
+  // Add context details
+  if (context.calibreId) {
+    message += ` (Book ID: ${context.calibreId})`;
+  } else if (context.bookCount) {
+    message += ` (Batch operation: ${context.bookCount} books)`;
+  }
+  
+  return message;
 }
 
 if (!CALIBRE_DB_PATH) {
@@ -97,13 +142,26 @@ export function getCalibreWriteDB(): SQLiteDatabase {
   if (!writeDbInstance) {
     try {
       // Create write-enabled Calibre database connection using factory
+      // Use 'auto' mode to detect and respect Calibre's journal mode (Calibre 9.x uses WAL)
       writeDbInstance = createDatabase({
         path: CALIBRE_DB_PATH,
         readonly: false,
         foreignKeys: false, // Calibre DB manages its own schema
-        wal: false, // Don't modify journal mode on Calibre DB
+        wal: 'auto', // Auto-detect WAL mode (Calibre 9.x compatibility)
       });
-      getLoggerSafe().debug('Calibre Write DB: Using better-sqlite3 - WRITE ENABLED');
+      
+      // Set busy timeout to 10 seconds
+      // This makes SQLite wait instead of immediately returning LOCKED errors
+      // Critical for concurrent access when Calibre is open
+      // 10 seconds accommodates transient locks from concurrent access
+      writeDbInstance.sqlite.pragma('busy_timeout = 10000');
+      
+      const journalMode = writeDbInstance.sqlite.pragma('journal_mode', { simple: true });
+      getLoggerSafe().info(
+        { journalMode, busyTimeout: 10000 },
+        '[Calibre Write DB] Initialized with auto-detected journal mode and 10s busy timeout'
+      );
+      
     } catch (error) {
       throw new Error(`Failed to connect to Calibre database for writing: ${error}`);
     }
@@ -196,11 +254,7 @@ export function updateCalibreRating(
     );
     
     if (isLockError) {
-      throw new Error(
-        `Calibre database is locked. Please close Calibre and try again. ` +
-        `If Calibre is already closed, wait a few seconds and retry. ` +
-        `(Book ID: ${calibreId})`
-      );
+      throw new Error(createLockErrorMessage('rating', { calibreId }));
     }
     
     throw new Error(`Failed to update rating in Calibre database: ${errorMessage}`);
@@ -345,11 +399,7 @@ export function updateCalibreTags(
     );
     
     if (isLockError) {
-      throw new Error(
-        `Calibre database is locked. Please close Calibre and try again. ` +
-        `If Calibre is already closed, wait a few seconds and retry. ` +
-        `(Book ID: ${calibreId})`
-      );
+      throw new Error(createLockErrorMessage('tags', { calibreId }));
     }
     
     throw new Error(`Failed to update tags in Calibre database: ${errorMessage}`);
@@ -441,11 +491,7 @@ export function batchUpdateCalibreTags(
     );
     
     if (isLockError) {
-      throw new Error(
-        `Calibre database is locked. Please close Calibre and try again. ` +
-        `If Calibre is already closed, wait a few seconds and retry. ` +
-        `(Batch operation with ${updates.length} books)`
-      );
+      throw new Error(createLockErrorMessage('batch', { bookCount: updates.length }));
     }
     
     throw new Error(`Batch tag update failed: ${errorMessage}`);

@@ -16,6 +16,8 @@ import {
   isCompleteMigration,
   markComplete,
   tablesExist,
+  discoverCompanions,
+  runCompanionMigrations,
 } from "@/lib/db/companion-migrations";
 
 describe("Companion Migrations - Unit Tests", () => {
@@ -319,6 +321,74 @@ describe("Companion Migrations - Unit Tests", () => {
       expect(tablesExist(testSqlite, ["books", "reading_sessions"])).toBe(true);
       expect(tablesExist(testSqlite, ["books", "fake_table"])).toBe(false);
       expect(tablesExist(testSqlite, ["fake_table", "reading_sessions"])).toBe(false);
+    });
+  });
+
+  describe("discoverCompanions()", () => {
+    test("should load actual project companions from lib/migrations/*.ts", async () => {
+      // Test loading from the actual project directory
+      const projectRoot = process.cwd();
+      const companions = await discoverCompanions(projectRoot);
+      
+      // Should find real companions
+      expect(Array.isArray(companions)).toBe(true);
+      expect(companions.length).toBeGreaterThan(0);
+      
+      // Validate structure of all loaded companions
+      for (const companion of companions) {
+        expect(companion.name).toBeDefined();
+        expect(typeof companion.name).toBe("string");
+        expect(companion.name).toMatch(/^\d{4}_/); // Should start with migration number
+        
+        expect(companion.requiredTables).toBeDefined();
+        expect(Array.isArray(companion.requiredTables)).toBe(true);
+        
+        expect(companion.execute).toBeDefined();
+        expect(typeof companion.execute).toBe("function");
+      }
+    });
+
+    test("should exclude _template.ts file", async () => {
+      const projectRoot = process.cwd();
+      const companions = await discoverCompanions(projectRoot);
+      
+      // Should not include template
+      const templateCompanion = companions.find(c => c.name === "_template");
+      expect(templateCompanion).toBeUndefined();
+      
+      // Should not include any names starting with underscore
+      const underscoreCompanions = companions.filter(c => c.name.startsWith("_"));
+      expect(underscoreCompanions).toHaveLength(0);
+    });
+
+    test("should load companions in numeric order", async () => {
+      const projectRoot = process.cwd();
+      const companions = await discoverCompanions(projectRoot);
+      
+      // Extract migration numbers and verify ascending order
+      const numbers = companions.map(c => {
+        const match = c.name.match(/^(\d{4})_/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+      
+      for (let i = 1; i < numbers.length; i++) {
+        expect(numbers[i]).toBeGreaterThanOrEqual(numbers[i - 1]);
+      }
+    });
+
+    test("should return empty array when directory doesn't exist", async () => {
+      const nonExistentDir = "/tmp/nonexistent-test-dir-12345";
+      const companions = await discoverCompanions(nonExistentDir);
+      expect(companions).toEqual([]);
+    });
+
+    test("should execute companions successfully", async () => {
+      const projectRoot = process.cwd();
+      
+      // This should not throw and should complete successfully
+      await expect(
+        runCompanionMigrations(testSqlite, projectRoot)
+      ).resolves.toBeUndefined();
     });
   });
 });

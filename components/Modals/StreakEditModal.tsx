@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import BaseModal from "./BaseModal";
 import { useStreak } from "@/hooks/useStreak";
+import { Button } from "@/components/Utilities/Button";
 
 interface StreakEditModalProps {
   isOpen: boolean;
@@ -54,23 +55,25 @@ export function StreakEditModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
-            className="flex-1 px-6 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--foreground)] rounded-sm hover:bg-[var(--border-color)]/50 transition-colors font-semibold"
             disabled={isUpdatingThreshold}
+            size="md"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
             onClick={handleSubmit}
             disabled={isUpdatingThreshold || threshold === initialThreshold}
-            className="flex-1 px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
+            size="md"
+            icon={isUpdatingThreshold ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
           >
-            {isUpdatingThreshold && <Loader2 className="w-4 h-4 animate-spin" />}
             {isUpdatingThreshold ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -92,7 +95,7 @@ export function StreakEditModal({
               const val = parseInt(e.target.value);
               setThreshold(isNaN(val) ? 1 : val);
             }}
-            className="w-full px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
+            className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             disabled={isUpdatingThreshold}
             autoFocus
           />

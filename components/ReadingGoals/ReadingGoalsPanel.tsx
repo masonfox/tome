@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Target, Plus, Loader2 } from "lucide-react";
+import { Button } from "@/components/Utilities/Button";
 import { ReadingGoalForm } from "./ReadingGoalForm";
 import { ReadingGoalsList } from "./ReadingGoalsList";
 import { useReadingGoals } from "@/hooks/useReadingGoals";
@@ -25,6 +26,7 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   // Annual goals state
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<ReadingGoal | undefined>();
+  const [booksGoal, setBooksGoal] = useState<number | "">(1);
 
   // Daily goal state
   const [threshold, setThreshold] = useState(initialThreshold);
@@ -33,18 +35,14 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
   // Annual goals handlers
   function handleCreateNew() {
     setEditingGoal(undefined);
+    setBooksGoal(1);
     setShowForm(true);
   }
 
   function handleEdit(goal: ReadingGoal) {
     setEditingGoal(goal);
+    setBooksGoal(goal.booksGoal);
     setShowForm(true);
-  }
-
-  function handleFormSuccess() {
-    setShowForm(false);
-    setEditingGoal(undefined);
-    // Goals will auto-refresh via TanStack Query
   }
 
   function handleFormCancel() {
@@ -123,14 +121,15 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
           </div>
 
           <div className="pt-7">
-            <button
+            <Button
               onClick={handleSaveDailyGoal}
               disabled={saving || threshold === initialThreshold}
-              className="px-6 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
+              variant="primary"
+              size="md"
+              icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
             >
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -142,13 +141,14 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
             Annual Goals
           </h4>
           {!showForm && (
-            <button
+            <Button
               onClick={handleCreateNew}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-sm hover:bg-[var(--light-accent)] transition-colors font-semibold flex items-center gap-2"
+              variant="primary"
+              size="md"
+              icon={<Plus className="w-4 h-4" />}
             >
-              <Plus className="w-4 h-4" />
               New Goal
-            </button>
+            </Button>
           )}
         </div>
 
@@ -161,9 +161,18 @@ export function ReadingGoalsPanel({ initialGoals, initialThreshold }: ReadingGoa
             <ReadingGoalForm
               mode={editingGoal ? "edit" : "create"}
               existingGoal={editingGoal}
-              onSuccess={handleFormSuccess}
-              onCancel={handleFormCancel}
+              booksGoal={booksGoal}
+              onBooksGoalChange={setBooksGoal}
             />
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                onClick={handleFormCancel}
+                variant="secondary"
+                size="md"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         ) : null}
 

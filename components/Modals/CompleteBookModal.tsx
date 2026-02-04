@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Star } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/utils/cn";
 import BaseModal from "./BaseModal";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor";
 import { useDraftField } from "@/hooks/useDraftField";
 import { getLogger } from "@/lib/logger";
 import { toast } from "@/utils/toast";
+import { StarRating } from "@/components/Utilities/StarRating";
+import { Button } from "@/components/Utilities/Button";
 
 const logger = getLogger().child({ component: "CompleteBookModal" });
 
@@ -27,7 +28,7 @@ interface CompleteBookModalProps {
   bookId: string;
   currentPageCount: number | null;
   currentRating?: number | null;
-  defaultStartDate?: Date;
+  defaultStartDate?: string; // YYYY-MM-DD format (ADR-014)
 }
 
 export default function CompleteBookModal({
@@ -43,16 +44,14 @@ export default function CompleteBookModal({
   // Page count state (only shown if not already set)
   const [pageCount, setPageCount] = useState("");
 
-  // Date states
-  const today = new Date().toISOString().split('T')[0];
-  const [startDate, setStartDate] = useState(
-    defaultStartDate ? defaultStartDate.toISOString().split('T')[0] : today
-  );
+  // Date states (ADR-014: All dates are YYYY-MM-DD strings)
+  // Use useMemo to prevent 'today' from changing on re-renders
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [startDate, setStartDate] = useState(defaultStartDate ?? today);
   const [endDate, setEndDate] = useState(today);
 
   // Rating state
   const [rating, setRating] = useState(currentRating || 0);
-  const [hoverRating, setHoverRating] = useState(0);
 
   // Review state
   const [review, setReview] = useState("");
@@ -74,9 +73,8 @@ export default function CompleteBookModal({
     if (isOpen) {
       hasRestoredDraft.current = false;
       setPageCount(currentPageCount?.toString() || "");
-      const defaultStart = defaultStartDate
-        ? defaultStartDate.toISOString().split('T')[0]
-        : today;
+      // ADR-014: defaultStartDate is already YYYY-MM-DD string, no conversion needed
+      const defaultStart = defaultStartDate ?? today;
       setStartDate(defaultStart);
       setEndDate(today);
       setRating(currentRating || 0);
@@ -196,7 +194,6 @@ export default function CompleteBookModal({
   const handleClose = () => {
     if (!isSubmitting) {
       setRating(0);
-      setHoverRating(0);
       setReview("");
       setPageCount("");
       onClose();
@@ -212,20 +209,20 @@ export default function CompleteBookModal({
       allowBackdropClose={false}
       actions={
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="px-4 py-2 bg-[var(--border-color)] text-[var(--foreground)] rounded-lg hover:bg-[var(--light-accent)]/20 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--light-accent)] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Completing..." : "Complete Book"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -291,33 +288,13 @@ export default function CompleteBookModal({
         <label className="block text-sm text-[var(--foreground)] mb-3">
           Rating <span className="text-[var(--subheading-text)] font-normal">(optional)</span>
         </label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              disabled={isSubmitting}
-              className="focus:outline-none transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Star
-                className={cn(
-                  "w-8 h-8 transition-colors",
-                  star <= (hoverRating || rating)
-                    ? "fill-[var(--accent)] text-[var(--accent)]"
-                    : "text-[var(--foreground)]/30"
-                )}
-              />
-            </button>
-          ))}
-        </div>
-        {rating > 0 && (
-          <p className="text-xs text-[var(--foreground)]/50 mt-2 font-medium">
-            {rating} {rating === 1 ? "star" : "stars"}
-          </p>
-        )}
+        <StarRating 
+          rating={rating} 
+          size="lg" 
+          interactive={true} 
+          onRatingChange={setRating}
+          showCount={true}
+        />
       </div>
 
       {/* Review */}

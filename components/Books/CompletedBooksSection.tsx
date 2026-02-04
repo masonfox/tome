@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, BookCheck } from "lucide-react";
-import { BookGrid } from "@/components/Books/BookGrid";
-import { cn } from "@/utils/cn";
+import { useMemo, ReactNode } from "react";
+import { BookCheck } from "lucide-react";
+import { BookCard } from "@/components/Books/BookCard";
+import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
 
 interface CompletedBooksSectionProps {
   year: number;
@@ -16,69 +16,98 @@ interface CompletedBooksSectionProps {
     status: string | null;
     tags: string[];
     totalPages?: number;
+    completedDate: string; // YYYY-MM-DD format
   }>;
   count: number;
   loading?: boolean;
+  selectedMonth?: number | null;
+  onMonthChange?: (month: number | null) => void;
+  monthSelector?: ReactNode;
 }
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 export function CompletedBooksSection({
   year,
   books,
   count,
   loading = false,
+  selectedMonth = null,
+  onMonthChange,
+  monthSelector,
 }: CompletedBooksSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Filter books by selected month
+  const filteredBooks = useMemo(() => {
+    if (!selectedMonth) return books;
+    
+    return books.filter(book => {
+      if (!book.completedDate) return false;
+      const month = parseInt(book.completedDate.split('-')[1], 10);
+      return month === selectedMonth;
+    });
+  }, [books, selectedMonth]);
 
+  const filteredCount = filteredBooks.length;
+
+  // Get display title based on filter
+  const displayTitle = useMemo(() => {
+    if (selectedMonth) {
+      return `Read in ${MONTH_NAMES[selectedMonth - 1]} ${year}`;
+    }
+    return `Read in ${year}`;
+  }, [selectedMonth, year]);
   return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md overflow-hidden">
-      {/* Header - Clickable to expand/collapse */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-[var(--background)] transition-colors"
-        disabled={loading}
-      >
-        <div className="flex items-center gap-3">
-          <BookCheck className="w-5 h-5 text-[var(--accent)]" />
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            Books Read in {year}
-            <span className="ml-2 text-[var(--foreground)]/60 font-normal">
-              ({count})
-            </span>
-          </h2>
-        </div>
-        <ChevronDown
-          className={cn(
-            "w-5 h-5 text-[var(--foreground)]/60 transition-transform",
-            isExpanded && "rotate-180"
-          )}
-        />
-      </button>
+    <div>
+      {/* Heading with Icon and Month Selector */}
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-4 mb-4">
+        <h2 className="text-2xl font-serif font-bold text-[var(--heading-text)] flex items-center justify-center sm:justify-start gap-2">
+          <BookCheck className="w-6 h-6 text-[var(--accent)]" />
+          {displayTitle}
+          <span className="text-[var(--accent)]">
+            ({filteredCount})
+          </span>
+        </h2>
+        {monthSelector && (
+          <div className="flex justify-center sm:justify-end flex-shrink-0">
+            {monthSelector}
+          </div>
+        )}
+      </div>
 
-      {/* Expandable Content */}
-      {isExpanded && (
-        <div className="px-6 pb-6 border-t border-[var(--border-color)]">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[var(--foreground)]/70 mt-4 font-medium">
-                Loading books...
-              </p>
-            </div>
-          ) : count === 0 ? (
-            <div className="py-12 text-center">
-              <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
-              <p className="text-[var(--foreground)]/70 font-medium">
-                No books read yet this year
-              </p>
-              <p className="text-[var(--foreground)]/50 text-sm mt-2">
-                Start reading and mark books as read to see them here!
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6">
-              <BookGrid books={books} loading={false} />
-            </div>
-          )}
+      {/* Books Grid - No Panel */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <BookCardSkeleton key={index} variant="with-status" />
+          ))}
+        </div>
+      ) : filteredCount === 0 ? (
+        <div className="py-12 text-center">
+          <BookCheck className="w-12 h-12 text-[var(--foreground)]/20 mx-auto mb-4" />
+          <p className="text-[var(--foreground)]/70 font-medium">
+            {selectedMonth 
+              ? `No books read in ${MONTH_NAMES[selectedMonth - 1]}` 
+              : "No books read yet this year"}
+          </p>
+          <p className="text-[var(--foreground)]/50 text-sm mt-2">
+            Start reading and mark books as read to see them here!
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+          {filteredBooks.map((book) => (
+            <BookCard
+              key={book.id}
+              id={book.id.toString()}
+              title={book.title}
+              authors={book.authors}
+              calibreId={book.calibreId}
+              status={book.status}
+            />
+          ))}
         </div>
       )}
     </div>

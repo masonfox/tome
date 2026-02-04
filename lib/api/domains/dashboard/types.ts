@@ -4,6 +4,8 @@
  * Type definitions for dashboard-related API operations.
  */
 
+import type { BookWithStatusMinimal } from "@/lib/api/domains/book/types";
+
 /**
  * Latest progress entry for a book
  */
@@ -49,16 +51,9 @@ export interface DashboardStreak {
 
 /**
  * Book with status information for dashboard
+ * @see BookWithStatusMinimal
  */
-export interface BookWithStatus {
-  id: number;
-  title: string;
-  authors: string[];
-  calibreId: number;
-  status?: string | null;
-  rating?: number | null;
-  latestProgress?: LatestProgress | null;
-}
+export type BookWithStatus = BookWithStatusMinimal;
 
 /**
  * Complete dashboard data response
