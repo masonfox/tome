@@ -280,3 +280,63 @@ export class ProviderRegistry {
     return this.initialized;
   }
 }
+
+/**
+ * Initialize all providers
+ * 
+ * Registers all available metadata providers with their default configurations.
+ * Should be called once at application startup.
+ * 
+ * @example
+ * ```typescript
+ * // In app initialization
+ * initializeProviders();
+ * ```
+ */
+export function initializeProviders(): void {
+  // Skip if already initialized (prevent duplicate registration)
+  if (ProviderRegistry.isInitialized()) {
+    logger.debug("Provider registry already initialized - skipping");
+    return;
+  }
+
+  // Import providers lazily to avoid circular dependencies
+  const { calibreProvider } = require("@/lib/providers/calibre.provider");
+  const { manualProvider } = require("@/lib/providers/manual.provider");
+  const { hardcoverProvider } = require("@/lib/providers/hardcover.provider");
+  const { openLibraryProvider } = require("@/lib/providers/openlibrary.provider");
+
+  // Register providers with priorities matching database seed data
+  // Priority: lower = higher priority (Calibre=1, Hardcover=10, OpenLibrary=20, Manual=99)
+  
+  ProviderRegistry.register(calibreProvider, {
+    enabled: true,
+    priority: 1, // Highest priority - primary source
+  });
+
+  ProviderRegistry.register(manualProvider, {
+    enabled: true,
+    priority: 99, // Lowest priority - fallback for user-entered books
+  });
+
+  ProviderRegistry.register(hardcoverProvider, {
+    enabled: true,
+    priority: 10, // Medium-high priority
+  });
+
+  ProviderRegistry.register(openLibraryProvider, {
+    enabled: true,
+    priority: 20, // Medium priority
+  });
+
+  // Mark as initialized to prevent re-registration
+  ProviderRegistry.markInitialized();
+
+  logger.info(
+    {
+      providers: ["calibre", "manual", "hardcover", "openlibrary"],
+      count: 4,
+    },
+    "Provider registry initialized with 4 providers"
+  );
+}
