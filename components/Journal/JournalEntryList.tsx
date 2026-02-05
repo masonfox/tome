@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Calendar, ChevronRight, Pencil, FileText, Plus, TrendingUp } from "lucide-react";
-import { format, parse } from "date-fns";
+import { formatDate, formatDayOfWeek } from '@/utils/dateHelpers';
 import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 
 export interface JournalEntry {
@@ -91,8 +91,8 @@ export function JournalEntryList({
                   </span>
                   <Calendar className="w-5 h-5" />
                   <h4>
-                    {format(parse(dateKey, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}
-                    <span className="text-[var(--subheading-text)]"> ({format(parse(dateKey, 'yyyy-MM-dd', new Date()), 'EEE')})</span>
+                    {formatDate(dateKey)}
+                    <span className="text-[var(--subheading-text)]"> ({formatDayOfWeek(dateKey)})</span>
                   </h4>
                 </button>
 

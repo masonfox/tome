@@ -80,7 +80,7 @@ describe("ADR-014: Date String Storage Compliance", () => {
         ),
         "",
         "Per ADR-014, calendar dates should be used as strings directly.",
-        "Use `parse(dateString, 'yyyy-MM-dd', new Date())` if you need to format for display.",
+        "Use `formatDate(dateString)` helper if you need to format for display.",
       ].join("\n");
 
       expect.fail(message);
