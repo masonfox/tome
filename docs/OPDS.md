@@ -28,7 +28,7 @@ Tome's OPDS catalog works with any OPDS-compatible device or app, including:
 - **FBReader** (Android, iOS)
 - **Librera Reader** (Android)
 
-_Note_: Not all of these have been manually tested, so please leave compatbility feedback by creating and issue.
+_Note_: Not all of these have been manually tested, so please leave compatibility feedback by creating and issue.
 
 ## Prerequisites
 
