@@ -17,6 +17,7 @@ export interface BookFilter {
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
   excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
   noTags?: boolean; // Filter for books without any tags
+  source?: Book["source"] | Book["source"][]; // Filter by source(s)
 }
 
 export interface BookWithStatus extends Book {
@@ -67,6 +68,57 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .from(books)
       .where(eq(books.calibreId, calibreId))
       .get();
+  }
+
+  /**
+   * Find all books from a specific source
+   * 
+   * @param source - Book source (calibre, manual, hardcover, openlibrary)
+   * @returns Array of books from the specified source
+   */
+  async findBySource(source: Book["source"]): Promise<Book[]> {
+    return this.getDatabase()
+      .select()
+      .from(books)
+      .where(eq(books.source, source))
+      .all();
+  }
+
+  /**
+   * Find a book by source and external ID
+   * 
+   * Used to check if a book from an external provider already exists
+   * before creating a duplicate.
+   * 
+   * @param source - Book source
+   * @param externalId - Provider-specific book identifier
+   * @returns Book if found, undefined otherwise
+   */
+  async findBySourceAndExternalId(
+    source: Book["source"],
+    externalId: string
+  ): Promise<Book | undefined> {
+    return this.getDatabase()
+      .select()
+      .from(books)
+      .where(and(eq(books.source, source), eq(books.externalId, externalId)))
+      .get();
+  }
+
+  /**
+   * Count books by source
+   * 
+   * @param source - Book source to count
+   * @returns Number of books from the specified source
+   */
+  async countBySource(source: Book["source"]): Promise<number> {
+    const result = this.getDatabase()
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(books)
+      .where(eq(books.source, source))
+      .get();
+
+    return result?.count ?? 0;
   }
 
   /**
@@ -338,6 +390,19 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!);
     }
 
+    // Source filter (single source or array of sources)
+    if (filters.source) {
+      if (Array.isArray(filters.source)) {
+        // Multiple sources - book must be from ANY of the sources (OR logic)
+        if (filters.source.length > 0) {
+          conditions.push(inArray(books.source, filters.source));
+        }
+      } else {
+        // Single source
+        conditions.push(eq(books.source, filters.source));
+      }
+    }
+
     // Search filter
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
@@ -574,7 +639,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
-   * Find books not in a list of calibreIds (for orphaning)
+   * Find books that are NOT in the given Calibre IDs (for orphan detection during sync)
+   * 
+   * CRITICAL: Only returns Calibre-sourced books to prevent orphaning manual/external books
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
     // SAFETY: If calibreIds is empty, return empty array to prevent mass orphaning
@@ -588,6 +655,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .from(books)
       .where(
         and(
+          eq(books.source, "calibre"), // CRITICAL: Only check Calibre books
           sql`${books.calibreId} NOT IN ${sql.raw(`(${calibreIds.join(",")})`)}`,
           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!
         )
