@@ -561,9 +561,11 @@ export class SessionService {
     }
 
     try {
-      // Sync to Calibre first (best effort)
-      calibreService.updateRating(book.calibreId, rating);
-      logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to Calibre");
+      // Sync to Calibre first (best effort) - only for Calibre books
+      if (book.source === 'calibre' && book.calibreId !== null) {
+        calibreService.updateRating(book.calibreId, rating);
+        logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to Calibre");
+      }
     } catch (calibreError) {
       // Log error but continue with Tome database update
       logger.error({ err: calibreError, bookId }, "Failed to sync rating to Calibre");

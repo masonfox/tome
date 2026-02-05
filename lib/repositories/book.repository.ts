@@ -109,7 +109,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Build map: calibreId -> Book
     const booksMap = new Map<number, Book>();
     for (const book of results) {
-      booksMap.set(book.calibreId, book);
+      if (book.calibreId !== null) {
+        booksMap.set(book.calibreId, book);
+      }
     }
 
     return booksMap;
@@ -140,6 +142,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Book fields
         bookId: books.id,
         calibreId: books.calibreId,
+        source: books.source,
+        externalId: books.externalId,
         title: books.title,
         authors: books.authors,
         authorSort: books.authorSort,
@@ -259,6 +263,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const book: Book = {
       id: result.bookId,
       calibreId: result.calibreId,
+      source: result.source,
+      externalId: result.externalId,
       title: result.title,
       authors: result.authors,
       authorSort: result.authorSort,
