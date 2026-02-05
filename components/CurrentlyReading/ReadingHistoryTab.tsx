@@ -8,7 +8,7 @@ import SessionProgressModal from "@/components/Modals/SessionProgressModal";
 import DeleteSessionModal from "@/components/Modals/DeleteSessionModal";
 import { SessionActionsDropdown } from "@/components/CurrentlyReading/SessionActionsDropdown";
 import { toast } from "@/utils/toast";
-import { formatDateOnly } from '@/utils/dateHelpers';
+import { formatDate } from '@/utils/dateHelpers';
 import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 
 interface ReadingSession {
@@ -195,7 +195,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 <div className="flex items-center gap-2 text-sm text-[var(--foreground)]/70 font-medium">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    Started: {formatDateOnly(session.startedDate)}
+                    Started: {formatDate(session.startedDate)}
                   </span>
                 </div>
               )}
@@ -206,8 +206,8 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                   <Calendar className="w-4 h-4" />
                   <span>
                     {session.status === 'dnf'
-                      ? `Stopped Reading: ${formatDateOnly(session.completedDate!)}`
-                      : `Completed: ${formatDateOnly(session.completedDate!)}`
+                      ? `Stopped Reading: ${formatDate(session.completedDate!)}`
+                      : `Completed: ${formatDate(session.completedDate!)}`
                     }
                   </span>
                 </div>

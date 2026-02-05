@@ -18,7 +18,7 @@ export function useSessionDetails(
 
   function startEditing() {
     if (session?.startedDate) {
-      setEditStartDate(session.startedDate.split("T")[0]);
+      setEditStartDate(session.startedDate);
     } else {
       setEditStartDate(getTodayLocalDate());
     }

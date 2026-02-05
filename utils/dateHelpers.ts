@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 /**
  * Date Helpers Utility Library (Client-Safe)
@@ -8,47 +8,50 @@ import { format } from "date-fns";
  * 
  * ## When to Use Each Helper
  * 
+ * - **formatDate()**: Format YYYY-MM-DD strings for display
+ *   - Use case: `formatDate(session.startedDate)` → "Jun 9, 2024"
+ *   - Custom format: `formatDate(date, "MMM d")` → "Jun 9"
+ * 
+ * - **formatDayOfWeek()**: Get day of week for YYYY-MM-DD strings
+ *   - Use case: `formatDayOfWeek(session.startedDate)` → "Mon"
+ * 
  * - **getTodayLocalDate()**: Get current date for date input default values
  *   - Use case: `<input type="date" defaultValue={getTodayLocalDate()} />`
- * 
- * - **formatDateOnly()**: DEPRECATED - Use date-fns format/parse instead
- *   - Old way: `formatDateOnly(isoString, 'MMM d, yyyy')`
- *   - New way: `format(parse(dateStr, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')`
  * 
  * Follows ADR-006 and ADR-013 for date handling patterns.
  */
 
 /**
- * @deprecated As of Jan 2026 - APIs now return YYYY-MM-DD strings directly, no need to parse ISO.
- * Use date-fns format() with parse() instead: `format(parse(dateStr, 'yyyy-MM-dd', new Date()), formatString)`
- * Will be removed in 3 months (April 2026).
+ * Format a YYYY-MM-DD date string for display.
  * 
- * Formats an ISO date string for display, avoiding timezone conversion issues.
+ * Takes a date string in YYYY-MM-DD format (as returned by the API)
+ * and formats it for human-readable display.
  * 
- * When dates are stored as ISO strings with midnight UTC (e.g., "2025-11-23T00:00:00.000Z"),
- * converting them directly with `new Date()` causes timezone shifts that can change the date
- * by a day for users in timezones behind UTC.
- * 
- * This function extracts the date portion and interprets it in the user's local timezone
- * at noon to ensure the date displays as intended.
- * 
- * @param isoString - ISO date string (e.g., "2025-11-23T00:00:00.000Z")
+ * @param dateString - Date in YYYY-MM-DD format (e.g., "2024-06-09")
  * @param formatString - date-fns format string (defaults to "MMM d, yyyy")
- * @returns Formatted date string
+ * @returns Formatted date string (e.g., "Jun 9, 2024")
  * 
  * @example
- * formatDateOnly("2025-11-23T00:00:00.000Z") // "Nov 23, 2025" (regardless of timezone)
- * formatDateOnly("2025-11-23T00:00:00.000Z", "yyyy-MM-dd") // "2025-11-23"
+ * formatDate("2024-06-09") // "Jun 9, 2024"
+ * formatDate("2024-06-09", "MMM d") // "Jun 9"
+ * formatDate("2024-06-09", "MMMM d, yyyy") // "June 9, 2024"
  */
-export function formatDateOnly(isoString: string, formatString = "MMM d, yyyy"): string {
-  // Extract just the date portion (YYYY-MM-DD)
-  const dateOnly = isoString.split("T")[0];
-  
-  // Parse at noon local time to avoid any timezone edge cases
-  // This ensures the date displays as the user intended when they selected it
-  const date = new Date(dateOnly + "T12:00:00");
-  
-  return format(date, formatString);
+export function formatDate(dateString: string, formatString = "MMM d, yyyy"): string {
+  return format(parse(dateString, 'yyyy-MM-dd', new Date()), formatString);
+}
+
+/**
+ * Get the day of week for a YYYY-MM-DD date string.
+ * 
+ * @param dateString - Date in YYYY-MM-DD format (e.g., "2024-06-09")
+ * @returns Day of week abbreviation (e.g., "Mon", "Tue", "Wed")
+ * 
+ * @example
+ * formatDayOfWeek("2024-06-09") // "Sun"
+ * formatDayOfWeek("2024-12-25") // "Wed"
+ */
+export function formatDayOfWeek(dateString: string): string {
+  return format(parse(dateString, 'yyyy-MM-dd', new Date()), 'EEE');
 }
 
 /**

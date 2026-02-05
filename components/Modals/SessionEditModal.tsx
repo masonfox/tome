@@ -53,13 +53,9 @@ export default function SessionEditModal({
   // This prevents the race condition where form resets before draft loads from localStorage
   useEffect(() => {
     if (isOpen && isInitialized) {
-      // Convert ISO datetime to date-only string (YYYY-MM-DD) for input[type="date"]
-      setStartedDate(
-        currentStartedDate ? currentStartedDate.split("T")[0] : ""
-      );
-      setCompletedDate(
-        currentCompletedDate ? currentCompletedDate.split("T")[0] : ""
-      );
+      // Dates are already in YYYY-MM-DD format from API
+      setStartedDate(currentStartedDate || "");
+      setCompletedDate(currentCompletedDate || "");
       
       // Prioritize current review over draft
       // If there's a current review, use it; otherwise use draft if available

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
-import { format, parse } from "date-fns";
+import { formatDate, formatDayOfWeek } from '@/utils/dateHelpers';
 import Link from "next/link";
 import Image from "next/image";
 import { JournalArchiveTree } from "@/components/Journal/JournalArchiveTree";
@@ -390,8 +390,8 @@ export default function JournalPage() {
                 </span>
                 <Calendar className="w-5 h-5" />
                 <h2>
-                  {format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}
-                  <span className="text-[var(--subheading-text)]"> ({format(parse(dayEntry.date, 'yyyy-MM-dd', new Date()), 'EEE')})</span>
+                  {formatDate(dayEntry.date)}
+                  <span className="text-[var(--subheading-text)]"> ({formatDayOfWeek(dayEntry.date)})</span>
                 </h2>
               </button>
 
