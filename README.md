@@ -66,6 +66,7 @@ Your reading data lives locally, under your control, and survives platform chang
 - 🏷️ **Robust [Tag Management](https://github.com/masonfox/tome/discussions/225)**: Easily remove a tag from many books in a single click, merge multiple tags into one, and bulk delete tags.
 - 📊 **Statistics Dashboard**: Comprehensive reading statistics
 - 🥇 **Annual goals**: Set and track annual reading goals
+- 🌐 **OPDS Catalog** - [OPDS](https://opds.io/) support to download books on the go with Tome enhancements. See [setup](./docs/OPDS.md) documentation.
 - 🪛 **Self-Hosted**: Full control over your data with no external dependencies
 
 ## Get Started

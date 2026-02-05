@@ -40,8 +40,6 @@ Before setting up OPDS, ensure:
 
 ## Setup Instructions
 
-### General Setup
-
 Most OPDS-compatible apps follow a similar setup process:
 
 1. Find the OPDS catalog or "Add catalog" option in your app's settings
@@ -54,7 +52,7 @@ Most OPDS-compatible apps follow a similar setup process:
 
 ## Authentication
 
-### If AUTH_PASSWORD is Set
+### If `AUTH_PASSWORD` is Set
 
 When you've configured Tome with an `AUTH_PASSWORD`, OPDS endpoints use HTTP Basic Authentication:
 
@@ -62,7 +60,7 @@ When you've configured Tome with an `AUTH_PASSWORD`, OPDS endpoints use HTTP Bas
 - **Password**: Your `AUTH_PASSWORD` value
 - Authentication is required for all OPDS operations
 
-### If AUTH_PASSWORD is Not Set
+### If `AUTH_PASSWORD` is NOT Set
 
 - No authentication required
 - OPDS catalog is publicly accessible
