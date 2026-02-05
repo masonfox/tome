@@ -24,8 +24,8 @@ const VALID_STATUSES: ReadingStatus[] = ['to-read', 'reading', 'read', 'read-nex
 const STATUS_TITLES: Record<ReadingStatus, string> = {
   'to-read': 'To Read',
   'read-next': 'Read Next',
-  'reading': 'Currently Reading',
-  'read': 'Finished',
+  'reading': 'Reading',
+  'read': 'Read',
   'dnf': 'Did Not Finish',
 };
 

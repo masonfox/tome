@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
       },
       {
         id: 'reading',
-        title: 'Currently Reading',
+        title: 'Reading',
         description: 'Books in progress',
       },
       {
         id: 'read',
-        title: 'Finished',
+        title: 'Read',
         description: 'Completed books',
       },
       {
