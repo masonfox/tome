@@ -279,7 +279,7 @@ describe('Tome Integration - OPDS Bridge', () => {
   describe('getAllShelves', () => {
     test('should return all shelves with book counts', async () => {
       const shelf1 = await shelfRepository.create({ name: 'Favorites', description: null });
-      const shelf2 = await shelfRepository.create({ name: 'Classics', description: 'Classic literature' });
+      await shelfRepository.create({ name: 'Classics', description: 'Classic literature' });
 
       const book1 = await bookRepository.create({
         calibreId: 147,
