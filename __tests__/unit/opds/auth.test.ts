@@ -2,7 +2,7 @@
  * Unit tests for OPDS authentication
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, afterEach } from 'vitest';
 import { validateOPDSAuth, createUnauthorizedResponse } from '@/lib/opds/auth';
 import { NextRequest } from 'next/server';
 
