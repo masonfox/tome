@@ -4,7 +4,7 @@
  * for OPDS endpoints that need to filter by reading status or shelves
  */
 
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import { db } from '@/lib/db/sqlite';
 import { readingSessions } from '@/lib/db/schema/reading-sessions';
 import { books } from '@/lib/db/schema/books';
@@ -57,6 +57,9 @@ export async function getBooksByStatus(
   if (status === 'read-next') {
     // Order by read_next_order for read-next queue
     sessionsQuery.orderBy(readingSessions.readNextOrder, readingSessions.id);
+  } else if (status === 'read') {
+    // Order by most recently completed for "read" status
+    sessionsQuery.orderBy(desc(readingSessions.completedDate));
   } else {
     // Order by most recently updated for other statuses
     sessionsQuery.orderBy(readingSessions.updatedAt);
