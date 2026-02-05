@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       id: 'urn:tome:by-status',
       title: 'Reading Status',
       updated: now,
-      subtitle: 'Filter books by reading progress',
+      subtitle: 'Filter books by reading status',
       links: [
         {
           rel: OPDS_REL_TYPES.SELF,
