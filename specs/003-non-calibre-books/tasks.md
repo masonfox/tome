@@ -65,13 +65,13 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Service Layer Foundation
 
-- [ ] T013 [P] Create CircuitBreakerService with state machine (CLOSED/OPEN/HALF_OPEN) in lib/services/circuit-breaker.service.ts
+- [X] T013 [P] Create CircuitBreakerService with state machine (CLOSED/OPEN/HALF_OPEN) in lib/services/circuit-breaker.service.ts
 - [ ] T014 [P] Implement ProviderService for provider orchestration in lib/services/provider.service.ts
 - [ ] T015 [P] Create MigrationService for source migration workflows in lib/services/migration.service.ts
 
 ### Provider Implementations (Stubs)
 
-- [ ] T016 [P] Create ManualProvider stub (always enabled, no external API) in lib/providers/manual.provider.ts
+- [X] T016 [P] Create ManualProvider stub (always enabled, no external API) in lib/providers/manual.provider.ts
 - [ ] T017 [P] Refactor existing Calibre sync to CalibreProvider implementation in lib/providers/calibre.provider.ts
 - [ ] T018 [P] Create HardcoverProvider stub with auth handling in lib/providers/hardcover.provider.ts
 - [ ] T019 [P] Create OpenLibraryProvider stub (public API, no auth) in lib/providers/openlibrary.provider.ts
