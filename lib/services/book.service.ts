@@ -1,10 +1,13 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import type { Book } from "@/lib/db/schema/books";
+import type { Book, NewBook } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
 import type { ICalibreService } from "@/lib/services/calibre.service";
 import { getLogger } from "@/lib/logger";
+import { validateManualBookInput, type ManualBookInput } from "@/lib/validation/manual-book.schema";
+import { detectDuplicates, type DuplicateDetectionResult } from "@/lib/services/duplicate-detection.service";
+import { generateAuthorSort } from "@/lib/utils/author-sort";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -15,6 +18,14 @@ export interface BookWithDetails extends Book {
   hasCompletedReads: boolean;
   hasFinishedSessions: boolean;
   totalReads: number;
+}
+
+/**
+ * Manual book creation result with duplicate warnings
+ */
+export interface ManualBookCreationResult {
+  book: Book;
+  duplicates: DuplicateDetectionResult;
 }
 
 /**
@@ -258,9 +269,131 @@ export class BookService {
   }
 
   /**
+   * Create a manual book entry
+   * 
+   * Creates a new book with source='manual' and performs duplicate detection.
+   * Validates input and automatically creates an initial reading session.
+   * 
+   * @param input - Manual book data (title, authors, optional metadata)
+   * @returns Promise resolving to created book and duplicate detection result
+   * @throws {Error} If validation fails or book creation fails
+   * 
+   * @example
+   * const result = await bookService.createManualBook({
+   *   title: 'The Great Gatsby',
+   *   authors: ['F. Scott Fitzgerald'],
+   *   totalPages: 180
+   * });
+   * 
+   * if (result.duplicates.hasDuplicates) {
+   *   console.log('Potential duplicates:', result.duplicates.duplicates);
+   * }
+   */
+  async createManualBook(input: ManualBookInput): Promise<ManualBookCreationResult> {
+    const logger = getLogger();
+
+    // Validate input
+    const validatedInput = validateManualBookInput(input);
+    logger.debug({ title: validatedInput.title }, "Creating manual book");
+
+    // Check for duplicates (warning only, doesn't prevent creation)
+    const duplicates = await detectDuplicates(
+      validatedInput.title,
+      validatedInput.authors
+    );
+
+    if (duplicates.hasDuplicates) {
+      logger.info(
+        {
+          title: validatedInput.title,
+          duplicateCount: duplicates.duplicates.length,
+        },
+        "Manual book creation detected potential duplicates"
+      );
+    }
+
+    // Prepare book data
+    const newBook: NewBook = {
+      // Required fields
+      title: validatedInput.title,
+      authors: validatedInput.authors,
+      authorSort: generateAuthorSort(validatedInput.authors),
+
+      // Source fields
+      source: "manual",
+      externalId: null,
+      calibreId: null,
+
+      // Optional metadata
+      isbn: validatedInput.isbn ?? null,
+      description: validatedInput.description ?? null,
+      publisher: validatedInput.publisher ?? null,
+      pubDate: validatedInput.pubDate ?? null,
+      totalPages: validatedInput.totalPages ?? null,
+      series: validatedInput.series ?? null,
+      seriesIndex: validatedInput.seriesIndex ?? null,
+      tags: validatedInput.tags ?? [],
+
+      // Calibre-specific fields (null for manual books)
+      path: null,
+      lastSynced: null,
+
+      // Default values
+      rating: null,
+      orphanedAt: null,
+    };
+
+    // Create book
+    const createdBook = await bookRepository.create(newBook);
+
+    // Create initial reading session
+    await sessionRepository.create({
+      bookId: createdBook.id,
+      status: "to-read",
+      startedDate: new Date().toISOString(),
+      sessionNumber: 1,
+    });
+
+    logger.info(
+      {
+        bookId: createdBook.id,
+        title: createdBook.title,
+        hasDuplicates: duplicates.hasDuplicates,
+      },
+      "Manual book created successfully"
+    );
+
+    return {
+      book: createdBook,
+      duplicates,
+    };
+  }
+
+  /**
+   * Check for duplicate books (preview without creating)
+   * 
+   * Used for real-time duplicate detection in the UI before submission.
+   * 
+   * @param title - Book title to check
+   * @param authors - Book authors to check
+   * @returns Promise resolving to duplicate detection result
+   */
+  async checkForDuplicates(
+    title: string,
+    authors: string[]
+  ): Promise<DuplicateDetectionResult> {
+    return detectDuplicates(title, authors);
+  }
+
+  /**
    * Sync rating to Calibre (best effort)
    */
-  private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
+  private async syncRatingToCalibre(calibreId: number | null, rating: number | null): Promise<void> {
+    // Skip sync for non-Calibre books
+    if (calibreId === null) {
+      return;
+    }
+
     try {
       this.getCalibreService().updateRating(calibreId, rating);
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);

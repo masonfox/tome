@@ -1,6 +1,8 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository } from "@/lib/repositories";
+import { bookService } from "@/lib/services/book.service";
+import { ZodError } from "zod";
 
 export const dynamic = 'force-dynamic';
 
@@ -66,10 +68,44 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Check if this is a manual book creation (has title field)
+    if (body.title && body.authors) {
+      // Manual book creation
+      try {
+        const result = await bookService.createManualBook(body);
+        
+        return NextResponse.json({
+          book: result.book,
+          duplicates: result.duplicates,
+        }, { status: 201 });
+      } catch (error) {
+        if (error instanceof ZodError) {
+          return NextResponse.json(
+            {
+              error: "Validation failed",
+              details: error.issues,
+            },
+            { status: 400 }
+          );
+        }
+        
+        getLogger().error({ err: error }, "Error creating manual book");
+        return NextResponse.json(
+          { error: "Failed to create manual book" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Legacy: Update book by calibreId
     const { calibreId, totalPages } = body;
 
     if (!calibreId) {
-      return NextResponse.json({ error: "calibreId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Either (title + authors) or calibreId is required" },
+        { status: 400 }
+      );
     }
 
     const book = await bookRepository.findByCalibreId(calibreId);
@@ -85,7 +121,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(book);
   } catch (error) {
-    getLogger().error({ err: error }, "Error updating book");
-    return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
+    getLogger().error({ err: error }, "Error in POST /api/books");
+    return NextResponse.json(
+      { error: "Failed to process request" },
+      { status: 500 }
+    );
   }
 }
