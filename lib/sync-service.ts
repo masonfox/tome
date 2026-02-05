@@ -130,8 +130,8 @@ export async function syncCalibreLibrary(
 
     const numChunks = Math.ceil(totalBooks / chunkSize);
     logger.info(
-      { totalBooks, chunkSize, numChunks, detectOrphans },
-      `[Sync] Starting: ${totalBooks} books, ${numChunks} chunk(s), orphan detection ${detectOrphans ? 'enabled' : 'disabled'}`
+      { totalBooks, chunkSize, numChunks, detectOrphans, source: 'calibre' }, // T047: Log source filtering
+      `[Sync] Starting: ${totalBooks} books (source=calibre), ${numChunks} chunk(s), orphan detection ${detectOrphans ? 'enabled' : 'disabled'}`
     );
 
     // ========================================
@@ -223,6 +223,7 @@ export async function syncCalibreLibrary(
 
         const bookData: NewBook = {
           calibreId: calibreBook.id,
+          source: 'calibre', // T041: Ensure all synced books have source='calibre'
           title: calibreBook.title,
           authors,
           authorSort: generateAuthorSort(authors),
@@ -329,18 +330,21 @@ export async function syncCalibreLibrary(
         totalBooks, 
         durationSec: bookProcessingDuration, 
         newBooks: syncedCount, 
-        updatedBooks: updatedCount 
+        updatedBooks: updatedCount,
+        source: 'calibre' // T047: Log source filtering
       },
-      `[Sync:Books] Processed ${syncedCount + updatedCount}/${totalBooks} books in ${bookProcessingDuration}s (${syncedCount} new, ${updatedCount} updated)`
+      `[Sync:Books] Processed ${syncedCount + updatedCount}/${totalBooks} books (source=calibre) in ${bookProcessingDuration}s (${syncedCount} new, ${updatedCount} updated)`
     );
 
     // ========================================
     // PHASE 2: Orphan Detection (Optional)
+    // T040: Only detect orphaned books from Calibre source (handled in repository)
     // ========================================
     let removedCount = 0;
     const orphanedBooks: string[] = [];
 
     if (detectOrphans) {
+      // Repository already filters by source='calibre' - see book.repository.ts:658
       const removedBooks = await bookRepository.findNotInCalibreIds(allCalibreIds);
 
       // SAFETY CHECK: Prevent mass orphaning (>10% of library)
@@ -380,11 +384,11 @@ export async function syncCalibreLibrary(
         const totalBooksInDb = await bookRepository.count();
         const orphanPercentage = ((removedCount / totalBooksInDb) * 100).toFixed(2);
         logger.info(
-          { removedCount, orphanPercentage },
-          `[Sync:Orphans] Marked ${removedCount} book(s) as orphaned (${orphanPercentage}% of library)`
+          { removedCount, orphanPercentage, source: 'calibre' }, // T047: Log source filtering
+          `[Sync:Orphans] Marked ${removedCount} Calibre book(s) as orphaned (${orphanPercentage}% of library)`
         );
       } else {
-        logger.info({ potentialOrphans: 0, removedCount: 0 }, `[Sync:Orphans] No orphaned books found`);
+        logger.info({ potentialOrphans: 0, removedCount: 0, source: 'calibre' }, `[Sync:Orphans] No orphaned Calibre books found`);
       }
     } else {
       // Orphan detection disabled - skip this phase
