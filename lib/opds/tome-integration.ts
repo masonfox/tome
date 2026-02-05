@@ -61,8 +61,8 @@ export async function getBooksByStatus(
     // Order by most recently completed for "read" status
     sessionsQuery.orderBy(desc(readingSessions.completedDate));
   } else {
-    // Order by most recently updated for other statuses
-    sessionsQuery.orderBy(readingSessions.updatedAt);
+    // Order by most recently updated for other statuses (reading, to-read, dnf)
+    sessionsQuery.orderBy(desc(readingSessions.updatedAt));
   }
 
   const allSessions = sessionsQuery.all() as Array<{ calibreId: number }>;
