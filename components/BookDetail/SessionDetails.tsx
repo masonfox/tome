@@ -1,5 +1,6 @@
 import { Calendar, Pencil } from "lucide-react";
-import { formatDateOnly, getTodayLocalDate } from '@/utils/dateHelpers';
+import { getTodayLocalDate } from '@/utils/dateHelpers';
+import { format, parse } from 'date-fns';
 import { Button } from "@/components/Utilities/Button";
 
 interface SessionDetailsProps {
@@ -59,7 +60,7 @@ export default function SessionDetails({
         >
           {startedDate ? (
             <span className="font-medium text-[var(--foreground)] group-hover:underline">
-              {formatDateOnly(startedDate)}
+              {format(parse(startedDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')}
             </span>
           ) : (
             <span className="italic text-[var(--foreground)]/40 font-medium group-hover:underline">
