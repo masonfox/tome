@@ -40,7 +40,7 @@ Before setting up OPDS, ensure:
 
 ## Setup Instructions
 
-Your tome OPDS endpoints is available at:
+Your tome OPDS endpoint is available at:
 
 ```
 /api/opds
