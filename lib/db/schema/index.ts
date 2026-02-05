@@ -5,3 +5,4 @@ export * from "./progress-logs";
 export * from "./streaks";
 export * from "./reading-goals";
 export * from "./shelves";
+export * from "./provider-configs";

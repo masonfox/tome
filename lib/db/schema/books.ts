@@ -1,11 +1,18 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const books = sqliteTable(
   "books",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    calibreId: integer("calibre_id").notNull().unique(),
+    // Multi-source support: calibreId is now nullable for non-Calibre books
+    calibreId: integer("calibre_id").unique(),
+    // Source indicates which provider this book came from
+    source: text("source", { enum: ["calibre", "manual", "hardcover", "openlibrary"] })
+      .notNull()
+      .default("calibre"),
+    // Provider-specific ID (null for manual books, Calibre ID for Calibre books)
+    externalId: text("external_id"),
     title: text("title").notNull(),
     // Store authors as JSON array
     authors: text("authors", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
@@ -14,16 +21,17 @@ export const books = sqliteTable(
     isbn: text("isbn"),
     totalPages: integer("total_pages"),
     addedToLibrary: integer("added_to_library", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-    lastSynced: integer("last_synced", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    lastSynced: integer("last_synced", { mode: "timestamp" }),
     publisher: text("publisher"),
     pubDate: integer("pub_date", { mode: "timestamp" }),
     series: text("series"),
     seriesIndex: real("series_index"),
     // Store tags as JSON array
     tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
-    path: text("path").notNull(),
+    // Path is Calibre-specific, nullable for non-Calibre books
+    path: text("path"),
     description: text("description"),
-    rating: integer("rating"), // 1-5 stars, synced from Calibre
+    rating: integer("rating"), // 1-5 stars, synced from Calibre or set manually
     orphaned: integer("orphaned", { mode: "boolean" }).notNull().default(false),
     orphanedAt: integer("orphaned_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
@@ -32,6 +40,12 @@ export const books = sqliteTable(
   (table) => ({
     // Index for efficient author sorting
     authorSortIdx: index("idx_books_author_sort").on(table.authorSort),
+    // Index for source-based filtering
+    sourceIdx: index("idx_books_source").on(table.source),
+    // Unique constraint on (source, externalId) where externalId is not null
+    sourceExternalIdx: uniqueIndex("idx_books_source_external")
+      .on(table.source, table.externalId)
+      .where(sql`external_id IS NOT NULL`),
   })
 );
 
