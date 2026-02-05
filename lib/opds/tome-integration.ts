@@ -23,6 +23,10 @@ export interface ShelfInfo {
 /**
  * Get books filtered by reading status using Tome's reading_sessions
  * Returns Calibre book data with full metadata
+ * 
+ * Note: For "read" status, includes both active and archived sessions since
+ * completed books are archived (is_active=false). For other statuses, only
+ * active sessions are included to match the library filtering behavior.
  */
 export async function getBooksByStatus(
   status: ReadingStatus,
@@ -39,10 +43,14 @@ export async function getBooksByStatus(
     .from(readingSessions)
     .innerJoin(books, eq(readingSessions.bookId, books.id))
     .where(
-      and(
-        eq(readingSessions.status, status),
-        eq(readingSessions.isActive, true)
-      )
+      // For "read" status, include all sessions (archived + active)
+      // For other statuses, only include active sessions
+      status === 'read'
+        ? eq(readingSessions.status, status)
+        : and(
+            eq(readingSessions.status, status),
+            eq(readingSessions.isActive, true)
+          )
     );
 
   // Apply ordering based on status
