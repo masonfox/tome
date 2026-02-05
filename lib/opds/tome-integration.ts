@@ -24,7 +24,7 @@
  */
 
 import { eq, and, sql, desc } from 'drizzle-orm';
-import { db } from '@/lib/db/sqlite';
+import { getDatabase } from '@/lib/db/context';
 import { readingSessions } from '@/lib/db/schema/reading-sessions';
 import { books } from '@/lib/db/schema/books';
 import { shelves, bookShelves } from '@/lib/db/schema/shelves';
@@ -55,7 +55,7 @@ export async function getBooksByStatus(
   // Get book IDs with the specified status from Tome
   // For 'read-next', order by readNextOrder
   // For others, order by updated timestamp
-  const sessionsQuery = db
+  const sessionsQuery = getDatabase()
     .select({
       calibreId: books.calibreId,
     })
@@ -109,7 +109,7 @@ export async function getBooksByStatus(
  */
 export async function getAllShelves(): Promise<ShelfInfo[]> {
   // Get all shelves with book counts for single-user mode (userId = null)
-  const result = db
+  const result = getDatabase()
     .select({
       id: shelves.id,
       name: shelves.name,
@@ -136,7 +136,7 @@ export async function getBooksByShelf(
   offset: number
 ): Promise<{ books: CalibreBook[]; total: number }> {
   // Get Calibre IDs for books on this shelf (ordered by sort order)
-  const booksOnShelf = db
+  const booksOnShelf = getDatabase()
     .select({
       calibreId: books.calibreId,
       sortOrder: bookShelves.sortOrder,

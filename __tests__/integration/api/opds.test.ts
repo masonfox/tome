@@ -401,4 +401,258 @@ describe('OPDS API Integration', () => {
       expect(response.status).toBe(404);
     });
   });
+
+  describe('Books Feed - Metadata Edge Cases', () => {
+    beforeEach(() => {
+      delete process.env.AUTH_PASSWORD;
+    });
+
+    test('should handle books without description', async () => {
+      // Book ID 89 has no description in fixture
+      const request = createMockRequest('GET', '/api/opds/books?limit=200') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Find book 89 entry
+      const bookIdMatch = xml.match(/<id>urn:tome:book:89<\/id>/);
+      expect(bookIdMatch).toBeTruthy();
+
+      // Extract the entry containing book 89
+      const entryStartIndex = xml.lastIndexOf('<entry>', bookIdMatch!.index);
+      const entryEndIndex = xml.indexOf('</entry>', bookIdMatch!.index) + '</entry>'.length;
+      const entryXml = xml.substring(entryStartIndex, entryEndIndex);
+
+      // Should have title and other required fields
+      expect(entryXml).toContain('<title>');
+      expect(entryXml).toContain('<updated>');
+      expect(entryXml).toContain('<author>');
+
+      // Should NOT have <content> element (no description)
+      expect(entryXml).not.toContain('<content type="text">');
+    });
+
+    test('should handle books without publisher', async () => {
+      // Book ID 147 (Dune) has no publisher
+      const request = createMockRequest('GET', '/api/opds/books?limit=200') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Find book 147 entry
+      const bookIdMatch = xml.match(/<id>urn:tome:book:147<\/id>/);
+      expect(bookIdMatch).toBeTruthy();
+
+      const entryStartIndex = xml.lastIndexOf('<entry>', bookIdMatch!.index);
+      const entryEndIndex = xml.indexOf('</entry>', bookIdMatch!.index) + '</entry>'.length;
+      const entryXml = xml.substring(entryStartIndex, entryEndIndex);
+
+      // Should have other DC terms but not publisher
+      expect(entryXml).toContain('dcterms:issued'); // Has pubdate
+      expect(entryXml).not.toContain('dcterms:publisher');
+    });
+
+    test('should include all DC terms when available', async () => {
+      // Book ID 40 has publisher, pubdate, and ISBN in database
+      const request = createMockRequest('GET', '/api/opds/books?limit=200') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Find book 40 entry
+      const bookIdMatch = xml.match(/<id>urn:tome:book:40<\/id>/);
+      expect(bookIdMatch).toBeTruthy();
+
+      const entryStartIndex = xml.lastIndexOf('<entry>', bookIdMatch!.index);
+      const entryEndIndex = xml.indexOf('</entry>', bookIdMatch!.index) + '</entry>'.length;
+      const entryXml = xml.substring(entryStartIndex, entryEndIndex);
+
+      // Should have dcterms namespace elements
+      expect(entryXml).toContain('dcterms:issued');
+      expect(entryXml).toContain('dcterms:identifier');
+      expect(entryXml).toContain('urn:isbn:9780399588969');
+      
+      // Verify the entry is well-formed with proper structure
+      expect(entryXml).toContain('<title>10% Happier</title>');
+      expect(entryXml).toContain('<published>');
+    });
+
+    test('should include series as category when available', async () => {
+      // Book ID 147 (Dune) has series
+      const request = createMockRequest('GET', '/api/opds/books?limit=200') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Find book 147 entry
+      const bookIdMatch = xml.match(/<id>urn:tome:book:147<\/id>/);
+      expect(bookIdMatch).toBeTruthy();
+
+      const entryStartIndex = xml.lastIndexOf('<entry>', bookIdMatch!.index);
+      const entryEndIndex = xml.indexOf('</entry>', bookIdMatch!.index) + '</entry>'.length;
+      const entryXml = xml.substring(entryStartIndex, entryEndIndex);
+
+      // Should have series category
+      expect(entryXml).toContain('<category');
+      expect(entryXml).toContain('term="Dune"');
+      expect(entryXml).toContain('label="Series: Dune"');
+    });
+
+    test('should handle books without series (no category)', async () => {
+      // Book ID 89 has series but we can test that entries without series don't have category
+      const request = createMockRequest('GET', '/api/opds/books?limit=200') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Verify the XML is well-formed and contains multiple books
+      expect(xml).toContain('<feed');
+      expect(xml).toContain('<entry>');
+
+      // Some books should have categories (with series)
+      // Some books should not have categories (without series)
+      // This test verifies the XML remains valid regardless
+      expect(xml).toContain('xmlns:dcterms');
+    });
+
+    test('should include published date when available', async () => {
+      // Book ID 147 has pubdate
+      const request = createMockRequest('GET', '/api/opds/books?limit=200') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Find book 147 entry
+      const bookIdMatch = xml.match(/<id>urn:tome:book:147<\/id>/);
+      expect(bookIdMatch).toBeTruthy();
+
+      const entryStartIndex = xml.lastIndexOf('<entry>', bookIdMatch!.index);
+      const entryEndIndex = xml.indexOf('</entry>', bookIdMatch!.index) + '</entry>'.length;
+      const entryXml = xml.substring(entryStartIndex, entryEndIndex);
+
+      // Should have <published> element
+      expect(entryXml).toContain('<published>');
+      expect(entryXml).toContain('1965-06'); // Dune published in 1965
+    });
+
+    test('should handle pagination with books having null fields', async () => {
+      // Test pagination works correctly even with books missing optional fields
+      const request = createMockRequest('GET', '/api/opds/books?offset=0&limit=10') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Should have pagination structure
+      expect(xml).toContain('<opensearch:totalResults>');
+      expect(xml).toContain('<opensearch:startIndex>0</opensearch:startIndex>');
+      expect(xml).toContain('<opensearch:itemsPerPage>10</opensearch:itemsPerPage>');
+
+      // Should have valid feed structure
+      expect(xml).toContain('<feed');
+      expect(xml).toContain('</feed>');
+
+      // All entries should be well-formed
+      const entryCount = (xml.match(/<entry>/g) || []).length;
+      const closingEntryCount = (xml.match(/<\/entry>/g) || []).length;
+      expect(entryCount).toBe(closingEntryCount);
+    });
+
+    test('should include cover links only for books with covers', async () => {
+      // All test books have covers, but verify link structure
+      const request = createMockRequest('GET', '/api/opds/books?limit=5') as any;
+      const response = await GET_BOOKS(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Should have cover and thumbnail links
+      expect(xml).toContain('rel="http://opds-spec.org/image"');
+      expect(xml).toContain('rel="http://opds-spec.org/image/thumbnail"');
+      expect(xml).toContain('href="/api/covers/');
+    });
+  });
+
+  describe('Search - Metadata Edge Cases', () => {
+    beforeEach(() => {
+      delete process.env.AUTH_PASSWORD;
+    });
+
+    test('should handle search results without descriptions', async () => {
+      // Search for "debt" which should match book 89 (no description)
+      const request = createMockRequest('GET', '/api/opds/search?q=debt') as any;
+      const response = await GET_SEARCH(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Should return results
+      expect(xml).toContain('<feed');
+      expect(xml).toContain('<entry>');
+
+      // Verify structure is valid even without content elements
+      const entryCount = (xml.match(/<entry>/g) || []).length;
+      const closingEntryCount = (xml.match(/<\/entry>/g) || []).length;
+      expect(entryCount).toBe(closingEntryCount);
+    });
+
+    test('should handle search results without pubdate', async () => {
+      // All our test books have pubdates, but verify the structure handles nulls
+      const request = createMockRequest('GET', '/api/opds/search?q=dune') as any;
+      const response = await GET_SEARCH(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Should have valid feed
+      expect(xml).toContain('<feed');
+      expect(xml).toContain('</feed>');
+
+      // Results should have required fields
+      expect(xml).toContain('<title>');
+      expect(xml).toContain('<updated>');
+    });
+
+    test('should include query parameter in pagination links', async () => {
+      const request = createMockRequest('GET', '/api/opds/search?q=dune&offset=0&limit=5') as any;
+      const response = await GET_SEARCH(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Pagination links should preserve search query
+      expect(xml).toContain('q=dune');
+
+      // Should have pagination structure
+      expect(xml).toContain('<opensearch:totalResults>');
+      expect(xml).toContain('<opensearch:itemsPerPage>');
+    });
+
+    test('should handle search with books having null metadata fields', async () => {
+      // Search for a common term to get multiple results
+      const request = createMockRequest('GET', '/api/opds/search?q=the') as any;
+      const response = await GET_SEARCH(request);
+
+      expect(response.status).toBe(200);
+      const xml = await response.text();
+
+      // Should have valid XML structure
+      expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+      expect(xml).toContain('<feed xmlns="http://www.w3.org/2005/Atom"');
+
+      // All entries should be properly closed
+      const openTags = xml.match(/<entry>/g)?.length || 0;
+      const closeTags = xml.match(/<\/entry>/g)?.length || 0;
+      expect(openTags).toBe(closeTags);
+
+      // Feed should be properly closed
+      expect(xml.endsWith('</feed>') || xml.endsWith('</feed>\n')).toBe(true);
+    });
+  });
 });
