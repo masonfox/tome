@@ -2,13 +2,15 @@
 
 import { BookCard } from "@/components/Books/BookCard";
 import { BookCardSkeleton } from "@/components/Books/BookCardSkeleton";
+import { type BookSource } from "@/components/Providers/ProviderBadge";
 
 interface BookGridProps {
   books: Array<{
     id: number;
-    calibreId: number;
+    calibreId: number | null;
     title: string;
     authors: string[];
+    source?: string;
     coverPath?: string;
     status?: string | null;
     tags?: string[];
@@ -39,6 +41,7 @@ export function BookGrid({ books, loading = false, loadingMore = false, skeleton
                 title={book.title}
                 authors={book.authors}
                 calibreId={book.calibreId}
+                source={book.source as BookSource | undefined}
                 status={book.status}
                 lastSynced={book.lastSynced}
               />

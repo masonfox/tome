@@ -5,7 +5,8 @@ import { bookApi } from "@/lib/api";
 
 export interface Book {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
+  source?: string;
   title: string;
   authors: string[];
   totalPages?: number;
@@ -31,6 +32,7 @@ export interface Book {
     currentPercentage: number;
     progressDate: string;
   };
+  lastSynced?: Date | string | null;
 }
 
 export interface UseBookDetailReturn {

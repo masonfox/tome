@@ -6,6 +6,7 @@ import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo } from "react";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
+import { ProviderBadge, type BookSource } from "@/components/Providers/ProviderBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
@@ -13,7 +14,8 @@ interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  calibreId: number;
+  calibreId: number | null;
+  source?: BookSource;
   status?: string | null;
   currentProgress?: number;
   className?: string;
@@ -25,6 +27,7 @@ export const BookCard = memo(function BookCard({
   title,
   authors,
   calibreId,
+  source,
   status,
   currentProgress,
   className,
@@ -41,7 +44,14 @@ export const BookCard = memo(function BookCard({
         )}
       >
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
-          {!imageError ? (
+          {/* Provider Badge */}
+          {source && (
+            <div className="absolute top-2 right-2 z-10">
+              <ProviderBadge source={source} size="sm" />
+            </div>
+          )}
+
+          {!imageError && calibreId ? (
             <Image
               src={getCoverUrl(calibreId, lastSynced)}
               alt={title}
@@ -95,6 +105,7 @@ export const BookCard = memo(function BookCard({
     prevProps.title === nextProps.title &&
     prevProps.status === nextProps.status &&
     prevProps.currentProgress === nextProps.currentProgress &&
-    prevProps.calibreId === nextProps.calibreId
+    prevProps.calibreId === nextProps.calibreId &&
+    prevProps.source === nextProps.source
   );
 });

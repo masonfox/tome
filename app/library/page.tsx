@@ -8,6 +8,7 @@ import { LibraryHeader } from "@/components/Library/LibraryHeader";
 import { LibraryFilters } from "@/components/Library/LibraryFilters";
 import { BookGrid } from "@/components/Books/BookGrid";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
+import ManualBookForm from "@/components/Books/ManualBookForm";
 import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
@@ -15,6 +16,7 @@ function LibraryPageContent() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [showManualBookForm, setShowManualBookForm] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
   const [availableShelves, setAvailableShelves] = useState<Array<{ id: number; name: string; color: string | null }>>([]);
@@ -469,6 +471,15 @@ function LibraryPageContent() {
     }
   }
 
+  function handleAddManualBook() {
+    setShowManualBookForm(true);
+  }
+
+  async function handleManualBookSuccess() {
+    setShowManualBookForm(false);
+    await refresh();
+  }
+
   const handleSortChange = useCallback((sort: string) => {
     setSortBy(sort);
     updateURL({
@@ -504,6 +515,7 @@ function LibraryPageContent() {
         totalBooks={total}
         syncing={syncing}
         onSync={handleSync}
+        onAddManualBook={handleAddManualBook}
         loading={isInitialLoading}
       />
 
@@ -549,6 +561,13 @@ function LibraryPageContent() {
 
       {/* Scroll to top button */}
       <ScrollToTopButton />
+
+      {/* Manual Book Form Modal */}
+      <ManualBookForm
+        isOpen={showManualBookForm}
+        onClose={() => setShowManualBookForm(false)}
+        onSuccess={handleManualBookSuccess}
+      />
     </div>
   );
 }

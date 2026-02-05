@@ -934,6 +934,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Book fields
         bookId: books.id,
         calibreId: books.calibreId,
+        source: books.source,
+        externalId: books.externalId,
         title: books.title,
         authors: books.authors,
         authorSort: books.authorSort,
@@ -1039,6 +1041,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const booksWithRelations = results.map((row: any) => ({
       id: row.bookId,
       calibreId: row.calibreId,
+      source: row.source,
       title: row.title,
       authors: row.authors,
       tags: row.tags,
