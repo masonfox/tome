@@ -2,6 +2,25 @@
  * Tome Integration Service
  * Bridges between Tome database (status/shelves) and Calibre database (book metadata)
  * for OPDS endpoints that need to filter by reading status or shelves
+ * 
+ * ARCHITECTURAL NOTE: Repository Pattern Exception
+ * ================================================
+ * This module intentionally uses direct database access instead of repositories.
+ * 
+ * Rationale:
+ * - OPDS is explicitly a Calibre-specific integration bridge
+ * - Queries here combine Tome DB (sessions/shelves) with Calibre DB (metadata/files)
+ * - Issue #185 (Calibre-independent reading) will require architectural changes here
+ * - When #185 lands, this module will need filtering by `calibreId IS NOT NULL`
+ * - Adding repository methods now would create technical debt that needs removal later
+ * 
+ * This is an intentional architectural decision, not an oversight. When Issue #185
+ * is implemented, this module's data access patterns will be revisited as part of
+ * that work. See GitHub issue tracking OPDS/Repository Pattern considerations.
+ * 
+ * Related Issues:
+ * - #185: Calibre-independent reading support
+ * - #341: OPDS Repository Pattern architectural review
  */
 
 import { eq, and, sql, desc } from 'drizzle-orm';
