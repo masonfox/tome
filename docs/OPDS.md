@@ -1,6 +1,6 @@
 # OPDS Setup Guide
 
-This guide explains how to connect your e-reader or reading app to Tome using OPDS (Open Publication Distribution System) to browse and download books directly from your Calibre library, supported by enhancements from Tome, such as the ability to navigate by reading stauses, shelves, ratings, etc.
+This guide explains how to connect your e-reader or reading app to Tome using OPDS (Open Publication Distribution System) to browse and download books directly from your Calibre library, supported by enhancements from Tome, such as the ability to navigate by reading stautses, shelves, ratings, etc.
 
 ## What is OPDS?
 
