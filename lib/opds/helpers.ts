@@ -3,8 +3,8 @@
  * Utility functions for URL building and format handling
  */
 
-import { FORMAT_PRIORITY, FORMAT_MIME_TYPES, OPDS_REL_TYPES } from './constants';
-import type { OPDSEntry } from './types';
+import { FORMAT_PRIORITY, FORMAT_MIME_TYPES, OPDS_MIME_TYPES, OPDS_REL_TYPES } from './constants';
+import type { OPDSEntry, OPDSLink } from './types';
 import type { CalibreBook, CalibreBookFormat } from '../db/calibre';
 
 /**
@@ -59,6 +59,27 @@ export function toAtomDate(date: string | Date): string {
 }
 
 /**
+ * Build standard search links for OPDS feeds
+ * Returns search links to be included in any feed
+ */
+export function buildSearchLinks(): OPDSLink[] {
+  return [
+    {
+      rel: OPDS_REL_TYPES.SEARCH,
+      href: buildOPDSUrl('/search?q={searchTerms}'),
+      type: OPDS_MIME_TYPES.ACQUISITION_FEED,
+      title: 'Search Books',
+    },
+    {
+      rel: OPDS_REL_TYPES.SEARCH,
+      href: buildOPDSUrl('/opensearch.xml'),
+      type: 'application/opensearchdescription+xml',
+      title: 'Search Books',
+    },
+  ];
+}
+
+/**
  * Parse pagination parameters from query string
  */
 export function parsePaginationParams(
@@ -80,6 +101,7 @@ export function parsePaginationParams(
 
 /**
  * Build pagination links for OPDS feeds
+ * Automatically includes search links unless disabled
  */
 export function buildPaginationLinks(
   basePath: string,
@@ -87,9 +109,10 @@ export function buildPaginationLinks(
   limit: number,
   total: number,
   mimeType: string,
-  additionalParams?: Record<string, string>
-): Array<{ rel: string; href: string; type: string }> {
-  const links: Array<{ rel: string; href: string; type: string }> = [];
+  additionalParams?: Record<string, string>,
+  includeSearch: boolean = true
+): OPDSLink[] {
+  const links: OPDSLink[] = [];
 
   // Self link
   links.push({
@@ -121,6 +144,11 @@ export function buildPaginationLinks(
       href: buildOPDSUrl(basePath, { ...additionalParams, offset: Math.max(0, offset - limit), limit }),
       type: mimeType,
     });
+  }
+
+  // Add search links automatically
+  if (includeSearch) {
+    links.push(...buildSearchLinks());
   }
 
   return links;

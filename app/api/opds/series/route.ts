@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateOPDSAuth, createUnauthorizedResponse } from '@/lib/opds/auth';
 import { generateNavigationFeed } from '@/lib/opds/generator';
 import { OPDS_MIME_TYPES, OPDS_REL_TYPES } from '@/lib/opds/constants';
-import { buildOPDSUrl } from '@/lib/opds/helpers';
+import { buildOPDSUrl, buildSearchLinks } from '@/lib/opds/helpers';
 import { getAllSeries } from '@/lib/db/calibre';
 import type { OPDSFeed, OPDSEntry } from '@/lib/opds/types';
 import { getLogger } from '@/lib/logger';
@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
           href: buildOPDSUrl(''),
           type: OPDS_MIME_TYPES.NAVIGATION_FEED,
         },
+        ...buildSearchLinks(),
       ],
       entries,
     };

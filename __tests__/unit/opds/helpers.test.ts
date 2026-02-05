@@ -10,6 +10,7 @@ import {
   toAtomDate,
   parsePaginationParams,
   buildPaginationLinks,
+  buildSearchLinks,
 } from '@/lib/opds/helpers';
 
 describe('OPDS Helpers', () => {
@@ -170,6 +171,33 @@ describe('OPDS Helpers', () => {
     });
   });
 
+  describe('buildSearchLinks', () => {
+    test('should return two search links', () => {
+      const links = buildSearchLinks();
+      expect(links).toHaveLength(2);
+    });
+
+    test('should include search query template link', () => {
+      const links = buildSearchLinks();
+      const queryLink = links.find(l => l.href.includes('/search?q={searchTerms}'));
+      
+      expect(queryLink).toBeDefined();
+      expect(queryLink?.rel).toBe('search');
+      expect(queryLink?.type).toBe('application/atom+xml;profile=opds-catalog;kind=acquisition');
+      expect(queryLink?.title).toBe('Search Books');
+    });
+
+    test('should include OpenSearch descriptor link', () => {
+      const links = buildSearchLinks();
+      const openSearchLink = links.find(l => l.href.includes('/opensearch.xml'));
+      
+      expect(openSearchLink).toBeDefined();
+      expect(openSearchLink?.rel).toBe('search');
+      expect(openSearchLink?.type).toBe('application/opensearchdescription+xml');
+      expect(openSearchLink?.title).toBe('Search Books');
+    });
+  });
+
   describe('buildPaginationLinks', () => {
     test('should include self and start links', () => {
       const links = buildPaginationLinks('/books', 0, 50, 100, 'application/atom+xml');
@@ -182,6 +210,26 @@ describe('OPDS Helpers', () => {
 
       expect(startLink).toBeDefined();
       expect(startLink?.href).toBe('/api/opds');
+    });
+
+    test('should include search links by default', () => {
+      const links = buildPaginationLinks('/books', 0, 50, 100, 'application/atom+xml');
+
+      const searchLinks = links.filter(l => l.rel === 'search');
+      expect(searchLinks).toHaveLength(2);
+      
+      const queryLink = searchLinks.find(l => l.href.includes('/search?q={searchTerms}'));
+      expect(queryLink).toBeDefined();
+      
+      const openSearchLink = searchLinks.find(l => l.href.includes('/opensearch.xml'));
+      expect(openSearchLink).toBeDefined();
+    });
+
+    test('should exclude search links when includeSearch is false', () => {
+      const links = buildPaginationLinks('/books', 0, 50, 100, 'application/atom+xml', undefined, false);
+
+      const searchLinks = links.filter(l => l.rel === 'search');
+      expect(searchLinks).toHaveLength(0);
     });
 
     test('should include next link when more results available', () => {
