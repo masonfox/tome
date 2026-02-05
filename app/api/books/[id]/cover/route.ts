@@ -17,7 +17,6 @@ export const dynamic = 'force-dynamic';
 
 // Re-export cache functions for backward compatibility
 export { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats, type CacheStats };
-
 // Helper function to serve the placeholder "no cover" image
 function servePlaceholderImage() {
   const placeholderPath = path.join(process.cwd(), "public", "cover-fallback.png");
@@ -69,12 +68,12 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Check book path cache to avoid Calibre DB query
     let bookPath: string;
     let hasCover: boolean;
-    
+
     const cachedBookPath = bookPathCache.get(bookId);
     if (cachedBookPath) {
       bookPath = cachedBookPath.path;
       hasCover = cachedBookPath.hasCover;
-      
+
       if (!hasCover) {
         return servePlaceholderImage();
       }
@@ -154,4 +153,3 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     return servePlaceholderImage();
   }
 }
-
