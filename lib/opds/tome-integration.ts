@@ -9,7 +9,7 @@ import { db } from '@/lib/db/sqlite';
 import { readingSessions } from '@/lib/db/schema/reading-sessions';
 import { books } from '@/lib/db/schema/books';
 import { shelves, bookShelves } from '@/lib/db/schema/shelves';
-import { getBookById, type CalibreBook } from '@/lib/db/calibre';
+import { getBookById, getCalibreDB, type CalibreBook } from '@/lib/db/calibre';
 
 export type ReadingStatus = 'to-read' | 'reading' | 'read' | 'read-next' | 'dnf';
 
@@ -143,4 +143,107 @@ export async function getBooksByShelf(
   }
 
   return { books: calibreBooks, total };
+}
+
+/**
+ * Get books filtered by rating from Calibre database
+ * Returns Calibre book data with full metadata
+ * 
+ * @param rating - Star rating (1-5), 'rated' for any rating, or 'unrated' for books without ratings
+ * @param limit - Maximum number of books to return
+ * @param offset - Number of books to skip for pagination
+ */
+export async function getBooksByRating(
+  rating: number | 'unrated' | 'rated',
+  limit: number,
+  offset: number
+): Promise<{ books: CalibreBook[]; total: number }> {
+  const calibreDb = getCalibreDB();
+
+  // Check schema to determine how to handle series and publisher
+  const columns = calibreDb.prepare("PRAGMA table_info(books)").all() as Array<{ name: string }>;
+  const columnNames = columns.map(c => c.name);
+  const hasPublisherColumn = columnNames.includes('publisher');
+
+  const tables = calibreDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
+  const tableNames = tables.map(t => t.name);
+  const hasSeriesLinkTable = tableNames.includes('books_series_link');
+
+  // Build series join
+  let seriesJoin = '';
+  let seriesSelect = '';
+  if (hasSeriesLinkTable) {
+    seriesJoin = 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id';
+    seriesSelect = 's.name as series';
+  } else {
+    seriesJoin = 'LEFT JOIN series s ON b.series = s.id';
+    seriesSelect = 's.name as series';
+  }
+
+  // Build publisher join
+  let publisherJoin = '';
+  let publisherSelect = '';
+  if (hasPublisherColumn) {
+    publisherJoin = 'LEFT JOIN publishers p ON b.publisher = p.id';
+    publisherSelect = 'p.name as publisher';
+  } else {
+    publisherJoin = 'LEFT JOIN books_publishers_link bpl ON b.id = bpl.book LEFT JOIN publishers p ON bpl.publisher = p.id';
+    publisherSelect = 'p.name as publisher';
+  }
+
+  // Build WHERE clause for rating filter
+  let whereClause = '';
+  if (rating === 'unrated') {
+    whereClause = 'r.rating IS NULL';
+  } else if (rating === 'rated') {
+    whereClause = 'r.rating IS NOT NULL';
+  } else {
+    // Convert 1-5 star rating back to Calibre's 0-10 scale
+    const calibreRating = rating * 2;
+    whereClause = `r.rating = ${calibreRating}`;
+  }
+
+  const query = `
+    SELECT
+      b.id,
+      b.title,
+      b.timestamp,
+      b.pubdate,
+      b.path,
+      b.has_cover,
+      b.series_index,
+      GROUP_CONCAT(DISTINCT a.name) as authors,
+      GROUP_CONCAT(DISTINCT i.val) as isbn,
+      ${publisherSelect},
+      ${seriesSelect},
+      c.text as description,
+      CASE WHEN r.rating IS NOT NULL THEN CAST((r.rating / 2.0) as INTEGER) ELSE NULL END as rating
+    FROM books b
+    LEFT JOIN books_authors_link bal ON b.id = bal.book
+    LEFT JOIN authors a ON bal.author = a.id
+    LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
+    LEFT JOIN comments c ON b.id = c.book
+    LEFT JOIN books_ratings_link brl ON b.id = brl.book
+    LEFT JOIN ratings r ON brl.rating = r.id
+    ${publisherJoin}
+    ${seriesJoin}
+    WHERE ${whereClause}
+    GROUP BY b.id
+    ORDER BY b.title COLLATE NOCASE
+    LIMIT ${limit}
+    OFFSET ${offset}
+  `;
+
+  const countQuery = `
+    SELECT COUNT(DISTINCT b.id) as total
+    FROM books b
+    LEFT JOIN books_ratings_link brl ON b.id = brl.book
+    LEFT JOIN ratings r ON brl.rating = r.id
+    WHERE ${whereClause}
+  `;
+
+  const calibreBooks = calibreDb.prepare(query).all() as CalibreBook[];
+  const countResult = calibreDb.prepare(countQuery).get() as { total: number };
+
+  return { books: calibreBooks, total: countResult.total };
 }

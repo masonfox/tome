@@ -170,6 +170,23 @@ export async function GET(request: NextRequest) {
           },
         ],
       },
+      {
+        id: 'urn:tome:by-rating',
+        title: 'Ratings',
+        updated: now,
+        content: {
+          type: 'text',
+          text: 'Browse books by star rating',
+        },
+        authors: [{ name: 'Tome' }],
+        links: [
+          {
+            rel: OPDS_REL_TYPES.SUBSECTION,
+            href: buildOPDSUrl('/ratings'),
+            type: OPDS_MIME_TYPES.NAVIGATION_FEED,
+          },
+        ],
+      },
     ],
   };
 
