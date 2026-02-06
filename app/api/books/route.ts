@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || undefined;
     const search = searchParams.get("search")?.trim() || undefined;
     const tagsParam = searchParams.get("tags");
+    const sourcesParam = searchParams.get("sources"); // T048: Add source filtering
     const rating = searchParams.get("rating") || undefined;
     const shelfParam = searchParams.get("shelf");
     const excludeShelfParam = searchParams.get("excludeShelfId");
@@ -23,6 +24,11 @@ export async function GET(request: NextRequest) {
 
     // Parse tags
     const tags = tagsParam ? tagsParam.split(",").map((t) => t.trim()) : undefined;
+    
+    // Parse sources (T048: Multi-source filtering)
+    const source = sourcesParam 
+      ? sourcesParam.split(",").map((s) => s.trim()) as Array<"calibre" | "manual" | "hardcover" | "openlibrary">
+      : undefined;
 
     // Parse shelf ID
     const shelfIds = shelfParam ? [parseInt(shelfParam)] : undefined;
@@ -41,6 +47,7 @@ export async function GET(request: NextRequest) {
         status,
         search,
         tags,
+        source, // T048: Pass source filter to repository
         rating,
         shelfIds,
         excludeShelfId,

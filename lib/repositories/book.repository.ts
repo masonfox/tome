@@ -820,6 +820,19 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         conditions.push(ratingCondition);
       }
     }
+    // Source filter (T049: Multi-source filtering with OR logic)
+    if (filters.source) {
+      if (Array.isArray(filters.source)) {
+        // Multiple sources - book must match ANY source (OR logic)
+        if (filters.source.length > 0) {
+          conditions.push(inArray(books.source, filters.source));
+        }
+      } else {
+        // Single source
+        conditions.push(eq(books.source, filters.source));
+      }
+    }
+
 
     // Status filter (requires join with sessions)
     let bookIds: number[] | undefined;
