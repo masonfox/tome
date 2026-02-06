@@ -82,7 +82,7 @@ const migration: CompanionMigration = {
           hasSearch: true,
           hasMetadataFetch: true,
           hasSync: false,
-          requiresAuth: false,
+          requiresAuth: true,
         }),
         settings: JSON.stringify({
           baseUrl: "https://hardcover.app/api/v1",

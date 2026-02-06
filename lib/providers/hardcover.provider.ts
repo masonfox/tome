@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from "@/lib/logger";
+import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import type {
   IMetadataProvider,
   ProviderCapabilities,
@@ -45,13 +46,25 @@ class HardcoverProvider implements IMetadataProvider {
   private readonly baseUrl = "https://api.hardcover.app/v1/graphql";
 
   /**
-   * Get API key from environment or provider config
+   * Get API key from provider_configs database
    * 
-   * For now, checks process.env.HARDCOVER_API_KEY
-   * TODO: Load from provider_configs table in future iteration
+   * Loads credentials at runtime for hot-reload capability.
+   * No server restart required when API key is updated.
    */
-  private getApiKey(): string | null {
-    return process.env.HARDCOVER_API_KEY || null;
+  private async getApiKey(): Promise<string | null> {
+    try {
+      const config = await providerConfigRepository.findByProvider("hardcover");
+      if (!config?.credentials) {
+        return null;
+      }
+      
+      // credentials is a JSON object: { apiKey: "..." }
+      const credentials = config.credentials as Record<string, string>;
+      return credentials.apiKey || null;
+    } catch (error) {
+      logger.error({ err: error }, "Failed to load Hardcover credentials");
+      return null;
+    }
   }
 
   /**
@@ -67,11 +80,11 @@ class HardcoverProvider implements IMetadataProvider {
   async search(query: string): Promise<SearchResult[]> {
     logger.debug({ query }, "Hardcover: Starting search");
 
-    // Check for API key
-    const apiKey = this.getApiKey();
+    // Check for API key from database
+    const apiKey = await this.getApiKey();
     if (!apiKey) {
-      logger.warn("Hardcover: API key not configured (set HARDCOVER_API_KEY environment variable)");
-      throw new Error("API key required. Set HARDCOVER_API_KEY environment variable.");
+      logger.warn("Hardcover: API key not configured in provider settings");
+      throw new Error("API key required. Configure in Settings → Providers → Hardcover.");
     }
 
     try {
