@@ -7,6 +7,7 @@ export interface LibraryFilters {
   tags?: string[];
   rating?: string;
   shelf?: number;
+  sources?: string[]; // T052: Add sources filter
   pagination: {
     limit: number;
     skip: number;
@@ -38,6 +39,7 @@ export class LibraryService {
       tags: filters.tags?.sort(),
       rating: filters.rating,
       shelf: filters.shelf,
+      sources: filters.sources?.sort(), // T052: Include sources in cache key
       limit: filters.pagination.limit,
       skip: filters.pagination.skip,
       showOrphaned: filters.showOrphaned,
@@ -65,7 +67,7 @@ export class LibraryService {
     }
 
     try {
-      const { status, search, tags, rating, shelf, pagination, showOrphaned, noTags } = filters;
+      const { status, search, tags, rating, shelf, sources, pagination, showOrphaned, noTags } = filters;
       const { limit, skip } = pagination;
 
       // Build query params for API call
@@ -75,6 +77,7 @@ export class LibraryService {
       if (tags && tags.length > 0) params.set("tags", tags.join(","));
       if (rating && rating !== "all") params.set("rating", rating);
       if (shelf) params.set("shelf", shelf.toString());
+      if (sources && sources.length > 0) params.set("sources", sources.join(",")); // T052: Add sources to API call
       if (showOrphaned) params.set("showOrphaned", "true");
       if (filters.sortBy) params.set("sortBy", filters.sortBy);
       if (noTags) params.set("noTags", "true");
