@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { Search, AlertCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { Button } from "@/components/Utilities/Button";
-import { ProviderBadge } from "./ProviderBadge";
-import { SearchResultCard } from "./SearchResultCard";
+import { ProviderBadge } from "@/components/Providers/ProviderBadge";
+import { SearchResultCard } from "@/components/Providers/SearchResultCard";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import type { 

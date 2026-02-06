@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, FileText, User } from "lucide-react";
-import { ProviderBadge } from "./ProviderBadge";
+import { ProviderBadge } from "@/components/Providers/ProviderBadge";
 import type { SearchResult } from "@/lib/providers/base/IMetadataProvider";
 import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
 

@@ -9,7 +9,7 @@ import { LibraryFilters } from "@/components/Library/LibraryFilters";
 import { BookGrid } from "@/components/Books/BookGrid";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
 import ManualBookForm from "@/components/Books/ManualBookForm";
-import FederatedSearchModal from "@/components/providers/FederatedSearchModal";
+import FederatedSearchModal from "@/components/Providers/FederatedSearchModal";
 import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
