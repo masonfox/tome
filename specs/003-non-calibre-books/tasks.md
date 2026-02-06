@@ -20,13 +20,13 @@ This document breaks down the multi-source book tracking feature into executable
 | 1 | Setup | - | 8 | ✅ Complete (8/8) |
 | 2 | Foundational | - | 12 | ✅ Complete (12/12) |
 | 3 | Manual Book Addition | P1 | 18 | ✅ Complete (18/18) |
-| 4 | Library Sync Isolation | P1 | 9 | 🟡 Needs Testing (9/9) |
+| 4 | Library Sync Isolation | P1 | 9 | ✅ Code Complete (5/9) - Needs formal tests |
 | 5 | Source-Based Filtering | P2 | 8 | ✅ Complete (8/8) |
 | 6 | Source Migration & Duplicates | P2 | 12 | ❌ Not Started (0/12) |
 | 7 | Federated Search | P3 | 16 | 🟡 Partial (11/16) |
 | 8 | Polish & Cross-Cutting | - | 6 | ✅ Complete (6/6) |
 
-**Overall Progress**: 64/89 tasks complete (72%)
+**Overall Progress**: 68/89 tasks code-complete (76%), 64/89 fully tested (72%)
 
 ---
 
@@ -134,21 +134,21 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Calibre Sync Isolation
 
-- [ ] T039 [US2] Update syncCalibreLibrary() to filter by source='calibre' in lib/sync-service.ts
-- [ ] T040 [US2] Update orphaned book detection to only mark Calibre books in lib/sync-service.ts
-- [ ] T041 [US2] Add source='calibre' filter to book creation/update during sync in lib/sync-service.ts
-- [ ] T042 [US2] Update CalibreProvider to respect source boundaries in lib/providers/calibre.provider.ts
+- [X] T039 [US2] Update syncCalibreLibrary() to filter by source='calibre' in lib/sync-service.ts (Implementation: sync only processes Calibre DB books)
+- [X] T040 [US2] Update orphaned book detection to only mark Calibre books in lib/sync-service.ts (Implementation: book.repository.ts:658 filters by source='calibre')
+- [X] T041 [US2] Add source='calibre' filter to book creation/update during sync in lib/sync-service.ts (Implementation: line 225 sets source='calibre')
+- [X] T042 [US2] Update CalibreProvider to respect source boundaries in lib/providers/calibre.provider.ts (Implementation: uses syncCalibreLibrary + findByCalibreId)
 
 ### Testing & Validation
 
-- [ ] T043 [P] [US2] Create integration test: manual book + Calibre sync → verify isolation in __tests__/integration/sync-isolation.test.ts
-- [ ] T044 [P] [US2] Create test case: Calibre removes book → only Calibre books orphaned in __tests__/integration/sync-isolation.test.ts
-- [ ] T045 [P] [US2] Create test case: Calibre adds book → manual books unchanged in __tests__/integration/sync-isolation.test.ts
-- [ ] T046 [P] [US2] Create test case: same title in Calibre + manual → both exist independently in __tests__/integration/sync-isolation.test.ts
+- [ ] T043 [P] [US2] Create integration test: manual book + Calibre sync → verify isolation in __tests__/integration/sync-isolation.test.ts (Code complete, needs formal test)
+- [ ] T044 [P] [US2] Create test case: Calibre removes book → only Calibre books orphaned in __tests__/integration/sync-isolation.test.ts (Code complete, needs formal test)
+- [ ] T045 [P] [US2] Create test case: Calibre adds book → manual books unchanged in __tests__/integration/sync-isolation.test.ts (Code complete, needs formal test)
+- [ ] T046 [P] [US2] Create test case: same title in Calibre + manual → both exist independently in __tests__/integration/sync-isolation.test.ts (Code complete, needs formal test)
 
 ### Logging & Observability
 
-- [ ] T047 [US2] Add Pino logging for sync operations with source filtering details in lib/sync-service.ts
+- [X] T047 [US2] Add Pino logging for sync operations with source filtering details in lib/sync-service.ts (Implementation: lines 133, 322 log source='calibre')
 
 ---
 
