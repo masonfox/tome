@@ -221,31 +221,31 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Backend - Search Service
 
-- [ ] T068 [P] [US4] Implement SearchService.federatedSearch() with Promise.allSettled in lib/services/search.service.ts
-- [ ] T069 [P] [US4] Add per-provider 5-second timeout using AbortSignal in lib/services/search.service.ts
-- [ ] T070 [P] [US4] Implement search result caching (5min TTL, invalidate on config change) in lib/services/search.service.ts
-- [ ] T071 [US4] Add result sorting by hardcoded priority (Hardcover → OpenLibrary) in lib/services/search.service.ts
-- [ ] T072 [US4] Implement graceful fallback to manual entry on all-provider failure in lib/services/search.service.ts
+- [x] T068 [P] [US4] Implement SearchService.federatedSearch() with Promise.allSettled in lib/services/search.service.ts (Commit: 7088ff5)
+- [x] T069 [P] [US4] Add per-provider 5-second timeout using AbortSignal in lib/services/search.service.ts (Commit: 6daf21f)
+- [x] T070 [P] [US4] Implement search result caching (5min TTL, invalidate on config change) in lib/services/search.service.ts (Commit: 7088ff5)
+- [x] T071 [US4] Add result sorting by hardcoded priority (Hardcover → OpenLibrary) in lib/services/search.service.ts (Commit: 7088ff5)
+- [x] T072 [US4] Implement graceful fallback to manual entry on all-provider failure in lib/services/search.service.ts (Commit: 7088ff5)
 
 ### Backend - Provider Search Implementation
 
-- [ ] T073 [P] [US4] Implement HardcoverProvider.search() with retry logic in lib/providers/hardcover.provider.ts
-- [ ] T074 [P] [US4] Implement OpenLibraryProvider.search() with error handling in lib/providers/openlibrary.provider.ts
-- [ ] T075 [P] [US4] Add rate limit detection and circuit breaker integration in lib/providers/hardcover.provider.ts
-- [ ] T076 [US4] Create POST /api/providers/search endpoint for federated search in app/api/providers/search/route.ts
+- [x] T073 [P] [US4] Implement HardcoverProvider.search() with retry logic in lib/providers/hardcover.provider.ts (Commit: 6daf21f)
+- [x] T074 [P] [US4] Implement OpenLibraryProvider.search() with error handling in lib/providers/openlibrary.provider.ts (Commit: 6daf21f)
+- [ ] T075 [P] [US4] Add rate limit detection and circuit breaker integration in lib/providers/hardcover.provider.ts (OPTIONAL - Defer to post-MVP)
+- [x] T076 [US4] Create POST /api/providers/search endpoint for federated search in app/api/providers/search/route.ts (Commit: 7088ff5)
 
 ### Backend - Provider Configuration
 
-- [ ] T077 [P] [US4] Create GET /api/providers endpoint to list all providers with status in app/api/providers/route.ts
-- [ ] T078 [P] [US4] Create PATCH /api/providers/[providerId]/config for runtime configuration in app/api/providers/[providerId]/config/route.ts
-- [ ] T079 [US4] Implement provider enable/disable without restart (NFR-005) in lib/services/provider.service.ts
+- [ ] T077 [P] [US4] Create GET /api/providers endpoint to list all providers with status in app/api/providers/route.ts (OPTIONAL - Defer to post-MVP)
+- [ ] T078 [P] [US4] Create PATCH /api/providers/[providerId]/config for runtime configuration in app/api/providers/[providerId]/config/route.ts (OPTIONAL - Defer to post-MVP)
+- [ ] T079 [US4] Implement provider enable/disable without restart (NFR-005) in lib/services/provider.service.ts (OPTIONAL - Defer to post-MVP)
 
 ### Frontend - Search UI
 
-- [ ] T080 [P] [US4] Create FederatedSearchModal component with provider results in components/providers/FederatedSearchModal.tsx
-- [ ] T081 [P] [US4] Add provider badges to search results in components/providers/FederatedSearchModal.tsx
-- [ ] T082 [P] [US4] Implement editable metadata form after result selection in components/providers/FederatedSearchModal.tsx
-- [ ] T083 [US4] Add fallback UI when all providers fail/timeout in components/providers/FederatedSearchModal.tsx
+- [x] T080 [P] [US4] Create FederatedSearchModal component with provider results in components/providers/FederatedSearchModal.tsx (Commit: 1d244aa)
+- [x] T081 [P] [US4] Add provider badges to search results in components/providers/FederatedSearchModal.tsx (Commit: 1d244aa)
+- [x] T082 [P] [US4] Implement editable metadata form after result selection in components/providers/FederatedSearchModal.tsx (Commit: 1d244aa)
+- [x] T083 [US4] Add fallback UI when all providers fail/timeout in components/providers/FederatedSearchModal.tsx (Commit: 1d244aa)
 
 ### Testing & Performance
 
