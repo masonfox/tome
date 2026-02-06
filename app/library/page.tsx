@@ -9,6 +9,7 @@ import { LibraryFilters } from "@/components/Library/LibraryFilters";
 import { BookGrid } from "@/components/Books/BookGrid";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
 import ManualBookForm from "@/components/Books/ManualBookForm";
+import FederatedSearchModal from "@/components/providers/FederatedSearchModal";
 import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
@@ -17,6 +18,7 @@ function LibraryPageContent() {
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showManualBookForm, setShowManualBookForm] = useState(false);
+  const [showFederatedSearch, setShowFederatedSearch] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
   const [availableShelves, setAvailableShelves] = useState<Array<{ id: number; name: string; color: string | null }>>([]);
@@ -544,6 +546,7 @@ function LibraryPageContent() {
         syncing={syncing}
         onSync={handleSync}
         onAddManualBook={handleAddManualBook}
+        onSearchProviders={() => setShowFederatedSearch(true)}
         loading={isInitialLoading}
       />
 
@@ -596,6 +599,13 @@ function LibraryPageContent() {
       <ManualBookForm
         isOpen={showManualBookForm}
         onClose={() => setShowManualBookForm(false)}
+        onSuccess={handleManualBookSuccess}
+      />
+
+      {/* Federated Search Modal */}
+      <FederatedSearchModal
+        isOpen={showFederatedSearch}
+        onClose={() => setShowFederatedSearch(false)}
         onSuccess={handleManualBookSuccess}
       />
     </div>
