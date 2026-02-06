@@ -45,6 +45,16 @@ class HardcoverProvider implements IMetadataProvider {
   private readonly baseUrl = "https://api.hardcover.app/v1/graphql";
 
   /**
+   * Get API key from environment or provider config
+   * 
+   * For now, checks process.env.HARDCOVER_API_KEY
+   * TODO: Load from provider_configs table in future iteration
+   */
+  private getApiKey(): string | null {
+    return process.env.HARDCOVER_API_KEY || null;
+  }
+
+  /**
    * Search Hardcover catalog via GraphQL API
    * 
    * Uses Hardcover's search endpoint with Typesense backend.
@@ -52,10 +62,17 @@ class HardcoverProvider implements IMetadataProvider {
    * 
    * @param query - Search string (title, author, ISBN, etc.)
    * @returns Array of search results (max 25 per page)
-   * @throws Error if API fails or times out
+   * @throws Error if API fails, times out, or API key is missing
    */
   async search(query: string): Promise<SearchResult[]> {
     logger.debug({ query }, "Hardcover: Starting search");
+
+    // Check for API key
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      logger.warn("Hardcover: API key not configured (set HARDCOVER_API_KEY environment variable)");
+      throw new Error("API key required. Set HARDCOVER_API_KEY environment variable.");
+    }
 
     try {
       // GraphQL search query
@@ -71,8 +88,7 @@ class HardcoverProvider implements IMetadataProvider {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Note: API key optional for public search, add if needed:
-          // "Authorization": `Bearer ${this.apiKey}`,
+          "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           query: graphqlQuery,
@@ -82,6 +98,10 @@ class HardcoverProvider implements IMetadataProvider {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          logger.error("Hardcover: Invalid API key");
+          throw new Error("Invalid API key. Please check your HARDCOVER_API_KEY.");
+        }
         if (response.status === 429) {
           logger.warn("Hardcover: Rate limit exceeded");
           throw new Error("Rate limit exceeded");
