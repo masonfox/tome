@@ -15,16 +15,18 @@ This document breaks down the multi-source book tracking feature into executable
 
 ## Task Summary by Phase
 
-| Phase | User Story | Priority | Task Count | Parallelizable |
-|-------|------------|----------|------------|----------------|
-| 1 | Setup | - | 8 | 3 |
-| 2 | Foundational | - | 12 | 6 |
-| 3 | Manual Book Addition | P1 | 18 | 10 |
-| 4 | Library Sync Isolation | P1 | 9 | 4 |
-| 5 | Source-Based Filtering | P2 | 8 | 5 |
-| 6 | Source Migration & Duplicates | P2 | 12 | 6 |
-| 7 | Federated Search | P3 | 16 | 9 |
-| 8 | Polish & Cross-Cutting | - | 6 | 3 |
+| Phase | User Story | Priority | Task Count | Status |
+|-------|------------|----------|------------|--------|
+| 1 | Setup | - | 8 | ✅ Complete (8/8) |
+| 2 | Foundational | - | 12 | ✅ Complete (12/12) |
+| 3 | Manual Book Addition | P1 | 18 | ✅ Complete (18/18) |
+| 4 | Library Sync Isolation | P1 | 9 | 🟡 Needs Testing (9/9) |
+| 5 | Source-Based Filtering | P2 | 8 | ✅ Complete (8/8) |
+| 6 | Source Migration & Duplicates | P2 | 12 | ❌ Not Started (0/12) |
+| 7 | Federated Search | P3 | 16 | 🟡 Partial (11/16) |
+| 8 | Polish & Cross-Cutting | - | 6 | ✅ Complete (6/6) |
+
+**Overall Progress**: 64/89 tasks complete (72%)
 
 ---
 
@@ -89,36 +91,36 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Backend - Manual Book Creation
 
-- [ ] T021 [P] [US1] Extend POST /api/books to accept manual book creation (source='manual', no calibreId) in app/api/books/route.ts
-- [ ] T022 [P] [US1] Add validation for manual books (title, author, pageCount required, pageCount 1-10000) in lib/services/book.service.ts
-- [ ] T023 [US1] Implement duplicate detection service using Levenshtein distance (>85% threshold) in lib/services/duplicate-detection.service.ts
-- [ ] T024 [US1] Integrate duplicate check into manual book creation flow (warn but allow proceed) in lib/services/book.service.ts
+- [X] T021 [P] [US1] Extend POST /api/books to accept manual book creation (source='manual', no calibreId) in app/api/books/route.ts (Commit: Spec 003 - earlier implementation)
+- [X] T022 [P] [US1] Add validation for manual books (title, author, pageCount required, pageCount 1-10000) in lib/services/book.service.ts (Commit: Spec 003 - earlier implementation)
+- [X] T023 [US1] Implement duplicate detection service using Levenshtein distance (>85% threshold) in lib/services/duplicate-detection.service.ts (Commit: Spec 003 - earlier implementation)
+- [X] T024 [US1] Integrate duplicate check into manual book creation flow (warn but allow proceed) in lib/services/book.service.ts (Commit: Spec 003 - earlier implementation)
 
 ### Backend - Validation & Error Handling
 
-- [ ] T025 [P] [US1] Create validation schemas for manual book input using Zod in lib/validation/manual-book.schema.ts
-- [ ] T026 [P] [US1] Add real-time validation endpoint POST /api/books/validate in app/api/books/validate/route.ts
-- [ ] T027 [US1] Implement server-side validation for optional fields (ISBN, publisher, publicationDate, description, coverImageUrl) in lib/validation/manual-book.schema.ts
+- [X] T025 [P] [US1] Create validation schemas for manual book input using Zod in lib/validation/manual-book.schema.ts (Commit: Spec 003 - earlier implementation)
+- [X] T026 [P] [US1] Add real-time validation endpoint POST /api/books/validate in app/api/books/validate/route.ts (Commit: Spec 003 - earlier implementation)
+- [X] T027 [US1] Implement server-side validation for optional fields (ISBN, publisher, publicationDate, description, coverImageUrl) in lib/validation/manual-book.schema.ts (Commit: Spec 003 - earlier implementation)
 
 ### Frontend - Manual Book Form
 
-- [ ] T028 [P] [US1] Create ManualBookForm component with required fields in components/books/ManualBookForm.tsx
-- [ ] T029 [P] [US1] Add real-time validation UI with error messages in components/books/ManualBookForm.tsx
-- [ ] T030 [P] [US1] Create DuplicateWarning modal component in components/providers/DuplicateWarning.tsx
-- [ ] T031 [US1] Integrate duplicate detection API call on form submission in components/books/ManualBookForm.tsx
-- [ ] T032 [US1] Add "Add Manual Book" button to library page header in app/library/page.tsx
+- [X] T028 [P] [US1] Create ManualBookForm component with required fields in components/Books/ManualBookForm.tsx (Commit: Spec 003 - earlier implementation)
+- [X] T029 [P] [US1] Add real-time validation UI with error messages in components/Books/ManualBookForm.tsx (Commit: Spec 003 - earlier implementation)
+- [X] T030 [P] [US1] Create DuplicateWarning modal component integrated into ManualBookForm.tsx (Commit: Spec 003 - earlier implementation)
+- [X] T031 [US1] Integrate duplicate detection API call on form submission in components/Books/ManualBookForm.tsx (Commit: Spec 003 - earlier implementation)
+- [X] T032 [US1] Add "Add Manual Book" button to library page header in app/library/page.tsx (Commit: Spec 003 - earlier implementation)
 
 ### Frontend - Source Display
 
-- [ ] T033 [P] [US1] Create ProviderBadge component for source indicators in components/providers/ProviderBadge.tsx
-- [ ] T034 [P] [US1] Add source badge to book cards in library view in components/books/BookCard.tsx
-- [ ] T035 [P] [US1] Add source badge to book detail page in app/books/[id]/page.tsx
+- [X] T033 [P] [US1] Create ProviderBadge component for source indicators in components/Providers/ProviderBadge.tsx (Commit: Spec 003 - earlier implementation)
+- [X] T034 [P] [US1] Add source badge to book cards in library view in components/Books/BookCard.tsx (Commit: Spec 003 - earlier implementation)
+- [X] T035 [P] [US1] Add source badge to book detail page in app/books/[id]/page.tsx (Commit: Spec 003 - earlier implementation)
 
 ### Integration & Verification
 
-- [ ] T036 [US1] Update GET /api/books to include source field in response in app/api/books/route.ts
-- [ ] T037 [US1] Verify manual books support all existing features (progress, sessions, streaks) via existing API routes
-- [ ] T038 [US1] Test manual book creation end-to-end (UI → validation → save → display)
+- [X] T036 [US1] Update GET /api/books to include source field in response in app/api/books/route.ts (Commit: 1a18141 - Phase 5)
+- [X] T037 [US1] Verify manual books support all existing features (progress, sessions, streaks) via existing API routes (Verified: 2026-02-06)
+- [X] T038 [US1] Test manual book creation end-to-end (UI → validation → save → display) (Verified: 2026-02-06)
 
 ---
 
