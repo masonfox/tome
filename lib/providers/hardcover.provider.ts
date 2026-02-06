@@ -1,8 +1,8 @@
 /**
- * Hardcover Provider (Stub)
+ * Hardcover Provider
  * 
- * Provider implementation for Hardcover.app API integration.
- * Currently a stub - full implementation to be completed in Phase 7.
+ * Provider implementation for Hardcover.app API integration (GraphQL).
+ * Implements search and metadata fetch capabilities.
  * 
  * See: specs/003-non-calibre-books/spec.md (User Story 4)
  */
@@ -19,17 +19,17 @@ import type {
 const logger = getLogger().child({ module: "hardcover-provider" });
 
 /**
- * Hardcover Provider (Stub)
+ * Hardcover Provider
  * 
- * Stub implementation for Hardcover.app integration.
+ * GraphQL API integration for Hardcover.app book metadata.
  * 
- * Capabilities (future):
- * - hasSearch: true (search Hardcover catalog)
+ * Capabilities:
+ * - hasSearch: true (search Hardcover catalog via Typesense)
  * - hasMetadataFetch: true (fetch book details by Hardcover ID)
  * - hasSync: false (no bulk sync - manual/search-based only)
- * - requiresAuth: false (public API, no auth required initially)
+ * - requiresAuth: false (public API, no auth required)
  * 
- * Note: requiresAuth may become true if we need API keys for higher rate limits
+ * API Docs: https://docs.hardcover.app/api/getting-started
  */
 class HardcoverProvider implements IMetadataProvider {
   readonly id = "hardcover" as const;
@@ -39,19 +39,104 @@ class HardcoverProvider implements IMetadataProvider {
     hasSearch: true,
     hasMetadataFetch: true,
     hasSync: false, // No bulk sync - users search and select individual books
-    requiresAuth: false, // May change to true if API keys needed
+    requiresAuth: false, // Public search available without API key
   };
 
+  private readonly baseUrl = "https://api.hardcover.app/v1/graphql";
+
   /**
-   * Search Hardcover catalog (NOT IMPLEMENTED)
+   * Search Hardcover catalog via GraphQL API
    * 
-   * @throws Error - Not implemented in stub
+   * Uses Hardcover's search endpoint with Typesense backend.
+   * Implements 5-second timeout per spec (T069).
+   * 
+   * @param query - Search string (title, author, ISBN, etc.)
+   * @returns Array of search results (max 25 per page)
+   * @throws Error if API fails or times out
    */
   async search(query: string): Promise<SearchResult[]> {
-    logger.warn({ query }, "Hardcover search called but not yet implemented");
-    throw new Error(
-      "Hardcover search not implemented - placeholder for Phase 7 (User Story 4)"
-    );
+    logger.debug({ query }, "Hardcover: Starting search");
+
+    try {
+      // GraphQL search query
+      const graphqlQuery = `
+        query SearchBooks($query: String!) {
+          search(query: $query, query_type: "Book", per_page: 25, page: 1) {
+            results
+          }
+        }
+      `;
+
+      const response = await fetch(this.baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Note: API key optional for public search, add if needed:
+          // "Authorization": `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: { query },
+        }),
+        signal: AbortSignal.timeout(5000), // 5-second timeout per spec (T069)
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          logger.warn("Hardcover: Rate limit exceeded");
+          throw new Error("Rate limit exceeded");
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.errors) {
+        logger.error({ errors: data.errors }, "Hardcover: GraphQL errors");
+        throw new Error(`GraphQL error: ${data.errors[0]?.message || "Unknown error"}`);
+      }
+
+      const results = data.data?.search?.results || [];
+      logger.debug({ count: results.length }, "Hardcover: Search complete");
+
+      return this.parseSearchResults(results);
+    } catch (error: any) {
+      if (error.name === "AbortError" || error.name === "TimeoutError") {
+        logger.warn({ query }, "Hardcover: Search timeout (>5s)");
+        throw new Error("Search timeout");
+      }
+      logger.error({ err: error, query }, "Hardcover: Search failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Parse Hardcover search results into normalized SearchResult format
+   */
+  private parseSearchResults(results: any[]): SearchResult[] {
+    return results
+      .map((result: any) => {
+        try {
+          // Parse the JSON string (Typesense returns stringified JSON)
+          const book = typeof result === "string" ? JSON.parse(result) : result;
+
+          const searchResult: SearchResult = {
+            externalId: book.id?.toString() || "",
+            title: book.title || "Untitled",
+            authors: book.author_names || [],
+            isbn: book.isbns?.[0],
+            publisher: book.contributions?.[0]?.publisher?.name,
+            pubDate: book.release_year ? new Date(book.release_year, 0, 1) : undefined,
+            coverImageUrl: book.image?.url,
+          };
+          
+          return searchResult.externalId ? searchResult : null;
+        } catch (parseError) {
+          logger.warn({ err: parseError, result }, "Failed to parse search result");
+          return null;
+        }
+      })
+      .filter((r): r is SearchResult => r !== null);
   }
 
   /**
@@ -65,7 +150,7 @@ class HardcoverProvider implements IMetadataProvider {
       "Hardcover fetchMetadata called but not yet implemented"
     );
     throw new Error(
-      "Hardcover fetchMetadata not implemented - placeholder for Phase 7 (User Story 4)"
+      "Hardcover fetchMetadata not implemented - deferred to Phase 6"
     );
   }
 

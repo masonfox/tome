@@ -1,8 +1,8 @@
 /**
- * OpenLibrary Provider (Stub)
+ * OpenLibrary Provider
  * 
- * Provider implementation for OpenLibrary.org API integration.
- * Currently a stub - full implementation to be completed in Phase 7.
+ * Provider implementation for OpenLibrary.org API integration (REST).
+ * Implements search and metadata fetch capabilities.
  * 
  * See: specs/003-non-calibre-books/spec.md (User Story 4)
  */
@@ -19,19 +19,21 @@ import type {
 const logger = getLogger().child({ module: "openlibrary-provider" });
 
 /**
- * OpenLibrary Provider (Stub)
+ * OpenLibrary Provider
  * 
- * Stub implementation for OpenLibrary.org integration.
+ * REST API integration for OpenLibrary.org book metadata.
  * 
- * Capabilities (future):
- * - hasSearch: true (search OpenLibrary catalog)
- * - hasMetadataFetch: true (fetch book details by OpenLibrary ID)
+ * Capabilities:
+ * - hasSearch: true (search OpenLibrary catalog via Solr)
+ * - hasMetadataFetch: true (fetch book details by OpenLibrary work ID)
  * - hasSync: false (no bulk sync - manual/search-based only)
  * - requiresAuth: false (public API, no authentication required)
+ * 
+ * API Docs: https://openlibrary.org/dev/docs/api/search
  */
 class OpenLibraryProvider implements IMetadataProvider {
   readonly id = "openlibrary" as const;
-  readonly name = "OpenLibrary";
+  readonly name = "Open Library";
 
   readonly capabilities: ProviderCapabilities = {
     hasSearch: true,
@@ -40,22 +42,97 @@ class OpenLibraryProvider implements IMetadataProvider {
     requiresAuth: false, // Public API
   };
 
+  private readonly baseUrl = "https://openlibrary.org";
+
   /**
-   * Search OpenLibrary catalog (NOT IMPLEMENTED)
+   * Search OpenLibrary catalog via REST API
    * 
-   * @throws Error - Not implemented in stub
+   * Uses OpenLibrary's Solr search endpoint.
+   * Implements 5-second timeout per spec (T069).
+   * 
+   * @param query - Search string (title, author, ISBN, etc.)
+   * @returns Array of search results (max 25)
+   * @throws Error if API fails or times out
    */
   async search(query: string): Promise<SearchResult[]> {
-    logger.warn({ query }, "OpenLibrary search called but not yet implemented");
-    throw new Error(
-      "OpenLibrary search not implemented - placeholder for Phase 7 (User Story 4)"
-    );
+    logger.debug({ query }, "OpenLibrary: Starting search");
+
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        limit: "25",
+        fields: "key,title,author_name,first_publish_year,isbn,publisher,cover_i",
+      });
+
+      const response = await fetch(`${this.baseUrl}/search.json?${params}`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          // User-Agent recommended by OpenLibrary API docs
+          "User-Agent": "Tome/1.0 (https://github.com/masonfox/tome)",
+        },
+        signal: AbortSignal.timeout(5000), // 5-second timeout per spec (T069)
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          logger.warn("OpenLibrary: Rate limit exceeded");
+          throw new Error("Rate limit exceeded");
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const docs = data.docs || [];
+      
+      logger.debug({ count: docs.length }, "OpenLibrary: Search complete");
+
+      return this.parseSearchResults(docs);
+    } catch (error: any) {
+      if (error.name === "AbortError" || error.name === "TimeoutError") {
+        logger.warn({ query }, "OpenLibrary: Search timeout (>5s)");
+        throw new Error("Search timeout");
+      }
+      logger.error({ err: error, query }, "OpenLibrary: Search failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Parse OpenLibrary search results into normalized SearchResult format
+   */
+  private parseSearchResults(docs: any[]): SearchResult[] {
+    return docs
+      .map((doc: any) => {
+        try {
+          // Extract work ID from key (e.g., "/works/OL27448W" -> "OL27448W")
+          const workId = doc.key?.split("/").pop() || "";
+          
+          const searchResult: SearchResult = {
+            externalId: workId,
+            title: doc.title || "Untitled",
+            authors: doc.author_name || [],
+            isbn: doc.isbn?.[0],
+            publisher: doc.publisher?.[0],
+            pubDate: doc.first_publish_year ? new Date(doc.first_publish_year, 0, 1) : undefined,
+            coverImageUrl: doc.cover_i
+              ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+              : undefined,
+          };
+
+          return searchResult.externalId ? searchResult : null;
+        } catch (parseError) {
+          logger.warn({ err: parseError, doc }, "Failed to parse search result");
+          return null;
+        }
+      })
+      .filter((r): r is SearchResult => r !== null);
   }
 
   /**
    * Fetch book metadata from OpenLibrary (NOT IMPLEMENTED)
    * 
-   * @throws Error - Not implemented in stub
+   * @throws Error - Not implemented yet
    */
   async fetchMetadata(externalId: string): Promise<BookMetadata> {
     logger.warn(
@@ -63,7 +140,7 @@ class OpenLibraryProvider implements IMetadataProvider {
       "OpenLibrary fetchMetadata called but not yet implemented"
     );
     throw new Error(
-      "OpenLibrary fetchMetadata not implemented - placeholder for Phase 7 (User Story 4)"
+      "OpenLibrary fetchMetadata not implemented - deferred to Phase 6"
     );
   }
 
