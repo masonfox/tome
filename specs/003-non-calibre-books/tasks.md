@@ -236,8 +236,8 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Backend - Provider Configuration
 
-- [ ] T077 [P] [US4] Create GET /api/providers endpoint to list all providers with status in app/api/providers/route.ts (OPTIONAL - Defer to post-MVP)
-- [ ] T078 [P] [US4] Create PATCH /api/providers/[providerId]/config for runtime configuration in app/api/providers/[providerId]/config/route.ts (OPTIONAL - Defer to post-MVP)
+- [X] T077 [P] [US4] Create GET /api/providers endpoint to list all providers with status in app/api/providers/route.ts (Completed in Phase 8)
+- [X] T078 [P] [US4] Create PATCH /api/providers/[providerId]/config for runtime configuration in app/api/providers/[providerId]/config/route.ts (Completed in Phase 8)
 - [ ] T079 [US4] Implement provider enable/disable without restart (NFR-005) in lib/services/provider.service.ts (OPTIONAL - Defer to post-MVP)
 
 ### Frontend - Search UI
@@ -261,9 +261,9 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Provider Management UI
 
-- [ ] T085 [P] Create provider settings page in app/settings/providers/page.tsx
-- [ ] T086 [P] Add provider enable/disable toggles in components/settings/ProviderToggles.tsx
-- [ ] T087 [P] Create API key configuration form for Hardcover in components/settings/ProviderCredentials.tsx
+- [X] T085 [P] Create provider settings page in app/settings/providers/page.tsx
+- [X] T086 [P] Add provider enable/disable toggles in components/settings/ProviderToggles.tsx
+- [X] T087 [P] Create API key configuration form for Hardcover in components/settings/ProviderCredentials.tsx
 
 ### Documentation
 
