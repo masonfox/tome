@@ -160,20 +160,20 @@ This document breaks down the multi-source book tracking feature into executable
 
 ### Backend - Filtering API
 
-- [ ] T048 [P] [US3] Extend GET /api/books to accept source[] query parameter in app/api/books/route.ts
-- [ ] T049 [P] [US3] Update BookRepository.findWithFilters() to handle multi-source filtering in lib/repositories/book.repository.ts
-- [ ] T050 [US3] Add source counts to stats API GET /api/stats/overview in app/api/stats/overview/route.ts
+- [x] T048 [P] [US3] Extend GET /api/books to accept source[] query parameter in app/api/books/route.ts (Commit: 1a18141)
+- [x] T049 [P] [US3] Update BookRepository.findWithFilters() to handle multi-source filtering in lib/repositories/book.repository.ts (Commit: 1a18141)
+- [ ] T050 [US3] Add source counts to stats API GET /api/stats/overview in app/api/stats/overview/route.ts (OPTIONAL - Skip for MVP)
 
 ### Frontend - Filter UI
 
-- [ ] T051 [P] [US3] Add source filter to BookFilters component (multi-select dropdown) in components/books/BookFilters.tsx
-- [ ] T052 [P] [US3] Update useLibraryData hook to handle source filters in hooks/useLibraryData.ts
-- [ ] T053 [P] [US3] Persist source filter state in URL params in app/library/page.tsx
-- [ ] T054 [US3] Add "Clear Filters" button to BookFilters component in components/books/BookFilters.tsx
+- [x] T051 [P] [US3] Add source filter to LibraryFilters component (multi-select dropdown) in components/Library/LibraryFilters.tsx (Commit: 0e3f49f)
+- [x] T052 [P] [US3] Update useLibraryData hook to handle source filters in hooks/useLibraryData.ts (Commit: 0e3f49f)
+- [x] T053 [P] [US3] Persist source filter state in URL params in app/library/page.tsx (Commit: 0e3f49f)
+- [x] T054 [US3] "Clear All Filters" button already exists and clears sources (Commit: 0e3f49f)
 
 ### Performance & Optimization
 
-- [ ] T055 [US3] Verify source filtering performance with 10k book test dataset (target <3s)
+- [ ] T055 [US3] Verify source filtering performance with 10k book test dataset (target <3s) (OPTIONAL - Defer to post-MVP)
 
 ---
 
