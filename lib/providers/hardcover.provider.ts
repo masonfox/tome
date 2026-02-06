@@ -39,7 +39,7 @@ class HardcoverProvider implements IMetadataProvider {
     hasSearch: true,
     hasMetadataFetch: true,
     hasSync: false, // No bulk sync - users search and select individual books
-    requiresAuth: false, // Public search available without API key
+    requiresAuth: true, // API key recommended for higher rate limits and full features
   };
 
   private readonly baseUrl = "https://api.hardcover.app/v1/graphql";
