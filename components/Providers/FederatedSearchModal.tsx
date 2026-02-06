@@ -110,7 +110,7 @@ export default function FederatedSearchModal({
         return;
       }
 
-      const data: FederatedSearchResponse = await response.json();
+      const { data }: { data: FederatedSearchResponse } = await response.json();
       setSearchResponse(data);
 
       logger.info(
