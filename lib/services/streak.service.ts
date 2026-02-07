@@ -639,6 +639,34 @@ export class StreakService {
   }
 
   /**
+   * Get activity calendar data for a specific time period
+   * Returns daily page read counts for the specified year/month
+   * 
+   * @param userId User ID (null for default user)
+   * @param year Year to fetch (defaults to current year)
+   * @param month Month to fetch (0-11, undefined for entire year)
+   * @returns Array of daily activity records with date and pages read
+   */
+  async getActivityCalendar(
+    userId: number | null = null,
+    year?: number,
+    month?: number
+  ): Promise<{ date: string; pagesRead: number }[]> {
+    // Get user timezone from streak record
+    const streak = await this.getStreakBasic(userId);
+    const userTimezone = streak.userTimezone || 'America/New_York';
+
+    const startDate = new Date(year || new Date().getFullYear(), month || 0, 1);
+    const endDate = new Date(
+      year || new Date().getFullYear(),
+      (month !== undefined ? month : 11) + 1,
+      0
+    );
+
+    return await progressRepository.getActivityCalendar(toDateString(startDate), toDateString(endDate), userTimezone);
+  }
+
+  /**
    * Enable or disable streak tracking
    * When enabling, optionally set an initial daily goal
    */
