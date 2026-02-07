@@ -21,19 +21,12 @@ import { toDateString } from "@/utils/dateHelpers.server";
  * 
  * Total: 27 tests covering all core streak functionality
  * 
- * ## CRITICAL: Service Layer Pattern for CI Reliability
+ * ## Service Layer Pattern
  * 
- * This test file uses `streakService` methods instead of direct function imports
- * from `lib/streaks.ts` to work around a Bun module caching bug in CI.
+ * This test file uses `streakService` as the single source of truth for streak logic.
+ * All streak calculations go through the service layer for consistency.
  * 
- * ### The Issue
- * 
- * After 40+ serial test runs in CI, Bun's transpiler cache returns stale versions
- * of ES6 module exports, causing functions to return `undefined` or execute old code.
- * 
- * ### The Solution
- * 
- * ✅ DO use service layer (cache-immune):
+ * ✅ Correct usage:
  * ```typescript
  * import { streakService } from "@/lib/services/streak.service";
  * await streakService.rebuildStreak();
@@ -41,13 +34,7 @@ import { toDateString } from "@/utils/dateHelpers.server";
  * const streak = await streakService.getStreakBasic();
  * ```
  * 
- * ❌ DON'T use direct imports (susceptible to caching):
- * ```typescript
- * import { rebuildStreak, updateStreaks, getStreak } from "@/lib/streaks";
- * // These may return undefined or use stale implementations in CI after 40+ tests
- * ```
- * 
- * ### Why Service Layer Works
+ * ### Why Service Layer
  * 
  * - Class methods are not affected by ES6 module caching
  * - Service imported once at test start (methods are "live")

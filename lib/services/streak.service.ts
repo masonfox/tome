@@ -287,7 +287,11 @@ export class StreakService {
 
     if (!streak) {
       logger.debug("[Streak] No existing streak found, creating new one");
-      const todayStr = toDateString(new Date());
+      const userTimezone = 'America/New_York'; // Default timezone for new users
+      const now = new Date();
+      const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
+      const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
+      const todayStr = toDateString(todayUtc);
       streak = await streakRepository.create({
         userId: userId || null,
         currentStreak: 1,
@@ -310,14 +314,14 @@ export class StreakService {
     const userTimezone = streak.userTimezone || 'America/New_York';
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-    const todayString = toDateString(todayInUserTz);
+    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
     
     // Need end of day for date range query
     const tomorrowInUserTz = new Date(todayInUserTz);
     tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
-    const tomorrowString = toDateString(tomorrowInUserTz);
+    const tomorrowUtc = fromZonedTime(tomorrowInUserTz, userTimezone);
     
-    const todayProgress = await progressRepository.getProgressForDate(todayString, tomorrowString);
+    const todayProgress = await progressRepository.getProgressForDate(toDateString(todayUtc), toDateString(tomorrowUtc));
 
     if (!todayProgress || todayProgress.pagesRead === 0) {
       // No activity today, return existing streak
@@ -352,7 +356,7 @@ export class StreakService {
           currentStreak: 1,
         longestStreak: Math.max(1, streak.longestStreak),
         totalDaysActive: newTotalDays,
-        lastActivityDate: todayString,
+        lastActivityDate: toDateString(todayUtc),
       } as any);
         logger.info({
           currentStreak: updated?.currentStreak,
@@ -370,7 +374,7 @@ export class StreakService {
         }, "[Streak] Threshold no longer met, resetting streak to 0");
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 0,
-        lastActivityDate: todayString,
+        lastActivityDate: toDateString(todayUtc),
       } as any);
         logger.info({
           currentStreak: updated?.currentStreak,
@@ -404,7 +408,7 @@ export class StreakService {
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       totalDaysActive: newTotalDays,
-      lastActivityDate: todayString,
+      lastActivityDate: toDateString(todayUtc),
     } as any);
       logger.info({
         from: oldStreak,
@@ -418,9 +422,9 @@ export class StreakService {
       const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 1,
-        streakStartDate: todayString,
+        streakStartDate: toDateString(todayUtc),
         totalDaysActive: newTotalDays,
-        lastActivityDate: todayString,
+        lastActivityDate: toDateString(todayUtc),
       } as any);
       return updated!;
     }
