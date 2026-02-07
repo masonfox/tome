@@ -86,8 +86,8 @@ test("should create a book", async () => {
 **Anti-patterns**:
 ```typescript
 // ❌ WRONG - Global module mocks leak across test files
-mock.module("@/lib/streaks", () => ({
-  updateStreaks: mockFn,
+mock.module("@/lib/services/some-service", () => ({
+  someMethod: mockFn,
 }));
 
 // ❌ WRONG - Tests without database reset
@@ -398,21 +398,22 @@ const pagesRead = currentPage - previousPage; // Inconsistent!
 **Why**: Prevents time-boundary issues (11:59 PM → 12:01 AM should count as consecutive)
 
 ```typescript
-// lib/streaks.ts
+// lib/services/streak.service.ts
 import { differenceInDays, startOfDay } from "date-fns";
 import { streakRepository } from "@/lib/repositories/streak.repository";
 
-export async function updateStreaks(userId?: string): Promise<Streak> {
-  let streak = await streakRepository.getActiveStreak();
+export class StreakService {
+  async updateStreaks(userId: number | null = null): Promise<Streak> {
+    let streak = await streakRepository.getActiveStreak();
 
-  if (!streak) {
-    // Create initial streak
-    return await streakRepository.upsertStreak({
-      currentStreak: 1,
-      longestStreak: 1,
-      lastActivityDate: new Date(),
-      streakStartDate: new Date(),
-      totalDaysActive: 1,
+    if (!streak) {
+      // Create initial streak
+      return await streakRepository.upsertStreak({
+        currentStreak: 1,
+        longestStreak: 1,
+        lastActivityDate: new Date(),
+        streakStartDate: new Date(),
+        totalDaysActive: 1,
     });
   }
 
@@ -461,7 +462,7 @@ const daysDiff = Math.floor((today - lastActivity) / (1000 * 60 * 60 * 24));
 currentStreak = 1; // Forgot longestStreak!
 ```
 
-**Files**: `lib/streaks.ts`
+**Files**: `lib/services/streak.service.ts`
 
 ---
 
@@ -1373,7 +1374,7 @@ await sessionRepository.reindexReadNextOrders();
 | Repository Pattern | `lib/repositories/` | All Tome DB access | Data layer |
 | Client Service Layer | `lib/*-service.ts` + hooks | Complex pages | Caching + UX |
 | Progress Tracking | `/api/books/[id]/progress` | Activity logging | Auto-calculations |
-| Streak Calculation | `lib/streaks.ts` | Consecutive days | Date normalization |
+| Streak Calculation | `lib/services/streak.service.ts` | Consecutive days | Date normalization |
 | Sync Service | `lib/sync-service.ts` | Calibre integration | Data consistency |
 | File Watcher | `lib/calibre-watcher.ts` | Auto-sync | Debouncing |
 | State Machine | `/api/books/[id]/status` | Status transitions | Auto-dates |

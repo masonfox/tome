@@ -13,44 +13,18 @@ export interface StreakWithHoursRemaining extends Streak {
 }
 
 /**
- * StreakService - Handles reading streak tracking and daily goal management
+ * StreakService - Handles streak tracking and daily goal management
  * 
- * IMPORTANT: This service uses INLINE IMPLEMENTATIONS for core streak functions
- * to work around a Bun module caching bug that affects CI tests.
+ * Provides methods for:
+ * - Checking and resetting streaks based on daily activity
+ * - Rebuilding streaks from historical progress data
+ * - Managing daily reading thresholds
+ * - Generating streak analytics and activity calendars
  * 
- * ## Bun Module Caching Issue
+ * All calculations are timezone-aware using the user's configured timezone.
  * 
- * In CI environments, after 40+ serial test runs, Bun's transpiler cache can
- * return stale/cached versions of ES6 module exports, even with dynamic imports.
- * This caused functions like `rebuildStreak()` to return `undefined` in tests.
- * 
- * ## Solution: Service Layer with Inline Implementations
- * 
- * Instead of delegating to functions in `lib/streaks.ts`, we implement the
- * logic directly in this service class. Class methods are not affected by
- * ES6 module caching, ensuring tests always execute current code.
- * 
- * ## Affected Methods
- * 
- * - `rebuildStreak()` - Full inline implementation (~110 lines)
- * - `updateStreaks()` - Full inline implementation (~150 lines)
- * - `getStreakBasic()` - Delegates to repository (safe)
- * 
- * ## For New Developers
- * 
- * If you need to modify streak logic:
- * 1. Update BOTH this service AND `lib/streaks.ts` to keep them in sync
- * 2. The service version is used by tests (cache-immune)
- * 3. The lib/streaks.ts version is used by production code
- * 4. Yes, this is duplication. It's necessary for test reliability.
- * 
- * ## References
- * 
- * - Full investigation: docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md
- * - Testing guidelines: docs/TESTING_GUIDELINES.md (Bun Module Caching section)
- * - Related commits: 4910da0, d7a72ce
- * 
- * @see {@link https://github.com/masonfox/tome/blob/main/docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md}
+ * This is the single source of truth for streak business logic in the application.
+ * All streak-related operations should go through this service for consistency.
  */
 export class StreakService {
   /**
@@ -162,8 +136,7 @@ export class StreakService {
 
     if (allProgress.length === 0) {
       logger.info("[Streak] No progress data found, creating empty streak");
-      const { getOrCreateStreak } = await import("@/lib/streaks");
-      return await getOrCreateStreak(userId);
+      return await streakRepository.getOrCreate(userId);
     }
 
     // Group progress by date and calculate daily activity (in user's timezone)
@@ -473,8 +446,7 @@ export class StreakService {
     // Recalculate streak with new threshold from all historical data
     // We need to use rebuildStreak (not updateStreaks) because updateStreaks only
     // considers today's activity, not the full historical streak with the new threshold
-    const { rebuildStreak } = await import("@/lib/streaks");
-    await rebuildStreak(userId);
+    await this.rebuildStreak(userId);
 
     // Fetch the final streak state which includes both the new threshold
     // and the recalculated streak values
