@@ -1,5 +1,5 @@
 import { toProgressDate, toSessionDate } from '../../../test-utils';
-import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { GET as getOverview } from "@/app/api/stats/overview/route";
 import { GET as getActivity } from "@/app/api/stats/activity/route";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
@@ -12,23 +12,7 @@ import { startOfDay, subDays } from "date-fns";
 /**
  * Stats API Tests
  * Tests aggregation pipeline logic for reading statistics
- *
- * Covers:
- * - /api/stats/overview: Overview statistics with date ranges
- * - /api/stats/activity: Activity calendar and monthly aggregations
  */
-
-/**
- * Mock Rationale: Control activity calendar data for deterministic testing.
- * The activity calendar involves complex date/time aggregations. We mock it
- * to return predictable data, allowing us to test the stats API response
- * structure without dependency on actual streak calculation logic.
- */
-let mockGetActivityCalendar: ReturnType<typeof mock>;
-vi.mock("@/lib/streaks", () => ({
-  getActivityCalendar: (userId: any, year: number, month?: number) =>
-    mockGetActivityCalendar(userId, year, month),
-}));
 
 describe("Stats API - GET /api/stats/overview", () => {
   let testBook1: any;
@@ -403,11 +387,6 @@ describe("Stats API - GET /api/stats/activity", () => {
     }));
 
     // Mock getActivityCalendar to return sample data
-    mockGetActivityCalendar = vi.fn(() => [
-      { date: "2025-11-01", pagesRead: 50, active: true },
-      { date: "2025-11-02", pagesRead: 75, active: true },
-      { date: "2025-11-03", pagesRead: 0, active: false },
-    ]);
   });
 
   test("returns activity calendar and monthly data", async () => {
@@ -567,28 +546,6 @@ describe("Stats API - GET /api/stats/activity", () => {
     }
   });
 
-  test("passes year and month parameters to getActivityCalendar", async () => {
-    const request = createMockRequest("GET", "/api/stats/activity?year=2024&month=11") as NextRequest;
-
-    await getActivity(request);
-
-    // Verify mock was called with correct parameters
-    expect(mockGetActivityCalendar).toHaveBeenCalled();
-    const calls = (mockGetActivityCalendar as any).mock.calls;
-    const lastCall = calls[calls.length - 1];
-    expect(lastCall[1]).toBe(2024); // year
-    expect(lastCall[2]).toBe(11); // month
-  });
-
-  test("handles month parameter correctly", async () => {
-    const request = createMockRequest("GET", "/api/stats/activity?year=2025&month=3") as NextRequest;
-
-    await getActivity(request);
-
-    const calls = (mockGetActivityCalendar as any).mock.calls;
-    const lastCall = calls[calls.length - 1];
-    expect(lastCall[2]).toBe(3); // month
-  });
 
   test("returns empty monthly array when no data exists", async () => {
     const request = createMockRequest("GET", "/api/stats/activity?year=2025") as NextRequest;

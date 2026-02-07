@@ -172,7 +172,7 @@ Tome implements multiple safety mechanisms when writing to the Calibre database:
 **Auto-Reset:** Check-on-read with idempotency (FR-005 from spec 001)  
 **Timezone Support:** Per-user timezone with auto-detection (FR-011 from spec 001)  
 **Repository:** `streakRepository` | **Schema:** `lib/db/schema/streaks.ts`  
-**Service:** `streakService` | **Functions:** `lib/streaks.ts`
+**Service:** `streakService` (`lib/services/streak.service.ts`) - Single source of truth
 
 ---
 
@@ -512,7 +512,7 @@ Database (SQLite + Drizzle ORM)
 - **Automatic**: File watcher detects change → 2s debounce → sync via repository
 - **Manual**: User triggers → sync via repository → update UI
 
-See implementation details in `lib/sync-service.ts` and `lib/streaks.ts`
+See implementation details in `lib/sync-service.ts` and `lib/services/streak.service.ts`
 
 ---
 
@@ -655,8 +655,7 @@ const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
 - Multi-log aggregation within same day
 
 **Implementation**:
-- Service: `lib/services/streak.service.ts` (preferred, repository pattern)
-- Functions: `lib/streaks.ts` (production, direct imports)
+- Service: `lib/services/streak.service.ts` (single source of truth, repository pattern)
 - Repository: `lib/repositories/streak.repository.ts`
 - API: `app/api/streak/` (timezone endpoints, threshold updates)
 
