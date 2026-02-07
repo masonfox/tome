@@ -7,7 +7,7 @@ import { getLogger } from "@/lib/logger";
 import { syncCalibreLibrary } from "@/lib/sync-service";
 import { bookRepository, sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
 import { shelfRepository } from "@/lib/repositories/shelf.repository";
-import { rebuildStreak } from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 import {
   generateActiveStreak,
   generateHistoricalProgress,
@@ -343,7 +343,7 @@ export async function seedDatabase(): Promise<SeedResult> {
 
     // Phase 5: Rebuild streak from progress logs and enable tracking
     getLoggerSafe().info("Phase 5: Rebuilding streak from progress logs...");
-    const rebuiltStreak = await rebuildStreak(null, undefined, true); // Enable streak tracking for seeded data
+    const rebuiltStreak = await streakService.setStreakEnabled(null, true); // Enable streak tracking for seeded data (rebuilds automatically)
     
     getLoggerSafe().info({
       currentStreak: rebuiltStreak.currentStreak,
