@@ -1579,6 +1579,71 @@ describe("Reading Streak Tracking - Spec 001", () => {
       // Streak should be unchanged (same day activity)
       expect(streak.currentStreak).toBe(firstStreak);
     });
+
+    test("REGRESSION: rebuildStreak should use user timezone, not UTC, for date comparison", async () => {
+      // This test prevents regression of a bug where rebuildStreak() used UTC dates
+      // instead of user timezone dates, causing incorrect streak resets near midnight.
+      //
+      // Bug scenario (before fix):
+      // - User timezone: America/New_York (EST)
+      // - Current time: 10:26 PM on Feb 6 (EST)
+      // - UTC time: 3:26 AM on Feb 7
+      // - Last activity: Feb 5
+      // 
+      // With bug: toDateString(now) returns "2026-02-07" (UTC)
+      //   → Days since Feb 5 = 2 days → Incorrectly resets streak to 0
+      // 
+      // Without bug: Uses user's timezone, returns "2026-02-06"
+      //   → Days since Feb 5 = 1 day → Streak preserved at 5
+      
+      // Create book and session
+      const book = await bookRepository.create({
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Author"],
+        path: "/test/path",
+        totalPages: 300,
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        startedDate: toSessionDate(getStreakDate(-5)),
+      });
+
+      // Create progress for 5 consecutive days ending yesterday
+      // This builds a streak of 5
+      for (let i = 5; i >= 1; i--) {
+        await progressRepository.create({
+          bookId: book.id,
+          sessionId: session.id,
+          currentPage: 50,
+          currentPercentage: 16.67,
+          pagesRead: 10,
+          progressDate: toProgressDate(getStreakDate(-i)),
+        });
+      }
+
+      // Call rebuildStreak with current time
+      // The key test: Does it use UTC or user timezone for "today"?
+      const streak = await streakService.rebuildStreak(null, new Date());
+
+      // CRITICAL ASSERTION:
+      // If rebuildStreak incorrectly uses UTC dates:
+      //   - When it's 10:26 PM EST (3:26 AM UTC next day)
+      //   - "today" would be calculated as tomorrow in UTC
+      //   - days_since_last_activity (yesterday to UTC-tomorrow) = 2 days
+      //   - currentStreak = 0 (BROKEN - incorrectly reset)
+      //
+      // With correct timezone handling:
+      //   - "today" is calculated in user's timezone (still today at 10:26 PM)
+      //   - days_since_last_activity (yesterday to today) = 1 day
+      //   - currentStreak = 5 (PRESERVED - still within grace period)
+      
+      expect(streak.currentStreak).toBe(5);
+      expect(streak.longestStreak).toBe(5);
+    });
   });
 });
 

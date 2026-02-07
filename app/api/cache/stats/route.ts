@@ -3,7 +3,7 @@ import {
   getCoverCacheStats,
   getBookPathCacheStats,
   type CacheStats,
-} from "@/app/api/books/[id]/cover/route";
+} from "@/lib/covers/cache";
 
 /**
  * GET /api/cache/stats

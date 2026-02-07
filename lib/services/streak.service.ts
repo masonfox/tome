@@ -227,9 +227,10 @@ export class StreakService {
       longestStreak = Math.max(longestStreak, currentStreak);
 
       // Check if last activity was more than 1 day ago (streak is broken)
-      // Compare UTC calendar days
+      // Compare calendar days in user's timezone
       const now = currentDate || new Date();
-      const todayStr = toDateString(now);
+      const nowInUserTz = startOfDay(toZonedTime(now, userTimezone));
+      const todayStr = toDateString(nowInUserTz);
       const lastActivityStr = toDateString(lastActivityDate);
       const today = parseISO(`${todayStr}T00:00:00.000Z`);
       const lastActivityDay = parseISO(`${lastActivityStr}T00:00:00.000Z`);

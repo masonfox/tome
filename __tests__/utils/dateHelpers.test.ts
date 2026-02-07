@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
-import { formatDateOnly, getTodayLocalDate } from '@/utils/dateHelpers';
+import { formatDate, formatDayOfWeek, getTodayLocalDate } from '@/utils/dateHelpers';
 import { 
   getCurrentUserTimezone,
   clearTimezoneCache,
@@ -26,44 +26,58 @@ vi.mock('@/lib/logger', () => ({
   })),
 }));
 
-describe("formatDateOnly", () => {
-  test("should format ISO date string correctly regardless of timezone", () => {
-    // Date stored as midnight UTC should display as Nov 23, 2025
-    const isoString = "2025-11-23T00:00:00.000Z";
-    const result = formatDateOnly(isoString);
+describe("formatDate", () => {
+  test("should format YYYY-MM-DD string with default format", () => {
+    const dateString = "2025-11-23";
+    const result = formatDate(dateString);
     expect(result).toBe("Nov 23, 2025");
   });
 
-  test("should format date with custom format string", () => {
-    const isoString = "2025-11-23T00:00:00.000Z";
-    const result = formatDateOnly(isoString, "yyyy-MM-dd");
-    expect(result).toBe("2025-11-23");
-  });
-
-  test("should handle dates at different times of day consistently", () => {
-    // These should all display as Nov 23, 2025
-    const midnight = "2025-11-23T00:00:00.000Z";
-    const noon = "2025-11-23T12:00:00.000Z";
-    const evening = "2025-11-23T23:59:59.000Z";
-
-    expect(formatDateOnly(midnight)).toBe("Nov 23, 2025");
-    expect(formatDateOnly(noon)).toBe("Nov 23, 2025");
-    expect(formatDateOnly(evening)).toBe("Nov 23, 2025");
-  });
-
-  test("should extract date part correctly from ISO string", () => {
-    const isoString = "2024-01-15T08:30:45.123Z";
-    const result = formatDateOnly(isoString);
-    expect(result).toBe("Jan 15, 2024");
-  });
-
-  test("should work with different date formats", () => {
-    const isoString = "2025-11-23T00:00:00.000Z";
+  test("should format YYYY-MM-DD string with custom format", () => {
+    const dateString = "2025-11-23";
     
-    expect(formatDateOnly(isoString, "MMM d, yyyy")).toBe("Nov 23, 2025");
-    expect(formatDateOnly(isoString, "MMMM d, yyyy")).toBe("November 23, 2025");
-    expect(formatDateOnly(isoString, "MM/dd/yyyy")).toBe("11/23/2025");
-    expect(formatDateOnly(isoString, "yyyy-MM-dd")).toBe("2025-11-23");
+    expect(formatDate(dateString, "MMM d, yyyy")).toBe("Nov 23, 2025");
+    expect(formatDate(dateString, "MMMM d, yyyy")).toBe("November 23, 2025");
+    expect(formatDate(dateString, "MM/dd/yyyy")).toBe("11/23/2025");
+    expect(formatDate(dateString, "yyyy-MM-dd")).toBe("2025-11-23");
+  });
+
+  test("should handle different dates consistently", () => {
+    expect(formatDate("2024-01-15")).toBe("Jan 15, 2024");
+    expect(formatDate("2024-12-31")).toBe("Dec 31, 2024");
+    expect(formatDate("2025-01-01")).toBe("Jan 1, 2025");
+  });
+
+  test("should work with single-digit months and days", () => {
+    const dateString = "2025-03-05";
+    const result = formatDate(dateString);
+    expect(result).toBe("Mar 5, 2025");
+  });
+
+  test("should support various format strings", () => {
+    const dateString = "2025-11-23";
+    
+    expect(formatDate(dateString, "EEE, MMM d")).toBe("Sun, Nov 23");
+    expect(formatDate(dateString, "EEEE")).toBe("Sunday");
+    expect(formatDate(dateString, "d")).toBe("23");
+    expect(formatDate(dateString, "MM")).toBe("11");
+  });
+});
+
+describe("formatDayOfWeek", () => {
+  test("should return three-letter day abbreviation", () => {
+    expect(formatDayOfWeek("2025-11-23")).toBe("Sun"); // Sunday
+    expect(formatDayOfWeek("2025-11-24")).toBe("Mon"); // Monday
+    expect(formatDayOfWeek("2025-11-25")).toBe("Tue"); // Tuesday
+    expect(formatDayOfWeek("2025-11-26")).toBe("Wed"); // Wednesday
+    expect(formatDayOfWeek("2025-11-27")).toBe("Thu"); // Thursday
+    expect(formatDayOfWeek("2025-11-28")).toBe("Fri"); // Friday
+    expect(formatDayOfWeek("2025-11-29")).toBe("Sat"); // Saturday
+  });
+
+  test("should handle different dates", () => {
+    expect(formatDayOfWeek("2024-01-01")).toBe("Mon");
+    expect(formatDayOfWeek("2024-12-31")).toBe("Tue");
   });
 });
 
