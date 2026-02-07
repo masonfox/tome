@@ -1422,8 +1422,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
       } as any);
 
       // Call checkAndResetStreakIfNeeded - should return false (already checked)
-      const { checkAndResetStreakIfNeeded } = await import("@/lib/streaks");
-      const wasReset = await checkAndResetStreakIfNeeded();
+      // Using streakService.checkAndResetStreakIfNeeded directly
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
 
       expect(wasReset).toBe(false); // Early return path
     });
@@ -1441,8 +1441,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Check and reset streak
-      const { checkAndResetStreakIfNeeded } = await import("@/lib/streaks");
-      const wasReset = await checkAndResetStreakIfNeeded();
+      // Using streakService.checkAndResetStreakIfNeeded directly
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
 
       expect(wasReset).toBe(true); // Streak was reset
 
@@ -1464,8 +1464,8 @@ describe("Reading Streak Tracking - Spec 001", () => {
       });
 
       // Check streak (should not reset)
-      const { checkAndResetStreakIfNeeded } = await import("@/lib/streaks");
-      const wasReset = await checkAndResetStreakIfNeeded();
+      // Using streakService.checkAndResetStreakIfNeeded directly
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
 
       expect(wasReset).toBe(false); // No reset
 
