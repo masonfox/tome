@@ -1,8 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
+import { sessionRepository, progressRepository, readingGoalRepository, streakRepository } from "@/lib/repositories";
 import { readingStatsService } from "@/lib/services";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../helpers/db-setup";
 import type { TestDatabaseInstance } from "../../helpers/db-setup";
+import { formatInTimeZone } from "date-fns-tz";
 
 let testDb: TestDatabaseInstance;
 
@@ -75,6 +76,18 @@ function insertProgressLog(opts: {
     INSERT INTO progress_logs (book_id, session_id, progress_date, current_page, current_percentage, pages_read)
     VALUES (?, ?, ?, ?, 0, ?)
   `).run(opts.bookId, opts.sessionId, opts.progressDate, opts.currentPage, opts.pagesRead);
+}
+
+/**
+ * Helper: Get current date parts in the default timezone (America/New_York)
+ * Mirrors the logic in ReadingStatsService.getOverview() to avoid timezone drift
+ */
+function getCurrentDateParts(timezone = "America/New_York") {
+  const now = new Date();
+  const today = formatInTimeZone(now, timezone, "yyyy-MM-dd");
+  const year = parseInt(formatInTimeZone(now, timezone, "yyyy"), 10);
+  const month = parseInt(formatInTimeZone(now, timezone, "MM"), 10);
+  return { today, year, month };
 }
 
 describe("Consolidated Stats Counting", () => {
@@ -303,6 +316,192 @@ describe("Consolidated Stats Counting", () => {
       expect("841276800" >= "2025-12-31").toBe(true);
       // But "841276800" is not a valid YYYY-MM-DD date
       expect("841276800").not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+
+  describe("ReadingStatsService.getOverview()", () => {
+    test("returns correct structure with all zero values when no data exists", async () => {
+      const overview = await readingStatsService.getOverview();
+
+      expect(overview).toEqual({
+        booksRead: {
+          total: 0,
+          thisYear: 0,
+          thisMonth: 0,
+        },
+        currentlyReading: 0,
+        pagesRead: {
+          total: 0,
+          thisYear: 0,
+          thisMonth: 0,
+          today: 0,
+        },
+        avgPagesPerDay: 0,
+      });
+    });
+
+    test("aggregates books read correctly across total, thisYear, and thisMonth", async () => {
+      const { today, year, month } = getCurrentDateParts();
+
+      // Book completed this month (counts toward total, thisYear, and thisMonth)
+      const book1 = insertBook({ title: "This Month Book", calibreId: 1 });
+      insertSession({ bookId: book1, status: "read", completedDate: today });
+
+      // Book completed earlier this year but different month
+      // Use January if current month is not January, otherwise use a previous year
+      const earlierThisYear = month > 1
+        ? `${year}-01-05`
+        : `${year - 1}-06-15`;
+      const book2 = insertBook({ title: "Earlier Book", calibreId: 2 });
+      insertSession({ bookId: book2, status: "read", completedDate: earlierThisYear });
+
+      // Book completed last year (only counts toward total)
+      const book3 = insertBook({ title: "Last Year Book", calibreId: 3 });
+      insertSession({ bookId: book3, status: "read", completedDate: `${year - 1}-03-10` });
+
+      const overview = await readingStatsService.getOverview();
+
+      expect(overview.booksRead.total).toBe(3);
+      if (month > 1) {
+        // book1 (this month) + book2 (earlier this year) = 2
+        expect(overview.booksRead.thisYear).toBe(2);
+      } else {
+        // January: book1 (this month) = 1 this year, book2 was placed in prior year
+        expect(overview.booksRead.thisYear).toBe(1);
+      }
+      expect(overview.booksRead.thisMonth).toBe(1);
+    });
+
+    test("counts currently reading sessions", async () => {
+      const book1 = insertBook({ title: "Reading 1", calibreId: 1 });
+      insertSession({ bookId: book1, status: "reading", isActive: true });
+
+      const book2 = insertBook({ title: "Reading 2", calibreId: 2 });
+      insertSession({ bookId: book2, status: "reading", isActive: true });
+
+      // Inactive reading session should not count
+      const book3 = insertBook({ title: "Paused", calibreId: 3 });
+      insertSession({ bookId: book3, status: "reading", isActive: false });
+
+      // Completed session should not count
+      const book4 = insertBook({ title: "Done", calibreId: 4 });
+      insertSession({ bookId: book4, status: "read", completedDate: "2026-01-01", isActive: false });
+
+      const overview = await readingStatsService.getOverview();
+
+      expect(overview.currentlyReading).toBe(2);
+    });
+
+    test("aggregates pages read correctly across total, thisYear, thisMonth, and today", async () => {
+      const { today, year, month } = getCurrentDateParts();
+
+      const book = insertBook({ title: "Book", calibreId: 1 });
+      const sessionId = insertSession({ bookId: book, status: "reading" });
+
+      // Pages read today (counts toward all: total, thisYear, thisMonth, today)
+      insertProgressLog({ bookId: book, sessionId, progressDate: today, currentPage: 50, pagesRead: 50 });
+
+      // Pages read earlier this month (but not today)
+      // Only add if today is not the 1st, to avoid date collision
+      const dayOfMonth = parseInt(today.split("-")[2], 10);
+      if (dayOfMonth > 1) {
+        const earlierThisMonth = `${year}-${String(month).padStart(2, "0")}-01`;
+        insertProgressLog({ bookId: book, sessionId, progressDate: earlierThisMonth, currentPage: 80, pagesRead: 30 });
+      }
+
+      // Pages read last year (only counts toward total)
+      insertProgressLog({ bookId: book, sessionId, progressDate: `${year - 1}-06-15`, currentPage: 120, pagesRead: 40 });
+
+      const overview = await readingStatsService.getOverview();
+
+      if (dayOfMonth > 1) {
+        expect(overview.pagesRead.total).toBe(120); // 50 + 30 + 40
+        expect(overview.pagesRead.thisYear).toBe(80); // 50 + 30
+        expect(overview.pagesRead.thisMonth).toBe(80); // 50 + 30
+      } else {
+        expect(overview.pagesRead.total).toBe(90); // 50 + 40
+        expect(overview.pagesRead.thisYear).toBe(50);
+        expect(overview.pagesRead.thisMonth).toBe(50);
+      }
+      expect(overview.pagesRead.today).toBe(50);
+    });
+
+    test("excludes malformed dates from year/month/today counts", async () => {
+      const { today } = getCurrentDateParts();
+
+      // Valid book completed today
+      const goodBook = insertBook({ title: "Good Book", calibreId: 1 });
+      insertSession({ bookId: goodBook, status: "read", completedDate: today });
+
+      // Book with malformed Unix timestamp date — still has status "read",
+      // so it IS counted by countByStatus (total) which doesn't filter by date,
+      // but EXCLUDED from thisYear/thisMonth which use strftime + GLOB
+      const badBook = insertBook({ title: "Bad Date Book", calibreId: 2 });
+      insertSession({ bookId: badBook, status: "read", completedDate: "841276800" });
+
+      // Valid progress today
+      const readingBook = insertBook({ title: "Reading Book", calibreId: 3 });
+      const sessionId = insertSession({ bookId: readingBook, status: "reading" });
+      insertProgressLog({ bookId: readingBook, sessionId, progressDate: today, currentPage: 50, pagesRead: 50 });
+
+      // Malformed progress date — excluded from year/month/today sums but included in total
+      testDb.sqlite.prepare(`
+        INSERT INTO progress_logs (book_id, session_id, progress_date, current_page, current_percentage, pages_read)
+        VALUES (?, ?, '1704067200', 100, 0, 100)
+      `).run(readingBook, sessionId);
+
+      const overview = await readingStatsService.getOverview();
+
+      // booksRead.total uses countByStatus (no date filter) — counts both
+      expect(overview.booksRead.total).toBe(2);
+      // thisYear/thisMonth use GLOB + strftime — malformed date excluded
+      expect(overview.booksRead.thisYear).toBe(1);
+      expect(overview.booksRead.thisMonth).toBe(1);
+
+      // pagesRead.total includes all progress (no date filter on getTotalPagesRead)
+      expect(overview.pagesRead.total).toBe(150); // 50 + 100
+      // Year/month/today use GLOB guard — malformed progress excluded
+      expect(overview.pagesRead.thisYear).toBe(50);
+      expect(overview.pagesRead.today).toBe(50);
+    });
+
+    test("excludes orphaned books from book counts", async () => {
+      const { today } = getCurrentDateParts();
+
+      // Normal completed book
+      const normalBook = insertBook({ title: "Normal", calibreId: 1 });
+      insertSession({ bookId: normalBook, status: "read", completedDate: today });
+
+      // Orphaned completed book
+      const orphanedBook = insertBook({ title: "Orphaned", calibreId: 2, orphaned: true });
+      insertSession({ bookId: orphanedBook, status: "read", completedDate: today });
+
+      const overview = await readingStatsService.getOverview();
+
+      // countByStatus (total) excludes orphaned via isNotOrphaned join
+      // countCompletedByYear and countCompletedByYearMonth also exclude orphaned
+      expect(overview.booksRead.total).toBe(1);
+      expect(overview.booksRead.thisYear).toBe(1);
+      expect(overview.booksRead.thisMonth).toBe(1);
+    });
+
+    test("calculates avgPagesPerDay from recent progress", async () => {
+      const { year } = getCurrentDateParts();
+
+      const book = insertBook({ title: "Book", calibreId: 1 });
+      const sessionId = insertSession({ bookId: book, status: "reading" });
+
+      // Add progress on two distinct days within the last 30 days
+      const recentDay1 = `${year}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(Math.max(1, new Date().getDate() - 2)).padStart(2, "0")}`;
+      const recentDay2 = `${year}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(Math.max(1, new Date().getDate() - 1)).padStart(2, "0")}`;
+
+      insertProgressLog({ bookId: book, sessionId, progressDate: recentDay1, currentPage: 60, pagesRead: 60 });
+      insertProgressLog({ bookId: book, sessionId, progressDate: recentDay2, currentPage: 100, pagesRead: 40 });
+
+      const overview = await readingStatsService.getOverview();
+
+      // Average should be (60 + 40) / 2 = 50 pages per day
+      expect(overview.avgPagesPerDay).toBe(50);
     });
   });
 });
