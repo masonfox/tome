@@ -325,6 +325,8 @@ export class ProgressRepository extends BaseRepository<
    * @param timezone - DEPRECATED, no longer used (progressDate is already a calendar day)
    * @returns Array of {date: 'YYYY-MM-DD', pagesRead: number} grouped by progressDate
    * 
+   * Uses GLOB date validation to reject malformed dates (e.g., Unix timestamps stored as text).
+   * 
    * @example
    * import { toDateString } from "@/utils/dateHelpers.server";
    * const startStr = toDateString(startDateUtc);
@@ -343,6 +345,7 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
+          isValidDateFormat(progressLogs.progressDate),
           gte(progressLogs.progressDate, startDateString),
           lte(progressLogs.progressDate, endDateString)
         )
