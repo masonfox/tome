@@ -2,6 +2,7 @@ import { eq, and, desc, isNull, isNotNull, sql } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { readingGoals, readingSessions, books } from "@/lib/db/schema";
 import type { ReadingGoal, NewReadingGoal, Book } from "@/lib/db/schema";
+import { isValidDateFormat } from "@/lib/db/sql-helpers";
 
 export class ReadingGoalRepository extends BaseRepository<
   ReadingGoal,
@@ -72,7 +73,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(readingSessions.completedDate),
           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
@@ -103,7 +104,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`
+          isValidDateFormat(readingSessions.completedDate)
         )
       )
       .groupBy(sql`strftime('%Y', ${readingSessions.completedDate})`)
@@ -141,7 +142,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(readingSessions.completedDate),
           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
@@ -216,7 +217,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
-          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(readingSessions.completedDate),
           sql`substr(${readingSessions.completedDate}, 1, 4) = ${year.toString()}`
         )
       )

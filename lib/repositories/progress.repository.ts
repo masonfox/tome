@@ -6,6 +6,7 @@ import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import { toDateString } from "@/utils/dateHelpers.server";
+import { isValidDateFormat } from "@/lib/db/sql-helpers";
 
 export class ProgressRepository extends BaseRepository<
   ProgressLog,
@@ -253,7 +254,7 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(progressLogs.progressDate),
           sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`
         )
       )
@@ -281,7 +282,7 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(progressLogs.progressDate),
           sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`,
           sql`strftime('%m', ${progressLogs.progressDate}) = ${monthStr}`
         )
@@ -307,7 +308,7 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(progressLogs.progressDate),
           eq(progressLogs.progressDate, dateString)
         )
       )
@@ -392,7 +393,7 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
-          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          isValidDateFormat(progressLogs.progressDate),
           gte(progressLogs.progressDate, startDateString)
         )
       )

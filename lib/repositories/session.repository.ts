@@ -3,6 +3,7 @@ import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { books, Book } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
+import { isValidDateFormat, isNotOrphaned } from "@/lib/db/sql-helpers";
 
 /**
  * ReadingSession with joined Book data
@@ -236,7 +237,7 @@ export class SessionRepository extends BaseRepository<
       .where(
         and(
           sessionConditions,
-          or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+          isNotOrphaned()
         )
       )
       .orderBy(
@@ -295,34 +296,35 @@ export class SessionRepository extends BaseRepository<
        .innerJoin(books, eq(readingSessions.bookId, books.id))
        .where(
          and(
-           sessionConditions,
-           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
-         )
-       )
-       .get();
+            sessionConditions,
+            isNotOrphaned()
+          )
+        )
+        .get();
 
-     return result?.count ?? 0;
-   }
-
-   /**
-    * Count sessions by status including orphaned books
-    */
-   async countByStatusIncludingOrphaned(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
-     const conditions = activeOnly
-       ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
-       : eq(readingSessions.status, status);
-
-     const result = this.getDatabase()
-       .select({ count: sql<number>`count(*)` })
-       .from(readingSessions)
-       .where(conditions)
-       .get();
-
-     return result?.count ?? 0;
-   }
+      return result?.count ?? 0;
+    }
 
    /**
-    * Count books completed in a specific year (excludes orphaned books)
+     * Count sessions by status including orphaned books
+     * Used for stats that need complete counts regardless of orphaned state
+     */
+    async countByStatusIncludingOrphaned(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
+      const sessionConditions = activeOnly
+        ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
+        : eq(readingSessions.status, status);
+
+      const result = this.getDatabase()
+        .select({ count: sql<number>`count(*)` })
+        .from(readingSessions)
+        .where(sessionConditions)
+        .get();
+
+      return result?.count ?? 0;
+    }
+
+   /**
+     * Count books completed in a specific year (excludes orphaned books)
     * Uses strftime + GLOB date validation to safely filter by year.
     * Rejects malformed dates (e.g., Unix timestamps stored as text).
     * 
@@ -340,9 +342,9 @@ export class SessionRepository extends BaseRepository<
        .where(
          and(
            eq(readingSessions.status, "read"),
-           sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+           isValidDateFormat(readingSessions.completedDate),
            sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`,
-           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+           isNotOrphaned()
          )
        )
        .get();
@@ -371,10 +373,10 @@ export class SessionRepository extends BaseRepository<
        .where(
          and(
            eq(readingSessions.status, "read"),
-           sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+           isValidDateFormat(readingSessions.completedDate),
            sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`,
            sql`strftime('%m', ${readingSessions.completedDate}) = ${monthStr}`,
-           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+           isNotOrphaned()
          )
        )
        .get();
@@ -723,7 +725,7 @@ export class SessionRepository extends BaseRepository<
          and(
            eq(readingSessions.status, 'read-next'),
            eq(readingSessions.isActive, true),
-           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+           isNotOrphaned()
          )
        )
        .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))

@@ -822,3 +822,197 @@ describe("ReadingGoalRepository", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Malformed date defense tests
+// ---------------------------------------------------------------------------
+// These tests verify that the isValidDateFormat() GLOB guard in the
+// reading-goals repository correctly rejects sessions whose completedDate
+// is not a valid YYYY-MM-DD string.  Malformed values are injected via
+// raw SQL to bypass ORM type-safety.
+// ---------------------------------------------------------------------------
+
+describe("Malformed date defense (isValidDateFormat guard)", () => {
+  // --- Raw SQL helpers (bypass ORM type safety) ----------------------------
+
+  function insertBook(title: string, calibreId: number): number {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
+         VALUES (?, ?, '[]', '[]', '/test', 0)`
+      )
+      .run(title, calibreId);
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  function insertSession(opts: {
+    bookId: number;
+    status: string;
+    completedDate?: string | null;
+    sessionNumber?: number;
+  }): number {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO reading_sessions (book_id, session_number, status, completed_date, is_active)
+         VALUES (?, ?, ?, ?, 0)`
+      )
+      .run(
+        opts.bookId,
+        opts.sessionNumber ?? 1,
+        opts.status,
+        opts.completedDate ?? null
+      );
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  // Representative malformed date strings that could appear in the database
+  const MALFORMED_DATES = [
+    "1737676800",             // Unix timestamp (numeric string)
+    "2026-01",                // Partial date (YYYY-MM)
+    "2026-03-15T10:30:00",    // ISO datetime with time suffix
+    "March 15, 2026",         // Human-readable format
+    "15/03/2026",             // DD/MM/YYYY format
+    "not-a-date",             // Completely invalid
+    "",                       // Empty string
+  ];
+
+  // --- getBooksCompletedInYear() -------------------------------------------
+
+  describe("getBooksCompletedInYear()", () => {
+    test("should not count sessions with malformed completedDate", async () => {
+      const bookId = insertBook("Malformed Date Book", 900);
+
+      let sessionNum = 1;
+      for (const badDate of MALFORMED_DATES) {
+        insertSession({
+          bookId,
+          status: "read",
+          completedDate: badDate,
+          sessionNumber: sessionNum++,
+        });
+      }
+
+      // Insert one valid session to confirm valid dates ARE counted
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2026-07-15",
+        sessionNumber: sessionNum,
+      });
+
+      const count = await readingGoalRepository.getBooksCompletedInYear(null, 2026);
+      expect(count).toBe(1); // Only the valid date should count
+    });
+  });
+
+  // --- getYearsWithCompletedBooks() ----------------------------------------
+
+  describe("getYearsWithCompletedBooks()", () => {
+    test("should not include years derived from malformed dates", async () => {
+      const bookId = insertBook("Malformed Years Book", 901);
+
+      let sessionNum = 1;
+      for (const badDate of MALFORMED_DATES) {
+        insertSession({
+          bookId,
+          status: "read",
+          completedDate: badDate,
+          sessionNumber: sessionNum++,
+        });
+      }
+
+      // Insert one valid session
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2025-12-01",
+        sessionNumber: sessionNum,
+      });
+
+      const years = await readingGoalRepository.getYearsWithCompletedBooks(null);
+      expect(years).toHaveLength(1);
+      expect(years[0].year).toBe(2025);
+      expect(years[0].count).toBe(1);
+    });
+  });
+
+  // --- getBooksCompletedByMonth() ------------------------------------------
+
+  describe("getBooksCompletedByMonth()", () => {
+    test("should not count malformed dates in monthly breakdown", async () => {
+      const bookId = insertBook("Malformed Monthly Book", 902);
+
+      let sessionNum = 1;
+      for (const badDate of MALFORMED_DATES) {
+        insertSession({
+          bookId,
+          status: "read",
+          completedDate: badDate,
+          sessionNumber: sessionNum++,
+        });
+      }
+
+      // Insert one valid session in March 2026
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2026-03-20",
+        sessionNumber: sessionNum,
+      });
+
+      const months = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
+
+      // Should return all 12 months
+      expect(months).toHaveLength(12);
+
+      // Only March should have count 1
+      const march = months.find((m) => m.month === 3);
+      expect(march?.count).toBe(1);
+
+      // All other months should be 0
+      const totalCount = months.reduce((sum, m) => sum + m.count, 0);
+      expect(totalCount).toBe(1);
+    });
+  });
+
+  // --- getBooksByCompletionYear() ------------------------------------------
+
+  describe("getBooksByCompletionYear()", () => {
+    test("should not return books with malformed completedDate", async () => {
+      const bookId = insertBook("Malformed Completion Book", 903);
+
+      let sessionNum = 1;
+      for (const badDate of MALFORMED_DATES) {
+        insertSession({
+          bookId,
+          status: "read",
+          completedDate: badDate,
+          sessionNumber: sessionNum++,
+        });
+      }
+
+      // Insert one valid session
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2026-05-10",
+        sessionNumber: sessionNum,
+      });
+
+      const resultBooks = await readingGoalRepository.getBooksByCompletionYear(null, 2026);
+      expect(resultBooks).toHaveLength(1);
+      expect(resultBooks[0].title).toBe("Malformed Completion Book");
+      expect(resultBooks[0].completedDate).toBe("2026-05-10");
+    });
+  });
+});
