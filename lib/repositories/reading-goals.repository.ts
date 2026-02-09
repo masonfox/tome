@@ -177,11 +177,13 @@ export class ReadingGoalRepository extends BaseRepository<
   async getBooksByCompletionYear(
     userId: number | null,
     year: number
-  ): Promise<Array<Book & { completedDate: string }>> {
+  ): Promise<Array<Book & { completedDate: string; sessionId: number }>> {
     const db = this.getDatabase();
 
     const results = db
       .select({
+        // Session ID (unique per reading, needed for React keys on re-reads)
+        sessionId: readingSessions.id,
         // Book fields
         id: books.id,
         calibreId: books.calibreId,
@@ -221,7 +223,7 @@ export class ReadingGoalRepository extends BaseRepository<
       .orderBy(desc(readingSessions.completedDate))
       .all();
 
-    return results as Array<Book & { completedDate: string }>;
+    return results as unknown as Array<Book & { completedDate: string; sessionId: number }>;
   }
 }
 
