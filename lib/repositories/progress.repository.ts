@@ -264,6 +264,86 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
+   * Calculate pages read in a specific year
+   * Uses strftime + GLOB date validation to safely filter by year.
+   * Rejects malformed dates (e.g., Unix timestamps stored as text).
+   * 
+   * @param year - The year to sum pages for (e.g., 2026)
+   * @returns Total pages read in the specified year
+   * 
+   * @example
+   * const pages = await progressRepository.getPagesReadByYear(2026);
+   */
+  async getPagesReadByYear(year: number): Promise<number> {
+    const result = this.getDatabase()
+      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+      .from(progressLogs)
+      .where(
+        and(
+          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`
+        )
+      )
+      .get();
+
+    return result?.total ?? 0;
+  }
+
+  /**
+   * Calculate pages read in a specific year and month
+   * Uses strftime + GLOB date validation to safely filter by year/month.
+   * Rejects malformed dates (e.g., Unix timestamps stored as text).
+   * 
+   * @param year - The year (e.g., 2026)
+   * @param month - The month (1-12)
+   * @returns Total pages read in the specified year/month
+   * 
+   * @example
+   * const pages = await progressRepository.getPagesReadByYearMonth(2026, 2);
+   */
+  async getPagesReadByYearMonth(year: number, month: number): Promise<number> {
+    const monthStr = month.toString().padStart(2, '0');
+    const result = this.getDatabase()
+      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+      .from(progressLogs)
+      .where(
+        and(
+          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`,
+          sql`strftime('%m', ${progressLogs.progressDate}) = ${monthStr}`
+        )
+      )
+      .get();
+
+    return result?.total ?? 0;
+  }
+
+  /**
+   * Calculate pages read on a specific date
+   * Uses GLOB date validation to safely filter.
+   * 
+   * @param dateString - Date in YYYY-MM-DD format
+   * @returns Total pages read on the specified date
+   * 
+   * @example
+   * const pages = await progressRepository.getPagesReadByDate("2026-02-09");
+   */
+  async getPagesReadByDate(dateString: string): Promise<number> {
+    const result = this.getDatabase()
+      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+      .from(progressLogs)
+      .where(
+        and(
+          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          eq(progressLogs.progressDate, dateString)
+        )
+      )
+      .get();
+
+    return result?.total ?? 0;
+  }
+
+  /**
    * Get activity calendar (dates with page counts)
    * 
    * @param startDateString - Start of date range in YYYY-MM-DD format (UTC calendar day)
