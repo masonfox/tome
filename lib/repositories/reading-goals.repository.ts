@@ -54,7 +54,8 @@ export class ReadingGoalRepository extends BaseRepository<
 
   /**
    * Count books completed in a specific year
-   * Queries reading_sessions.completedDate
+   * Queries reading_sessions.completedDate with GLOB date validation
+   * to reject malformed dates (e.g., Unix timestamps stored as text)
    */
   async getBooksCompletedInYear(
     userId: number | null,
@@ -71,6 +72,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
+          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
@@ -81,6 +83,7 @@ export class ReadingGoalRepository extends BaseRepository<
 
   /**
    * Get all years with completed books, with counts
+   * Uses GLOB date validation to reject malformed dates
    * Used for library year filter dropdown
    */
   async getYearsWithCompletedBooks(
@@ -99,7 +102,8 @@ export class ReadingGoalRepository extends BaseRepository<
           userId === null
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
-          isNotNull(readingSessions.completedDate)
+          isNotNull(readingSessions.completedDate),
+          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`
         )
       )
       .groupBy(sql`strftime('%Y', ${readingSessions.completedDate})`)
@@ -115,6 +119,7 @@ export class ReadingGoalRepository extends BaseRepository<
    * Get books completed per month for a specific year
    * Returns all 12 months (1-12) with count for each
    * Months without completions return count: 0
+   * Uses GLOB date validation to reject malformed dates
    */
   async getBooksCompletedByMonth(
     userId: number | null,
@@ -136,6 +141,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
+          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
@@ -208,6 +214,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
+          sql`${readingSessions.completedDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
           sql`substr(${readingSessions.completedDate}, 1, 4) = ${year.toString()}`
         )
       )
