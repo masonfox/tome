@@ -237,33 +237,6 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Calculate pages read after a specific date (inclusive)
-   * 
-   * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
-   * @returns Total pages read on or after the specified date
-   * 
-   * @example
-   * import { toDateString, getCurrentUserTimezone } from "@/utils/dateHelpers.server";
-   * import { startOfDay, toZonedTime, fromZonedTime } from 'date-fns-tz';
-   * 
-   * // Get pages read "today" for user in their timezone
-   * const userTimezone = await getCurrentUserTimezone();
-   * const now = new Date();
-   * const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-   * const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-   * const pages = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
-   */
-  async getPagesReadAfterDate(dateString: string): Promise<number> {
-    const result = this.getDatabase()
-      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
-      .from(progressLogs)
-      .where(gte(progressLogs.progressDate, dateString))
-      .get();
-
-    return result?.total ?? 0;
-  }
-
-  /**
    * Calculate pages read in a specific year
    * Uses strftime + GLOB date validation to safely filter by year.
    * Rejects malformed dates (e.g., Unix timestamps stored as text).
@@ -417,7 +390,12 @@ export class ProgressRepository extends BaseRepository<
     const logs = this.getDatabase()
       .select()
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, startDateString))
+      .where(
+        and(
+          sql`${progressLogs.progressDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`,
+          gte(progressLogs.progressDate, startDateString)
+        )
+      )
       .all();
 
     if (logs.length === 0) {
