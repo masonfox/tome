@@ -60,11 +60,11 @@ const migration: CompanionMigration = {
         OR (started_date IS NOT NULL 
             AND typeof(started_date) = 'text'
             AND CAST(started_date AS INTEGER) = started_date
-            AND CAST(started_date AS INTEGER) > 1000000000)
+            AND CAST(started_date AS INTEGER) > 0)
         OR (completed_date IS NOT NULL
             AND typeof(completed_date) = 'text'
             AND CAST(completed_date AS INTEGER) = completed_date
-            AND CAST(completed_date AS INTEGER) > 1000000000)
+            AND CAST(completed_date AS INTEGER) > 0)
     `).all() as SessionRow[];
     
     logger.info({ count: sessions.length }, "Found sessions to convert");
