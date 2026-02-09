@@ -371,9 +371,8 @@ describe("SessionRepository - Edge Cases", () => {
       expect(count).toBe(1);
     });
 
-    test("should count only non-orphaned books (countByStatusIncludingOrphaned was removed)", async () => {
-      // countByStatusIncludingOrphaned was removed during the consolidation refactor.
-      // countByStatus now always excludes orphaned books via isNotOrphaned().
+    test("should count only non-orphaned books", async () => {
+      // countByStatus excludes orphaned books via isNotOrphaned().
       // This test verifies that countByStatus correctly excludes orphaned books.
       const normalBook = await bookRepository.create({
         title: "Normal Book",

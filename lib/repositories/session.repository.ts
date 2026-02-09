@@ -306,24 +306,6 @@ export class SessionRepository extends BaseRepository<
     }
 
    /**
-     * Count sessions by status including orphaned books
-     * Used for stats that need complete counts regardless of orphaned state
-     */
-    async countByStatusIncludingOrphaned(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
-      const sessionConditions = activeOnly
-        ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
-        : eq(readingSessions.status, status);
-
-      const result = this.getDatabase()
-        .select({ count: sql<number>`count(*)` })
-        .from(readingSessions)
-        .where(sessionConditions)
-        .get();
-
-      return result?.count ?? 0;
-    }
-
-   /**
      * Count books completed in a specific year (excludes orphaned books)
     * Uses strftime + GLOB date validation to safely filter by year.
     * Rejects malformed dates (e.g., Unix timestamps stored as text).
