@@ -2,6 +2,7 @@ import { eq, and, desc, isNull, isNotNull, sql } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { readingGoals, readingSessions, books } from "@/lib/db/schema";
 import type { ReadingGoal, NewReadingGoal, Book } from "@/lib/db/schema";
+import { isValidDateFormat } from "@/lib/db/sql-helpers";
 
 export class ReadingGoalRepository extends BaseRepository<
   ReadingGoal,
@@ -54,7 +55,8 @@ export class ReadingGoalRepository extends BaseRepository<
 
   /**
    * Count books completed in a specific year
-   * Queries reading_sessions.completedDate
+   * Queries reading_sessions.completedDate with GLOB date validation
+   * to reject malformed dates (e.g., Unix timestamps stored as text)
    */
   async getBooksCompletedInYear(
     userId: number | null,
@@ -71,6 +73,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
+          isValidDateFormat(readingSessions.completedDate),
           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
@@ -81,6 +84,7 @@ export class ReadingGoalRepository extends BaseRepository<
 
   /**
    * Get all years with completed books, with counts
+   * Uses GLOB date validation to reject malformed dates
    * Used for library year filter dropdown
    */
   async getYearsWithCompletedBooks(
@@ -99,7 +103,8 @@ export class ReadingGoalRepository extends BaseRepository<
           userId === null
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
-          isNotNull(readingSessions.completedDate)
+          isNotNull(readingSessions.completedDate),
+          isValidDateFormat(readingSessions.completedDate)
         )
       )
       .groupBy(sql`strftime('%Y', ${readingSessions.completedDate})`)
@@ -115,6 +120,7 @@ export class ReadingGoalRepository extends BaseRepository<
    * Get books completed per month for a specific year
    * Returns all 12 months (1-12) with count for each
    * Months without completions return count: 0
+   * Uses GLOB date validation to reject malformed dates
    */
   async getBooksCompletedByMonth(
     userId: number | null,
@@ -136,6 +142,7 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
+          isValidDateFormat(readingSessions.completedDate),
           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`
         )
       )
@@ -171,11 +178,13 @@ export class ReadingGoalRepository extends BaseRepository<
   async getBooksByCompletionYear(
     userId: number | null,
     year: number
-  ): Promise<Array<Book & { completedDate: string }>> {
+  ): Promise<Array<Book & { completedDate: string; sessionId: number }>> {
     const db = this.getDatabase();
 
     const results = db
       .select({
+        // Session ID (unique per reading, needed for React keys on re-reads)
+        sessionId: readingSessions.id,
         // Book fields
         id: books.id,
         calibreId: books.calibreId,
@@ -208,13 +217,14 @@ export class ReadingGoalRepository extends BaseRepository<
             ? isNull(readingSessions.userId)
             : eq(readingSessions.userId, userId),
           isNotNull(readingSessions.completedDate),
+          isValidDateFormat(readingSessions.completedDate),
           sql`substr(${readingSessions.completedDate}, 1, 4) = ${year.toString()}`
         )
       )
       .orderBy(desc(readingSessions.completedDate))
       .all();
 
-    return results as Array<Book & { completedDate: string }>;
+    return results as unknown as Array<Book & { completedDate: string; sessionId: number }>;
   }
 }
 

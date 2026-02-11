@@ -4,7 +4,6 @@ import {
   bookRepository,
   sessionRepository,
   progressRepository,
-  streakRepository,
 } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { toDateString } from "@/utils/dateHelpers.server";
@@ -68,8 +67,8 @@ describe("Aggregation Query Tests", () => {
     });
   });
 
-  describe("Pages Read After Date", () => {
-    test("should filter by date correctly", async () => {
+  describe("Pages Read By Date", () => {
+    test("should return pages for a specific date only", async () => {
       const book = await bookRepository.create({
         calibreId: 1,
         title: "Test Book",
@@ -88,17 +87,14 @@ describe("Aggregation Query Tests", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-      // Progress from 2 days ago
+      // Progress from yesterday
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
         currentPage: 50,
         currentPercentage: 50,
         pagesRead: 50,
-        progressDate: toProgressDate(twoDaysAgo),
+        progressDate: toProgressDate(yesterday),
       });
 
       // Progress from today
@@ -111,24 +107,12 @@ describe("Aggregation Query Tests", () => {
         progressDate: toProgressDate(new Date()),
       });
 
-      const totalSinceYesterday = await progressRepository.getPagesReadAfterDate(toDateString(yesterday));
-      expect(totalSinceYesterday).toBe(50); // Only today's progress
-    });
+      const pagesToday = await progressRepository.getPagesReadByDate(toProgressDate(new Date()));
+      expect(pagesToday).toBe(50); // Only today's progress
 
-    /**
-     * REMOVED: 3 timezone-aware aggregation tests
-     * 
-     * These tests were removed because they tested the broken timezone SQL query logic
-     * in getPagesReadAfterDate() that uses DATE(progressDate, 'unixepoch', 'localtime').
-     * 
-     * Removed tests:
-     * - should count progress from today using timezone-aware comparison
-     * - should handle midnight boundary cases correctly
-     * - should correctly group progress by calendar day across timezones
-     * 
-     * TODO: Reimplement these tests as part of spec 001 with working timezone logic.
-     * The SQL query needs to be fixed before these tests can pass reliably.
-     */
+      const pagesYesterday = await progressRepository.getPagesReadByDate(toProgressDate(yesterday));
+      expect(pagesYesterday).toBe(50); // Only yesterday's progress
+    });
   });
 
   describe("Books Read Count", () => {
@@ -178,7 +162,7 @@ describe("Aggregation Query Tests", () => {
       expect(count).toBe(2);
     });
 
-    test("should count books read after date", async () => {
+    test("should count books completed in current year", async () => {
       const book = await bookRepository.create({
         calibreId: 1,
         title: "Book",
@@ -187,22 +171,19 @@ describe("Aggregation Query Tests", () => {
         path: "/path",
       });
 
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      const currentYear = new Date().getFullYear();
+      const lastYear = currentYear - 1;
 
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-      // Completed 2 days ago
+      // Completed last year
       await sessionRepository.create({
         bookId: book.id,
         sessionNumber: 1,
         status: "read",
         isActive: false,
-        completedDate: toSessionDate(twoDaysAgo),
+        completedDate: `${lastYear}-06-15`,
       });
 
-      // Completed today
+      // Completed this year
       await sessionRepository.create({
         bookId: book.id,
         sessionNumber: 2,
@@ -211,8 +192,11 @@ describe("Aggregation Query Tests", () => {
         completedDate: toSessionDate(new Date()),
       });
 
-      const countSinceYesterday = await sessionRepository.countCompletedAfterDate(toSessionDate(yesterday));
-      expect(countSinceYesterday).toBe(1);
+      const countThisYear = await sessionRepository.countCompletedByYear(currentYear);
+      expect(countThisYear).toBe(1);
+
+      const countLastYear = await sessionRepository.countCompletedByYear(lastYear);
+      expect(countLastYear).toBe(1);
     });
   });
 

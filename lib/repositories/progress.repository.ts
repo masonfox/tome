@@ -6,6 +6,7 @@ import { books } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import { toDateString } from "@/utils/dateHelpers.server";
+import { isValidDateFormat } from "@/lib/db/sql-helpers";
 
 export class ProgressRepository extends BaseRepository<
   ProgressLog,
@@ -237,27 +238,80 @@ export class ProgressRepository extends BaseRepository<
   }
 
   /**
-   * Calculate pages read after a specific date (inclusive)
+   * Calculate pages read in a specific year
+   * Uses strftime + GLOB date validation to safely filter by year.
+   * Rejects malformed dates (e.g., Unix timestamps stored as text).
    * 
-   * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
-   * @returns Total pages read on or after the specified date
+   * @param year - The year to sum pages for (e.g., 2026)
+   * @returns Total pages read in the specified year
    * 
    * @example
-   * import { toDateString, getCurrentUserTimezone } from "@/utils/dateHelpers.server";
-   * import { startOfDay, toZonedTime, fromZonedTime } from 'date-fns-tz';
-   * 
-   * // Get pages read "today" for user in their timezone
-   * const userTimezone = await getCurrentUserTimezone();
-   * const now = new Date();
-   * const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-   * const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-   * const pages = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
+   * const pages = await progressRepository.getPagesReadByYear(2026);
    */
-  async getPagesReadAfterDate(dateString: string): Promise<number> {
+  async getPagesReadByYear(year: number): Promise<number> {
     const result = this.getDatabase()
       .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, dateString))
+      .where(
+        and(
+          isValidDateFormat(progressLogs.progressDate),
+          sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`
+        )
+      )
+      .get();
+
+    return result?.total ?? 0;
+  }
+
+  /**
+   * Calculate pages read in a specific year and month
+   * Uses strftime + GLOB date validation to safely filter by year/month.
+   * Rejects malformed dates (e.g., Unix timestamps stored as text).
+   * 
+   * @param year - The year (e.g., 2026)
+   * @param month - The month (1-12)
+   * @returns Total pages read in the specified year/month
+   * 
+   * @example
+   * const pages = await progressRepository.getPagesReadByYearMonth(2026, 2);
+   */
+  async getPagesReadByYearMonth(year: number, month: number): Promise<number> {
+    const monthStr = month.toString().padStart(2, '0');
+    const result = this.getDatabase()
+      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+      .from(progressLogs)
+      .where(
+        and(
+          isValidDateFormat(progressLogs.progressDate),
+          sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`,
+          sql`strftime('%m', ${progressLogs.progressDate}) = ${monthStr}`
+        )
+      )
+      .get();
+
+    return result?.total ?? 0;
+  }
+
+  /**
+   * Calculate pages read on a specific date
+   * Uses GLOB date validation to safely filter.
+   * 
+   * @param dateString - Date in YYYY-MM-DD format
+   * @returns Total pages read on the specified date
+   * 
+   * @example
+   * const pages = await progressRepository.getPagesReadByDate("2026-02-09");
+   */
+  async getPagesReadByDate(dateString: string): Promise<number> {
+    const result = this.getDatabase()
+      .select({ total: sql<number>`COALESCE(SUM(${progressLogs.pagesRead}), 0)` })
+      .from(progressLogs)
+      .where(
+        and(
+          isValidDateFormat(progressLogs.progressDate),
+          eq(progressLogs.progressDate, dateString)
+        )
+      )
       .get();
 
     return result?.total ?? 0;
@@ -270,6 +324,8 @@ export class ProgressRepository extends BaseRepository<
    * @param endDateString - End of date range in YYYY-MM-DD format (UTC calendar day)
    * @param timezone - DEPRECATED, no longer used (progressDate is already a calendar day)
    * @returns Array of {date: 'YYYY-MM-DD', pagesRead: number} grouped by progressDate
+   * 
+   * Uses GLOB date validation to reject malformed dates (e.g., Unix timestamps stored as text).
    * 
    * @example
    * import { toDateString } from "@/utils/dateHelpers.server";
@@ -289,6 +345,7 @@ export class ProgressRepository extends BaseRepository<
       .from(progressLogs)
       .where(
         and(
+          isValidDateFormat(progressLogs.progressDate),
           gte(progressLogs.progressDate, startDateString),
           lte(progressLogs.progressDate, endDateString)
         )
@@ -337,7 +394,12 @@ export class ProgressRepository extends BaseRepository<
     const logs = this.getDatabase()
       .select()
       .from(progressLogs)
-      .where(gte(progressLogs.progressDate, startDateString))
+      .where(
+        and(
+          isValidDateFormat(progressLogs.progressDate),
+          gte(progressLogs.progressDate, startDateString)
+        )
+      )
       .all();
 
     if (logs.length === 0) {
