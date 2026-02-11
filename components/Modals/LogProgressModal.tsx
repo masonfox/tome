@@ -105,7 +105,8 @@ export default function LogProgressModal({
         logger.info({ bookId: book.id, sessionId: result.completedSessionId }, 'Completion detected in LogProgressModal');
         setCompletedSessionId(result.completedSessionId);
         setShowLocalCompletionModal(true);
-        // Don't close progress modal - let FinishBookModal appear
+        // Close the BottomSheet on mobile so FinishBookModal (z-50) isn't hidden behind it (z-100/101)
+        onClose();
         return;
       }
       
