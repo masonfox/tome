@@ -4,8 +4,15 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Pencil } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import LogProgressModal from "@/components/Modals/LogProgressModal";
+import FinishBookModal from "@/components/Modals/FinishBookModal";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { getLogger } from "@/lib/logger";
+import { toast } from "@/utils/toast";
+
+const logger = getLogger().child({ component: "CurrentlyReadingList" });
 
 interface Book {
   id: number;
@@ -32,9 +39,18 @@ export default function CurrentlyReadingList({
   books,
   isMobile = false,
 }: CurrentlyReadingListProps) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+
+  // Completion modal state — lifted here so it survives dashboard data refreshes
+  // that unmount LogProgressModal when the book moves from "reading" to "read"
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completedBookId, setCompletedBookId] = useState<number | null>(null);
+  const [completedBookTitle, setCompletedBookTitle] = useState("");
+  const [completedSessionId, setCompletedSessionId] = useState<number | undefined>();
 
   const handleLogProgress = (book: Book) => {
     setSelectedBook(book);
@@ -48,6 +64,53 @@ export default function CurrentlyReadingList({
 
   const handleImageError = (calibreId: number) => {
     setImageErrors((prev) => new Set(prev).add(calibreId));
+  };
+
+  // Called by LogProgressModal on mobile when progress reaches 100%
+  const handleBookCompleted = (bookId: number, bookTitle: string, sessionId?: number) => {
+    logger.info({ bookId, sessionId }, "Book completed on mobile, showing finish modal");
+    setCompletedBookId(bookId);
+    setCompletedBookTitle(bookTitle);
+    setCompletedSessionId(sessionId);
+    setShowCompletionModal(true);
+  };
+
+  const handleConfirmFinish = async (rating?: number, review?: string) => {
+    if (!completedBookId) return;
+    try {
+      if (rating && rating > 0) {
+        const ratingResponse = await fetch(`/api/books/${completedBookId}/rating`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating }),
+        });
+        if (!ratingResponse.ok) throw new Error("Failed to update rating");
+      }
+
+      if (review && completedSessionId) {
+        const sessionResponse = await fetch(`/api/books/${completedBookId}/sessions/${completedSessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ review }),
+        });
+        if (!sessionResponse.ok) throw new Error("Failed to update review");
+      }
+
+      setShowCompletionModal(false);
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['book', completedBookId] });
+      await queryClient.invalidateQueries({ queryKey: ['sessions', completedBookId] });
+      await queryClient.invalidateQueries({ queryKey: ['library-books'] });
+      router.refresh();
+      toast.success("Book completed!");
+    } catch (error) {
+      logger.error({ error }, "Failed to update rating/review");
+      toast.error("Failed to update rating/review");
+    }
+  };
+
+  const handleCloseCompletionModal = () => {
+    setShowCompletionModal(false);
   };
 
   return (
@@ -136,6 +199,19 @@ export default function CurrentlyReadingList({
           onClose={handleCloseModal}
           book={selectedBook}
           isMobile={isMobile}
+          onBookCompleted={isMobile ? handleBookCompleted : undefined}
+        />
+      )}
+
+      {/* Completion Modal — rendered here so it survives LogProgressModal unmounting */}
+      {isMobile && (
+        <FinishBookModal
+          isOpen={showCompletionModal}
+          onClose={handleCloseCompletionModal}
+          onConfirm={handleConfirmFinish}
+          bookTitle={completedBookTitle}
+          bookId={completedBookId?.toString() ?? ""}
+          sessionId={completedSessionId}
         />
       )}
     </>
