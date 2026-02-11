@@ -1,7 +1,5 @@
 "use client";
 
-import { BookOpen } from "lucide-react";
-import Link from "next/link";
 import CurrentlyReadingList from "./CurrentlyReadingList";
 import { CurrentlyReadingCardSkeleton } from "./CurrentlyReadingCardSkeleton";
 import { useEffect, useState } from "react";
@@ -54,23 +52,8 @@ export default function CurrentlyReadingSection({
     );
   }
 
-  if (books.length === 0) {
-    return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 text-center h-[156px] flex flex-col items-center justify-center">
-        <BookOpen className="w-12 h-12 text-[var(--light-accent)] mx-auto mb-3" />
-        <p className="text-[var(--foreground)] font-medium">
-          No books in progress. Start reading from your{" "}
-          <Link
-            href="/library"
-            className="text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold"
-          >
-            library
-          </Link>
-          !
-        </p>
-      </div>
-    );
-  }
-
+  // Always render CurrentlyReadingList (even when books is empty) so that
+  // mobile completion modal state survives dashboard data refreshes that
+  // remove the completed book from the currentlyReading list.
   return <CurrentlyReadingList books={books} isMobile={isMobile} />;
 }

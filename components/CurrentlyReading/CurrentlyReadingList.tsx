@@ -115,8 +115,23 @@ export default function CurrentlyReadingList({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-        {books.map((book) => {
+      {books.length === 0 ? (
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-8 text-center h-[156px] flex flex-col items-center justify-center">
+          <BookOpen className="w-12 h-12 text-[var(--light-accent)] mx-auto mb-3" />
+          <p className="text-[var(--foreground)] font-medium">
+            No books in progress. Start reading from your{" "}
+            <Link
+              href="/library"
+              className="text-[var(--accent)] hover:text-[var(--light-accent)] font-semibold"
+            >
+              library
+            </Link>
+            !
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+          {books.map((book) => {
           const progressPercentage = book.latestProgress?.currentPercentage || 0;
           const hasImageError = imageErrors.has(book.calibreId);
 
@@ -190,7 +205,8 @@ export default function CurrentlyReadingList({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Progress Modal */}
       {selectedBook && (
