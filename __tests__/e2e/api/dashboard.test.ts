@@ -171,6 +171,18 @@ describe("Dashboard API - GET /api/dashboard", () => {
   });
 
   test("includes progress data in stats", async () => {
+    // Ensure dashboard uses UTC timezone to match test data
+    await streakRepository.create({
+      currentStreak: 0,
+      longestStreak: 0,
+      dailyThreshold: 15,
+      lastActivityDate: toDateString(new Date()),
+      streakStartDate: toDateString(new Date()),
+      totalDaysActive: 0,
+      streakEnabled: true,
+      userTimezone: "UTC",
+    });
+
     const today = toProgressDate(new Date());
 
     // Create progress for today
