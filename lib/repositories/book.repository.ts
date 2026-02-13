@@ -1,6 +1,7 @@
 import { eq, and, or, sql, like, inArray, desc, asc, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { books, Book, NewBook } from "@/lib/db/schema/books";
+import { bookSources } from "@/lib/db/schema/book-sources";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { bookShelves } from "@/lib/db/schema/shelves";
@@ -20,7 +21,7 @@ export interface BookFilter {
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
   excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
   noTags?: boolean; // Filter for books without any tags
-  source?: Book["source"] | Book["source"][]; // Filter by source(s)
+  source?: string | string[]; // Filter by provider ID(s) - queries book_sources table
 }
 
 export interface BookWithStatus extends Book {
@@ -90,30 +91,54 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
-   * Find all books from a specific source
+   * Find all books from a specific source provider
    * 
-   * @param source - Book source (calibre, manual)
-   * @returns Array of books from the specified source
+   * @param providerId - Provider ID (e.g., 'calibre', 'audiobookshelf')
+   * @returns Array of books from the specified provider
    */
-  async findBySource(source: Book["source"]): Promise<Book[]> {
+  async findBySource(providerId: string): Promise<Book[]> {
     return this.getDatabase()
-      .select()
+      .select({
+        id: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        authorSort: books.authorSort,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        path: books.path,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+      })
       .from(books)
-      .where(eq(books.source, source))
+      .innerJoin(bookSources, eq(books.id, bookSources.bookId))
+      .where(eq(bookSources.providerId, providerId))
       .all();
   }
 
   /**
-   * Count books by source
+   * Count books by source provider
    * 
-   * @param source - Book source to count
-   * @returns Number of books from the specified source
+   * @param providerId - Provider ID to count
+   * @returns Number of books from the specified provider
    */
-  async countBySource(source: Book["source"]): Promise<number> {
+  async countBySource(providerId: string): Promise<number> {
     const result = this.getDatabase()
-      .select({ count: sql<number>`COUNT(*)` })
+      .select({ count: sql<number>`COUNT(DISTINCT ${books.id})` })
       .from(books)
-      .where(eq(books.source, source))
+      .innerJoin(bookSources, eq(books.id, bookSources.bookId))
+      .where(eq(bookSources.providerId, providerId))
       .get();
 
     return result?.count ?? 0;
@@ -191,7 +216,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Book fields
         bookId: books.id,
         calibreId: books.calibreId,
-        source: books.source,
         title: books.title,
         authors: books.authors,
         authorSort: books.authorSort,
@@ -311,7 +335,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const book: Book = {
       id: result.bookId,
       calibreId: result.calibreId,
-      source: result.source,
       title: result.title,
       authors: result.authors,
       authorSort: result.authorSort,
@@ -386,16 +409,19 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(isNotOrphaned());
     }
 
-    // Source filter (single source or array of sources)
+    // Source filter (single provider or array of providers)
+    // Filters by book_sources table (JOIN query)
     if (filters.source) {
-      if (Array.isArray(filters.source)) {
-        // Multiple sources - book must be from ANY of the sources (OR logic)
-        if (filters.source.length > 0) {
-          conditions.push(inArray(books.source, filters.source));
-        }
-      } else {
-        // Single source
-        conditions.push(eq(books.source, filters.source));
+      const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
+      if (providerIds.length > 0) {
+        // Use subquery to find books with matching providers
+        conditions.push(
+          sql`${books.id} IN (
+            SELECT ${bookSources.bookId} 
+            FROM ${bookSources} 
+            WHERE ${bookSources.providerId} IN (${sql.join(providerIds.map(p => sql`${p}`), sql`, `)})
+          )`
+        );
       }
     }
 
@@ -676,18 +702,36 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
    * CRITICAL: Only returns Calibre-sourced books to prevent orphaning manual/external books
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
-    // SAFETY: If calibreIds is empty, return empty array to prevent mass orphaning
-    // This prevents a catastrophic bug where an empty Calibre result would orphan ALL books
-    if (calibreIds.length === 0) {
-      return [];
-    }
-
+    if (calibreIds.length === 0) return [];
     return this.getDatabase()
-      .select()
+      .select({
+        id: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        authorSort: books.authorSort,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        path: books.path,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+      })
       .from(books)
+      .innerJoin(bookSources, eq(books.id, bookSources.bookId))
       .where(
         and(
-          eq(books.source, "calibre"), // CRITICAL: Only check Calibre books
+          eq(bookSources.providerId, "calibre"), // CRITICAL: Only check Calibre books
           sql`${books.calibreId} NOT IN ${sql.raw(`(${calibreIds.join(",")})`)}`,
           isNotOrphaned()
         )
@@ -816,15 +860,18 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
     }
     // Source filter (T049: Multi-source filtering with OR logic)
+    // Filters by book_sources table (subquery)
     if (filters.source) {
-      if (Array.isArray(filters.source)) {
-        // Multiple sources - book must match ANY source (OR logic)
-        if (filters.source.length > 0) {
-          conditions.push(inArray(books.source, filters.source));
-        }
-      } else {
-        // Single source
-        conditions.push(eq(books.source, filters.source));
+      const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
+      if (providerIds.length > 0) {
+        // Use subquery to find books with matching providers
+        conditions.push(
+          sql`${books.id} IN (
+            SELECT ${bookSources.bookId} 
+            FROM ${bookSources} 
+            WHERE ${bookSources.providerId} IN (${sql.join(providerIds.map(p => sql`${p}`), sql`, `)})
+          )`
+        );
       }
     }
 
@@ -979,7 +1026,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         // Book fields
         bookId: books.id,
         calibreId: books.calibreId,
-        source: books.source,
         title: books.title,
         authors: books.authors,
         authorSort: books.authorSort,

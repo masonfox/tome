@@ -16,6 +16,4 @@ CREATE INDEX `idx_book_sources_book_id` ON `book_sources` (`book_id`);--> statem
 CREATE INDEX `idx_book_sources_provider_id` ON `book_sources` (`provider_id`);--> statement-breakpoint
 CREATE INDEX `idx_book_sources_external_id` ON `book_sources` (`external_id`);--> statement-breakpoint
 CREATE INDEX `idx_book_sources_is_primary` ON `book_sources` (`is_primary`);--> statement-breakpoint
-CREATE UNIQUE INDEX `book_sources_book_provider_unique` ON `book_sources` (`book_id`,`provider_id`);--> statement-breakpoint
-DROP INDEX `idx_books_source`;--> statement-breakpoint
-ALTER TABLE `books` DROP COLUMN `source`;
+CREATE UNIQUE INDEX `book_sources_book_provider_unique` ON `book_sources` (`book_id`,`provider_id`);
