@@ -14,7 +14,7 @@ export interface SeriesInfo {
 
 export interface SeriesBook {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   seriesIndex: number;
@@ -95,7 +95,7 @@ export class SeriesRepository extends BaseRepository<
       seriesData.bookCount++;
       
       // Keep first 12 cover IDs (matches FannedBookCovers maxCovers default)
-      if (seriesData.bookCoverIds.length < 12) {
+      if (seriesData.bookCoverIds.length < 12 && book.calibreId !== null) {
         seriesData.bookCoverIds.push(book.calibreId);
       }
     }
@@ -228,7 +228,7 @@ export class SeriesRepository extends BaseRepository<
     return {
       name: result[0].name!,
       bookCount: result[0].bookCount,
-      bookCoverIds: covers.map(c => c.calibreId),
+      bookCoverIds: covers.map(c => c.calibreId).filter((id): id is number => id !== null),
     };
   }
 }

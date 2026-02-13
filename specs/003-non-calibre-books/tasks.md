@@ -7,9 +7,24 @@
 
 This document breaks down the multi-source book tracking feature into executable tasks organized by user story. Each phase represents an independently testable increment of functionality.
 
-**Total Tasks**: 89  
+**Total Tasks**: 77 (was 89 — Phase 6 eliminated, see Architectural Revision below)  
 **Implementation Approach**: Incremental delivery by priority (P1 → P2 → P3)  
 **MVP Scope**: User Story 1 + User Story 2 (P1 stories - manual books with sync isolation)
+
+### Architectural Revision (2026-02-13): Source vs. Metadata Provider Separation
+
+The original spec treated Hardcover and OpenLibrary as "sources" alongside Calibre and Manual. After analysis, this conflates two distinct concepts:
+
+- **Sources** (book ownership): Where the book record is owned/managed. `calibre` (synced from Calibre DB) and `manual` (user-created in Tome). Future: `audiobookshelf`, etc.
+- **Metadata Providers** (search tools): APIs used to populate metadata when creating a manual book. `hardcover` and `openlibrary`. Completely ephemeral — no trace on the book record after creation.
+
+**Key changes:**
+1. `BookSource` type narrowed from `"calibre" | "manual" | "hardcover" | "openlibrary"` to `"calibre" | "manual"`
+2. New `ProviderId` type introduced for provider infrastructure: `"calibre" | "manual" | "hardcover" | "openlibrary"`
+3. `externalId` column removed from books table — no provider tracking on book records
+4. Books added via federated search get `source='manual'` (they always did in practice — the service hardcoded this)
+5. Phase 6 (Source Migration) eliminated entirely — was solving a problem that doesn't exist with the corrected model
+6. Dedup during search uses ISBN + fuzzy title/author matching (existing duplicate detection service)
 
 ---
 
@@ -22,11 +37,12 @@ This document breaks down the multi-source book tracking feature into executable
 | 3 | Manual Book Addition | P1 | 18 | ✅ Complete (18/18) |
 | 4 | Library Sync Isolation | P1 | 9 | ✅ Code Complete (5/9) - Needs formal tests |
 | 5 | Source-Based Filtering | P2 | 8 | ✅ Complete (8/8) |
-| 6 | Source Migration & Duplicates | P2 | 12 | ❌ Not Started (0/12) |
+| ~~6~~ | ~~Source Migration & Duplicates~~ | ~~P2~~ | ~~12~~ | ❌ CANCELLED — See Architectural Revision |
 | 7 | Federated Search | P3 | 16 | 🟡 Partial (11/16) |
 | 8 | Polish & Cross-Cutting | - | 6 | ✅ Complete (6/6) |
+| R1 | Source/Provider Refactor | - | 12 | ❌ Not Started (0/12) |
 
-**Overall Progress**: 68/89 tasks code-complete (76%), 64/89 fully tested (72%)
+**Overall Progress**: 68/77 tasks code-complete (88%), 64/77 fully tested (83%)
 
 ---
 
@@ -179,37 +195,13 @@ This document breaks down the multi-source book tracking feature into executable
 
 ---
 
-## Phase 6: User Story 5 - Source Migration & Duplicate Handling (P2)
+## ~~Phase 6: Source Migration & Duplicate Handling~~ — CANCELLED
 
-**Goal**: Enable upgrading manual books to external provider books with duplicate detection
+> **CANCELLED (2026-02-13)**: This entire phase was eliminated as part of the Source vs. Metadata Provider architectural revision. Source migration (manual → hardcover/openlibrary) is unnecessary because books added via provider search are already `source='manual'`. Hardcover and OpenLibrary are metadata providers (search tools), not sources. There is no source to migrate to. See Architectural Revision note at top of file.
+>
+> All 12 tasks (T056-T067) are cancelled. The `migration.service.ts` file will be deleted as part of Phase R1 (Refactor).
 
-**Independent Test**: Add manual book → search Hardcover → select match → verify upgrade with data preservation
-
-**Prerequisites**: Phase 5 complete, Phase 7 (Hardcover provider) partially complete
-
-### Backend - Migration Service
-
-- [ ] T056 [P] [US5] Implement migrateSource() with transactional updates in lib/services/migration.service.ts
-- [ ] T057 [P] [US5] Add pessimistic locking (FOR UPDATE) to migration operations in lib/services/migration.service.ts
-- [ ] T058 [US5] Implement migration validation rules (only manual→external, no cross-provider) in lib/services/migration.service.ts
-- [ ] T059 [US5] Add logging for migration events (FR-021b) in lib/services/migration.service.ts
-
-### Backend - Duplicate Detection for Providers
-
-- [ ] T060 [P] [US5] Extend duplicate detection to scope by target provider (FR-016e) in lib/services/duplicate-detection.service.ts
-- [ ] T061 [P] [US5] Create POST /api/migration/[bookId] endpoint for source migration in app/api/migration/[bookId]/route.ts
-- [ ] T062 [US5] Add metadata diff comparison for user confirmation in lib/services/migration.service.ts
-
-### Frontend - Migration UI
-
-- [ ] T063 [P] [US5] Create SourceMigrationDialog component with [Upgrade] [Create Duplicate] options in components/providers/SourceMigrationDialog.tsx
-- [ ] T064 [P] [US5] Add metadata comparison view (old vs. new values) in components/providers/MetadataComparisonView.tsx
-- [ ] T065 [US5] Integrate migration dialog into book detail page for manual books in app/books/[id]/page.tsx
-- [ ] T066 [US5] Show migration history/log in book detail page in app/books/[id]/page.tsx
-
-### Testing & Verification
-
-- [ ] T067 [US5] Create integration test: manual→hardcover migration preserves all data in __tests__/integration/source-migration.test.ts
+- [x] ~~T056-T067~~ CANCELLED — Source migration concept eliminated
 
 ---
 
@@ -270,7 +262,41 @@ This document breaks down the multi-source book tracking feature into executable
 ### Documentation
 
 - [ ] T088 Update ARCHITECTURE.md with multi-source support details in docs/ARCHITECTURE.md
-- [ ] T089 Create ADRs for provider architecture, circuit breakers, migration strategy in docs/ADRs/
+- [ ] T089 Create ADRs for provider architecture, circuit breakers in docs/ADRs/
+
+---
+
+## Phase R1: Source vs. Metadata Provider Refactor
+
+**Goal**: Formalize the separation between sources (book ownership) and metadata providers (search tools). Remove dead code from the original model.
+
+**Prerequisites**: Understanding of architectural revision (see top of file)
+
+**Context**: The original spec treated Hardcover/OpenLibrary as "sources" like Calibre. In practice, the code already creates all provider-searched books as `source='manual'`. This phase formalizes that reality in the type system, schema, and UI.
+
+### Type System Refactor
+
+- [ ] TR01 Introduce `ProviderId` type in `lib/providers/base/IMetadataProvider.ts` — `"calibre" | "manual" | "hardcover" | "openlibrary"` (for provider infrastructure)
+- [ ] TR02 Narrow `BookSource` type to `"calibre" | "manual"` in `lib/providers/base/IMetadataProvider.ts` (for book records)
+- [ ] TR03 Change `IMetadataProvider.id` from `BookSource` to `ProviderId` and update `ProviderRegistry` accordingly
+- [ ] TR04 Update `ProviderBadge` to accept `BookSource | ProviderId` (unified component)
+
+### Schema & Database
+
+- [ ] TR05 Remove `externalId` column, narrow source enum, remove `sourceExternalIdx` index in `lib/db/schema/books.ts`
+- [ ] TR06 Generate Drizzle migration and create companion migration (update any `source='hardcover'`/`source='openlibrary'` rows to `source='manual'`)
+
+### Service & Repository Cleanup
+
+- [ ] TR07 Delete `lib/services/migration.service.ts` (source migration eliminated)
+- [ ] TR08 Remove `findBySourceAndExternalId()` and `externalId` references from `lib/repositories/book.repository.ts`
+- [ ] TR09 Remove `externalId` from book creation in `lib/services/book.service.ts`
+
+### API & UI Updates
+
+- [ ] TR10 Update `FederatedSearchModal.tsx` — remove `source`/`externalId` from submission payload; update `LibraryFilters.tsx` — remove hardcover/openlibrary source filter options
+- [ ] TR11 Update API routes (`app/api/books/route.ts`, `app/api/providers/`) — narrow source types, update `BookSource` → `ProviderId` casts
+- [ ] TR12 Update `BookCard.tsx`, `BookGrid.tsx`, `app/books/[id]/page.tsx` — source prop types narrowed to `BookSource`
 
 ---
 
@@ -289,12 +315,14 @@ Phase 4 (US2: Sync Isolation)
   ↓
 Phase 5 (US3: Source Filtering) ← Can start after Phase 3
   ↓
-Phase 6 (US5: Migration) ← Requires Phase 7 providers
-  ↓
 Phase 7 (US4: Federated Search) ← Can start after Phase 2
   ↓
 Phase 8 (Polish)
+  ↓
+Phase R1 (Source/Provider Refactor) ← Can start anytime after Phase 7
 ```
+
+Note: Phase 6 (Source Migration) has been CANCELLED. See Architectural Revision.
 
 ### User Story Dependencies
 
@@ -304,7 +332,7 @@ Phase 8 (Polish)
 | US2 (Sync Isolation) | US1 | Needs manual books to test isolation |
 | US3 (Source Filtering) | US1 | Needs multiple sources to filter |
 | US4 (Federated Search) | Phase 2 | Independent - only needs provider infrastructure |
-| US5 (Migration) | US1, US4 | Needs manual books + external providers |
+| ~~US5 (Migration)~~ | ~~CANCELLED~~ | ~~Eliminated in architectural revision~~ |
 
 ### Parallel Execution Opportunities
 
@@ -340,7 +368,6 @@ Phase 8 (Polish)
 
 **Out of MVP**:
 - ❌ Source filtering (P2)
-- ❌ Source migration (P2)
 - ❌ Federated search (P3)
 - ❌ External providers (Hardcover, OpenLibrary)
 
@@ -360,12 +387,13 @@ Phase 8 (Polish)
 1. **Complete Phase 1** (Setup): Database ready for multi-source
 2. **Complete Phase 2** (Foundational): Services and repositories ready
 3. **Ship MVP** (Phase 3 + Phase 4): Manual books + sync isolation
-4. **Iterate** (Phase 5-8): Add advanced features incrementally
+4. **Iterate** (Phase 5, 7, 8): Add advanced features incrementally
+5. **Refactor** (Phase R1): Formalize source vs. provider type separation
 
 ### Testing Strategy
 
 - **Unit tests**: Repositories, services, providers (use `setDatabase()` pattern)
-- **Integration tests**: Multi-source scenarios, sync isolation, migration
+- **Integration tests**: Multi-source scenarios, sync isolation
 - **Manual testing**: UI flows for each user story
 - **Performance tests**: Source filtering (<3s), federated search (<6s)
 
@@ -374,7 +402,6 @@ Phase 8 (Polish)
 - **Migration risk**: Companion migration validates data before schema change
 - **Sync isolation**: Extensive testing with mixed-source libraries
 - **Provider failures**: Circuit breaker prevents cascading failures
-- **Data loss**: Source migration uses transactions + pessimistic locking
 
 ---
 
@@ -382,19 +409,20 @@ Phase 8 (Polish)
 
 Before marking feature complete:
 
-- [ ] All 89 tasks completed and checked off
+- [ ] All 77 tasks completed and checked off (12 cancelled tasks excluded)
 - [ ] Each user story independently testable
 - [ ] All existing tests still pass (2000+ tests)
 - [ ] Performance benchmarks met:
   - [ ] Federated search < 6 seconds
   - [ ] Source filtering < 3 seconds (10k books)
-  - [ ] Source migration < 2 seconds
   - [ ] Circuit breaker overhead < 5ms
 - [ ] Constitution compliance verified:
   - [ ] Zero external dependencies
   - [ ] Repository pattern followed
   - [ ] Calibre read-only (except ratings)
   - [ ] History preserved (no deletions)
+- [ ] Source/Provider type separation clean (BookSource vs ProviderId)
+- [ ] No `externalId` references remain on book records
 - [ ] Documentation updated (ARCHITECTURE.md, ADRs)
 
 ---

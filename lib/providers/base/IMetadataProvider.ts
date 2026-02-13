@@ -18,15 +18,30 @@
 export type ProviderHealth = "healthy" | "unavailable";
 
 /**
+ * Provider identifier
+ * 
+ * Identifies a metadata provider in the provider infrastructure.
+ * Used for provider registration, registry lookups, and configuration.
+ * 
+ * - calibre: Calibre library integration (sync provider)
+ * - manual: Manual entry (no external API)
+ * - hardcover: Hardcover.app API (metadata search provider)
+ * - openlibrary: OpenLibrary.org API (metadata search provider)
+ */
+export type ProviderId = "calibre" | "manual" | "hardcover" | "openlibrary";
+
+/**
  * Book source identifier
  * 
- * Indicates which provider a book originated from:
+ * Indicates where a book record is owned/managed. Stored on the book record.
+ * 
  * - calibre: Synced from Calibre library database
- * - manual: User-entered via manual entry form
- * - hardcover: Fetched from Hardcover.app API
- * - openlibrary: Fetched from OpenLibrary.org API
+ * - manual: User-created (via manual entry form OR via federated search)
+ * 
+ * Note: Hardcover and OpenLibrary are metadata providers, not sources.
+ * Books added via provider search always get source='manual'.
  */
-export type BookSource = "calibre" | "manual" | "hardcover" | "openlibrary";
+export type BookSource = "calibre" | "manual";
 
 /**
  * Provider capabilities
@@ -132,8 +147,8 @@ export interface SyncResult {
  * ```
  */
 export interface IMetadataProvider {
-  /** Unique provider identifier (matches BookSource) */
-  readonly id: BookSource;
+  /** Unique provider identifier */
+  readonly id: ProviderId;
   
   /** Human-readable display name */
   readonly name: string;

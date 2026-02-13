@@ -35,7 +35,7 @@ type SortDirection = "asc" | "desc";
 
 interface BookTableBook {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   series?: string | null;
@@ -95,7 +95,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const hasImageError = imageErrors.has(book.calibreId);
+  const hasImageError = book.calibreId ? imageErrors.has(book.calibreId) : true;
   const seriesInfo = book.series && book.seriesIndex
     ? `${book.series} #${book.seriesIndex}`
     : book.series || "-";
@@ -148,14 +148,14 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       <td className="px-4 py-3">
         <Link href={`/books/${book.id}`} className="block">
           <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-sm hover:shadow-lg transition-shadow duration-300 ease">
-            {!hasImageError ? (
+            {!hasImageError && book.calibreId ? (
               <Image
                 src={getCoverUrl(book.calibreId, book.lastSynced)}
                 alt={book.title}
                 fill
                 loading="lazy"
                 className="object-cover"
-                onError={() => onImageError(book.calibreId)}
+                onError={() => onImageError(book.calibreId!)}
               />
             ) : (
               <BookOpen className="w-5 h-5 text-[var(--accent)]/40" />

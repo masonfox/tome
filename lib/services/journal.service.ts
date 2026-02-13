@@ -12,7 +12,7 @@ export interface JournalEntry {
   bookId: number;
   bookTitle: string;
   bookAuthors: string[];
-  bookCalibreId: number;
+  bookCalibreId: number | null;
   sessionId: number | null;
   currentPage: number;
   currentPercentage: number;
@@ -27,7 +27,7 @@ export interface GroupedJournalEntry {
     bookId: number;
     bookTitle: string;
     bookAuthors: string[];
-    bookCalibreId: number;
+    bookCalibreId: number | null;
     entries: JournalEntry[];
   }[];
 }

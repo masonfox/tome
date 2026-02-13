@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     
     // Parse sources (T048: Multi-source filtering)
     const source = sourcesParam 
-      ? sourcesParam.split(",").map((s) => s.trim()) as Array<"calibre" | "manual" | "hardcover" | "openlibrary">
+      ? sourcesParam.split(",").map((s) => s.trim()) as Array<"calibre" | "manual">
       : undefined;
 
     // Parse shelf ID

@@ -12,7 +12,7 @@ import type {
   FederatedSearchResponse, 
   ProviderSearchResult 
 } from "@/lib/services/search.service";
-import type { SearchResult, BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { SearchResult, ProviderId } from "@/lib/providers/base/IMetadataProvider";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
 
@@ -26,7 +26,7 @@ interface FederatedSearchModalProps {
 
 interface SelectedResult {
   result: SearchResult;
-  provider: BookSource;
+  provider: ProviderId;
 }
 
 interface ValidationError {
@@ -134,7 +134,7 @@ export default function FederatedSearchModal({
     }
   };
 
-  const handleSelectResult = (result: SearchResult, provider: BookSource) => {
+  const handleSelectResult = (result: SearchResult, provider: ProviderId) => {
     setSelectedResult({ result, provider });
     
     // Pre-fill form with result data
@@ -217,10 +217,9 @@ export default function FederatedSearchModal({
     setIsSubmitting(true);
 
     try {
-      // Prepare payload with source from provider
+      // Prepare payload - books from provider search are manual books
+      // with pre-populated metadata (provider is ephemeral, not stored)
       const payload: any = {
-        source: selectedResult.provider,
-        externalId: selectedResult.result.externalId,
         title: title.trim(),
         authors: authorList,
       };
@@ -342,7 +341,7 @@ export default function FederatedSearchModal({
                     <ChevronDown className="w-4 h-4 text-gray-400" />
                   )}
                   <ProviderBadge
-                    source={providerResult.provider as BookSource}
+                    source={providerResult.provider as ProviderId}
                     status={providerResult.status}
                     showStatus
                   />
@@ -361,8 +360,8 @@ export default function FederatedSearchModal({
                       <SearchResultCard
                         key={`${result.externalId}-${index}`}
                         result={result}
-                        provider={providerResult.provider as BookSource}
-                        onClick={() => handleSelectResult(result, providerResult.provider as BookSource)}
+                        provider={providerResult.provider as ProviderId}
+                        onClick={() => handleSelectResult(result, providerResult.provider as ProviderId)}
                       />
                     ))
                   ) : (

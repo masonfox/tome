@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const books = sqliteTable(
@@ -7,12 +7,10 @@ export const books = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     // Multi-source support: calibreId is now nullable for non-Calibre books
     calibreId: integer("calibre_id").unique(),
-    // Source indicates which provider this book came from
-    source: text("source", { enum: ["calibre", "manual", "hardcover", "openlibrary"] })
+    // Source indicates book ownership: calibre (synced) or manual (user-entered)
+    source: text("source", { enum: ["calibre", "manual"] })
       .notNull()
       .default("calibre"),
-    // Provider-specific ID (null for manual books, Calibre ID for Calibre books)
-    externalId: text("external_id"),
     title: text("title").notNull(),
     // Store authors as JSON array
     authors: text("authors", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
@@ -42,10 +40,6 @@ export const books = sqliteTable(
     authorSortIdx: index("idx_books_author_sort").on(table.authorSort),
     // Index for source-based filtering
     sourceIdx: index("idx_books_source").on(table.source),
-    // Unique constraint on (source, externalId) where externalId is not null
-    sourceExternalIdx: uniqueIndex("idx_books_source_external")
-      .on(table.source, table.externalId)
-      .where(sql`external_id IS NOT NULL`),
   })
 );
 

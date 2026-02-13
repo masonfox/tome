@@ -416,13 +416,19 @@ export default function JournalPage() {
                       className="flex-shrink-0 hover:opacity-90 transition-opacity mx-auto xl:mx-0"
                     >
                       <div className="w-24 h-36 bg-[var(--light-accent)]/30 rounded overflow-hidden relative">
-                        <Image
-                          src={getCoverUrl(bookGroup.bookCalibreId, bookGroup.bookLastSynced)}
-                          alt={bookGroup.bookTitle}
-                          fill
-                          className="object-cover"
-                          sizes="96px"
-                        />
+                        {bookGroup.bookCalibreId ? (
+                          <Image
+                            src={getCoverUrl(bookGroup.bookCalibreId, bookGroup.bookLastSynced)}
+                            alt={bookGroup.bookTitle}
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <BookOpen className="w-8 h-8 text-[var(--accent)]/40" />
+                          </div>
+                        )}
                       </div>
                     </Link>
 

@@ -14,7 +14,7 @@
 
 import { getLogger } from "@/lib/logger";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
-import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 const logger = getLogger().child({ module: "circuit-breaker" });
 
@@ -57,7 +57,7 @@ interface CircuitState {
  * state transitions and failure tracking.
  */
 export class CircuitBreakerService {
-  private circuits: Map<BookSource, CircuitState> = new Map();
+  private circuits: Map<ProviderId, CircuitState> = new Map();
   private config: CircuitBreakerConfig;
 
   constructor(config: Partial<CircuitBreakerConfig> = {}) {
@@ -67,7 +67,7 @@ export class CircuitBreakerService {
   /**
    * Initialize circuit state for a provider
    */
-  private async initializeCircuit(provider: BookSource): Promise<CircuitState> {
+  private async initializeCircuit(provider: ProviderId): Promise<CircuitState> {
     // Load persisted state from database
     const providerConfig = await providerConfigRepository.findByProvider(provider);
 
@@ -86,7 +86,7 @@ export class CircuitBreakerService {
   /**
    * Get or initialize circuit state for a provider
    */
-  private async getCircuitState(provider: BookSource): Promise<CircuitState> {
+  private async getCircuitState(provider: ProviderId): Promise<CircuitState> {
     let state = this.circuits.get(provider);
     if (!state) {
       state = await this.initializeCircuit(provider);
@@ -109,7 +109,7 @@ export class CircuitBreakerService {
    * 
    * @returns true if request should proceed, false if circuit is OPEN
    */
-  async canProceed(provider: BookSource): Promise<boolean> {
+  async canProceed(provider: ProviderId): Promise<boolean> {
     const state = await this.getCircuitState(provider);
     return state.state !== "OPEN";
   }
@@ -117,7 +117,7 @@ export class CircuitBreakerService {
   /**
    * Record successful request
    */
-  async recordSuccess(provider: BookSource): Promise<void> {
+  async recordSuccess(provider: ProviderId): Promise<void> {
     const state = await this.getCircuitState(provider);
 
     if (state.state === "HALF_OPEN") {
@@ -146,7 +146,7 @@ export class CircuitBreakerService {
   /**
    * Record failed request
    */
-  async recordFailure(provider: BookSource): Promise<void> {
+  async recordFailure(provider: ProviderId): Promise<void> {
     const state = await this.getCircuitState(provider);
     state.failureCount++;
     state.lastFailure = new Date();
@@ -185,7 +185,7 @@ export class CircuitBreakerService {
    * Transition circuit to new state
    */
   private async transitionTo(
-    provider: BookSource,
+    provider: ProviderId,
     newState: CircuitState["state"]
   ): Promise<void> {
     const state = this.circuits.get(provider);
@@ -226,7 +226,7 @@ export class CircuitBreakerService {
    * 
    * Use when you know the provider is healthy again
    */
-  async reset(provider: BookSource): Promise<void> {
+  async reset(provider: ProviderId): Promise<void> {
     const state = this.circuits.get(provider);
     if (state) {
       state.failureCount = 0;
@@ -242,7 +242,7 @@ export class CircuitBreakerService {
   /**
    * Get current circuit state for a provider
    */
-  async getState(provider: BookSource): Promise<CircuitState["state"]> {
+  async getState(provider: ProviderId): Promise<CircuitState["state"]> {
     const state = await this.getCircuitState(provider);
     return state.state;
   }
@@ -250,7 +250,7 @@ export class CircuitBreakerService {
   /**
    * Get circuit statistics for a provider
    */
-  async getStats(provider: BookSource): Promise<{
+  async getStats(provider: ProviderId): Promise<{
     state: CircuitState["state"];
     failureCount: number;
     successCount: number;

@@ -12,7 +12,7 @@ import { getLogger } from "@/lib/logger";
 import { ProviderRegistry, initializeProviders } from "@/lib/providers/base/ProviderRegistry";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import { circuitBreakerService } from "@/lib/services/circuit-breaker.service";
-import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 const logger = getLogger().child({ module: "api-providers" });
 
@@ -32,13 +32,13 @@ export async function GET() {
     const dbConfigs = await Promise.all(
       providers.map(async (provider) => {
         const config = await providerConfigRepository.findByProvider(
-          provider.id as BookSource
+          provider.id as ProviderId
         );
         const circuitStats = await circuitBreakerService.getStats(
-          provider.id as BookSource
+          provider.id as ProviderId
         );
         const registryEntry = ProviderRegistry.getEntry(
-          provider.id as BookSource
+          provider.id as ProviderId
         );
 
         return {

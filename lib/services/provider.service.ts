@@ -13,7 +13,7 @@ import { circuitBreakerService } from "@/lib/services/circuit-breaker.service";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import type {
   IMetadataProvider,
-  BookSource,
+  ProviderId,
   SearchResult,
   BookMetadata,
   SyncResult,
@@ -27,7 +27,7 @@ const logger = getLogger().child({ module: "provider-service" });
  */
 export class ProviderError extends Error {
   constructor(
-    public readonly provider: BookSource,
+    public readonly provider: ProviderId,
     public readonly operation: string,
     message: string,
     public readonly cause?: Error
@@ -41,7 +41,7 @@ export class ProviderError extends Error {
  * Circuit open error (provider unavailable)
  */
 export class CircuitOpenError extends ProviderError {
-  constructor(provider: BookSource, operation: string) {
+  constructor(provider: ProviderId, operation: string) {
     super(
       provider,
       operation,
@@ -75,7 +75,7 @@ export class ProviderService {
    * 
    * @throws Error if provider not found
    */
-  getProvider(source: BookSource): IMetadataProvider {
+  getProvider(source: ProviderId): IMetadataProvider {
     const provider = ProviderRegistry.get(source);
     if (!provider) {
       throw new Error(`Provider '${source}' not found`);
@@ -105,7 +105,7 @@ export class ProviderService {
    * @throws CircuitOpenError if circuit breaker is open
    * @throws ProviderError if search fails
    */
-  async search(source: BookSource, query: string): Promise<SearchResult[]> {
+  async search(source: ProviderId, query: string): Promise<SearchResult[]> {
     const provider = this.getProvider(source);
 
     // Validate capability
@@ -151,7 +151,7 @@ export class ProviderService {
    * @throws ProviderError if fetch fails
    */
   async fetchMetadata(
-    source: BookSource,
+    source: ProviderId,
     externalId: string
   ): Promise<BookMetadata> {
     const provider = this.getProvider(source);
@@ -201,7 +201,7 @@ export class ProviderService {
    * @throws CircuitOpenError if circuit breaker is open
    * @throws ProviderError if sync fails
    */
-  async sync(source: BookSource): Promise<SyncResult> {
+  async sync(source: ProviderId): Promise<SyncResult> {
     const provider = this.getProvider(source);
 
     // Validate capability
@@ -247,7 +247,7 @@ export class ProviderService {
    * 
    * @returns Current health status
    */
-  async healthCheck(source: BookSource): Promise<ProviderHealth> {
+  async healthCheck(source: ProviderId): Promise<ProviderHealth> {
     const provider = this.getProvider(source);
 
     try {
@@ -289,9 +289,9 @@ export class ProviderService {
    * 
    * @returns Map of provider ID to health status
    */
-  async healthCheckAll(): Promise<Map<BookSource, ProviderHealth>> {
+  async healthCheckAll(): Promise<Map<ProviderId, ProviderHealth>> {
     const providers = ProviderRegistry.getAll();
-    const results = new Map<BookSource, ProviderHealth>();
+    const results = new Map<ProviderId, ProviderHealth>();
 
     logger.info(
       { providerCount: providers.length },
@@ -327,7 +327,7 @@ export class ProviderService {
    * 
    * Updates both database and registry.
    */
-  async setEnabled(source: BookSource, enabled: boolean): Promise<void> {
+  async setEnabled(source: ProviderId, enabled: boolean): Promise<void> {
     await providerConfigRepository.setEnabled(source, enabled);
     ProviderRegistry.setEnabled(source, enabled);
     logger.info({ provider: source, enabled }, "Updated provider enabled state");
@@ -336,7 +336,7 @@ export class ProviderService {
   /**
    * Get circuit breaker statistics for a provider
    */
-  async getCircuitStats(source: BookSource) {
+  async getCircuitStats(source: ProviderId) {
     return circuitBreakerService.getStats(source);
   }
 
@@ -345,7 +345,7 @@ export class ProviderService {
    * 
    * Use when you know the provider is healthy again.
    */
-  async resetCircuit(source: BookSource): Promise<void> {
+  async resetCircuit(source: ProviderId): Promise<void> {
     await circuitBreakerService.reset(source);
     logger.info({ provider: source }, "Circuit breaker manually reset");
   }

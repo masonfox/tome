@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "938bdd32-fb3a-4347-b852-c3d118bc7508",
+  "id": "6e8a52e2-400f-4d56-a2e4-c0e3f0972738",
   "prevId": "bd8662aa-ef84-4ee3-b31a-ee57e29cbf9e",
   "tables": {
     "books": {
@@ -28,13 +28,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'calibre'"
-        },
-        "external_id": {
-          "name": "external_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         },
         "title": {
           "name": "title",
@@ -197,15 +190,6 @@
             "source"
           ],
           "isUnique": false
-        },
-        "idx_books_source_external": {
-          "name": "idx_books_source_external",
-          "columns": [
-            "source",
-            "external_id"
-          ],
-          "isUnique": true,
-          "where": "external_id IS NOT NULL"
         }
       },
       "foreignKeys": {},

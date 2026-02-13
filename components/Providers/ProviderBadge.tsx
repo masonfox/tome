@@ -2,10 +2,10 @@
 
 import { Database, User, BookOpen, Globe, CheckCircle, XCircle, Clock } from "lucide-react";
 import { cn } from "@/utils/cn";
-import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { BookSource, ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 interface ProviderBadgeProps {
-  source: BookSource;
+  source: BookSource | ProviderId;
   status?: "success" | "error" | "timeout";
   showStatus?: boolean;
   size?: "sm" | "md" | "lg";
@@ -113,5 +113,5 @@ export function ProviderBadge({
   );
 }
 
-// Re-export BookSource type for convenience
-export type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+// Re-export types for convenience
+export type { BookSource, ProviderId } from "@/lib/providers/base/IMetadataProvider";

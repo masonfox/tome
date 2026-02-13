@@ -321,7 +321,6 @@ export class BookService {
 
       // Source fields
       source: "manual",
-      externalId: null,
       calibreId: null,
 
       // Optional metadata

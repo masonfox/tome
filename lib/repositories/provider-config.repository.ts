@@ -12,7 +12,7 @@ import {
   ProviderConfig,
   NewProviderConfig,
 } from "@/lib/db/schema/provider-configs";
-import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 export class ProviderConfigRepository extends BaseRepository<
   ProviderConfig,
@@ -30,7 +30,7 @@ export class ProviderConfigRepository extends BaseRepository<
   /**
    * Find provider config by provider ID
    */
-  async findByProvider(provider: BookSource): Promise<ProviderConfig | undefined> {
+  async findByProvider(provider: ProviderId): Promise<ProviderConfig | undefined> {
     return this.getDatabase()
       .select()
       .from(providerConfigs)
@@ -53,7 +53,7 @@ export class ProviderConfigRepository extends BaseRepository<
   /**
    * Update provider enabled state
    */
-  async setEnabled(provider: BookSource, enabled: boolean): Promise<ProviderConfig | undefined> {
+  async setEnabled(provider: ProviderId, enabled: boolean): Promise<ProviderConfig | undefined> {
     const existing = await this.findByProvider(provider);
     if (!existing) {
       return undefined;
@@ -66,7 +66,7 @@ export class ProviderConfigRepository extends BaseRepository<
    * Update provider health status
    */
   async updateHealth(
-    provider: BookSource,
+    provider: ProviderId,
     healthStatus: ProviderConfig["healthStatus"],
     lastHealthCheck: Date
   ): Promise<ProviderConfig | undefined> {
@@ -85,7 +85,7 @@ export class ProviderConfigRepository extends BaseRepository<
    * Update circuit breaker state
    */
   async updateCircuitState(
-    provider: BookSource,
+    provider: ProviderId,
     circuitState: ProviderConfig["circuitState"],
     failureCount?: number,
     lastFailure?: Date
@@ -105,7 +105,7 @@ export class ProviderConfigRepository extends BaseRepository<
   /**
    * Reset circuit breaker failure count
    */
-  async resetFailureCount(provider: BookSource): Promise<ProviderConfig | undefined> {
+  async resetFailureCount(provider: ProviderId): Promise<ProviderConfig | undefined> {
     const existing = await this.findByProvider(provider);
     if (!existing) {
       return undefined;
@@ -121,7 +121,7 @@ export class ProviderConfigRepository extends BaseRepository<
    * Update provider settings
    */
   async updateSettings(
-    provider: BookSource,
+    provider: ProviderId,
     settings: Record<string, unknown>
   ): Promise<ProviderConfig | undefined> {
     const existing = await this.findByProvider(provider);
@@ -136,7 +136,7 @@ export class ProviderConfigRepository extends BaseRepository<
    * Update provider credentials
    */
   async updateCredentials(
-    provider: BookSource,
+    provider: ProviderId,
     credentials: Record<string, string>
   ): Promise<ProviderConfig | undefined> {
     const existing = await this.findByProvider(provider);

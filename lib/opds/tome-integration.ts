@@ -155,6 +155,7 @@ export async function getBooksByShelf(
   // Fetch full Calibre book data for paginated IDs
   const calibreBooks: CalibreBook[] = [];
   for (const shelfBook of paginatedBooks) {
+    if (shelfBook.calibreId === null) continue;
     const book = getBookById(shelfBook.calibreId);
     if (book) {
       calibreBooks.push(book);

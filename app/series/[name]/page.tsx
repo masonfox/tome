@@ -15,7 +15,7 @@ import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface SeriesBook {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   seriesIndex: number;
@@ -113,14 +113,14 @@ export default function SeriesDetailPage() {
                 {/* Book Cover */}
                 <div className="flex-shrink-0 w-40 sm:w-32 md:w-40 mx-auto sm:mx-0">
                   <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden">
-                    {!imageErrors[book.calibreId] ? (
+                    {book.calibreId && !imageErrors[book.calibreId] ? (
                       <Image
                         src={getCoverUrl(book.calibreId, book.lastSynced)}
                         alt={`Cover for ${book.title}`}
                         fill
                         sizes="(max-width: 768px) 160px, 128px"
                         className="object-cover group-hover:opacity-95 transition-opacity"
-                        onError={() => handleImageError(book.calibreId)}
+                        onError={() => handleImageError(book.calibreId!)}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

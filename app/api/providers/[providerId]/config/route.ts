@@ -17,7 +17,7 @@ import { getLogger } from "@/lib/logger";
 import { ProviderRegistry, initializeProviders } from "@/lib/providers/base/ProviderRegistry";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import { providerService } from "@/lib/services/provider.service";
-import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 const logger = getLogger().child({ module: "api-provider-config" });
 
@@ -43,7 +43,7 @@ export async function PATCH(
     }
     
     // Validate provider exists
-    if (!ProviderRegistry.has(providerId as BookSource)) {
+    if (!ProviderRegistry.has(providerId as ProviderId)) {
       return NextResponse.json(
         {
           error: "Provider not found",
@@ -79,7 +79,7 @@ export async function PATCH(
 
     // Get existing config
     const existingConfig = await providerConfigRepository.findByProvider(
-      providerId as BookSource
+      providerId as ProviderId
     );
 
     if (!existingConfig) {
@@ -94,14 +94,14 @@ export async function PATCH(
 
     // Update enabled state (if provided)
     if (body.enabled !== undefined) {
-      await providerService.setEnabled(providerId as BookSource, body.enabled);
+      await providerService.setEnabled(providerId as ProviderId, body.enabled);
       logger.info({ providerId, enabled: body.enabled }, "Updated provider enabled state");
     }
 
     // Update settings (if provided)
     if (body.settings) {
       await providerConfigRepository.updateSettings(
-        providerId as BookSource,
+        providerId as ProviderId,
         body.settings
       );
       logger.info({ providerId, settings: body.settings }, "Updated provider settings");
@@ -110,7 +110,7 @@ export async function PATCH(
     // Update credentials (if provided)
     if (body.credentials) {
       await providerConfigRepository.updateCredentials(
-        providerId as BookSource,
+        providerId as ProviderId,
         body.credentials
       );
       logger.info({ providerId }, "Updated provider credentials (redacted)");
@@ -118,9 +118,9 @@ export async function PATCH(
 
     // Fetch updated configuration
     const updatedConfig = await providerConfigRepository.findByProvider(
-      providerId as BookSource
+      providerId as ProviderId
     );
-    const registryEntry = ProviderRegistry.getEntry(providerId as BookSource);
+    const registryEntry = ProviderRegistry.getEntry(providerId as ProviderId);
 
     // Return updated configuration (without sensitive credentials)
     return NextResponse.json({
@@ -170,7 +170,7 @@ export async function GET(
     }
     
     // Validate provider exists
-    if (!ProviderRegistry.has(providerId as BookSource)) {
+    if (!ProviderRegistry.has(providerId as ProviderId)) {
       return NextResponse.json(
         {
           error: "Provider not found",
@@ -181,11 +181,11 @@ export async function GET(
     }
 
     const config = await providerConfigRepository.findByProvider(
-      providerId as BookSource
+      providerId as ProviderId
     );
-    const registryEntry = ProviderRegistry.getEntry(providerId as BookSource);
+    const registryEntry = ProviderRegistry.getEntry(providerId as ProviderId);
     const circuitStats = await providerService.getCircuitStats(
-      providerId as BookSource
+      providerId as ProviderId
     );
 
     if (!config) {

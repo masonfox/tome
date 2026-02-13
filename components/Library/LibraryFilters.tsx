@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen, Database, User, Globe } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen, Database, User } from "lucide-react";
 import { Button } from "@/components/Utilities/Button";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
@@ -28,8 +28,6 @@ const statusOptions = [
 const sourceOptions = [
   { value: "calibre", label: "Calibre", icon: Database },
   { value: "manual", label: "Manual", icon: User },
-  { value: "hardcover", label: "Hardcover", icon: BookOpen },
-  { value: "openlibrary", label: "Open Library", icon: Globe },
 ];
 
 // Grouped rating options with star rendering support

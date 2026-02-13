@@ -13,7 +13,7 @@ import { getCoverUrl } from "@/lib/utils/cover-url";
 interface BookListItemProps {
   book: {
     id: number;
-    calibreId: number;
+    calibreId: number | null;
     title: string;
     authors: string[];
     series?: string | null;
@@ -94,7 +94,7 @@ export const BookListItem = memo(function BookListItem({
           onClick={(e) => isSelectMode && e.preventDefault()}
         >
           <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-lg">
-            {!imageError ? (
+            {!imageError && book.calibreId ? (
               <Image
                 src={getCoverUrl(book.calibreId, book.lastSynced)}
                 alt={book.title}

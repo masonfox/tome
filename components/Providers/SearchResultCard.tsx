@@ -3,11 +3,11 @@
 import { Calendar, FileText, User, BookOpen } from "lucide-react";
 import { ProviderBadge } from "@/components/Providers/ProviderBadge";
 import type { SearchResult } from "@/lib/providers/base/IMetadataProvider";
-import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
+import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 interface SearchResultCardProps {
   result: SearchResult;
-  provider: BookSource;
+  provider: ProviderId;
   onClick: () => void;
 }
 

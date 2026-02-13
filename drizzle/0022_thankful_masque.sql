@@ -24,7 +24,6 @@ CREATE TABLE `__new_books` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`calibre_id` integer,
 	`source` text DEFAULT 'calibre' NOT NULL,
-	`external_id` text,
 	`title` text NOT NULL,
 	`authors` text DEFAULT '[]' NOT NULL,
 	`author_sort` text,
@@ -46,11 +45,10 @@ CREATE TABLE `__new_books` (
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
-INSERT INTO `__new_books`("id", "calibre_id", "source", "external_id", "title", "authors", "author_sort", "isbn", "total_pages", "added_to_library", "last_synced", "publisher", "pub_date", "series", "series_index", "tags", "path", "description", "rating", "orphaned", "orphaned_at", "created_at", "updated_at") SELECT "id", "calibre_id", 'calibre', CAST("calibre_id" AS TEXT), "title", "authors", "author_sort", "isbn", "total_pages", "added_to_library", "last_synced", "publisher", "pub_date", "series", "series_index", "tags", "path", "description", "rating", "orphaned", "orphaned_at", "created_at", "updated_at" FROM `books`;--> statement-breakpoint
+INSERT INTO `__new_books`("id", "calibre_id", "source", "title", "authors", "author_sort", "isbn", "total_pages", "added_to_library", "last_synced", "publisher", "pub_date", "series", "series_index", "tags", "path", "description", "rating", "orphaned", "orphaned_at", "created_at", "updated_at") SELECT "id", "calibre_id", 'calibre', "title", "authors", "author_sort", "isbn", "total_pages", "added_to_library", "last_synced", "publisher", "pub_date", "series", "series_index", "tags", "path", "description", "rating", "orphaned", "orphaned_at", "created_at", "updated_at" FROM `books`;--> statement-breakpoint
 DROP TABLE `books`;--> statement-breakpoint
 ALTER TABLE `__new_books` RENAME TO `books`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
 CREATE UNIQUE INDEX `books_calibre_id_unique` ON `books` (`calibre_id`);--> statement-breakpoint
 CREATE INDEX `idx_books_author_sort` ON `books` (`author_sort`);--> statement-breakpoint
-CREATE INDEX `idx_books_source` ON `books` (`source`);--> statement-breakpoint
-CREATE UNIQUE INDEX `idx_books_source_external` ON `books` (`source`,`external_id`) WHERE external_id IS NOT NULL;
+CREATE INDEX `idx_books_source` ON `books` (`source`);

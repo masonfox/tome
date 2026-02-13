@@ -112,7 +112,7 @@ export class ShelfRepository extends BaseRepository<
       
       result.push({
         ...shelf,
-        bookCoverIds: booksOnShelf.map(b => b.calibreId),
+        bookCoverIds: booksOnShelf.map(b => b.calibreId).filter((id): id is number => id !== null),
       });
     }
     

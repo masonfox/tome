@@ -27,7 +27,7 @@ import { cn } from "@/utils/cn";
 
 interface Book {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   series?: string | null;

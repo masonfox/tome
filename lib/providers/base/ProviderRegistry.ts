@@ -11,7 +11,7 @@ import { getLogger } from "@/lib/logger";
 import type {
   IMetadataProvider,
   ProviderRegistryEntry,
-  BookSource,
+  ProviderId,
   ProviderHealth,
 } from "./IMetadataProvider";
 
@@ -36,7 +36,7 @@ const logger = getLogger().child({ module: "provider-registry" });
  * ```
  */
 export class ProviderRegistry {
-  private static providers = new Map<BookSource, ProviderRegistryEntry>();
+  private static providers = new Map<ProviderId, ProviderRegistryEntry>();
   private static initialized = false;
 
   /**
@@ -137,7 +137,7 @@ export class ProviderRegistry {
    * @param id - Provider identifier
    * @returns Provider instance or undefined
    */
-  static get(id: BookSource): IMetadataProvider | undefined {
+  static get(id: ProviderId): IMetadataProvider | undefined {
     return this.providers.get(id)?.provider;
   }
 
@@ -146,7 +146,7 @@ export class ProviderRegistry {
    * 
    * @internal
    */
-  static getEntry(id: BookSource): ProviderRegistryEntry | undefined {
+  static getEntry(id: ProviderId): ProviderRegistryEntry | undefined {
     return this.providers.get(id);
   }
 
@@ -191,7 +191,7 @@ export class ProviderRegistry {
    * @param id - Provider identifier
    * @param status - New health status
    */
-  static updateHealth(id: BookSource, status: ProviderHealth): void {
+  static updateHealth(id: ProviderId, status: ProviderHealth): void {
     const entry = this.providers.get(id);
     if (entry) {
       entry.healthStatus = status;
@@ -206,7 +206,7 @@ export class ProviderRegistry {
    * @param id - Provider identifier
    * @param enabled - Enable state
    */
-  static setEnabled(id: BookSource, enabled: boolean): void {
+  static setEnabled(id: ProviderId, enabled: boolean): void {
     const entry = this.providers.get(id);
     if (entry) {
       entry.enabled = enabled;
@@ -220,7 +220,7 @@ export class ProviderRegistry {
    * @param id - Provider identifier
    * @param priority - New priority value (lower = higher priority)
    */
-  static setPriority(id: BookSource, priority: number): void {
+  static setPriority(id: ProviderId, priority: number): void {
     const entry = this.providers.get(id);
     if (entry) {
       entry.priority = priority;
@@ -234,7 +234,7 @@ export class ProviderRegistry {
    * @param id - Provider identifier
    * @returns True if provider registered
    */
-  static has(id: BookSource): boolean {
+  static has(id: ProviderId): boolean {
     return this.providers.has(id);
   }
 
@@ -244,7 +244,7 @@ export class ProviderRegistry {
    * @param id - Provider identifier
    * @internal
    */
-  static unregister(id: BookSource): void {
+  static unregister(id: ProviderId): void {
     this.providers.delete(id);
     logger.debug({ providerId: id }, "Unregistered provider");
   }

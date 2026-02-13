@@ -74,7 +74,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   /**
    * Find all books from a specific source
    * 
-   * @param source - Book source (calibre, manual, hardcover, openlibrary)
+   * @param source - Book source (calibre, manual)
    * @returns Array of books from the specified source
    */
   async findBySource(source: Book["source"]): Promise<Book[]> {
@@ -83,27 +83,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .from(books)
       .where(eq(books.source, source))
       .all();
-  }
-
-  /**
-   * Find a book by source and external ID
-   * 
-   * Used to check if a book from an external provider already exists
-   * before creating a duplicate.
-   * 
-   * @param source - Book source
-   * @param externalId - Provider-specific book identifier
-   * @returns Book if found, undefined otherwise
-   */
-  async findBySourceAndExternalId(
-    source: Book["source"],
-    externalId: string
-  ): Promise<Book | undefined> {
-    return this.getDatabase()
-      .select()
-      .from(books)
-      .where(and(eq(books.source, source), eq(books.externalId, externalId)))
-      .get();
   }
 
   /**
@@ -195,7 +174,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         bookId: books.id,
         calibreId: books.calibreId,
         source: books.source,
-        externalId: books.externalId,
         title: books.title,
         authors: books.authors,
         authorSort: books.authorSort,
@@ -316,7 +294,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       id: result.bookId,
       calibreId: result.calibreId,
       source: result.source,
-      externalId: result.externalId,
       title: result.title,
       authors: result.authors,
       authorSort: result.authorSort,
@@ -985,7 +962,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         bookId: books.id,
         calibreId: books.calibreId,
         source: books.source,
-        externalId: books.externalId,
         title: books.title,
         authors: books.authors,
         authorSort: books.authorSort,

@@ -12,7 +12,7 @@ import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface BookWithStatus {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   coverPath?: string;
@@ -410,12 +410,12 @@ export function AddBooksToShelfModal({
 }
 
 // Book cover thumbnail component
-function BookCoverThumbnail({ calibreId, title, lastSynced }: { calibreId: number; title: string; lastSynced?: Date | string | null }) {
+function BookCoverThumbnail({ calibreId, title, lastSynced }: { calibreId: number | null; title: string; lastSynced?: Date | string | null }) {
   const [imageError, setImageError] = useState(false);
 
   return (
     <div className="w-12 h-16 bg-[var(--light-accent)]/30 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
-      {!imageError ? (
+      {calibreId && !imageError ? (
         <Image
           src={getCoverUrl(calibreId, lastSynced)}
           alt={title}

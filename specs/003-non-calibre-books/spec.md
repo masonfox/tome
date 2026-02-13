@@ -2,8 +2,18 @@
 
 **Feature Branch**: `003-non-calibre-books`  
 **Created**: 2026-02-05  
+**Revised**: 2026-02-13 (Source vs. Metadata Provider Separation)  
 **Status**: Draft  
 **Input**: User description: "I'd like begin preparing for this feature in a new branch: https://github.com/masonfox/tome/issues/185. This will be spec-003"
+
+### Architectural Revision (2026-02-13)
+
+The original spec treated Hardcover and OpenLibrary as "sources" stored on book records alongside Calibre and Manual. After analysis, this conflated two distinct concepts:
+
+- **Sources** (`BookSource`): Where the book record is owned/managed — `"calibre" | "manual"`. Stored on the book record.
+- **Metadata Providers** (`ProviderId`): Search tools used to populate metadata — `"hardcover" | "openlibrary"`. Ephemeral; no trace on the book record.
+
+Key changes: `source` enum narrowed to 2 values, `externalId` column removed, source migration eliminated, books from federated search always get `source='manual'`.
 
 ## Clarifications
 
@@ -19,8 +29,8 @@
 
 - Q: How should providers be registered in the system? → A: Registry pattern (extensible) - allows future providers without core code changes
 - Q: Should users search multiple providers at once? → A: Federated search (merged) - search all enabled providers simultaneously, merge results
-- Q: Can book source change after creation? → A: Allow source migration - manual books can be upgraded to external provider books
-- Q: How to handle same book from multiple sources? → A: Offer merge on duplicate - prompt user to upgrade manual book or create duplicate
+- Q: Can book source change after creation? → A: ~~Allow source migration~~ **Revised 2026-02-13**: Source is immutable. No migration. Books from federated search always get source='manual'.
+- Q: How to handle same book from multiple sources? → A: Warn about duplicates — prompt user with existing match, allow proceeding or cancelling
 - Q: Where to store provider configuration? → A: Database table (provider_configs) - allows runtime enable/disable
 - Q: How many providers to implement initially? → A: Hardcover + OpenLibrary - validates architecture works for multiple providers
 
@@ -82,7 +92,7 @@ As a user with mixed book sources, I want Calibre syncs to only affect Calibre-s
 
 ### User Story 3 - Source-Based Filtering and Display (Priority: P2)
 
-As a user managing multiple book sources, I want to filter my library by source (Calibre vs Manual vs External Providers) so that I can quickly view subsets of my collection based on how I obtained the books.
+As a user managing multiple book sources, I want to filter my library by source (Calibre vs Manual) so that I can quickly view subsets of my collection based on how I obtained the books.
 
 **Why this priority**: Enhances usability for power users but isn't essential for core functionality. Users can still use the feature effectively without filtering.
 
@@ -91,9 +101,8 @@ As a user managing multiple book sources, I want to filter my library by source 
 **Acceptance Scenarios**:
 
 1. **Given** I have books from both Calibre and manual sources, **When** I apply a "Calibre only" filter, **Then** only Calibre-sourced books are displayed
-2. **Given** I have books from multiple sources, **When** I apply a "Manual only" filter, **Then** only manually added books are displayed
-3. **Given** I have books from multiple external providers, **When** I apply a "Hardcover" or "OpenLibrary" filter, **Then** only books from that provider are displayed
-4. **Given** I have filtered by source, **When** I clear the filter, **Then** all books from all sources are displayed again
+2. **Given** I have books from multiple sources, **When** I apply a "Manual only" filter, **Then** only manually added books are displayed (including those added via federated search)
+3. **Given** I have filtered by source, **When** I clear the filter, **Then** all books from all sources are displayed again
 
 ---
 
@@ -109,7 +118,7 @@ As a user adding manual books, I want the system to search multiple external pro
 
 1. **Given** I'm adding a manual book, **When** I search for a book title, **Then** the system searches ALL enabled providers simultaneously within 5 seconds
 2. **Given** multiple providers return results, **When** viewing search results, **Then** results are displayed with provider badges (Hardcover, OpenLibrary) and sorted by provider priority (Hardcover first, then OpenLibrary)
-3. **Given** I see search results from multiple providers, **When** I select a result, **Then** the book is created with the selected provider's source and metadata
+3. **Given** I see search results from multiple providers, **When** I select a result, **Then** the book is created with source='manual' and the selected provider's metadata pre-populated
 4. **Given** I'm searching for a book, **When** a provider's API request exceeds 5 seconds, **Then** that provider's results are excluded but other providers' results are shown
 5. **Given** I'm searching for a book, **When** a provider returns a rate limit error, **Then** that provider's results are excluded with a message that the service is temporarily unavailable
 6. **Given** I've selected a book from search results, **When** I review the auto-populated form, **Then** I can edit any field before saving and my edits override the fetched metadata
@@ -117,36 +126,33 @@ As a user adding manual books, I want the system to search multiple external pro
 
 ---
 
-### User Story 5 - Source Migration & Duplicate Handling (Priority: P2)
+### User Story 5 - Duplicate Detection During Book Addition (Priority: P2)
 
-As a user who has manually added a book, I want the system to detect when I later add the same book from an external provider and offer to upgrade my manual entry, so that I can consolidate my library without duplicates.
+As a user adding books from federated search, I want the system to detect when I'm adding a book that already exists in my library so that I can avoid accidental duplicates.
 
-**Why this priority**: Prevents accidental duplicates and allows users to upgrade manual entries with richer metadata when available. Important for long-term library management but not essential for initial functionality.
+**Why this priority**: Prevents accidental duplicates and helps users maintain a clean library. Important for long-term library management but not essential for initial functionality.
 
-**Independent Test**: Can be tested by adding a manual book, then searching for and selecting the same book from Hardcover, and verifying the system offers an upgrade option. Delivers value by reducing duplicate management burden.
+**Independent Test**: Can be tested by adding a manual book, then searching for the same book via federated search, and verifying the system warns about the duplicate.
 
 **Acceptance Scenarios**:
 
-1. **Given** I have a manual book in my library, **When** I add the same book from Hardcover (>85% title+author match), **Then** the system displays a prompt: "This book exists as a manual entry. [Create Duplicate] [Upgrade to Hardcover]"
-2. **Given** the system detects a duplicate, **When** I choose "Upgrade to Hardcover", **Then** the existing book's source is changed to 'hardcover', external ID is added, metadata is updated, and all sessions/progress are preserved
-3. **Given** the system detects a duplicate, **When** I choose "Create Duplicate", **Then** a new book with source='hardcover' is created and both books exist independently
-4. **Given** I have books from two external providers with the same title, **When** adding the book from a third provider, **Then** the system shows all existing sources and offers to create a duplicate
-5. **Given** I am upgrading a manual book to an external provider, **When** metadata differs (e.g., page count), **Then** the system shows a confirmation dialog with old vs. new values before applying changes
-6. **Given** I have completed a source migration, **When** viewing the book details, **Then** the book shows its new source badge and displays a log entry indicating the migration
+1. **Given** I have a book in my library, **When** I select the same book from federated search results (>85% title+author match or ISBN match), **Then** the system displays a warning: "This book may already exist in your library" with the matching book shown
+2. **Given** the system detects a duplicate, **When** I choose to proceed, **Then** a new book with source='manual' is created and both books exist independently
+3. **Given** the system detects a duplicate, **When** I choose to cancel, **Then** no new book is created and I return to the search results
 
 ---
 
 ### Edge Cases
 
-- **Cross-source duplicates**: When a user manually adds a book that already exists in their Calibre library (same title and author), the system checks for title+author matches across ALL sources, displays a warning showing the existing book(s) and their source(s), and offers to create a duplicate or cancel.
+- **Cross-source duplicates**: When a user adds a book (manually or via federated search) that already exists in their library (same title+author or ISBN), the system checks for matches across ALL sources, displays a warning showing the existing book(s) and their source(s), and allows the user to proceed or cancel.
 - **Manual to Calibre later addition**: If a user has a manual book and later adds the same book to Calibre, the next Calibre sync creates a new book with source='calibre'. The system SHOULD detect this as a duplicate and offer to migrate the manual book's sessions/progress to the Calibre book (future enhancement, out of scope for Phase 1).
 - **Provider unavailability**: If ALL external metadata providers are unavailable, timeout, or return rate limit errors, the system transitions to the pure manual entry form and displays a notification explaining that external search is unavailable.
 - **Orphaned Calibre books vs. manual books**: Orphaned books have a distinct "orphaned" indicator separate from the source badge. Only books with source='calibre' can become orphaned.
-- **Empty Calibre library sync**: Manual books and external provider books remain untouched; only Calibre-sourced books would be orphaned.
+- **Empty Calibre library sync**: Manual books remain untouched; only Calibre-sourced books would be orphaned.
 - **Invalid form submission**: Real-time validation displays error messages as the user types. On submission attempt, the system validates all fields again and prevents form submission, highlighting all invalid or empty required fields.
 - **Invalid page count**: The system displays a real-time validation error indicating that page count must be a positive integer between 1 and 10000, and prevents form submission until corrected.
 - **Provider health degradation**: If a provider fails multiple consecutive requests (5 failures), the system automatically disables that provider via circuit breaker and displays an admin notification. The provider remains disabled for 60 seconds before attempting to re-enable.
-- **Source migration rollback**: Source migrations are one-way and cannot be undone. The system logs the migration event for audit purposes but does not support reverting 'hardcover' → 'manual'.
+- **Federated search result from provider**: When a user selects a result from Hardcover or OpenLibrary, the book is always created with source='manual'. The provider identity is used only for display in search results (via provider badges) and is not stored on the book record.
 
 ## Requirements *(mandatory)*
 
@@ -155,12 +161,12 @@ As a user who has manually added a book, I want the system to detect when I late
 #### Core Multi-Source Support
 
 - **FR-001**: System MUST allow Calibre ID to be null for books, enabling books without Calibre sources
-- **FR-002**: System MUST track the source of each book using a controlled vocabulary: 'calibre', 'manual', 'hardcover', 'openlibrary'
+- **FR-002**: System MUST track the source of each book using a controlled vocabulary: 'calibre', 'manual'
 - **FR-002a**: Source MUST be validated against allowed values
-- **FR-002b**: Source is generally immutable after creation, except via explicit source migration operations (manual → external provider only)
-- **FR-003**: System MUST store external provider IDs for books sourced from external metadata providers
-- **FR-003a**: System MUST enforce uniqueness of (source, externalId) pairs to prevent duplicate provider references
-- **FR-003b**: System MUST allow the same book from different sources (different source values create separate book records)
+- **FR-002b**: Source is immutable after creation (no source migration)
+- **FR-003**: ~~REMOVED~~ — `externalId` column eliminated. Metadata providers are ephemeral; no provider tracking on book records.
+- **FR-003a**: ~~REMOVED~~ — No externalId means no (source, externalId) uniqueness constraint needed.
+- **FR-003b**: System MUST allow the same book from different sources (Calibre and manual records can coexist)
 - **FR-004**: System MUST restrict Calibre sync operations to only affect books where source equals 'calibre'
 - **FR-005**: System MUST NOT orphan or remove manual books or external provider books during Calibre sync operations
 
@@ -175,10 +181,10 @@ As a user who has manually added a book, I want the system to detect when I late
 
 #### UI & Display
 
-- **FR-008**: System MUST display visual indicators (badges/icons) distinguishing book sources in the library (e.g., "Calibre", "Manual", "Hardcover", "OpenLibrary")
+- **FR-008**: System MUST display visual indicators (badges/icons) distinguishing book sources in the library (e.g., "Calibre", "Manual")
 - **FR-009**: System MUST allow all existing Tome features (progress tracking, sessions, goals, streaks) to work identically for books from any source
 - **FR-010**: System MUST provide UI access to add manual books from the main library view
-- **FR-012**: System MUST allow filtering library view by book source with multi-select support (e.g., show only Calibre + Hardcover books)
+- **FR-012**: System MUST allow filtering library view by book source (Calibre, Manual)
 
 #### Provider Architecture
 
@@ -202,18 +208,13 @@ As a user who has manually added a book, I want the system to detect when I late
 - **FR-011f**: When all providers fail or timeout, system MUST fall back to pure manual entry form with explanatory message
 - **FR-011g**: Search results MUST be sorted by hardcoded provider priority (Hardcover first, then OpenLibrary), preserving each provider's internal result ranking
 
-#### Source Migration & Duplicate Handling
+#### Duplicate Detection
 
-- **FR-015**: System MUST detect potential duplicates during book creation using fuzzy matching on title+author (>85% similarity threshold)
+- **FR-015**: System MUST detect potential duplicates during book creation using fuzzy matching on title+author (>85% similarity threshold) and ISBN matching
 - **FR-015a**: When duplicate detected during manual book creation, system MUST show warning but allow user to proceed
-- **FR-015b**: When duplicate detected during external provider book creation, system MUST offer: [Create Duplicate] [Upgrade Existing]
-- **FR-016**: System MUST support source migration from 'manual' to external provider ('hardcover', 'openlibrary')
-- **FR-016a**: Source migration MUST preserve ALL Tome data: sessions, progress, ratings, reviews, shelves
-- **FR-016b**: Source migration MUST update book's source, add externalId, and optionally update metadata with user confirmation
-- **FR-016c**: Source migration from external provider to external provider is NOT supported (hardcover ↔ openlibrary blocked)
-- **FR-016d**: Source migration from external provider back to 'manual' is NOT supported (one-way only)
-- **FR-016e**: Duplicate detection during source migration is scoped to the TARGET provider only (e.g., upgrading manual → Hardcover checks only existing Hardcover books, not OpenLibrary books)
-- **FR-016f**: Source migration operations MUST use pessimistic locking to prevent concurrent modifications to the same book
+- **FR-015b**: When duplicate detected during federated search book addition, system MUST show warning with existing match(es) and allow user to proceed or cancel
+- **FR-016**: ~~REMOVED~~ — Source migration eliminated. Books added via federated search always get source='manual'. No source transitions occur.
+- **FR-016a-f**: ~~REMOVED~~ — All source migration sub-requirements eliminated.
 
 #### Error Handling & Resilience
 
@@ -230,18 +231,17 @@ As a user who has manually added a book, I want the system to detect when I late
 
 #### Built-in Providers
 
-- **FR-020**: System MUST include four built-in metadata providers:
+- **FR-020**: System MUST include four built-in providers:
   - **CalibreProvider**: Syncs existing Calibre books (source='calibre'), always enabled if CALIBRE_DB_PATH set
   - **ManualProvider**: User-created books (source='manual'), always enabled, no external metadata
-  - **HardcoverProvider**: Fetches metadata from Hardcover API (source='hardcover'), requires API key
-  - **OpenLibraryProvider**: Fetches metadata from OpenLibrary API (source='openlibrary'), no auth required
+  - **HardcoverProvider**: Metadata search provider — fetches metadata from Hardcover API, requires API key. Books added via this provider get source='manual'.
+  - **OpenLibraryProvider**: Metadata search provider — fetches metadata from OpenLibrary API, no auth required. Books added via this provider get source='manual'.
 
 #### Observability & Monitoring
 
 - **FR-021**: System MUST log key provider operations for debugging and monitoring
 - **FR-021a**: Provider operations MUST log: search requests (query, provider, result count, duration), metadata fetch requests (provider, externalId, success/failure, duration), circuit breaker state changes (provider, old state, new state, reason)
-- **FR-021b**: Source migration operations MUST log: book ID, old source, new source, preserved data summary (session count, progress checkpoints), user ID, timestamp
-- **FR-021c**: Duplicate detection events SHOULD log: potential duplicate book IDs, similarity score, user decision (proceed/cancel/upgrade)
+- **FR-021b**: Duplicate detection events SHOULD log: potential duplicate book IDs, similarity score, user decision (proceed/cancel)
 
 #### Provider Bootstrap & Initialization
 
@@ -254,7 +254,7 @@ As a user who has manually added a book, I want the system to detect when I late
 
 - **NFR-001**: Federated search MUST return merged results within 6 seconds (5s provider timeout + 1s processing)
 - **NFR-002**: Library filtering by source MUST complete in under 3 seconds for libraries up to 10,000 books
-- **NFR-003**: Source migration operation MUST complete in under 2 seconds
+- **NFR-003**: ~~REMOVED~~ — Source migration eliminated.
 - **NFR-004**: Circuit breaker overhead MUST be less than 5ms per provider operation
 - **NFR-005**: Provider configuration changes MUST take effect without requiring application restart
 - **NFR-006**: System MUST handle up to 4 concurrent external provider API requests without degradation
@@ -264,15 +264,16 @@ As a user who has manually added a book, I want the system to detect when I late
 #### Book Entity (Schema Extensions)
 
 **New Fields**:
-- `source` (TEXT, NOT NULL, DEFAULT 'calibre'): Identifies book origin - 'calibre', 'manual', 'hardcover', 'openlibrary'
-- `externalId` (TEXT, NULLABLE): Provider-specific identifier (e.g., Hardcover book ID, OpenLibrary work ID)
+- `source` (TEXT, NOT NULL, DEFAULT 'calibre'): Identifies book origin - 'calibre' or 'manual'
+
+**Removed Fields** (per 2026-02-13 revision):
+- `externalId` — eliminated. Metadata providers are ephemeral; no provider tracking on book records.
 
 **Modified Fields**:
 - `calibreId` (INTEGER, NULLABLE, previously NOT NULL): Links to Calibre database when source is 'calibre'
 
 **Constraints**:
-- Unique constraint on (source, calibreId) where calibreId is not null
-- Unique constraint on (source, externalId) where externalId is not null
+- Unique constraint on calibreId where calibreId is not null
 
 **Migration Requirements**:
 - All existing books MUST be migrated to source='calibre'
@@ -304,7 +305,7 @@ As a user who has manually added a book, I want the system to detect when I late
 - **SC-007**: Federated metadata search returns merged results from multiple providers within 6 seconds
 - **SC-008**: External metadata provider requests that exceed 5 seconds are excluded from results without blocking other providers
 - **SC-009**: External metadata provider rate limit errors result in graceful exclusion with informative messaging 100% of the time
-- **SC-010**: Source migration from manual to external provider preserves all sessions and progress with 100% fidelity
+- **SC-010**: ~~REMOVED~~ — Source migration eliminated.
 - **SC-011**: Circuit breaker pattern prevents cascading failures when a provider is down (automatic disable after 5 failures)
 - **SC-012**: Provider health monitoring detects and auto-disables unhealthy providers within 30 seconds of repeated failures
 
@@ -312,7 +313,7 @@ As a user who has manually added a book, I want the system to detect when I late
 
 - Users understand the difference between Calibre-sourced, manually added, and external provider books
 - Most users mixing physical and digital books will want to see all sources in a unified library view by default
-- Source migration is intentionally one-way (manual → external only) to prevent confusion
+- Source is immutable after creation — no source migration between book types
 - Manual books do not require ISBN or other formal identifiers; title/author/pages are sufficient minimums
 - External metadata providers will use standard REST APIs accessible from the Tome backend
 - Hardcover API requires authentication; OpenLibrary API is public and requires no authentication
@@ -326,7 +327,7 @@ As a user who has manually added a book, I want the system to detect when I late
 - No external service dependencies for core manual book functionality (P1)
 - Hardcover API access required for Hardcover provider (API key required)
 - OpenLibrary API access required for OpenLibrary provider (no auth, public API)
-- Database schema must support nullable calibreId and new source/externalId fields
+- Database schema must support nullable calibreId and new source field
 - Existing Tome architecture must be extended to support multiple book sources
 - Calibre database structure remains unchanged (read-only except ratings)
 
@@ -336,13 +337,12 @@ As a user who has manually added a book, I want the system to detect when I late
 
 - Automatic session/progress migration between Calibre and manual books when same book detected
 - Bulk import of manual books from CSV or other formats
-- Multi-provider book linking (one book with multiple external IDs from different providers)
+- Source migration (upgrading manual books to provider-tracked books with externalId)
 - Advanced metadata fields beyond core requirements for manual books
 - Provider plugin system (all providers are built-in for Phase 1)
 - Sync orchestration for multiple providers (only Calibre syncs in Phase 1)
-- Detailed activity log / audit trail for source migrations
 - Admin UI for provider management (API only for Phase 1)
-- Advanced duplicate detection (e.g., ISBN matching, cover image similarity)
+- Advanced duplicate detection (e.g., cover image similarity)
 - Provider marketplace or third-party provider discovery
 - Historical provider health metrics and dashboards
 
@@ -359,11 +359,11 @@ As a user who has manually added a book, I want the system to detect when I late
 
 ### Critical Test Coverage
 
-- **Sync Isolation**: Calibre sync operations must not touch manual or external provider books
+- **Sync Isolation**: Calibre sync operations must not touch manual books
 - **Source Filtering**: Library filtering by source must work correctly with mixed sources
 - **Federated Search**: Multiple providers must return and merge results correctly
 - **Duplicate Detection**: Cross-source duplicate detection must identify matches accurately
-- **Source Migration**: Manual to external provider migration must preserve all data
+- **Book Creation**: Books added via federated search must always get source='manual'
 - **Circuit Breaker**: Provider failures must trigger circuit breaker without affecting other providers
 - **Timeout Handling**: Provider timeouts must not block federated search operations
 - **Rate Limit Handling**: Provider rate limits must be handled gracefully
@@ -373,7 +373,6 @@ As a user who has manually added a book, I want the system to detect when I late
 
 - Federated search with 2+ providers: < 6 seconds
 - Library filtering by source (10k books): < 3 seconds
-- Source migration operation: < 2 seconds
 - Circuit breaker overhead: < 5ms per operation
 
 ## Implementation Phases
@@ -381,7 +380,7 @@ As a user who has manually added a book, I want the system to detect when I late
 This feature should be implemented in logical phases to manage complexity:
 
 ### Phase 1: Foundation (P1 - Manual Books)
-- Schema migration (source, externalId, provider configs)
+- Schema migration (source field, provider configs)
 - Manual book creation without external providers
 - Sync isolation (Calibre only affects Calibre books)
 - Source badges and filtering
@@ -400,15 +399,13 @@ This feature should be implemented in logical phases to manage complexity:
 
 ### Phase 4: Advanced Features (P2 - Polish)
 - Duplicate detection across sources
-- Source migration (manual → external)
-- Enhanced search result merging
+- Enhanced search result display
 - Provider health monitoring dashboard
 
 ## Related Documents
 
 **Architecture Decision Records (to be created)**:
 - ADR-015: Multi-Source Provider Architecture
-- ADR-016: Book Source Migration Strategy
 - ADR-017: Provider Failure Handling with Circuit Breakers
 - ADR-018: Calibre ID Nullable Migration
 

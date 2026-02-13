@@ -16,7 +16,7 @@ const logger = getLogger().child({ component: "CurrentlyReadingList" });
 
 interface Book {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   totalPages?: number;
@@ -133,7 +133,7 @@ export default function CurrentlyReadingList({
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
           {books.map((book) => {
           const progressPercentage = book.latestProgress?.currentPercentage || 0;
-          const hasImageError = imageErrors.has(book.calibreId);
+          const hasImageError = book.calibreId ? imageErrors.has(book.calibreId) : true;
 
           return (
             <div
@@ -144,14 +144,14 @@ export default function CurrentlyReadingList({
                 {/* Book Cover Thumbnail */}
                 <Link href={`/books/${book.id}`} className="flex-shrink-0">
                   <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-md group-hover:shadow-lg transition-shadow">
-                    {!hasImageError ? (
+                    {book.calibreId && !hasImageError ? (
                       <Image
                         src={getCoverUrl(book.calibreId, book.lastSynced)}
                         alt={book.title}
                         fill
                         loading="lazy"
                         className="object-cover"
-                        onError={() => handleImageError(book.calibreId)}
+                        onError={() => handleImageError(book.calibreId!)}
                       />
                     ) : (
                       <BookOpen className="w-8 h-8 text-[var(--accent)]/40" />

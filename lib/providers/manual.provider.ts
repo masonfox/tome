@@ -12,11 +12,11 @@ import type {
   IMetadataProvider,
   ProviderCapabilities,
   ProviderHealth,
-  BookSource,
+  ProviderId,
 } from "./base/IMetadataProvider";
 
 export class ManualProvider implements IMetadataProvider {
-  readonly id: BookSource = "manual";
+  readonly id: ProviderId = "manual";
   readonly name: string = "Manual Entry";
   readonly capabilities: ProviderCapabilities = {
     hasSearch: false,
