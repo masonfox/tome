@@ -67,6 +67,7 @@ export async function PATCH(
       }
       if (error.message.includes("must be") || 
           error.message.includes("cannot exceed") ||
+          error.message.includes("exceeds") ||
           error.message.includes("no associated session")) {
         // Include conflictingEntry if available (for temporal validation errors)
         const response: any = { error: error.message };

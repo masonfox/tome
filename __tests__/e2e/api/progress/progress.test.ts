@@ -530,6 +530,48 @@ describe("Progress API - POST /api/books/[id]/progress", () => {
      const sessionAfter = await sessionRepository.findById(session!.id);
      expect(sessionAfter).toBeTruthy();
      expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(oldTime.getTime());
-     expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds
+      expect(sessionAfter?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds
    });
+
+  test("returns 400 when currentPage exceeds totalPages", async () => {
+    // testBook has totalPages: 500
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPage: 501,
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("Page 501 exceeds the book's total of 500 pages");
+  });
+
+  test("returns 400 when currentPage far exceeds totalPages", async () => {
+    // Reproduce the exact bug scenario: 1111 pages on a 500-page book
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPage: 1111,
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("exceeds the book's total of 500 pages");
+  });
+
+  test("accepts currentPage exactly at totalPages", async () => {
+    const request = createMockRequest("POST", "/api/books/123/progress", {
+      currentPage: 500,
+    });
+    const params = { id: testBook.id.toString() };
+
+    const response = await POST(request as NextRequest, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.progressLog.currentPage).toBe(500);
+    expect(data.progressLog.currentPercentage).toBe(100);
+  });
 });
