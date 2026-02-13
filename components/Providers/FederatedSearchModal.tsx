@@ -145,7 +145,7 @@ export default function FederatedSearchModal({
     setPubDate(result.pubDate ? new Date(result.pubDate).toISOString().split("T")[0] : "");
     setDescription("");
     setTags("");
-    setTotalPages("");
+    setTotalPages(result.totalPages?.toString() || "");
 
     // Check for duplicates
     checkForDuplicates(result.title, result.authors);

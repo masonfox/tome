@@ -75,6 +75,7 @@ interface HardcoverBook {
     height?: number;
   };
   release_year?: number;
+  pages?: number;
   contributions?: Array<{
     publisher?: {
       name: string;
@@ -308,6 +309,7 @@ class HardcoverProvider implements IMetadataProvider {
             publisher: book.contributions?.[0]?.publisher?.name,
             pubDate: book.release_year ? new Date(book.release_year, 0, 1) : undefined,
             coverImageUrl: book.image?.url,
+            totalPages: book.pages,
           };
           
           return searchResult.externalId ? searchResult : null;

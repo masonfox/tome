@@ -61,7 +61,7 @@ class OpenLibraryProvider implements IMetadataProvider {
       const params = new URLSearchParams({
         q: query,
         limit: "25",
-        fields: "key,title,author_name,first_publish_year,isbn,publisher,cover_i",
+        fields: "key,title,author_name,first_publish_year,isbn,publisher,cover_i,number_of_pages_median",
       });
 
       const response = await fetch(`${this.baseUrl}/search.json?${params}`, {
@@ -118,6 +118,7 @@ class OpenLibraryProvider implements IMetadataProvider {
             coverImageUrl: doc.cover_i
               ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
               : undefined,
+            totalPages: doc.number_of_pages_median,
           };
 
           return searchResult.externalId ? searchResult : null;

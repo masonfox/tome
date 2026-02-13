@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, FileText, User } from "lucide-react";
+import { Calendar, FileText, User, BookOpen } from "lucide-react";
 import { ProviderBadge } from "@/components/Providers/ProviderBadge";
 import type { SearchResult } from "@/lib/providers/base/IMetadataProvider";
 import type { BookSource } from "@/lib/providers/base/IMetadataProvider";
@@ -67,6 +67,13 @@ export function SearchResultCard({ result, provider, onClick }: SearchResultCard
               <div className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 <span>{formattedDate}</span>
+              </div>
+            )}
+
+            {result.totalPages && (
+              <div className="flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                <span>{result.totalPages} pages</span>
               </div>
             )}
           </div>

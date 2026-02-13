@@ -92,6 +92,7 @@ export interface SearchResult {
   coverImageUrl?: string;
   publisher?: string;
   pubDate?: Date;
+  totalPages?: number;
 }
 
 /**
