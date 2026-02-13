@@ -1,5 +1,5 @@
 import { getAllBooks, getBookTags, getAllBookTags, getBooksCount, CalibreBook, PaginationOptions } from "@/lib/db/calibre";
-import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, bookSourceRepository } from "@/lib/repositories";
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { getLogger } from "@/lib/logger";
@@ -223,7 +223,6 @@ export async function syncCalibreLibrary(
 
         const bookData: NewBook = {
           calibreId: calibreBook.id,
-          source: 'calibre', // T041: Ensure all synced books have source='calibre'
           title: calibreBook.title,
           authors,
           authorSort: generateAuthorSort(authors),
@@ -294,6 +293,36 @@ export async function syncCalibreLibrary(
         await sessionRepository.bulkCreate(sessionsToCreate);
         logger.debug({ chunk: chunkNumber }, `[Sync:Chunk] Sessions created`);
       }
+
+      // Step 7: Upsert book_sources entries for all books in this chunk
+      logger.debug(
+        { chunk: chunkNumber, booksToLink: booksToUpsert.length },
+        `[Sync:Chunk] Upserting book_sources entries`
+      );
+      
+      // Get all books from this chunk to ensure we have their IDs
+      const calibreIdsInChunk = booksToUpsert
+        .map(book => book.calibreId!)
+        .filter((id): id is number => id !== null && id !== undefined);
+      
+      const booksInChunk = await bookRepository.findAllByCalibreIds(calibreIdsInChunk);
+      
+      // Upsert book_sources entries for each book
+      for (const [calibreId, book] of booksInChunk.entries()) {
+        await bookSourceRepository.upsert({
+          bookId: book.id,
+          providerId: 'calibre',
+          externalId: calibreId.toString(),
+          isPrimary: true,
+          lastSynced: new Date(),
+          syncEnabled: true,
+        });
+      }
+      
+      logger.debug(
+        { chunk: chunkNumber, sourcesUpserted: booksInChunk.size },
+        `[Sync:Chunk] Book sources upserted`
+      );
 
       // Update totals
       syncedCount += chunkSyncedCount;

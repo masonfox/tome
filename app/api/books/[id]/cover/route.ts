@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { getBookById as getCalibreBookById } from "@/lib/db/calibre";
-import { bookRepository } from "@/lib/repositories";
+import { bookRepository, bookSourceRepository } from "@/lib/repositories";
 import {
   readCover,
   saveCover,
@@ -82,7 +82,10 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Route based on book source
-    if (book.source === "manual") {
+    // Manual books have no entries in book_sources table
+    const hasAnySources = await bookSourceRepository.hasAnySources(bookId);
+    
+    if (!hasAnySources) {
       return serveManualBookCover(bookId);
     } else {
       return serveCalibreBookCover(bookId, book.calibreId);

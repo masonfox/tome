@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from "@/lib/logger";
-import { bookRepository } from "@/lib/repositories/book.repository";
+import { bookRepository, bookSourceRepository } from "@/lib/repositories";
 
 const logger = getLogger().child({ module: "duplicate-detection" });
 
@@ -201,11 +201,15 @@ export async function detectDuplicates(
     if (titleSimilarity >= SIMILARITY_THRESHOLD) {
       // Check if authors match
       if (authorsMatch(authors, book.authors)) {
+        // Determine book source
+        const sources = await bookSourceRepository.findByBookId(book.id);
+        const source = sources.length > 0 ? sources[0].providerId : "manual";
+        
         duplicates.push({
           bookId: book.id,
           title: book.title,
           authors: book.authors,
-          source: book.source,
+          source,
           similarity: titleSimilarity,
         });
 
@@ -215,6 +219,7 @@ export async function detectDuplicates(
             existingTitle: book.title,
             similarity: titleSimilarity,
             bookId: book.id,
+            source,
           },
           "Potential duplicate detected"
         );

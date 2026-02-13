@@ -562,7 +562,8 @@ export class SessionService {
 
     try {
       // Sync to Calibre first (best effort) - only for Calibre books
-      if (book.source === 'calibre' && book.calibreId !== null) {
+      // Check if book has Calibre source (calibreId is still a proxy for this)
+      if (book.calibreId !== null) {
         calibreService.updateRating(book.calibreId, rating);
         logger.info({ bookId, calibreId: book.calibreId, rating }, "Synced rating to Calibre");
       }

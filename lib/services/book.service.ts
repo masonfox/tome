@@ -321,8 +321,7 @@ export class BookService {
       authors: validatedInput.authors,
       authorSort: generateAuthorSort(validatedInput.authors),
 
-      // Source fields
-      source: "manual",
+      // Manual books have no source entry (implicit manual)
       calibreId: null,
 
       // Optional metadata
