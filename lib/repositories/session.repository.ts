@@ -3,6 +3,7 @@ import { BaseRepository } from "./base.repository";
 import { readingSessions, ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { books, Book } from "@/lib/db/schema/books";
 import { db } from "@/lib/db/sqlite";
+import { isValidDateFormat, isNotOrphaned } from "@/lib/db/sql-helpers";
 
 /**
  * ReadingSession with joined Book data
@@ -236,7 +237,7 @@ export class SessionRepository extends BaseRepository<
       .where(
         and(
           sessionConditions,
-          or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+          isNotOrphaned()
         )
       )
       .orderBy(
@@ -295,8 +296,37 @@ export class SessionRepository extends BaseRepository<
        .innerJoin(books, eq(readingSessions.bookId, books.id))
        .where(
          and(
-           sessionConditions,
-           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+            sessionConditions,
+            isNotOrphaned()
+          )
+        )
+        .get();
+
+      return result?.count ?? 0;
+    }
+
+   /**
+     * Count books completed in a specific year (excludes orphaned books)
+    * Uses strftime + GLOB date validation to safely filter by year.
+    * Rejects malformed dates (e.g., Unix timestamps stored as text).
+    * 
+    * @param year - The year to count completed books for (e.g., 2026)
+    * @returns Number of completed sessions in the specified year
+    * 
+    * @example
+    * const count = await sessionRepository.countCompletedByYear(2026);
+    */
+   async countCompletedByYear(year: number): Promise<number> {
+     const result = this.getDatabase()
+       .select({ count: sql<number>`count(*)` })
+       .from(readingSessions)
+       .innerJoin(books, eq(readingSessions.bookId, books.id))
+       .where(
+         and(
+           eq(readingSessions.status, "read"),
+           isValidDateFormat(readingSessions.completedDate),
+           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`,
+           isNotOrphaned()
          )
        )
        .get();
@@ -305,40 +335,30 @@ export class SessionRepository extends BaseRepository<
    }
 
    /**
-    * Count sessions by status including orphaned books
-    */
-   async countByStatusIncludingOrphaned(status: ReadingSession["status"], activeOnly: boolean = true): Promise<number> {
-     const conditions = activeOnly
-       ? and(eq(readingSessions.status, status), eq(readingSessions.isActive, true))
-       : eq(readingSessions.status, status);
-
-     const result = this.getDatabase()
-       .select({ count: sql<number>`count(*)` })
-       .from(readingSessions)
-       .where(conditions)
-       .get();
-
-     return result?.count ?? 0;
-   }
-
-   /**
-    * Count completed reading sessions after a specific date (inclusive)
-    * Used for annual reading goals (count books read this year)
+    * Count books completed in a specific year and month (excludes orphaned books)
+    * Uses strftime + GLOB date validation to safely filter by year/month.
+    * Rejects malformed dates (e.g., Unix timestamps stored as text).
     * 
-    * @param dateString - Date in YYYY-MM-DD format
-    * @returns Number of completed sessions on or after the date
+    * @param year - The year (e.g., 2026)
+    * @param month - The month (1-12)
+    * @returns Number of completed sessions in the specified year/month
     * 
     * @example
-    * const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
+    * const count = await sessionRepository.countCompletedByYearMonth(2026, 2);
     */
-   async countCompletedAfterDate(dateString: string): Promise<number> {
+   async countCompletedByYearMonth(year: number, month: number): Promise<number> {
+     const monthStr = month.toString().padStart(2, '0');
      const result = this.getDatabase()
        .select({ count: sql<number>`count(*)` })
        .from(readingSessions)
+       .innerJoin(books, eq(readingSessions.bookId, books.id))
        .where(
          and(
            eq(readingSessions.status, "read"),
-           gte(readingSessions.completedDate, dateString)
+           isValidDateFormat(readingSessions.completedDate),
+           sql`strftime('%Y', ${readingSessions.completedDate}) = ${year.toString()}`,
+           sql`strftime('%m', ${readingSessions.completedDate}) = ${monthStr}`,
+           isNotOrphaned()
          )
        )
        .get();
@@ -687,7 +707,7 @@ export class SessionRepository extends BaseRepository<
          and(
            eq(readingSessions.status, 'read-next'),
            eq(readingSessions.isActive, true),
-           or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)
+           isNotOrphaned()
          )
        )
        .orderBy(asc(readingSessions.readNextOrder), asc(readingSessions.id))

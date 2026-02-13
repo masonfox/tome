@@ -48,9 +48,15 @@ const migration: CompanionMigration = {
     // Get all sessions with INTEGER timestamps (not already converted)
     // Check both started_date and completed_date for:
     // 1. INTEGER types - values stored as INTEGER type
-    // 2. Numeric strings that look like Unix timestamps (> 1000000000)
+    // 2. Numeric strings that look like Unix timestamps (> 0)
     //    These can occur when Drizzle's table recreation copies INTEGER values
     //    into TEXT columns - SQLite stores them as TEXT type but they're still numbers
+    //
+    // NOTE: This migration only converts data present at migration time.
+    // Data imported AFTER migration runs (e.g., bulk session creation during sync)
+    // will not be processed. The GLOB date validation guard in counting queries
+    // (added in issue #349) provides defense-in-depth against malformed dates
+    // that bypass this migration.
     const sessions = db.prepare(`
       SELECT id, started_date, completed_date
       FROM reading_sessions

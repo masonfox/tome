@@ -82,7 +82,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       }
       if (error.message.includes("required") || 
           error.message.includes("must be") ||
-          error.message.includes("Cannot log")) {
+          error.message.includes("Cannot log") ||
+          error.message.includes("exceeds")) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }

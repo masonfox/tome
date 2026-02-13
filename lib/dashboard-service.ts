@@ -1,8 +1,6 @@
-import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
-import { toDateString } from "@/utils/dateHelpers.server";
-import { startOfYear, startOfMonth, startOfDay } from "date-fns";
+import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
+import { readingStatsService } from "@/lib/services";
 import { getLogger } from "@/lib/logger";
-import type { ProgressLog } from "@/lib/db/schema";
 import type { BookWithStatusMinimal } from "@/lib/api/domains/book/types";
 
 export interface DashboardStats {
@@ -77,56 +75,22 @@ export async function getDashboardData(): Promise<DashboardData> {
 
 async function getStats(): Promise<DashboardStats | null> {
   try {
-    // Get user timezone from streak record to ensure consistency
-    const streak = await streakRepository.getOrCreate(null);
-    const userTimezone = streak.userTimezone || 'America/New_York';
-    
-    const { toZonedTime, fromZonedTime } = require("date-fns-tz");
-    const { subDays } = require("date-fns");
-    const now = new Date();
-    
-    // Calculate all date boundaries in user's timezone
-    const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    
-    const monthStartInUserTz = startOfMonth(toZonedTime(now, userTimezone));
-    const monthStartUtc = fromZonedTime(monthStartInUserTz, userTimezone);
-    
-    const yearStartInUserTz = startOfYear(toZonedTime(now, userTimezone));
-    const yearStartUtc = fromZonedTime(yearStartInUserTz, userTimezone);
-    
-    const thirtyDaysAgoInUserTz = subDays(todayInUserTz, 30);
-    const thirtyDaysAgoUtc = fromZonedTime(thirtyDaysAgoInUserTz, userTimezone);
-
-    // Books read this year (using user's year boundary)
-    const booksReadThisYear = await sessionRepository.countCompletedAfterDate(toDateString(yearStartUtc));
-
-    // Total books read
-    const totalBooksRead = await sessionRepository.countByStatus("read", false);
-
-    // Currently reading count
-    const currentlyReadingCount = await sessionRepository.countByStatus("reading", true);
-
-    // Pages read today (using user's today)
-    const pagesToday = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
-
-    // Pages read this month (using user's month boundary)
-    const pagesThisMonth = await progressRepository.getPagesReadAfterDate(toDateString(monthStartUtc));
-
-    // Average pages per day (last 30 days in user's timezone)
-    const avgPages = await progressRepository.getAveragePagesPerDay(toDateString(thirtyDaysAgoUtc), userTimezone);
+    // Delegate to shared ReadingStatsService which uses safe calendar-based
+    // counting methods (strftime/GLOB) per ADR-014, avoiding the string
+    // comparison vulnerability with malformed dates.
+    const overview = await readingStatsService.getOverview();
 
     return {
       booksRead: {
-        thisYear: booksReadThisYear,
-        total: totalBooksRead,
+        thisYear: overview.booksRead.thisYear,
+        total: overview.booksRead.total,
       },
-      currentlyReading: currentlyReadingCount,
+      currentlyReading: overview.currentlyReading,
       pagesRead: {
-        today: pagesToday,
-        thisMonth: pagesThisMonth,
+        today: overview.pagesRead.today,
+        thisMonth: overview.pagesRead.thisMonth,
       },
-      avgPagesPerDay: avgPages,
+      avgPagesPerDay: overview.avgPagesPerDay,
     };
   } catch (error) {
     getLogger().error({ err: error }, "Failed to fetch stats");
@@ -149,13 +113,11 @@ async function getStreak(): Promise<DashboardStreak | null> {
       return null;
     }
 
-    // Get today's pages read (use user's timezone from streak record)
-    const { toZonedTime, fromZonedTime } = require("date-fns-tz");
+    // Get today's pages read using safe date-based query (GLOB-guarded)
+    const { formatInTimeZone } = require("date-fns-tz");
     const userTimezone = streak.userTimezone || 'America/New_York';
-    const now = new Date();
-    const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-    const todayUtc = fromZonedTime(todayInUserTz, userTimezone);
-    const todayPages = await progressRepository.getPagesReadAfterDate(toDateString(todayUtc));
+    const todayInUserTz = formatInTimeZone(new Date(), userTimezone, "yyyy-MM-dd");
+    const todayPages = await progressRepository.getPagesReadByDate(todayInUserTz);
 
     return {
       currentStreak: streak.currentStreak,

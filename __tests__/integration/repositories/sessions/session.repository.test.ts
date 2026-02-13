@@ -15,6 +15,7 @@ import {
   setupTestDatabase,
   clearTestDatabase,
   teardownTestDatabase,
+  getTestSqlite,
 } from "@/__tests__/helpers/db-setup";
 
 describe("SessionRepository - Edge Cases", () => {
@@ -370,7 +371,9 @@ describe("SessionRepository - Edge Cases", () => {
       expect(count).toBe(1);
     });
 
-    test("should include orphaned books in countByStatusIncludingOrphaned", async () => {
+    test("should count only non-orphaned books", async () => {
+      // countByStatus excludes orphaned books via isNotOrphaned().
+      // This test verifies that countByStatus correctly excludes orphaned books.
       const normalBook = await bookRepository.create({
         title: "Normal Book",
         calibreId: 1,
@@ -399,9 +402,10 @@ describe("SessionRepository - Edge Cases", () => {
         isActive: true,
       });
 
-      const count = await sessionRepository.countByStatusIncludingOrphaned("reading", true);
+      // countByStatus excludes orphaned books — should only count the normal book
+      const count = await sessionRepository.countByStatus("reading", true);
 
-      expect(count).toBe(2);
+      expect(count).toBe(1);
     });
 
     test("should return 0 when no sessions match", async () => {
@@ -419,81 +423,6 @@ describe("SessionRepository - Edge Cases", () => {
       });
 
       const count = await sessionRepository.countByStatus("read", true);
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe("countCompletedAfterDate", () => {
-    test("should count only completed sessions after the specified date", async () => {
-      const book = await bookRepository.create({
-        title: "Test Book",
-        calibreId: 1,
-        path: "/test/book.epub",
-      });
-
-      // Before the cutoff
-      await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "read",
-        isActive: false,
-        completedDate: "2024-12-31",
-      });
-
-      // On the cutoff (should be included - gte)
-      await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 2,
-        status: "read",
-        isActive: false,
-        completedDate: "2025-01-01",
-      });
-
-      // After the cutoff
-      await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 3,
-        status: "read",
-        isActive: false,
-        completedDate: "2025-01-15",
-      });
-
-      const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
-
-      expect(count).toBe(2);
-    });
-
-    test("should not count non-completed sessions", async () => {
-      const book = await bookRepository.create({
-        title: "Test Book",
-        calibreId: 1,
-        path: "/test/book.epub",
-      });
-
-      await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 1,
-        status: "reading",
-        isActive: true,
-        startedDate: "2025-01-01",
-      });
-
-      await sessionRepository.create({
-        bookId: book.id,
-        sessionNumber: 2,
-        status: "dnf",
-        isActive: false,
-        completedDate: "2025-01-15",
-      });
-
-      const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
-
-      expect(count).toBe(0);
-    });
-
-    test("should return 0 when no completed sessions exist", async () => {
-      const count = await sessionRepository.countCompletedAfterDate("2025-01-01");
 
       expect(count).toBe(0);
     });
@@ -988,6 +917,168 @@ describe("SessionRepository - Edge Cases", () => {
       expect(updated[1]?.readNextOrder).toBe(2); // Shifted down
       expect(updated[3]?.readNextOrder).toBe(3); // Unchanged
       expect(updated[4]?.readNextOrder).toBe(4); // Unchanged
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Malformed date defense tests
+// ---------------------------------------------------------------------------
+// These tests verify that the isValidDateFormat() GLOB guard in the
+// session repository correctly rejects sessions whose completedDate
+// is not a valid YYYY-MM-DD string.  Malformed values are injected via
+// raw SQL to bypass ORM type-safety.
+// ---------------------------------------------------------------------------
+
+describe("Malformed date defense (isValidDateFormat guard)", () => {
+  beforeAll(async () => {
+    await setupTestDatabase(__filename);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(__filename);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(__filename);
+  });
+
+  // --- Raw SQL helpers (bypass ORM type safety) ----------------------------
+
+  function getRawDb() {
+    return getTestSqlite(__filename);
+  }
+
+  function insertBook(title: string, calibreId: number): number {
+    const rawDb = getRawDb();
+    rawDb
+      .prepare(
+        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
+         VALUES (?, ?, '[]', '[]', '/test', 0)`
+      )
+      .run(title, calibreId);
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  function insertSession(opts: {
+    bookId: number;
+    status: string;
+    completedDate?: string | null;
+    sessionNumber?: number;
+  }): number {
+    const rawDb = getRawDb();
+    rawDb
+      .prepare(
+        `INSERT INTO reading_sessions (book_id, session_number, status, completed_date, is_active)
+         VALUES (?, ?, ?, ?, 0)`
+      )
+      .run(
+        opts.bookId,
+        opts.sessionNumber ?? 1,
+        opts.status,
+        opts.completedDate ?? null
+      );
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  // Representative malformed date strings that could appear in the database
+  const MALFORMED_DATES = [
+    "1737676800",             // Unix timestamp (numeric string)
+    "2026-01",                // Partial date (YYYY-MM)
+    "2026-03-15T10:30:00",    // ISO datetime with time suffix
+    "March 15, 2026",         // Human-readable format
+    "15/03/2026",             // DD/MM/YYYY format
+    "not-a-date",             // Completely invalid
+    "",                       // Empty string
+  ];
+
+  // --- countCompletedByYear() ----------------------------------------------
+
+  describe("countCompletedByYear()", () => {
+    test("should not count sessions with malformed completedDate", async () => {
+      const bookId = insertBook("Malformed Year Book", 700);
+
+      let sessionNum = 1;
+      for (const badDate of MALFORMED_DATES) {
+        insertSession({
+          bookId,
+          status: "read",
+          completedDate: badDate,
+          sessionNumber: sessionNum++,
+        });
+      }
+
+      // Insert one valid session
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2026-08-20",
+        sessionNumber: sessionNum,
+      });
+
+      const count = await sessionRepository.countCompletedByYear(2026);
+      expect(count).toBe(1); // Only the valid date should count
+    });
+  });
+
+  // --- countCompletedByYearMonth() -----------------------------------------
+
+  describe("countCompletedByYearMonth()", () => {
+    test("should not count sessions with malformed completedDate", async () => {
+      const bookId = insertBook("Malformed YearMonth Book", 701);
+
+      let sessionNum = 1;
+      for (const badDate of MALFORMED_DATES) {
+        insertSession({
+          bookId,
+          status: "read",
+          completedDate: badDate,
+          sessionNumber: sessionNum++,
+        });
+      }
+
+      // Insert one valid session in November 2026
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2026-11-05",
+        sessionNumber: sessionNum,
+      });
+
+      const count = await sessionRepository.countCompletedByYearMonth(2026, 11);
+      expect(count).toBe(1); // Only the valid date should count
+    });
+
+    test("should not count malformed dates even when month matches numerically", async () => {
+      const bookId = insertBook("Numeric Match Book", 702);
+
+      // "1737676800" starts with "17..." — strftime could theoretically
+      // extract a month from it if the GLOB guard didn't reject it first
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "1737676800",
+        sessionNumber: 1,
+      });
+
+      // Valid session in January 2025
+      insertSession({
+        bookId,
+        status: "read",
+        completedDate: "2025-01-24",
+        sessionNumber: 2,
+      });
+
+      const count = await sessionRepository.countCompletedByYearMonth(2025, 1);
+      expect(count).toBe(1);
     });
   });
 });

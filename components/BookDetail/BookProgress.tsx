@@ -76,7 +76,7 @@ export default function BookProgress({
       )}
       <form id={formId} onSubmit={onSubmit} className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                   Progress
                 </label>
@@ -89,7 +89,7 @@ export default function BookProgress({
                       min="0"
                       max={book.totalPages}
                       step="1"
-                      className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
+                      className="flex-1 min-w-0 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
                       placeholder="Current page"
                     />
                   ) : (
@@ -100,13 +100,13 @@ export default function BookProgress({
                       min="0"
                       max="100"
                       step="1"
-                      className="flex-1 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
+                      className="flex-1 min-w-0 px-4 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
                       placeholder="Percentage"
                     />
                   )}
 
                   {/* Mode Toggle Dropdown */}
-                  <div className="relative" ref={progressModeDropdownRef}>
+                  <div className="relative shrink-0" ref={progressModeDropdownRef}>
                     <button
                       type="button"
                       onClick={() => setShowProgressModeDropdown(!showProgressModeDropdown)}
@@ -165,7 +165,7 @@ export default function BookProgress({
                 </div>
               </div>
 
-              <div className="flex-1">
+              <div className="md:w-48 md:shrink-0">
                 <label className="block text-xs uppercase tracking-wide text-[var(--foreground)]/60 mb-2 font-semibold">
                   Date
                 </label>

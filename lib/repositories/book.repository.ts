@@ -6,6 +6,7 @@ import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
 import { getLogger } from "@/lib/logger";
+import { isNotOrphaned } from "@/lib/db/sql-helpers";
 
 export interface BookFilter {
   status?: string;
@@ -329,7 +330,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     if (filters.orphanedOnly) {
       conditions.push(eq(books.orphaned, true));
     } else if (!filters.showOrphaned) {
-      conditions.push(or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!);
+      conditions.push(isNotOrphaned());
     }
 
     // Search filter
@@ -583,7 +584,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .where(
         and(
           sql`${books.calibreId} NOT IN ${sql.raw(`(${calibreIds.join(",")})`)}`,
-          or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!
+          isNotOrphaned()
         )
       )
       .all();
@@ -670,7 +671,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     if (filters.orphanedOnly) {
       conditions.push(eq(books.orphaned, true));
     } else if (!filters.showOrphaned) {
-      conditions.push(or(eq(books.orphaned, false), sql`${books.orphaned} IS NULL`)!);
+      conditions.push(isNotOrphaned());
     }
 
     // Search filter
@@ -736,7 +737,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
     }
 
-    // Shelf filter (books must be on ANY of the selected shelves - OR logic)
+    // Shelf filter
     if (filters.shelfIds && filters.shelfIds.length > 0) {
       const shelfQuery = this.getDatabase()
         .selectDistinct({ bookId: bookShelves.bookId })
@@ -1027,7 +1028,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         .from(books)
         .where(and(
           sql`json_array_length(${books.tags}) > 0`,
-          eq(books.orphaned, false)
+          isNotOrphaned()
         ))
         .get();
 
@@ -1054,7 +1055,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           SELECT 1 FROM json_each(${books.tags})
           WHERE json_each.value = ${tag}
         )`,
-        eq(books.orphaned, false)
+        isNotOrphaned()
       );
 
       // Get total count

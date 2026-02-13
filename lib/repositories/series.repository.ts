@@ -1,4 +1,5 @@
 import { sql, asc, eq, and, isNotNull } from "drizzle-orm";
+import { isNotOrphaned } from "@/lib/db/sql-helpers";
 import { books } from "@/lib/db/schema/books";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { BaseRepository } from "./base.repository";
@@ -70,7 +71,7 @@ export class SeriesRepository extends BaseRepository<
         and(
           isNotNull(books.series),
           sql`${books.series} != ''`,  // Exclude empty strings (Calibre may use '' instead of NULL)
-          eq(books.orphaned, false)
+          isNotOrphaned()
         )
       )
       .orderBy(asc(books.series), asc(books.seriesIndex), asc(books.title));
@@ -162,7 +163,7 @@ export class SeriesRepository extends BaseRepository<
       .where(
         and(
           eq(books.series, seriesName),
-          eq(books.orphaned, false)
+          isNotOrphaned()
         )
       )
       .orderBy(asc(books.seriesIndex), asc(books.title));
@@ -199,7 +200,7 @@ export class SeriesRepository extends BaseRepository<
       .where(
         and(
           eq(books.series, seriesName),
-          eq(books.orphaned, false)
+          isNotOrphaned()
         )
       )
       .groupBy(books.series)
@@ -218,7 +219,7 @@ export class SeriesRepository extends BaseRepository<
       .where(
         and(
           eq(books.series, seriesName),
-          eq(books.orphaned, false)
+          isNotOrphaned()
         )
       )
       .orderBy(asc(books.seriesIndex), asc(books.title))
