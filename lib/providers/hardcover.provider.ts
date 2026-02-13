@@ -9,6 +9,7 @@
 
 import { getLogger } from "@/lib/logger";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
+import { parsePublishDate } from "@/utils/dateHelpers.server";
 import type {
   IMetadataProvider,
   ProviderCapabilities,
@@ -74,7 +75,8 @@ interface HardcoverBook {
     width?: number;
     height?: number;
   };
-  release_year?: number;
+  release_year?: number;        // Year only (used as fallback)
+  release_date_i?: number;      // Release date as integer (Unix timestamp or YYYYMMDD)
   pages?: number;
   contributions?: Array<{
     publisher?: {
@@ -301,13 +303,37 @@ class HardcoverProvider implements IMetadataProvider {
           // but handle both cases for robustness
           const book = typeof result === "string" ? JSON.parse(result) : result;
 
+          // Parse publication date:
+          // 1. Try release_date_i (integer) - could be Unix timestamp or YYYYMMDD format
+          // 2. Fall back to release_year (year only)
+          let pubDate: Date | undefined;
+          if (book.release_date_i) {
+            // Check if it looks like a Unix timestamp (10 digits) or YYYYMMDD (8 digits)
+            const dateInt = book.release_date_i;
+            if (dateInt > 99999999) {
+              // Looks like Unix timestamp (> 1973 in seconds)
+              pubDate = new Date(dateInt * 1000);
+            } else if (dateInt >= 10000000 && dateInt <= 99999999) {
+              // Looks like YYYYMMDD format
+              const dateStr = dateInt.toString();
+              const year = parseInt(dateStr.substring(0, 4), 10);
+              const month = parseInt(dateStr.substring(4, 6), 10);
+              const day = parseInt(dateStr.substring(6, 8), 10);
+              pubDate = new Date(Date.UTC(year, month - 1, day));
+            }
+          }
+          // Fall back to release_year if date_i didn't work
+          if (!pubDate && book.release_year) {
+            pubDate = parsePublishDate(book.release_year.toString());
+          }
+
           const searchResult: SearchResult = {
             externalId: book.id?.toString() || "",
             title: book.title || "Untitled",
             authors: book.author_names || [],
             isbn: book.isbns?.[0],
             publisher: book.contributions?.[0]?.publisher?.name,
-            pubDate: book.release_year ? new Date(book.release_year, 0, 1) : undefined,
+            pubDate,
             coverImageUrl: book.image?.url,
             totalPages: book.pages,
           };

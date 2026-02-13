@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from "@/lib/logger";
+import { parsePublishDate } from "@/utils/dateHelpers.server";
 import type {
   IMetadataProvider,
   ProviderCapabilities,
@@ -61,7 +62,7 @@ class OpenLibraryProvider implements IMetadataProvider {
       const params = new URLSearchParams({
         q: query,
         limit: "25",
-        fields: "key,title,author_name,first_publish_year,isbn,publisher,cover_i,number_of_pages_median",
+        fields: "key,title,author_name,publish_date,isbn,publisher,cover_i,number_of_pages_median",
       });
 
       const response = await fetch(`${this.baseUrl}/search.json?${params}`, {
@@ -114,7 +115,7 @@ class OpenLibraryProvider implements IMetadataProvider {
             authors: doc.author_name || [],
             isbn: doc.isbn?.[0],
             publisher: doc.publisher?.[0],
-            pubDate: doc.first_publish_year ? new Date(doc.first_publish_year, 0, 1) : undefined,
+            pubDate: parsePublishDate(doc.publish_date?.[0]),
             coverImageUrl: doc.cover_i
               ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
               : undefined,
