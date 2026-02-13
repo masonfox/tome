@@ -112,3 +112,6 @@ export function ProviderBadge({
     </div>
   );
 }
+
+// Re-export BookSource type for convenience
+export type { BookSource } from "@/lib/providers/base/IMetadataProvider";

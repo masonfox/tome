@@ -20,6 +20,69 @@ import type {
 const logger = getLogger().child({ module: "hardcover-provider" });
 
 /**
+ * Hardcover GraphQL API Response Types
+ * 
+ * Based on: https://docs.hardcover.app/api/guides/searching/
+ * Backend: Typesense search index
+ */
+
+/**
+ * Typesense search response wrapper (possible structure)
+ * Hardcover uses Typesense for search, which may return results wrapped in metadata
+ */
+interface TypesenseSearchResponse {
+  hits?: any[];
+  documents?: any[];
+  results?: any[];
+  found: number;
+  page: number;
+  per_page?: number;
+}
+
+/**
+ * Hardcover search GraphQL response
+ * 
+ * Note: results field can be:
+ * - Array of stringified JSON objects (standard Typesense response)
+ * - null/undefined (no results found)
+ * - Object wrapper with nested arrays (alternative Typesense format)
+ */
+interface HardcoverSearchResponse {
+  data: {
+    search: {
+      results: string[] | any[] | TypesenseSearchResponse | null;
+      ids?: number[];
+      query?: string;
+      page?: number;
+      per_page?: number;
+    };
+  };
+  errors?: Array<{ message: string; extensions?: any }>;
+}
+
+/**
+ * Hardcover book object from Typesense
+ * (Subset of fields - only those we use for SearchResult mapping)
+ */
+interface HardcoverBook {
+  id: number;
+  title: string;
+  author_names?: string[];
+  isbns?: string[];
+  image?: {
+    url: string;
+    width?: number;
+    height?: number;
+  };
+  release_year?: number;
+  contributions?: Array<{
+    publisher?: {
+      name: string;
+    };
+  }>;
+}
+
+/**
  * Hardcover Provider
  * 
  * GraphQL API integration for Hardcover.app book metadata.
@@ -89,10 +152,15 @@ class HardcoverProvider implements IMetadataProvider {
 
     try {
       // GraphQL search query
+      // Request additional fields for better debugging and validation
       const graphqlQuery = `
         query SearchBooks($query: String!) {
           search(query: $query, query_type: "Book", per_page: 25, page: 1) {
             results
+            ids
+            query
+            page
+            per_page
           }
         }
       `;
@@ -122,15 +190,77 @@ class HardcoverProvider implements IMetadataProvider {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data: HardcoverSearchResponse = await response.json();
 
       if (data.errors) {
         logger.error({ errors: data.errors }, "Hardcover: GraphQL errors");
         throw new Error(`GraphQL error: ${data.errors[0]?.message || "Unknown error"}`);
       }
 
-      const results = data.data?.search?.results || [];
-      logger.debug({ count: results.length }, "Hardcover: Search complete");
+      // Diagnostic logging to understand actual API response structure
+      const searchResponseRaw = data.data?.search?.results;
+      logger.debug({ 
+        hasData: !!data.data,
+        hasSearch: !!data.data?.search,
+        resultsType: typeof searchResponseRaw,
+        resultsIsArray: Array.isArray(searchResponseRaw),
+        resultsLength: Array.isArray(searchResponseRaw) 
+          ? searchResponseRaw.length 
+          : 'N/A',
+        sampleResult: Array.isArray(searchResponseRaw) && searchResponseRaw.length > 0 
+          ? searchResponseRaw[0] 
+          : null,
+      }, "Hardcover: Raw API response structure");
+
+      // Extract results with defensive type checking
+      // Hardcover API returns Typesense response structure:
+      // results: { hits: [{ document: {...} }], found: N, page: M }
+      let results: any[] = [];
+      const searchResponse = data.data?.search?.results;
+
+      if (searchResponse === null || searchResponse === undefined) {
+        logger.debug("Hardcover: Search returned null/undefined results");
+        results = [];
+      } else if (Array.isArray(searchResponse)) {
+        // Legacy: results is directly an array (shouldn't happen with current API)
+        results = searchResponse;
+      } else if (typeof searchResponse === 'object') {
+        // Standard Typesense wrapper: { hits: [{document: ...}], found: N }
+        const hits = (searchResponse as any).hits || [];
+        if (Array.isArray(hits)) {
+          // Extract documents from hits
+          results = hits.map((hit: any) => hit.document || hit);
+          logger.debug({ 
+            found: (searchResponse as any).found,
+            hitsCount: hits.length,
+            extractedCount: results.length 
+          }, "Hardcover: Extracted results from Typesense wrapper");
+        } else {
+          // Fallback: check other possible array properties
+          results = (searchResponse as any).documents || (searchResponse as any).results || [];
+        }
+      } else if (typeof searchResponse === 'string') {
+        // Unexpected: entire results field is stringified
+        try {
+          const parsed = JSON.parse(searchResponse);
+          results = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          logger.warn({ searchResponse }, "Hardcover: Failed to parse stringified results");
+          results = [];
+        }
+      } else {
+        logger.error({ 
+          resultsType: typeof searchResponse,
+          results: searchResponse 
+        }, "Hardcover: Unexpected results type");
+        results = [];
+      }
+
+      logger.debug({ 
+        count: results.length,
+        responseType: typeof searchResponse,
+        isArray: Array.isArray(searchResponse)
+      }, "Hardcover: Search complete");
 
       return this.parseSearchResults(results);
     } catch (error: any) {
@@ -145,12 +275,29 @@ class HardcoverProvider implements IMetadataProvider {
 
   /**
    * Parse Hardcover search results into normalized SearchResult format
+   * 
+   * Handles stringified JSON from Typesense and validates input is an array.
    */
   private parseSearchResults(results: any[]): SearchResult[] {
+    // Safety check: ensure results is actually an array
+    if (!Array.isArray(results)) {
+      logger.error({ 
+        resultsType: typeof results,
+        results 
+      }, "Hardcover: parseSearchResults called with non-array");
+      return [];
+    }
+
+    if (results.length === 0) {
+      logger.debug("Hardcover: No results to parse");
+      return [];
+    }
+
     return results
       .map((result: any) => {
         try {
-          // Parse the JSON string (Typesense returns stringified JSON)
+          // Hardcover returns parsed objects (not stringified JSON)
+          // but handle both cases for robustness
           const book = typeof result === "string" ? JSON.parse(result) : result;
 
           const searchResult: SearchResult = {
@@ -165,7 +312,11 @@ class HardcoverProvider implements IMetadataProvider {
           
           return searchResult.externalId ? searchResult : null;
         } catch (parseError) {
-          logger.warn({ err: parseError, result }, "Failed to parse search result");
+          logger.warn({ 
+            err: parseError, 
+            result,
+            resultType: typeof result 
+          }, "Failed to parse search result");
           return null;
         }
       })
