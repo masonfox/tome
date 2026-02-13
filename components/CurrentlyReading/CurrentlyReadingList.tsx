@@ -27,7 +27,7 @@ interface Book {
   activeSession?: {
     status: string;
   };
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface CurrentlyReadingListProps {
@@ -62,8 +62,8 @@ export default function CurrentlyReadingList({
     setSelectedBook(null);
   };
 
-  const handleImageError = (calibreId: number) => {
-    setImageErrors((prev) => new Set(prev).add(calibreId));
+  const handleImageError = (bookId: number) => {
+    setImageErrors((prev) => new Set(prev).add(bookId));
   };
 
   // Called by LogProgressModal on mobile when progress reaches 100%
@@ -133,7 +133,7 @@ export default function CurrentlyReadingList({
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
           {books.map((book) => {
           const progressPercentage = book.latestProgress?.currentPercentage || 0;
-          const hasImageError = book.calibreId ? imageErrors.has(book.calibreId) : true;
+          const hasImageError = imageErrors.has(book.id);
 
           return (
             <div
@@ -144,14 +144,14 @@ export default function CurrentlyReadingList({
                 {/* Book Cover Thumbnail */}
                 <Link href={`/books/${book.id}`} className="flex-shrink-0">
                   <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-md group-hover:shadow-lg transition-shadow">
-                    {book.calibreId && !hasImageError ? (
+                    {!hasImageError ? (
                       <Image
-                        src={getCoverUrl(book.calibreId, book.lastSynced)}
+                        src={getCoverUrl(book.id, book.updatedAt)}
                         alt={book.title}
                         fill
                         loading="lazy"
                         className="object-cover"
-                        onError={() => handleImageError(book.calibreId!)}
+                        onError={() => handleImageError(book.id)}
                       />
                     ) : (
                       <BookOpen className="w-8 h-8 text-[var(--accent)]/40" />

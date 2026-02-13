@@ -46,7 +46,7 @@ interface BookTableBook {
   addedAt?: Date | null;
   status?: string | null;
   sortOrder?: number;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface DraggableBookTableProps {
@@ -70,7 +70,7 @@ interface SortableRowProps {
   book: BookTableBook;
   index: number;
   imageErrors: Set<number>;
-  onImageError: (calibreId: number) => void;
+  onImageError: (bookId: number) => void;
   onRemoveBook?: (bookId: number) => void;
   isDragEnabled: boolean;
   isSelectMode?: boolean;
@@ -95,7 +95,7 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const hasImageError = book.calibreId ? imageErrors.has(book.calibreId) : true;
+  const hasImageError = imageErrors.has(book.id);
   const seriesInfo = book.series && book.seriesIndex
     ? `${book.series} #${book.seriesIndex}`
     : book.series || "-";
@@ -148,14 +148,14 @@ function SortableRow({ book, index, imageErrors, onImageError, onRemoveBook, isD
       <td className="px-4 py-3">
         <Link href={`/books/${book.id}`} className="block">
           <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-sm hover:shadow-lg transition-shadow duration-300 ease">
-            {!hasImageError && book.calibreId ? (
+            {!hasImageError ? (
               <Image
-                src={getCoverUrl(book.calibreId, book.lastSynced)}
+                src={getCoverUrl(book.id, book.updatedAt)}
                 alt={book.title}
                 fill
                 loading="lazy"
                 className="object-cover"
-                onError={() => onImageError(book.calibreId!)}
+                onError={() => onImageError(book.id)}
               />
             ) : (
               <BookOpen className="w-5 h-5 text-[var(--accent)]/40" />
@@ -328,8 +328,8 @@ export function DraggableBookTable({
     })
   );
 
-  const handleImageError = (calibreId: number) => {
-    setImageErrors((prev) => new Set(prev).add(calibreId));
+  const handleImageError = (bookId: number) => {
+    setImageErrors((prev) => new Set(prev).add(bookId));
   };
 
   const handleColumnClick = (column: string) => {

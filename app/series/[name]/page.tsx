@@ -24,7 +24,7 @@ interface SeriesBook {
   status?: string | null;
   tags: string[];
   description?: string | null;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface SeriesInfo {
@@ -60,8 +60,8 @@ export default function SeriesDetailPage() {
     enabled: !!seriesName,
   });
 
-  const handleImageError = (calibreId: number) => {
-    setImageErrors(prev => ({ ...prev, [calibreId]: true }));
+  const handleImageError = (bookId: number) => {
+    setImageErrors(prev => ({ ...prev, [bookId]: true }));
   };
 
   if (isLoading) {
@@ -113,14 +113,14 @@ export default function SeriesDetailPage() {
                 {/* Book Cover */}
                 <div className="flex-shrink-0 w-40 sm:w-32 md:w-40 mx-auto sm:mx-0">
                   <div className="relative aspect-[2/3] bg-[var(--light-accent)]/30 rounded border border-[var(--border-color)] overflow-hidden">
-                    {book.calibreId && !imageErrors[book.calibreId] ? (
+                    {!imageErrors[book.id] ? (
                       <Image
-                        src={getCoverUrl(book.calibreId, book.lastSynced)}
+                        src={getCoverUrl(book.id, book.updatedAt)}
                         alt={`Cover for ${book.title}`}
                         fill
                         sizes="(max-width: 768px) 160px, 128px"
                         className="object-cover group-hover:opacity-95 transition-opacity"
-                        onError={() => handleImageError(book.calibreId!)}
+                        onError={() => handleImageError(book.id)}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

@@ -14,24 +14,22 @@ interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  calibreId: number | null;
   source?: BookSource;
   status?: string | null;
   currentProgress?: number;
   className?: string;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 export const BookCard = memo(function BookCard({
   id,
   title,
   authors,
-  calibreId,
   source,
   status,
   currentProgress,
   className,
-  lastSynced,
+  updatedAt,
 }: BookCardProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -51,9 +49,9 @@ export const BookCard = memo(function BookCard({
             </div>
           )}
 
-          {!imageError && calibreId ? (
+          {!imageError ? (
             <Image
-              src={getCoverUrl(calibreId, lastSynced)}
+              src={getCoverUrl(parseInt(id), updatedAt)}
               alt={title}
               fill
               loading="lazy"
@@ -105,7 +103,7 @@ export const BookCard = memo(function BookCard({
     prevProps.title === nextProps.title &&
     prevProps.status === nextProps.status &&
     prevProps.currentProgress === nextProps.currentProgress &&
-    prevProps.calibreId === nextProps.calibreId &&
+    prevProps.updatedAt === nextProps.updatedAt &&
     prevProps.source === nextProps.source
   );
 });

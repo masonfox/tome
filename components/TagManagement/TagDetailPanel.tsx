@@ -13,7 +13,7 @@ export interface Book {
   title: string;
   authors?: string[];
   calibreId: number | null;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface TagDetailPanelProps {
@@ -76,9 +76,9 @@ const BookCardSimple = memo(function BookCardSimple({
         <div className="relative">
           <Link href={`/books/${book.id}`}>
             <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
-              {book.calibreId && !imageError ? (
+              {!imageError ? (
                 <Image
-                  src={getCoverUrl(book.calibreId, book.lastSynced)}
+                  src={getCoverUrl(book.id, book.updatedAt)}
                   alt={book.title}
                   fill
                   loading="lazy"

@@ -105,7 +105,6 @@ export function CompletedBooksSection({
               id={book.id.toString()}
               title={book.title}
               authors={book.authors}
-              calibreId={book.calibreId}
               status={book.status}
             />
           ))}

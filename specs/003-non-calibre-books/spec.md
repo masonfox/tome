@@ -177,7 +177,9 @@ As a user adding books from federated search, I want the system to detect when I
 - **FR-007a**: System MUST check for existing books with matching title and author across ALL sources during manual book creation
 - **FR-007b**: System MUST validate required fields (title, author, page count) in real-time as the user types and perform final validation on form submission
 - **FR-007c**: System MUST validate page count as a positive integer with a minimum value of 1 and maximum value of 10000
-- **FR-007d**: Manual book creation MAY optionally collect: ISBN, publisher, publication date, description, cover image URL (these fields support richer metadata but are not required)
+- **FR-007d**: Manual book creation MAY optionally collect: ISBN, publisher, publication date, description (these fields support richer metadata but are not required). Cover images may be attached via file upload.
+- **FR-007e**: When creating a book via federated provider search, the system MUST attempt to download the provider's cover image to local storage (`./data/covers/{bookId}.{ext}`) after successful book creation. Download failure MUST NOT block book creation (graceful fallback — book is created without a cover).
+- **FR-007f**: Users MUST be able to upload a cover image (JPEG, PNG, WebP, GIF; max 5MB) for any manual book via `POST /api/books/{id}/cover`. Uploading a new cover replaces the existing one.
 
 #### UI & Display
 
@@ -291,6 +293,24 @@ As a user adding books from federated search, I want the system to detect when I
 - `credentials` (JSON): Authentication credentials (API keys, plaintext storage acceptable for local SQLite)
 - `lastHealthCheck` (TIMESTAMP): Last successful health check
 - `healthStatus` (TEXT): Current health status - 'healthy' or 'unavailable' (binary state)
+
+#### Cover Image Storage (Filesystem — per 2026-02-13 revision)
+
+**Purpose**: Store cover images for manual books on the local filesystem
+
+Cover images are NOT stored in the database. They are stored as files at `./data/covers/{bookId}.{ext}`, sibling to `./data/tome.db`. This aligns with the self-contained deployment principle — covers work offline without depending on external CDN availability.
+
+**Storage Rules**:
+- Path: `./data/covers/{tomeBookId}.{ext}` (e.g., `./data/covers/42.jpg`)
+- Max file size: 5MB
+- Allowed formats: JPEG, PNG, WebP, GIF
+- One cover per book; new uploads replace existing
+- Calibre book covers continue to be served from the Calibre library filesystem (unchanged)
+
+**Ingestion**:
+- Provider search: Cover URL downloaded to local storage after book creation (non-blocking)
+- Manual upload: User uploads via `POST /api/books/{id}/cover` endpoint
+- Download failures do not block book creation
 
 ## Success Criteria *(mandatory)*
 

@@ -7,6 +7,8 @@ import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
 import { getLogger } from "@/lib/logger";
 import { isNotOrphaned } from "@/lib/db/sql-helpers";
+import { deleteCover } from "@/lib/utils/cover-storage";
+import { coverCache } from "@/lib/cache/cover-cache";
 
 export interface BookFilter {
   status?: string;
@@ -32,6 +34,22 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   protected getTable() {
     return books;
+  }
+
+  /**
+   * Delete a book by ID.
+   * Also cleans up the associated cover file and invalidates the cover cache.
+   */
+  async delete(id: number): Promise<boolean> {
+    // Clean up cover file before deleting the book record
+    try {
+      deleteCover(id);
+      coverCache.clear(); // Invalidate cache entry for this book
+    } catch (error) {
+      getLogger().warn({ err: error, bookId: id }, "[BookRepository] Failed to clean up cover during delete");
+    }
+
+    return super.delete(id);
   }
 
   /**
@@ -1075,6 +1093,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       rating: row.rating,
       status: row.sessionStatus,
       lastSynced: row.lastSynced,
+      updatedAt: row.updatedAt,
       // Only include minimal progress info needed for display
       latestProgress: row.progressId ? {
         currentPage: row.progressCurrentPage,

@@ -148,7 +148,8 @@ describe("ShelfService", () => {
       
       expect(shelves).toHaveLength(1);
       expect(shelves[0].bookCount).toBe(2);
-      expect(shelves[0].bookCoverIds).toEqual([101, 102]);
+      // bookCoverIds now contains Tome book IDs (not Calibre IDs)
+      expect(shelves[0].bookCoverIds).toEqual([book1!.id, book2!.id]);
     });
 
     test("should limit cover IDs to 12 books", async () => {

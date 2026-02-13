@@ -31,6 +31,7 @@ afterEach(() => {
 
 describe("BookHeader", () => {
   const mockBook = {
+    id: 1,
     calibreId: 1,
     totalPages: 300,
   };
@@ -368,7 +369,7 @@ describe("BookHeader", () => {
     });
 
     test("should handle book without totalPages", () => {
-      const bookWithoutPages = { calibreId: 1 };
+      const bookWithoutPages = { id: 1, calibreId: 1 };
 
       render(<BookHeader {...defaultProps} book={bookWithoutPages} />);
 

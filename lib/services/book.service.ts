@@ -8,6 +8,8 @@ import { getLogger } from "@/lib/logger";
 import { validateManualBookInput, type ManualBookInput } from "@/lib/validation/manual-book.schema";
 import { detectDuplicates, type DuplicateDetectionResult } from "@/lib/services/duplicate-detection.service";
 import { generateAuthorSort } from "@/lib/utils/author-sort";
+import { downloadCover } from "@/lib/utils/cover-download";
+import { saveCover } from "@/lib/utils/cover-storage";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -361,6 +363,35 @@ export class BookService {
       },
       "Manual book created successfully"
     );
+
+    // Download cover from provider URL (non-blocking — book creation succeeds even if download fails)
+    if (validatedInput.coverImageUrl) {
+      const coverUrl = validatedInput.coverImageUrl;
+      const bookId = createdBook.id;
+      
+      // Fire-and-forget: download in background, don't await
+      downloadCover(coverUrl)
+        .then((result) => {
+          if (result) {
+            saveCover(bookId, result.buffer, result.mimeType);
+            logger.info(
+              { bookId, coverUrl, mimeType: result.mimeType, size: result.buffer.length },
+              "[BookService] Cover downloaded from provider URL"
+            );
+          } else {
+            logger.warn(
+              { bookId, coverUrl },
+              "[BookService] Failed to download cover from provider URL (non-blocking)"
+            );
+          }
+        })
+        .catch((error) => {
+          logger.warn(
+            { bookId, coverUrl, err: error },
+            "[BookService] Cover download threw error (non-blocking)"
+          );
+        });
+    }
 
     return {
       book: createdBook,

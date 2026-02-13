@@ -7,7 +7,7 @@
 
 This document breaks down the multi-source book tracking feature into executable tasks organized by user story. Each phase represents an independently testable increment of functionality.
 
-**Total Tasks**: 77 (was 89 — Phase 6 eliminated, see Architectural Revision below)  
+**Total Tasks**: 93 (was 77 — Phase C1 added for cover support, see Cover Image Revision below)  
 **Implementation Approach**: Incremental delivery by priority (P1 → P2 → P3)  
 **MVP Scope**: User Story 1 + User Story 2 (P1 stories - manual books with sync isolation)
 
@@ -26,6 +26,16 @@ The original spec treated Hardcover and OpenLibrary as "sources" alongside Calib
 5. Phase 6 (Source Migration) eliminated entirely — was solving a problem that doesn't exist with the corrected model
 6. Dedup during search uses ISBN + fuzzy title/author matching (existing duplicate detection service)
 
+### Cover Image Revision (2026-02-13): Local Filesystem Storage
+
+The original data model included a `coverImageUrl` column for storing external provider URLs. This was never implemented and has been replaced with a local filesystem approach:
+
+- **No schema column**: Cover images stored at `./data/covers/{bookId}.{ext}`, not in the database
+- **Provider search**: Cover URLs from Hardcover/OpenLibrary downloaded to local storage at book creation time
+- **Manual upload**: Users can upload cover images via `POST /api/books/{id}/cover`
+- **Unified API**: `GET /api/books/{id}/cover` serves covers for all books (manual local files, Calibre library files)
+- **Graceful fallback**: Download failures don't block book creation; fallback to `cover-fallback.png`
+
 ---
 
 ## Task Summary by Phase
@@ -40,9 +50,10 @@ The original spec treated Hardcover and OpenLibrary as "sources" alongside Calib
 | ~~6~~ | ~~Source Migration & Duplicates~~ | ~~P2~~ | ~~12~~ | ❌ CANCELLED — See Architectural Revision |
 | 7 | Federated Search | P3 | 16 | 🟡 Partial (11/16) |
 | 8 | Polish & Cross-Cutting | - | 6 | ✅ Complete (6/6) |
+| C1 | Cover Image Support | P2 | 16 | ❌ Not Started (0/16) |
 | R1 | Source/Provider Refactor | - | 12 | ❌ Not Started (0/12) |
 
-**Overall Progress**: 68/77 tasks code-complete (88%), 64/77 fully tested (83%)
+**Overall Progress**: 68/93 tasks code-complete (73%), 64/93 fully tested (69%)
 
 ---
 
@@ -266,6 +277,50 @@ The original spec treated Hardcover and OpenLibrary as "sources" alongside Calib
 
 ---
 
+## Phase C1: Cover Image Support
+
+**Goal**: Enable cover images for manual books via local filesystem storage, provider download, and manual upload. Unify the cover API to serve covers for all book sources.
+
+**Prerequisites**: Phase 3 (Manual Books) and Phase 7 (Federated Search) — covers from provider search require the search flow to exist
+
+**Context**: The original data model specified a `coverImageUrl` database column that was never implemented. Cover images for manual books are instead stored on the local filesystem at `./data/covers/{bookId}.{ext}`. This matches Calibre's filesystem-based approach and aligns with the constitution's self-contained deployment principle. See research.md Section 10 and data-model.md Cover Storage section.
+
+### Backend — Cover Storage Infrastructure
+
+- [ ] TC01 [P] Create cover storage utility (`lib/utils/cover-storage.ts`) with `saveCover(bookId, buffer, ext)`, `getCoverPath(bookId)`, `hasCover(bookId)`, `deleteCover(bookId)`, `ensureCoverDirectory()` functions
+- [ ] TC02 [P] Create cover download utility (`lib/utils/cover-download.ts`) — download image from URL, validate MIME type/size, return buffer + content type. 10-second timeout, 5MB max.
+- [ ] TC03 Ensure `./data/covers/` directory is created at startup — integrate into preflight checks (`lib/db/preflight-checks.ts`) or entrypoint (`scripts/entrypoint.ts`)
+
+### Backend — Cover API Endpoints
+
+- [ ] TC04 [P] Modify `GET /api/books/[id]/cover` route to accept Tome book ID (not Calibre ID), look up the book, and route to local file (manual) or Calibre library path (calibre). Update caching accordingly.
+- [ ] TC05 [P] Create `POST /api/books/[id]/cover` endpoint for manual cover upload — accept multipart form data, validate file type (JPEG/PNG/WebP/GIF) and size (5MB max), save via cover-storage utility
+- [ ] TC06 Handle cover deletion when a book is deleted — extend book deletion logic to call `deleteCover(bookId)`
+
+### Backend — Provider Search Cover Download
+
+- [ ] TC07 [P] Extend `book.service.ts` `createManualBook()` to accept `coverImageUrl` from provider payload (pass-through from `FederatedSearchModal`), download cover after successful book creation, save to local storage. Non-blocking — download failure does not fail book creation.
+- [ ] TC08 Add `coverImageUrl` as optional field to `manualBookSchema` in `lib/validation/manual-book.schema.ts` — validated as URL string, used only for provider download trigger (not stored in DB)
+
+### Frontend — Unified Cover Display
+
+- [ ] TC09 [P] Update `getCoverUrl()` utility (`lib/utils/cover-url.ts`) to generate URLs using Tome book ID instead of Calibre ID: `/api/books/{bookId}/cover?t={timestamp}`. Accept `bookId: number` and `updatedAt?: Date | string | null`.
+- [ ] TC10 [P] Update all frontend components that display covers to use unified `getCoverUrl(book.id, book.updatedAt)` instead of conditionally checking `calibreId`. Components: `BookCard.tsx`, `BookHeader.tsx`, `BookTable.tsx`, `BookListItem.tsx`, `CurrentlyReadingList.tsx`, `DraggableBookTable.tsx`, `FannedBookCovers.tsx`, `app/journal/page.tsx`, `app/series/[name]/page.tsx`, `TagDetailPanel.tsx`, `TagDetailBottomSheet.tsx`, `AddBooksToShelfModal.tsx`
+- [ ] TC11 Remove conditional `calibreId` checks for cover rendering — all books now get a cover URL, the API handles fallbacks server-side
+
+### Frontend — Cover Upload
+
+- [ ] TC12 [P] Add file upload input to `ManualBookForm.tsx` for cover image — accept JPEG/PNG/WebP/GIF, 5MB max, with preview
+- [ ] TC13 Handle cover upload after book creation in manual form submission flow — after `POST /api/books` succeeds, `POST /api/books/{id}/cover` with the selected file
+
+### Testing
+
+- [ ] TC14 [P] Unit tests for cover storage utility (`lib/utils/cover-storage.ts`) — save, get, has, delete, ensure directory
+- [ ] TC15 [P] Unit tests for cover download utility (`lib/utils/cover-download.ts`) — successful download, timeout, invalid MIME type, oversized file, network error
+- [ ] TC16 API tests for cover endpoints — `GET /api/books/{id}/cover` for manual book (with and without cover), `POST /api/books/{id}/cover` upload, cover served after provider search book creation
+
+---
+
 ## Phase R1: Source vs. Metadata Provider Refactor
 
 **Goal**: Formalize the separation between sources (book ownership) and metadata providers (search tools). Remove dead code from the original model.
@@ -319,6 +374,8 @@ Phase 7 (US4: Federated Search) ← Can start after Phase 2
   ↓
 Phase 8 (Polish)
   ↓
+Phase C1 (Cover Image Support) ← Can start after Phase 3; full value after Phase 7
+  ↓
 Phase R1 (Source/Provider Refactor) ← Can start anytime after Phase 7
 ```
 
@@ -352,6 +409,14 @@ Note: Phase 6 (Source Migration) has been CANCELLED. See Architectural Revision.
 - Tasks T073-T076 (provider implementations) parallel to T068-T072
 - Tasks T077-T079 (provider config) parallel to T073-T076
 - Tasks T080-T083 (frontend) parallel after T076 complete
+
+**Within Phase C1 (Cover Image Support)**:
+- Tasks TC01-TC03 (infrastructure) parallel
+- Tasks TC04-TC06 (API endpoints) after TC01 complete
+- Task TC07 (provider download) after TC02 + TC04 complete
+- Tasks TC09-TC11 (frontend display) after TC04 complete, parallel to TC07
+- Tasks TC12-TC13 (upload UI) after TC05 complete
+- Tasks TC14-TC16 (testing) after implementation tasks complete
 
 ---
 
@@ -388,7 +453,8 @@ Note: Phase 6 (Source Migration) has been CANCELLED. See Architectural Revision.
 2. **Complete Phase 2** (Foundational): Services and repositories ready
 3. **Ship MVP** (Phase 3 + Phase 4): Manual books + sync isolation
 4. **Iterate** (Phase 5, 7, 8): Add advanced features incrementally
-5. **Refactor** (Phase R1): Formalize source vs. provider type separation
+5. **Cover Support** (Phase C1): Unified covers for all book sources
+6. **Refactor** (Phase R1): Formalize source vs. provider type separation
 
 ### Testing Strategy
 
@@ -409,7 +475,7 @@ Note: Phase 6 (Source Migration) has been CANCELLED. See Architectural Revision.
 
 Before marking feature complete:
 
-- [ ] All 77 tasks completed and checked off (12 cancelled tasks excluded)
+- [ ] All 93 tasks completed and checked off (12 cancelled tasks excluded)
 - [ ] Each user story independently testable
 - [ ] All existing tests still pass (2000+ tests)
 - [ ] Performance benchmarks met:
@@ -423,6 +489,10 @@ Before marking feature complete:
   - [ ] History preserved (no deletions)
 - [ ] Source/Provider type separation clean (BookSource vs ProviderId)
 - [ ] No `externalId` references remain on book records
+- [ ] No `coverImageUrl` column in database schema
+- [ ] Cover images stored locally at `./data/covers/` (not external URLs)
+- [ ] Cover API serves covers for both manual and Calibre books via Tome book ID
+- [ ] All frontend components use unified `getCoverUrl(bookId)` (not `calibreId`)
 - [ ] Documentation updated (ARCHITECTURE.md, ADRs)
 
 ---

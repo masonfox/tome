@@ -26,7 +26,7 @@ describe("GET /api/series", () => {
   describe("Basic Functionality", () => {
     test("should return all series with book counts", async () => {
       // Arrange: Create books in multiple series
-      await bookRepository.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "Author/Book1 (1)",
         title: "Foundation",
@@ -37,7 +37,7 @@ describe("GET /api/series", () => {
         totalPages: 255,
       });
 
-      await bookRepository.create({
+      const book2 = await bookRepository.create({
         calibreId: 2,
         path: "Author/Book2 (2)",
         title: "Foundation and Empire",
@@ -48,7 +48,7 @@ describe("GET /api/series", () => {
         totalPages: 282,
       });
 
-      await bookRepository.create({
+      const book3 = await bookRepository.create({
         calibreId: 3,
         path: "Author/Book3 (3)",
         title: "Dune",
@@ -74,14 +74,15 @@ describe("GET /api/series", () => {
       expect(foundationSeries.bookCount).toBe(2);
       expect(foundationSeries.bookCoverIds).toBeInstanceOf(Array);
       expect(foundationSeries.bookCoverIds).toHaveLength(2);
-      expect(foundationSeries.bookCoverIds).toEqual([1, 2]);
+      // bookCoverIds now contains Tome book IDs (not Calibre IDs)
+      expect(foundationSeries.bookCoverIds).toEqual([book1.id, book2.id]);
 
       // Verify Dune Chronicles
       const duneSeries = data.find((s: any) => s.name === "Dune Chronicles");
       expect(duneSeries).toBeDefined();
       expect(duneSeries.bookCount).toBe(1);
       expect(duneSeries.bookCoverIds).toHaveLength(1);
-      expect(duneSeries.bookCoverIds).toEqual([3]);
+      expect(duneSeries.bookCoverIds).toEqual([book3.id]);
     });
 
     test("should return empty array when no series exist", async () => {
@@ -151,8 +152,9 @@ describe("GET /api/series", () => {
 
     test("should limit bookCoverIds to first 3 books", async () => {
       // Arrange: Create series with 5 books
+      const bookIds: number[] = [];
       for (let i = 1; i <= 5; i++) {
-        await bookRepository.create({
+        const book = await bookRepository.create({
           calibreId: i,
           path: `Author/Book${i} (${i})`,
           title: `Book ${i}`,
@@ -161,6 +163,7 @@ describe("GET /api/series", () => {
           series: "Long Series",
           seriesIndex: i,
         });
+        bookIds.push(book.id);
       }
 
       // Act
@@ -172,14 +175,15 @@ describe("GET /api/series", () => {
       expect(data).toHaveLength(1);
       expect(data[0].bookCount).toBe(5);
       expect(data[0].bookCoverIds).toHaveLength(5); // Now returns up to 12 covers
-      expect(data[0].bookCoverIds).toEqual([1, 2, 3, 4, 5]);
+      // bookCoverIds now contains Tome book IDs (not Calibre IDs)
+      expect(data[0].bookCoverIds).toEqual(bookIds);
     });
   });
 
   describe("Orphaned Books", () => {
     test("should exclude orphaned books from series counts", async () => {
       // Arrange: Create series with mix of normal and orphaned books
-      await bookRepository.create({
+      const book1 = await bookRepository.create({
         calibreId: 1,
         path: "Author/Book1 (1)",
         title: "Book 1",
@@ -201,7 +205,7 @@ describe("GET /api/series", () => {
         orphaned: true,
       });
 
-      await bookRepository.create({
+      const book3 = await bookRepository.create({
         calibreId: 3,
         path: "Author/Book3 (3)",
         title: "Book 3",
@@ -220,7 +224,8 @@ describe("GET /api/series", () => {
       expect(response.status).toBe(200);
       expect(data).toHaveLength(1);
       expect(data[0].bookCount).toBe(2); // Only non-orphaned books
-      expect(data[0].bookCoverIds).toEqual([1, 3]); // Should not include calibreId 2
+      // bookCoverIds now contains Tome book IDs (not Calibre IDs)
+      expect(data[0].bookCoverIds).toEqual([book1.id, book3.id]); // Should not include orphaned book
     });
 
     test("should not return series that only contain orphaned books", async () => {

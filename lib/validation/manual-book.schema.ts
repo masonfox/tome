@@ -70,6 +70,12 @@ export const manualBookSchema = z.object({
     .array(z.string().min(1, "Tag cannot be empty").max(50, "Tag too long"))
     .max(50, "Too many tags")
     .optional(),
+
+  coverImageUrl: z
+    .string()
+    .url("Invalid cover image URL")
+    .max(2000, "Cover image URL too long")
+    .optional(),
 });
 
 /**

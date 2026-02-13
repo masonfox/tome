@@ -16,6 +16,7 @@ interface BookGridProps {
     tags?: string[];
     totalPages?: number;
     lastSynced?: Date | string | null;
+    updatedAt?: Date | string | null;
   }>;
   loading?: boolean;
   loadingMore?: boolean;
@@ -40,10 +41,9 @@ export function BookGrid({ books, loading = false, loadingMore = false, skeleton
                 id={book.id.toString()}
                 title={book.title}
                 authors={book.authors}
-                calibreId={book.calibreId}
                 source={book.source as BookSource | undefined}
                 status={book.status}
-                lastSynced={book.lastSynced}
+                updatedAt={book.updatedAt}
               />
             ))}
           </div>

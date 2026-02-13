@@ -420,7 +420,68 @@ function sortResults(results: SearchResult[]): SearchResult[] {
 
 ---
 
-### 10. External API Integration Patterns
+### 10. Cover Image Storage Architecture
+
+**Question**: How should cover images for manual (non-Calibre) books be stored and served?
+
+**Context**: Calibre stores covers as `cover.jpg` in each book's directory on the filesystem. The existing cover API (`GET /api/books/{calibreId}/cover`) reads from this Calibre path. Manual books have no Calibre path and no filesystem presence. Meanwhile, Hardcover and OpenLibrary return external cover image URLs in search results — these URLs are available at creation time but were never persisted or downloaded.
+
+**Decision**: Download cover images to local filesystem at `./data/covers/{bookId}.{ext}`
+
+**Rationale**:
+- **Self-contained**: Aligns with constitution's zero-external-dependencies principle. Covers work offline without depending on Hardcover/OpenLibrary CDN availability.
+- **Consistent**: Matches Calibre's filesystem-based approach — all covers are local files served by the same API endpoint.
+- **Resilient**: External cover URLs may expire, change, or become unavailable. Local storage is permanent.
+- **Simple serving**: Unified cover API resolves covers by Tome book ID — routes to local file for manual books, Calibre library path for Calibre books.
+- **No schema change**: No `coverImageUrl` column needed in the books table. Cover presence is determined by checking the filesystem.
+
+**Storage Design**:
+```
+./data/
+├── tome.db              # Existing database
+└── covers/              # NEW: Cover image storage
+    ├── 42.jpg           # Downloaded from Hardcover at book creation
+    ├── 57.png           # Uploaded by user for physical book
+    └── 103.webp         # Downloaded from OpenLibrary at book creation
+```
+
+**Cover Ingestion**:
+```
+Provider Search → createManualBook() → book created → download coverImageUrl
+                                                        ↓
+                                               saveCover(bookId, buffer, ext)
+                                                        ↓
+                                               ./data/covers/{bookId}.{ext}
+                                               (failure: non-blocking, book still created)
+
+Manual Upload → POST /api/books/{id}/cover → validate → saveCover(bookId, buffer, ext)
+```
+
+**Unified Cover API** (`GET /api/books/{id}/cover`):
+```
+Tome Book ID → look up book
+  ├── source='manual' → check ./data/covers/{id}.* → serve file or fallback
+  └── source='calibre' → look up calibreId → Calibre library path → serve file or fallback
+```
+
+**Key change**: The cover API parameter changes from **Calibre ID** to **Tome book ID**. The `getCoverUrl()` utility and all 12+ frontend components update accordingly. This is actually a simplification — one path for all covers, routing logic is server-side.
+
+**Alternatives Considered**:
+- ❌ **Store external URL in database column (`coverImageUrl`)**: Depends on external CDN availability, URLs expire, violates self-contained deployment principle
+- ❌ **Hybrid (URL + local download)**: Most complex, redundant storage, `coverImageUrl` column adds schema bloat for no practical benefit when local copy exists
+- ❌ **Store in public/ directory**: Mixes user data with application assets, complicates deployment and backup
+
+**Constraints**:
+- Maximum file size: 5MB
+- Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+- Cover download timeout: 10 seconds
+- Download failures are non-blocking — book creation succeeds regardless
+- Users can upload covers for manual books via multipart form endpoint
+- `./data/covers/` directory created at startup (preflight checks or entrypoint)
+
+---
+
+### 11. External API Integration Patterns
 
 **Question**: How should external API integrations (Hardcover, OpenLibrary) be structured?
 
@@ -493,6 +554,7 @@ export class HardcoverProvider implements IMetadataProvider {
 | Calibre Sync | Source filter in queries | Surgical change, preserves isolation |
 | Health Monitoring | Binary states + circuit breaker | Simplicity, automatic detection |
 | Provider Priority | Hardcoded for Phase 1 | Avoid premature optimization |
+| Cover Storage | Local filesystem (`./data/covers/`) | Self-contained, offline, consistent with Calibre |
 | API Integration | Provider-specific services | Encapsulation + testability |
 
 ---

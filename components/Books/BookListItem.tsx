@@ -22,6 +22,7 @@ interface BookListItemProps {
     status?: string | null;
     currentProgress?: number;
     lastSynced?: Date | string | null;
+    updatedAt?: Date | string | null;
   };
   actions?: ReactNode;
   showProgress?: boolean;
@@ -94,9 +95,9 @@ export const BookListItem = memo(function BookListItem({
           onClick={(e) => isSelectMode && e.preventDefault()}
         >
           <div className="w-16 h-24 bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-lg">
-            {!imageError && book.calibreId ? (
+            {!imageError ? (
               <Image
-                src={getCoverUrl(book.calibreId, book.lastSynced)}
+                src={getCoverUrl(book.id, book.updatedAt)}
                 alt={book.title}
                 fill
                 loading="lazy"

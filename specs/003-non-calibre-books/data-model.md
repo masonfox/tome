@@ -1,7 +1,8 @@
 # Data Model: Support Non-Calibre Books
 
 **Branch**: `003-non-calibre-books` | **Date**: 2026-02-05  
-**Revised**: 2026-02-13 (Source vs. Metadata Provider Separation)
+**Revised**: 2026-02-13 (Source vs. Metadata Provider Separation)  
+**Revised**: 2026-02-13 (Cover Image Storage — Local Filesystem)
 
 This document defines the complete data model for multi-source book tracking, including schema changes, new entities, and relationships.
 
@@ -67,7 +68,8 @@ export const books = sqliteTable('books', {
   publisher: text('publisher'),
   publicationDate: text('publication_date'),  // YYYY-MM-DD
   description: text('description'),
-  coverImageUrl: text('cover_image_url'),
+  // Cover images stored on local filesystem at ./data/covers/{bookId}.{ext}
+  // See "Cover Storage" section below — no coverImageUrl column in schema
   path: text('path'),  // Calibre-specific, null for non-Calibre books
   rating: integer('rating'),  // 1-5 stars
   tags: text('tags', { mode: 'json' }).$type<string[]>().default([]),
@@ -226,6 +228,99 @@ Foreign Key: progressLogs.bookId → books.id (CASCADE DELETE)
 
 ## Data Access Patterns
 
+### Cover Storage (Filesystem)
+
+**Purpose**: Store and serve book cover images for all book sources using local filesystem storage
+
+**Design Decision**: Cover images are stored on the local filesystem rather than as URLs in the database. This aligns with the constitution's self-contained deployment principle — covers work offline, don't depend on external CDN availability, and are consistent with how Calibre stores covers.
+
+**Storage Location**: `./data/covers/{bookId}.{ext}` (sibling to `./data/tome.db`)
+
+**Cover Sources**:
+
+| Book Source | Cover Origin | Storage Mechanism |
+|-------------|-------------|-------------------|
+| Calibre | `{libraryPath}/{bookPath}/cover.jpg` | Served directly from Calibre library (existing behavior, unchanged) |
+| Manual (provider search) | Downloaded from provider URL at creation time | Saved to `./data/covers/{bookId}.{ext}` |
+| Manual (file upload) | User uploads image via multipart form | Saved to `./data/covers/{bookId}.{ext}` |
+| Manual (no cover) | N/A | Fallback to `public/cover-fallback.png` |
+
+**File Naming Convention**:
+```
+./data/covers/
+├── 42.jpg       # Manual book ID 42, downloaded from Hardcover
+├── 57.png       # Manual book ID 57, uploaded by user
+└── 103.webp     # Manual book ID 103, downloaded from OpenLibrary
+```
+
+- Filename: `{tomeBookId}.{originalExtension}`
+- One cover per book (uploading/downloading a new cover replaces the old one)
+- Supported formats: JPEG, PNG, WebP, GIF
+
+**Cover Resolution Flow** (`GET /api/books/{id}/cover`):
+```
+1. Look up book by Tome book ID
+2. If source='manual':
+   a. Check ./data/covers/{id}.* for local cover file
+   b. If found → serve file with appropriate Content-Type
+   c. If not found → serve cover-fallback.png
+3. If source='calibre':
+   a. Look up calibreId → Calibre book path
+   b. Serve {libraryPath}/{bookPath}/cover.jpg (existing behavior)
+   c. If not found → serve cover-fallback.png
+```
+
+**Cover Ingestion Flows**:
+
+*Provider Search (Hardcover/OpenLibrary)*:
+```
+FederatedSearchModal selects result with coverImageUrl
+  → POST /api/books (create manual book)
+  → book.service.ts createManualBook() receives coverImageUrl in payload
+  → After successful book creation, download cover image from URL
+  → saveCover(bookId, imageBuffer, ext)
+  → If download fails: book still created, no cover (graceful fallback)
+```
+
+*Manual File Upload*:
+```
+ManualBookForm includes file upload input
+  → After book creation, POST /api/books/{id}/cover (multipart form data)
+  → Validate file type and size
+  → saveCover(bookId, imageBuffer, ext)
+```
+
+**Cover Utility** (`lib/utils/cover-storage.ts`):
+```typescript
+// Core operations
+saveCover(bookId: number, buffer: Buffer, ext: string): Promise<string>  // Returns file path
+getCoverPath(bookId: number): string | null  // Returns path or null if no cover
+hasCover(bookId: number): boolean
+deleteCover(bookId: number): void
+
+// Directory management
+ensureCoverDirectory(): void  // Create ./data/covers/ if it doesn't exist
+```
+
+**Constraints**:
+- Maximum file size: 5MB
+- Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+- Cover download timeout: 10 seconds (matches metadata fetch timeout from FR-018)
+- Download failures are non-blocking — book creation succeeds regardless
+
+**Cover URL Utility Change** (`lib/utils/cover-url.ts`):
+
+The existing `getCoverUrl(calibreId, lastSynced)` must be replaced with a unified function that works for all books:
+```typescript
+// NEW: Works for all books (Calibre and manual)
+getCoverUrl(bookId: number, updatedAt?: Date | string | null): string
+// Returns: /api/books/{bookId}/cover?t={timestamp}
+```
+
+All frontend components (BookCard, BookHeader, BookTable, BookListItem, CurrentlyReadingList, DraggableBookTable, FannedBookCovers, journal page, series page, tag panels, shelf modals) must be updated to pass `book.id` instead of `book.calibreId`.
+
+---
+
 ### Repository Extensions
 
 #### BookRepository (EXTENDED)
@@ -306,12 +401,14 @@ class ProviderConfigRepository extends BaseRepository<ProviderConfig> {
   publisher: string | null,    // Optional
   publicationDate: string | null,  // Optional (YYYY-MM-DD)
   description: string | null,  // Optional
-  coverImageUrl: string | null,    // Optional (validated URL)
+  // Cover image: handled separately via file upload or provider download
+  // Stored on filesystem at ./data/covers/{bookId}.{ext}, NOT in the database
 }
 ```
 
 Note: Books added via Hardcover or OpenLibrary search use the same `source='manual'`
-schema — the provider is used only to pre-populate metadata fields.
+schema — the provider is used only to pre-populate metadata fields. Cover images from
+provider search results are downloaded to local storage at book creation time.
 
 ### Provider Configuration
 

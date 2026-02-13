@@ -1,14 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
+import { ImagePlus, X } from "lucide-react";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
 
 const logger = getLogger().child({ component: "ManualBookForm" });
+
+/** Max cover file size in bytes (5MB) */
+const MAX_COVER_SIZE = 5 * 1024 * 1024;
+
+/** Accepted cover MIME types */
+const ACCEPTED_COVER_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+/** Accept string for file input */
+const ACCEPTED_COVER_INPUT = ".jpg,.jpeg,.png,.webp,.gif";
 
 interface ManualBookFormProps {
   isOpen: boolean;
@@ -38,6 +48,11 @@ export default function ManualBookForm({
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
 
+  // Cover upload state
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -57,11 +72,16 @@ export default function ManualBookForm({
       setSeriesIndex("");
       setDescription("");
       setTags("");
+      setCoverFile(null);
+      if (coverPreviewUrl) {
+        URL.revokeObjectURL(coverPreviewUrl);
+        setCoverPreviewUrl(null);
+      }
       setValidationErrors({});
       setDuplicates([]);
       setShowDuplicateWarning(false);
     }
-  }, [isOpen]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time validation on blur (title and authors only)
   const validateField = async (field: "title" | "authors") => {
@@ -106,6 +126,63 @@ export default function ManualBookForm({
         logger.error({ error }, "Failed to check for duplicates");
       }
     }
+  };
+
+  /** Validate and set cover file, creating a preview URL */
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type
+    if (!ACCEPTED_COVER_TYPES.includes(file.type)) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        cover: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, WebP, GIF`,
+      }));
+      return;
+    }
+
+    // Validate size
+    if (file.size > MAX_COVER_SIZE) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        cover: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum: 5MB`,
+      }));
+      return;
+    }
+
+    // Clear any previous cover error
+    setValidationErrors((prev) => {
+      const updated = { ...prev };
+      delete updated.cover;
+      return updated;
+    });
+
+    // Revoke previous preview URL
+    if (coverPreviewUrl) {
+      URL.revokeObjectURL(coverPreviewUrl);
+    }
+
+    setCoverFile(file);
+    setCoverPreviewUrl(URL.createObjectURL(file));
+  };
+
+  /** Remove the selected cover file */
+  const handleCoverRemove = () => {
+    setCoverFile(null);
+    if (coverPreviewUrl) {
+      URL.revokeObjectURL(coverPreviewUrl);
+      setCoverPreviewUrl(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    // Clear cover error if any
+    setValidationErrors((prev) => {
+      const updated = { ...prev };
+      delete updated.cover;
+      return updated;
+    });
   };
 
   const handleSubmit = async () => {
@@ -181,6 +258,34 @@ export default function ManualBookForm({
 
       const result = await response.json();
       logger.info({ bookId: result.book.id }, "Manual book created successfully");
+
+      // Upload cover image if one was selected (TC13)
+      if (coverFile) {
+        try {
+          const formData = new FormData();
+          formData.append("cover", coverFile);
+
+          const coverResponse = await fetch(`/api/books/${result.book.id}/cover`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!coverResponse.ok) {
+            const coverError = await coverResponse.json();
+            logger.warn(
+              { bookId: result.book.id, error: coverError },
+              "Cover upload failed, but book was created successfully"
+            );
+            // Non-blocking: book is created, just warn about cover
+            toast.warning(`Book added, but cover upload failed: ${coverError.error || "Unknown error"}`);
+          } else {
+            logger.info({ bookId: result.book.id }, "Cover uploaded successfully");
+          }
+        } catch (coverError) {
+          logger.error({ error: coverError }, "Cover upload request failed");
+          // Non-blocking: book created successfully
+        }
+      }
       
       toast.success(`"${result.book.title}" added to your library`);
       onSuccess(result.book.id);
@@ -410,6 +515,61 @@ export default function ManualBookForm({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               placeholder="e.g., fiction, fantasy (comma-separated)"
             />
+          </div>
+
+          {/* Cover Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Cover Image
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_COVER_INPUT}
+              onChange={handleCoverSelect}
+              className="hidden"
+              id="cover-upload"
+            />
+            {coverPreviewUrl ? (
+              <div className="flex items-start gap-3">
+                <div className="relative w-20 h-28 rounded overflow-hidden border border-gray-300 dark:border-gray-600 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={coverPreviewUrl}
+                    alt="Cover preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                    {coverFile?.name}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {coverFile ? `${(coverFile.size / 1024).toFixed(0)} KB` : ""}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCoverRemove}
+                    className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 mt-1"
+                  >
+                    <X className="w-3 h-3" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors w-full"
+              >
+                <ImagePlus className="w-4 h-4" />
+                Choose cover image (JPEG, PNG, WebP, GIF — max 5MB)
+              </button>
+            )}
+            {validationErrors.cover && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.cover}</p>
+            )}
           </div>
 
           {/* Description */}

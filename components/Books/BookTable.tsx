@@ -27,7 +27,7 @@ interface BookTableBook {
   addedAt?: Date | null;
   status?: string | null;
   sortOrder?: number;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface BookTableProps {
@@ -63,8 +63,8 @@ export function BookTable({
 }: BookTableProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
-  const handleImageError = (calibreId: number) => {
-    setImageErrors((prev) => new Set(prev).add(calibreId));
+  const handleImageError = (bookId: number) => {
+    setImageErrors((prev) => new Set(prev).add(bookId));
   };
 
   const handleColumnClick = (column: string) => {
@@ -190,7 +190,7 @@ export function BookTable({
         </thead>
         <tbody className="divide-y divide-[var(--border-color)]">
           {books.map((book, index) => {
-            const hasImageError = book.calibreId ? imageErrors.has(book.calibreId) : true;
+            const hasImageError = imageErrors.has(book.id);
             const seriesInfo = book.series && book.seriesIndex
               ? `${book.series} #${book.seriesIndex}`
               : book.series || "-";
@@ -226,14 +226,14 @@ export function BookTable({
                 <td className="px-4 py-3">
                   <Link href={`/books/${book.id}`} className="block">
                     <div className="w-10 h-[60px] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden rounded relative shadow-sm hover:shadow-lg transition-shadow duration-300 ease">
-                      {!hasImageError && book.calibreId ? (
+                      {!hasImageError ? (
                         <Image
-                          src={getCoverUrl(book.calibreId, book.lastSynced)}
+                          src={getCoverUrl(book.id, book.updatedAt)}
                           alt={book.title}
                           fill
                           loading="lazy"
                           className="object-cover"
-                          onError={() => handleImageError(book.calibreId!)}
+                          onError={() => handleImageError(book.id)}
                         />
                       ) : (
                         <BookOpen className="w-5 h-5 text-[var(--accent)]/40" />
