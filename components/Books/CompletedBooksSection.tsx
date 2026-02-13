@@ -9,6 +9,7 @@ interface CompletedBooksSectionProps {
   year: number;
   books: Array<{
     id: number;
+    sessionId: number;
     calibreId: number;
     title: string;
     authors: string[];
@@ -100,7 +101,7 @@ export function CompletedBooksSection({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
           {filteredBooks.map((book) => (
             <BookCard
-              key={book.id}
+              key={book.sessionId}
               id={book.id.toString()}
               title={book.title}
               authors={book.authors}

@@ -2,6 +2,7 @@ import { toProgressDate } from '@/__tests__/test-utils';
 import { test, expect, describe, beforeAll, afterAll, beforeEach } from 'vitest';
 import { progressRepository, bookRepository, sessionRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
+import type { TestDatabaseInstance } from "@/__tests__/helpers/db-setup";
 
 /**
  * Test suite for ProgressRepository
@@ -9,16 +10,18 @@ import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__
  * Focus area: Testing the getEarliestProgressDate() method added for chart trimming
  */
 
+let testDb: TestDatabaseInstance;
+
 beforeAll(async () => {
-  await setupTestDatabase(__filename);
+  testDb = await setupTestDatabase(__filename);
 });
 
 afterAll(async () => {
-  await teardownTestDatabase(__filename);
+  await teardownTestDatabase(testDb);
 });
 
 beforeEach(async () => {
-  await clearTestDatabase(__filename);
+  await clearTestDatabase(testDb);
 });
 
 describe("ProgressRepository.getEarliestProgressDate()", () => {
@@ -838,5 +841,207 @@ describe("ProgressRepository.recalculatePercentagesForBook()", () => {
 
     expect(logs1[0].currentPercentage).toBe(25); // floor(150/600 * 100) = 25
     expect(logs2[0].currentPercentage).toBe(50); // Unchanged
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Malformed date defense tests
+// ---------------------------------------------------------------------------
+// These tests verify that the isValidDateFormat() GLOB guard in the
+// progress repository correctly rejects progress logs whose progressDate
+// is not a valid YYYY-MM-DD string.  Malformed values are injected via
+// raw SQL to bypass ORM type-safety.
+// ---------------------------------------------------------------------------
+
+describe("Malformed date defense (isValidDateFormat guard)", () => {
+  // --- Raw SQL helpers (bypass ORM type safety) ----------------------------
+
+  function insertBook(title: string, calibreId: number): number {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
+         VALUES (?, ?, '[]', '[]', '/test', 0)`
+      )
+      .run(title, calibreId);
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  function insertSession(bookId: number, status: string): number {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO reading_sessions (book_id, session_number, status, is_active)
+         VALUES (?, 1, ?, 1)`
+      )
+      .run(bookId, status);
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  function insertProgressLog(opts: {
+    bookId: number;
+    sessionId: number;
+    progressDate: string;
+    pagesRead?: number;
+    currentPage?: number;
+  }): void {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO progress_logs (book_id, session_id, progress_date, current_page, current_percentage, pages_read)
+         VALUES (?, ?, ?, ?, 0, ?)`
+      )
+      .run(
+        opts.bookId,
+        opts.sessionId,
+        opts.progressDate,
+        opts.currentPage ?? 100,
+        opts.pagesRead ?? 25
+      );
+  }
+
+  // Representative malformed date strings that could appear in the database
+  const MALFORMED_DATES = [
+    "1737676800",             // Unix timestamp (numeric string)
+    "2026-01",                // Partial date (YYYY-MM)
+    "2026-03-15T10:30:00",    // ISO datetime with time suffix
+    "March 15, 2026",         // Human-readable format
+    "15/03/2026",             // DD/MM/YYYY format
+    "not-a-date",             // Completely invalid
+    "",                       // Empty string
+  ];
+
+  // --- getPagesReadByYear() ------------------------------------------------
+
+  describe("getPagesReadByYear()", () => {
+    test("should not sum pages from logs with malformed progressDate", async () => {
+      const bookId = insertBook("Malformed Progress Book", 800);
+      const sessionId = insertSession(bookId, "reading");
+
+      // Insert logs with malformed dates (each 25 pages)
+      for (const badDate of MALFORMED_DATES) {
+        insertProgressLog({
+          bookId,
+          sessionId,
+          progressDate: badDate,
+          pagesRead: 25,
+        });
+      }
+
+      // Insert one valid log
+      insertProgressLog({
+        bookId,
+        sessionId,
+        progressDate: "2026-06-15",
+        pagesRead: 42,
+      });
+
+      const total = await progressRepository.getPagesReadByYear(2026);
+      expect(total).toBe(42); // Only the valid log should be summed
+    });
+  });
+
+  // --- getPagesReadByYearMonth() -------------------------------------------
+
+  describe("getPagesReadByYearMonth()", () => {
+    test("should not sum pages from logs with malformed progressDate", async () => {
+      const bookId = insertBook("Malformed YearMonth Book", 801);
+      const sessionId = insertSession(bookId, "reading");
+
+      for (const badDate of MALFORMED_DATES) {
+        insertProgressLog({
+          bookId,
+          sessionId,
+          progressDate: badDate,
+          pagesRead: 30,
+        });
+      }
+
+      // Insert one valid log in February 2026
+      insertProgressLog({
+        bookId,
+        sessionId,
+        progressDate: "2026-02-14",
+        pagesRead: 55,
+      });
+
+      const total = await progressRepository.getPagesReadByYearMonth(2026, 2);
+      expect(total).toBe(55); // Only the valid log
+    });
+  });
+
+  // --- getPagesReadByDate() ------------------------------------------------
+
+  describe("getPagesReadByDate()", () => {
+    test("should not sum pages from logs with malformed progressDate", async () => {
+      const bookId = insertBook("Malformed DateExact Book", 802);
+      const sessionId = insertSession(bookId, "reading");
+
+      // Insert logs with malformed dates
+      for (const badDate of MALFORMED_DATES) {
+        insertProgressLog({
+          bookId,
+          sessionId,
+          progressDate: badDate,
+          pagesRead: 10,
+        });
+      }
+
+      // Insert valid log on the target date
+      insertProgressLog({
+        bookId,
+        sessionId,
+        progressDate: "2026-04-01",
+        pagesRead: 37,
+      });
+
+      const total = await progressRepository.getPagesReadByDate("2026-04-01");
+      expect(total).toBe(37); // Only the valid log
+    });
+  });
+
+  // --- getAveragePagesPerDay() ---------------------------------------------
+
+  describe("getAveragePagesPerDay()", () => {
+    test("should not include logs with malformed progressDate", async () => {
+      const bookId = insertBook("Malformed Average Book", 803);
+      const sessionId = insertSession(bookId, "reading");
+
+      // Insert logs with malformed dates
+      for (const badDate of MALFORMED_DATES) {
+        insertProgressLog({
+          bookId,
+          sessionId,
+          progressDate: badDate,
+          pagesRead: 100,
+        });
+      }
+
+      // Insert two valid logs on different days
+      insertProgressLog({
+        bookId,
+        sessionId,
+        progressDate: "2026-01-10",
+        pagesRead: 40,
+      });
+      insertProgressLog({
+        bookId,
+        sessionId,
+        progressDate: "2026-01-11",
+        pagesRead: 60,
+      });
+
+      // Average = (40 + 60) / 2 days = 50
+      const avg = await progressRepository.getAveragePagesPerDay("2026-01-01");
+      expect(avg).toBe(50);
+    });
   });
 });

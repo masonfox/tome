@@ -12,7 +12,7 @@ interface BooksResponse {
   data: {
     year: number;
     count: number;
-    books: Array<Book & { completedDate: string }>;  // YYYY-MM-DD format
+    books: Array<Book & { completedDate: string; sessionId: number }>;  // YYYY-MM-DD format, sessionId for unique React keys
   };
 }
 

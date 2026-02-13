@@ -255,6 +255,49 @@ async findAfterDate(dateString: string): Promise<ProgressLog[]>
 
 **Pattern established:** Repository methods work with YYYY-MM-DD strings directly. Services handle Date → string conversion using `toDateString()` helper when needed.
 
+### Defense-in-Depth: GLOB Date Validation
+
+After the INTEGER → TEXT migration, a **defense-in-depth** guard was added to all SQL queries that apply `strftime()`, `substr()`, or lexicographic date comparison to date TEXT columns.
+
+#### Why it exists
+
+Migration 0016 converts existing timestamps to YYYY-MM-DD strings, but it only processes data **present at migration time**. Data imported *after* migration runs (e.g., bulk session creation during Calibre sync, manual creation, or future migrations) could still contain non-date values. Without validation, `strftime()` on a non-date string produces `NULL`, causing rows to silently drop from aggregation results.
+
+#### How it works
+
+SQLite's `GLOB` operator validates that the column value matches the pattern `[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]` (four digits, hyphen, two digits, hyphen, two digits). This rejects:
+
+- Unix timestamps stored as text (e.g., `"1704697200"`)
+- Empty strings or `NULL` values that passed `IS NOT NULL` checks
+- Malformed date strings (e.g., `"Jan 8, 2025"`)
+
+#### Shared constant and helper
+
+The pattern is defined as a shared constant in `lib/db/sql-helpers.ts`:
+
+```typescript
+import { isValidDateFormat } from "@/lib/db/sql-helpers";
+
+// Use before any strftime() or date comparison:
+.where(
+  and(
+    isValidDateFormat(progressLogs.progressDate),
+    sql`strftime('%Y', ${progressLogs.progressDate}) = ${year.toString()}`
+  )
+)
+```
+
+The raw pattern string is also exported as `DATE_GLOB_PATTERN` for cases that need it directly.
+
+#### When to use it
+
+Add `isValidDateFormat(column)` to the WHERE clause of **any** query that:
+- Applies `strftime()` to extract year, month, or day from a date TEXT column
+- Uses `substr()` on a date TEXT column
+- Performs lexicographic comparison (e.g., `>=`, `<=`) where invalid data could produce incorrect results
+
+Columns that require this guard: `progressLogs.progressDate`, `readingSessions.startedDate`, `readingSessions.completedDate`.
+
 ## Consequences
 
 ### Positive
@@ -448,6 +491,9 @@ Current implementation already supports per-user timezones:
 **Validation:**
 - `lib/utils/date-validation.ts` (NEW)
 - `lib/api/schemas/progress.schemas.ts`
+
+**SQL Helpers:**
+- `lib/db/sql-helpers.ts` - Shared `DATE_GLOB_PATTERN` constant and `isValidDateFormat()` helper
 
 **Tests:**
 - `__tests__/api/progress-date-validation.test.ts` (NEW - 28 tests)

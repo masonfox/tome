@@ -561,6 +561,94 @@ describe("ProgressService", () => {
     });
   });
 
+  describe("logProgress - page bounds validation", () => {
+    test("should reject page number exceeding totalPages", async () => {
+      // mockBook1 has totalPages: 1040
+      await expect(
+        progressService.logProgress(book1.id, { currentPage: 1111 })
+      ).rejects.toThrow("Page 1111 exceeds the book's total of 1040 pages");
+    });
+
+    test("should reject page one beyond totalPages", async () => {
+      await expect(
+        progressService.logProgress(book1.id, { currentPage: 1041 })
+      ).rejects.toThrow("Page 1041 exceeds the book's total of 1040 pages");
+    });
+
+    test("should accept page exactly at totalPages", async () => {
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 1040,
+      });
+
+      expect(result.progressLog.currentPage).toBe(1040);
+      expect(result.progressLog.currentPercentage).toBe(100);
+    });
+
+    test("should accept page below totalPages", async () => {
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 500,
+      });
+
+      expect(result.progressLog.currentPage).toBe(500);
+    });
+
+    test("should allow progress for books without totalPages", async () => {
+      // Create a book without totalPages
+      const bookNoPages = await bookRepository.create(createTestBook({
+        calibreId: 9999,
+        title: "No Pages Book",
+        authors: ["Author"],
+        path: "/test/no-pages",
+        totalPages: null as any,
+      }));
+      const sessionNoPages = await sessionRepository.create(createTestSession({
+        ...mockSessionReading,
+        bookId: bookNoPages.id,
+      }));
+
+      // Should not throw - no totalPages means no upper bound to enforce
+      const result = await progressService.logProgress(bookNoPages.id, {
+        currentPage: 9999,
+      });
+
+      expect(result.progressLog.currentPage).toBe(9999);
+    });
+
+    test("should include helpful error message", async () => {
+      await expect(
+        progressService.logProgress(book1.id, { currentPage: 2000 })
+      ).rejects.toThrow("Please check your input or update the book's page count");
+    });
+  });
+
+  describe("updateProgress - page bounds validation", () => {
+    test("should reject edit that sets page beyond totalPages", async () => {
+      const progress = await progressRepository.create(createTestProgress({
+        ...mockProgressLog1,
+        bookId: book1.id,
+        sessionId: session.id,
+      }));
+
+      await expect(
+        progressService.updateProgress(progress.id, { currentPage: 1041 })
+      ).rejects.toThrow("Page 1041 exceeds the book's total of 1040 pages");
+    });
+
+    test("should accept edit that sets page exactly at totalPages", async () => {
+      const progress = await progressRepository.create(createTestProgress({
+        ...mockProgressLog1,
+        bookId: book1.id,
+        sessionId: session.id,
+      }));
+
+      const result = await progressService.updateProgress(progress.id, {
+        currentPage: 1040,
+      });
+
+      expect(result.currentPage).toBe(1040);
+    });
+  });
+
   describe("deleteProgress", () => {
     test("should delete progress entry successfully", async () => {
       const progress = await progressRepository.create(createTestProgress({
