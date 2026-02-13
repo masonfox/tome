@@ -2,11 +2,12 @@
 
 **Branch**: `003-non-calibre-books` | **Date**: 2026-02-05  
 **Revised**: 2026-02-13 (Source vs. Metadata Provider Separation)  
-**Revised**: 2026-02-13 (Cover Image Storage — Local Filesystem)
+**Revised**: 2026-02-13 (Cover Image Storage — Local Filesystem)  
+**Revised**: 2026-02-13 (Many-to-Many Book Sources Architecture)
 
 This document defines the complete data model for multi-source book tracking, including schema changes, new entities, and relationships.
 
-### Architectural Revision (2026-02-13)
+### Architectural Revision #1 (2026-02-13): Source vs. Metadata Provider
 
 The original model treated Hardcover and OpenLibrary as "sources" stored on book records. After analysis, this conflated two distinct concepts:
 
@@ -20,6 +21,45 @@ Key changes from original spec:
 4. Source migration concept eliminated
 5. Books added via federated search always get `source='manual'`
 
+### Architectural Revision #2 (2026-02-13): Many-to-Many Book Sources
+
+To support future multi-source integrations (e.g., Audiobookshelf where audiobooks supplement Calibre ebooks), the single-source model has been refactored to many-to-many:
+
+**Previous Model**:
+```typescript
+books {
+  source: 'calibre' | 'manual'  // Single source per book
+}
+```
+
+**New Model**:
+```typescript
+books {
+  // source field REMOVED - no longer single-source
+}
+
+book_sources {  // NEW many-to-many table
+  book_id: FK → books.id
+  provider_id: 'calibre' | 'audiobookshelf' | ...
+  external_id: Provider's ID
+  is_primary: boolean  // Which source is metadata authority
+}
+```
+
+Key changes:
+1. `books.source` field removed (many-to-many relationship)
+2. `book_sources` table added (tracks which providers have records for each book)
+3. Books with NO `book_sources` entries are implicitly "manual" or "unconnected"
+4. Books can exist in multiple sources simultaneously (e.g., Calibre + Audiobookshelf)
+5. "manual" provider removed from `provider_configs` (no longer needed)
+6. `books.calibre_id` temporarily kept as deprecated field during transition
+
+**Benefits**:
+- Enables multi-source books (audiobook + ebook versions)
+- Clean "manual" book model (absence of sources, not a source itself)
+- Future "To Get" status (books without sources that user wants to acquire)
+- Audiobookshelf integration without architectural changes
+
 ---
 
 ## Schema Changes to Existing Entities
@@ -28,24 +68,18 @@ Key changes from original spec:
 
 **Purpose**: Support books from multiple sources beyond Calibre
 
-**New Fields**:
+**Removed Fields** (per 2026-02-13 many-to-many revision):
 ```typescript
 {
-  source: string;          // NEW: 'calibre' | 'manual'
-}
-```
-
-**Removed Fields** (per 2026-02-13 revision):
-```typescript
-{
-  // externalId: REMOVED — metadata providers are ephemeral, no tracking on book records
+  // source: REMOVED — replaced by book_sources many-to-many table
 }
 ```
 
 **Modified Fields**:
 ```typescript
 {
-  calibreId: number | null;  // CHANGED: Now nullable (was NOT NULL)
+  calibreId: number | null;  // DEPRECATED: Will be removed in future migration
+                            // Use bookSourceRepository to query sources
 }
 ```
 
@@ -55,10 +89,10 @@ Key changes from original spec:
 export const books = sqliteTable('books', {
   // Identity
   id: integer('id').primaryKey({ autoIncrement: true }),
-  calibreId: integer('calibre_id'),  // NULLABLE (legacy field for Calibre books)
-  source: text('source', { enum: ['calibre', 'manual'] })
-    .notNull()
-    .default('calibre'),
+  
+  // DEPRECATED: Legacy Calibre ID (will be removed in future migration)
+  // Use bookSourceRepository to query book sources instead
+  calibreId: integer('calibre_id').unique(),
   
   // Metadata (existing fields)
   title: text('title').notNull(),
@@ -82,17 +116,103 @@ export const books = sqliteTable('books', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
-  // Legacy Calibre index (keep for backward compatibility)
+  // Legacy Calibre index (keep for backward compatibility during transition)
   calibreIdIdx: uniqueIndex('idx_books_calibre_id').on(table.calibreId).where(sql`calibre_id IS NOT NULL`),
-  
-  // Source-based filtering
-  sourceIdx: index('idx_books_source').on(table.source),
 }));
 ```
 
 **Constraints**:
 - ✅ Unique on `calibreId` where `calibreId IS NOT NULL` (legacy compatibility)
 - ❌ No cross-source duplicate prevention at schema level (handled by application logic via ISBN/title+author matching)
+
+---
+
+### Book Sources Table (NEW)
+
+**Purpose**: Many-to-many relationship tracking which providers have records for each book
+
+**Schema**:
+```typescript
+// lib/db/schema/book-sources.ts
+export const bookSources = sqliteTable('book_sources', {
+  // Identity
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  
+  // Relationships
+  bookId: integer('book_id')
+    .notNull()
+    .references(() => books.id, { onDelete: 'cascade' }),
+  
+  // Source Provider
+  providerId: text('provider_id').notNull(),  // 'calibre' | 'audiobookshelf' | ...
+  externalId: text('external_id'),            // Provider's ID for this book
+  
+  // Metadata Authority
+  isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+  
+  // Sync Metadata
+  lastSynced: integer('last_synced', { mode: 'timestamp' }),
+  syncEnabled: integer('sync_enabled', { mode: 'boolean' }).notNull().default(true),
+  
+  // Provider-Specific Data
+  metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+  
+  // Timestamps
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  bookIdIdx: index('idx_book_sources_book_id').on(table.bookId),
+  providerIdIdx: index('idx_book_sources_provider_id').on(table.providerId),
+  externalIdIdx: index('idx_book_sources_external_id').on(table.externalId),
+  isPrimaryIdx: index('idx_book_sources_is_primary').on(table.isPrimary),
+  bookProviderUnique: uniqueIndex('book_sources_book_provider_unique').on(table.bookId, table.providerId),
+}));
+
+export type BookSource = typeof bookSources.$inferSelect;
+export type NewBookSource = typeof bookSources.$inferInsert;
+```
+
+**Constraints**:
+- ✅ Foreign key to `books.id` with CASCADE DELETE
+- ✅ Unique constraint on `(book_id, provider_id)` - one entry per book-provider pair
+- ✅ Indexes on `book_id`, `provider_id`, `external_id`, `is_primary` for query performance
+
+**Key Behaviors**:
+- **Books with NO entries**: Implicit "manual" or "unconnected" books (no provider badge shown)
+- **Books with ONE entry**: Single-source books (e.g., only Calibre) - one badge shown
+- **Books with MULTIPLE entries**: Multi-source books (e.g., Calibre + Audiobookshelf) - multiple badges shown
+- **Primary source**: `is_primary = true` determines which source is metadata authority (for conflict resolution)
+
+**Migration Notes**:
+1. **Schema Migration** (`drizzle/0022_regenerated.sql`):
+   - Create `book_sources` table
+   - Remove `books.source` field
+   - Keep `books.calibre_id` temporarily (mark deprecated)
+
+2. **Data Migration** (`lib/migrations/0022_seed_provider_configs.ts`):
+   - Populate `book_sources` from existing `books.source='calibre'` records
+   - Set `is_primary=true` for all migrated entries
+   - Books with `source='manual'` get NO `book_sources` entry (implicit manual)
+
+3. **Future Migration** (Phase R2):
+   - Remove `books.calibre_id` field after transition complete
+   - Update all queries to use `bookSourceRepository`
+
+---
+
+## Removed Entities
+
+### books.source Field (REMOVED)
+
+**Rationale**: Single-source model inadequate for future multi-source integrations (e.g., Audiobookshelf). Many-to-many `book_sources` table provides:
+- Books in multiple sources simultaneously
+- Clean "manual" book model (absence of sources)
+- Future "To Get" status capability
+- Audiobookshelf integration without breaking changes
+
+### "manual" Provider Config (REMOVED)
+
+**Rationale**: "Manual" is not a provider — it's the absence of a provider. Books without `book_sources` entries are implicitly manual. This simplifies the model and removes the confusing "manual" provider from UI dropdowns.
 
 **Migration Notes**:
 1. **Schema Migration** (`drizzle/00XX_multi_source_support.sql`):

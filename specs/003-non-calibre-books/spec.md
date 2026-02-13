@@ -2,11 +2,11 @@
 
 **Feature Branch**: `003-non-calibre-books`  
 **Created**: 2026-02-05  
-**Revised**: 2026-02-13 (Source vs. Metadata Provider Separation)  
+**Revised**: 2026-02-13 (Source vs. Metadata Provider Separation, Many-to-Many Book Sources)  
 **Status**: Draft  
 **Input**: User description: "I'd like begin preparing for this feature in a new branch: https://github.com/masonfox/tome/issues/185. This will be spec-003"
 
-### Architectural Revision (2026-02-13)
+### Architectural Revision #1 (2026-02-13): Source vs. Metadata Provider
 
 The original spec treated Hardcover and OpenLibrary as "sources" stored on book records alongside Calibre and Manual. After analysis, this conflated two distinct concepts:
 
@@ -14,6 +14,16 @@ The original spec treated Hardcover and OpenLibrary as "sources" stored on book 
 - **Metadata Providers** (`ProviderId`): Search tools used to populate metadata — `"hardcover" | "openlibrary"`. Ephemeral; no trace on the book record.
 
 Key changes: `source` enum narrowed to 2 values, `externalId` column removed, source migration eliminated, books from federated search always get `source='manual'`.
+
+### Architectural Revision #2 (2026-02-13): Many-to-Many Book Sources
+
+After further analysis to support future multi-source integrations (e.g., Audiobookshelf), the single `books.source` field has been refactored to a many-to-many `book_sources` table:
+
+- **Books with NO sources** (`book_sources` entries): Implicit "manual" or "unconnected" books. No provider badge shown.
+- **Books with ONE source**: Single-source books (e.g., only in Calibre). Display single provider badge.
+- **Books with MULTIPLE sources**: Multi-source books (e.g., Calibre + Audiobookshelf). Display multiple badges side-by-side.
+
+Key changes: `books.source` field removed, `book_sources` many-to-many table added, "manual" provider removed from provider_configs, books without sources are implicitly manual. This enables future features like "To Get" status (books to acquire) and multi-source support (e.g., audiobook in Audiobookshelf, ebook in Calibre).
 
 ## Clarifications
 

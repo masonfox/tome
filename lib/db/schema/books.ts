@@ -5,12 +5,10 @@ export const books = sqliteTable(
   "books",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
+    // DEPRECATED: Will be removed in future migration after transition to book_sources
+    // Use bookSourceRepository to query book sources instead
     // Multi-source support: calibreId is now nullable for non-Calibre books
     calibreId: integer("calibre_id").unique(),
-    // Source indicates book ownership: calibre (synced) or manual (user-entered)
-    source: text("source", { enum: ["calibre", "manual"] })
-      .notNull()
-      .default("calibre"),
     title: text("title").notNull(),
     // Store authors as JSON array
     authors: text("authors", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
@@ -38,8 +36,6 @@ export const books = sqliteTable(
   (table) => ({
     // Index for efficient author sorting
     authorSortIdx: index("idx_books_author_sort").on(table.authorSort),
-    // Index for source-based filtering
-    sourceIdx: index("idx_books_source").on(table.source),
   })
 );
 

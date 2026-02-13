@@ -7,7 +7,7 @@
 
 This document breaks down the multi-source book tracking feature into executable tasks organized by user story. Each phase represents an independently testable increment of functionality.
 
-**Total Tasks**: 93 (was 77 — Phase C1 added for cover support, see Cover Image Revision below)  
+**Total Tasks**: 119 (was 93 — Phase R1 Book Sources Refactor added with 26 tasks)  
 **Implementation Approach**: Incremental delivery by priority (P1 → P2 → P3)  
 **MVP Scope**: User Story 1 + User Story 2 (P1 stories - manual books with sync isolation)
 
@@ -25,6 +25,24 @@ The original spec treated Hardcover and OpenLibrary as "sources" alongside Calib
 4. Books added via federated search get `source='manual'` (they always did in practice — the service hardcoded this)
 5. Phase 6 (Source Migration) eliminated entirely — was solving a problem that doesn't exist with the corrected model
 6. Dedup during search uses ISBN + fuzzy title/author matching (existing duplicate detection service)
+
+### Architectural Revision #2 (2026-02-13): Many-to-Many Book Sources
+
+After further analysis to support future multi-source integrations (e.g., Audiobookshelf), the single `books.source` field has been refactored to a many-to-many `book_sources` table. **Phase R1 added to implement this architecture.**
+
+**Key changes:**
+1. `books.source` field removed (replaced by `book_sources` many-to-many table)
+2. `book_sources` table added (tracks which providers have records for each book)
+3. Books with NO `book_sources` entries are implicitly "manual" or "unconnected"
+4. Books can exist in multiple sources simultaneously (e.g., Calibre + Audiobookshelf)
+5. "manual" provider removed from `provider_configs` (no longer needed)
+6. `books.calibre_id` temporarily kept as deprecated field during transition (remove in Phase R2)
+
+**Benefits:**
+- Enables multi-source books (audiobook in Audiobookshelf + ebook in Calibre)
+- Clean "manual" book model (absence of sources, not a source itself)
+- Future "To Get" status (books without sources that user wants to acquire)
+- Prepares for Audiobookshelf integration without breaking changes
 
 ### Cover Image Revision (2026-02-13): Local Filesystem Storage
 
@@ -51,9 +69,11 @@ The original data model included a `coverImageUrl` column for storing external p
 | 7 | Federated Search | P3 | 16 | 🟡 Partial (11/16) |
 | 8 | Polish & Cross-Cutting | - | 6 | ✅ Complete (6/6) |
 | C1 | Cover Image Support | P2 | 16 | ❌ Not Started (0/16) |
-| R1 | Source/Provider Refactor | - | 12 | ❌ Not Started (0/12) |
+| **R1** | **Book Sources Refactor** | **P1** | **26** | 🟡 **In Progress (0/26)** |
 
-**Overall Progress**: 68/93 tasks code-complete (73%), 64/93 fully tested (69%)
+**Overall Progress**: 68/119 tasks code-complete (57%), 64/119 fully tested (54%)
+
+**Active Phase**: R1 (Book Sources Refactor) - Implementing many-to-many architecture
 
 ---
 
@@ -352,6 +372,59 @@ The original data model included a `coverImageUrl` column for storing external p
 - [ ] TR10 Update `FederatedSearchModal.tsx` — remove `source`/`externalId` from submission payload; update `LibraryFilters.tsx` — remove hardcover/openlibrary source filter options
 - [ ] TR11 Update API routes (`app/api/books/route.ts`, `app/api/providers/`) — narrow source types, update `BookSource` → `ProviderId` casts
 - [ ] TR12 Update `BookCard.tsx`, `BookGrid.tsx`, `app/books/[id]/page.tsx` — source prop types narrowed to `BookSource`
+
+---
+
+## Phase R1: Book Sources Refactor (26 tasks, ~22 hours, In Progress)
+
+**Goal:** Refactor from single `source` field to many-to-many `book_sources` table for multi-source support.
+
+### R1.1: Schema Changes (3 tasks, ~2 hours)
+
+- [ ] R1.1.1 Create `lib/db/schema/book-sources.ts` — new many-to-many table with indexes
+- [ ] R1.1.2 Remove `source` field from `lib/db/schema/books.ts` — mark `calibreId` deprecated
+- [ ] R1.1.3 Update `lib/db/schema/index.ts` — export book-sources schema
+
+### R1.2: Migration Overhaul (4 tasks, ~3 hours)
+
+- [ ] R1.2.1 Delete existing migration 0022 — create rollback notes
+- [ ] R1.2.2 Update companion migration — remove manual provider, add data migration
+- [ ] R1.2.3 Regenerate migration 0022 — verify SQL output
+- [ ] R1.2.4 Test migration — verify data integrity, check 893 Calibre books migrated
+
+### R1.3: Repository Layer (4 tasks, ~4 hours)
+
+- [ ] R1.3.1 Create `lib/repositories/book-source.repository.ts` — 11 methods (findByBookId, findByCalibreId, etc.)
+- [ ] R1.3.2 Update `lib/repositories/book.repository.ts` — refactor source filtering (7 changes)
+- [ ] R1.3.3 Update `lib/repositories/index.ts` — export bookSourceRepository
+- [ ] R1.3.4 Validation — run integration tests, verify queries return correct data
+
+### R1.4: Service Layer (4 tasks, ~3 hours)
+
+- [ ] R1.4.1 Update `lib/services/book.service.ts:325` — remove `source: "manual"`, use bookSourceRepository
+- [ ] R1.4.2 Update `lib/sync-service.ts` — use bookSourceRepository instead of books.source
+- [ ] R1.4.3 Update `app/api/books/[id]/cover/route.ts:85` — replace source check with bookSourceRepository
+- [ ] R1.4.4 Verify `app/api/books/route.ts` — confirm source filtering works via repository
+
+### R1.5: Type System (3 tasks, ~2 hours)
+
+- [ ] R1.5.1 Update `lib/providers/base/IMetadataProvider.ts` — add SourceProviderId, MetadataProviderId types
+- [ ] R1.5.2 Update `components/Providers/ProviderBadge.tsx` — remove manual config, update types
+- [ ] R1.5.3 Validation — tsc check passes, no type errors
+
+### R1.6: UI Updates (3 tasks, ~3 hours)
+
+- [ ] R1.6.1 Update `components/Books/BookCard.tsx` — accept `sources?: SourceProviderId[]`, display multiple badges
+- [ ] R1.6.2 Update `components/Books/BookListItem.tsx` — same updates as BookCard
+- [ ] R1.6.3 Update `app/books/[id]/page.tsx` — fetch sources via bookSourceRepository, display all sources
+
+### R1.7: Testing (5 tasks, ~5 hours)
+
+- [ ] R1.7.1 Create `__tests__/integration/repositories/book-source.repository.test.ts` — full test suite
+- [ ] R1.7.2 Update `__tests__/integration/repositories/book.repository.test.ts` — source filtering tests
+- [ ] R1.7.3 Update `__tests__/integration/services/book.service.test.ts` — manual book creation tests
+- [ ] R1.7.4 Update `__tests__/e2e/api/books/books.test.ts` — API filtering tests
+- [ ] R1.7.5 Global verification — run full test suite, grep for remaining source references
 
 ---
 

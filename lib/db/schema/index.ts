@@ -1,5 +1,6 @@
 // Export all schemas
 export * from "./books";
+export * from "./book-sources";
 export * from "./reading-sessions";
 export * from "./progress-logs";
 export * from "./streaks";
