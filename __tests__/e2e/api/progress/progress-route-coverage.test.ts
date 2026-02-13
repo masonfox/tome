@@ -195,6 +195,21 @@ describe("Progress Route Coverage - PATCH /api/books/[id]/progress/[progressId]"
     expect(data.currentPage).toBe(150);
     expect(data.notes).toBe("Updated notes");
   });
+
+  test("returns 400 when PATCH currentPage exceeds totalPages", async () => {
+    // testBook has totalPages: 500
+    const request = createMockRequest("PATCH", `/api/books/${testBook.id}/progress/${testProgress.id}`, {
+      currentPage: 501,
+    });
+
+    const response = await PATCH(request as NextRequest, { 
+      params: Promise.resolve({ id: testBook.id.toString(), progressId: testProgress.id.toString() })
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain("Page 501 exceeds the book's total of 500 pages");
+  });
 });
 
 describe("Progress Route Coverage - DELETE /api/books/[id]/progress/[progressId]", () => {

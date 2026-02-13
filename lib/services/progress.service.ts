@@ -438,6 +438,14 @@ export class ProgressService {
     let finalCurrentPage = currentPage ?? 0;
     let finalCurrentPercentage = currentPercentage ?? 0;
 
+    // Validate page bounds: currentPage must not exceed totalPages
+    if (currentPage !== undefined && book.totalPages && currentPage > book.totalPages) {
+      throw new Error(
+        `Page ${currentPage} exceeds the book's total of ${book.totalPages} pages. ` +
+        `Please check your input or update the book's page count.`
+      );
+    }
+
     // Calculate based on what was provided
     if (currentPage !== undefined && book.totalPages) {
       finalCurrentPercentage = calculatePercentage(currentPage, book.totalPages);
