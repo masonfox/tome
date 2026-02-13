@@ -10,7 +10,7 @@ import { toDateString } from "@/utils/dateHelpers.server";
 /**
  * Reading Streak Tests (Spec 001)
  * 
- * These tests validate the reading streak tracking feature per specs/001-reading-streak-tracking/spec.md
+ * Tests validate the reading streak tracking feature per specs/001-reading-streak-tracking/spec.md
  * 
  * ## Test Coverage
  * 
@@ -21,40 +21,18 @@ import { toDateString } from "@/utils/dateHelpers.server";
  * 
  * Total: 27 tests covering all core streak functionality
  * 
- * ## Service Layer Pattern
+ * ## Implementation
  * 
- * This test file uses `streakService` as the single source of truth for streak logic.
- * All streak calculations go through the service layer for consistency.
+ * All tests use `StreakService` (single source of truth for streak logic).
+ * The service layer provides consistent, timezone-aware streak calculations (ADR-014).
  * 
- * ✅ Correct usage:
+ * Usage:
  * ```typescript
  * import { streakService } from "@/lib/services/streak.service";
  * await streakService.rebuildStreak();
  * await streakService.updateStreaks();
  * const streak = await streakService.getStreakBasic();
  * ```
- * 
- * ### Why Service Layer
- * 
- * - Class methods are not affected by ES6 module caching
- * - Service imported once at test start (methods are "live")
- * - Methods execute current code, not cached transpiled versions
- * - Tests pass reliably in both local and CI environments
- * 
- * ### For Maintainers
- * 
- * If you see CI failures with:
- * - `TypeError: undefined is not an object`
- * - Functions returning unexpected results
- * - Tests passing locally but failing in CI
- * 
- * Check if the test is using direct function imports. If so, migrate to service layer pattern.
- * 
- * ### References
- * 
- * - Full investigation: docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md
- * - Testing guidelines: docs/TESTING_GUIDELINES.md (Bun Module Caching section)
- * - Related commits: 4910da0, d7a72ce
  */
 
 let testDb: TestDatabaseInstance;

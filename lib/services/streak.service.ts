@@ -29,10 +29,23 @@ export interface StreakWithHoursRemaining extends Streak {
  * - Managing daily reading thresholds
  * - Generating streak analytics and activity calendars
  *
- * All calculations are timezone-aware using the user's configured timezone.
+ * All calculations are timezone-aware using the user's configured timezone (ADR-014).
+ * Streak dates are stored as calendar-day strings (yyyy-MM-dd) in the user's timezone,
+ * not UTC-shifted values, ensuring correct day-boundary handling across timezones.
  *
  * This is the single source of truth for streak business logic in the application.
  * All streak-related operations should go through this service for consistency.
+ *
+ * ## Type Safety Note
+ *
+ * Throughout this service, you'll see `as any` casts on repository.update() calls.
+ * These are necessary because TypeScript's type inference for Partial<NewStreak> doesn't
+ * recognize that our partial update objects are valid. The casts are safe because:
+ * - We only update fields that exist in the schema
+ * - Drizzle validates field names at runtime
+ * - All values match the expected types for their fields
+ *
+ * @see ADR-014 - Date String Storage for Calendar Days
  */
 export class StreakService {
   /**
