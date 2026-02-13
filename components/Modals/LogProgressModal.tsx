@@ -35,6 +35,10 @@ interface LogProgressModalProps {
     };
   };
   isMobile?: boolean;
+  /** Called on mobile when progress reaches 100% and the book is auto-completed.
+   *  The parent should close the bottomsheet and show the FinishBookModal itself,
+   *  since dashboard data refresh will unmount this component. */
+  onBookCompleted?: (bookId: number, bookTitle: string, sessionId?: number) => void;
 }
 
 export default function LogProgressModal({
@@ -42,6 +46,7 @@ export default function LogProgressModal({
   onClose,
   book,
   isMobile = false,
+  onBookCompleted,
 }: LogProgressModalProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -103,9 +108,17 @@ export default function LogProgressModal({
       // Check if we should show completion modal
       if (result.shouldShowCompletionModal) {
         logger.info({ bookId: book.id, sessionId: result.completedSessionId }, 'Completion detected in LogProgressModal');
+        
+        // On mobile, delegate to parent since dashboard refresh will unmount this component
+        if (isMobile && onBookCompleted) {
+          onClose();
+          onBookCompleted(book.id, book.title, result.completedSessionId);
+          return;
+        }
+        
+        // On desktop, show completion modal locally (BaseModal z-index is sufficient)
         setCompletedSessionId(result.completedSessionId);
         setShowLocalCompletionModal(true);
-        // Don't close progress modal - let FinishBookModal appear
         return;
       }
       
