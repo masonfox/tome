@@ -1,6 +1,6 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
-import { getActivityCalendar } from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 import { progressRepository, streakRepository } from "@/lib/repositories";
 import { startOfYear } from "date-fns";
 import { toDateString } from "@/utils/dateHelpers.server";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const streak = await streakRepository.getOrCreate(null);
     const userTimezone = streak.userTimezone || "America/New_York";
 
-    const activityData = await getActivityCalendar(undefined, year, month);
+    const activityData = await streakService.getActivityCalendar(null, year, month);
 
     // Also get monthly totals for the year
     const yearStart = startOfYear(new Date(year, 0, 1));

@@ -1,16 +1,16 @@
 import { getLogger } from "@/lib/logger";
 import { NextResponse } from "next/server";
-import { getOrCreateStreak, checkAndResetStreakIfNeeded } from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     // First, check and reset streak if needed (explicit write operation)
-    await checkAndResetStreakIfNeeded();
+    await streakService.checkAndResetStreakIfNeeded(null);
 
     // Then, get the current streak data (read-only operation)
-    const streak = await getOrCreateStreak();
+    const streak = await streakService.getStreakBasic(null);
 
     return NextResponse.json(streak);
   } catch (error) {

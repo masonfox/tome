@@ -1,6 +1,6 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
-import { rebuildStreak } from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 import { calibreService } from "@/lib/services/calibre.service";
 import { progressService } from "@/lib/services/progress.service";
 import { getLogger } from "@/lib/logger";
@@ -1267,7 +1267,7 @@ export class SessionService {
   private async updateStreakSystem(): Promise<void> {
     try {
       getLogger().info("[SessionService] Rebuilding streak after session change");
-      await rebuildStreak();
+      await streakService.rebuildStreak(null);
     } catch (streakError) {
       getLogger().error({ err: streakError }, "[SessionService] Failed to rebuild streak");
       // Don't fail the request if streak rebuild fails
