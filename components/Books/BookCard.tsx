@@ -6,7 +6,7 @@ import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo } from "react";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
-import { ProviderBadge, type BookSource } from "@/components/Providers/ProviderBadge";
+import { ProviderBadge, type SourceProviderId } from "@/components/Providers/ProviderBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
@@ -14,7 +14,7 @@ interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  source?: BookSource;
+  source?: SourceProviderId; // TODO: Will be array in Phase R1.6 for multi-source
   status?: string | null;
   currentProgress?: number;
   className?: string;

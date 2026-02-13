@@ -302,21 +302,16 @@ export function initializeProviders(): void {
 
   // Import providers lazily to avoid circular dependencies
   const { calibreProvider } = require("@/lib/providers/calibre.provider");
-  const { manualProvider } = require("@/lib/providers/manual.provider");
   const { hardcoverProvider } = require("@/lib/providers/hardcover.provider");
   const { openLibraryProvider } = require("@/lib/providers/openlibrary.provider");
 
   // Register providers with priorities matching database seed data
-  // Priority: lower = higher priority (Calibre=1, Hardcover=10, OpenLibrary=20, Manual=99)
+  // Priority: lower = higher priority (Calibre=1, Hardcover=10, OpenLibrary=20)
+  // Note: Manual is no longer a provider - manual books have no book_sources entries
   
   ProviderRegistry.register(calibreProvider, {
     enabled: true,
     priority: 1, // Highest priority - primary source
-  });
-
-  ProviderRegistry.register(manualProvider, {
-    enabled: true,
-    priority: 99, // Lowest priority - fallback for user-entered books
   });
 
   ProviderRegistry.register(hardcoverProvider, {

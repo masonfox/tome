@@ -18,28 +18,46 @@
 export type ProviderHealth = "healthy" | "unavailable";
 
 /**
- * Provider identifier
+ * Source Provider Identifier
  * 
- * Identifies a metadata provider in the provider infrastructure.
- * Used for provider registration, registry lookups, and configuration.
+ * Identifies providers that own/manage book records (sources).
+ * Books from these providers get entries in the book_sources table.
  * 
- * - calibre: Calibre library integration (sync provider)
- * - manual: Manual entry (no external API)
+ * - calibre: Calibre library integration (primary sync provider)
+ * - audiobookshelf: Audiobookshelf library integration (future)
+ */
+export type SourceProviderId = "calibre" | "audiobookshelf";
+
+/**
+ * Metadata Provider Identifier
+ * 
+ * Identifies search-only metadata providers.
+ * These providers are used for metadata enrichment and search,
+ * but don't own book records. Books added via these providers
+ * become "manual" books (no book_sources entry).
+ * 
  * - hardcover: Hardcover.app API (metadata search provider)
  * - openlibrary: OpenLibrary.org API (metadata search provider)
  */
-export type ProviderId = "calibre" | "manual" | "hardcover" | "openlibrary";
+export type MetadataProviderId = "hardcover" | "openlibrary";
 
 /**
- * Book source identifier
+ * Provider identifier
  * 
- * Indicates where a book record is owned/managed. Stored on the book record.
+ * Union of all provider types (sources + metadata).
+ * Used for provider registration, registry lookups, and configuration.
  * 
- * - calibre: Synced from Calibre library database
- * - manual: User-created (via manual entry form OR via federated search)
+ * Note: "manual" is no longer a provider - manual books are identified
+ * by the absence of entries in the book_sources table (implicit manual).
+ */
+export type ProviderId = SourceProviderId | MetadataProviderId;
+
+/**
+ * Book source identifier (DEPRECATED - use book_sources table)
  * 
- * Note: Hardcover and OpenLibrary are metadata providers, not sources.
- * Books added via provider search always get source='manual'.
+ * @deprecated This type is deprecated. Use the book_sources table to determine
+ * book sources. Books without entries in book_sources are implicitly "manual".
+ * This type remains for backward compatibility during the transition.
  */
 export type BookSource = "calibre" | "manual";
 

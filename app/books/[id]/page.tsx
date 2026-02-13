@@ -19,7 +19,7 @@ import PageCountEditModal from "@/components/Modals/PageCountEditModal";
 import TagEditor from "@/components/BookDetail/TagEditor";
 import ShelfEditor from "@/components/BookDetail/ShelfEditor";
 import BookHeader from "@/components/BookDetail/BookHeader";
-import { ProviderBadge, type BookSource } from "@/components/Providers/ProviderBadge";
+import { ProviderBadge, type SourceProviderId } from "@/components/Providers/ProviderBadge";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
@@ -442,10 +442,10 @@ export default function BookDetailPage() {
 
             {/* Metadata */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 text-xs md:text-sm font-medium">
-              {/* Provider Badge */}
+              {/* Provider Badge - TODO: Fetch from book_sources in Phase R1.6 */}
               {book.source && (
                 <>
-                  <ProviderBadge source={book.source as BookSource} size="md" />
+                  <ProviderBadge source={book.source as SourceProviderId} size="md" />
                   <span className="text-[var(--border-color)]">•</span>
                 </>
               )}

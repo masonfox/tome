@@ -2,10 +2,10 @@
 
 import { Database, User, BookOpen, Globe, CheckCircle, XCircle, Clock } from "lucide-react";
 import { cn } from "@/utils/cn";
-import type { BookSource, ProviderId } from "@/lib/providers/base/IMetadataProvider";
+import type { SourceProviderId, ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 interface ProviderBadgeProps {
-  source: BookSource | ProviderId;
+  source: SourceProviderId | ProviderId;
   status?: "success" | "error" | "timeout";
   showStatus?: boolean;
   size?: "sm" | "md" | "lg";
@@ -20,12 +20,12 @@ const providerConfig = {
     textColor: "text-blue-700 dark:text-blue-300",
     borderColor: "border-blue-300 dark:border-blue-700",
   },
-  manual: {
-    label: "Manual",
-    icon: User,
-    bgColor: "bg-gray-100 dark:bg-gray-800/50",
-    textColor: "text-gray-700 dark:text-gray-300",
-    borderColor: "border-gray-300 dark:border-gray-600",
+  audiobookshelf: {
+    label: "Audiobookshelf",
+    icon: BookOpen,
+    bgColor: "bg-indigo-100 dark:bg-indigo-900/30",
+    textColor: "text-indigo-700 dark:text-indigo-300",
+    borderColor: "border-indigo-300 dark:border-indigo-700",
   },
   hardcover: {
     label: "Hardcover",
@@ -114,4 +114,4 @@ export function ProviderBadge({
 }
 
 // Re-export types for convenience
-export type { BookSource, ProviderId } from "@/lib/providers/base/IMetadataProvider";
+export type { SourceProviderId, MetadataProviderId, ProviderId } from "@/lib/providers/base/IMetadataProvider";
