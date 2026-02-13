@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { sessionRepository, progressRepository, readingGoalRepository, streakRepository } from "@/lib/repositories";
+import { sessionRepository, progressRepository, readingGoalRepository } from "@/lib/repositories";
 import { readingStatsService } from "@/lib/services";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "../../helpers/db-setup";
 import type { TestDatabaseInstance } from "../../helpers/db-setup";
