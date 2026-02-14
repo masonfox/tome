@@ -335,14 +335,14 @@ export default function FederatedSearchModal({
       {/* Search Input */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--subheading-text)]" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Search by title, author, or ISBN..."
-            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full pl-10 pr-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
             disabled={isSearching}
           />
         </div>
@@ -363,7 +363,7 @@ export default function FederatedSearchModal({
         <div className="space-y-4">
           {/* Summary */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">
+            <span className="text-[var(--subheading-text)]">
               Found {searchResponse.totalResults} result{searchResponse.totalResults !== 1 ? "s" : ""} 
               {" "}from {searchResponse.successfulProviders} provider{searchResponse.successfulProviders !== 1 ? "s" : ""}
             </span>
@@ -371,24 +371,24 @@ export default function FederatedSearchModal({
 
           {/* Results by Provider */}
           {searchResponse.results.map((providerResult) => (
-            <div key={providerResult.provider} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div key={providerResult.provider} className="border border-[var(--border-color)] rounded-lg overflow-hidden">
               {/* Provider Header */}
               <button
                 onClick={() => toggleProviderCollapse(providerResult.provider)}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="w-full px-4 py-3 bg-[var(--card-bg-emphasis)] flex items-center justify-between hover:bg-[var(--card-bg-emphasis)] transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {collapsedProviders.has(providerResult.provider) ? (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 text-[var(--subheading-text)]" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDown className="w-4 h-4 text-[var(--subheading-text)]" />
                   )}
                   <ProviderBadge
                     source={providerResult.provider as ProviderId}
                     status={providerResult.status}
                     showStatus
                   />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="text-sm text-[var(--subheading-text)]">
                     {providerResult.results.length} result{providerResult.results.length !== 1 ? "s" : ""}
                     {providerResult.duration && ` • ${providerResult.duration}ms`}
                   </span>
@@ -408,7 +408,7 @@ export default function FederatedSearchModal({
                       />
                     ))
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 py-4">
+                    <div className="flex items-center gap-2 text-sm text-[var(--subheading-text)] py-4">
                       <AlertCircle className="w-4 h-4" />
                       <span>
                         {providerResult.status === "timeout"
@@ -426,10 +426,10 @@ export default function FederatedSearchModal({
           {searchResponse.successfulProviders === 0 && (
             <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
               <AlertCircle className="w-8 h-8 text-yellow-600 dark:text-yellow-400 mx-auto mb-2" />
-              <p className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+              <p className="font-medium text-[var(--foreground)] mb-1">
                 All providers failed
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-sm text-[var(--subheading-text)] mb-4">
                 Unable to search any external providers. Please try again later.
               </p>
               <Button variant="secondary" onClick={onClose}>
@@ -444,7 +444,7 @@ export default function FederatedSearchModal({
 
   const renderDuplicateWarning = () => (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600 dark:text-gray-400">
+      <p className="text-sm text-[var(--subheading-text)]">
         The following {duplicates.length === 1 ? "book" : "books"} in your library {duplicates.length === 1 ? "appears" : "appear"} similar:
       </p>
       <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -455,13 +455,13 @@ export default function FederatedSearchModal({
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                <p className="font-medium text-sm text-[var(--foreground)]">
                   {dup.title}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-[var(--subheading-text)]">
                   by {dup.authors.join(", ")}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                <p className="text-xs text-[var(--subheading-text)] mt-1">
                   Source: {dup.source} • {dup.similarity.toFixed(0)}% similar
                 </p>
               </div>
@@ -479,7 +479,7 @@ export default function FederatedSearchModal({
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
           <div className="flex items-center gap-2 text-sm">
             <ProviderBadge source={selectedResult.provider} size="sm" />
-            <span className="text-gray-600 dark:text-gray-400">
+            <span className="text-[var(--subheading-text)]">
               {isFetchingMetadata ? (
                 <>
                   <Loader2 className="inline w-4 h-4 animate-spin mr-1" />
@@ -495,7 +495,7 @@ export default function FederatedSearchModal({
 
       {/* Title - Required */}
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="title" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
           Title <span className="text-red-500">*</span>
         </label>
         <input
@@ -503,7 +503,7 @@ export default function FederatedSearchModal({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           placeholder="Enter book title"
         />
         {validationErrors.title && (
@@ -513,7 +513,7 @@ export default function FederatedSearchModal({
 
       {/* Authors - Required */}
       <div>
-        <label htmlFor="authors" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="authors" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
           Authors <span className="text-red-500">*</span>
         </label>
         <input
@@ -521,7 +521,7 @@ export default function FederatedSearchModal({
           type="text"
           value={authors}
           onChange={(e) => setAuthors(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           placeholder="e.g., Jane Doe, John Smith (comma-separated)"
         />
         {validationErrors.authors && (
@@ -533,7 +533,7 @@ export default function FederatedSearchModal({
       <div className="grid grid-cols-2 gap-4">
         {/* ISBN */}
         <div>
-          <label htmlFor="isbn" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="isbn" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
             ISBN
           </label>
           <input
@@ -541,14 +541,14 @@ export default function FederatedSearchModal({
             type="text"
             value={isbn}
             onChange={(e) => setIsbn(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
             placeholder="ISBN-10 or ISBN-13"
           />
         </div>
 
         {/* Total Pages */}
         <div>
-          <label htmlFor="totalPages" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="totalPages" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
             Total Pages
           </label>
           <input
@@ -558,7 +558,7 @@ export default function FederatedSearchModal({
             max="10000"
             value={totalPages}
             onChange={(e) => setTotalPages(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
             placeholder="e.g., 350"
           />
         </div>
@@ -567,7 +567,7 @@ export default function FederatedSearchModal({
       <div className="grid grid-cols-2 gap-4">
         {/* Publisher */}
         <div>
-          <label htmlFor="publisher" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="publisher" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
             Publisher
           </label>
           <input
@@ -575,14 +575,14 @@ export default function FederatedSearchModal({
             type="text"
             value={publisher}
             onChange={(e) => setPublisher(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
             placeholder="e.g., Penguin Books"
           />
         </div>
 
         {/* Publication Date */}
         <div>
-          <label htmlFor="pubDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="pubDate" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
             Publication Date
           </label>
           <input
@@ -590,14 +590,14 @@ export default function FederatedSearchModal({
             type="date"
             value={pubDate}
             onChange={(e) => setPubDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           />
         </div>
       </div>
 
       {/* Tags */}
       <div>
-        <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="tags" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
           Tags
         </label>
         <input
@@ -605,14 +605,14 @@ export default function FederatedSearchModal({
           type="text"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           placeholder="e.g., fiction, fantasy (comma-separated)"
         />
       </div>
 
       {/* Description */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="description" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
           Description
         </label>
         <textarea
@@ -620,7 +620,7 @@ export default function FederatedSearchModal({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           placeholder="Brief description or notes about the book"
         />
       </div>
@@ -662,7 +662,7 @@ export default function FederatedSearchModal({
       actions={
         selectedResult ? (
           <>
-            <Button variant="secondary" onClick={handleBack} disabled={isSubmitting || isFetchingMetadata}>
+            <Button variant="ghost" onClick={handleBack} disabled={isSubmitting || isFetchingMetadata}>
               {showDuplicateWarning ? "Go Back" : "Back to Results"}
             </Button>
             <Button onClick={handleSubmit} disabled={isSubmitting || isFetchingMetadata}>
@@ -670,7 +670,7 @@ export default function FederatedSearchModal({
             </Button>
           </>
         ) : (
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
         )

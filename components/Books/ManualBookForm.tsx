@@ -349,7 +349,7 @@ export default function ManualBookForm({
       loading={isSubmitting}
       actions={
         <>
-          <Button variant="secondary" onClick={handleCancel} disabled={isSubmitting}>
+          <Button variant="ghost" onClick={handleCancel} disabled={isSubmitting}>
             {showDuplicateWarning ? "Go Back" : "Cancel"}
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
@@ -360,7 +360,7 @@ export default function ManualBookForm({
     >
       {showDuplicateWarning ? (
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-[var(--subheading-text)]">
             The following {duplicates.length === 1 ? "book" : "books"} in your library {duplicates.length === 1 ? "appears" : "appear"} similar:
           </p>
           <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -371,13 +371,13 @@ export default function ManualBookForm({
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                    <p className="font-medium text-sm text-[var(--foreground)]">
                       {dup.title}
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-[var(--subheading-text)]">
                       by {dup.authors.join(", ")}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    <p className="text-xs text-[var(--subheading-text)] mt-1">
                       Source: {dup.source} • {dup.similarity.toFixed(0)}% similar
                     </p>
                   </div>
@@ -390,7 +390,7 @@ export default function ManualBookForm({
         <div className="space-y-4">
           {/* Title - Required */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="title" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -399,7 +399,7 @@ export default function ManualBookForm({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => validateField("title")}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
               placeholder="Enter book title"
             />
             {validationErrors.title && (
@@ -409,7 +409,7 @@ export default function ManualBookForm({
 
           {/* Authors - Required */}
           <div>
-            <label htmlFor="authors" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="authors" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
               Authors <span className="text-red-500">*</span>
             </label>
             <input
@@ -418,7 +418,7 @@ export default function ManualBookForm({
               value={authors}
               onChange={(e) => setAuthors(e.target.value)}
               onBlur={() => validateField("authors")}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
               placeholder="e.g., Jane Doe, John Smith (comma-separated)"
             />
             {validationErrors.authors && (
@@ -430,7 +430,7 @@ export default function ManualBookForm({
           <div className="grid grid-cols-2 gap-4">
             {/* ISBN */}
             <div>
-              <label htmlFor="isbn" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="isbn" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
                 ISBN
               </label>
               <input
@@ -438,7 +438,7 @@ export default function ManualBookForm({
                 type="text"
                 value={isbn}
                 onChange={(e) => setIsbn(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="ISBN-10 or ISBN-13"
               />
               {validationErrors.isbn && (
@@ -448,7 +448,7 @@ export default function ManualBookForm({
 
             {/* Total Pages */}
             <div>
-              <label htmlFor="totalPages" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="totalPages" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
                 Total Pages
               </label>
               <input
@@ -458,7 +458,7 @@ export default function ManualBookForm({
                 max="10000"
                 value={totalPages}
                 onChange={(e) => setTotalPages(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="e.g., 350"
               />
               {validationErrors.totalPages && (
@@ -470,7 +470,7 @@ export default function ManualBookForm({
           <div className="grid grid-cols-2 gap-4">
             {/* Publisher */}
             <div>
-              <label htmlFor="publisher" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="publisher" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
                 Publisher
               </label>
               <input
@@ -478,14 +478,14 @@ export default function ManualBookForm({
                 type="text"
                 value={publisher}
                 onChange={(e) => setPublisher(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="e.g., Penguin Books"
               />
             </div>
 
             {/* Publication Date */}
             <div>
-              <label htmlFor="pubDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="pubDate" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
                 Publication Date
               </label>
               <input
@@ -493,7 +493,7 @@ export default function ManualBookForm({
                 type="date"
                 value={pubDate}
                 onChange={(e) => setPubDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
               />
             </div>
           </div>
@@ -501,7 +501,7 @@ export default function ManualBookForm({
           <div className="grid grid-cols-2 gap-4">
             {/* Series */}
             <div>
-              <label htmlFor="series" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="series" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
                 Series
               </label>
               <input
@@ -509,14 +509,14 @@ export default function ManualBookForm({
                 type="text"
                 value={series}
                 onChange={(e) => setSeries(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="e.g., Harry Potter"
               />
             </div>
 
             {/* Series Index */}
             <div>
-              <label htmlFor="seriesIndex" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="seriesIndex" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
                 Series Number
               </label>
               <input
@@ -525,7 +525,7 @@ export default function ManualBookForm({
                 step="0.1"
                 value={seriesIndex}
                 onChange={(e) => setSeriesIndex(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="e.g., 1"
               />
             </div>
@@ -533,7 +533,7 @@ export default function ManualBookForm({
 
           {/* Tags */}
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="tags" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
               Tags
             </label>
             <input
@@ -541,14 +541,14 @@ export default function ManualBookForm({
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
               placeholder="e.g., fiction, fantasy (comma-separated)"
             />
           </div>
 
           {/* Cover Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
               Cover Image
             </label>
             <input
@@ -561,7 +561,7 @@ export default function ManualBookForm({
             />
             {coverPreviewUrl ? (
               <div className="flex items-start gap-3">
-                <div className="relative w-20 h-28 rounded overflow-hidden border border-gray-300 dark:border-gray-600 flex-shrink-0">
+                <div className="relative w-20 h-28 rounded overflow-hidden border border-[var(--border-color)] flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={coverPreviewUrl}
@@ -570,10 +570,10 @@ export default function ManualBookForm({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                  <p className="text-xs text-[var(--subheading-text)] truncate max-w-[200px]">
                     {coverFile?.name}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-[var(--subheading-text)]/70">
                     {coverFile ? `${(coverFile.size / 1024).toFixed(0)} KB` : ""}
                   </p>
                   <button
@@ -591,16 +591,16 @@ export default function ManualBookForm({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors w-full"
+                  className="flex items-center gap-2 px-3 py-2 border border-dashed border-[var(--border-color)] rounded-md text-sm text-[var(--subheading-text)] hover:border-[var(--foreground)] hover:text-[var(--foreground)] transition-colors w-full"
                 >
                   <ImagePlus className="w-4 h-4" />
                   Choose cover image (JPEG, PNG, WebP, GIF — max 5MB)
                 </button>
                 
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">or</span>
-                  <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                  <div className="flex-1 border-t border-[var(--border-color)]"></div>
+                  <span className="text-xs text-[var(--subheading-text)] uppercase">or</span>
+                  <div className="flex-1 border-t border-[var(--border-color)]"></div>
                 </div>
 
                 <div>
@@ -609,10 +609,10 @@ export default function ManualBookForm({
                     type="url"
                     value={coverUrl}
                     onChange={(e) => setCoverUrl(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] text-sm"
                     placeholder="https://example.com/cover.jpg"
                   />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs text-[var(--subheading-text)]">
                     Enter image URL (if both file and URL provided, file takes priority)
                   </p>
                 </div>
@@ -628,7 +628,7 @@ export default function ManualBookForm({
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
               Description
             </label>
             <textarea
@@ -636,7 +636,7 @@ export default function ManualBookForm({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
               placeholder="Brief description or notes about the book"
             />
           </div>

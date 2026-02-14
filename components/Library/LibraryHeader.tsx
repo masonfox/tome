@@ -78,26 +78,26 @@ export function LibraryHeader({ totalBooks, syncing, onSync, onAddManualBook, on
           </Button>
 
           {showAddMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-lg z-50">
               <div className="py-1">
                 <button
                   onClick={handleSearchProviders}
-                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3"
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--card-bg-emphasis)] flex items-center gap-3"
                 >
-                  <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <Search className="w-4 h-4 text-[var(--subheading-text)]" />
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Search Providers</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Hardcover, Open Library</div>
+                    <div className="font-medium text-[var(--foreground)]">Search Providers</div>
+                    <div className="text-xs text-[var(--subheading-text)]">Hardcover, Open Library</div>
                   </div>
                 </button>
                 <button
                   onClick={handleAddManual}
-                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 border-t border-gray-100 dark:border-gray-700"
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--card-bg-emphasis)] flex items-center gap-3 border-t border-[var(--border-color)]"
                 >
-                  <Plus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <Plus className="w-4 h-4 text-[var(--subheading-text)]" />
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Add Manually</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Enter book details yourself</div>
+                    <div className="font-medium text-[var(--foreground)]">Add Manually</div>
+                    <div className="text-xs text-[var(--subheading-text)]">Enter book details yourself</div>
                   </div>
                 </button>
               </div>
