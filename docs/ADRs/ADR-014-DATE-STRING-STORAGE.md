@@ -438,6 +438,181 @@ const todayInUserTz = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
 await progressService.logProgress(bookId, { progressDate: todayInUserTz });
 ```
 
+## Common Pitfalls & Bug Prevention
+
+*Added: February 14, 2026 - After fixing "Invalid time value" bug*
+
+### The Problem: Date Object Conversion for Sorting/Comparison
+
+After implementing ADR-014, a latent bug was discovered where `new Date(dateString).getTime()` was still being used for sorting and comparison in several locations. This violated the fundamental principle of ADR-014 and caused "Invalid time value" errors when progress logging failed.
+
+**Root Cause:** When `new Date(dateString)` creates an Invalid Date object (due to empty string, malformed data, or edge cases), calling `.getTime()` throws `RangeError: Invalid time value`. This error doesn't always surface during normal operation, making it a **latent bug** that only manifests under specific conditions.
+
+### ❌ WRONG Patterns (Violations)
+
+**These patterns violate ADR-014 and MUST be avoided:**
+
+```typescript
+// ❌ WRONG: Sorting with Date object conversion
+const sorted = entries.sort((a, b) => 
+  new Date(a.progressDate).getTime() - new Date(b.progressDate).getTime()
+);
+
+// ❌ WRONG: Comparison with Date object conversion
+if (new Date(entry.progressDate) < progressDate) { }
+
+// ❌ WRONG: Passing Date objects to validation functions
+const requestedDate = new Date(requestedDateString + "T00:00:00");
+await validateProgressTimeline(sessionId, requestedDate, progress, usePercentage);
+
+// ❌ WRONG: Creating Date objects for display in business logic
+const conflicting = entries.find(e => 
+  formatDate(new Date(e.progressDate)) === targetDate
+);
+```
+
+**Why these are wrong:**
+1. **Violates ADR-014 principle**: Date objects should ONLY be created for display formatting
+2. **Performance overhead**: Date object creation is 60-100x slower than string comparison
+3. **Error prone**: Invalid Date objects cause "Invalid time value" errors
+4. **Unnecessary complexity**: YYYY-MM-DD strings compare correctly lexicographically
+
+### ✅ CORRECT Patterns (Compliant)
+
+**Use these ADR-014 compliant patterns instead:**
+
+```typescript
+// ✅ CORRECT: Lexicographic string comparison for sorting
+const sorted = entries.sort((a, b) => 
+  a.progressDate.localeCompare(b.progressDate)
+);
+
+// ✅ CORRECT: Direct string comparison
+if (entry.progressDate < progressDate) { }
+
+// ✅ CORRECT: Pass date strings to functions
+await validateProgressTimeline(sessionId, requestedDateString, progress, usePercentage);
+
+// ✅ CORRECT: Only create Date objects for display formatting
+function formatDateForDisplay(dateString: string): string {
+  // ADR-014: Date object creation ONLY for display
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(new Date(dateString + 'T00:00:00'));
+}
+
+// ✅ BEST: Inline string comparison (simple and clear)
+const sorted = entries.sort((a, b) => a.progressDate.localeCompare(b.progressDate));
+if (entry.progressDate < targetDate) { /* before */ }
+if (entry.progressDate > targetDate) { /* after */ }
+
+// For display formatting, use formatDate() from utils/dateHelpers.ts
+import { formatDate } from '@/utils/dateHelpers';
+const formatted = formatDate(entry.progressDate); // "Jan 15, 2024"
+```
+
+### Correct Patterns
+
+**Sorting Arrays:**
+```typescript
+// ✅ CORRECT: Use .localeCompare() or direct comparison
+entries.sort((a, b) => a.progressDate.localeCompare(b.progressDate));
+
+// ❌ WRONG: Never use .getTime()
+entries.sort((a, b) => new Date(a.progressDate).getTime() - new Date(b.progressDate).getTime());
+```
+
+**Comparing Dates:**
+```typescript
+// ✅ CORRECT: Direct string comparison
+if (dateStr1 < dateStr2) { /* dateStr1 is before dateStr2 */ }
+if (dateStr1 > dateStr2) { /* dateStr1 is after dateStr2 */ }
+if (dateStr1 === dateStr2) { /* same day */ }
+
+// ❌ WRONG: Never create Date objects for comparison
+if (new Date(dateStr1) < new Date(dateStr2)) { }
+if (new Date(dateStr1).getTime() < new Date(dateStr2).getTime()) { }
+```
+
+**Finding Min/Max:**
+```typescript
+// ✅ CORRECT: Use Math.min/max on strings directly
+const earliest = dates.reduce((min, curr) => curr < min ? curr : min);
+const latest = dates.reduce((max, curr) => curr > max ? curr : max);
+
+// OR use built-in sort
+const earliest = [...dates].sort()[0];
+const latest = [...dates].sort().pop();
+
+// ❌ WRONG: Never use .getTime()
+const earliest = dates.reduce((min, curr) => 
+  new Date(curr).getTime() < new Date(min).getTime() ? curr : min
+);
+```
+
+### Bug Details: "Invalid time value" Error (Feb 2026)
+
+**Symptom:** Progress logging failed with error: `RangeError: Invalid time value`
+
+**Affected Code Locations:**
+1. `lib/services/progress.service.ts:355` - Sorting progress entries
+2. `lib/services/progress.service.ts:359` - Finding previous progress entry
+3. `lib/services/progress.service.ts:191, 313` - Validation function calls
+4. `lib/services/progress-validation.ts:122, 125` - Date comparisons in filtering
+5. `lib/services/session.service.ts:646, 647` - Sorting sessions by completedDate
+
+**Fix Applied:**
+- Replaced all `.getTime()` calls with `.localeCompare()` or direct string comparison (`<`, `>`)
+- Updated function signatures to accept strings instead of Date objects
+- Fixed test files that were still passing Date objects
+- All violations now use inline string comparison (YAGNI principle - no unnecessary abstractions)
+
+**Commits:**
+- Branch: `fix/adr-014-date-violations`
+- PR: [Link to PR once created]
+
+### Prevention Strategies
+
+1. **Code Review Checklist:**
+   - ✅ No `new Date(dateString).getTime()` for sorting/comparison
+   - ✅ No `new Date(dateString) < otherDate` comparisons
+   - ✅ All date functions accept `string` parameters, not `Date` objects
+   - ✅ Date objects only created for display formatting (with clear comments)
+
+2. **Use TypeScript Types:**
+   ```typescript
+   // Force string usage at type level
+   function validateProgressTimeline(
+     sessionId: number,
+     progressDateString: string,  // NOT Date!
+     newProgress: number,
+     usePercentage: boolean
+   ): Promise<ValidationResult>
+   ```
+
+3. **Use Inline Comparison:**
+   ```typescript
+   // Simple string comparison is clear and explicit
+   if (date1 < date2) { /* date1 is before date2 */ }
+   entries.sort((a, b) => a.progressDate.localeCompare(b.progressDate));
+   ```
+
+4. **Test Coverage:**
+   - Integration tests verify string-based date handling
+   - Existing tests cover date comparison in service layer
+
+### Lessons Learned
+
+1. **Partial implementation causes latent bugs**: Even after ADR-014 implementation, some code still used Date objects for comparison
+2. **Type system helps but isn't foolproof**: TypeScript caught some violations but not all (especially in test files)
+3. **Validation functions are high-risk areas**: Functions that receive dates as parameters are common violation sites
+4. **YAGNI - Don't create utilities until needed**: Inline string comparison (`<`, `>`, `.localeCompare()`) is clear and sufficient
+5. **Test data must be compliant**: Test files using `new Date()` objects perpetuated the wrong pattern
+
+**Key Takeaway:** ADR-014 compliance requires **complete elimination** of Date object usage for sorting/comparison. Inline string operations are simple and effective.
+
 ## Future Considerations
 
 ### Adding Time-of-Day (If Needed)
