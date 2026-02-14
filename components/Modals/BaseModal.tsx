@@ -78,36 +78,6 @@ export default function BaseModal({
     }
   }, [isOpen]);
 
-  // Prevent pull-to-refresh on the modal content
-  useEffect(() => {
-    if (!isOpen || !contentRef.current) return;
-
-    const content = contentRef.current;
-    let startY = 0;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0].pageY;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      const currentY = e.touches[0].pageY;
-      const scrollTop = content.scrollTop;
-      
-      // If scrolled to top and trying to pull down, prevent default
-      if (scrollTop === 0 && currentY > startY) {
-        e.preventDefault();
-      }
-    };
-
-    content.addEventListener('touchstart', handleTouchStart, { passive: true });
-    content.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      content.removeEventListener('touchstart', handleTouchStart);
-      content.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [isOpen]);
-
   // Handle opening and closing with proper animation states
   useEffect(() => {
     if (isOpen) {
@@ -153,6 +123,7 @@ export default function BaseModal({
       style={{
         transition: `opacity ${ANIMATION_DURATION}ms cubic-bezier(0.32, 0.72, 0, 1)`,
         pointerEvents: isExiting ? 'none' : 'auto',
+        touchAction: 'none',
       }}
       onClick={allowBackdropClose ? onClose : undefined}
     >
@@ -194,8 +165,9 @@ export default function BaseModal({
           ref={contentRef}
           className={cn("flex-1 overflow-y-auto px-6", hasActions ? "pb-4" : "pb-6")}
           style={{ 
-            overscrollBehavior: 'contain',
-            WebkitOverflowScrolling: 'touch'
+            overscrollBehavior: 'none',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
           }}
         >
           {loading ? (

@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import BaseModal from "./BaseModal";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { invalidateBookQueries } from "@/hooks/useBookStatus";
 import { Button } from "@/components/Utilities/Button";
+import { BookOpen } from "lucide-react";
 
 interface EditBookModalProps {
   isOpen: boolean;
@@ -37,6 +39,7 @@ export default function EditBookModal({
   const queryClient = useQueryClient();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Form state
   const [title, setTitle] = useState("");
@@ -48,6 +51,14 @@ export default function EditBookModal({
   const [seriesIndex, setSeriesIndex] = useState("");
   const [description, setDescription] = useState("");
   const [totalPages, setTotalPages] = useState("");
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Reset form when modal opens with book data
   useEffect(() => {
@@ -135,172 +146,193 @@ export default function EditBookModal({
     }
   };
 
+  // Form content shared between mobile and desktop
+  const formContent = (
+    <div className="space-y-4">
+      {/* Title */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+          Title <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          placeholder="Enter book title"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      {/* Authors */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+          Authors <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={authors}
+          onChange={(e) => setAuthors(e.target.value)}
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          placeholder="Comma-separated (e.g., Jane Doe, John Smith)"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      {/* ISBN */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+          ISBN
+        </label>
+        <input
+          type="text"
+          value={isbn}
+          onChange={(e) => setIsbn(e.target.value)}
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          placeholder="ISBN-10 or ISBN-13"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      {/* Publisher and Pub Date */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+            Publisher
+          </label>
+          <input
+            type="text"
+            value={publisher}
+            onChange={(e) => setPublisher(e.target.value)}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            placeholder="Publisher name"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+            Publication Date
+          </label>
+          <input
+            type="date"
+            value={pubDate}
+            onChange={(e) => setPubDate(e.target.value)}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+
+      {/* Series and Series Index */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+            Series
+          </label>
+          <input
+            type="text"
+            value={series}
+            onChange={(e) => setSeries(e.target.value)}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            placeholder="Series name"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+            Series Index
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            value={seriesIndex}
+            onChange={(e) => setSeriesIndex(e.target.value)}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            placeholder="e.g., 1, 2.5"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+
+      {/* Total Pages */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+          Total Pages
+        </label>
+        <input
+          type="number"
+          value={totalPages}
+          onChange={(e) => setTotalPages(e.target.value)}
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          placeholder="Number of pages"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+          Description
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
+          placeholder="Book description"
+          disabled={isSubmitting}
+        />
+      </div>
+    </div>
+  );
+
+  // Action buttons
+  const actionButtons = (
+    <>
+      <Button
+        onClick={onClose}
+        variant="secondary"
+        disabled={isSubmitting}
+      >
+        Cancel
+      </Button>
+      <Button
+        onClick={handleSubmit}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Saving..." : "Save Changes"}
+      </Button>
+    </>
+  );
+
+  // Render as BottomSheet on mobile, BaseModal on desktop
+  if (isMobile) {
+    return (
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Edit Book"
+        icon={<BookOpen className="w-5 h-5" />}
+        size="full"
+        allowBackdropClose={!isSubmitting}
+        actions={actionButtons}
+      >
+        {formContent}
+      </BottomSheet>
+    );
+  }
+
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Book"
-      size="lg"
-      actions={
-        <>
-          <Button
-            onClick={onClose}
-            variant="secondary"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Saving..." : "Save Changes"}
-          </Button>
-        </>
-      }
+      size="xl"
+      actions={actionButtons}
     >
-      <div className="space-y-4">
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            placeholder="Enter book title"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Authors */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-            Authors <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={authors}
-            onChange={(e) => setAuthors(e.target.value)}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            placeholder="Comma-separated (e.g., Jane Doe, John Smith)"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* ISBN */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-            ISBN
-          </label>
-          <input
-            type="text"
-            value={isbn}
-            onChange={(e) => setIsbn(e.target.value)}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            placeholder="ISBN-10 or ISBN-13"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Publisher and Pub Date */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-              Publisher
-            </label>
-            <input
-              type="text"
-              value={publisher}
-              onChange={(e) => setPublisher(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="Publisher name"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-              Publication Date
-            </label>
-            <input
-              type="date"
-              value={pubDate}
-              onChange={(e) => setPubDate(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              disabled={isSubmitting}
-            />
-          </div>
-        </div>
-
-        {/* Series and Series Index */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-              Series
-            </label>
-            <input
-              type="text"
-              value={series}
-              onChange={(e) => setSeries(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="Series name"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-              Series Index
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              value={seriesIndex}
-              onChange={(e) => setSeriesIndex(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="e.g., 1, 2.5"
-              disabled={isSubmitting}
-            />
-          </div>
-        </div>
-
-        {/* Total Pages */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-            Total Pages
-          </label>
-          <input
-            type="number"
-            value={totalPages}
-            onChange={(e) => setTotalPages(e.target.value)}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            placeholder="Number of pages"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-            placeholder="Book description"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 mt-6">
-        </div>
-      </div>
+      {formContent}
     </BaseModal>
   );
 }
