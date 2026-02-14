@@ -486,25 +486,6 @@ export default function FederatedSearchModal({
 
   const renderEditForm = () => (
     <div className="space-y-4">
-      {/* Selected Result Info */}
-      {selectedResult && (
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-          <div className="flex items-center gap-2 text-sm">
-            <ProviderBadge source={selectedResult.provider} size="sm" />
-            <span className="text-[var(--subheading-text)]">
-              {isFetchingMetadata ? (
-                <>
-                  <Loader2 className="inline w-4 h-4 animate-spin mr-1" />
-                  Fetching complete metadata...
-                </>
-              ) : (
-                "Edit the metadata below before adding to your library"
-              )}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Title - Required */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
