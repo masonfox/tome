@@ -408,6 +408,90 @@ describe("GET /api/books", () => {
       expect(response.status).toBe(200);
       expect(data.books).toHaveLength(2);
     });
+
+    test("should trim leading whitespace from search query", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "The Great Gatsby",
+        authors: ["F. Scott Fitzgerald"],
+        tags: [],
+        totalPages: 200,
+      });
+
+      const request = createMockRequest("GET", "/api/books?search=%20%20gatsby");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].title).toBe("The Great Gatsby");
+    });
+
+    test("should trim trailing whitespace from search query", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "1984",
+        authors: ["George Orwell"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      const request = createMockRequest("GET", "/api/books?search=orwell%20%20");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].title).toBe("1984");
+    });
+
+    test("should trim both leading and trailing whitespace from search query", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "Harry Potter and the Philosopher's Stone",
+        authors: ["J.K. Rowling"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      const request = createMockRequest("GET", "/api/books?search=%20%20harry%20potter%20%20");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(1);
+      expect(data.books[0].title).toBe("Harry Potter and the Philosopher's Stone");
+    });
+
+    test("should treat whitespace-only search as no search parameter", async () => {
+      await bookRepository.create({
+        calibreId: 1,
+        path: "test/path/1",
+        title: "The Great Gatsby",
+        authors: ["F. Scott Fitzgerald"],
+        tags: [],
+        totalPages: 200,
+      });
+
+      await bookRepository.create({
+        calibreId: 2,
+        path: "test/path/2",
+        title: "1984",
+        authors: ["George Orwell"],
+        tags: [],
+        totalPages: 300,
+      });
+
+      const request = createMockRequest("GET", "/api/books?search=%20%20%20");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.books).toHaveLength(2); // Returns all books (no filter applied)
+    });
   });
 
   // ============================================================================
