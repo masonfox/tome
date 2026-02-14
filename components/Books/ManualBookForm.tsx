@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import BaseModal from "@/components/Modals/BaseModal";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, BookPlus } from "lucide-react";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
 import { fetchImageFromUrl, blobToFile, ImageFetchError } from "@/lib/utils/fetch-image-url";
@@ -37,6 +38,9 @@ export default function ManualBookForm({
   onClose,
   onSuccess,
 }: ManualBookFormProps) {
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
   // Form state
   const [title, setTitle] = useState("");
   const [authors, setAuthors] = useState("");
@@ -60,6 +64,14 @@ export default function ManualBookForm({
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [duplicates, setDuplicates] = useState<PotentialDuplicate[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -335,30 +347,15 @@ export default function ManualBookForm({
     }
   };
 
-  return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={showDuplicateWarning ? "Potential Duplicates Found" : "Add Manual Book"}
-      subtitle={
-        showDuplicateWarning
-          ? "We found books that might be duplicates. Proceed anyway?"
-          : "Add a book that's not in your Calibre library"
-      }
-      size="xl"
-      loading={isSubmitting}
-      actions={
-        <>
-          <Button variant="ghost" onClick={handleCancel} disabled={isSubmitting}>
-            {showDuplicateWarning ? "Go Back" : "Cancel"}
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {showDuplicateWarning ? "Add Anyway" : "Add Book"}
-          </Button>
-        </>
-      }
-    >
-      {showDuplicateWarning ? (
+  // Determine modal title and subtitle
+  const modalTitle = showDuplicateWarning ? "Potential Duplicates Found" : "Add Manual Book";
+  const modalSubtitle = showDuplicateWarning
+    ? "We found books that might be duplicates. Proceed anyway?"
+    : "Add a book that's not in your Calibre library";
+  const modalIcon = <BookPlus className="w-5 h-5" />;
+
+  // Modal content
+  const modalContent = showDuplicateWarning ? (
         <div className="space-y-4">
           <p className="text-sm text-[var(--subheading-text)]">
             The following {duplicates.length === 1 ? "book" : "books"} in your library {duplicates.length === 1 ? "appears" : "appear"} similar:
@@ -653,7 +650,48 @@ export default function ManualBookForm({
             </div>
           )}
         </div>
-      )}
+      );
+
+  // Modal actions
+  const modalActions = (
+    <>
+      <Button variant="ghost" onClick={handleCancel} disabled={isSubmitting}>
+        {showDuplicateWarning ? "Go Back" : "Cancel"}
+      </Button>
+      <Button onClick={handleSubmit} disabled={isSubmitting}>
+        {showDuplicateWarning ? "Add Anyway" : "Add Book"}
+      </Button>
+    </>
+  );
+
+  // Render as BottomSheet on mobile, BaseModal on desktop
+  if (isMobile) {
+    return (
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={onClose}
+        title={modalTitle}
+        icon={modalIcon}
+        size="full"
+        allowBackdropClose={!isSubmitting}
+        actions={modalActions}
+      >
+        {modalContent}
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={modalTitle}
+      subtitle={modalSubtitle}
+      size="xl"
+      loading={isSubmitting}
+      actions={modalActions}
+    >
+      {modalContent}
     </BaseModal>
   );
 }
