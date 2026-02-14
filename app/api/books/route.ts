@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status") || undefined;
-    const search = searchParams.get("search") || undefined;
+    const search = searchParams.get("search")?.trim() || undefined;
     const tagsParam = searchParams.get("tags");
     const rating = searchParams.get("rating") || undefined;
     const shelfParam = searchParams.get("shelf");
