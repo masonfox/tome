@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getLogger } from "@/lib/logger";
-import { ProviderRegistry, initializeProviders } from "@/lib/providers/base/ProviderRegistry";
+import { getProvider, hasProvider } from "@/lib/providers/provider-map";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import { providerService } from "@/lib/services/provider.service";
 import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
@@ -37,13 +37,8 @@ export async function PATCH(
   try {
     const { providerId } = await params;
     
-    // Ensure providers are initialized
-    if (!ProviderRegistry.isInitialized()) {
-      initializeProviders();
-    }
-    
     // Validate provider exists
-    if (!ProviderRegistry.has(providerId as ProviderId)) {
+    if (!hasProvider(providerId as ProviderId)) {
       return NextResponse.json(
         {
           error: "Provider not found",
@@ -120,16 +115,16 @@ export async function PATCH(
     const updatedConfig = await providerConfigRepository.findByProvider(
       providerId as ProviderId
     );
-    const registryEntry = ProviderRegistry.getEntry(providerId as ProviderId);
+    const provider = getProvider(providerId as ProviderId);
 
     // Return updated configuration (without sensitive credentials)
     return NextResponse.json({
       id: providerId,
-      name: registryEntry?.provider.name,
-      capabilities: registryEntry?.provider.capabilities,
-      enabled: registryEntry?.enabled ?? true,
-      priority: registryEntry?.priority ?? 100,
-      healthStatus: registryEntry?.healthStatus ?? "healthy",
+      name: provider?.name,
+      capabilities: provider?.capabilities,
+      enabled: updatedConfig?.enabled ?? true,
+      priority: updatedConfig?.priority ?? 100,
+      healthStatus: updatedConfig?.healthStatus ?? "healthy",
       settings: updatedConfig?.settings || {},
       hasCredentials: !!(updatedConfig?.credentials && Object.keys(updatedConfig.credentials).length > 0),
       updatedAt: updatedConfig?.updatedAt?.toISOString(),
@@ -164,13 +159,8 @@ export async function GET(
   try {
     const { providerId } = await params;
     
-    // Ensure providers are initialized
-    if (!ProviderRegistry.isInitialized()) {
-      initializeProviders();
-    }
-    
     // Validate provider exists
-    if (!ProviderRegistry.has(providerId as ProviderId)) {
+    if (!hasProvider(providerId as ProviderId)) {
       return NextResponse.json(
         {
           error: "Provider not found",
@@ -183,7 +173,7 @@ export async function GET(
     const config = await providerConfigRepository.findByProvider(
       providerId as ProviderId
     );
-    const registryEntry = ProviderRegistry.getEntry(providerId as ProviderId);
+    const provider = getProvider(providerId as ProviderId);
     const circuitStats = await providerService.getCircuitStats(
       providerId as ProviderId
     );
@@ -200,12 +190,12 @@ export async function GET(
 
     return NextResponse.json({
       id: providerId,
-      name: registryEntry?.provider.name,
-      capabilities: registryEntry?.provider.capabilities,
-      enabled: registryEntry?.enabled ?? true,
-      priority: registryEntry?.priority ?? 100,
-      healthStatus: registryEntry?.healthStatus ?? "healthy",
-      lastHealthCheck: registryEntry?.lastHealthCheck?.toISOString(),
+      name: provider?.name,
+      capabilities: provider?.capabilities,
+      enabled: config.enabled ?? true,
+      priority: config.priority ?? 100,
+      healthStatus: config.healthStatus ?? "healthy",
+      lastHealthCheck: config.lastHealthCheck?.toISOString(),
       circuitState: circuitStats.state,
       failureCount: circuitStats.failureCount,
       lastFailure: circuitStats.lastFailure?.toISOString(),

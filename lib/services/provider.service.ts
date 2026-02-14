@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from "@/lib/logger";
-import { ProviderRegistry } from "@/lib/providers/base/ProviderRegistry";
+import { getProvider, getAllProviders } from "@/lib/providers/provider-map";
 import { circuitBreakerService } from "@/lib/services/circuit-breaker.service";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import type {
@@ -76,7 +76,7 @@ export class ProviderService {
    * @throws Error if provider not found
    */
   getProvider(source: ProviderId): IMetadataProvider {
-    const provider = ProviderRegistry.get(source);
+    const provider = getProvider(source);
     if (!provider) {
       throw new Error(`Provider '${source}' not found`);
     }
@@ -85,18 +85,43 @@ export class ProviderService {
 
   /**
    * Get all enabled providers sorted by priority
+   * 
+   * Queries database for enabled state and priority, then returns
+   * provider instances sorted by priority.
    */
-  getEnabledProviders(): IMetadataProvider[] {
-    return ProviderRegistry.getEnabled();
+  async getEnabledProviders(): Promise<IMetadataProvider[]> {
+    const allProviders = getAllProviders();
+    
+    // Query database for each provider's config
+    const configs = await Promise.all(
+      allProviders.map(async (provider) => {
+        const config = await providerConfigRepository.findByProvider(provider.id);
+        return {
+          provider,
+          enabled: config?.enabled ?? true,
+          priority: config?.priority ?? 100,
+        };
+      })
+    );
+
+    // Filter enabled and sort by priority (lower = higher priority)
+    return configs
+      .filter((c) => c.enabled)
+      .sort((a, b) => a.priority - b.priority)
+      .map((c) => c.provider);
   }
 
   /**
    * Get providers with specific capability
+   * 
+   * Returns enabled providers that support the specified capability,
+   * sorted by priority.
    */
-  getProvidersByCapability(
+  async getProvidersByCapability(
     capability: keyof IMetadataProvider["capabilities"]
-  ): IMetadataProvider[] {
-    return ProviderRegistry.getByCapability(capability);
+  ): Promise<IMetadataProvider[]> {
+    const enabled = await this.getEnabledProviders();
+    return enabled.filter((provider) => provider.capabilities[capability]);
   }
 
   /**
@@ -256,9 +281,6 @@ export class ProviderService {
       
       // Update database
       await providerConfigRepository.updateHealth(source, status, new Date());
-      
-      // Update registry
-      ProviderRegistry.updateHealth(source, status);
 
       logger.debug(
         { provider: source, status },
@@ -278,7 +300,6 @@ export class ProviderService {
         "unavailable",
         new Date()
       );
-      ProviderRegistry.updateHealth(source, "unavailable");
       
       return "unavailable";
     }
@@ -290,7 +311,7 @@ export class ProviderService {
    * @returns Map of provider ID to health status
    */
   async healthCheckAll(): Promise<Map<ProviderId, ProviderHealth>> {
-    const providers = ProviderRegistry.getAll();
+    const providers = getAllProviders();
     const results = new Map<ProviderId, ProviderHealth>();
 
     logger.info(
@@ -323,13 +344,12 @@ export class ProviderService {
   }
 
   /**
-   * Enable or disable a provider at runtime
+   * Enable or disable a provider
    * 
-   * Updates both database and registry.
+   * Updates database only. No in-memory state.
    */
   async setEnabled(source: ProviderId, enabled: boolean): Promise<void> {
     await providerConfigRepository.setEnabled(source, enabled);
-    ProviderRegistry.setEnabled(source, enabled);
     logger.info({ provider: source, enabled }, "Updated provider enabled state");
   }
 

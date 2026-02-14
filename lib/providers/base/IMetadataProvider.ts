@@ -216,16 +216,3 @@ export interface IMetadataProvider {
    */
   healthCheck(): Promise<ProviderHealth>;
 }
-
-/**
- * Provider registry entry
- * 
- * Internal type for provider registry with runtime state.
- */
-export interface ProviderRegistryEntry {
-  provider: IMetadataProvider;
-  enabled: boolean;
-  priority: number;
-  lastHealthCheck?: Date;
-  healthStatus: ProviderHealth;
-}

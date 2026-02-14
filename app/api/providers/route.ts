@@ -9,7 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { getLogger } from "@/lib/logger";
-import { ProviderRegistry, initializeProviders } from "@/lib/providers/base/ProviderRegistry";
+import { getAllProviders } from "@/lib/providers/provider-map";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import { circuitBreakerService } from "@/lib/services/circuit-breaker.service";
 import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
@@ -20,13 +20,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Ensure providers are initialized
-    if (!ProviderRegistry.isInitialized()) {
-      initializeProviders();
-    }
-
     // Get all registered providers
-    const providers = ProviderRegistry.getAll();
+    const providers = getAllProviders();
 
     // Fetch database configurations
     const dbConfigs = await Promise.all(
@@ -37,18 +32,15 @@ export async function GET() {
         const circuitStats = await circuitBreakerService.getStats(
           provider.id as ProviderId
         );
-        const registryEntry = ProviderRegistry.getEntry(
-          provider.id as ProviderId
-        );
 
         return {
           id: provider.id,
           name: provider.name,
           capabilities: provider.capabilities,
-          enabled: registryEntry?.enabled ?? true,
-          priority: registryEntry?.priority ?? 100,
-          healthStatus: registryEntry?.healthStatus ?? "healthy",
-          lastHealthCheck: registryEntry?.lastHealthCheck?.toISOString(),
+          enabled: config?.enabled ?? true,
+          priority: config?.priority ?? 100,
+          healthStatus: config?.healthStatus ?? "healthy",
+          lastHealthCheck: config?.lastHealthCheck?.toISOString(),
           circuitState: circuitStats.state,
           failureCount: circuitStats.failureCount,
           lastFailure: circuitStats.lastFailure?.toISOString(),
