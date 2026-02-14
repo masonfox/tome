@@ -16,9 +16,12 @@ import ProgressEditModal from "@/components/Modals/ProgressEditModal";
 import RereadConfirmModal from "@/components/Modals/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/Modals/ArchiveSessionModal";
 import PageCountEditModal from "@/components/Modals/PageCountEditModal";
+import EditBookModal from "@/components/Modals/EditBookModal";
+import DeleteBookModal from "@/components/Modals/DeleteBookModal";
 import TagEditor from "@/components/BookDetail/TagEditor";
 import ShelfEditor from "@/components/BookDetail/ShelfEditor";
 import BookHeader from "@/components/BookDetail/BookHeader";
+import { BookActionsMenu } from "@/components/BookDetail/BookActionsMenu";
 import { ProviderBadge, type SourceProviderId } from "@/components/Providers/ProviderBadge";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
@@ -177,6 +180,8 @@ export default function BookDetailPage() {
   const [showPageCountModal, setShowPageCountModal] = useState(false);
   const [showTagEditor, setShowTagEditor] = useState(false);
   const [showShelfEditor, setShowShelfEditor] = useState(false);
+  const [showEditBookModal, setShowEditBookModal] = useState(false);
+  const [showDeleteBookModal, setShowDeleteBookModal] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -438,9 +443,18 @@ export default function BookDetailPage() {
                 {book.seriesIndex && ` #${book.seriesIndex}`}
               </Link>
             )}
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight">
-              {book.title}
-            </h1>
+            <div className="flex items-start gap-3">
+              <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight flex-1">
+                {book.title}
+              </h1>
+              {/* Book Actions Menu - only show for manual books (no sources) */}
+              {bookSources.length === 0 && (
+                <BookActionsMenu
+                  onEdit={() => setShowEditBookModal(true)}
+                  onDelete={() => setShowDeleteBookModal(true)}
+                />
+              )}
+            </div>
             <div className="font-serif text-lg md:text-xl text-[var(--subheading-text)] mb-4 font-medium">
               {book.authors.map((author, index) => (
                 <span key={author}>
@@ -786,6 +800,30 @@ export default function BookDetailPage() {
         currentShelfIds={currentShelfIds}
         availableShelves={availableShelves}
         isMobile={isMobile}
+      />
+
+      <EditBookModal
+        isOpen={showEditBookModal}
+        onClose={() => setShowEditBookModal(false)}
+        bookId={book.id}
+        currentBook={{
+          title: book.title,
+          authors: book.authors,
+          isbn: (book as any).isbn || null,
+          publisher: (book as any).publisher || null,
+          pubDate: (book as any).pubDate || null,
+          series: (book as any).series || null,
+          seriesIndex: (book as any).seriesIndex || null,
+          description: (book as any).description || null,
+          totalPages: book.totalPages || null,
+        }}
+      />
+
+      <DeleteBookModal
+        isOpen={showDeleteBookModal}
+        onClose={() => setShowDeleteBookModal(false)}
+        bookId={book.id}
+        bookTitle={book.title}
       />
     </div>
   );
