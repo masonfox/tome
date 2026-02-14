@@ -361,16 +361,24 @@ class HardcoverProvider implements IMetadataProvider {
             id
             title
             description
-            cached_tags
             pages
             release_date
             release_year
             image {
               url
             }
-            isbns
-            author_names
             contributions {
+              author {
+                name
+              }
+            }
+            taggings {
+              tag {
+                tag
+              }
+            }
+            editions(limit: 1, order_by: {users_count: desc}) {
+              isbn_13
               publisher {
                 name
               }
@@ -441,27 +449,32 @@ class HardcoverProvider implements IMetadataProvider {
     const pubDate = parsePublishDate(book.release_date) 
       || (book.release_year ? parsePublishDate(book.release_year.toString()) : undefined);
 
-    // Parse tags from cached_tags (JSON array)
+    // Parse tags from taggings relationship
     let tags: string[] | undefined;
-    if (book.cached_tags) {
-      try {
-        const parsedTags = typeof book.cached_tags === 'string' 
-          ? JSON.parse(book.cached_tags)
-          : book.cached_tags;
-        tags = Array.isArray(parsedTags) ? parsedTags : undefined;
-      } catch (error) {
-        logger.warn({ err: error, cached_tags: book.cached_tags }, "Failed to parse cached_tags");
-        tags = undefined;
-      }
+    if (book.taggings && Array.isArray(book.taggings)) {
+      const extractedTags = book.taggings
+        .map((tagging: any) => tagging.tag?.tag)
+        .filter((tag: any) => tag);
+      tags = extractedTags.length > 0 ? extractedTags : undefined;
     }
 
-    // Extract publisher from contributions
-    const publisher = book.contributions?.[0]?.publisher?.name;
+    // Extract publisher from editions (most popular edition)
+    const publisher = book.editions?.[0]?.publisher?.name;
+
+    // Extract ISBN from editions
+    const isbn = book.editions?.[0]?.isbn_13;
+
+    // Extract authors from contributions
+    const authors = book.contributions && Array.isArray(book.contributions)
+      ? book.contributions
+          .map((contrib: any) => contrib.author?.name)
+          .filter((name: any) => name)
+      : [];
 
     return {
       title: book.title || "Untitled",
-      authors: book.author_names || [],
-      isbn: book.isbns?.[0],
+      authors,
+      isbn,
       description: book.description || undefined,
       publisher: publisher || undefined,
       pubDate,
