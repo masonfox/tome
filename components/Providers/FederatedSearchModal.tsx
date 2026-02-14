@@ -47,6 +47,7 @@ export default function FederatedSearchModal({
 
   // Selection and form state
   const [selectedResult, setSelectedResult] = useState<SelectedResult | null>(null);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [title, setTitle] = useState("");
   const [authors, setAuthors] = useState("");
   const [isbn, setIsbn] = useState("");
@@ -134,10 +135,55 @@ export default function FederatedSearchModal({
     }
   };
 
-  const handleSelectResult = (result: SearchResult, provider: ProviderId) => {
+  const handleSelectResult = async (result: SearchResult, provider: ProviderId) => {
     setSelectedResult({ result, provider });
+    setIsFetchingMetadata(true);
     
-    // Pre-fill form with result data
+    try {
+      // Fetch full metadata from provider
+      const response = await fetch(`/api/providers/${provider}/metadata/${result.externalId}`);
+      
+      if (!response.ok) {
+        // Fallback to basic search result data if metadata fetch fails
+        logger.warn({ provider, externalId: result.externalId }, "Failed to fetch full metadata, using search result data");
+        prefillFromSearchResult(result);
+      } else {
+        const { data } = await response.json();
+        
+        // Pre-fill form with full metadata
+        setTitle(data.title || result.title);
+        setAuthors((data.authors || result.authors).join(", "));
+        setIsbn(data.isbn || result.isbn || "");
+        setPublisher(data.publisher || "");
+        setPubDate(data.pubDate ? new Date(data.pubDate).toISOString().split("T")[0] : "");
+        setDescription(data.description || "");
+        setTags(data.tags ? data.tags.join(", ") : "");
+        setTotalPages(data.totalPages?.toString() || result.totalPages?.toString() || "");
+        
+        logger.info(
+          { 
+            provider, 
+            externalId: result.externalId,
+            hasDescription: !!data.description,
+            hasTags: !!data.tags,
+            hasPublisher: !!data.publisher 
+          }, 
+          "Fetched full metadata for selected book"
+        );
+      }
+    } catch (error) {
+      logger.error({ error, provider, externalId: result.externalId }, "Error fetching metadata");
+      prefillFromSearchResult(result);
+    } finally {
+      setIsFetchingMetadata(false);
+    }
+
+    // Check for duplicates
+    checkForDuplicates(result.title, result.authors);
+  };
+  
+  const prefillFromSearchResult = (result: SearchResult) => {
+    // Fallback: use basic search result data
     setTitle(result.title);
     setAuthors(result.authors.join(", "));
     setIsbn(result.isbn || "");
@@ -146,9 +192,6 @@ export default function FederatedSearchModal({
     setDescription("");
     setTags("");
     setTotalPages(result.totalPages?.toString() || "");
-
-    // Check for duplicates
-    checkForDuplicates(result.title, result.authors);
   };
 
   const checkForDuplicates = async (bookTitle: string, bookAuthors: string[]) => {
@@ -437,7 +480,14 @@ export default function FederatedSearchModal({
           <div className="flex items-center gap-2 text-sm">
             <ProviderBadge source={selectedResult.provider} size="sm" />
             <span className="text-gray-600 dark:text-gray-400">
-              Edit the metadata below before adding to your library
+              {isFetchingMetadata ? (
+                <>
+                  <Loader2 className="inline w-4 h-4 animate-spin mr-1" />
+                  Fetching complete metadata...
+                </>
+              ) : (
+                "Edit the metadata below before adding to your library"
+              )}
             </span>
           </div>
         </div>
@@ -608,14 +658,14 @@ export default function FederatedSearchModal({
       title={modalTitle}
       subtitle={modalSubtitle}
       size="xl"
-      loading={isSubmitting}
+      loading={isSubmitting || isFetchingMetadata}
       actions={
         selectedResult ? (
           <>
-            <Button variant="secondary" onClick={handleBack} disabled={isSubmitting}>
+            <Button variant="secondary" onClick={handleBack} disabled={isSubmitting || isFetchingMetadata}>
               {showDuplicateWarning ? "Go Back" : "Back to Results"}
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting || isFetchingMetadata}>
               {showDuplicateWarning ? "Add Anyway" : "Add Book"}
             </Button>
           </>
