@@ -1114,6 +1114,13 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           ORDER BY pl.progress_date DESC
           LIMIT 1
         )`.as('progressCreatedAt'),
+
+        // Book sources (aggregate provider IDs from book_sources table)
+        sources: sql`(
+          SELECT GROUP_CONCAT(bs.provider_id)
+          FROM ${bookSources} bs
+          WHERE bs.book_id = ${books.id}
+        )`.as('sources'),
       })
       .from(books)
       .leftJoin(
@@ -1131,7 +1138,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const booksWithRelations = results.map((row: any) => ({
       id: row.bookId,
       calibreId: row.calibreId,
-      source: row.source,
+      sources: row.sources ? row.sources.split(',') : [], // Parse comma-separated sources into array
       title: row.title,
       authors: row.authors,
       tags: row.tags,

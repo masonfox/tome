@@ -52,6 +52,21 @@ export default function BookDetailPage() {
     updateTags,
   } = useBookDetail(bookId);
 
+  // Fetch book sources separately (Phase R1.6)
+  const { data: bookSourcesData } = useQuery<{ sources: Array<{ providerId: string }> }>({
+    queryKey: ['bookSources', bookId],
+    queryFn: async () => {
+      const response = await fetch(`/api/books/${bookId}/sources`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch book sources');
+      }
+      return response.json();
+    },
+    enabled: !!bookId && !!book, // Only fetch if we have a book
+    staleTime: 60000, // Cache for 1 minute
+  });
+  const bookSources = bookSourcesData?.sources?.map(s => s.providerId as SourceProviderId) || [];
+
   const bookProgressHook = useBookProgress(bookId, book, async () => {
     // Invalidate relevant queries to refetch fresh data
     await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
@@ -442,10 +457,17 @@ export default function BookDetailPage() {
 
             {/* Metadata */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 text-xs md:text-sm font-medium">
-              {/* Provider Badge - TODO: Fetch from book_sources in Phase R1.6 */}
-              {book.source && (
+              {/* Provider Badges - show multiple sources or none for manual books */}
+              {bookSources.length > 0 && (
                 <>
-                  <ProviderBadge source={book.source as SourceProviderId} size="md" />
+                  {bookSources.map((source, index) => (
+                    <span key={source}>
+                      <ProviderBadge source={source} size="md" />
+                      {index < bookSources.length - 1 && (
+                        <span className="text-[var(--border-color)] ml-2 mr-1">•</span>
+                      )}
+                    </span>
+                  ))}
                   <span className="text-[var(--border-color)]">•</span>
                 </>
               )}

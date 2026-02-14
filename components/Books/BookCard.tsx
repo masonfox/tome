@@ -14,7 +14,7 @@ interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  source?: SourceProviderId; // TODO: Will be array in Phase R1.6 for multi-source
+  sources?: SourceProviderId[]; // Array of source providers (empty array = manual book)
   status?: string | null;
   currentProgress?: number;
   className?: string;
@@ -25,7 +25,7 @@ export const BookCard = memo(function BookCard({
   id,
   title,
   authors,
-  source,
+  sources,
   status,
   currentProgress,
   className,
@@ -42,10 +42,12 @@ export const BookCard = memo(function BookCard({
         )}
       >
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
-          {/* Provider Badge */}
-          {source && (
-            <div className="absolute top-2 right-2 z-10">
-              <ProviderBadge source={source} size="sm" />
+          {/* Provider Badges - show multiple sources or none for manual books */}
+          {sources && sources.length > 0 && (
+            <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+              {sources.map((source) => (
+                <ProviderBadge key={source} source={source} size="sm" />
+              ))}
             </div>
           )}
 
@@ -104,6 +106,6 @@ export const BookCard = memo(function BookCard({
     prevProps.status === nextProps.status &&
     prevProps.currentProgress === nextProps.currentProgress &&
     prevProps.updatedAt === nextProps.updatedAt &&
-    prevProps.source === nextProps.source
+    JSON.stringify(prevProps.sources) === JSON.stringify(nextProps.sources) // Deep comparison for array
   );
 });

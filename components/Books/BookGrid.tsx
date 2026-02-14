@@ -10,7 +10,7 @@ interface BookGridProps {
     calibreId: number | null;
     title: string;
     authors: string[];
-    source?: string;
+    sources?: string[]; // Array of provider IDs
     coverPath?: string;
     status?: string | null;
     tags?: string[];
@@ -41,7 +41,7 @@ export function BookGrid({ books, loading = false, loadingMore = false, skeleton
                 id={book.id.toString()}
                 title={book.title}
                 authors={book.authors}
-                source={book.source as SourceProviderId | undefined}
+                sources={book.sources as SourceProviderId[] | undefined}
                 status={book.status}
                 updatedAt={book.updatedAt}
               />
