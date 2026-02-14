@@ -334,18 +334,142 @@ class HardcoverProvider implements IMetadataProvider {
   }
 
   /**
-   * Fetch book metadata from Hardcover (NOT IMPLEMENTED)
+   * Fetch book metadata from Hardcover by book ID
    * 
-   * @throws Error - Not implemented in stub
+   * Retrieves complete book details including description, tags, and publisher.
+   * Implements 5-second timeout per spec (T069).
+   * 
+   * @param externalId - Hardcover book ID (numeric string)
+   * @returns Complete book metadata
+   * @throws Error if API fails, times out, API key missing, or book not found
    */
   async fetchMetadata(externalId: string): Promise<BookMetadata> {
-    logger.warn(
-      { externalId },
-      "Hardcover fetchMetadata called but not yet implemented"
-    );
-    throw new Error(
-      "Hardcover fetchMetadata not implemented - deferred to Phase 6"
-    );
+    logger.debug({ externalId }, "Hardcover: Fetching book metadata");
+
+    // Check for API key from database
+    const apiKey = await this.getApiKey();
+    if (!apiKey) {
+      logger.warn("Hardcover: API key not configured in provider settings");
+      throw new Error("API key required. Configure in Settings → Providers → Hardcover.");
+    }
+
+    try {
+      // GraphQL query for complete book details
+      const graphqlQuery = `
+        query GetBook($id: Int!) {
+          books(where: {id: {_eq: $id}}, limit: 1) {
+            id
+            title
+            description
+            cached_tags
+            pages
+            release_date
+            release_year
+            image {
+              url
+            }
+            isbns
+            author_names
+            contributions {
+              publisher {
+                name
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await fetch(this.baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: { id: parseInt(externalId, 10) },
+        }),
+        signal: AbortSignal.timeout(5000), // 5-second timeout per spec (T069)
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          logger.error("Hardcover: Invalid API key");
+          throw new Error("Invalid API key. Please check your HARDCOVER_API_KEY.");
+        }
+        if (response.status === 429) {
+          logger.warn("Hardcover: Rate limit exceeded");
+          throw new Error("Rate limit exceeded");
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data: any = await response.json();
+
+      if (data.errors) {
+        logger.error({ errors: data.errors }, "Hardcover: GraphQL errors");
+        throw new Error(`GraphQL error: ${data.errors[0]?.message || "Unknown error"}`);
+      }
+
+      const books = data.data?.books;
+      if (!books || !Array.isArray(books) || books.length === 0) {
+        logger.warn({ externalId }, "Hardcover: Book not found");
+        throw new Error(`Book not found: ${externalId}`);
+      }
+
+      const book = books[0];
+      logger.debug({ externalId, bookId: book.id }, "Hardcover: Book metadata fetched");
+
+      return this.mapToBookMetadata(book);
+    } catch (error: any) {
+      if (error.name === "AbortError" || error.name === "TimeoutError") {
+        logger.warn({ externalId }, "Hardcover: Fetch timeout (>5s)");
+        throw new Error("Fetch timeout");
+      }
+      logger.error({ err: error, externalId }, "Hardcover: Fetch metadata failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Map Hardcover book data to BookMetadata format
+   * 
+   * Handles missing fields gracefully by returning undefined for optional fields.
+   */
+  private mapToBookMetadata(book: any): BookMetadata {
+    // Parse publication date (prefer release_date, fallback to release_year)
+    const pubDate = parsePublishDate(book.release_date) 
+      || (book.release_year ? parsePublishDate(book.release_year.toString()) : undefined);
+
+    // Parse tags from cached_tags (JSON array)
+    let tags: string[] | undefined;
+    if (book.cached_tags) {
+      try {
+        const parsedTags = typeof book.cached_tags === 'string' 
+          ? JSON.parse(book.cached_tags)
+          : book.cached_tags;
+        tags = Array.isArray(parsedTags) ? parsedTags : undefined;
+      } catch (error) {
+        logger.warn({ err: error, cached_tags: book.cached_tags }, "Failed to parse cached_tags");
+        tags = undefined;
+      }
+    }
+
+    // Extract publisher from contributions
+    const publisher = book.contributions?.[0]?.publisher?.name;
+
+    return {
+      title: book.title || "Untitled",
+      authors: book.author_names || [],
+      isbn: book.isbns?.[0],
+      description: book.description || undefined,
+      publisher: publisher || undefined,
+      pubDate,
+      totalPages: book.pages,
+      tags,
+      coverImageUrl: book.image?.url,
+      externalId: book.id?.toString(),
+    };
   }
 
   /**

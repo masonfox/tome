@@ -132,18 +132,126 @@ class OpenLibraryProvider implements IMetadataProvider {
   }
 
   /**
-   * Fetch book metadata from OpenLibrary (NOT IMPLEMENTED)
+   * Fetch book metadata from OpenLibrary by work ID
    * 
-   * @throws Error - Not implemented yet
+   * Retrieves complete book details including description, tags (subjects), and publisher.
+   * Uses Works API for core metadata and Editions API for publisher.
+   * Implements 5-second timeout per spec (T069).
+   * 
+   * @param externalId - OpenLibrary work ID (e.g., "OL27448W")
+   * @returns Complete book metadata
+   * @throws Error if API fails, times out, or work not found
    */
   async fetchMetadata(externalId: string): Promise<BookMetadata> {
-    logger.warn(
-      { externalId },
-      "OpenLibrary fetchMetadata called but not yet implemented"
-    );
-    throw new Error(
-      "OpenLibrary fetchMetadata not implemented - deferred to Phase 6"
-    );
+    logger.debug({ externalId }, "OpenLibrary: Fetching book metadata");
+
+    try {
+      // Fetch from Works API for description and subjects (tags)
+      const workResponse = await fetch(`${this.baseUrl}/works/${externalId}.json`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "Tome/1.0 (https://github.com/masonfox/tome)",
+        },
+        signal: AbortSignal.timeout(5000), // 5-second timeout per spec (T069)
+      });
+
+      if (!workResponse.ok) {
+        if (workResponse.status === 404) {
+          logger.warn({ externalId }, "OpenLibrary: Work not found");
+          throw new Error(`Work not found: ${externalId}`);
+        }
+        if (workResponse.status === 429) {
+          logger.warn("OpenLibrary: Rate limit exceeded");
+          throw new Error("Rate limit exceeded");
+        }
+        throw new Error(`HTTP ${workResponse.status}: ${workResponse.statusText}`);
+      }
+
+      const workData = await workResponse.json();
+
+      // Fetch editions to get publisher information
+      const editionsResponse = await fetch(`${this.baseUrl}/works/${externalId}/editions.json`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "Tome/1.0 (https://github.com/masonfox/tome)",
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+
+      let publisher: string | undefined;
+      if (editionsResponse.ok) {
+        const editionsData = await editionsResponse.json();
+        const firstEdition = editionsData.entries?.[0];
+        if (firstEdition?.publishers?.[0]) {
+          publisher = firstEdition.publishers[0];
+        }
+      } else {
+        logger.warn({ externalId }, "OpenLibrary: Failed to fetch editions for publisher");
+      }
+
+      logger.debug({ externalId }, "OpenLibrary: Book metadata fetched");
+
+      return this.mapToBookMetadata(workData, publisher, externalId);
+    } catch (error: any) {
+      if (error.name === "AbortError" || error.name === "TimeoutError") {
+        logger.warn({ externalId }, "OpenLibrary: Fetch timeout (>5s)");
+        throw new Error("Fetch timeout");
+      }
+      logger.error({ err: error, externalId }, "OpenLibrary: Fetch metadata failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Map OpenLibrary work data to BookMetadata format
+   * 
+   * Handles missing fields gracefully by returning undefined for optional fields.
+   * OpenLibrary description can be a string or an object with {type, value}.
+   */
+  private mapToBookMetadata(work: any, publisher: string | undefined, externalId: string): BookMetadata {
+    // Parse description (can be string or object with value property)
+    let description: string | undefined;
+    if (work.description) {
+      if (typeof work.description === 'string') {
+        description = work.description;
+      } else if (typeof work.description === 'object' && work.description.value) {
+        description = work.description.value;
+      }
+    }
+
+    // Extract subjects as tags
+    const tags = work.subjects && Array.isArray(work.subjects) 
+      ? work.subjects 
+      : undefined;
+
+    // Extract authors (they're references, need to extract names)
+    let authors: string[] = [];
+    if (work.authors && Array.isArray(work.authors)) {
+      authors = work.authors
+        .map((author: any) => author.name || author.author?.name)
+        .filter((name: any) => name);
+    }
+
+    // Extract cover image from covers array
+    let coverImageUrl: string | undefined;
+    if (work.covers && Array.isArray(work.covers) && work.covers[0]) {
+      coverImageUrl = `https://covers.openlibrary.org/b/id/${work.covers[0]}-L.jpg`;
+    }
+
+    return {
+      title: work.title || "Untitled",
+      authors,
+      isbn: undefined, // ISBN is in editions, not works
+      description,
+      publisher,
+      pubDate: undefined, // Publish date is in editions, not works
+      totalPages: undefined, // Page count is in editions, not works
+      tags,
+      coverImageUrl,
+      externalId,
+    };
   }
 
   /**
