@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, AlertCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
+import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Button } from "@/components/Utilities/Button";
 import { ProviderBadge } from "@/components/Providers/ProviderBadge";
 import { SearchResultCard } from "@/components/Providers/SearchResultCard";
@@ -39,6 +40,9 @@ export default function FederatedSearchModal({
   onClose,
   onSuccess,
 }: FederatedSearchModalProps) {
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
   // Search state
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -62,6 +66,14 @@ export default function FederatedSearchModal({
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [duplicates, setDuplicates] = useState<PotentialDuplicate[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -642,13 +654,56 @@ export default function FederatedSearchModal({
   // Determine modal title and subtitle
   let modalTitle = "Search Providers";
   let modalSubtitle = "Search Hardcover and Open Library for books";
+  let modalIcon = <Search className="w-5 h-5" />;
 
   if (showDuplicateWarning) {
     modalTitle = "Potential Duplicates Found";
     modalSubtitle = "We found books that might be duplicates. Proceed anyway?";
+    modalIcon = <AlertCircle className="w-5 h-5" />;
   } else if (selectedResult) {
     modalTitle = "Add Book from Search";
     modalSubtitle = "Review and edit metadata before adding";
+    modalIcon = <Search className="w-5 h-5" />;
+  }
+
+  // Modal content
+  const modalContent = showDuplicateWarning
+    ? renderDuplicateWarning()
+    : selectedResult
+    ? renderEditForm()
+    : renderSearchView();
+
+  // Modal actions
+  const modalActions = selectedResult ? (
+    <>
+      <Button variant="ghost" onClick={handleBack} disabled={isSubmitting || isFetchingMetadata}>
+        {showDuplicateWarning ? "Go Back" : "Back to Results"}
+      </Button>
+      <Button onClick={handleSubmit} disabled={isSubmitting || isFetchingMetadata}>
+        {showDuplicateWarning ? "Add Anyway" : "Add Book"}
+      </Button>
+    </>
+  ) : (
+    <Button variant="ghost" onClick={onClose}>
+      Close
+    </Button>
+  );
+
+  // Render as BottomSheet on mobile, BaseModal on desktop
+  if (isMobile) {
+    return (
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={onClose}
+        title={modalTitle}
+        icon={modalIcon}
+        size="full"
+        allowBackdropClose={!isSubmitting && !isFetchingMetadata}
+        actions={modalActions}
+      >
+        {modalContent}
+      </BottomSheet>
+    );
   }
 
   return (
@@ -659,28 +714,9 @@ export default function FederatedSearchModal({
       subtitle={modalSubtitle}
       size="xl"
       loading={isSubmitting || isFetchingMetadata}
-      actions={
-        selectedResult ? (
-          <>
-            <Button variant="ghost" onClick={handleBack} disabled={isSubmitting || isFetchingMetadata}>
-              {showDuplicateWarning ? "Go Back" : "Back to Results"}
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting || isFetchingMetadata}>
-              {showDuplicateWarning ? "Add Anyway" : "Add Book"}
-            </Button>
-          </>
-        ) : (
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-        )
-      }
+      actions={modalActions}
     >
-      {showDuplicateWarning
-        ? renderDuplicateWarning()
-        : selectedResult
-        ? renderEditForm()
-        : renderSearchView()}
+      {modalContent}
     </BaseModal>
   );
 }
