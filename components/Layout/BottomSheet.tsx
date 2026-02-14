@@ -103,7 +103,6 @@ export function BottomSheet({
           opacity: isVisible ? 0.5 : 0,
           transitionDuration: `${ANIMATION_DURATION}ms`,
           pointerEvents: isExiting ? 'none' : 'auto',
-          touchAction: 'none',
         }}
         onClick={allowBackdropClose ? handleClose : undefined}
       />
@@ -144,8 +143,6 @@ export function BottomSheet({
         <div 
           className="flex-1 overflow-y-auto p-4"
           style={{
-            touchAction: 'pan-y',
-            overscrollBehavior: 'none',
             WebkitOverflowScrolling: 'touch',
           }}
         >
