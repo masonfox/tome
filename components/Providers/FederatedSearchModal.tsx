@@ -612,7 +612,7 @@ export default function FederatedSearchModal({
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          rows={5}
+          rows={6}
           className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           placeholder="Brief description or notes about the book"
         />
