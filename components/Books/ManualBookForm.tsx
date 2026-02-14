@@ -8,6 +8,7 @@ import { getLogger } from "@/lib/logger";
 import { ImagePlus, X } from "lucide-react";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
+import { fetchImageFromUrl, blobToFile, ImageFetchError } from "@/lib/utils/fetch-image-url";
 
 const logger = getLogger().child({ component: "ManualBookForm" });
 
@@ -51,6 +52,7 @@ export default function ManualBookForm({
   // Cover upload state
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // UI state
@@ -73,6 +75,7 @@ export default function ManualBookForm({
       setDescription("");
       setTags("");
       setCoverFile(null);
+      setCoverUrl("");
       if (coverPreviewUrl) {
         URL.revokeObjectURL(coverPreviewUrl);
         setCoverPreviewUrl(null);
@@ -170,6 +173,7 @@ export default function ManualBookForm({
   /** Remove the selected cover file */
   const handleCoverRemove = () => {
     setCoverFile(null);
+    setCoverUrl("");
     if (coverPreviewUrl) {
       URL.revokeObjectURL(coverPreviewUrl);
       setCoverPreviewUrl(null);
@@ -181,6 +185,7 @@ export default function ManualBookForm({
     setValidationErrors((prev) => {
       const updated = { ...prev };
       delete updated.cover;
+      delete updated.coverUrl;
       return updated;
     });
   };
@@ -260,10 +265,34 @@ export default function ManualBookForm({
       logger.info({ bookId: result.book.id }, "Manual book created successfully");
 
       // Upload cover image if one was selected (TC13)
-      if (coverFile) {
+      // Priority: File upload > URL
+      let coverFileToUpload: File | null = coverFile;
+
+      if (!coverFileToUpload && coverUrl.trim()) {
+        // Fetch image from URL
+        try {
+          const blob = await fetchImageFromUrl(coverUrl.trim());
+          coverFileToUpload = blobToFile(blob, coverUrl.trim());
+        } catch (error) {
+          if (error instanceof ImageFetchError) {
+            logger.warn(
+              { bookId: result.book.id, error: error.message, code: error.code },
+              "Failed to fetch cover from URL, but book was created successfully"
+            );
+            toast.warning(`Book added, but cover URL failed: ${error.message}`);
+          } else {
+            logger.error({ error }, "Unexpected error fetching cover from URL");
+            toast.warning("Book added, but cover URL fetch failed");
+          }
+          // Non-blocking: continue without cover
+          coverFileToUpload = null;
+        }
+      }
+
+      if (coverFileToUpload) {
         try {
           const formData = new FormData();
-          formData.append("cover", coverFile);
+          formData.append("cover", coverFileToUpload);
 
           const coverResponse = await fetch(`/api/books/${result.book.id}/cover`, {
             method: "POST",
@@ -558,17 +587,42 @@ export default function ManualBookForm({
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors w-full"
-              >
-                <ImagePlus className="w-4 h-4" />
-                Choose cover image (JPEG, PNG, WebP, GIF — max 5MB)
-              </button>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors w-full"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  Choose cover image (JPEG, PNG, WebP, GIF — max 5MB)
+                </button>
+                
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">or</span>
+                  <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+
+                <div>
+                  <input
+                    id="coverUrl"
+                    type="url"
+                    value={coverUrl}
+                    onChange={(e) => setCoverUrl(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                    placeholder="https://example.com/cover.jpg"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Enter image URL (if both file and URL provided, file takes priority)
+                  </p>
+                </div>
+              </div>
             )}
             {validationErrors.cover && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.cover}</p>
+            )}
+            {validationErrors.coverUrl && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.coverUrl}</p>
             )}
           </div>
 
