@@ -1,6 +1,7 @@
 import { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { progressRepository } from "@/lib/repositories";
 import { formatDateToString } from "@/lib/utils/date-validation";
+import { formatDate } from "@/utils/dateHelpers";
 
 export interface ProgressValidationResult {
   valid: boolean;
@@ -11,18 +12,6 @@ export interface ProgressValidationResult {
     progress: number;
     type: 'before' | 'after';
   };
-}
-
-/**
- * Format a date string (YYYY-MM-DD) for display in error messages
- * ADR-014 compliant: Only creates Date object for display formatting
- */
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  }).format(new Date(dateString + 'T00:00:00'));
 }
 
 /**
