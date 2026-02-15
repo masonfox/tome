@@ -52,7 +52,7 @@ export async function PATCH(
     const body = await request.json() as ConfigUpdate;
     
     // Validate request
-    if (!body.enabled && !body.settings && !body.credentials) {
+    if (body.enabled === undefined && body.settings === undefined && body.credentials === undefined) {
       return NextResponse.json(
         {
           error: "Invalid request",
