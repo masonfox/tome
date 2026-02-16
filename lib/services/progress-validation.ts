@@ -1,6 +1,5 @@
 import { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { progressRepository } from "@/lib/repositories";
-import { formatDateToString } from "@/lib/utils/date-validation";
 import { formatDate } from "@/utils/dateHelpers";
 
 export interface ProgressValidationResult {
