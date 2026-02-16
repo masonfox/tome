@@ -33,8 +33,10 @@ vi.mock("@/lib/services/calibre.service", () => ({
 /**
  * Mock Rationale: Prevent streak rebuilding side effects during tests.
  */
-vi.mock("@/lib/streaks", () => ({
-  rebuildStreak: vi.fn(() => Promise.resolve()),
+vi.mock("@/lib/services/streak.service", () => ({
+  streakService: {
+    rebuildStreak: vi.fn(() => Promise.resolve()),
+  },
 }));
 
 beforeAll(async () => {

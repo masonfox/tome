@@ -52,8 +52,10 @@ vi.mock("@/lib/services/calibre.service", () => ({
   },
 }));
 
-vi.mock("@/lib/streaks", () => ({
-  checkAndUpdateStreaks: () => Promise.resolve(),
+vi.mock("@/lib/services/streak.service", () => ({
+  streakService: {
+    checkAndUpdateStreaks: () => Promise.resolve(),
+  },
 }));
 
 beforeAll(async () => {
