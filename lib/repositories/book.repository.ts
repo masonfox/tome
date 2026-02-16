@@ -524,14 +524,96 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
-   * Bulk upsert books (insert new, update existing) for sync performance optimization
+   * Bulk insert new books
    * 
-   * Uses INSERT OR REPLACE to handle both new books and updates in a single operation.
    * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * Only performs INSERT operations - will fail if books already exist.
    * 
-   * This is much more efficient than individual insert/update calls.
-   * For a library with 150k books, this reduces 150k-300k operations to ~150 operations.
+   * AUTOINCREMENT behavior: Sequence advances once per book (correct behavior).
    * 
+   * @param booksData - Array of new book data to insert
+   * @returns Number of books inserted
+   */
+  async bulkInsert(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalInserted = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          tx.insert(books).values(bookData).run();
+        }
+      });
+
+      totalInserted += batch.length;
+    }
+
+    return totalInserted;
+  }
+
+  /**
+   * Bulk update existing books
+   * 
+   * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * Only performs UPDATE operations - requires books to have calibreId to match on.
+   * 
+   * AUTOINCREMENT behavior: Sequence does NOT advance (correct behavior for updates).
+   * 
+   * @param booksData - Array of book data to update (must include calibreId)
+   * @returns Number of books updated
+   */
+  async bulkUpdate(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalUpdated = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          if (!bookData.calibreId) {
+            throw new Error("bulkUpdate requires calibreId to identify books");
+          }
+          
+          tx.update(books)
+            .set(bookData)
+            .where(eq(books.calibreId, bookData.calibreId))
+            .run();
+        }
+      });
+
+      totalUpdated += batch.length;
+    }
+
+    return totalUpdated;
+  }
+
+  /**
+   * Bulk upsert books (insert new, update existing)
+   * 
+   * DEPRECATED: This method exists for backward compatibility but has performance issues.
+   * It performs redundant existence checks when the caller already knows which books exist.
+   * 
+   * For sync operations, use bulkInsert + bulkUpdate instead since sync service already
+   * queries existence via findAllByCalibreIds().
+   * 
+   * @deprecated Use bulkInsert() and bulkUpdate() instead for better performance
    * @param booksData - Array of book data to upsert
    * @returns Number of books processed
    */
@@ -551,19 +633,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       // Use a transaction for each batch
       await db.transaction((tx) => {
         for (const bookData of batch) {
-          // BUG FIX: Drizzle's onConflictDoUpdate causes AUTOINCREMENT sequence leak
-          // 
-          // Root cause: Even when using onConflictDoUpdate, Drizzle generates:
-          //   INSERT INTO books (id, ...) VALUES (null, ...) ON CONFLICT DO UPDATE
-          // 
-          // SQLite increments the AUTOINCREMENT sequence when INSERT is attempted,
-          // even if id=null and even if the query ultimately performs an UPDATE.
-          // This causes sequence to advance on every upsert, not just inserts.
-          //
-          // Solution: Check if book exists first, then UPDATE or INSERT separately.
-          // This adds one SELECT per book but prevents sequence leak. For typical
-          // sync operations (mostly updates), this is still much faster than the
-          // sequence waste and is correct behavior.
+          // NOTE: This performs a SELECT per book which is inefficient.
+          // The caller should use bulkInsert/bulkUpdate instead if they already
+          // know which books exist (e.g., from findAllByCalibreIds).
           
           const existing = tx.select({ id: books.id })
             .from(books)
@@ -571,13 +643,11 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
             .get();
           
           if (existing) {
-            // Book exists - UPDATE only (no sequence consumption)
             tx.update(books)
               .set(bookData)
               .where(eq(books.id, existing.id))
               .run();
           } else {
-            // New book - INSERT (sequence will advance, which is correct)
             tx.insert(books)
               .values(bookData)
               .run();

@@ -4,8 +4,9 @@
  * Bug: Drizzle's onConflictDoUpdate() caused SQLite to increment AUTOINCREMENT 
  * sequence even during UPDATE operations, leaking ~851 IDs per sync cycle.
  * 
- * Fix: Changed bulkUpsert() to check existence first (SELECT), then UPDATE 
- * (no sequence change) or INSERT (sequence advances correctly).
+ * Fix: Split operations into bulkInsert() and bulkUpdate() so:
+ * - INSERT advances sequence (correct behavior)
+ * - UPDATE does not advance sequence (correct behavior)
  * 
  * This test verifies that UPDATE operations don't leak the sequence.
  */
@@ -23,18 +24,18 @@ describe("BookRepository - AUTOINCREMENT sequence regression test", () => {
     clearTestDatabase(testFilePath);
   });
 
-  test("CRITICAL: UPDATE operations must not advance AUTOINCREMENT sequence", async () => {
-    const sqlite = getTestSqlite(testFilePath);
-    
-    // Helper to get current sequence value
-    const getSequence = (): number => {
-      const result = sqlite.prepare(
-        "SELECT seq FROM sqlite_sequence WHERE name = 'books'"
-      ).get() as { seq: number } | undefined;
-      return result?.seq || 0;
-    };
+  // Helper to get current sequence value
+  const getSequence = (sqlite: any): number => {
+    const result = sqlite.prepare(
+      "SELECT seq FROM sqlite_sequence WHERE name = 'books'"
+    ).get() as { seq: number } | undefined;
+    return result?.seq || 0;
+  };
 
-    // Step 1: Insert 10 books
+  test("bulkInsert: should advance sequence by number of books inserted", async () => {
+    const sqlite = getTestSqlite(testFilePath);
+
+    // Insert 10 books
     const books: NewBook[] = Array.from({ length: 10 }, (_, i) => ({
       calibreId: i + 1,
       title: `Book ${i + 1}`,
@@ -44,85 +45,57 @@ describe("BookRepository - AUTOINCREMENT sequence regression test", () => {
       addedToLibrary: new Date(),
     }));
     
-    await bookRepository.bulkUpsert(books);
+    const before = getSequence(sqlite);
+    await bookRepository.bulkInsert(books);
+    const after = getSequence(sqlite);
     
-    const sequenceAfterInsert = getSequence();
-    expect(sequenceAfterInsert).toBe(10); // Should be 10 after inserting 10 books
+    expect(after - before).toBe(10);
+  });
+
+  test("bulkUpdate: should NOT advance sequence (critical regression check)", async () => {
+    const sqlite = getTestSqlite(testFilePath);
+
+    // Step 1: Insert 10 books first
+    const books: NewBook[] = Array.from({ length: 10 }, (_, i) => ({
+      calibreId: i + 100, // Use unique range to avoid conflicts
+      title: `Book ${i + 1}`,
+      authors: ["Author"],
+      path: `/books/book${i + 1}`,
+      lastSynced: new Date(),
+      addedToLibrary: new Date(),
+    }));
+    
+    const beforeInsert = getSequence(sqlite);
+    await bookRepository.bulkInsert(books);
+    const sequenceAfterInsert = getSequence(sqlite);
+    expect(sequenceAfterInsert - beforeInsert).toBe(10);
 
     // Step 2: Update the same 10 books (simulate a sync)
     const updatedBooks = books.map(b => ({
       ...b,
+      title: `${b.title} - Updated`,
       lastSynced: new Date(),
     }));
     
-    await bookRepository.bulkUpsert(updatedBooks);
-    
-    const sequenceAfterUpdate = getSequence();
+    await bookRepository.bulkUpdate(updatedBooks);
+    const sequenceAfterUpdate = getSequence(sqlite);
     
     // CRITICAL: Sequence should NOT have changed during update
     expect(sequenceAfterUpdate).toBe(sequenceAfterInsert);
     
     // Step 3: Do it again to be sure (this is where the bug showed up in production)
-    await bookRepository.bulkUpsert(updatedBooks);
-    const sequenceAfterSecondUpdate = getSequence();
+    await bookRepository.bulkUpdate(updatedBooks);
+    const sequenceAfterSecondUpdate = getSequence(sqlite);
     
     expect(sequenceAfterSecondUpdate).toBe(sequenceAfterInsert);
   });
 
-  test("INSERT operations should correctly advance sequence", async () => {
+  test("bulkUpdate: multiple cycles should never advance sequence", async () => {
     const sqlite = getTestSqlite(testFilePath);
-    
-    const getSequence = (): number => {
-      const result = sqlite.prepare(
-        "SELECT seq FROM sqlite_sequence WHERE name = 'books'"
-      ).get() as { seq: number } | undefined;
-      return result?.seq || 0;
-    };
 
-    const sequenceBefore = getSequence();
-
-    // Insert 5 books
-    await bookRepository.bulkUpsert(
-      Array.from({ length: 5 }, (_, i) => ({
-        calibreId: i + 100, // Use high IDs to avoid conflicts with other tests
-        title: `Book ${i + 1}`,
-        authors: ["Author"],
-        path: `/book${i + 1}`,
-        lastSynced: new Date(),
-        addedToLibrary: new Date(),
-      }))
-    );
-    
-    expect(getSequence()).toBe(sequenceBefore + 5);
-    
-    // Insert 5 more books
-    await bookRepository.bulkUpsert(
-      Array.from({ length: 5 }, (_, i) => ({
-        calibreId: i + 200, // Use high IDs to avoid conflicts
-        title: `Book ${i + 6}`,
-        authors: ["Author"],
-        path: `/book${i + 6}`,
-        lastSynced: new Date(),
-        addedToLibrary: new Date(),
-      }))
-    );
-    
-    expect(getSequence()).toBe(sequenceBefore + 10);
-  });
-
-  test("Mixed INSERT and UPDATE should only advance sequence for new books", async () => {
-    const sqlite = getTestSqlite(testFilePath);
-    
-    const getSequence = (): number => {
-      const result = sqlite.prepare(
-        "SELECT seq FROM sqlite_sequence WHERE name = 'books'"
-      ).get() as { seq: number } | undefined;
-      return result?.seq || 0;
-    };
-
-    // Insert 5 books
-    const initialBooks: NewBook[] = Array.from({ length: 5 }, (_, i) => ({
-      calibreId: i + 300, // Use high IDs to avoid conflicts
+    // Insert 10 books
+    const books: NewBook[] = Array.from({ length: 10 }, (_, i) => ({
+      calibreId: i + 200, // Use unique range to avoid conflicts
       title: `Book ${i + 1}`,
       authors: ["Author"],
       path: `/book${i + 1}`,
@@ -130,43 +103,105 @@ describe("BookRepository - AUTOINCREMENT sequence regression test", () => {
       addedToLibrary: new Date(),
     }));
     
-    await bookRepository.bulkUpsert(initialBooks);
-    const sequenceAfterInitial = getSequence();
-    
-    // Update 3 existing + Insert 3 new
-    const mixedBooks: NewBook[] = [
-      { ...initialBooks[0], title: "Updated 1" },
-      { ...initialBooks[1], title: "Updated 2" },
-      { ...initialBooks[2], title: "Updated 3" },
-      {
-        calibreId: 400,
-        title: "New Book 6",
-        authors: ["Author"],
-        path: "/book6",
+    await bookRepository.bulkInsert(books);
+    const sequenceAfterInsert = getSequence(sqlite);
+
+    // Perform 5 update cycles (simulating 5 syncs)
+    for (let cycle = 1; cycle <= 5; cycle++) {
+      const updated = books.map(b => ({
+        ...b,
+        title: `${b.title} - Cycle ${cycle}`,
         lastSynced: new Date(),
-        addedToLibrary: new Date(),
-      },
-      {
-        calibreId: 401,
-        title: "New Book 7",
-        authors: ["Author"],
-        path: "/book7",
-        lastSynced: new Date(),
-        addedToLibrary: new Date(),
-      },
-      {
-        calibreId: 402,
-        title: "New Book 8",
-        authors: ["Author"],
-        path: "/book8",
-        lastSynced: new Date(),
-        addedToLibrary: new Date(),
-      },
-    ];
+      }));
+      
+      await bookRepository.bulkUpdate(updated);
+      
+      const sequenceAfterCycle = getSequence(sqlite);
+      expect(sequenceAfterCycle).toBe(sequenceAfterInsert);
+    }
+  });
+
+  test("bulkInsert + bulkUpdate: mixed operations work correctly", async () => {
+    const sqlite = getTestSqlite(testFilePath);
+
+    // Insert 5 initial books
+    const initialBooks: NewBook[] = Array.from({ length: 5 }, (_, i) => ({
+      calibreId: i + 300, // Use unique range to avoid conflicts
+      title: `Book ${i + 1}`,
+      authors: ["Author"],
+      path: `/book${i + 1}`,
+      lastSynced: new Date(),
+      addedToLibrary: new Date(),
+    }));
     
-    await bookRepository.bulkUpsert(mixedBooks);
+    const beforeInitial = getSequence(sqlite);
+    await bookRepository.bulkInsert(initialBooks);
+    const sequenceAfterInitial = getSequence(sqlite);
+    expect(sequenceAfterInitial - beforeInitial).toBe(5);
     
-    // Sequence should only advance by 3 (for the 3 new books)
-    expect(getSequence()).toBe(sequenceAfterInitial + 3);
+    // Update 3 existing books
+    const booksToUpdate = initialBooks.slice(0, 3).map(b => ({
+      ...b,
+      title: `${b.title} - Updated`,
+    }));
+    
+    await bookRepository.bulkUpdate(booksToUpdate);
+    
+    // Sequence should not change
+    expect(getSequence(sqlite)).toBe(sequenceAfterInitial);
+    
+    // Insert 3 new books
+    const newBooks: NewBook[] = Array.from({ length: 3 }, (_, i) => ({
+      calibreId: i + 306, // Continue unique range
+      title: `New Book ${i + 6}`,
+      authors: ["Author"],
+      path: `/book${i + 6}`,
+      lastSynced: new Date(),
+      addedToLibrary: new Date(),
+    }));
+    
+    await bookRepository.bulkInsert(newBooks);
+    
+    // Sequence should advance by 3
+    expect(getSequence(sqlite)).toBe(sequenceAfterInitial + 3);
+  });
+
+  test("REGRESSION: 851 books scenario from production", async () => {
+    const sqlite = getTestSqlite(testFilePath);
+
+    // Simulate production: 851 books
+    const productionSize = 851;
+    const books: NewBook[] = Array.from({ length: productionSize }, (_, i) => ({
+      calibreId: i + 1000, // Use unique range to avoid conflicts
+      title: `Book ${i + 1}`,
+      authors: ["Author"],
+      path: `/book${i + 1}`,
+      lastSynced: new Date(),
+      addedToLibrary: new Date(),
+    }));
+    
+    // Initial sync: insert all books
+    const beforeInsert = getSequence(sqlite);
+    await bookRepository.bulkInsert(books);
+    const sequenceAfterInsert = getSequence(sqlite);
+    expect(sequenceAfterInsert - beforeInsert).toBe(851);
+    
+    // Re-sync (all updates): This is where the bug occurred in production
+    // Before fix: sequence would jump by +851 (leak)
+    // After fix: sequence stays unchanged
+    const updatedBooks = books.map(b => ({
+      ...b,
+      lastSynced: new Date(),
+    }));
+    
+    await bookRepository.bulkUpdate(updatedBooks);
+    const sequenceAfterUpdate = getSequence(sqlite);
+    
+    // CRITICAL: No leak!
+    expect(sequenceAfterUpdate).toBe(sequenceAfterInsert);
+    
+    // Do it again to verify stability
+    await bookRepository.bulkUpdate(updatedBooks);
+    expect(getSequence(sqlite)).toBe(sequenceAfterInsert);
   });
 });
