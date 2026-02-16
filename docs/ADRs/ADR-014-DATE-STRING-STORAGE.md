@@ -537,21 +537,13 @@ if (new Date(dateStr1).getTime() < new Date(dateStr2).getTime()) { }
 ```
 
 **Finding Min/Max:**
-```typescript
-// ✅ CORRECT: Use Math.min/max on strings directly
-const earliest = dates.reduce((min, curr) => curr < min ? curr : min);
-const latest = dates.reduce((max, curr) => curr > max ? curr : max);
 
-// OR use built-in sort
-const earliest = [...dates].sort()[0];
-const latest = [...dates].sort().pop();
+See the earlier **"✅ CORRECT Patterns (Compliant)"** section for canonical examples of:
+- Comparing ISO date strings
+- Sorting arrays of ISO date strings
+- Finding the earliest and latest dates
 
-// ❌ WRONG: Never use .getTime()
-const earliest = dates.reduce((min, curr) => 
-  new Date(curr).getTime() < new Date(min).getTime() ? curr : min
-);
-```
-
+Always operate on the ISO date strings directly (lexicographically) and **do not** convert them to `Date` or use `.getTime()` for these calendar-day comparisons.
 ### Bug Details: "Invalid time value" Error (Feb 2026)
 
 **Symptom:** Progress logging failed with error: `RangeError: Invalid time value`
