@@ -1,7 +1,15 @@
-import { test, expect, describe, afterEach, mock, beforeEach } from 'vitest';
+import { test, expect, describe, afterEach, mock, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { StreakOnboarding } from "@/components/Streaks/StreakOnboarding";
+
+// Mock Next.js router
+const mockRefresh = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    refresh: mockRefresh,
+  }),
+}));
 
 afterEach(() => {
   cleanup();
@@ -12,6 +20,7 @@ describe("StreakOnboarding", () => {
 
   beforeEach(() => {
     mockOnEnable.mockClear();
+    mockRefresh.mockClear();
   });
 
   describe("Component Rendering", () => {

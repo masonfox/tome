@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { getLogger } from "@/lib/logger";
 import { Flame } from "lucide-react";
 import { streakService } from "@/lib/services/streak.service";
-import { redirect } from "next/navigation";
 
 const logger = getLogger();
 
@@ -24,7 +23,8 @@ export default async function StreakPage() {
         onEnable={async (dailyGoal: number) => {
           "use server";
           await streakService.setStreakEnabled(null, true, dailyGoal);
-          redirect("/streak");
+          // No redirect here - client component will call router.refresh() after success
+          // This avoids the NEXT_REDIRECT error that Next.js throws when redirect() is called
         }}
       />
     );

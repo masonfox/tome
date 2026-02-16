@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Flame, Target, TrendingUp } from "lucide-react";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ interface StreakOnboardingProps {
 }
 
 export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
+  const router = useRouter();
   const [dailyGoal, setDailyGoal] = useState(10);
   const [isEnabling, setIsEnabling] = useState(false);
 
@@ -23,10 +25,14 @@ export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
     try {
       await onEnable(dailyGoal);
       toast.success("Streak tracking enabled! Start building your reading habit today.");
+      // Refresh the page to show the newly enabled streak
+      // The server component will re-render and display streak analytics
+      router.refresh();
     } catch (error) {
       toast.error("Failed to enable streak tracking. Please try again.");
       setIsEnabling(false);
     }
+    // Note: isEnabling stays true on success since page will refresh
   }
 
   return (
