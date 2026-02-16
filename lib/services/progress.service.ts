@@ -187,11 +187,10 @@ export class ProgressService {
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
 
     // Temporal validation: Check if progress is consistent with existing timeline
-    // Note: validation still uses Date objects internally for comparison
-    const requestedDate = new Date(requestedDateString + "T00:00:00");
+    // ADR-014: Pass date string directly, not Date object
     const validationResult = await validateProgressTimeline(
       activeSession.id,
-      requestedDate,
+      requestedDateString, // Pass YYYY-MM-DD string
       progressValue,
       usePercentage
     );
@@ -228,7 +227,7 @@ export class ProgressService {
     if (shouldShowCompletionModal) {
       // Auto-complete the book with the progress date as the completion date
       const logger = getLogger();
-      logger.info({ bookId, progressDate: requestedDate }, 'Auto-completing book at 100% progress');
+      logger.info({ bookId, progressDate: requestedDateString }, 'Auto-completing book at 100% progress');
 
       // IMPORTANT: Use direct repository call instead of creating new SessionService
       // to avoid circular dependency and maintain transaction context
@@ -309,16 +308,13 @@ export class ProgressService {
       ? updateData.progressDate  // Already YYYY-MM-DD from API
       : existingProgress.progressDate;  // Already YYYY-MM-DD from database
 
-    // Convert to Date for validation
-    const requestedDate = new Date(requestedDateString + "T00:00:00");
-
     // Calculate new metrics
     // Only pass the value that was actually updated to calculateProgressMetrics
     // If both are undefined, use existing values
     const progressData: any = { // TODO: Create internal interface for this
       currentPage: updateData.currentPage,
       currentPercentage: updateData.currentPercentage,
-      progressDate: requestedDate,
+      progressDate: requestedDateString, // ADR-014: Use date string, not Date object
       notes: updateData.notes ?? (existingProgress.notes || undefined),
     };
 
@@ -334,10 +330,11 @@ export class ProgressService {
     const usePercentage = updateData.currentPercentage !== undefined;
     const progressValue = usePercentage ? metrics.currentPercentage : metrics.currentPage;
     
+    // ADR-014: Pass date string to validation, not Date object
     const validationResult = await validateProgressEdit(
       progressId,
       session.id,
-      requestedDate,
+      requestedDateString,
       progressValue,
       usePercentage
     );
@@ -352,11 +349,12 @@ export class ProgressService {
     const allProgress = await progressRepository.findBySessionId(session.id);
     const sortedProgress = allProgress
       .filter(p => p.id !== progressId) // Exclude the entry being edited
-      .sort((a, b) => new Date(a.progressDate).getTime() - new Date(b.progressDate).getTime());
+      .sort((a, b) => a.progressDate.localeCompare(b.progressDate)); // ADR-014: Lexicographic string comparison
     
     // Find the entry immediately before this one by date (use findLast to get the closest previous entry)
+    // ADR-014: Use lexicographic string comparison for dates
     const previousProgress = sortedProgress.findLast(
-      p => new Date(p.progressDate).getTime() < (requestedDate instanceof Date ? requestedDate.getTime() : new Date(requestedDate).getTime())
+      p => p.progressDate < requestedDateString
     );
     
     // Recalculate pagesRead based on previous entry

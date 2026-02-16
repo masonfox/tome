@@ -1,5 +1,9 @@
 import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
-import { formatDate, formatDayOfWeek, getTodayLocalDate } from '@/utils/dateHelpers';
+import { 
+  formatDate, 
+  formatDayOfWeek, 
+  getTodayLocalDate,
+} from '@/utils/dateHelpers';
 import { 
   getCurrentUserTimezone,
   clearTimezoneCache,
@@ -465,3 +469,4 @@ describe("Server-Side Date Helpers", () => {
     });
   });
 });
+
