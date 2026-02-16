@@ -1016,3 +1016,272 @@ describe("Malformed date defense (isValidDateFormat guard)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// DNF book exclusion tests (Issue #372)
+// ---------------------------------------------------------------------------
+// These tests verify that DNF books are NOT counted toward reading goals
+// Goals should only count sessions with status='read' to match Stats behavior
+// ---------------------------------------------------------------------------
+
+describe("DNF book exclusion (status filter)", () => {
+  // --- Raw SQL helpers (bypass ORM type safety) ----------------------------
+
+  function insertBook(title: string, calibreId: number): number {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
+         VALUES (?, ?, '[]', '[]', '/test', 0)`
+      )
+      .run(title, calibreId);
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  function insertSession(opts: {
+    bookId: number;
+    status: string;
+    completedDate?: string | null;
+    sessionNumber?: number;
+  }): number {
+    const rawDb = testDb.sqlite;
+    rawDb
+      .prepare(
+        `INSERT INTO reading_sessions (book_id, session_number, status, completed_date, is_active)
+         VALUES (?, ?, ?, ?, 0)`
+      )
+      .run(
+        opts.bookId,
+        opts.sessionNumber ?? 1,
+        opts.status,
+        opts.completedDate ?? null
+      );
+
+    const row = rawDb
+      .prepare("SELECT last_insert_rowid() as id")
+      .get() as { id: number };
+    return row.id;
+  }
+
+  // --- getBooksCompletedInYear() -------------------------------------------
+
+  describe("getBooksCompletedInYear() - DNF exclusion", () => {
+    test("should NOT count DNF books toward reading goals", async () => {
+      const readBook = insertBook("Read Book", 1000);
+      insertSession({
+        bookId: readBook,
+        status: "read",
+        completedDate: "2026-01-15",
+      });
+
+      const dnfBook = insertBook("DNF Book", 1001);
+      insertSession({
+        bookId: dnfBook,
+        status: "dnf",
+        completedDate: "2026-01-20",
+      });
+
+      const count = await readingGoalRepository.getBooksCompletedInYear(null, 2026);
+      expect(count).toBe(1); // Only the "read" book should count
+    });
+
+    test("should only count status='read', excluding all other statuses", async () => {
+      const readBook = insertBook("Read Book", 1010);
+      insertSession({
+        bookId: readBook,
+        status: "read",
+        completedDate: "2026-02-01",
+      });
+
+      // Create books with all non-read statuses
+      const dnfBook = insertBook("DNF Book", 1011);
+      insertSession({
+        bookId: dnfBook,
+        status: "dnf",
+        completedDate: "2026-02-05",
+      });
+
+      const readingBook = insertBook("Reading Book", 1012);
+      insertSession({
+        bookId: readingBook,
+        status: "reading",
+        completedDate: "2026-02-10", // Should not happen in practice, but test it
+      });
+
+      const toReadBook = insertBook("To Read Book", 1013);
+      insertSession({
+        bookId: toReadBook,
+        status: "to-read",
+        completedDate: "2026-02-15",
+      });
+
+      const count = await readingGoalRepository.getBooksCompletedInYear(null, 2026);
+      expect(count).toBe(1); // Only status='read' counts
+    });
+  });
+
+  // --- getYearsWithCompletedBooks() ----------------------------------------
+
+  describe("getYearsWithCompletedBooks() - DNF exclusion", () => {
+    test("should NOT include DNF books in year counts", async () => {
+      const readBook2024 = insertBook("Read 2024", 1020);
+      insertSession({
+        bookId: readBook2024,
+        status: "read",
+        completedDate: "2024-06-15",
+      });
+
+      const dnfBook2024 = insertBook("DNF 2024", 1021);
+      insertSession({
+        bookId: dnfBook2024,
+        status: "dnf",
+        completedDate: "2024-07-20",
+      });
+
+      const readBook2025 = insertBook("Read 2025", 1022);
+      insertSession({
+        bookId: readBook2025,
+        status: "read",
+        completedDate: "2025-03-10",
+      });
+
+      const years = await readingGoalRepository.getYearsWithCompletedBooks(null);
+      
+      // Should have 2 years
+      expect(years).toHaveLength(2);
+      
+      // 2024 should have count=1 (only the read book)
+      const year2024 = years.find(y => y.year === 2024);
+      expect(year2024?.count).toBe(1);
+      
+      // 2025 should have count=1
+      const year2025 = years.find(y => y.year === 2025);
+      expect(year2025?.count).toBe(1);
+    });
+  });
+
+  // --- getBooksCompletedByMonth() ------------------------------------------
+
+  describe("getBooksCompletedByMonth() - DNF exclusion", () => {
+    test("should NOT count DNF books in monthly breakdown", async () => {
+      const readJan = insertBook("Read Jan", 1030);
+      insertSession({
+        bookId: readJan,
+        status: "read",
+        completedDate: "2026-01-10",
+      });
+
+      const dnfJan = insertBook("DNF Jan", 1031);
+      insertSession({
+        bookId: dnfJan,
+        status: "dnf",
+        completedDate: "2026-01-15",
+      });
+
+      const readFeb = insertBook("Read Feb", 1032);
+      insertSession({
+        bookId: readFeb,
+        status: "read",
+        completedDate: "2026-02-20",
+      });
+
+      const dnfFeb = insertBook("DNF Feb", 1033);
+      insertSession({
+        bookId: dnfFeb,
+        status: "dnf",
+        completedDate: "2026-02-25",
+      });
+
+      const months = await readingGoalRepository.getBooksCompletedByMonth(null, 2026);
+      
+      // Should return all 12 months
+      expect(months).toHaveLength(12);
+      
+      // January should have count=1 (only the read book)
+      const jan = months.find(m => m.month === 1);
+      expect(jan?.count).toBe(1);
+      
+      // February should have count=1 (only the read book)
+      const feb = months.find(m => m.month === 2);
+      expect(feb?.count).toBe(1);
+      
+      // All other months should be 0
+      const totalCount = months.reduce((sum, m) => sum + m.count, 0);
+      expect(totalCount).toBe(2);
+    });
+  });
+
+  // --- getBooksByCompletionYear() ------------------------------------------
+
+  describe("getBooksByCompletionYear() - DNF exclusion", () => {
+    test("should NOT return DNF books in completion list", async () => {
+      const readBook = insertBook("Read Book", 1040);
+      insertSession({
+        bookId: readBook,
+        status: "read",
+        completedDate: "2026-03-15",
+      });
+
+      const dnfBook = insertBook("DNF Book", 1041);
+      insertSession({
+        bookId: dnfBook,
+        status: "dnf",
+        completedDate: "2026-03-20",
+      });
+
+      const books = await readingGoalRepository.getBooksByCompletionYear(null, 2026);
+      
+      expect(books).toHaveLength(1);
+      expect(books[0].title).toBe("Read Book");
+      expect(books[0].completedDate).toBe("2026-03-15");
+    });
+
+    test("should only return books with status='read'", async () => {
+      const readBook1 = insertBook("Read Book 1", 1050);
+      insertSession({
+        bookId: readBook1,
+        status: "read",
+        completedDate: "2026-04-01",
+        sessionNumber: 1,
+      });
+
+      const readBook2 = insertBook("Read Book 2", 1051);
+      insertSession({
+        bookId: readBook2,
+        status: "read",
+        completedDate: "2026-04-15",
+        sessionNumber: 1,
+      });
+
+      const dnfBook = insertBook("DNF Book", 1052);
+      insertSession({
+        bookId: dnfBook,
+        status: "dnf",
+        completedDate: "2026-04-10",
+        sessionNumber: 1,
+      });
+
+      const readingBook = insertBook("Reading Book", 1053);
+      insertSession({
+        bookId: readingBook,
+        status: "reading",
+        completedDate: "2026-04-20",
+        sessionNumber: 1,
+      });
+
+      const books = await readingGoalRepository.getBooksByCompletionYear(null, 2026);
+      
+      expect(books).toHaveLength(2);
+      
+      const titles = books.map(b => b.title);
+      expect(titles).toContain("Read Book 1");
+      expect(titles).toContain("Read Book 2");
+      expect(titles).not.toContain("DNF Book");
+      expect(titles).not.toContain("Reading Book");
+    });
+  });
+});

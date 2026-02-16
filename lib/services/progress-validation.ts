@@ -1,6 +1,6 @@
 import { ProgressLog } from "@/lib/db/schema/progress-logs";
 import { progressRepository } from "@/lib/repositories";
-import { formatDateToString } from "@/lib/utils/date-validation";
+import { formatDate } from "@/utils/dateHelpers";
 
 export interface ProgressValidationResult {
   valid: boolean;
@@ -14,37 +14,28 @@ export interface ProgressValidationResult {
 }
 
 /**
- * Format a date for display in error messages
- */
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  }).format(date);
-}
-
-/**
  * Validates that a new progress entry maintains temporal consistency
  * 
  * Rules:
  * 1. Progress must be ≥ all entries BEFORE the new date
  * 2. Progress must be ≤ all entries AFTER the new date
  * 3. This ensures monotonic progress over time
+ * 
+ * @param sessionId Session ID
+ * @param progressDateString Date string in YYYY-MM-DD format (ADR-014)
+ * @param newProgress currentPage or currentPercentage value
+ * @param usePercentage Whether newProgress is a percentage (true) or page number (false)
  */
 export async function validateProgressTimeline(
   sessionId: number,
-  progressDate: Date,
+  progressDateString: string, // ADR-014: Accept date string, not Date object
   newProgress: number, // currentPage or currentPercentage
   usePercentage: boolean = true
 ): Promise<ProgressValidationResult> {
   
-  // Convert Date to YYYY-MM-DD string for database query
-  const dateString = formatDateToString(progressDate);
-  
   // Find entries before and after the new date
-  const entriesBefore = await progressRepository.findBeforeDateForSession(sessionId, dateString);
-  const entriesAfter = await progressRepository.findAfterDateForSession(sessionId, dateString);
+  const entriesBefore = await progressRepository.findBeforeDateForSession(sessionId, progressDateString);
+  const entriesAfter = await progressRepository.findAfterDateForSession(sessionId, progressDateString);
   
   // Validate against entries BEFORE (must be ≥ previous progress)
   const maxBefore = entriesBefore.reduce((max, entry) => {
@@ -63,10 +54,10 @@ export async function validateProgressTimeline(
     return {
       valid: false,
       error: `Progress must be at least ${usePercentage ? '' : unit}${formattedProgress}${usePercentage ? unit : ''} ` +
-             `(your progress on ${formatDate(new Date(conflicting!.progressDate))})`,
+             `(your progress on ${formatDate(conflicting!.progressDate)})`,
       conflictingEntry: conflicting ? {
         id: conflicting.id,
-        date: formatDate(new Date(conflicting.progressDate)),
+        date: formatDate(conflicting.progressDate),
         progress: maxBefore,
         type: 'before'
       } : undefined
@@ -90,10 +81,10 @@ export async function validateProgressTimeline(
     return {
       valid: false,
       error: `Progress cannot exceed ${usePercentage ? '' : unit}${formattedProgress}${usePercentage ? unit : ''} ` +
-             `(your progress on ${formatDate(new Date(conflicting!.progressDate))})`,
+             `(your progress on ${formatDate(conflicting!.progressDate)})`,
       conflictingEntry: conflicting ? {
         id: conflicting.id,
-        date: formatDate(new Date(conflicting.progressDate)),
+        date: formatDate(conflicting.progressDate),
         progress: minAfter,
         type: 'after'
       } : undefined
@@ -106,11 +97,17 @@ export async function validateProgressTimeline(
 /**
  * Validates progress entry for editing
  * Similar to validateProgressTimeline but excludes the entry being edited
+ * 
+ * @param entryId ID of the entry being edited
+ * @param sessionId Session ID
+ * @param progressDateString Date string in YYYY-MM-DD format (ADR-014)
+ * @param newProgress currentPage or currentPercentage value
+ * @param usePercentage Whether newProgress is a percentage (true) or page number (false)
  */
 export async function validateProgressEdit(
   entryId: number,
   sessionId: number,
-  progressDate: Date,
+  progressDateString: string, // ADR-014: Accept date string, not Date object
   newProgress: number,
   usePercentage: boolean = true
 ): Promise<ProgressValidationResult> {
@@ -118,11 +115,12 @@ export async function validateProgressEdit(
   const allEntries = await progressRepository.findBySessionId(sessionId);
   const otherEntries = allEntries.filter(e => e.id !== entryId);
   
+  // ADR-014: Use lexicographic string comparison for dates
   const entriesBefore = otherEntries.filter(e => 
-    new Date(e.progressDate) < progressDate
+    e.progressDate < progressDateString
   );
   const entriesAfter = otherEntries.filter(e => 
-    new Date(e.progressDate) > progressDate
+    e.progressDate > progressDateString
   );
   
   // Validate against entries BEFORE (must be ≥ previous progress)
@@ -142,10 +140,10 @@ export async function validateProgressEdit(
     return {
       valid: false,
       error: `Progress must be at least ${usePercentage ? '' : unit}${formattedProgress}${usePercentage ? unit : ''} ` +
-             `(your progress on ${formatDate(new Date(conflicting!.progressDate))})`,
+             `(your progress on ${formatDate(conflicting!.progressDate)})`,
       conflictingEntry: conflicting ? {
         id: conflicting.id,
-        date: formatDate(new Date(conflicting.progressDate)),
+        date: formatDate(conflicting.progressDate),
         progress: maxBefore,
         type: 'before'
       } : undefined
@@ -169,10 +167,10 @@ export async function validateProgressEdit(
     return {
       valid: false,
       error: `Progress cannot exceed ${usePercentage ? '' : unit}${formattedProgress}${usePercentage ? unit : ''} ` +
-             `(your progress on ${formatDate(new Date(conflicting!.progressDate))})`,
+             `(your progress on ${formatDate(conflicting!.progressDate)})`,
       conflictingEntry: conflicting ? {
         id: conflicting.id,
-        date: formatDate(new Date(conflicting.progressDate)),
+        date: formatDate(conflicting.progressDate),
         progress: minAfter,
         type: 'after'
       } : undefined

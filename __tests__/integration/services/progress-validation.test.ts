@@ -49,7 +49,7 @@ describe("Progress Validation Service", () => {
       // Test: First entry should always be valid
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-01"),
+        "2025-11-01", // ADR-014: Pass date string, not Date object
         100, // 100 pages
         false // using pages, not percentage
       );
@@ -81,7 +81,7 @@ describe("Progress Validation Service", () => {
       // Test: Progress on later date with higher page count should be valid
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         200, // 200 pages (increased from 100)
         false
       );
@@ -113,7 +113,7 @@ describe("Progress Validation Service", () => {
       // Test: Progress on later date with LOWER page count should be invalid
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100, // 100 pages (less than previous 200)
         false
       );
@@ -150,7 +150,7 @@ describe("Progress Validation Service", () => {
       // Test: Adding progress on Nov 10 that exceeds Nov 15's progress should fail
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         350, // 350 pages (more than future entry's 300)
         false
       );
@@ -197,7 +197,7 @@ describe("Progress Validation Service", () => {
       // Test: Adding progress on Nov 10 between 100 and 300 should be valid
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         200, // Between 100 and 300
         false
       );
@@ -229,7 +229,7 @@ describe("Progress Validation Service", () => {
       // Test: Progress with lower percentage should fail
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         20.0, // 20% (less than previous 25%)
         true // Use percentage
       );
@@ -262,7 +262,7 @@ describe("Progress Validation Service", () => {
       // Test: Same progress on later date should be valid (e.g., no reading happened)
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100, // Same as previous
         false
       );
@@ -312,7 +312,7 @@ describe("Progress Validation Service", () => {
       // Test: New entry on Nov 12 must be >= 200 (the max before that date)
       const resultValid = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-12"),
+        "2025-11-12", // ADR-014: Date string
         250,
         false
       );
@@ -320,7 +320,7 @@ describe("Progress Validation Service", () => {
 
       const resultInvalid = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-12"),
+        "2025-11-12", // ADR-014: Date string
         180, // Less than 200
         false
       );
@@ -373,7 +373,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         220,
         false
       );
@@ -415,7 +415,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100,
         false
       );
@@ -458,7 +458,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         300,
         false
       );
@@ -492,7 +492,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100, // Even reducing progress should be OK when it's the only entry
         false
       );
@@ -543,7 +543,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-12"), // Changed date
+        "2025-11-12", // ADR-014: Date string (changed date)
         200, // Same progress
         false
       );
@@ -585,7 +585,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         20.0, // 20% (less than previous 25%)
         true // Use percentage
       );
@@ -618,7 +618,7 @@ describe("Progress Validation Service", () => {
       const result = await validateProgressEdit(
         entryToEdit.id,
         session.id,
-        new Date("2025-11-10"), // Same date
+        "2025-11-10", // ADR-014: Date string (same date)
         200, // Same progress
         false
       );
@@ -646,13 +646,13 @@ describe("Progress Validation Service", () => {
         currentPage: 200,
         currentPercentage: 50,
         pagesRead: 200,
-        progressDate: "2025-11-05T12:30:00.000Z",
+        progressDate: "2025-11-05", // ADR-014: YYYY-MM-DD format, not ISO timestamp
       });
 
       // Test: Error message should format date nicely
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100,
         false
       );
@@ -683,7 +683,7 @@ describe("Progress Validation Service", () => {
       // Test: Error for pages should show "page 200"
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100,
         false
       );
@@ -714,7 +714,7 @@ describe("Progress Validation Service", () => {
       // Test: Error for percentage should show "50.5%"
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         40.0,
         true // Use percentage
       );
@@ -747,7 +747,7 @@ describe("Progress Validation Service", () => {
       // Test: Conflicting entry should include ID and details
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         100,
         false
       );
@@ -783,7 +783,7 @@ describe("Progress Validation Service", () => {
       // Test: Conflicting entry should include ID and details
       const result = await validateProgressTimeline(
         session.id,
-        new Date("2025-11-10"),
+        "2025-11-10", // ADR-014: Date string
         300,
         false
       );

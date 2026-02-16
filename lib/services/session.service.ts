@@ -642,10 +642,11 @@ export class SessionService {
     }
 
     // Sort by completedDate descending to get most recent
+    // ADR-014: Use lexicographic string comparison for dates
     completedSessions.sort((a, b) => {
-      const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0;
-      const dateB = b.completedDate ? new Date(b.completedDate).getTime() : 0;
-      return dateB - dateA;
+      const dateA = a.completedDate || '';
+      const dateB = b.completedDate || '';
+      return dateB.localeCompare(dateA); // Descending order (most recent first)
     });
 
     return completedSessions[0];
