@@ -442,6 +442,15 @@ await progressService.logProgress(bookId, { progressDate: todayInUserTz });
 
 *Added: February 14, 2026 - After fixing "Invalid time value" bug*
 
+### Quick Reference: String vs Date Operations
+
+| Operation | ✅ CORRECT (Strings) | ❌ WRONG (Date Objects) |
+|-----------|---------------------|------------------------|
+| **Sorting** | `.localeCompare()` | `.getTime()` |
+| **Comparison** | `<`, `>`, `===` | `new Date()` |
+| **Function params** | `string` type | `Date` type |
+| **Display only** | `formatDate(str)` | Direct `new Date()` |
+
 ### The Problem: Date Object Conversion for Sorting/Comparison
 
 After implementing ADR-014, a latent bug was discovered where `new Date(dateString).getTime()` was still being used for sorting and comparison in several locations. This violated the fundamental principle of ADR-014 and caused "Invalid time value" errors when progress logging failed.
