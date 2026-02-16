@@ -11,17 +11,24 @@
  * This test verifies that UPDATE operations don't leak the sequence.
  */
 
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { bookRepository } from "@/lib/repositories";
-import { setupTestDatabase, clearTestDatabase, getTestSqlite } from "@/__tests__/helpers/db-setup";
+import { setupTestDatabase, teardownTestDatabase, clearTestDatabase, getTestSqlite } from "@/__tests__/helpers/db-setup";
 import type { NewBook } from "@/lib/db/schema/books";
 
 describe("BookRepository - AUTOINCREMENT sequence regression test", () => {
   const testFilePath = __filename;
 
-  beforeEach(() => {
-    setupTestDatabase(testFilePath);
-    clearTestDatabase(testFilePath);
+  beforeAll(async () => {
+    await setupTestDatabase(testFilePath);
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase(testFilePath);
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase(testFilePath);
   });
 
   // Helper to get current sequence value
