@@ -551,14 +551,37 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       // Use a transaction for each batch
       await db.transaction((tx) => {
         for (const bookData of batch) {
-          // INSERT OR REPLACE will update if calibreId exists, insert if not
-          tx.insert(books)
-            .values(bookData)
-            .onConflictDoUpdate({
-              target: books.calibreId,
-              set: bookData,
-            })
-            .run();
+          // BUG FIX: Drizzle's onConflictDoUpdate causes AUTOINCREMENT sequence leak
+          // 
+          // Root cause: Even when using onConflictDoUpdate, Drizzle generates:
+          //   INSERT INTO books (id, ...) VALUES (null, ...) ON CONFLICT DO UPDATE
+          // 
+          // SQLite increments the AUTOINCREMENT sequence when INSERT is attempted,
+          // even if id=null and even if the query ultimately performs an UPDATE.
+          // This causes sequence to advance on every upsert, not just inserts.
+          //
+          // Solution: Check if book exists first, then UPDATE or INSERT separately.
+          // This adds one SELECT per book but prevents sequence leak. For typical
+          // sync operations (mostly updates), this is still much faster than the
+          // sequence waste and is correct behavior.
+          
+          const existing = tx.select({ id: books.id })
+            .from(books)
+            .where(eq(books.calibreId, bookData.calibreId))
+            .get();
+          
+          if (existing) {
+            // Book exists - UPDATE only (no sequence consumption)
+            tx.update(books)
+              .set(bookData)
+              .where(eq(books.id, existing.id))
+              .run();
+          } else {
+            // New book - INSERT (sequence will advance, which is correct)
+            tx.insert(books)
+              .values(bookData)
+              .run();
+          }
         }
       });
 
