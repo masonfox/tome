@@ -160,4 +160,98 @@ describe('streakApi', () => {
       await expect(streakApi.updateTimezone(request)).rejects.toThrow('Invalid timezone');
     });
   });
+
+  describe('enableStreak', () => {
+    test('should call PATCH with correct endpoint and request body when enabling', async () => {
+      const request = { streakEnabled: true, dailyThreshold: 10 };
+      const response = {
+        success: true,
+        data: {
+          streakEnabled: true,
+          currentStreak: 0,
+          longestStreak: 0,
+          dailyReadingThreshold: 10,
+        },
+      };
+      apiSpies.patch.mockResolvedValue(response);
+
+      const result = await streakApi.enableStreak(request);
+
+      expect(apiSpies.patch).toHaveBeenCalledWith('/api/streak', request);
+      expect(result).toEqual(response);
+    });
+
+    test('should call PATCH when disabling streak', async () => {
+      const request = { streakEnabled: false };
+      const response = {
+        success: true,
+        data: {
+          streakEnabled: false,
+          currentStreak: 0,
+          longestStreak: 0,
+        },
+      };
+      apiSpies.patch.mockResolvedValue(response);
+
+      const result = await streakApi.enableStreak(request);
+
+      expect(apiSpies.patch).toHaveBeenCalledWith('/api/streak', request);
+      expect(result).toEqual(response);
+    });
+
+    test('should handle enabling streak with threshold', async () => {
+      const request = { streakEnabled: true, dailyThreshold: 5 };
+      const response = {
+        success: true,
+        data: {
+          streakEnabled: true,
+          dailyReadingThreshold: 5,
+        },
+      };
+      apiSpies.patch.mockResolvedValue(response);
+
+      await streakApi.enableStreak(request);
+
+      expect(apiSpies.patch).toHaveBeenCalledWith('/api/streak', request);
+    });
+
+    test('should handle enabling streak without threshold', async () => {
+      const request = { streakEnabled: true };
+      apiSpies.patch.mockResolvedValue({ 
+        success: true, 
+        data: { streakEnabled: true } 
+      });
+
+      await streakApi.enableStreak(request);
+
+      expect(apiSpies.patch).toHaveBeenCalledWith('/api/streak', request);
+    });
+
+    test('should return enable response from baseApiClient', async () => {
+      const expectedResponse = {
+        success: true,
+        data: {
+          streakEnabled: true,
+          currentStreak: 5,
+          longestStreak: 10,
+        },
+      };
+      apiSpies.patch.mockResolvedValue(expectedResponse);
+
+      const result = await streakApi.enableStreak({ 
+        streakEnabled: true, 
+        dailyThreshold: 15 
+      });
+
+      expect(result).toBe(expectedResponse);
+    });
+
+    test('should propagate errors from baseApiClient', async () => {
+      const request = { streakEnabled: true, dailyThreshold: 10 };
+      const error = new Error('Failed to enable streak');
+      apiSpies.patch.mockRejectedValue(error);
+
+      await expect(streakApi.enableStreak(request)).rejects.toThrow('Failed to enable streak');
+    });
+  });
 });

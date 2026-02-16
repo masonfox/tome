@@ -4,29 +4,19 @@ import { useState } from "react";
 import { Flame, Target, TrendingUp } from "lucide-react";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "sonner";
+import { useStreak } from "@/hooks/useStreak";
 
-interface StreakOnboardingProps {
-  onEnable: (dailyGoal: number) => Promise<void>;
-}
-
-export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
+export function StreakOnboarding() {
   const [dailyGoal, setDailyGoal] = useState(10);
-  const [isEnabling, setIsEnabling] = useState(false);
+  const { enableStreak, isEnablingStreak } = useStreak();
 
-  async function handleEnable() {
+  function handleEnable() {
     if (dailyGoal < 1 || dailyGoal > 9999) {
       toast.error("Daily goal must be between 1 and 9999 pages");
       return;
     }
 
-    setIsEnabling(true);
-    try {
-      await onEnable(dailyGoal);
-      toast.success("Streak tracking enabled! Start building your reading habit today.");
-    } catch (error) {
-      toast.error("Failed to enable streak tracking. Please try again.");
-      setIsEnabling(false);
-    }
+    enableStreak({ streakEnabled: true, dailyThreshold: dailyGoal });
   }
 
   return (
@@ -115,7 +105,7 @@ export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
                   setDailyGoal(isNaN(val) ? 1 : val);
                 }}
                 className="flex-1 px-4 py-3 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-sm text-[var(--foreground)] text-lg font-medium focus:outline-none focus:outline focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-2 focus:border-transparent"
-                disabled={isEnabling}
+                disabled={isEnablingStreak}
               />
             </div>
             <p className="text-xs text-[var(--subheading-text)] mt-2">
@@ -126,12 +116,12 @@ export function StreakOnboarding({ onEnable }: StreakOnboardingProps) {
           <div className="flex gap-3">
             <Button
               onClick={handleEnable}
-              disabled={isEnabling}
+              disabled={isEnablingStreak}
               variant="primary"
               size="lg"
               fullWidth
             >
-              {isEnabling ? "Enabling..." : "Enable Streak Tracking"}
+              {isEnablingStreak ? "Enabling..." : "Enable Streak Tracking"}
             </Button>
           </div>
         </div>
