@@ -605,63 +605,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
-   * Bulk upsert books (insert new, update existing)
-   * 
-   * DEPRECATED: This method exists for backward compatibility but has performance issues.
-   * It performs redundant existence checks when the caller already knows which books exist.
-   * 
-   * For sync operations, use bulkInsert + bulkUpdate instead since sync service already
-   * queries existence via findAllByCalibreIds().
-   * 
-   * @deprecated Use bulkInsert() and bulkUpdate() instead for better performance
-   * @param booksData - Array of book data to upsert
-   * @returns Number of books processed
-   */
-  async bulkUpsert(booksData: NewBook[]): Promise<number> {
-    if (booksData.length === 0) {
-      return 0;
-    }
-
-    const db = this.getDatabase();
-    const BATCH_SIZE = 1000;
-    let totalProcessed = 0;
-
-    // Process in batches to avoid SQLite limits
-    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
-      const batch = booksData.slice(i, i + BATCH_SIZE);
-      
-      // Use a transaction for each batch
-      await db.transaction((tx) => {
-        for (const bookData of batch) {
-          // NOTE: This performs a SELECT per book which is inefficient.
-          // The caller should use bulkInsert/bulkUpdate instead if they already
-          // know which books exist (e.g., from findAllByCalibreIds).
-          
-          const existing = tx.select({ id: books.id })
-            .from(books)
-            .where(eq(books.calibreId, bookData.calibreId))
-            .get();
-          
-          if (existing) {
-            tx.update(books)
-              .set(bookData)
-              .where(eq(books.id, existing.id))
-              .run();
-          } else {
-            tx.insert(books)
-              .values(bookData)
-              .run();
-          }
-        }
-      });
-
-      totalProcessed += batch.length;
-    }
-
-    return totalProcessed;
-  }
-
-  /**
    * Find books not in a list of calibreIds (for orphaning)
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
