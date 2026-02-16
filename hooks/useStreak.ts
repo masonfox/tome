@@ -64,6 +64,28 @@ export function useStreak() {
     },
   });
 
+  // Mutation for enabling/disabling streak tracking
+  const enableStreakMutation = useMutation({
+    mutationFn: async ({ streakEnabled, dailyThreshold }: { streakEnabled: boolean; dailyThreshold?: number }) => {
+      return streakApi.enableStreak({ streakEnabled, dailyThreshold });
+    },
+    onSuccess: (data) => {
+      // Invalidate streak-related queries
+      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['streaks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      
+      const message = data.data.streakEnabled
+        ? "Streak tracking enabled!"
+        : "Streak tracking disabled";
+      toast.success(message);
+    },
+    onError: (error: any) => {
+      console.error("Failed to update streak status:", error);
+      toast.error(error.message || "Failed to update streak tracking");
+    },
+  });
+
   return {
     // Rebuild operations
     rebuildStreak: rebuildMutation.mutate,
@@ -79,5 +101,10 @@ export function useStreak() {
     updateTimezone: updateTimezoneMutation.mutate,
     updateTimezoneAsync: updateTimezoneMutation.mutateAsync,
     isUpdatingTimezone: updateTimezoneMutation.isPending,
+    
+    // Enable/disable operations
+    enableStreak: enableStreakMutation.mutate,
+    enableStreakAsync: enableStreakMutation.mutateAsync,
+    isEnablingStreak: enableStreakMutation.isPending,
   };
 }

@@ -9,6 +9,7 @@ vi.mock("@/lib/api", () => ({
     rebuild: vi.fn(),
     updateThreshold: vi.fn(),
     updateTimezone: vi.fn(),
+    enableStreak: vi.fn(),
   },
 }));
 
@@ -36,6 +37,10 @@ describe("useStreak", () => {
     vi.mocked(streakApi.updateTimezone).mockResolvedValue({ 
       success: true, 
       data: {} as any 
+    });
+    vi.mocked(streakApi.enableStreak).mockResolvedValue({ 
+      success: true, 
+      data: { streakEnabled: true } as any 
     });
   });
 
@@ -388,6 +393,186 @@ describe("useStreak", () => {
 
       expect(typeof result.current.updateTimezone).toBe("function");
       expect(typeof result.current.updateTimezoneAsync).toBe("function");
+    });
+
+    test("should provide both mutate and mutateAsync for enable streak", () => {
+      const { result } = renderHook(() => useStreak());
+
+      expect(typeof result.current.enableStreak).toBe("function");
+      expect(typeof result.current.enableStreakAsync).toBe("function");
+    });
+  });
+
+  describe("enableStreak mutation", () => {
+    test("should call streakApi.enableStreak with streakEnabled flag", async () => {
+      const { result } = renderHook(() => useStreak());
+
+      expect(result.current.isEnablingStreak).toBe(false);
+
+      await act(async () => {
+        await result.current.enableStreakAsync({ streakEnabled: true, dailyThreshold: 5 });
+      });
+
+      expect(streakApi.enableStreak).toHaveBeenCalledWith({ 
+        streakEnabled: true, 
+        dailyThreshold: 5 
+      });
+    });
+
+    test("should set isEnablingStreak to true during mutation", async () => {
+      let resolveApi: (value: any) => void;
+      const apiPromise = new Promise((resolve) => {
+        resolveApi = resolve;
+      });
+
+      vi.mocked(streakApi.enableStreak).mockReturnValue(apiPromise as any);
+
+      const { result } = renderHook(() => useStreak());
+
+      act(() => {
+        result.current.enableStreak({ streakEnabled: true, dailyThreshold: 10 });
+      });
+
+      await waitFor(() => {
+        expect(result.current.isEnablingStreak).toBe(true);
+      });
+
+      // Resolve API call
+      resolveApi!({ success: true, data: { streakEnabled: true } });
+
+      await waitFor(() => {
+        expect(result.current.isEnablingStreak).toBe(false);
+      });
+    });
+
+    test("should show 'Streak tracking enabled!' toast when enabling", async () => {
+      vi.mocked(streakApi.enableStreak).mockResolvedValue({
+        success: true,
+        data: { streakEnabled: true } as any,
+      });
+
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        await result.current.enableStreakAsync({ streakEnabled: true, dailyThreshold: 5 });
+      });
+
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith("Streak tracking enabled!");
+      });
+    });
+
+    test("should show 'Streak tracking disabled' toast when disabling", async () => {
+      vi.mocked(streakApi.enableStreak).mockResolvedValue({
+        success: true,
+        data: { streakEnabled: false } as any,
+      });
+
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        await result.current.enableStreakAsync({ streakEnabled: false });
+      });
+
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith("Streak tracking disabled");
+      });
+    });
+
+    test("should invalidate correct query keys on success", async () => {
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        await result.current.enableStreakAsync({ streakEnabled: true, dailyThreshold: 5 });
+      });
+
+      // Verify mutation completed successfully
+      expect(mockToastSuccess).toHaveBeenCalled();
+    });
+
+    test("should handle enable errors", async () => {
+      vi.mocked(streakApi.enableStreak).mockRejectedValue(new Error("Failed to enable"));
+
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        try {
+          await result.current.enableStreakAsync({ streakEnabled: true, dailyThreshold: 5 });
+        } catch (error) {
+          // Error is expected
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith(
+          "Failed to enable"
+        );
+      });
+    });
+
+    test("should handle errors with custom message", async () => {
+      const customError = new Error("Custom error message");
+      vi.mocked(streakApi.enableStreak).mockRejectedValue(customError);
+
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        try {
+          await result.current.enableStreakAsync({ streakEnabled: false });
+        } catch (error) {
+          // Error is expected
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("Custom error message");
+      });
+    });
+
+    test("should handle network errors", async () => {
+      vi.mocked(streakApi.enableStreak).mockRejectedValue(new Error("Network error"));
+
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        try {
+          await result.current.enableStreakAsync({ streakEnabled: true });
+        } catch (error) {
+          // Error is expected
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalled();
+      });
+    });
+
+    test("should call enableStreak with streakEnabled only when dailyThreshold not provided", async () => {
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        await result.current.enableStreakAsync({ streakEnabled: false });
+      });
+
+      expect(streakApi.enableStreak).toHaveBeenCalledWith({ 
+        streakEnabled: false
+      });
+    });
+
+    test("should call enableStreak with both parameters when provided", async () => {
+      const { result } = renderHook(() => useStreak());
+
+      await act(async () => {
+        await result.current.enableStreakAsync({ 
+          streakEnabled: true, 
+          dailyThreshold: 20 
+        });
+      });
+
+      expect(streakApi.enableStreak).toHaveBeenCalledWith({ 
+        streakEnabled: true, 
+        dailyThreshold: 20 
+      });
     });
   });
 });

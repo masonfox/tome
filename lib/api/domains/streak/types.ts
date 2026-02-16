@@ -70,3 +70,20 @@ export interface UpdateTimezoneRequest {
  * Response from updating timezone
  */
 export interface UpdateTimezoneResponse extends StreakDataResponse {}
+
+// ============================================================================
+// Enable Streak API Types
+// ============================================================================
+
+/**
+ * Request to enable/disable streak tracking with optional threshold
+ */
+export interface EnableStreakRequest {
+  streakEnabled: boolean;
+  dailyThreshold?: number;
+}
+
+/**
+ * Response from enabling/disabling streak
+ */
+export interface EnableStreakResponse extends StreakDataResponse {}

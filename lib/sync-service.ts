@@ -204,7 +204,8 @@ export async function syncCalibreLibrary(
       );
 
       // Step 4: Build arrays of books to insert/update
-      const booksToUpsert: NewBook[] = [];
+      const booksToInsert: NewBook[] = [];
+      const booksToUpdate: NewBook[] = [];
       let chunkSyncedCount = 0;
       let chunkUpdatedCount = 0;
 
@@ -228,8 +229,8 @@ export async function syncCalibreLibrary(
           isbn: calibreBook.isbn || undefined,
           publisher: calibreBook.publisher || undefined,
           pubDate: calibreBook.pubdate ? new Date(calibreBook.pubdate) : undefined,
-          series: calibreBook.series || undefined,
-          seriesIndex: calibreBook.series_index || undefined,
+          series: calibreBook.series || null,
+          seriesIndex: calibreBook.series_index || null,
           tags,
           path: calibreBook.path,
           description: calibreBook.description || undefined,
@@ -238,21 +239,34 @@ export async function syncCalibreLibrary(
           rating: calibreBook.rating !== null ? calibreBook.rating : null,
         };
 
-        booksToUpsert.push(bookData);
-
         if (existingBook) {
+          booksToUpdate.push(bookData);
           chunkUpdatedCount++;
         } else {
+          booksToInsert.push(bookData);
           chunkSyncedCount++;
         }
       }
 
-      // Step 5: Bulk upsert books for this chunk
-      logger.debug(
-        { chunk: chunkNumber, booksToUpsert: booksToUpsert.length },
-        `[Sync:Chunk] Upserting ${booksToUpsert.length} books`
-      );
-      await bookRepository.bulkUpsert(booksToUpsert);
+      // Step 5: Bulk insert new books and update existing books
+      // This approach prevents AUTOINCREMENT sequence leak by separating operations:
+      // - INSERT advances sequence (correct behavior)
+      // - UPDATE does not advance sequence (correct behavior)
+      if (booksToInsert.length > 0) {
+        logger.debug(
+          { chunk: chunkNumber, booksToInsert: booksToInsert.length },
+          `[Sync:Chunk] Inserting ${booksToInsert.length} new books`
+        );
+        await bookRepository.bulkInsert(booksToInsert);
+      }
+      
+      if (booksToUpdate.length > 0) {
+        logger.debug(
+          { chunk: chunkNumber, booksToUpdate: booksToUpdate.length },
+          `[Sync:Chunk] Updating ${booksToUpdate.length} existing books`
+        );
+        await bookRepository.bulkUpdate(booksToUpdate);
+      }
 
       // Step 6: Create sessions for new books
       if (chunkSyncedCount > 0) {
@@ -261,9 +275,8 @@ export async function syncCalibreLibrary(
           `[Sync:Chunk] Creating sessions for ${chunkSyncedCount} new books`
         );
         
-        const newCalibreIds = booksToUpsert
-          .filter((_, index) => !existingBooksMap.has(calibreBooks[index].id))
-          .map(book => book.calibreId);
+        // Get calibreIds of newly inserted books
+        const newCalibreIds = booksToInsert.map(book => book.calibreId!);
         
         const newBooksMap = await bookRepository.findAllByCalibreIds(newCalibreIds);
         const sessionsToCreate: NewReadingSession[] = [];

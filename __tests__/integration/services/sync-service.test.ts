@@ -523,6 +523,76 @@ describe("syncCalibreLibrary", () => {
     expect(book).toBeDefined();
     expect(book?.rating).toBeNull();
   });
+
+  test("clears series when removed from Calibre", async () => {
+    // Arrange - Create book with series
+    const existingBook = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Test Book",
+      series: "Test Series",
+      seriesIndex: 1.0,
+      orphaned: false,
+    }));
+
+    // Mock Calibre with no series
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          series: null,
+          series_index: null,
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.updatedCount).toBe(1);
+
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book).toBeDefined();
+    expect(book?.series).toBeNull();
+    expect(book?.seriesIndex).toBeNull();
+  });
+
+  test("clears series when set to empty string in Calibre", async () => {
+    // Arrange - Create book with series
+    const existingBook = await bookRepository.create(createTestBook({
+      calibreId: 1,
+      title: "Test Book",
+      series: "Test Series",
+      seriesIndex: 2.0,
+      orphaned: false,
+    }));
+
+    // Mock Calibre with empty string series
+    const testCalibreSource: CalibreDataSource = {
+      getAllBooks: () => [
+        {
+          ...mockCalibreBook,
+          series: "",
+          series_index: null,
+        },
+      ],
+      getBookTags: () => [],
+    };
+
+    // Act
+    const result = await syncCalibreLibrary(testCalibreSource);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.updatedCount).toBe(1);
+
+    const book = await bookRepository.findByCalibreId(1);
+    expect(book).toBeDefined();
+    expect(book?.series).toBeNull();
+    expect(book?.seriesIndex).toBeNull();
+  });
 });
 
 describe("getLastSyncTime", () => {

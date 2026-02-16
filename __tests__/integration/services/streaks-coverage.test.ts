@@ -16,14 +16,10 @@ import { toDateString } from "@/utils/dateHelpers.server";
  */
 
 function getStreakDate(daysOffset: number = 0): Date {
-  const userTimezone = 'America/New_York';
-  const now = new Date();
-  const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-  
-  const targetDate = new Date(todayInUserTz);
-  targetDate.setDate(targetDate.getDate() + daysOffset);
-  
-  return fromZonedTime(targetDate, userTimezone);
+  const date = new Date();
+  date.setDate(date.getDate() + daysOffset);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
 beforeAll(async () => {
@@ -38,7 +34,7 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
-describe("lib/streaks.ts - Coverage Improvement", () => {
+describe("StreakService - Coverage Improvement", () => {
   describe("rebuildStreak - Edge Cases", () => {
     test("should handle empty progress array", async () => {
       // No progress logs created

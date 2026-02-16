@@ -524,25 +524,24 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
-   * Bulk upsert books (insert new, update existing) for sync performance optimization
+   * Bulk insert new books
    * 
-   * Uses INSERT OR REPLACE to handle both new books and updates in a single operation.
    * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * Only performs INSERT operations - will fail if books already exist.
    * 
-   * This is much more efficient than individual insert/update calls.
-   * For a library with 150k books, this reduces 150k-300k operations to ~150 operations.
+   * AUTOINCREMENT behavior: Sequence advances once per book (correct behavior).
    * 
-   * @param booksData - Array of book data to upsert
-   * @returns Number of books processed
+   * @param booksData - Array of new book data to insert
+   * @returns Number of books inserted
    */
-  async bulkUpsert(booksData: NewBook[]): Promise<number> {
+  async bulkInsert(booksData: NewBook[]): Promise<number> {
     if (booksData.length === 0) {
       return 0;
     }
 
     const db = this.getDatabase();
     const BATCH_SIZE = 1000;
-    let totalProcessed = 0;
+    let totalInserted = 0;
 
     // Process in batches to avoid SQLite limits
     for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
@@ -551,21 +550,58 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       // Use a transaction for each batch
       await db.transaction((tx) => {
         for (const bookData of batch) {
-          // INSERT OR REPLACE will update if calibreId exists, insert if not
-          tx.insert(books)
-            .values(bookData)
-            .onConflictDoUpdate({
-              target: books.calibreId,
-              set: bookData,
-            })
+          tx.insert(books).values(bookData).run();
+        }
+      });
+
+      totalInserted += batch.length;
+    }
+
+    return totalInserted;
+  }
+
+  /**
+   * Bulk update existing books
+   * 
+   * Processes books in batches of 1000 to avoid hitting SQLite limits.
+   * Only performs UPDATE operations - requires books to have calibreId to match on.
+   * 
+   * AUTOINCREMENT behavior: Sequence does NOT advance (correct behavior for updates).
+   * 
+   * @param booksData - Array of book data to update (must include calibreId)
+   * @returns Number of books updated
+   */
+  async bulkUpdate(booksData: NewBook[]): Promise<number> {
+    if (booksData.length === 0) {
+      return 0;
+    }
+
+    const db = this.getDatabase();
+    const BATCH_SIZE = 1000;
+    let totalUpdated = 0;
+
+    // Process in batches to avoid SQLite limits
+    for (let i = 0; i < booksData.length; i += BATCH_SIZE) {
+      const batch = booksData.slice(i, i + BATCH_SIZE);
+      
+      // Use a transaction for each batch
+      await db.transaction((tx) => {
+        for (const bookData of batch) {
+          if (!bookData.calibreId) {
+            throw new Error("bulkUpdate requires calibreId to identify books");
+          }
+          
+          tx.update(books)
+            .set(bookData)
+            .where(eq(books.calibreId, bookData.calibreId))
             .run();
         }
       });
 
-      totalProcessed += batch.length;
+      totalUpdated += batch.length;
     }
 
-    return totalProcessed;
+    return totalUpdated;
   }
 
   /**

@@ -6,8 +6,10 @@ import { vi } from "vitest";
  */
 
 // Mock external dependencies
-vi.mock("@/lib/streaks", () => ({
-  rebuildStreak: vi.fn(() => Promise.resolve()),
+vi.mock("@/lib/services/streak.service", () => ({
+  streakService: {
+    rebuildStreak: vi.fn(() => Promise.resolve()),
+  },
 }));
 
 vi.mock("next/cache", () => ({

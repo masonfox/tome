@@ -13,9 +13,11 @@ import type { Book } from "@/lib/db/schema/books";
  * Additional mock for core tests: updateStreaks
  * The shared setup already mocks rebuildStreak, revalidatePath, and calibreService
  */
-vi.mock("@/lib/streaks", () => ({
-  rebuildStreak: vi.fn(() => Promise.resolve()),
-  updateStreaks: vi.fn(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
+vi.mock("@/lib/services/streak.service", () => ({
+  streakService: {
+    rebuildStreak: vi.fn(() => Promise.resolve()),
+    updateStreaks: vi.fn(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
+  },
 }));
 
 describe("SessionService", () => {

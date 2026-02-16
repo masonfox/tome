@@ -12,6 +12,8 @@ import type {
   UpdateThresholdResponse,
   UpdateTimezoneRequest,
   UpdateTimezoneResponse,
+  EnableStreakRequest,
+  EnableStreakResponse,
 } from "./types";
 
 /**
@@ -88,6 +90,31 @@ export const streakApi = {
   ): Promise<UpdateTimezoneResponse> => {
     return baseApiClient["patch"]<UpdateTimezoneRequest, UpdateTimezoneResponse>(
       '/api/streak/timezone',
+      request
+    );
+  },
+
+  /**
+   * Enable or disable streak tracking
+   * 
+   * Toggles streak tracking on/off and optionally sets the daily threshold.
+   * 
+   * @param request - Enable/disable flag and optional threshold
+   * @returns Update response with updated streak data
+   * @throws {ApiError} When request fails
+   * 
+   * @example
+   * // Enable streak with threshold
+   * await streakApi.enableStreak({ streakEnabled: true, dailyThreshold: 5 });
+   * 
+   * // Disable streak
+   * await streakApi.enableStreak({ streakEnabled: false });
+   */
+  enableStreak: (
+    request: EnableStreakRequest
+  ): Promise<EnableStreakResponse> => {
+    return baseApiClient["patch"]<EnableStreakRequest, EnableStreakResponse>(
+      '/api/streak',
       request
     );
   },
