@@ -25,8 +25,10 @@ const TEST_TIMEZONE = "America/New_York";
  * aren't relevant to testing progress tracking. We mock with reasonable return
  * values to verify progress service integrates with streaks without testing streak logic.
  */
-vi.mock("@/lib/streaks", () => ({
-  updateStreaks: vi.fn(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
+vi.mock("@/lib/services/streak.service", () => ({
+  streakService: {
+    updateStreaks: vi.fn(() => Promise.resolve({ currentStreak: 5, longestStreak: 10 })),
+  },
 }));
 
 /**

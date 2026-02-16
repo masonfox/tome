@@ -1,10 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { 
-  updateStreaks, 
-  checkAndResetStreakIfNeeded, 
-  getActivityCalendar,
-  rebuildStreak 
-} from "@/lib/streaks";
+import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { startOfDay } from "date-fns";
@@ -15,20 +10,16 @@ import { toDateString } from "@/utils/dateHelpers.server";
 /**
  * Streak Coverage Tests
  * 
- * Focus on improving coverage for lib/streaks.ts uncovered lines:
- * - Lines 112-329 (rebuildStreak edge cases)
- * - Lines 378-388 (getActivityCalendar)
+ * Focus on improving coverage for StreakService methods:
+ * - rebuildStreak edge cases
+ * - getActivityCalendar functionality
  */
 
 function getStreakDate(daysOffset: number = 0): Date {
-  const userTimezone = 'America/New_York';
-  const now = new Date();
-  const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-  
-  const targetDate = new Date(todayInUserTz);
-  targetDate.setDate(targetDate.getDate() + daysOffset);
-  
-  return fromZonedTime(targetDate, userTimezone);
+  const date = new Date();
+  date.setDate(date.getDate() + daysOffset);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
 beforeAll(async () => {
@@ -43,11 +34,11 @@ beforeEach(async () => {
   await clearTestDatabase(__filename);
 });
 
-describe("lib/streaks.ts - Coverage Improvement", () => {
+describe("StreakService - Coverage Improvement", () => {
   describe("rebuildStreak - Edge Cases", () => {
     test("should handle empty progress array", async () => {
       // No progress logs created
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak(null);
       
       expect(streak.currentStreak).toBe(0);
       expect(streak.longestStreak).toBe(0);
@@ -83,7 +74,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
 
       // Rebuild with custom date (yesterday)
       const yesterday = getStreakDate(-1);
-      const streak = await rebuildStreak(null, yesterday);
+      const streak = await streakService.rebuildStreak(null, yesterday);
       
       // Streak should be 1 (last activity was yesterday from current date perspective)
       expect(streak.currentStreak).toBe(1);
@@ -115,9 +106,10 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
       });
 
       // Rebuild with streak disabled
-      const streak = await rebuildStreak(null, undefined, false);
+      await streakService.setStreakEnabled(null, false);
+      const streak = await streakRepository.findByUserId(null);
       
-      expect(streak.streakEnabled).toBe(false);
+      expect(streak?.streakEnabled).toBe(false);
     });
 
     test("should calculate streak with progress below daily threshold", async () => {
@@ -157,7 +149,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         progressDate: toProgressDate(getStreakDate(0)),
       });
 
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak(null);
       
       // Should not count this day as qualifying
       expect(streak.currentStreak).toBe(0);
@@ -190,7 +182,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         progressDate: toProgressDate(getStreakDate(0)),
       });
 
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak(null);
       
       // Zero-page progress should not count
       expect(streak.currentStreak).toBe(0);
@@ -253,7 +245,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         progressDate: toProgressDate(today),
       });
 
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak(null);
       
       expect(streak.currentStreak).toBe(1);
       expect(streak.totalDaysActive).toBe(1);
@@ -301,7 +293,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         });
       }
 
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak(null);
       
       expect(streak.longestStreak).toBe(10);
       expect(streak.currentStreak).toBe(0); // Broken since day 3
@@ -333,7 +325,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         progressDate: toProgressDate(getStreakDate(-5)),
       });
 
-      const streak = await rebuildStreak();
+      const streak = await streakService.rebuildStreak(null);
       
       // Streak broken (more than 1 day ago)
       expect(streak.currentStreak).toBe(0);
@@ -370,7 +362,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
       });
 
       const currentYear = today.getFullYear();
-      const calendar = await getActivityCalendar(null, currentYear);
+      const calendar = await streakService.getActivityCalendar(null, currentYear);
       
       expect(Array.isArray(calendar)).toBe(true);
       expect(calendar.length).toBeGreaterThan(0);
@@ -405,13 +397,13 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth(); // 0-11
       
-      const calendar = await getActivityCalendar(null, currentYear, currentMonth);
+      const calendar = await streakService.getActivityCalendar(null, currentYear, currentMonth);
       
       expect(Array.isArray(calendar)).toBe(true);
     });
 
     test("should return empty calendar for year with no activity", async () => {
-      const calendar = await getActivityCalendar(null, 2020);
+      const calendar = await streakService.getActivityCalendar(null, 2020);
       
       expect(Array.isArray(calendar)).toBe(true);
       expect(calendar.length).toBe(0);
@@ -444,7 +436,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
       });
 
       const currentYear = new Date().getFullYear();
-      const calendar = await getActivityCalendar(null, currentYear);
+      const calendar = await streakService.getActivityCalendar(null, currentYear);
       
       expect(Array.isArray(calendar)).toBe(true);
     });
@@ -463,7 +455,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         totalDaysActive: 5,
       });
 
-      const wasReset = await checkAndResetStreakIfNeeded();
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
       
       expect(wasReset).toBe(true);
       
@@ -482,7 +474,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         totalDaysActive: 3,
       });
 
-      const wasReset = await checkAndResetStreakIfNeeded();
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
       
       expect(wasReset).toBe(false);
       
@@ -501,7 +493,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         totalDaysActive: 2,
       });
 
-      const wasReset = await checkAndResetStreakIfNeeded();
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
       
       expect(wasReset).toBe(false);
       
@@ -521,7 +513,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         lastCheckedDate: toDateString(today), // Already checked today
       });
 
-      const wasReset = await checkAndResetStreakIfNeeded();
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
       
       expect(wasReset).toBe(false); // Idempotent check
     });
@@ -537,7 +529,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         totalDaysActive: 5,
       });
 
-      const wasReset = await checkAndResetStreakIfNeeded();
+      const wasReset = await streakService.checkAndResetStreakIfNeeded(null);
       
       expect(wasReset).toBe(false); // Already 0, no reset needed
     });
@@ -580,7 +572,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
         progressDate: toProgressDate(getStreakDate(0)),
       });
 
-      const streak = await updateStreaks();
+      const streak = await streakService.updateStreaks(null);
       
       // Threshold not met, streak remains 0
       expect(streak.currentStreak).toBe(0);
@@ -613,7 +605,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
       });
 
       // Set threshold to 10 (exactly met)
-      let streak = await updateStreaks();
+      let streak = await streakService.updateStreaks(null);
       expect(streak.currentStreak).toBe(1);
 
       // Raise threshold to 15 (no longer met)
@@ -622,7 +614,7 @@ describe("lib/streaks.ts - Coverage Improvement", () => {
       } as any);
 
       // Update streak again
-      streak = await updateStreaks();
+      streak = await streakService.updateStreaks(null);
       
       // Should reset to 0 (threshold raised, no longer met)
       expect(streak.currentStreak).toBe(0);

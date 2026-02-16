@@ -2,7 +2,15 @@ import { streakRepository } from "@/lib/repositories/streak.repository";
 import { progressRepository } from "@/lib/repositories/progress.repository";
 import { Streak } from "@/lib/db/schema/streaks";
 import { getLogger } from "@/lib/logger";
-import { differenceInHours, endOfDay, differenceInDays, startOfDay, isEqual, format, parseISO } from "date-fns";
+import {
+  differenceInHours,
+  endOfDay,
+  differenceInDays,
+  startOfDay,
+  isEqual,
+  format,
+  parseISO,
+} from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { toDateString } from "@/utils/dateHelpers.server";
 
@@ -13,50 +21,37 @@ export interface StreakWithHoursRemaining extends Streak {
 }
 
 /**
- * StreakService - Handles reading streak tracking and daily goal management
- * 
- * IMPORTANT: This service uses INLINE IMPLEMENTATIONS for core streak functions
- * to work around a Bun module caching bug that affects CI tests.
- * 
- * ## Bun Module Caching Issue
- * 
- * In CI environments, after 40+ serial test runs, Bun's transpiler cache can
- * return stale/cached versions of ES6 module exports, even with dynamic imports.
- * This caused functions like `rebuildStreak()` to return `undefined` in tests.
- * 
- * ## Solution: Service Layer with Inline Implementations
- * 
- * Instead of delegating to functions in `lib/streaks.ts`, we implement the
- * logic directly in this service class. Class methods are not affected by
- * ES6 module caching, ensuring tests always execute current code.
- * 
- * ## Affected Methods
- * 
- * - `rebuildStreak()` - Full inline implementation (~110 lines)
- * - `updateStreaks()` - Full inline implementation (~150 lines)
- * - `getStreakBasic()` - Delegates to repository (safe)
- * 
- * ## For New Developers
- * 
- * If you need to modify streak logic:
- * 1. Update BOTH this service AND `lib/streaks.ts` to keep them in sync
- * 2. The service version is used by tests (cache-immune)
- * 3. The lib/streaks.ts version is used by production code
- * 4. Yes, this is duplication. It's necessary for test reliability.
- * 
- * ## References
- * 
- * - Full investigation: docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md
- * - Testing guidelines: docs/TESTING_GUIDELINES.md (Bun Module Caching section)
- * - Related commits: 4910da0, d7a72ce
- * 
- * @see {@link https://github.com/masonfox/tome/blob/main/docs/archive/CI-STREAK-TEST-FAILURE-INVESTIGATION.md}
+ * StreakService - Handles streak tracking and daily goal management
+ *
+ * Provides methods for:
+ * - Checking and resetting streaks based on daily activity
+ * - Rebuilding streaks from historical progress data
+ * - Managing daily reading thresholds
+ * - Generating streak analytics and activity calendars
+ *
+ * All calculations are timezone-aware using the user's configured timezone (ADR-014).
+ * Streak dates are stored as calendar-day strings (yyyy-MM-dd) in the user's timezone,
+ * not UTC-shifted values, ensuring correct day-boundary handling across timezones.
+ *
+ * This is the single source of truth for streak business logic in the application.
+ * All streak-related operations should go through this service for consistency.
+ *
+ * ## Type Safety Note
+ *
+ * Throughout this service, you'll see `as any` casts on repository.update() calls.
+ * These are necessary because TypeScript's type inference for Partial<NewStreak> doesn't
+ * recognize that our partial update objects are valid. The casts are safe because:
+ * - We only update fields that exist in the schema
+ * - Drizzle validates field names at runtime
+ * - All values match the expected types for their fields
+ *
+ * @see ADR-014 - Date String Storage for Calendar Days
  */
 export class StreakService {
   /**
    * Check and reset streak if more than 1 day has passed since last activity
    * This is an explicit write operation that should be called before reading streak data
-   * 
+   *
    * Features:
    * - Idempotent: Only runs once per day (uses lastCheckedDate)
    * - Timezone-aware: Uses user's configured timezone for day boundaries
@@ -64,7 +59,9 @@ export class StreakService {
    *
    * @returns {Promise<boolean>} True if streak was reset, false otherwise
    */
-  async checkAndResetStreakIfNeeded(userId: number | null = null): Promise<boolean> {
+  async checkAndResetStreakIfNeeded(
+    userId: number | null = null,
+  ): Promise<boolean> {
     const streak = await streakRepository.getOrCreate(userId);
 
     // Get today in user's timezone as YYYY-MM-DD string
@@ -77,7 +74,7 @@ export class StreakService {
       if (streak.lastCheckedDate === todayString) {
         logger.debug(
           { lastChecked: streak.lastCheckedDate },
-          "[Streak] Already checked today, skipping"
+          "[Streak] Already checked today, skipping",
         );
         return false; // Already checked today, no need to check again
       }
@@ -90,8 +87,12 @@ export class StreakService {
 
     // Check if streak should be reset due to missed days
     // Parse YYYY-MM-DD string as local midnight
-    const lastActivityParts = streak.lastActivityDate.split('-').map(Number);
-    const lastActivity = new Date(lastActivityParts[0], lastActivityParts[1] - 1, lastActivityParts[2]);
+    const lastActivityParts = streak.lastActivityDate.split("-").map(Number);
+    const lastActivity = new Date(
+      lastActivityParts[0],
+      lastActivityParts[1] - 1,
+      lastActivityParts[2],
+    );
     const daysSinceLastActivity = differenceInDays(todayInUserTz, lastActivity);
 
     // If last activity was more than 1 day ago, streak is broken
@@ -103,7 +104,7 @@ export class StreakService {
           currentStreak: streak.currentStreak,
           timezone: streak.userTimezone,
         },
-        "[Streak] Streak broken due to missed days, resetting to 0"
+        "[Streak] Streak broken due to missed days, resetting to 0",
       );
 
       // Reset the current streak to 0
@@ -122,19 +123,24 @@ export class StreakService {
    * Auto-creates streak record if it doesn't exist
    * Read-only operation - no side effects
    */
-  async getStreak(userId: number | null = null): Promise<StreakWithHoursRemaining> {
+  async getStreak(
+    userId: number | null = null,
+  ): Promise<StreakWithHoursRemaining> {
     const streak = await streakRepository.getOrCreate(userId);
 
     // Calculate hours remaining today in user's timezone
     const now = new Date();
-    const userTimezone = streak.userTimezone || 'America/New_York';
-    
+    const userTimezone = streak.userTimezone || "America/New_York";
+
     // Convert to user's timezone for accurate end-of-day calculation
     const nowInUserTz = toZonedTime(now, userTimezone);
     const endOfTodayInUserTz = endOfDay(nowInUserTz);
-    
+
     // Calculate hours remaining in user's timezone
-    const hoursRemaining = Math.max(0, differenceInHours(endOfTodayInUserTz, nowInUserTz));
+    const hoursRemaining = Math.max(
+      0,
+      differenceInHours(endOfTodayInUserTz, nowInUserTz),
+    );
 
     return {
       ...streak,
@@ -147,23 +153,28 @@ export class StreakService {
    * Inline implementation to avoid Bun module caching issues in tests
    * Uses user's timezone for all day boundary calculations
    */
-  async rebuildStreak(userId: number | null = null, currentDate?: Date): Promise<Streak> {
+  async rebuildStreak(
+    userId: number | null = null,
+    currentDate?: Date,
+  ): Promise<Streak> {
     logger.info("[Streak] Rebuilding streak from all progress data");
 
     // Get current streak to check the dailyThreshold and timezone
     const existingStreak = await streakRepository.findByUserId(userId || null);
     const dailyThreshold = existingStreak?.dailyThreshold || 1;
-    const userTimezone = existingStreak?.userTimezone || 'America/New_York';
+    const userTimezone = existingStreak?.userTimezone || "America/New_York";
 
-    logger.info({ dailyThreshold, userTimezone }, "[Streak] Using threshold and timezone for rebuild");
+    logger.info(
+      { dailyThreshold, userTimezone },
+      "[Streak] Using threshold and timezone for rebuild",
+    );
 
     // Get all progress logs ordered by date
     const allProgress = await progressRepository.getAllProgressOrdered();
 
     if (allProgress.length === 0) {
       logger.info("[Streak] No progress data found, creating empty streak");
-      const { getOrCreateStreak } = await import("@/lib/streaks");
-      return await getOrCreateStreak(userId);
+      return await streakRepository.getOrCreate(userId);
     }
 
     // Group progress by date and calculate daily activity (in user's timezone)
@@ -196,7 +207,9 @@ export class StreakService {
     let longestStreak = 0;
     // Parse first date as UTC midnight
     const firstDateStr = sortedDates[0];
-    const firstDateUtc = firstDateStr ? parseISO(`${firstDateStr}T00:00:00.000Z`) : new Date();
+    const firstDateUtc = firstDateStr
+      ? parseISO(`${firstDateStr}T00:00:00.000Z`)
+      : new Date();
     let streakStartDate = firstDateUtc;
     let lastActivityDate = firstDateUtc;
 
@@ -244,14 +257,17 @@ export class StreakService {
 
     const totalDaysActive = qualifyingDates.size;
 
-    logger.info({
-      currentStreak,
-      longestStreak,
-      totalDaysActive,
-      lastActivityDate: lastActivityDate.toISOString(),
-      streakStartDate: streakStartDate.toISOString(),
-      timezone: userTimezone,
-    }, "[Streak] Calculated streak stats");
+    logger.info(
+      {
+        currentStreak,
+        longestStreak,
+        totalDaysActive,
+        lastActivityDate: lastActivityDate.toISOString(),
+        streakStartDate: streakStartDate.toISOString(),
+        timezone: userTimezone,
+      },
+      "[Streak] Calculated streak stats",
+    );
 
     // Update or create streak record
     const streak = await streakRepository.upsert(userId || null, {
@@ -287,7 +303,10 @@ export class StreakService {
 
     if (!streak) {
       logger.debug("[Streak] No existing streak found, creating new one");
-      const todayStr = toDateString(new Date());
+      const userTimezone = "America/New_York"; // Default timezone for new users
+      const now = new Date();
+      // ADR-014: Store calendar day as user-timezone string, not UTC-shifted
+      const todayStr = formatInTimeZone(now, userTimezone, "yyyy-MM-dd");
       streak = await streakRepository.create({
         userId: userId || null,
         currentStreak: 1,
@@ -296,28 +315,32 @@ export class StreakService {
         streakStartDate: todayStr,
         totalDaysActive: 1,
       });
-      logger.info({
-        currentStreak: streak.currentStreak,
-        longestStreak: streak.longestStreak,
-        lastActivityDate: streak.lastActivityDate,
-        streakStartDate: streak.streakStartDate,
-        totalDaysActive: streak.totalDaysActive,
-      }, "[Streak] New streak created");
+      logger.info(
+        {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastActivityDate: streak.lastActivityDate,
+          streakStartDate: streak.streakStartDate,
+          totalDaysActive: streak.totalDaysActive,
+        },
+        "[Streak] New streak created",
+      );
       return streak;
     }
 
     // Get today's progress to check if there's activity (using user's timezone)
-    const userTimezone = streak.userTimezone || 'America/New_York';
+    const userTimezone = streak.userTimezone || "America/New_York";
     const now = new Date();
     const todayInUserTz = startOfDay(toZonedTime(now, userTimezone));
-    const todayString = toDateString(todayInUserTz);
-    
-    // Need end of day for date range query
-    const tomorrowInUserTz = new Date(todayInUserTz);
-    tomorrowInUserTz.setDate(tomorrowInUserTz.getDate() + 1);
-    const tomorrowString = toDateString(tomorrowInUserTz);
-    
-    const todayProgress = await progressRepository.getProgressForDate(todayString, tomorrowString);
+
+    // ADR-014: Use user-timezone calendar day strings for queries and storage
+    const todayStr = formatInTimeZone(now, userTimezone, "yyyy-MM-dd");
+
+    // Query today's progress only (inclusive range with same start/end = single day)
+    const todayProgress = await progressRepository.getProgressForDate(
+      todayStr,
+      todayStr,
+    );
 
     if (!todayProgress || todayProgress.pagesRead === 0) {
       // No activity today, return existing streak
@@ -329,16 +352,23 @@ export class StreakService {
     const dailyThreshold = streak.dailyThreshold || 1;
     const thresholdMet = todayProgress.pagesRead >= dailyThreshold;
 
-    logger.debug({
-      pagesRead: todayProgress.pagesRead,
-      dailyThreshold,
-      thresholdMet,
-    }, "[Streak] Checking daily threshold");
+    logger.debug(
+      {
+        pagesRead: todayProgress.pagesRead,
+        dailyThreshold,
+        thresholdMet,
+      },
+      "[Streak] Checking daily threshold",
+    );
 
     // Has activity today, check if it's consecutive (using user's timezone)
     // Parse YYYY-MM-DD string as local date
-    const lastActivityParts = streak.lastActivityDate.split('-').map(Number);
-    const lastActivity = new Date(lastActivityParts[0], lastActivityParts[1] - 1, lastActivityParts[2]);
+    const lastActivityParts = streak.lastActivityDate.split("-").map(Number);
+    const lastActivity = new Date(
+      lastActivityParts[0],
+      lastActivityParts[1] - 1,
+      lastActivityParts[2],
+    );
     const daysDiff = differenceInDays(todayInUserTz, lastActivity);
 
     if (daysDiff === 0) {
@@ -346,35 +376,47 @@ export class StreakService {
       if (streak.currentStreak === 0 && thresholdMet) {
         // Special case: First activity that meets threshold
         // This handles fresh database or restart after breaking streak
-        logger.info("[Streak] First day activity meets threshold, setting streak to 1");
-        const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive;
+        logger.info(
+          "[Streak] First day activity meets threshold, setting streak to 1",
+        );
+        const newTotalDays =
+          streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive;
         const updated = await streakRepository.update(streak.id, {
           currentStreak: 1,
-        longestStreak: Math.max(1, streak.longestStreak),
-        totalDaysActive: newTotalDays,
-        lastActivityDate: todayString,
-      } as any);
-        logger.info({
-          currentStreak: updated?.currentStreak,
-          longestStreak: updated?.longestStreak,
-          totalDaysActive: updated?.totalDaysActive,
-        }, "[Streak] Streak initialized to 1");
+          longestStreak: Math.max(1, streak.longestStreak),
+          totalDaysActive: newTotalDays,
+          lastActivityDate: todayStr,
+        } as any);
+        logger.info(
+          {
+            currentStreak: updated?.currentStreak,
+            longestStreak: updated?.longestStreak,
+            totalDaysActive: updated?.totalDaysActive,
+          },
+          "[Streak] Streak initialized to 1",
+        );
         return updated!;
       } else if (streak.currentStreak > 0 && !thresholdMet) {
         // Special case: Threshold was raised and is no longer met
         // Reset streak to 0 to reflect that today's goal is not met anymore
-        logger.info({
-          currentStreak: streak.currentStreak,
-          pagesRead: todayProgress.pagesRead,
-          dailyThreshold,
-        }, "[Streak] Threshold no longer met, resetting streak to 0");
-      const updated = await streakRepository.update(streak.id, {
-        currentStreak: 0,
-        lastActivityDate: todayString,
-      } as any);
-        logger.info({
-          currentStreak: updated?.currentStreak,
-        }, "[Streak] Streak reset to 0 due to threshold increase");
+        logger.info(
+          {
+            currentStreak: streak.currentStreak,
+            pagesRead: todayProgress.pagesRead,
+            dailyThreshold,
+          },
+          "[Streak] Threshold no longer met, resetting streak to 0",
+        );
+        const updated = await streakRepository.update(streak.id, {
+          currentStreak: 0,
+          lastActivityDate: todayStr,
+        } as any);
+        logger.info(
+          {
+            currentStreak: updated?.currentStreak,
+          },
+          "[Streak] Streak reset to 0 due to threshold increase",
+        );
         return updated!;
       } else if (streak.currentStreak === 0 && !thresholdMet) {
         // Threshold not met and streak already 0, nothing to do
@@ -401,26 +443,30 @@ export class StreakService {
       const newTotalDays = streak.totalDaysActive + 1;
 
       const updated = await streakRepository.update(streak.id, {
-      currentStreak: newCurrentStreak,
-      longestStreak: newLongestStreak,
-      totalDaysActive: newTotalDays,
-      lastActivityDate: todayString,
-    } as any);
-      logger.info({
-        from: oldStreak,
-        to: updated?.currentStreak,
-        longestStreak: updated?.longestStreak,
-      }, "[Streak] Streak incremented");
+        currentStreak: newCurrentStreak,
+        longestStreak: newLongestStreak,
+        totalDaysActive: newTotalDays,
+        lastActivityDate: todayStr,
+      } as any);
+      logger.info(
+        {
+          from: oldStreak,
+          to: updated?.currentStreak,
+          longestStreak: updated?.longestStreak,
+        },
+        "[Streak] Streak incremented",
+      );
       return updated!;
     } else if (daysDiff > 1) {
       // Streak broken (or first activity after a gap)
       logger.warn({ gapDays: daysDiff }, "[Streak] Streak broken");
-      const newTotalDays = streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
+      const newTotalDays =
+        streak.totalDaysActive === 0 ? 1 : streak.totalDaysActive + 1;
       const updated = await streakRepository.update(streak.id, {
         currentStreak: 1,
-        streakStartDate: todayString,
+        streakStartDate: todayStr,
         totalDaysActive: newTotalDays,
-        lastActivityDate: todayString,
+        lastActivityDate: todayStr,
       } as any);
       return updated!;
     }
@@ -433,7 +479,10 @@ export class StreakService {
    * Auto-creates streak record if it doesn't exist
    * Recalculates current streak with new threshold
    */
-  async updateThreshold(userId: number | null, newThreshold: number): Promise<Streak> {
+  async updateThreshold(
+    userId: number | null,
+    newThreshold: number,
+  ): Promise<Streak> {
     // Validate threshold
     if (!Number.isInteger(newThreshold)) {
       throw new Error("Daily threshold must be an integer");
@@ -451,11 +500,14 @@ export class StreakService {
         oldThreshold: streak.dailyThreshold,
         newThreshold,
       },
-      "Updating streak threshold"
+      "Updating streak threshold",
     );
 
     // Update threshold
-    const updated = await streakRepository.updateThreshold(userId, newThreshold);
+    const updated = await streakRepository.updateThreshold(
+      userId,
+      newThreshold,
+    );
 
     logger.info(
       {
@@ -463,14 +515,13 @@ export class StreakService {
         newThreshold,
         streakId: updated.id,
       },
-      "Streak threshold updated successfully, recalculating streak"
+      "Streak threshold updated successfully, recalculating streak",
     );
 
     // Recalculate streak with new threshold from all historical data
     // We need to use rebuildStreak (not updateStreaks) because updateStreaks only
     // considers today's activity, not the full historical streak with the new threshold
-    const { rebuildStreak } = await import("@/lib/streaks");
-    await rebuildStreak(userId);
+    await this.rebuildStreak(userId);
 
     // Fetch the final streak state which includes both the new threshold
     // and the recalculated streak values
@@ -483,7 +534,7 @@ export class StreakService {
         longestStreak: finalStreak?.longestStreak,
         dailyThreshold: finalStreak?.dailyThreshold,
       },
-      "Streak recalculated after threshold change"
+      "Streak recalculated after threshold change",
     );
 
     return finalStreak!;
@@ -497,7 +548,7 @@ export class StreakService {
    */
   async getAnalytics(
     days: number | "this-year" | "all-time" = 365,
-    userId: number | null = null
+    userId: number | null = null,
   ): Promise<{
     streak: {
       currentStreak: number;
@@ -519,7 +570,9 @@ export class StreakService {
     if (days === "this-year") {
       // Calculate days from January 1st of current year to today
       const startOfYear = new Date(now.getFullYear(), 0, 1);
-      actualDays = Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+      actualDays = Math.ceil(
+        (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
+      );
     } else if (days === "all-time") {
       // Use a large number to fetch all available data
       actualDays = 3650; // ~10 years
@@ -538,47 +591,57 @@ export class StreakService {
     // Calculate date range in the user's timezone to ensure correct day boundaries
     // Get current date/time in user's timezone
     const nowInUserTz = toZonedTime(new Date(), userTimezone);
-    
+
     // Calculate start date by going back N days in user's timezone
     const requestedStartDateInUserTz = new Date(nowInUserTz);
-    requestedStartDateInUserTz.setDate(requestedStartDateInUserTz.getDate() - actualDays);
+    requestedStartDateInUserTz.setDate(
+      requestedStartDateInUserTz.getDate() - actualDays,
+    );
     requestedStartDateInUserTz.setHours(0, 0, 0, 0);
-    
+
     // Convert back to UTC timestamp for database queries
-    const requestedStartDate = fromZonedTime(requestedStartDateInUserTz, userTimezone);
-    
+    const requestedStartDate = fromZonedTime(
+      requestedStartDateInUserTz,
+      userTimezone,
+    );
+
     // End date is end of today in user's timezone
     const endDateInUserTz = new Date(nowInUserTz);
     endDateInUserTz.setHours(23, 59, 59, 999);
     const endDate = fromZonedTime(endDateInUserTz, userTimezone);
-    
+
     // Get the earliest progress date as a string to avoid timezone conversion issues
-    const earliestProgressDateStr = await progressRepository.getEarliestProgressDateString();
-    
+    const earliestProgressDateStr =
+      await progressRepository.getEarliestProgressDateString();
+
     // Calculate the requested start date as a string in YYYY-MM-DD format
     const requestedStartDateStr = formatInTimeZone(
       requestedStartDate,
       userTimezone,
-      'yyyy-MM-dd'
+      "yyyy-MM-dd",
     );
-    
+
     // Use the later of: requested start date OR earliest progress date
     // This prevents showing empty data before the user started tracking
     // Compare as strings to avoid timezone issues
-    const actualStartDateStr = earliestProgressDateStr && earliestProgressDateStr > requestedStartDateStr
-      ? earliestProgressDateStr
-      : requestedStartDateStr;
-    
+    const actualStartDateStr =
+      earliestProgressDateStr && earliestProgressDateStr > requestedStartDateStr
+        ? earliestProgressDateStr
+        : requestedStartDateStr;
+
     // Parse the actualStartDateStr back to a Date in the user's timezone
-    const [year, month, day] = actualStartDateStr.split('-').map(Number);
+    const [year, month, day] = actualStartDateStr.split("-").map(Number);
     const actualStartDateInUserTz = new Date(year, month - 1, day);
     actualStartDateInUserTz.setHours(0, 0, 0, 0);
-    const actualStartDate = fromZonedTime(actualStartDateInUserTz, userTimezone);
-    
+    const actualStartDate = fromZonedTime(
+      actualStartDateInUserTz,
+      userTimezone,
+    );
+
     const history = await progressRepository.getActivityCalendar(
       toDateString(actualStartDate),
       toDateString(endDate),
-      userTimezone
+      userTimezone,
     );
 
     // Create a map of existing data for quick lookup
@@ -590,31 +653,35 @@ export class StreakService {
     // Fill in all days in the range, including days with no data (0 pages)
     // getActivityCalendar returns dates in the user's timezone, so we iterate through
     // dates in the user's timezone as well
-    const allDays: { date: string; pagesRead: number; thresholdMet: boolean }[] = [];
-    
+    const allDays: {
+      date: string;
+      pagesRead: number;
+      thresholdMet: boolean;
+    }[] = [];
+
     // Get the start date in the user's timezone
     const startDateInUserTz = toZonedTime(actualStartDate, userTimezone);
     startDateInUserTz.setHours(0, 0, 0, 0);
-    
+
     // Use endDateInUserTz calculated earlier (end of today in user's timezone)
     // This ensures we only show data up to the current day in the user's timezone
-    
+
     const currentDate = new Date(startDateInUserTz);
     while (currentDate <= endDateInUserTz) {
       // Format as a date string in the user's timezone
       const dateStr = formatInTimeZone(
         fromZonedTime(currentDate, userTimezone),
         userTimezone,
-        'yyyy-MM-dd'
+        "yyyy-MM-dd",
       );
       const pagesRead = dataMap.get(dateStr) || 0;
-      
+
       allDays.push({
         date: dateStr,
         pagesRead,
         thresholdMet: pagesRead >= streak.dailyThreshold,
       });
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
@@ -639,13 +706,50 @@ export class StreakService {
   }
 
   /**
+   * Get activity calendar data for a specific time period
+   * Returns daily page read counts for the specified year/month
+   *
+   * @param userId User ID (null for default user)
+   * @param year Year to fetch (defaults to current year)
+   * @param month Month to fetch (0-11, undefined for entire year)
+   * @returns Array of daily activity records with date and pages read
+   */
+  async getActivityCalendar(
+    userId: number | null = null,
+    year?: number,
+    month?: number,
+  ): Promise<{ date: string; pagesRead: number }[]> {
+    // Get user timezone from streak record
+    const streak = await this.getStreakBasic(userId);
+    const userTimezone = streak.userTimezone || "America/New_York";
+
+    // ADR-014: Construct date bounds as calendar-day strings to avoid server timezone issues
+    const baseYear = year ?? new Date().getFullYear();
+    const startMonth = month ?? 0;
+    const endMonth = month !== undefined ? month : 11;
+
+    // Build YYYY-MM-DD strings directly using UTC date construction
+    const startDate = new Date(Date.UTC(baseYear, startMonth, 1));
+    const endDate = new Date(Date.UTC(baseYear, endMonth + 1, 0));
+
+    const startDateString = toDateString(startDate);
+    const endDateString = toDateString(endDate);
+
+    return await progressRepository.getActivityCalendar(
+      startDateString,
+      endDateString,
+      userTimezone,
+    );
+  }
+
+  /**
    * Enable or disable streak tracking
    * When enabling, optionally set an initial daily goal
    */
   async setStreakEnabled(
     userId: number | null,
     enabled: boolean,
-    dailyThreshold?: number
+    dailyThreshold?: number,
   ): Promise<Streak> {
     // Get or create streak
     const streak = await streakRepository.getOrCreate(userId);
@@ -657,7 +761,7 @@ export class StreakService {
         newEnabled: enabled,
         dailyThreshold,
       },
-      "Updating streak enabled status"
+      "Updating streak enabled status",
     );
 
     // Update enabled status and optionally threshold
@@ -680,7 +784,10 @@ export class StreakService {
 
     // If enabling, rebuild streak from historical data
     if (enabled && !streak.streakEnabled) {
-      logger.info({ userId }, "Streak enabled, rebuilding from historical data");
+      logger.info(
+        { userId },
+        "Streak enabled, rebuilding from historical data",
+      );
       await this.rebuildStreak(userId);
 
       // Fetch final state after rebuild
@@ -693,7 +800,7 @@ export class StreakService {
         userId,
         enabled: updated?.streakEnabled,
       },
-      "Streak enabled status updated"
+      "Streak enabled status updated",
     );
 
     return updated!;
