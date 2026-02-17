@@ -296,13 +296,13 @@ export async function syncCalibreLibrary(
 
       // Step 7: Upsert book_sources entries for all books in this chunk
       logger.debug(
-        { chunk: chunkNumber, booksToLink: booksToUpsert.length },
+        { chunk: chunkNumber, booksToLink: calibreBooks.length },
         `[Sync:Chunk] Upserting book_sources entries`
       );
       
       // Get all books from this chunk to ensure we have their IDs
-      const calibreIdsInChunk = booksToUpsert
-        .map(book => book.calibreId!)
+      const calibreIdsInChunk = calibreBooks
+        .map(book => book.id)
         .filter((id): id is number => id !== null && id !== undefined);
       
       const booksInChunk = await bookRepository.findAllByCalibreIds(calibreIdsInChunk);
