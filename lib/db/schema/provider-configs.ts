@@ -15,15 +15,6 @@ export const providerConfigs = sqliteTable(
     displayName: text("display_name").notNull(),
     // Provider enabled/disabled state
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-    // Provider capabilities (JSON)
-    capabilities: text("capabilities", { mode: "json" })
-      .$type<{
-        hasSearch: boolean;
-        hasMetadataFetch: boolean;
-        hasSync: boolean;
-        requiresAuth: boolean;
-      }>()
-      .notNull(),
     // Provider-specific settings (JSON)
     settings: text("settings", { mode: "json" })
       .$type<Record<string, unknown>>()
@@ -33,22 +24,6 @@ export const providerConfigs = sqliteTable(
     credentials: text("credentials", { mode: "json" })
       .$type<Record<string, string>>()
       .default(sql`'{}'`),
-    // Circuit breaker state
-    circuitState: text("circuit_state", {
-      enum: ["CLOSED", "OPEN", "HALF_OPEN"],
-    })
-      .notNull()
-      .default("CLOSED"),
-    // Circuit breaker last failure timestamp
-    lastFailure: integer("last_failure", { mode: "timestamp" }),
-    // Circuit breaker failure count
-    failureCount: integer("failure_count").notNull().default(0),
-    // Health status (healthy/unavailable)
-    healthStatus: text("health_status", { enum: ["healthy", "unavailable"] })
-      .notNull()
-      .default("healthy"),
-    // Last health check timestamp
-    lastHealthCheck: integer("last_health_check", { mode: "timestamp" }),
     // Priority for provider ordering (lower = higher priority)
     priority: integer("priority").notNull().default(100),
     createdAt: integer("created_at", { mode: "timestamp" })

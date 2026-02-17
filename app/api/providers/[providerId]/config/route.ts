@@ -17,6 +17,7 @@ import { getLogger } from "@/lib/logger";
 import { getProvider, hasProvider } from "@/lib/providers/provider-map";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import { providerService } from "@/lib/services/provider.service";
+import { searchService } from "@/lib/services/search.service";
 import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 const logger = getLogger().child({ module: "api-provider-config" });
@@ -91,6 +92,10 @@ export async function PATCH(
     if (body.enabled !== undefined) {
       await providerService.setEnabled(providerId as ProviderId, body.enabled);
       logger.info({ providerId, enabled: body.enabled }, "Updated provider enabled state");
+      
+      // Invalidate search cache when provider enabled state changes
+      await searchService.clearCache();
+      logger.debug("Cleared search cache due to provider enabled state change");
     }
 
     // Update settings (if provided)
@@ -124,7 +129,6 @@ export async function PATCH(
       capabilities: provider?.capabilities,
       enabled: updatedConfig?.enabled ?? true,
       priority: updatedConfig?.priority ?? 100,
-      healthStatus: updatedConfig?.healthStatus ?? "healthy",
       settings: updatedConfig?.settings || {},
       hasCredentials: !!(updatedConfig?.credentials && Object.keys(updatedConfig.credentials).length > 0),
       updatedAt: updatedConfig?.updatedAt?.toISOString(),
@@ -174,9 +178,6 @@ export async function GET(
       providerId as ProviderId
     );
     const provider = getProvider(providerId as ProviderId);
-    const circuitStats = await providerService.getCircuitStats(
-      providerId as ProviderId
-    );
 
     if (!config) {
       return NextResponse.json(
@@ -194,11 +195,6 @@ export async function GET(
       capabilities: provider?.capabilities,
       enabled: config.enabled ?? true,
       priority: config.priority ?? 100,
-      healthStatus: config.healthStatus ?? "healthy",
-      lastHealthCheck: config.lastHealthCheck?.toISOString(),
-      circuitState: circuitStats.state,
-      failureCount: circuitStats.failureCount,
-      lastFailure: circuitStats.lastFailure?.toISOString(),
       settings: config.settings || {},
       hasCredentials: !!(config.credentials && Object.keys(config.credentials).length > 0),
       createdAt: config.createdAt?.toISOString(),

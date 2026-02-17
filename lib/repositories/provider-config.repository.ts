@@ -2,7 +2,7 @@
  * Provider Config Repository
  * 
  * Manages CRUD operations for metadata provider configurations.
- * Stores runtime settings, credentials, health status, and circuit breaker state.
+ * Stores runtime settings, credentials, and enabled state.
  */
 
 import { eq } from "drizzle-orm";
@@ -60,61 +60,6 @@ export class ProviderConfigRepository extends BaseRepository<
     }
 
     return this.update(existing.id, { enabled });
-  }
-
-  /**
-   * Update provider health status
-   */
-  async updateHealth(
-    provider: ProviderId,
-    healthStatus: ProviderConfig["healthStatus"],
-    lastHealthCheck: Date
-  ): Promise<ProviderConfig | undefined> {
-    const existing = await this.findByProvider(provider);
-    if (!existing) {
-      return undefined;
-    }
-
-    return this.update(existing.id, {
-      healthStatus,
-      lastHealthCheck,
-    });
-  }
-
-  /**
-   * Update circuit breaker state
-   */
-  async updateCircuitState(
-    provider: ProviderId,
-    circuitState: ProviderConfig["circuitState"],
-    failureCount?: number,
-    lastFailure?: Date
-  ): Promise<ProviderConfig | undefined> {
-    const existing = await this.findByProvider(provider);
-    if (!existing) {
-      return undefined;
-    }
-
-    return this.update(existing.id, {
-      circuitState,
-      failureCount: failureCount ?? existing.failureCount,
-      lastFailure: lastFailure ?? existing.lastFailure,
-    });
-  }
-
-  /**
-   * Reset circuit breaker failure count
-   */
-  async resetFailureCount(provider: ProviderId): Promise<ProviderConfig | undefined> {
-    const existing = await this.findByProvider(provider);
-    if (!existing) {
-      return undefined;
-    }
-
-    return this.update(existing.id, {
-      failureCount: 0,
-      lastFailure: null,
-    } as Partial<NewProviderConfig>);
   }
 
   /**

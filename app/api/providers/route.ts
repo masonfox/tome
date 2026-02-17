@@ -1,8 +1,8 @@
 /**
  * GET /api/providers - List all providers
  * 
- * Returns all registered metadata providers with their configuration,
- * capabilities, health status, and circuit breaker state.
+ * Returns all registered metadata providers with their configuration
+ * and capabilities.
  * 
  * @returns {Provider[]} Array of provider configurations
  */
@@ -11,7 +11,6 @@ import { NextResponse } from "next/server";
 import { getLogger } from "@/lib/logger";
 import { getAllProviders } from "@/lib/providers/provider-map";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
-import { circuitBreakerService } from "@/lib/services/circuit-breaker.service";
 import type { ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
 const logger = getLogger().child({ module: "api-providers" });
@@ -29,9 +28,6 @@ export async function GET() {
         const config = await providerConfigRepository.findByProvider(
           provider.id as ProviderId
         );
-        const circuitStats = await circuitBreakerService.getStats(
-          provider.id as ProviderId
-        );
 
         return {
           id: provider.id,
@@ -39,11 +35,6 @@ export async function GET() {
           capabilities: provider.capabilities,
           enabled: config?.enabled ?? true,
           priority: config?.priority ?? 100,
-          healthStatus: config?.healthStatus ?? "healthy",
-          lastHealthCheck: config?.lastHealthCheck?.toISOString(),
-          circuitState: circuitStats.state,
-          failureCount: circuitStats.failureCount,
-          lastFailure: circuitStats.lastFailure?.toISOString(),
           settings: config?.settings || {},
           hasCredentials: !!(config?.credentials && Object.keys(config.credentials).length > 0),
         };

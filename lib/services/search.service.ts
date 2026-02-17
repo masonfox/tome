@@ -8,9 +8,8 @@
  */
 
 import { getLogger } from "@/lib/logger";
+import { providerService } from "@/lib/services/provider.service";
 import type { IMetadataProvider, SearchResult } from "@/lib/providers/base/IMetadataProvider";
-import { hardcoverProvider } from "@/lib/providers/hardcover.provider";
-import { openLibraryProvider } from "@/lib/providers/openlibrary.provider";
 
 const logger = getLogger().child({ module: "search-service" });
 
@@ -39,25 +38,20 @@ export interface FederatedSearchResponse {
 /**
  * Search Service
  * 
- * Provides federated metadata search across Hardcover and OpenLibrary.
+ * Provides federated metadata search across enabled providers.
  * 
  * Features:
  * - Parallel search with Promise.allSettled (T068)
  * - Per-provider 5-second timeout (T069, implemented in providers)
  * - Graceful degradation when providers fail (T072)
- * - Result sorting by provider priority (Hardcover → OpenLibrary) (T071)
+ * - Result sorting by provider priority from database (T071)
  * - Search result caching with 5-minute TTL (T070)
+ * - Respects provider enabled state from settings
  */
 class SearchService {
   private cache = new Map<string, { response: FederatedSearchResponse; expiresAt: number }>();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private readonly CACHE_MAX_SIZE = 100; // Limit cache size
-
-  // Hardcoded provider priority per spec (T071)
-  private readonly providers: IMetadataProvider[] = [
-    hardcoverProvider, // Priority 1
-    openLibraryProvider, // Priority 2
-  ];
 
   /**
    * Federated search across all enabled providers
@@ -71,17 +65,34 @@ class SearchService {
   async federatedSearch(query: string): Promise<FederatedSearchResponse> {
     logger.info({ query }, "SearchService: Starting federated search");
 
+    // Get enabled search providers (respects DB enabled state + priority)
+    const providers = await providerService.getProvidersByCapability('hasSearch');
+    
+    // Create cache key that includes enabled provider IDs
+    const cacheKey = this.getCacheKey(query, providers);
+
     // Check cache first (T070)
-    const cached = this.getFromCache(query);
+    const cached = this.getFromCache(cacheKey);
     if (cached) {
-      logger.debug({ query }, "SearchService: Cache hit");
+      logger.debug({ query, providers: providers.map(p => p.id) }, "SearchService: Cache hit");
       return cached;
+    }
+
+    if (providers.length === 0) {
+      logger.warn({ query }, "SearchService: No enabled search providers");
+      return {
+        query,
+        results: [],
+        totalResults: 0,
+        successfulProviders: 0,
+        failedProviders: 0,
+      };
     }
 
     const startTime = Date.now();
 
-    // Search all providers in parallel using Promise.allSettled (T068)
-    const searchPromises = this.providers.map(async (provider) => {
+    // Search all enabled providers in parallel using Promise.allSettled (T068)
+    const searchPromises = providers.map(async (provider) => {
       const providerStartTime = Date.now();
       
       try {
@@ -161,26 +172,38 @@ class SearchService {
         successfulProviders,
         failedProviders,
         totalDuration,
+        enabledProviders: providers.map(p => p.id),
       },
       "SearchService: Federated search complete"
     );
 
     // Cache the response (T070)
-    this.addToCache(query, response);
+    this.addToCache(cacheKey, response);
 
     return response;
   }
 
   /**
+   * Generate cache key that includes query and enabled providers
+   * 
+   * This ensures cache is automatically invalidated when provider
+   * enabled state changes (FR-011d-1)
+   */
+  private getCacheKey(query: string, providers: IMetadataProvider[]): string {
+    const providerIds = providers.map(p => p.id).sort().join(',');
+    return `${query}:${providerIds}`;
+  }
+
+  /**
    * Get cached search results
    */
-  private getFromCache(query: string): FederatedSearchResponse | null {
-    const cached = this.cache.get(query);
+  private getFromCache(cacheKey: string): FederatedSearchResponse | null {
+    const cached = this.cache.get(cacheKey);
     if (!cached) return null;
 
     // Check if expired
     if (Date.now() > cached.expiresAt) {
-      this.cache.delete(query);
+      this.cache.delete(cacheKey);
       return null;
     }
 
@@ -190,7 +213,7 @@ class SearchService {
   /**
    * Add search results to cache
    */
-  private addToCache(query: string, response: FederatedSearchResponse): void {
+  private addToCache(cacheKey: string, response: FederatedSearchResponse): void {
     // Enforce cache size limit (LRU - remove oldest)
     if (this.cache.size >= this.CACHE_MAX_SIZE) {
       const firstKey = this.cache.keys().next().value;
@@ -199,7 +222,7 @@ class SearchService {
       }
     }
 
-    this.cache.set(query, {
+    this.cache.set(cacheKey, {
       response,
       expiresAt: Date.now() + this.CACHE_TTL_MS,
     });
@@ -208,7 +231,7 @@ class SearchService {
   /**
    * Clear search cache
    * 
-   * Used when provider configuration changes (per spec T070)
+   * Called when provider configuration changes (per spec FR-011d-1)
    */
   clearCache(): void {
     logger.info("SearchService: Clearing search cache");

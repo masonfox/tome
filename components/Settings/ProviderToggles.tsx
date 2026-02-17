@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Power, RefreshCw, Activity } from "lucide-react";
+import { Power } from "lucide-react";
 
 interface Provider {
   id: string;
@@ -13,24 +13,18 @@ interface Provider {
     requiresAuth: boolean;
   };
   enabled: boolean;
-  healthStatus: string;
-  circuitState: string;
-  failureCount: number;
 }
 
 interface ProviderTogglesProps {
   providers: Provider[];
   onToggle: (providerId: string, enabled: boolean) => Promise<void>;
-  onHealthCheck: (providerId: string) => Promise<void>;
 }
 
 export function ProviderToggles({
   providers,
   onToggle,
-  onHealthCheck,
 }: ProviderTogglesProps) {
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [checkingId, setCheckingId] = useState<string | null>(null);
 
   async function handleToggle(providerId: string, currentEnabled: boolean) {
     setTogglingId(providerId);
@@ -39,30 +33,6 @@ export function ProviderToggles({
     } finally {
       setTogglingId(null);
     }
-  }
-
-  async function handleHealthCheck(providerId: string) {
-    setCheckingId(providerId);
-    try {
-      await onHealthCheck(providerId);
-    } finally {
-      setCheckingId(null);
-    }
-  }
-
-  function getStatusColor(provider: Provider) {
-    if (!provider.enabled) return "text-[var(--foreground)]/40";
-    if (provider.circuitState === "OPEN") return "text-red-500";
-    if (provider.healthStatus === "unavailable") return "text-orange-500";
-    return "text-green-500";
-  }
-
-  function getStatusText(provider: Provider) {
-    if (!provider.enabled) return "Disabled";
-    if (provider.circuitState === "OPEN")
-      return `Circuit Open (${provider.failureCount} failures)`;
-    if (provider.healthStatus === "unavailable") return "Unavailable";
-    return "Healthy";
   }
 
   return (
@@ -83,14 +53,6 @@ export function ProviderToggles({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <Activity className={`w-3 h-3 ${getStatusColor(provider)}`} />
-              <span
-                className={`text-sm font-medium ${getStatusColor(provider)}`}
-              >
-                {getStatusText(provider)}
-              </span>
-            </div>
             <div className="flex gap-3 mt-2 text-xs text-[var(--subheading-text)]">
               {provider.capabilities.hasSearch && (
                 <span className="font-medium">🔍 Search</span>
@@ -105,20 +67,6 @@ export function ProviderToggles({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Health Check Button */}
-            <button
-              onClick={() => handleHealthCheck(provider.id)}
-              disabled={checkingId === provider.id || !provider.enabled}
-              className="p-2 rounded-md border border-[var(--border-color)] hover:bg-[var(--border-color)]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Run health check"
-            >
-              <RefreshCw
-                className={`w-4 h-4 text-[var(--foreground)] ${
-                  checkingId === provider.id ? "animate-spin" : ""
-                }`}
-              />
-            </button>
-
             {/* Enable/Disable Toggle */}
             <button
               onClick={() => handleToggle(provider.id, provider.enabled)}

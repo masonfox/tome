@@ -17,11 +17,6 @@ interface Provider {
   };
   enabled: boolean;
   priority: number;
-  healthStatus: string;
-  lastHealthCheck?: string;
-  circuitState: string;
-  failureCount: number;
-  lastFailure?: string;
   settings: Record<string, unknown>;
   hasCredentials: boolean;
 }
@@ -83,27 +78,6 @@ export default function ProvidersSettingsPage() {
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to toggle provider");
-    }
-  }
-
-  async function handleHealthCheck(providerId: string) {
-    try {
-      setError(null);
-      const response = await fetch(`/api/providers/${providerId}/config`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to check provider health");
-      }
-
-      // Refresh providers list to show updated health status
-      await fetchProviders();
-      
-      setSuccessMessage(`Health check completed for ${providerId}`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to check provider health"
-      );
     }
   }
 
@@ -194,7 +168,6 @@ export default function ProvidersSettingsPage() {
         <ProviderToggles
           providers={providers}
           onToggle={handleToggleProvider}
-          onHealthCheck={handleHealthCheck}
         />
       </div>
 

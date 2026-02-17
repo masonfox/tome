@@ -1,15 +1,12 @@
 /**
  * Provider Service
  * 
- * Orchestration layer for metadata providers. Wraps provider operations with
- * circuit breaker protection, health checks, and error handling.
- * 
- * See: specs/003-non-calibre-books/research.md (Decision 4: Circuit Breaker)
+ * Orchestration layer for metadata providers. Manages provider operations
+ * with timeout handling and error tracking.
  */
 
 import { getLogger } from "@/lib/logger";
 import { getProvider, getAllProviders } from "@/lib/providers/provider-map";
-import { circuitBreakerService } from "@/lib/services/circuit-breaker.service";
 import { providerConfigRepository } from "@/lib/repositories/provider-config.repository";
 import type {
   IMetadataProvider,
@@ -17,7 +14,6 @@ import type {
   SearchResult,
   BookMetadata,
   SyncResult,
-  ProviderHealth,
 } from "@/lib/providers/base/IMetadataProvider";
 
 const logger = getLogger().child({ module: "provider-service" });
@@ -38,35 +34,20 @@ export class ProviderError extends Error {
 }
 
 /**
- * Circuit open error (provider unavailable)
- */
-export class CircuitOpenError extends ProviderError {
-  constructor(provider: ProviderId, operation: string) {
-    super(
-      provider,
-      operation,
-      "Circuit breaker is OPEN - provider unavailable"
-    );
-    this.name = "CircuitOpenError";
-  }
-}
-
-/**
  * Provider Service
  * 
- * Orchestrates metadata provider operations with circuit breaker protection,
- * health monitoring, and automatic failover.
+ * Orchestrates metadata provider operations with error handling and logging.
  * 
  * @example
  * ```typescript
  * // Search across all enabled providers
- * const results = await providerService.search('calibre', 'The Great Gatsby');
+ * const results = await providerService.search('hardcover', 'The Great Gatsby');
  * 
- * // Fetch metadata with circuit breaker protection
+ * // Fetch metadata
  * const metadata = await providerService.fetchMetadata('hardcover', 'abc123');
  * 
- * // Run health checks
- * await providerService.healthCheckAll();
+ * // Get enabled search providers
+ * const searchProviders = await providerService.getProvidersByCapability('hasSearch');
  * ```
  */
 export class ProviderService {
@@ -127,7 +108,6 @@ export class ProviderService {
   /**
    * Search for books using a specific provider
    * 
-   * @throws CircuitOpenError if circuit breaker is open
    * @throws ProviderError if search fails
    */
   async search(source: ProviderId, query: string): Promise<SearchResult[]> {
@@ -142,24 +122,16 @@ export class ProviderService {
       );
     }
 
-    // Check circuit breaker
-    const canProceed = await circuitBreakerService.canProceed(source);
-    if (!canProceed) {
-      throw new CircuitOpenError(source, "search");
-    }
-
-    // Execute search with circuit breaker tracking
+    // Execute search
     try {
       logger.debug({ provider: source, query }, "Executing provider search");
       const results = await provider.search!(query);
-      await circuitBreakerService.recordSuccess(source);
       logger.info(
         { provider: source, query, resultCount: results.length },
         "Provider search succeeded"
       );
       return results;
     } catch (error) {
-      await circuitBreakerService.recordFailure(source);
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error(
         { provider: source, query, error: err.message },
@@ -172,7 +144,6 @@ export class ProviderService {
   /**
    * Fetch full metadata using a specific provider
    * 
-   * @throws CircuitOpenError if circuit breaker is open
    * @throws ProviderError if fetch fails
    */
   async fetchMetadata(
@@ -190,27 +161,19 @@ export class ProviderService {
       );
     }
 
-    // Check circuit breaker
-    const canProceed = await circuitBreakerService.canProceed(source);
-    if (!canProceed) {
-      throw new CircuitOpenError(source, "fetchMetadata");
-    }
-
-    // Execute fetch with circuit breaker tracking
+    // Execute fetch
     try {
       logger.debug(
         { provider: source, externalId },
         "Executing provider metadata fetch"
       );
       const metadata = await provider.fetchMetadata!(externalId);
-      await circuitBreakerService.recordSuccess(source);
       logger.info(
         { provider: source, externalId, title: metadata.title },
         "Provider metadata fetch succeeded"
       );
       return metadata;
     } catch (error) {
-      await circuitBreakerService.recordFailure(source);
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error(
         { provider: source, externalId, error: err.message },
@@ -223,7 +186,6 @@ export class ProviderService {
   /**
    * Sync entire library using a specific provider
    * 
-   * @throws CircuitOpenError if circuit breaker is open
    * @throws ProviderError if sync fails
    */
   async sync(source: ProviderId): Promise<SyncResult> {
@@ -238,24 +200,16 @@ export class ProviderService {
       );
     }
 
-    // Check circuit breaker
-    const canProceed = await circuitBreakerService.canProceed(source);
-    if (!canProceed) {
-      throw new CircuitOpenError(source, "sync");
-    }
-
-    // Execute sync with circuit breaker tracking
+    // Execute sync
     try {
       logger.info({ provider: source }, "Starting provider sync");
       const result = await provider.sync!();
-      await circuitBreakerService.recordSuccess(source);
       logger.info(
         { provider: source, result },
         "Provider sync completed successfully"
       );
       return result;
     } catch (error) {
-      await circuitBreakerService.recordFailure(source);
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error(
         { provider: source, error: err.message },
@@ -266,84 +220,6 @@ export class ProviderService {
   }
 
   /**
-   * Run health check on a specific provider
-   * 
-   * Updates provider health status in database.
-   * 
-   * @returns Current health status
-   */
-  async healthCheck(source: ProviderId): Promise<ProviderHealth> {
-    const provider = this.getProvider(source);
-
-    try {
-      logger.debug({ provider: source }, "Running provider health check");
-      const status = await provider.healthCheck();
-      
-      // Update database
-      await providerConfigRepository.updateHealth(source, status, new Date());
-
-      logger.debug(
-        { provider: source, status },
-        "Provider health check completed"
-      );
-      return status;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(
-        { provider: source, error: err.message },
-        "Provider health check failed"
-      );
-      
-      // Mark as unavailable
-      await providerConfigRepository.updateHealth(
-        source,
-        "unavailable",
-        new Date()
-      );
-      
-      return "unavailable";
-    }
-  }
-
-  /**
-   * Run health checks on all registered providers
-   * 
-   * @returns Map of provider ID to health status
-   */
-  async healthCheckAll(): Promise<Map<ProviderId, ProviderHealth>> {
-    const providers = getAllProviders();
-    const results = new Map<ProviderId, ProviderHealth>();
-
-    logger.info(
-      { providerCount: providers.length },
-      "Running health checks on all providers"
-    );
-
-    // Run all health checks in parallel
-    await Promise.all(
-      providers.map(async (provider) => {
-        const status = await this.healthCheck(provider.id);
-        results.set(provider.id, status);
-      })
-    );
-
-    const healthySummary = Array.from(results.entries()).reduce(
-      (acc, [id, status]) => {
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      },
-      {} as Record<ProviderHealth, number>
-    );
-
-    logger.info(
-      { results: healthySummary },
-      "Completed health checks on all providers"
-    );
-
-    return results;
-  }
-
-  /**
    * Enable or disable a provider
    * 
    * Updates database only. No in-memory state.
@@ -351,23 +227,6 @@ export class ProviderService {
   async setEnabled(source: ProviderId, enabled: boolean): Promise<void> {
     await providerConfigRepository.setEnabled(source, enabled);
     logger.info({ provider: source, enabled }, "Updated provider enabled state");
-  }
-
-  /**
-   * Get circuit breaker statistics for a provider
-   */
-  async getCircuitStats(source: ProviderId) {
-    return circuitBreakerService.getStats(source);
-  }
-
-  /**
-   * Manually reset circuit breaker for a provider
-   * 
-   * Use when you know the provider is healthy again.
-   */
-  async resetCircuit(source: ProviderId): Promise<void> {
-    await circuitBreakerService.reset(source);
-    logger.info({ provider: source }, "Circuit breaker manually reset");
   }
 }
 
