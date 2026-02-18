@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, AlertCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, AlertCircle, Loader2, ChevronDown, ChevronRight, X } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Button } from "@/components/Utilities/Button";
 import { ProviderBadge } from "@/components/Providers/ProviderBadge";
 import { SearchResultCard } from "@/components/Providers/SearchResultCard";
+import { TagSelector } from "@/components/TagManagement/TagSelector";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import type { 
@@ -59,7 +60,8 @@ export default function FederatedSearchModal({
   const [pubDate, setPubDate] = useState("");
   const [totalPages, setTotalPages] = useState("");
   const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [series, setSeries] = useState("");
   const [seriesIndex, setSeriesIndex] = useState("");
 
@@ -88,6 +90,19 @@ export default function FederatedSearchModal({
     }
   }, [isOpen]);
 
+  // Fetch available tags when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/tags")
+        .then((res) => res.json())
+        .then((data) => setAvailableTags(data.tags || []))
+        .catch((error) => {
+          logger.error({ error }, "Failed to fetch available tags");
+          setAvailableTags([]);
+        });
+    }
+  }, [isOpen]);
+
   const resetForm = () => {
     setTitle("");
     setAuthors("");
@@ -96,7 +111,7 @@ export default function FederatedSearchModal({
     setPubDate("");
     setTotalPages("");
     setDescription("");
-    setTags("");
+    setTags([]);
     setSeries("");
     setSeriesIndex("");
     setValidationErrors({});
@@ -173,7 +188,7 @@ export default function FederatedSearchModal({
         setPublisher(data.publisher || "");
         setPubDate(data.pubDate ? new Date(data.pubDate).toISOString().split("T")[0] : "");
         setDescription(data.description || "");
-        setTags(data.tags ? data.tags.join(", ") : "");
+        setTags(data.tags || []);
         setTotalPages(data.totalPages?.toString() || result.totalPages?.toString() || "");
         setSeries(data.series || "");
         setSeriesIndex(data.seriesIndex?.toString() || "");
@@ -209,7 +224,7 @@ export default function FederatedSearchModal({
     setPublisher(result.publisher || "");
     setPubDate(result.pubDate ? new Date(result.pubDate).toISOString().split("T")[0] : "");
     setDescription("");
-    setTags("");
+    setTags([]);
     setTotalPages(result.totalPages?.toString() || "");
     setSeries("");
     setSeriesIndex("");
@@ -294,8 +309,8 @@ export default function FederatedSearchModal({
       if (pubDate.trim()) payload.pubDate = new Date(pubDate);
       if (totalPages.trim()) payload.totalPages = parseInt(totalPages, 10);
       if (description.trim()) payload.description = description.trim();
-      if (tags.trim()) {
-        payload.tags = tags.split(",").map((t) => t.trim()).filter((t) => t);
+      if (tags.length > 0) {
+        payload.tags = tags;
       }
       if (series.trim()) payload.series = series.trim();
       if (seriesIndex.trim()) payload.seriesIndex = parseFloat(seriesIndex);
@@ -636,17 +651,52 @@ export default function FederatedSearchModal({
 
       {/* Tags */}
       <div>
-        <label htmlFor="tags" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
+        <label className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
           Tags
         </label>
-        <input
-          id="tags"
-          type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
-          placeholder="e.g., fiction, fantasy (comma-separated)"
+        <TagSelector
+          availableTags={availableTags}
+          selectedTags={tags}
+          onTagsChange={setTags}
+          disabled={false}
+          allowCreate={true}
+          placeholder="Search or create tags..."
         />
+        <p className="text-xs text-[var(--subheading-text)] mt-1">
+          Click tags to select, or press Enter to add and continue typing
+        </p>
+        
+        {/* Current Tags Display */}
+        {tags.length > 0 && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-[var(--subheading-text)]">
+                Selected ({tags.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setTags([])}
+                className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              >
+                Remove All
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag, index) => (
+                <Button
+                  key={`${tag}-${index}`}
+                  type="button"
+                  onClick={() => setTags(tags.filter((t) => t !== tag))}
+                  variant="primary"
+                  size="sm"
+                  iconAfter={<X className="w-3.5 h-3.5" />}
+                >
+                  {tag}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Description */}

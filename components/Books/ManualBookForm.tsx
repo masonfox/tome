@@ -6,10 +6,11 @@ import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
-import { BookPlus } from "lucide-react";
+import { BookPlus, X } from "lucide-react";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
 import CoverUploadField from "./CoverUploadField";
+import { TagSelector } from "@/components/TagManagement/TagSelector";
 
 const logger = getLogger().child({ component: "ManualBookForm" });
 
@@ -42,7 +43,8 @@ export default function ManualBookForm({
   const [series, setSeries] = useState("");
   const [seriesIndex, setSeriesIndex] = useState("");
   const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   // Cover upload state
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -63,6 +65,19 @@ export default function ManualBookForm({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Fetch available tags when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/tags")
+        .then((res) => res.json())
+        .then((data) => setAvailableTags(data.tags || []))
+        .catch((error) => {
+          logger.error({ error }, "Failed to fetch available tags");
+          setAvailableTags([]);
+        });
+    }
+  }, [isOpen]);
+
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
@@ -75,7 +90,7 @@ export default function ManualBookForm({
       setSeries("");
       setSeriesIndex("");
       setDescription("");
-      setTags("");
+      setTags([]);
       setCoverFile(null);
       setCoverUrl("");
       if (coverPreviewUrl) {
@@ -176,8 +191,8 @@ export default function ManualBookForm({
       if (series.trim()) payload.series = series.trim();
       if (seriesIndex.trim()) payload.seriesIndex = parseFloat(seriesIndex);
       if (description.trim()) payload.description = description.trim();
-      if (tags.trim()) {
-        payload.tags = tags.split(",").map((t) => t.trim()).filter((t) => t);
+      if (tags.length > 0) {
+        payload.tags = tags;
       }
 
       // Submit to API
@@ -443,17 +458,52 @@ export default function ManualBookForm({
 
           {/* Tags */}
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
+            <label className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
               Tags
             </label>
-            <input
-              id="tags"
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
-              placeholder="e.g., fiction, fantasy (comma-separated)"
+            <TagSelector
+              availableTags={availableTags}
+              selectedTags={tags}
+              onTagsChange={setTags}
+              disabled={false}
+              allowCreate={true}
+              placeholder="Search or create tags..."
             />
+            <p className="text-xs text-[var(--subheading-text)] mt-1">
+              Click tags to select, or press Enter to add and continue typing
+            </p>
+            
+            {/* Current Tags Display */}
+            {tags.length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-[var(--subheading-text)]">
+                    Selected ({tags.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setTags([])}
+                    className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    Remove All
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag, index) => (
+                    <Button
+                      key={`${tag}-${index}`}
+                      type="button"
+                      onClick={() => setTags(tags.filter((t) => t !== tag))}
+                      variant="primary"
+                      size="sm"
+                      iconAfter={<X className="w-3.5 h-3.5" />}
+                    >
+                      {tag}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cover Image Upload */}
