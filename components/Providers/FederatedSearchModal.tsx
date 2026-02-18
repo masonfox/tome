@@ -352,16 +352,8 @@ export default function FederatedSearchModal({
       const result = await response.json();
       logger.info({ bookId: result.book.id, source: payload.source }, "Book created from provider search");
       
-      // If cover was provided, invalidate cache after a delay to allow server-side download
-      // Server downloads cover asynchronously (fire-and-forget), so we invalidate cache
-      // to ensure the book page refetches with updated timestamp when cover is ready
-      if (payload.coverImageUrl) {
-        // Delay invalidation to give server time to download and save cover
-        setTimeout(() => {
-          invalidateBookQueries(queryClient, result.book.id.toString());
-          logger.info({ bookId: result.book.id }, "Cache invalidated after cover download delay");
-        }, 2000); // 2 second delay for server-side download
-      }
+      // No cache invalidation needed - server blocks until cover is downloaded
+      // so the book returned already has the cover ready with updated timestamp
       
       toast.success(`"${result.book.title}" added to your library`);
       onSuccess(result.book.id);

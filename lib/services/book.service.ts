@@ -384,37 +384,37 @@ export class BookService {
       "Local book created successfully"
     );
 
-    // Download cover from provider URL (non-blocking — book creation succeeds even if download fails)
+    // Download cover from provider URL (synchronous to prevent race condition)
+    // Blocks until cover is downloaded so browser receives updated timestamp immediately
     if (validatedInput.coverImageUrl) {
       const coverUrl = validatedInput.coverImageUrl;
       const bookId = createdBook.id;
       
-      // Fire-and-forget: download in background, don't await
-      downloadCover(coverUrl)
-        .then(async (result) => {
-          if (result) {
-            saveCover(bookId, result.buffer, result.mimeType);
-            
-            // Update book's updatedAt timestamp to invalidate cache-busted cover URLs
-            await bookRepository.update(bookId, { updatedAt: new Date() } as any);
-            
-            logger.info(
-              { bookId, coverUrl, mimeType: result.mimeType, size: result.buffer.length },
-              "[BookService] Cover downloaded from provider URL and book timestamp updated"
-            );
-          } else {
-            logger.warn(
-              { bookId, coverUrl },
-              "[BookService] Failed to download cover from provider URL (non-blocking)"
-            );
-          }
-        })
-        .catch((error) => {
-          logger.warn(
-            { bookId, coverUrl, err: error },
-            "[BookService] Cover download threw error (non-blocking)"
+      try {
+        const result = await downloadCover(coverUrl);
+        
+        if (result) {
+          saveCover(bookId, result.buffer, result.mimeType);
+          
+          // Update book's updatedAt timestamp to invalidate cache-busted cover URLs
+          await bookRepository.update(bookId, { updatedAt: new Date() } as any);
+          
+          logger.info(
+            { bookId, coverUrl, mimeType: result.mimeType, size: result.buffer.length },
+            "[BookService] Cover downloaded from provider URL and book timestamp updated"
           );
-        });
+        } else {
+          logger.warn(
+            { bookId, coverUrl },
+            "[BookService] Failed to download cover from provider URL (non-fatal)"
+          );
+        }
+      } catch (error) {
+        logger.warn(
+          { bookId, coverUrl, err: error },
+          "[BookService] Cover download threw error (non-fatal)"
+        );
+      }
     }
 
     return {
