@@ -28,17 +28,11 @@ export default function TagEditor({
 }: TagEditorProps) {
   const [tags, setTags] = useState<string[]>(currentTags);
   const [saving, setSaving] = useState(false);
-  const [duplicatesRemoved, setDuplicatesRemoved] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Deduplicate tags when initializing the editor
-      // This handles legacy books that may have duplicate tags in the database
-      const uniqueTags = [...new Set(currentTags)];
-      const hadDuplicates = uniqueTags.length < currentTags.length;
-      setTags(uniqueTags);
-      setDuplicatesRemoved(hadDuplicates);
+      setTags(currentTags);
       setSaving(false);
     }
   }, [isOpen, currentTags]);
@@ -65,7 +59,6 @@ export default function TagEditor({
   const handleClose = () => {
     if (!saving) {
       setTags(currentTags);
-      setDuplicatesRemoved(false);
       onClose();
     }
   };
@@ -78,15 +71,6 @@ export default function TagEditor({
         <p className="text-sm text-[var(--foreground)]/70 font-medium mb-4">
           {bookTitle}
         </p>
-      )}
-
-      {/* Duplicates removed notice */}
-      {duplicatesRemoved && (
-        <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
-          <p className="text-sm text-blue-600 dark:text-blue-400">
-            Duplicate tags were automatically removed. Save to update.
-          </p>
-        </div>
       )}
 
       {/* Tag Selector */}

@@ -458,17 +458,22 @@ class HardcoverProvider implements IMetadataProvider {
     // Parse tags from taggings relationship (limit to 50 tags, max 50 chars each)
     let tags: string[] | undefined;
     if (book.taggings && Array.isArray(book.taggings)) {
-      const extractedTags = book.taggings
+      const extractedTags: string[] = book.taggings
         .map((tagging: any) => tagging.tag?.tag)
-        .filter((tag: any) => tag)
-        .map((tag: string) => tag.substring(0, 50)) // Truncate to 50 chars
-        .slice(0, 50); // Limit to 50 tags
+        .filter((tag: any): tag is string => typeof tag === 'string')
+        .map((tag: string) => tag.substring(0, 50)); // Truncate to 50 chars
       
-      if (extractedTags.length < book.taggings.length) {
-        logger.warn(`Tags truncated from ${book.taggings.length} to ${extractedTags.length} for book: ${book.title}`);
+      // Deduplicate tags upstream to prevent duplicates in database
+      const uniqueTags: string[] = [...new Set(extractedTags)].slice(0, 50); // Limit to 50 unique tags
+      
+      const originalCount = book.taggings.length;
+      const afterDedup = uniqueTags.length;
+      
+      if (afterDedup < originalCount) {
+        logger.warn(`Tags reduced from ${originalCount} to ${afterDedup} (deduplicated and limited) for book: ${book.title}`);
       }
       
-      tags = extractedTags.length > 0 ? extractedTags : undefined;
+      tags = uniqueTags.length > 0 ? uniqueTags : undefined;
     }
 
     // Extract publisher from editions (most popular edition)
