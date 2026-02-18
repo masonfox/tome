@@ -614,9 +614,9 @@ export default function BookDetailPage() {
             </div>
             {book.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {book.tags.map((tag) => (
+                {book.tags.map((tag, index) => (
                   <Link
-                    key={tag}
+                    key={`${tag}-${index}`}
                     href={`/library?tags=${encodeURIComponent(tag)}`}
                     className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium"
                   >

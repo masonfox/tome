@@ -333,7 +333,8 @@ export class BookService {
       totalPages: validatedInput.totalPages ?? null,
       series: validatedInput.series ?? null,
       seriesIndex: validatedInput.seriesIndex ?? null,
-      tags: validatedInput.tags ?? [],
+      // Deduplicate tags to prevent duplicate keys in UI and maintain data quality
+      tags: validatedInput.tags ? [...new Set(validatedInput.tags)] : [],
 
       // Default values
       rating: null,
