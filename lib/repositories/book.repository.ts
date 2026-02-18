@@ -407,18 +407,40 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     }
 
     // Source filter (single provider or array of providers)
-    // Filters by book_sources table (JOIN query)
+    // - 'calibre' and other providers: books IN book_sources table
+    // - 'manual': books NOT IN book_sources table (no external source)
+    // - Multiple sources: OR logic (book matches ANY source)
     if (filters.source) {
       const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
       if (providerIds.length > 0) {
-        // Use subquery to find books with matching providers
-        conditions.push(
-          sql`${books.id} IN (
-            SELECT ${bookSources.bookId} 
-            FROM ${bookSources} 
-            WHERE ${bookSources.providerId} IN (${sql.join(providerIds.map(p => sql`${p}`), sql`, `)})
-          )`
-        );
+        const sourceConditions: SQL[] = [];
+        
+        // Check for external providers (calibre, etc.)
+        const externalProviders = providerIds.filter(p => p !== 'manual');
+        if (externalProviders.length > 0) {
+          sourceConditions.push(
+            sql`${books.id} IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources} 
+              WHERE ${bookSources.providerId} IN (${sql.join(externalProviders.map(p => sql`${p}`), sql`, `)})
+            )`
+          );
+        }
+        
+        // Check for manual books (no entry in book_sources)
+        if (providerIds.includes('manual')) {
+          sourceConditions.push(
+            sql`${books.id} NOT IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources}
+            )`
+          );
+        }
+        
+        // Combine with OR logic (book matches ANY source)
+        if (sourceConditions.length > 0) {
+          conditions.push(or(...sourceConditions)!);
+        }
       }
     }
 
@@ -856,18 +878,40 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       }
     }
     // Source filter (T049: Multi-source filtering with OR logic)
-    // Filters by book_sources table (subquery)
+    // - 'calibre' and other providers: books IN book_sources table
+    // - 'manual': books NOT IN book_sources table (no external source)
+    // - Multiple sources: OR logic (book matches ANY source)
     if (filters.source) {
       const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
       if (providerIds.length > 0) {
-        // Use subquery to find books with matching providers
-        conditions.push(
-          sql`${books.id} IN (
-            SELECT ${bookSources.bookId} 
-            FROM ${bookSources} 
-            WHERE ${bookSources.providerId} IN (${sql.join(providerIds.map(p => sql`${p}`), sql`, `)})
-          )`
-        );
+        const sourceConditions: SQL[] = [];
+        
+        // Check for external providers (calibre, etc.)
+        const externalProviders = providerIds.filter(p => p !== 'manual');
+        if (externalProviders.length > 0) {
+          sourceConditions.push(
+            sql`${books.id} IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources} 
+              WHERE ${bookSources.providerId} IN (${sql.join(externalProviders.map(p => sql`${p}`), sql`, `)})
+            )`
+          );
+        }
+        
+        // Check for manual books (no entry in book_sources)
+        if (providerIds.includes('manual')) {
+          sourceConditions.push(
+            sql`${books.id} NOT IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources}
+            )`
+          );
+        }
+        
+        // Combine with OR logic (book matches ANY source)
+        if (sourceConditions.length > 0) {
+          conditions.push(or(...sourceConditions)!);
+        }
       }
     }
 
