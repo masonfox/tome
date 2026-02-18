@@ -55,8 +55,8 @@ function insertBook(opts: {
   const rawDb = testDb.sqlite;
   rawDb
     .prepare(
-      `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
-       VALUES (?, ?, '[]', '[]', '/test', ?)`
+      `INSERT INTO books (title, calibre_id, authors, tags, orphaned)
+       VALUES (?, ?, '[]', '[]', ?)`
     )
     .run(opts.title, opts.calibreId, opts.orphaned ? 1 : 0);
 

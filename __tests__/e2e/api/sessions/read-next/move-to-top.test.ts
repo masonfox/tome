@@ -76,12 +76,10 @@ describe("POST /api/sessions/read-next/[id]/move-to-top", () => {
     const book1 = await bookRepository.create({
       title: "Book 1",
       calibreId: 1,
-      path: "/test/book1.epub",
     });
     const book2 = await bookRepository.create({
       title: "Book 2",
       calibreId: 2,
-      path: "/test/book2.epub",
     });
 
     const session1 = await sessionRepository.create({
@@ -140,7 +138,6 @@ describe("POST /api/sessions/read-next/[id]/move-to-top", () => {
     const book = await bookRepository.create({
       title: "Reading Book",
       calibreId: 1,
-      path: "/test/book.epub",
     });
 
     const session = await sessionRepository.create({
@@ -165,7 +162,6 @@ describe("POST /api/sessions/read-next/[id]/move-to-top", () => {
     const book = await bookRepository.create({
       title: "Book 1",
       calibreId: 1,
-      path: "/test/book.epub",
     });
 
     const session = await sessionRepository.create({
@@ -194,7 +190,6 @@ describe("POST /api/sessions/read-next/[id]/move-to-top", () => {
     const book = await bookRepository.create({
       title: "Only Book",
       calibreId: 1,
-      path: "/test/book.epub",
     });
 
     const session = await sessionRepository.create({

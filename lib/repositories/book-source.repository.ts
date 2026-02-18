@@ -295,6 +295,7 @@ export class BookSourceRepository extends BaseRepository<
     // Return unique book IDs
     return [...new Set(results.map((r) => r.bookId))];
   }
+
 }
 
 // Export singleton instance

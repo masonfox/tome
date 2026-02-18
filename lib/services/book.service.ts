@@ -335,10 +335,6 @@ export class BookService {
       seriesIndex: validatedInput.seriesIndex ?? null,
       tags: validatedInput.tags ?? [],
 
-      // Calibre-specific fields (null for manual books)
-      path: null,
-      lastSynced: null,
-
       // Default values
       rating: null,
       orphanedAt: null,

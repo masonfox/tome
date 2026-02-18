@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "956349a8-3cc2-41ea-9f6e-ac2f7d9d8d05",
-  "prevId": "4e652e5f-26f4-48c5-b1cb-4f28503d5070",
+  "id": "40f65f35-568f-468e-bda8-9cbdd023b81e",
+  "prevId": "956349a8-3cc2-41ea-9f6e-ac2f7d9d8d05",
   "tables": {
     "books": {
       "name": "books",
@@ -107,13 +107,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'[]'"
-        },
-        "path": {
-          "name": "path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         },
         "description": {
           "name": "description",

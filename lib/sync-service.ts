@@ -233,7 +233,6 @@ export async function syncCalibreLibrary(
           series: calibreBook.series || null,
           seriesIndex: calibreBook.series_index || null,
           tags,
-          path: calibreBook.path,
           description: calibreBook.description || undefined,
           lastSynced: new Date(),
           addedToLibrary: calibreBook.timestamp ? new Date(calibreBook.timestamp) : new Date(),
@@ -304,8 +303,13 @@ export async function syncCalibreLibrary(
       
       const booksInChunk = await bookRepository.findAllByCalibreIds(calibreIdsInChunk);
       
+      // Create a map of calibreId -> calibreBook for easy lookup
+      const calibreBooksMap = new Map(calibreBooks.map(cb => [cb.id, cb]));
+      
       // Upsert book_sources entries for each book
       for (const [calibreId, book] of booksInChunk.entries()) {
+        const calibreBook = calibreBooksMap.get(calibreId);
+        
         await bookSourceRepository.upsert({
           bookId: book.id,
           providerId: 'calibre',

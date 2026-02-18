@@ -839,8 +839,8 @@ describe("Malformed date defense (isValidDateFormat guard)", () => {
     const rawDb = testDb.sqlite;
     rawDb
       .prepare(
-        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
-         VALUES (?, ?, '[]', '[]', '/test', 0)`
+        `INSERT INTO books (title, calibre_id, authors, tags, orphaned)
+         VALUES (?, ?, '[]', '[]', 0)`
       )
       .run(title, calibreId);
 
@@ -1031,8 +1031,8 @@ describe("DNF book exclusion (status filter)", () => {
     const rawDb = testDb.sqlite;
     rawDb
       .prepare(
-        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
-         VALUES (?, ?, '[]', '[]', '/test', 0)`
+        `INSERT INTO books (title, calibre_id, authors, tags, orphaned)
+         VALUES (?, ?, '[]', '[]', 0)`
       )
       .run(title, calibreId);
 

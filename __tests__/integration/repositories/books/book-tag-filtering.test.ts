@@ -33,7 +33,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters: should filter by single tag", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Fantasy Book",
         authors: ["Author 1"],
         tags: ["fantasy", "magic"],
@@ -42,7 +41,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Sci-Fi Book",
         authors: ["Author 2"],
         tags: ["sci-fi", "space"],
@@ -59,7 +57,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFiltersAndRelations: should filter by single tag", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Fantasy Book",
         authors: ["Author 1"],
         tags: ["fantasy", "magic"],
@@ -68,7 +65,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Sci-Fi Book",
         authors: ["Author 2"],
         tags: ["sci-fi", "space"],
@@ -93,7 +89,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
       // Book A: tags ["fantasy", "magic", "adventure"]
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Book A - Fantasy Magic Adventure",
         authors: ["Author A"],
         tags: ["fantasy", "magic", "adventure"],
@@ -103,7 +98,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
       // Book B: tags ["fantasy", "adventure"]
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Book B - Fantasy Adventure",
         authors: ["Author B"],
         tags: ["fantasy", "adventure"],
@@ -113,7 +107,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
       // Book C: tags ["sci-fi", "space"]
       await bookRepository.create({
         calibreId: 3,
-        path: "/path3",
         title: "Book C - Sci-Fi Space",
         authors: ["Author C"],
         tags: ["sci-fi", "space"],
@@ -123,7 +116,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
       // Book D: tags ["fantasy"]
       await bookRepository.create({
         calibreId: 4,
-        path: "/path4",
         title: "Book D - Fantasy Only",
         authors: ["Author D"],
         tags: ["fantasy"],
@@ -212,7 +204,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
       // Book has many tags, we filter by a subset
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Rich Tag Book",
         authors: ["Author"],
         tags: ["fantasy", "magic", "adventure", "dragons", "quest", "young-adult"],
@@ -221,7 +212,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Minimal Tag Book",
         authors: ["Author"],
         tags: ["fantasy", "adventure"],
@@ -239,7 +229,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters: should handle empty tags filter", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Book 1",
         authors: ["Author"],
         tags: ["fantasy"],
@@ -248,7 +237,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Book 2",
         authors: ["Author"],
         tags: ["sci-fi"],
@@ -263,7 +251,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters: should handle books with no tags", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Tagged Book",
         authors: ["Author"],
         tags: ["fantasy"],
@@ -272,7 +259,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Untagged Book",
         authors: ["Author"],
         tags: [],
@@ -288,7 +274,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters: should handle duplicate tags in query", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Fantasy Book",
         authors: ["Author"],
         tags: ["fantasy", "magic"],
@@ -307,7 +292,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters: should be case-sensitive for tag matching", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Lowercase Tags",
         authors: ["Author"],
         tags: ["fantasy", "magic"],
@@ -316,7 +300,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Capitalized Tags",
         authors: ["Author"],
         tags: ["Fantasy", "Magic"],
@@ -345,7 +328,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters: should combine tag AND logic with search filter", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Harry Potter Fantasy Adventure",
         authors: ["J.K. Rowling"],
         tags: ["fantasy", "adventure", "young-adult"],
@@ -354,7 +336,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Harry Potter Mystery",
         authors: ["J.K. Rowling"],
         tags: ["mystery"],
@@ -363,7 +344,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 3,
-        path: "/path3",
         title: "Lord of the Rings",
         authors: ["J.R.R. Tolkien"],
         tags: ["fantasy", "adventure"],
@@ -383,7 +363,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFiltersAndRelations: should combine tag AND logic with search filter", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Epic Fantasy Adventure",
         authors: ["Author A"],
         tags: ["fantasy", "adventure", "epic"],
@@ -392,7 +371,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Epic Sci-Fi",
         authors: ["Author B"],
         tags: ["sci-fi", "epic"],
@@ -481,7 +459,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("should handle typical library filtering: 'young-adult' + 'fantasy'", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "YA Fantasy",
         authors: ["Author A"],
         tags: ["young-adult", "fantasy", "romance"],
@@ -490,7 +467,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Adult Fantasy",
         authors: ["Author B"],
         tags: ["fantasy", "epic"],
@@ -499,7 +475,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 3,
-        path: "/path3",
         title: "YA Contemporary",
         authors: ["Author C"],
         tags: ["young-adult", "contemporary"],
@@ -517,7 +492,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("should handle genre + format tags: 'fantasy' + 'audiobook'", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Fantasy Audiobook",
         authors: ["Author A"],
         tags: ["fantasy", "audiobook", "adventure"],
@@ -526,7 +500,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Fantasy eBook",
         authors: ["Author B"],
         tags: ["fantasy", "ebook"],
@@ -535,7 +508,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 3,
-        path: "/path3",
         title: "Mystery Audiobook",
         authors: ["Author C"],
         tags: ["mystery", "audiobook"],
@@ -553,7 +525,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("should handle series + status tags: 'series' + 'completed'", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Completed Series Book",
         authors: ["Author A"],
         tags: ["series", "completed", "fantasy"],
@@ -562,7 +533,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Ongoing Series Book",
         authors: ["Author B"],
         tags: ["series", "ongoing"],
@@ -571,7 +541,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 3,
-        path: "/path3",
         title: "Standalone Completed",
         authors: ["Author C"],
         tags: ["completed", "standalone"],
@@ -595,7 +564,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
     test("findWithFilters and findWithFiltersAndRelations should return same books", async () => {
       await bookRepository.create({
         calibreId: 1,
-        path: "/path1",
         title: "Book A",
         authors: ["Author"],
         tags: ["fantasy", "magic", "adventure"],
@@ -604,7 +572,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 2,
-        path: "/path2",
         title: "Book B",
         authors: ["Author"],
         tags: ["fantasy", "adventure"],
@@ -613,7 +580,6 @@ describe("Book Repository - Tag Filtering with AND Logic", () => {
 
       await bookRepository.create({
         calibreId: 3,
-        path: "/path3",
         title: "Book C",
         authors: ["Author"],
         tags: ["fantasy"],

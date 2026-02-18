@@ -74,7 +74,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -82,7 +81,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -90,7 +88,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Act: Add books via bulk endpoint
@@ -128,7 +125,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Solo Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Act
@@ -161,7 +157,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -169,7 +164,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -177,7 +171,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Add book1 beforehand
@@ -212,7 +205,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Valid Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Act: Include one valid book and two non-existent IDs
@@ -413,7 +405,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -421,7 +412,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Add both books beforehand
@@ -455,7 +445,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Valid Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -463,7 +452,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Valid Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -471,7 +459,6 @@ describe('POST /api/shelves/[id]/books/bulk', () => {
         title: "Already on Shelf",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Add book3 beforehand
@@ -595,7 +582,6 @@ describe('DELETE /api/shelves/[id]/books/bulk', () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -603,7 +589,6 @@ describe('DELETE /api/shelves/[id]/books/bulk', () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -773,7 +758,6 @@ describe('DELETE /api/shelves/[id]/books/bulk', () => {
         title: "Valid Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -808,7 +792,6 @@ describe('DELETE /api/shelves/[id]/books/bulk', () => {
         title: "Book On Shelf",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -816,7 +799,6 @@ describe('DELETE /api/shelves/[id]/books/bulk', () => {
         title: "Book Not On Shelf",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Only add book1 to shelf
@@ -959,7 +941,6 @@ describe('DELETE /api/shelves/[id]/books/bulk', () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id);

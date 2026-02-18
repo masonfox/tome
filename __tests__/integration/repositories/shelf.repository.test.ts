@@ -32,7 +32,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book with Read Status",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -40,7 +39,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book with Reading Status",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -48,7 +46,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book with To-Read Status",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       const book4 = await bookRepository.create({
@@ -56,7 +53,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book without Session",
         authors: ["Author 4"],
         tags: [],
-        path: "/path/4",
       });
 
       // Add books to shelf
@@ -127,7 +123,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book with Multiple Sessions",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
@@ -229,7 +224,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Brandon Sanderson"],
         authorSort: "Sanderson, Brandon",
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -238,7 +232,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Patrick Rothfuss"],
         authorSort: "Rothfuss, Patrick",
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -247,7 +240,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Joe Abercrombie"],
         authorSort: "Abercrombie, Joe",
         tags: [],
-        path: "/path/3",
       });
 
       const book4 = await bookRepository.create({
@@ -256,7 +248,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Ursula K. Le Guin"],
         authorSort: "Guin, Ursula K. Le",
         tags: [],
-        path: "/path/4",
       });
 
       const book5 = await bookRepository.create({
@@ -265,7 +256,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Plato"],
         authorSort: "Plato",
         tags: [],
-        path: "/path/5",
       });
 
       // Add books to shelf in random order
@@ -303,7 +293,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Brandon Sanderson"],
         authorSort: "Sanderson, Brandon",
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -312,7 +301,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Joe Abercrombie"],
         authorSort: "Abercrombie, Joe",
         tags: [],
-        path: "/path/2",
       });
 
       // Add books to shelf
@@ -344,7 +332,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Brandon Sanderson"],
         authorSort: "Sanderson, Brandon",
         tags: [],
-        path: "/path/1",
       });
 
       // Create book with empty authors array
@@ -354,7 +341,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: [],
         authorSort: null,
         tags: [],
-        path: "/path/2",
       });
 
       // Add books to shelf
@@ -385,7 +371,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Ursula K. Le Guin"],
         authorSort: "Guin, Ursula K. Le",
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -394,7 +379,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Martin Luther King Jr."],
         authorSort: "Jr., Martin Luther King",
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -403,7 +387,6 @@ describe("ShelfRepository - Status Display", () => {
         authors: ["Vincent van Gogh"],
         authorSort: "Gogh, Vincent van",
         tags: [],
-        path: "/path/3",
       });
 
       // Add books to shelf
@@ -438,7 +421,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "First Book",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -446,7 +428,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Second Book",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -454,7 +435,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Third Book",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Add books with explicit sortOrder values that have gaps
@@ -552,7 +532,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Only Book",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id, 99);
@@ -582,7 +561,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "First Book",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -590,7 +568,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Second Book",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -598,7 +575,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Third Book",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Add books to shelf
@@ -639,7 +615,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book Not On Shelf",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Try to remove book that's not on shelf
@@ -810,7 +785,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
 
@@ -866,7 +840,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book On Shelf",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -874,7 +847,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book Not On Shelf",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -882,7 +854,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Another Book On Shelf",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Only add book1 and book3 to shelf
@@ -1022,7 +993,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Lonely Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
 
@@ -1083,7 +1053,6 @@ describe("ShelfRepository - Status Display", () => {
         title: "Book Not On Shelf",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Try to move book that's not on shelf

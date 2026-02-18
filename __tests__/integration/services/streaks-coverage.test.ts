@@ -50,7 +50,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -85,7 +84,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -128,7 +126,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -161,7 +158,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -204,7 +200,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -256,7 +251,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -304,7 +298,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -339,7 +332,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -373,7 +365,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -414,7 +405,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -551,7 +541,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -583,7 +572,6 @@ describe("StreakService - Coverage Improvement", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 

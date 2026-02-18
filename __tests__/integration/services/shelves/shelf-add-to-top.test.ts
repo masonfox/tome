@@ -28,7 +28,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Try to add to non-existent shelf
@@ -62,7 +61,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add book to shelf normally
@@ -87,7 +85,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -95,7 +92,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Add book1 to shelf normally
@@ -132,7 +128,6 @@ describe("ShelfService - Add to Top", () => {
         title: "First Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add book to top
@@ -194,7 +189,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -202,7 +196,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -210,7 +203,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       const newBook = await bookRepository.create({
@@ -218,7 +210,6 @@ describe("ShelfService - Add to Top", () => {
         title: "New Book",
         authors: ["Author 4"],
         tags: [],
-        path: "/path/4",
       });
 
       // Add books to shelf at specific positions
@@ -252,7 +243,6 @@ describe("ShelfService - Add to Top", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add book to shelf

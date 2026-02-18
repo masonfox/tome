@@ -24,8 +24,6 @@ export const books = sqliteTable(
     seriesIndex: real("series_index"),
     // Store tags as JSON array
     tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
-    // Path is Calibre-specific, nullable for non-Calibre books
-    path: text("path"),
     description: text("description"),
     rating: integer("rating"), // 1-5 stars, synced from Calibre or set manually
     orphaned: integer("orphaned", { mode: "boolean" }).notNull().default(false),
