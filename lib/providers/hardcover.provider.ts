@@ -383,6 +383,12 @@ class HardcoverProvider implements IMetadataProvider {
                 name
               }
             }
+            book_series(where: {featured: {_eq: true}}, limit: 1) {
+              position
+              series {
+                name
+              }
+            }
           }
         }
       `;
@@ -471,6 +477,23 @@ class HardcoverProvider implements IMetadataProvider {
           .filter((name: any) => name)
       : [];
 
+    // Extract series information from book_series (featured series only)
+    let series: string | undefined;
+    let seriesIndex: number | undefined;
+    if (book.book_series && Array.isArray(book.book_series) && book.book_series.length > 0) {
+      const featuredSeries = book.book_series[0]; // Already filtered by featured=true in query
+      series = featuredSeries.series?.name;
+      seriesIndex = featuredSeries.position ?? undefined;
+      
+      if (series) {
+        logger.debug({ 
+          bookId: book.id, 
+          series, 
+          seriesIndex 
+        }, "Hardcover: Series information extracted");
+      }
+    }
+
     return {
       title: book.title || "Untitled",
       authors,
@@ -479,6 +502,8 @@ class HardcoverProvider implements IMetadataProvider {
       publisher: publisher || undefined,
       pubDate,
       totalPages: book.pages,
+      series,
+      seriesIndex,
       tags,
       coverImageUrl: book.image?.url,
       externalId: book.id?.toString(),
