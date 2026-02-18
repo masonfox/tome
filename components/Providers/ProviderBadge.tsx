@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, User, BookOpen, Globe, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Database, User, BookOpen, Globe, CheckCircle, XCircle, Clock, LibraryBig } from "lucide-react";
 import { cn } from "@/utils/cn";
 import type { SourceProviderId, ProviderId } from "@/lib/providers/base/IMetadataProvider";
 
@@ -15,7 +15,7 @@ interface ProviderBadgeProps {
 const providerConfig = {
   calibre: {
     label: "Calibre",
-    icon: Database,
+    icon: LibraryBig,
     bgColor: "bg-blue-100 dark:bg-blue-900/30",
     textColor: "text-blue-700 dark:text-blue-300",
     borderColor: "border-blue-300 dark:border-blue-700",

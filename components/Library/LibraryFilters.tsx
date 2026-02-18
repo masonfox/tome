@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen, Database, User } from "lucide-react";
+import { Search, Filter, X, Tag, ChevronDown, Check, Bookmark, Clock, BookOpen, BookCheck, BookX, Library as LibraryIcon, Star, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, TrendingUp, TrendingDown, CalendarPlus, FileText, FolderOpen, Database, User, LibraryBig } from "lucide-react";
 import { Button } from "@/components/Utilities/Button";
 import { cn } from "@/utils/cn";
 import { STATUS_CONFIG } from "@/utils/statusConfig";
@@ -26,8 +26,8 @@ const statusOptions = [
 
 // T051: Source filter options
 const sourceOptions = [
-  { value: "calibre", label: "Calibre", icon: Database },
-  { value: "local", label: "Local", icon: User },
+  { value: "calibre", label: "Calibre", icon: LibraryBig },
+  { value: "local", label: "Local", icon: Database },
 ];
 
 // Grouped rating options with star rendering support
