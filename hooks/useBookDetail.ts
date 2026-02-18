@@ -152,7 +152,9 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
   };
 
   const updateTags = async (tags: string[]) => {
-    await updateTagsMutation.mutateAsync(tags);
+    // Deduplicate tags before saving to prevent duplicates in database
+    const uniqueTags = [...new Set(tags)];
+    await updateTagsMutation.mutateAsync(uniqueTags);
   };
 
   // Partial update method for optimistic updates from other hooks
