@@ -7,6 +7,7 @@ import BaseModal from "./BaseModal";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { Button } from "@/components/Utilities/Button";
+import { libraryService } from "@/lib/library-service";
 
 interface DeleteBookModalProps {
   isOpen: boolean;
@@ -46,15 +47,15 @@ export default function DeleteBookModal({
       }
 
       // Invalidate queries and redirect to library
+      libraryService.clearCache(); // Clear LibraryService cache
       await queryClient.invalidateQueries({ queryKey: ['books'] });
       await queryClient.invalidateQueries({ queryKey: ['library-books'] });
       
       toast.success("Book deleted successfully");
       
-      // Redirect to library after short delay
-      setTimeout(() => {
-        router.push('/library');
-      }, 500);
+      // Force router to refresh and then redirect
+      router.refresh();
+      router.push('/library');
     } catch (error) {
       logger.error({ err: error, bookId }, "Error deleting book");
       toast.error(error instanceof Error ? error.message : "Failed to delete book");

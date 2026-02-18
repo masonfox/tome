@@ -1,5 +1,6 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { bookService } from "@/lib/services/book.service";
 import { bookSourceRepository } from "@/lib/repositories/book-source.repository";
 import { bookRepository } from "@/lib/repositories/book.repository";
@@ -150,6 +151,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     }
 
     logger.info({ bookId, title: existingBook.title }, "Deleted manual book");
+
+    // Invalidate Next.js cache for library page
+    revalidatePath('/library');
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
