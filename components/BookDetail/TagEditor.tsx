@@ -38,6 +38,8 @@ export default function TagEditor({
   }, [isOpen, currentTags]);
 
   const handleRemoveTag = (tagToRemove: string) => {
+    // Note: This removes ALL instances of the tag if there are duplicates
+    // This is the expected behavior - clicking "Fantasy" should remove all "Fantasy" tags
     setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
@@ -110,9 +112,9 @@ export default function TagEditor({
         </div>
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
+            {tags.map((tag, index) => (
               <Button
-                key={tag}
+                key={`${tag}-${index}`}
                 type="button"
                 onClick={() => handleRemoveTag(tag)}
                 disabled={saving}
