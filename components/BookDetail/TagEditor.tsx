@@ -119,7 +119,7 @@ export default function TagEditor({
                 onClick={() => handleRemoveTag(tag)}
                 disabled={saving}
                 variant="primary"
-                size="md"
+                size="sm"
                 iconAfter={<X className="w-3.5 h-3.5" />}
               >
                 {tag}
