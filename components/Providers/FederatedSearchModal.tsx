@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Search, AlertCircle, Loader2, ChevronDown, ChevronRight, X } from "lucide-react";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
@@ -10,6 +11,7 @@ import { SearchResultCard } from "@/components/Providers/SearchResultCard";
 import { TagSelector } from "@/components/TagManagement/TagSelector";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
+import { invalidateBookQueries } from "@/hooks/useBookStatus";
 import type { 
   FederatedSearchResponse, 
   ProviderSearchResult 
@@ -41,6 +43,8 @@ export default function FederatedSearchModal({
   onClose,
   onSuccess,
 }: FederatedSearchModalProps) {
+  const queryClient = useQueryClient();
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
 
@@ -344,6 +348,17 @@ export default function FederatedSearchModal({
 
       const result = await response.json();
       logger.info({ bookId: result.book.id, source: payload.source }, "Book created from provider search");
+      
+      // If cover was provided, invalidate cache after a delay to allow server-side download
+      // Server downloads cover asynchronously (fire-and-forget), so we invalidate cache
+      // to ensure the book page refetches with updated timestamp when cover is ready
+      if (payload.coverImageUrl) {
+        // Delay invalidation to give server time to download and save cover
+        setTimeout(() => {
+          invalidateBookQueries(queryClient, result.book.id.toString());
+          logger.info({ bookId: result.book.id }, "Cache invalidated after cover download delay");
+        }, 2000); // 2 second delay for server-side download
+      }
       
       toast.success(`"${result.book.title}" added to your library`);
       onSuccess(result.book.id);

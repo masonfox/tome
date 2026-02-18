@@ -391,12 +391,16 @@ export class BookService {
       
       // Fire-and-forget: download in background, don't await
       downloadCover(coverUrl)
-        .then((result) => {
+        .then(async (result) => {
           if (result) {
             saveCover(bookId, result.buffer, result.mimeType);
+            
+            // Update book's updatedAt timestamp to invalidate cache-busted cover URLs
+            await bookRepository.update(bookId, { updatedAt: new Date() } as any);
+            
             logger.info(
               { bookId, coverUrl, mimeType: result.mimeType, size: result.buffer.length },
-              "[BookService] Cover downloaded from provider URL"
+              "[BookService] Cover downloaded from provider URL and book timestamp updated"
             );
           } else {
             logger.warn(

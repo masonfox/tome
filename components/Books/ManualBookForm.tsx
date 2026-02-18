@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import BaseModal from "@/components/Modals/BaseModal";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
+import { invalidateBookQueries } from "@/hooks/useBookStatus";
 import { BookPlus, X } from "lucide-react";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
@@ -30,6 +32,8 @@ export default function ManualBookForm({
   onClose,
   onSuccess,
 }: ManualBookFormProps) {
+  const queryClient = useQueryClient();
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
 
@@ -249,6 +253,9 @@ export default function ManualBookForm({
             toast.warning(`Book added, but cover upload failed: ${coverError.error || "Unknown error"}`);
           } else {
             logger.info({ bookId: result.book.id }, "Cover uploaded successfully");
+            
+            // Invalidate cache to ensure updated cover shows on book page
+            await invalidateBookQueries(queryClient, result.book.id.toString());
           }
         } catch (coverError) {
           logger.error({ error: coverError }, "Cover upload request failed");
