@@ -542,8 +542,9 @@ export function LibraryFilters({
           </div>
         </div>
 
-        {/* Source Filter - Multi-select dropdown */}
-        <div className="w-full">
+        {/* Sources and Shelves Row - 50% Each */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Source Filter - Multi-select dropdown */}
           <div className="relative" ref={sourceDropdownRef}>
             <button
               type="button"
@@ -603,6 +604,106 @@ export function LibraryFilters({
               </div>
             )}
           </div>
+
+          {/* Shelf Filter */}
+          {onShelfFilterChange && (
+            <div className="relative" ref={shelfDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowShelfDropdown(!showShelfDropdown)}
+                disabled={loading || loadingShelves}
+                className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 min-h-[42px]`}
+              >
+                <FolderOpen className="w-4 h-4 shrink-0" />
+                <span className="flex-1 truncate text-left text-sm">
+                  {shelfFilter
+                    ? availableShelves.find((s) => s.id === shelfFilter)?.name || "All Shelves"
+                    : "All Shelves"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 transition-transform shrink-0",
+                    showShelfDropdown && "rotate-180"
+                  )}
+                />
+              </button>
+
+              {showShelfDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden max-h-[70vh] overflow-y-auto">
+                  {/* All Shelves Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onShelfFilterChange(null);
+                      setShowShelfDropdown(false);
+                    }}
+                    disabled={loading}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                      "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                      !shelfFilter && "bg-[var(--accent)]/10",
+                      loading && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <FolderOpen className="w-4 h-4 text-[var(--foreground)]/60" />
+                    <span className="font-medium flex-1">All Shelves</span>
+                    {!shelfFilter && (
+                      <Check className="w-5 h-5 text-[var(--accent)]" />
+                    )}
+                  </button>
+
+                  {/* Divider */}
+                  {availableShelves.length > 0 && (
+                    <div className="h-px bg-[var(--border-color)]" />
+                  )}
+
+                  {/* Individual Shelves */}
+                  {loadingShelves ? (
+                    <div className="px-4 py-2.5 text-sm text-[var(--foreground)]/50">
+                      Loading shelves...
+                    </div>
+                  ) : availableShelves.length === 0 ? (
+                    <div className="px-4 py-2.5 text-sm text-[var(--foreground)]/50">
+                      No shelves available
+                    </div>
+                  ) : (
+                    availableShelves.map((shelf) => {
+                      const ShelfIcon = (shelf.icon ? getShelfIcon(shelf.icon) : null) || FolderOpen;
+                      return (
+                        <button
+                          key={shelf.id}
+                          type="button"
+                          onClick={() => {
+                            onShelfFilterChange(shelf.id);
+                            setShowShelfDropdown(false);
+                          }}
+                          disabled={loading}
+                          className={cn(
+                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
+                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
+                            shelfFilter === shelf.id && "bg-[var(--accent)]/10",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <ShelfAvatar
+                            color={shelf.color || "var(--foreground-20)"}
+                            icon={shelf.icon}
+                            size="sm"
+                            shape="rounded"
+                            className="w-7 h-7"
+                          />
+                          <span className="font-medium flex-1">{shelf.name}</span>
+                          {shelfFilter === shelf.id && (
+                            <Check className="w-5 h-5 text-[var(--accent)]" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tag Filter Dropdown */}
@@ -757,108 +858,6 @@ export function LibraryFilters({
                 {tag}
               </Button>
             ))}
-          </div>
-        )}
-
-        {/* Shelf Filter Row */}
-        {onShelfFilterChange && (
-          <div className="w-full">
-            <div className="relative" ref={shelfDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowShelfDropdown(!showShelfDropdown)}
-                disabled={loading || loadingShelves}
-                className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-md text-[var(--foreground)] hover:border-[var(--accent)] transition-colors flex items-center gap-2 disabled:opacity-50 min-h-[42px]`}
-              >
-                <FolderOpen className="w-4 h-4 shrink-0" />
-                <span className="flex-1 truncate text-left text-sm">
-                  {shelfFilter
-                    ? availableShelves.find((s) => s.id === shelfFilter)?.name || "All Shelves"
-                    : "All Shelves"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "w-4 h-4 transition-transform shrink-0",
-                    showShelfDropdown && "rotate-180"
-                  )}
-                />
-              </button>
-
-              {showShelfDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded shadow-lg overflow-hidden max-h-[70vh] overflow-y-auto">
-                  {/* All Shelves Option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onShelfFilterChange(null);
-                      setShowShelfDropdown(false);
-                    }}
-                    disabled={loading}
-                    className={cn(
-                      "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                      "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                      !shelfFilter && "bg-[var(--accent)]/10",
-                      loading && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <FolderOpen className="w-4 h-4 text-[var(--foreground)]/60" />
-                    <span className="font-medium flex-1">All Shelves</span>
-                    {!shelfFilter && (
-                      <Check className="w-5 h-5 text-[var(--accent)]" />
-                    )}
-                  </button>
-
-                  {/* Divider */}
-                  {availableShelves.length > 0 && (
-                    <div className="h-px bg-[var(--border-color)]" />
-                  )}
-
-                  {/* Individual Shelves */}
-                  {loadingShelves ? (
-                    <div className="px-4 py-2.5 text-sm text-[var(--foreground)]/50">
-                      Loading shelves...
-                    </div>
-                  ) : availableShelves.length === 0 ? (
-                    <div className="px-4 py-2.5 text-sm text-[var(--foreground)]/50">
-                      No shelves available
-                    </div>
-                  ) : (
-                    availableShelves.map((shelf) => {
-                      const ShelfIcon = (shelf.icon ? getShelfIcon(shelf.icon) : null) || FolderOpen;
-                      return (
-                        <button
-                          key={shelf.id}
-                          type="button"
-                          onClick={() => {
-                            onShelfFilterChange(shelf.id);
-                            setShowShelfDropdown(false);
-                          }}
-                          disabled={loading}
-                          className={cn(
-                            "w-full px-4 py-2.5 text-left flex items-center gap-2 transition-colors",
-                            "text-[var(--foreground)] hover:bg-[var(--background)] cursor-pointer",
-                            shelfFilter === shelf.id && "bg-[var(--accent)]/10",
-                            loading && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <ShelfAvatar
-                            color={shelf.color || "var(--foreground-20)"}
-                            icon={shelf.icon}
-                            size="sm"
-                            shape="rounded"
-                            className="w-7 h-7"
-                          />
-                          <span className="font-medium flex-1">{shelf.name}</span>
-                          {shelfFilter === shelf.id && (
-                            <Check className="w-5 h-5 text-[var(--accent)]" />
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         )}
       </form>
