@@ -283,11 +283,13 @@ export default function FederatedSearchModal({
 
     if (!title.trim()) {
       setValidationErrors({ title: "Title is required" });
+      toast.error("Title is required");
       return;
     }
 
     if (authorList.length === 0) {
       setValidationErrors({ authors: "At least one author is required" });
+      toast.error("At least one author is required");
       return;
     }
 
@@ -340,6 +342,7 @@ export default function FederatedSearchModal({
             errors[field] = err.message;
           });
           setValidationErrors(errors);
+          toast.error("Please fix the errors below");
         } else {
           toast.error(error.error || "Failed to create book");
         }
@@ -677,9 +680,13 @@ export default function FederatedSearchModal({
           allowCreate={true}
           placeholder="Search or create tags..."
         />
-        <p className="text-xs text-[var(--subheading-text)] mt-1">
-          Click tags to select, or press Enter to add and continue typing
-        </p>
+        {validationErrors.tags ? (
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.tags}</p>
+        ) : (
+          <p className="text-xs text-[var(--subheading-text)] mt-1">
+            Click tags to select, or press Enter to add and continue typing
+          </p>
+        )}
         
         {/* Current Tags Display */}
         {tags.length > 0 && (

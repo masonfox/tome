@@ -221,10 +221,25 @@ class OpenLibraryProvider implements IMetadataProvider {
       }
     }
 
-    // Extract subjects as tags
-    const tags = work.subjects && Array.isArray(work.subjects) 
-      ? work.subjects 
-      : undefined;
+    // Extract subjects as tags (limit to 50 tags, max 50 chars each)
+    let tags: string[] | undefined;
+    if (work.subjects && Array.isArray(work.subjects)) {
+      const extractedTags: string[] = work.subjects
+        .filter((tag: any): tag is string => typeof tag === 'string')
+        .map((tag: string) => tag.substring(0, 50)); // Truncate to 50 chars
+      
+      // Deduplicate tags upstream to prevent duplicates in database
+      const uniqueTags: string[] = [...new Set(extractedTags)].slice(0, 50); // Limit to 50 unique tags
+      
+      const originalCount = work.subjects.length;
+      const afterDedup = uniqueTags.length;
+      
+      if (afterDedup < originalCount) {
+        logger.warn(`Tags reduced from ${originalCount} to ${afterDedup} (deduplicated and limited) for book: ${work.title}`);
+      }
+      
+      tags = uniqueTags.length > 0 ? uniqueTags : undefined;
+    }
 
     // Extract authors (they're references, need to extract names)
     let authors: string[] = [];

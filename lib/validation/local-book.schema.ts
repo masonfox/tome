@@ -67,8 +67,8 @@ export const localBookSchema = z.object({
     .optional(),
 
   tags: z
-    .array(z.string().min(1, "Tag cannot be empty").max(50, "Tag too long"))
-    .max(50, "Too many tags")
+    .array(z.string().min(1, "Tag cannot be empty").max(50, "Tag too long (max 50 characters)"))
+    .max(50, "Too many tags (maximum 50)")
     .optional(),
 
   coverImageUrl: z
