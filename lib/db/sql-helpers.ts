@@ -22,7 +22,7 @@ import { books } from "@/lib/db/schema/books";
  * `strftime()` or other date functions.
  *
  * Migration 0016 converts existing timestamps to YYYY-MM-DD strings, but
- * data imported *after* migration (bulk sync, manual creation) could still
+ * data imported *after* migration (bulk sync, local creation) could still
  * contain non-date values. This GLOB ensures queries degrade gracefully
  * instead of producing incorrect results.
  *

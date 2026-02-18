@@ -111,7 +111,7 @@ export default function BookDetailPage() {
       }
 
       // Update review to the session if provided and we have a session ID
-      // Check both bookProgressHook.completedSessionId (from auto-completion) and book.activeSession.id (from manual mark as read)
+      // Check both bookProgressHook.completedSessionId (from auto-completion) and book.activeSession.id (from local mark as read)
       const sessionId = bookProgressHook.completedSessionId || book?.activeSession?.id;
       if (review && sessionId) {
         const sessionBody = { review };
@@ -447,7 +447,7 @@ export default function BookDetailPage() {
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight flex-1">
                 {book.title}
               </h1>
-              {/* Book Actions Menu - only show for manual books (no sources) */}
+              {/* Book Actions Menu - only show for local books (no sources) */}
               {bookSources.length === 0 && (
                 <BookActionsMenu
                   onEdit={() => setShowEditBookModal(true)}
@@ -471,7 +471,7 @@ export default function BookDetailPage() {
 
             {/* Metadata */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 text-xs md:text-sm font-medium">
-              {/* Provider Badges - show multiple sources or none for manual books */}
+              {/* Provider Badges - show multiple sources or none for local books */}
               {bookSources.length > 0 && (
                 <>
                   {bookSources.map((source, index) => (
@@ -692,7 +692,7 @@ export default function BookDetailPage() {
       </div>
 
       {/* Modals */}
-      {/* Manual completion from non-reading status (Want to Read / Read Next → Read) */}
+      {/* Local completion from non-reading status (Want to Read / Read Next → Read) */}
       <CompleteBookModal
         isOpen={showCompleteBookModal}
         onClose={() => handleCancelStatusChange()}
@@ -704,7 +704,7 @@ export default function BookDetailPage() {
         defaultStartDate={book.activeSession?.startedDate ?? undefined}
       />
 
-      {/* Manual status change from "reading" to "read" - uses mark-as-read API */}
+      {/* Local status change from "reading" to "read" - uses mark-as-read API */}
       <FinishBookModal
         isOpen={showReadConfirmation}
         onClose={() => handleCancelStatusChange()}
@@ -713,7 +713,7 @@ export default function BookDetailPage() {
         bookId={bookId}
       />
 
-      {/* Manual status change from "reading" to "dnf" - uses mark-as-dnf API */}
+      {/* Local status change from "reading" to "dnf" - uses mark-as-dnf API */}
       <DNFBookModal
         isOpen={showDNFModal}
         onClose={() => handleCancelStatusChange()}

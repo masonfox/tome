@@ -2,7 +2,7 @@
  * Duplicate Detection Service
  * 
  * Detects potential duplicate books using Levenshtein distance algorithm.
- * Used during manual book creation to warn users of possible duplicates.
+ * Used during local book creation to warn users of possible duplicates.
  * 
  * See: specs/003-non-calibre-books/spec.md (FR-009: Duplicate book detection)
  */
@@ -203,7 +203,7 @@ export async function detectDuplicates(
       if (authorsMatch(authors, book.authors)) {
         // Determine book source
         const sources = await bookSourceRepository.findByBookId(book.id);
-        const source = sources.length > 0 ? sources[0].providerId : "manual";
+        const source = sources.length > 0 ? sources[0].providerId : "local";
         
         duplicates.push({
           bookId: book.id,

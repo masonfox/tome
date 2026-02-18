@@ -171,7 +171,7 @@ export class SessionService {
    * @throws {Error} If session creation fails
    * 
    * @example
-   * // Create session for manual book (with transaction)
+   * // Create session for local book (with transaction)
    * await db.transaction(async (tx) => {
    *   const book = await bookRepository.create(bookData, tx);
    *   const session = await sessionService.createInitialSession(book.id, tx);
@@ -774,10 +774,10 @@ export class SessionService {
   }
 
   /**
-   * Strategy: Manual session update without pages
+   * Strategy: Local session update without pages
    * Used when: Book has no totalPages (can't validate with progress)
    */
-  private async manualSessionUpdateStrategy(
+  private async localSessionUpdateStrategy(
     context: MarkAsReadStrategyContext
   ): Promise<MarkAsReadStrategyResult> {
     const { bookId, activeSession, completedDate, sessionRepository, logger, invalidateCache, tx } = context;
@@ -860,7 +860,7 @@ export class SessionService {
       return { strategy: this.directStatusChangeStrategy.bind(this), name: "DirectStatusChange" };
     }
 
-    return { strategy: this.manualSessionUpdateStrategy.bind(this), name: "ManualSessionUpdate" };
+    return { strategy: this.localSessionUpdateStrategy.bind(this), name: "LocalSessionUpdate" };
   }
 
   /**

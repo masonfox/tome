@@ -408,7 +408,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
     // Source filter (single provider or array of providers)
     // - 'calibre' and other providers: books IN book_sources table
-    // - 'manual': books NOT IN book_sources table (no external source)
+    // - 'local': books NOT IN book_sources table (no external source)
     // - Multiple sources: OR logic (book matches ANY source)
     if (filters.source) {
       const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
@@ -416,7 +416,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         const sourceConditions: SQL[] = [];
         
         // Check for external providers (calibre, etc.)
-        const externalProviders = providerIds.filter(p => p !== 'manual');
+        const externalProviders = providerIds.filter(p => p !== 'local');
         if (externalProviders.length > 0) {
           sourceConditions.push(
             sql`${books.id} IN (
@@ -427,8 +427,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           );
         }
         
-        // Check for manual books (no entry in book_sources)
-        if (providerIds.includes('manual')) {
+        // Check for local books (no entry in book_sources)
+        if (providerIds.includes('local')) {
           sourceConditions.push(
             sql`${books.id} NOT IN (
               SELECT ${bookSources.bookId} 
@@ -718,7 +718,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   /**
    * Find books that are NOT in the given Calibre IDs (for orphan detection during sync)
    * 
-   * CRITICAL: Only returns Calibre-sourced books to prevent orphaning manual/external books
+   * CRITICAL: Only returns Calibre-sourced books to prevent orphaning local/external books
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
     if (calibreIds.length === 0) return [];
@@ -879,7 +879,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     }
     // Source filter (T049: Multi-source filtering with OR logic)
     // - 'calibre' and other providers: books IN book_sources table
-    // - 'manual': books NOT IN book_sources table (no external source)
+    // - 'local': books NOT IN book_sources table (no external source)
     // - Multiple sources: OR logic (book matches ANY source)
     if (filters.source) {
       const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
@@ -887,7 +887,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         const sourceConditions: SQL[] = [];
         
         // Check for external providers (calibre, etc.)
-        const externalProviders = providerIds.filter(p => p !== 'manual');
+        const externalProviders = providerIds.filter(p => p !== 'local');
         if (externalProviders.length > 0) {
           sourceConditions.push(
             sql`${books.id} IN (
@@ -898,8 +898,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           );
         }
         
-        // Check for manual books (no entry in book_sources)
-        if (providerIds.includes('manual')) {
+        // Check for local books (no entry in book_sources)
+        if (providerIds.includes('local')) {
           sourceConditions.push(
             sql`${books.id} NOT IN (
               SELECT ${bookSources.bookId} 

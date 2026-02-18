@@ -8,7 +8,7 @@ import { LibraryHeader } from "@/components/Library/LibraryHeader";
 import { LibraryFilters } from "@/components/Library/LibraryFilters";
 import { BookGrid } from "@/components/Books/BookGrid";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
-import ManualBookForm from "@/components/Books/ManualBookForm";
+import LocalBookForm from "@/components/Books/LocalBookForm";
 import FederatedSearchModal from "@/components/Providers/FederatedSearchModal";
 import { toast } from "@/utils/toast";
 
@@ -17,7 +17,7 @@ function LibraryPageContent() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [showManualBookForm, setShowManualBookForm] = useState(false);
+  const [showLocalBookForm, setShowLocalBookForm] = useState(false);
   const [showFederatedSearch, setShowFederatedSearch] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
@@ -485,12 +485,12 @@ function LibraryPageContent() {
     }
   }
 
-  function handleAddManualBook() {
-    setShowManualBookForm(true);
+  function handleAddLocalBook() {
+    setShowLocalBookForm(true);
   }
 
-  async function handleManualBookSuccess() {
-    setShowManualBookForm(false);
+  async function handleLocalBookSuccess() {
+    setShowLocalBookForm(false);
     await refresh();
   }
 
@@ -545,7 +545,7 @@ function LibraryPageContent() {
         totalBooks={total}
         syncing={syncing}
         onSync={handleSync}
-        onAddManualBook={handleAddManualBook}
+        onAddManualBook={handleAddLocalBook}
         onSearchProviders={() => setShowFederatedSearch(true)}
         loading={isInitialLoading}
       />
@@ -595,18 +595,18 @@ function LibraryPageContent() {
       {/* Scroll to top button */}
       <ScrollToTopButton />
 
-      {/* Manual Book Form Modal */}
-      <ManualBookForm
-        isOpen={showManualBookForm}
-        onClose={() => setShowManualBookForm(false)}
-        onSuccess={handleManualBookSuccess}
+      {/* Local Book Form Modal */}
+      <LocalBookForm
+        isOpen={showLocalBookForm}
+        onClose={() => setShowLocalBookForm(false)}
+        onSuccess={handleLocalBookSuccess}
       />
 
       {/* Federated Search Modal */}
       <FederatedSearchModal
         isOpen={showFederatedSearch}
         onClose={() => setShowFederatedSearch(false)}
-        onSuccess={handleManualBookSuccess}
+        onSuccess={handleLocalBookSuccess}
       />
     </div>
   );

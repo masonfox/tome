@@ -6,7 +6,7 @@ import type { BookFilter } from "@/lib/repositories/book.repository";
 import type { ICalibreService } from "@/lib/services/calibre.service";
 import { SessionService } from "@/lib/services/session.service";
 import { getLogger } from "@/lib/logger";
-import { validateManualBookInput, type ManualBookInput } from "@/lib/validation/manual-book.schema";
+import { validateLocalBookInput, type LocalBookInput } from "@/lib/validation/local-book.schema";
 import { detectDuplicates, type DuplicateDetectionResult } from "@/lib/services/duplicate-detection.service";
 import { generateAuthorSort } from "@/lib/utils/author-sort";
 import { downloadCover } from "@/lib/utils/cover-download";
@@ -24,9 +24,9 @@ export interface BookWithDetails extends Book {
 }
 
 /**
- * Manual book creation result with duplicate warnings
+ * Local book creation result with duplicate warnings
  */
-export interface ManualBookCreationResult {
+export interface LocalBookCreationResult {
   book: Book;
   duplicates: DuplicateDetectionResult;
 }
@@ -272,17 +272,17 @@ export class BookService {
   }
 
   /**
-   * Create a manual book entry
+   * Create a local book entry
    * 
-   * Creates a new book with source='manual' and performs duplicate detection.
+   * Creates a new book with source='local' and performs duplicate detection.
    * Validates input and automatically creates an initial reading session.
    * 
-   * @param input - Manual book data (title, authors, optional metadata)
+   * @param input - Local book data (title, authors, optional metadata)
    * @returns Promise resolving to created book and duplicate detection result
    * @throws {Error} If validation fails or book creation fails
    * 
    * @example
-   * const result = await bookService.createManualBook({
+   * const result = await bookService.createLocalBook({
    *   title: 'The Great Gatsby',
    *   authors: ['F. Scott Fitzgerald'],
    *   totalPages: 180
@@ -292,12 +292,12 @@ export class BookService {
    *   console.log('Potential duplicates:', result.duplicates.duplicates);
    * }
    */
-  async createManualBook(input: ManualBookInput): Promise<ManualBookCreationResult> {
+  async createLocalBook(input: LocalBookInput): Promise<LocalBookCreationResult> {
     const logger = getLogger();
 
     // Validate input
-    const validatedInput = validateManualBookInput(input);
-    logger.debug({ title: validatedInput.title }, "Creating manual book");
+    const validatedInput = validateLocalBookInput(input);
+    logger.debug({ title: validatedInput.title }, "Creating local book");
 
     // Check for duplicates (warning only, doesn't prevent creation)
     const duplicates = await detectDuplicates(
@@ -311,7 +311,7 @@ export class BookService {
           title: validatedInput.title,
           duplicateCount: duplicates.duplicates.length,
         },
-        "Manual book creation detected potential duplicates"
+        "Local book creation detected potential duplicates"
       );
     }
 
@@ -322,7 +322,7 @@ export class BookService {
       authors: validatedInput.authors,
       authorSort: generateAuthorSort(validatedInput.authors),
 
-      // Manual books have no source entry (implicit manual)
+      // Local books have no source entry (implicit local)
       calibreId: null,
 
       // Optional metadata
@@ -349,7 +349,7 @@ export class BookService {
     try {
       createdBook = await bookRepository.create(newBook);
     } catch (error) {
-      logger.error({ err: error, title: newBook.title }, "Failed to create manual book");
+      logger.error({ err: error, title: newBook.title }, "Failed to create local book");
       throw error;
     }
 
@@ -381,7 +381,7 @@ export class BookService {
         title: createdBook.title,
         hasDuplicates: duplicates.hasDuplicates,
       },
-      "Manual book created successfully"
+      "Local book created successfully"
     );
 
     // Download cover from provider URL (non-blocking — book creation succeeds even if download fails)

@@ -17,7 +17,7 @@ import type {
   ProviderSearchResult 
 } from "@/lib/services/search.service";
 import type { SearchResult, ProviderId } from "@/lib/providers/base/IMetadataProvider";
-import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
+import type { LocalBookInput } from "@/lib/validation/local-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
 
 const logger = getLogger().child({ component: "FederatedSearchModal" });
@@ -300,7 +300,7 @@ export default function FederatedSearchModal({
     setIsSubmitting(true);
 
     try {
-      // Prepare payload - books from provider search are manual books
+      // Prepare payload - books from provider search are local books
       // with pre-populated metadata (provider is ephemeral, not stored)
       const payload: any = {
         title: title.trim(),

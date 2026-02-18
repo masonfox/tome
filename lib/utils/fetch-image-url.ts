@@ -1,7 +1,7 @@
 /**
  * Image URL Fetching Utility
  * 
- * Fetches images from URLs for use in manual book cover uploads.
+ * Fetches images from URLs for use in local book cover uploads.
  * Validates content type and size before returning blob.
  */
 

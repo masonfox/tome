@@ -1,7 +1,7 @@
 /**
  * Metadata Provider Interface
  * 
- * Defines the contract for all book metadata providers (Calibre, manual entry,
+ * Defines the contract for all book metadata providers (Calibre, local entry,
  * external APIs like Hardcover and OpenLibrary).
  * 
  * Providers declare capabilities via boolean flags and implement only the
@@ -24,9 +24,10 @@ export type ProviderHealth = "healthy" | "unavailable";
  * Books from these providers get entries in the book_sources table.
  * 
  * - calibre: Calibre library integration (primary sync provider)
- * - audiobookshelf: Audiobookshelf library integration (future)
+ * 
+ * Note: audiobookshelf will be added here when implemented
  */
-export type SourceProviderId = "calibre" | "audiobookshelf";
+export type SourceProviderId = "calibre";
 
 /**
  * Metadata Provider Identifier
@@ -34,7 +35,7 @@ export type SourceProviderId = "calibre" | "audiobookshelf";
  * Identifies search-only metadata providers.
  * These providers are used for metadata enrichment and search,
  * but don't own book records. Books added via these providers
- * become "manual" books (no book_sources entry).
+ * become "local" books (no book_sources entry).
  * 
  * - hardcover: Hardcover.app API (metadata search provider)
  * - openlibrary: OpenLibrary.org API (metadata search provider)
@@ -47,8 +48,8 @@ export type MetadataProviderId = "hardcover" | "openlibrary";
  * Union of all provider types (sources + metadata).
  * Used for provider registration, registry lookups, and configuration.
  * 
- * Note: "manual" is no longer a provider - manual books are identified
- * by the absence of entries in the book_sources table (implicit manual).
+ * Note: "local" is no longer a provider - local books are identified
+ * by the absence of entries in the book_sources table (implicit local).
  */
 export type ProviderId = SourceProviderId | MetadataProviderId;
 
@@ -56,10 +57,10 @@ export type ProviderId = SourceProviderId | MetadataProviderId;
  * Book source identifier (DEPRECATED - use book_sources table)
  * 
  * @deprecated This type is deprecated. Use the book_sources table to determine
- * book sources. Books without entries in book_sources are implicitly "manual".
+ * book sources. Books without entries in book_sources are implicitly "local".
  * This type remains for backward compatibility during the transition.
  */
-export type BookSource = "calibre" | "manual";
+export type BookSource = "calibre" | "local";
 
 /**
  * Provider capabilities
@@ -148,9 +149,9 @@ export interface SyncResult {
  * 
  * @example
  * ```typescript
- * class ManualProvider implements IMetadataProvider {
- *   id = 'manual';
- *   name = 'Manual Entry';
+ * class LocalProvider implements IMetadataProvider {
+ *   id = 'local';
+ *   name = 'Local Entry';
  *   capabilities = {
  *     hasSearch: false,
  *     hasMetadataFetch: false,

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     
     // Parse sources (T048: Multi-source filtering)
     const source = sourcesParam 
-      ? sourcesParam.split(",").map((s) => s.trim()) as Array<"calibre" | "manual">
+      ? sourcesParam.split(",").map((s) => s.trim()) as Array<"calibre" | "local">
       : undefined;
 
     // Parse shelf ID
@@ -76,11 +76,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Check if this is a manual book creation (has title field)
+    // Check if this is a local book creation (has title field)
     if (body.title && body.authors) {
-      // Manual book creation
+      // Local book creation
       try {
-        const result = await bookService.createManualBook(body);
+        const result = await bookService.createLocalBook(body);
         
         return NextResponse.json({
           book: result.book,
@@ -97,9 +97,9 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        getLogger().error({ err: error }, "Error creating manual book");
+        getLogger().error({ err: error }, "Error creating local book");
         return NextResponse.json(
-          { error: "Failed to create manual book" },
+          { error: "Failed to create local book" },
           { status: 500 }
         );
       }

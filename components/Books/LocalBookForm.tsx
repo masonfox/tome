@@ -9,14 +9,14 @@ import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { invalidateBookQueries } from "@/hooks/useBookStatus";
 import { BookPlus, X } from "lucide-react";
-import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
+import type { LocalBookInput } from "@/lib/validation/local-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
 import CoverUploadField from "./CoverUploadField";
 import { TagSelector } from "@/components/TagManagement/TagSelector";
 
-const logger = getLogger().child({ component: "ManualBookForm" });
+const logger = getLogger().child({ component: "LocalBookForm" });
 
-interface ManualBookFormProps {
+interface LocalBookFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (bookId: number) => void;
@@ -27,11 +27,11 @@ interface ValidationError {
   message: string;
 }
 
-export default function ManualBookForm({
+export default function LocalBookForm({
   isOpen,
   onClose,
   onSuccess,
-}: ManualBookFormProps) {
+}: LocalBookFormProps) {
   const queryClient = useQueryClient();
 
   // Mobile detection
@@ -182,7 +182,7 @@ export default function ManualBookForm({
 
     try {
       // Prepare payload
-      const payload: Partial<ManualBookInput> = {
+      const payload: Partial<LocalBookInput> = {
         title: title.trim(),
         authors: authorList,
       };
@@ -224,7 +224,7 @@ export default function ManualBookForm({
       }
 
       const result = await response.json();
-      logger.info({ bookId: result.book.id }, "Manual book created successfully");
+      logger.info({ bookId: result.book.id }, "Local book created successfully");
 
       // Upload cover image if one was selected (TC13)
       // Send either file or URL to server (server will download URL)
@@ -267,7 +267,7 @@ export default function ManualBookForm({
       onSuccess(result.book.id);
       onClose();
     } catch (error) {
-      logger.error({ error }, "Failed to create manual book");
+      logger.error({ error }, "Failed to create local book");
       toast.error("Failed to create book. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -283,7 +283,7 @@ export default function ManualBookForm({
   };
 
   // Determine modal title and subtitle
-  const modalTitle = showDuplicateWarning ? "Potential Duplicates Found" : "Add Manual Book";
+  const modalTitle = showDuplicateWarning ? "Potential Duplicates Found" : "Add Local Book";
   const modalSubtitle = showDuplicateWarning
     ? "We found books that might be duplicates. Proceed anyway?"
     : "Add a book that's not in your Calibre library";

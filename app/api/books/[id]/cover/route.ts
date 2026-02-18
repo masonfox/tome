@@ -45,7 +45,7 @@ function servePlaceholderImage() {
  * Serve a cover image for a book.
  * 
  * Unified route: accepts Tome book ID, routes to:
- * - Manual books: local filesystem at ./data/covers/{bookId}.{ext}
+ * - Local books: local filesystem at ./data/covers/{bookId}.{ext}
  * - Calibre books: Calibre library path via calibreId lookup
  * 
  * Cache busting: Clients append ?t=<timestamp> which is ignored server-side.
@@ -83,11 +83,11 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Route based on book source
-    // Manual books have no entries in book_sources table
+    // Local books have no entries in book_sources table
     const hasAnySources = await bookSourceRepository.hasAnySources(bookId);
     
     if (!hasAnySources) {
-      return serveManualBookCover(bookId);
+      return serveLocalBookCover(bookId);
     } else {
       return serveCalibreBookCover(bookId, book.calibreId);
     }
@@ -98,9 +98,9 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 }
 
 /**
- * Serve a cover from local filesystem storage (manual books).
+ * Serve a cover from local filesystem storage (local books).
  */
-function serveManualBookCover(bookId: number): NextResponse {
+function serveLocalBookCover(bookId: number): NextResponse {
   const cover = readCover(bookId);
 
   if (!cover) {

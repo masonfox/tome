@@ -10,9 +10,9 @@
  *    
  * 2. Migrates book source data from books.source to book_sources table:
  *    - Books with source='calibre' and calibre_id → book_sources entry
- *    - Books with source='manual' → NO book_sources entry (implicit manual)
+ *    - Books with source='local' → NO book_sources entry (implicit local)
  * 
- * Note: 'manual' provider is no longer needed (implicit via empty book_sources).
+ * Note: 'local' provider is no longer needed (implicit via empty book_sources).
  * 
  * Runs only on existing databases (skipped on fresh installations).
  */
@@ -46,7 +46,7 @@ const migration: CompanionMigration = {
       logger.info("Seeding default provider configurations...");
       
       // Default provider configurations
-      // Note: 'manual' provider removed - implicit via empty book_sources
+      // Note: 'local' provider removed - implicit via empty book_sources
       const providers = [
         {
           provider: "calibre",
@@ -145,17 +145,17 @@ const migration: CompanionMigration = {
     const result = migrateStmt.run();
     logger.info({ rowsInserted: result.changes }, "Calibre books migrated to book_sources");
     
-    // Count books without calibre_id (manual books get NO book_sources entry)
-    const manualCount = db.prepare(
+    // Count books without calibre_id (local books get NO book_sources entry)
+    const localCount = db.prepare(
       "SELECT COUNT(*) as count FROM books WHERE calibre_id IS NULL"
     ).get() as { count: number };
     
     logger.info(
       { 
         calibreBooks: result.changes, 
-        manualBooks: manualCount.count 
+        localBooks: localCount.count 
       }, 
-      "Book sources migration complete - manual books have no book_sources entries (implicit)"
+      "Book sources migration complete - local books have no book_sources entries (implicit)"
     );
   }
 };

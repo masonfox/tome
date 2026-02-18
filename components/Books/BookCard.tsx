@@ -14,7 +14,7 @@ interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  sources?: SourceProviderId[]; // Array of source providers (empty array = manual book)
+  sources?: SourceProviderId[]; // Array of source providers (empty array = local book)
   status?: string | null;
   currentProgress?: number;
   className?: string;

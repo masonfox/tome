@@ -10,7 +10,7 @@ const logger = getLogger().child({ repository: "book-source" });
  * 
  * Manages many-to-many relationships between books and source providers
  * (Calibre, Audiobookshelf, etc.). Books without entries are implicitly
- * "manual" or "unconnected" books.
+ * "local" or "unconnected" books.
  * 
  * Pattern 2: Repository Pattern
  * See: .specify/memory/patterns.md
@@ -32,7 +32,7 @@ export class BookSourceRepository extends BaseRepository<
    * Find all sources for a specific book
    * 
    * @param bookId - Book ID
-   * @returns Array of book sources (empty if manual book)
+   * @returns Array of book sources (empty if local book)
    */
   async findByBookId(bookId: number): Promise<BookSource[]> {
     return this.getDatabase()
@@ -224,7 +224,7 @@ export class BookSourceRepository extends BaseRepository<
 
   /**
    * Check if a book has any sources
-   * Used to determine if a book is "manual" (no sources).
+   * Used to determine if a book is "local" (no sources).
    * 
    * @param bookId - Book ID
    * @returns True if book has at least one source

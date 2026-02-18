@@ -5,9 +5,9 @@ export const providerConfigs = sqliteTable(
   "provider_configs",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    // Provider identifier (calibre, manual, hardcover, openlibrary)
+    // Provider identifier (calibre, hardcover, openlibrary)
     provider: text("provider", {
-      enum: ["calibre", "manual", "hardcover", "openlibrary"],
+      enum: ["calibre", "hardcover", "openlibrary"],
     })
       .notNull()
       .unique(),

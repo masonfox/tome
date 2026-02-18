@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { bookService } from "@/lib/services/book.service";
 import { bookSourceRepository } from "@/lib/repositories/book-source.repository";
 import { bookRepository } from "@/lib/repositories/book.repository";
-import { manualBookUpdateSchema } from "@/lib/validation/manual-book.schema";
+import { localBookUpdateSchema } from "@/lib/validation/local-book.schema";
 import { ZodError } from "zod";
 
 export const dynamic = 'force-dynamic';
@@ -78,12 +78,12 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     }
 
     // Validate update data
-    const validatedData = manualBookUpdateSchema.parse(body);
+    const validatedData = localBookUpdateSchema.parse(body);
 
     // Update book
     const updatedBook = await bookRepository.update(bookId, validatedData);
 
-    logger.info({ bookId, fields: Object.keys(validatedData) }, "Updated manual book");
+    logger.info({ bookId, fields: Object.keys(validatedData) }, "Updated local book");
 
     return NextResponse.json(updatedBook);
   } catch (error) {
@@ -150,7 +150,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ error: "Failed to delete book" }, { status: 500 });
     }
 
-    logger.info({ bookId, title: existingBook.title }, "Deleted manual book");
+    logger.info({ bookId, title: existingBook.title }, "Deleted local book");
 
     // Invalidate Next.js cache for library page
     revalidatePath('/library');

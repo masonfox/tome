@@ -1,13 +1,13 @@
 /**
  * POST /api/books/validate
  * 
- * Real-time validation endpoint for manual book input.
+ * Real-time validation endpoint for local book input.
  * Returns validation errors without creating the book.
  */
 
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
-import { validateManualBookInputSafe } from "@/lib/validation/manual-book.schema";
+import { validateLocalBookInputSafe } from "@/lib/validation/local-book.schema";
 import { bookService } from "@/lib/services/book.service";
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate input
-    const validation = validateManualBookInputSafe(body);
+    const validation = validateLocalBookInputSafe(body);
 
     if (!validation.success) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       duplicates: duplicates,
     });
   } catch (error) {
-    getLogger().error({ err: error }, "Error validating manual book input");
+    getLogger().error({ err: error }, "Error validating local book input");
     return NextResponse.json(
       { error: "Failed to validate input" },
       { status: 500 }

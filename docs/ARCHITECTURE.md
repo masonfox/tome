@@ -8,13 +8,13 @@
 
 ## Section 1: System Overview
 
-**Tome** is a self-hosted reading progress tracker that supports multiple book sources: Calibre libraries, manual entry, and external metadata providers (Hardcover, OpenLibrary). It enables users to track reading progress, manage reading status (to-read, reading, read), maintain reading streaks, and view comprehensive reading statistics across all book sources.
+**Tome** is a self-hosted reading progress tracker that supports multiple book sources: Calibre libraries, local entry, and external metadata providers (Hardcover, OpenLibrary). It enables users to track reading progress, manage reading status (to-read, reading, read), maintain reading streaks, and view comprehensive reading statistics across all book sources.
 
 ### Multi-Source Book Tracking
 
 **Supported Book Sources:**
 - **Calibre** (`source='calibre'`): Books synced from Calibre library
-- **Manual** (`source='manual'`): User-entered books without external metadata
+- **Local** (`source='local'`): User-entered books without external metadata
 - **Hardcover** (`source='hardcover'`): Books fetched from Hardcover.app API
 - **OpenLibrary** (`source='openlibrary'`): Books fetched from OpenLibrary.org API
 
@@ -22,7 +22,7 @@
 - **Source Isolation**: Calibre sync only affects Calibre-sourced books
 - **Unified Experience**: All Tome features (sessions, progress, streaks) work identically across all sources
 - **Provider Architecture**: Extensible provider system with circuit breaker protection
-- **Source Migration**: Manual books can be upgraded to external provider books (one-way)
+- **Source Migration**: Local books can be upgraded to external provider books (one-way)
 
 ### Integration with Calibre
 
@@ -64,7 +64,7 @@ Tome implements multiple safety mechanisms when writing to the Calibre database:
 ### Core User Flows
 
 1. **Setup**: Point Tome to Calibre library → Initial sync imports all books
-2. **Manual Book Addition**: Add books manually via UI → Track physical books alongside digital
+2. **Local Book Addition**: Add books locally via UI → Track physical books alongside digital
 3. **External Metadata Search**: Search Hardcover/OpenLibrary → Fetch rich metadata automatically
 4. **Reading Progress**: Log pages/percentage as reading → Progress tracked per session
 5. **Status Management**: Change book status (to-read → reading → read)
@@ -88,7 +88,7 @@ Tome implements multiple safety mechanisms when writing to the Calibre database:
    - Always enabled when `CALIBRE_DB_PATH` configured
    - Priority: 1 (highest)
 
-2. **ManualProvider** (`lib/providers/manual.provider.ts`)
+2. **LocalProvider** (`lib/providers/local.provider.ts`)
    - Capabilities: None (user-entered data only)
    - Always enabled
    - Priority: 99 (lowest - fallback)

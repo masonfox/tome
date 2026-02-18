@@ -3,7 +3,7 @@
  * 
  * Updates provider settings, credentials, and enabled state.
  * 
- * @param {string} providerId - Provider identifier (calibre, manual, hardcover, openlibrary)
+ * @param {string} providerId - Provider identifier (calibre, hardcover, openlibrary)
  * @body {Object} config - Configuration updates
  * @body {boolean} [config.enabled] - Enable/disable provider
  * @body {Object} [config.settings] - Provider-specific settings (timeout, etc.)

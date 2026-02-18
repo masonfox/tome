@@ -27,7 +27,7 @@ const statusOptions = [
 // T051: Source filter options
 const sourceOptions = [
   { value: "calibre", label: "Calibre", icon: Database },
-  { value: "manual", label: "Manual", icon: User },
+  { value: "local", label: "Local", icon: User },
 ];
 
 // Grouped rating options with star rendering support

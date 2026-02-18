@@ -201,8 +201,8 @@ export default function ProvidersSettingsPage() {
             is configured.
           </p>
           <p>
-            <strong className="text-[var(--foreground)]">Manual:</strong>{" "}
-            Allows you to manually add books without external metadata. Always
+            <strong className="text-[var(--foreground)]">Local:</strong>{" "}
+            Allows you to add books locally without external metadata. Always
             enabled.
           </p>
           <p>
