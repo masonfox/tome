@@ -60,6 +60,8 @@ export default function FederatedSearchModal({
   const [totalPages, setTotalPages] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
+  const [series, setSeries] = useState("");
+  const [seriesIndex, setSeriesIndex] = useState("");
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,6 +97,8 @@ export default function FederatedSearchModal({
     setTotalPages("");
     setDescription("");
     setTags("");
+    setSeries("");
+    setSeriesIndex("");
     setValidationErrors({});
     setDuplicates([]);
     setShowDuplicateWarning(false);
@@ -171,6 +175,8 @@ export default function FederatedSearchModal({
         setDescription(data.description || "");
         setTags(data.tags ? data.tags.join(", ") : "");
         setTotalPages(data.totalPages?.toString() || result.totalPages?.toString() || "");
+        setSeries(data.series || "");
+        setSeriesIndex(data.seriesIndex?.toString() || "");
         
         logger.info(
           { 
@@ -178,7 +184,8 @@ export default function FederatedSearchModal({
             externalId: result.externalId,
             hasDescription: !!data.description,
             hasTags: !!data.tags,
-            hasPublisher: !!data.publisher 
+            hasPublisher: !!data.publisher,
+            hasSeries: !!data.series
           }, 
           "Fetched full metadata for selected book"
         );
@@ -204,6 +211,8 @@ export default function FederatedSearchModal({
     setDescription("");
     setTags("");
     setTotalPages(result.totalPages?.toString() || "");
+    setSeries("");
+    setSeriesIndex("");
   };
 
   const checkForDuplicates = async (bookTitle: string, bookAuthors: string[]) => {
@@ -288,6 +297,8 @@ export default function FederatedSearchModal({
       if (tags.trim()) {
         payload.tags = tags.split(",").map((t) => t.trim()).filter((t) => t);
       }
+      if (series.trim()) payload.series = series.trim();
+      if (seriesIndex.trim()) payload.seriesIndex = parseFloat(seriesIndex);
       if (selectedResult.result.coverImageUrl) {
         payload.coverImageUrl = selectedResult.result.coverImageUrl;
       }
@@ -584,6 +595,41 @@ export default function FederatedSearchModal({
             value={pubDate}
             onChange={(e) => setPubDate(e.target.value)}
             className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
+          />
+        </div>
+      </div>
+
+      {/* Series fields */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Series */}
+        <div>
+          <label htmlFor="series" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
+            Series
+          </label>
+          <input
+            id="series"
+            type="text"
+            value={series}
+            onChange={(e) => setSeries(e.target.value)}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
+            placeholder="e.g., Harry Potter"
+          />
+        </div>
+
+        {/* Series Index */}
+        <div>
+          <label htmlFor="seriesIndex" className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
+            Series Index
+          </label>
+          <input
+            id="seriesIndex"
+            type="number"
+            min="0"
+            step="0.1"
+            value={seriesIndex}
+            onChange={(e) => setSeriesIndex(e.target.value)}
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
+            placeholder="e.g., 1"
           />
         </div>
       </div>
