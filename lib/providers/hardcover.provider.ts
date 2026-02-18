@@ -455,12 +455,19 @@ class HardcoverProvider implements IMetadataProvider {
     const pubDate = parsePublishDate(book.release_date) 
       || (book.release_year ? parsePublishDate(book.release_year.toString()) : undefined);
 
-    // Parse tags from taggings relationship
+    // Parse tags from taggings relationship (limit to 50 tags, max 50 chars each)
     let tags: string[] | undefined;
     if (book.taggings && Array.isArray(book.taggings)) {
       const extractedTags = book.taggings
         .map((tagging: any) => tagging.tag?.tag)
-        .filter((tag: any) => tag);
+        .filter((tag: any) => tag)
+        .map((tag: string) => tag.substring(0, 50)) // Truncate to 50 chars
+        .slice(0, 50); // Limit to 50 tags
+      
+      if (extractedTags.length < book.taggings.length) {
+        logger.warn(`Tags truncated from ${book.taggings.length} to ${extractedTags.length} for book: ${book.title}`);
+      }
+      
       tags = extractedTags.length > 0 ? extractedTags : undefined;
     }
 
