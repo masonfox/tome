@@ -6,21 +6,12 @@ import { BottomSheet } from "@/components/Layout/BottomSheet";
 import { Button } from "@/components/Utilities/Button";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
-import { ImagePlus, X, BookPlus } from "lucide-react";
+import { BookPlus } from "lucide-react";
 import type { ManualBookInput } from "@/lib/validation/manual-book.schema";
 import type { PotentialDuplicate } from "@/lib/services/duplicate-detection.service";
-import { fetchImageFromUrl, blobToFile, ImageFetchError } from "@/lib/utils/fetch-image-url";
+import CoverUploadField from "./CoverUploadField";
 
 const logger = getLogger().child({ component: "ManualBookForm" });
-
-/** Max cover file size in bytes (5MB) */
-const MAX_COVER_SIZE = 5 * 1024 * 1024;
-
-/** Accepted cover MIME types */
-const ACCEPTED_COVER_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-
-/** Accept string for file input */
-const ACCEPTED_COVER_INPUT = ".jpg,.jpeg,.png,.webp,.gif";
 
 interface ManualBookFormProps {
   isOpen: boolean;
@@ -57,7 +48,6 @@ export default function ManualBookForm({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,65 +133,6 @@ export default function ManualBookForm({
     }
   };
 
-  /** Validate and set cover file, creating a preview URL */
-  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate type
-    if (!ACCEPTED_COVER_TYPES.includes(file.type)) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        cover: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, WebP, GIF`,
-      }));
-      return;
-    }
-
-    // Validate size
-    if (file.size > MAX_COVER_SIZE) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        cover: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum: 5MB`,
-      }));
-      return;
-    }
-
-    // Clear any previous cover error
-    setValidationErrors((prev) => {
-      const updated = { ...prev };
-      delete updated.cover;
-      return updated;
-    });
-
-    // Revoke previous preview URL
-    if (coverPreviewUrl) {
-      URL.revokeObjectURL(coverPreviewUrl);
-    }
-
-    setCoverFile(file);
-    setCoverPreviewUrl(URL.createObjectURL(file));
-  };
-
-  /** Remove the selected cover file */
-  const handleCoverRemove = () => {
-    setCoverFile(null);
-    setCoverUrl("");
-    if (coverPreviewUrl) {
-      URL.revokeObjectURL(coverPreviewUrl);
-      setCoverPreviewUrl(null);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    // Clear cover error if any
-    setValidationErrors((prev) => {
-      const updated = { ...prev };
-      delete updated.cover;
-      delete updated.coverUrl;
-      return updated;
-    });
-  };
-
   const handleSubmit = async () => {
     // Clear previous errors
     setValidationErrors({});
@@ -277,34 +208,16 @@ export default function ManualBookForm({
       logger.info({ bookId: result.book.id }, "Manual book created successfully");
 
       // Upload cover image if one was selected (TC13)
-      // Priority: File upload > URL
-      let coverFileToUpload: File | null = coverFile;
-
-      if (!coverFileToUpload && coverUrl.trim()) {
-        // Fetch image from URL
-        try {
-          const blob = await fetchImageFromUrl(coverUrl.trim());
-          coverFileToUpload = blobToFile(blob, coverUrl.trim());
-        } catch (error) {
-          if (error instanceof ImageFetchError) {
-            logger.warn(
-              { bookId: result.book.id, error: error.message, code: error.code },
-              "Failed to fetch cover from URL, but book was created successfully"
-            );
-            toast.warning(`Book added, but cover URL failed: ${error.message}`);
-          } else {
-            logger.error({ error }, "Unexpected error fetching cover from URL");
-            toast.warning("Book added, but cover URL fetch failed");
-          }
-          // Non-blocking: continue without cover
-          coverFileToUpload = null;
-        }
-      }
-
-      if (coverFileToUpload) {
+      // Send either file or URL to server (server will download URL)
+      if (coverFile || coverUrl.trim()) {
         try {
           const formData = new FormData();
-          formData.append("cover", coverFileToUpload);
+          
+          if (coverFile) {
+            formData.append("cover", coverFile);
+          } else if (coverUrl.trim()) {
+            formData.append("coverUrl", coverUrl.trim());
+          }
 
           const coverResponse = await fetch(`/api/books/${result.book.id}/cover`, {
             method: "POST",
@@ -544,84 +457,27 @@ export default function ManualBookForm({
           </div>
 
           {/* Cover Image Upload */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--subheading-text)] mb-1">
-              Cover Image
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_COVER_INPUT}
-              onChange={handleCoverSelect}
-              className="hidden"
-              id="cover-upload"
-            />
-            {coverPreviewUrl ? (
-              <div className="flex items-start gap-3">
-                <div className="relative w-20 h-28 rounded overflow-hidden border border-[var(--border-color)] flex-shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={coverPreviewUrl}
-                    alt="Cover preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-xs text-[var(--subheading-text)] truncate max-w-[200px]">
-                    {coverFile?.name}
-                  </p>
-                  <p className="text-xs text-[var(--subheading-text)]/70">
-                    {coverFile ? `${(coverFile.size / 1024).toFixed(0)} KB` : ""}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleCoverRemove}
-                    className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 mt-1"
-                  >
-                    <X className="w-3 h-3" />
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 border border-dashed border-[var(--border-color)] rounded-md text-sm text-[var(--subheading-text)] hover:border-[var(--foreground)] hover:text-[var(--foreground)] transition-colors w-full"
-                >
-                  <ImagePlus className="w-4 h-4" />
-                  Choose cover image (JPEG, PNG, WebP, GIF — max 5MB)
-                </button>
-                
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 border-t border-[var(--border-color)]"></div>
-                  <span className="text-xs text-[var(--subheading-text)] uppercase">or</span>
-                  <div className="flex-1 border-t border-[var(--border-color)]"></div>
-                </div>
-
-                <div>
-                  <input
-                    id="coverUrl"
-                    type="url"
-                    value={coverUrl}
-                    onChange={(e) => setCoverUrl(e.target.value)}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)] text-sm"
-                    placeholder="https://example.com/cover.jpg"
-                  />
-                  <p className="mt-1 text-xs text-[var(--subheading-text)]">
-                    Enter image URL (if both file and URL provided, file takes priority)
-                  </p>
-                </div>
-              </div>
-            )}
-            {validationErrors.cover && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.cover}</p>
-            )}
-            {validationErrors.coverUrl && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.coverUrl}</p>
-            )}
-          </div>
+          <CoverUploadField
+            coverFile={coverFile}
+            onCoverFileChange={setCoverFile}
+            coverUrl={coverUrl}
+            onCoverUrlChange={setCoverUrl}
+            coverPreviewUrl={coverPreviewUrl}
+            onPreviewUrlChange={setCoverPreviewUrl}
+            validationError={validationErrors.cover}
+            onValidationError={(error) => {
+              setValidationErrors((prev) => {
+                const updated = { ...prev };
+                if (error) {
+                  updated.cover = error;
+                } else {
+                  delete updated.cover;
+                }
+                return updated;
+              });
+            }}
+            disabled={isSubmitting}
+          />
 
           {/* Description */}
           <div>

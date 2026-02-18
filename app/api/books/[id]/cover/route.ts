@@ -21,6 +21,7 @@ import {
   getBookPathCacheStats,
   type CacheStats,
 } from "@/lib/cache/cover-cache";
+import { downloadCover } from "@/lib/utils/cover-download";
 
 export const dynamic = 'force-dynamic';
 
@@ -225,7 +226,10 @@ function serveCalibreBookCover(bookId: number, calibreId: number | null): NextRe
 /**
  * Upload a cover image for a book.
  * 
- * Accepts multipart form data with a `cover` file field.
+ * Accepts multipart form data with either:
+ * - A `cover` file field (direct file upload), OR
+ * - A `coverUrl` text field (server-side download from URL)
+ * 
  * Validates file type (JPEG, PNG, WebP, GIF) and size (max 5MB).
  * Replaces any existing cover for this book.
  * Invalidates the cover cache for this book.
@@ -250,49 +254,74 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     // Parse multipart form data
     const formData = await request.formData();
     const file = formData.get("cover");
+    const coverUrl = formData.get("coverUrl");
 
-    if (!file || !(file instanceof File)) {
+    let buffer: Buffer;
+    let mimeType: CoverMimeType;
+
+    // Option 1: Direct file upload
+    if (file && file instanceof File && file.size > 0) {
+      // Validate file size
+      if (file.size > MAX_COVER_SIZE_BYTES) {
+        return NextResponse.json(
+          {
+            error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum: ${MAX_COVER_SIZE_BYTES / 1024 / 1024}MB`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Determine MIME type from file type or Content-Type
+      const parsedMimeType = file.type ? parseCoverMimeType(file.type) : null;
+
+      if (!parsedMimeType) {
+        return NextResponse.json(
+          {
+            error: `Unsupported file type: ${file.type || "unknown"}. Allowed: ${ALLOWED_COVER_MIME_TYPES.join(", ")}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Read file data
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+      mimeType = parsedMimeType;
+    }
+    // Option 2: Server-side download from URL
+    else if (coverUrl && typeof coverUrl === "string" && coverUrl.trim()) {
+      logger.info({ bookId, coverUrl }, "[CoverUpload] Downloading cover from URL");
+
+      const downloaded = await downloadCover(coverUrl.trim());
+
+      if (!downloaded) {
+        return NextResponse.json(
+          { error: "Failed to download image from URL. Please check the URL and try again." },
+          { status: 400 }
+        );
+      }
+
+      buffer = downloaded.buffer;
+      mimeType = downloaded.mimeType;
+
+      logger.info(
+        { bookId, coverUrl, size: buffer.length, mimeType },
+        "[CoverUpload] Cover downloaded from URL successfully"
+      );
+    }
+    // Neither file nor URL provided
+    else {
       return NextResponse.json(
-        { error: "Missing 'cover' file in form data" },
+        { error: "Missing 'cover' file or 'coverUrl' in form data" },
         { status: 400 }
       );
     }
-
-    // Validate file size
-    if (file.size > MAX_COVER_SIZE_BYTES) {
-      return NextResponse.json(
-        {
-          error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum: ${MAX_COVER_SIZE_BYTES / 1024 / 1024}MB`,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (file.size === 0) {
-      return NextResponse.json({ error: "File is empty" }, { status: 400 });
-    }
-
-    // Determine MIME type from file type or Content-Type
-    let mimeType: CoverMimeType | null = null;
-    if (file.type) {
-      mimeType = parseCoverMimeType(file.type);
-    }
-
-    if (!mimeType) {
-      return NextResponse.json(
-        {
-          error: `Unsupported file type: ${file.type || "unknown"}. Allowed: ${ALLOWED_COVER_MIME_TYPES.join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Read file data
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     // Save cover (replaces existing)
     const filePath = saveCover(bookId, buffer, mimeType);
+
+    // Update book's updatedAt timestamp to invalidate cache-busted cover URLs
+    await bookRepository.update(bookId, { updatedAt: new Date() } as any);
 
     // Invalidate cover cache for this book
     coverCache.set(bookId, buffer, mimeType);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import BaseModal from "./BaseModal";
@@ -10,6 +10,7 @@ import { getLogger } from "@/lib/logger";
 import { invalidateBookQueries } from "@/hooks/useBookStatus";
 import { Button } from "@/components/Utilities/Button";
 import { BookOpen } from "lucide-react";
+import CoverUploadField from "@/components/Books/CoverUploadField";
 
 interface EditBookModalProps {
   isOpen: boolean;
@@ -52,6 +53,14 @@ export default function EditBookModal({
   const [description, setDescription] = useState("");
   const [totalPages, setTotalPages] = useState("");
 
+  // Cover upload state
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState("");
+  const [coverValidationError, setCoverValidationError] = useState<string | null>(null);
+  const [coverChanged, setCoverChanged] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
+
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -59,6 +68,15 @@ export default function EditBookModal({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrl) {
+        URL.revokeObjectURL(coverPreviewUrl);
+      }
+    };
+  }, [coverPreviewUrl]);
 
   // Reset form when modal opens with book data
   useEffect(() => {
@@ -72,8 +90,19 @@ export default function EditBookModal({
       setSeriesIndex(currentBook.seriesIndex?.toString() || "");
       setDescription(currentBook.description || "");
       setTotalPages(currentBook.totalPages?.toString() || "");
+      
+      // Reset cover state
+      setCoverFile(null);
+      setCoverUrl("");
+      if (coverPreviewUrl) {
+        URL.revokeObjectURL(coverPreviewUrl);
+        setCoverPreviewUrl(null);
+      }
+      setCoverValidationError(null);
+      setCoverChanged(false);
+      setIsCoverUploading(false);
     }
-  }, [isOpen, currentBook]);
+  }, [isOpen, currentBook]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     // Validation
@@ -133,10 +162,44 @@ export default function EditBookModal({
         throw new Error(error.error || "Failed to update book");
       }
 
-      // Invalidate caches to refetch book data
+      // Upload cover if changed (after successful metadata update)
+      if (coverChanged && (coverFile || coverUrl.trim())) {
+        setIsCoverUploading(true);
+        
+        try {
+          const formData = new FormData();
+          
+          // Either append the file or the URL (server will download it)
+          if (coverFile) {
+            formData.append("cover", coverFile);
+          } else if (coverUrl.trim()) {
+            formData.append("coverUrl", coverUrl.trim());
+          }
+
+          const coverResponse = await fetch(`/api/books/${bookId}/cover`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!coverResponse.ok) {
+            const coverError = await coverResponse.json();
+            logger.warn({ bookId, error: coverError }, "Cover upload failed");
+            toast.warning(`Book updated, but cover upload failed: ${coverError.error || "Unknown error"}`);
+          } else {
+            logger.info({ bookId }, "Cover uploaded successfully");
+          }
+        } catch (coverError) {
+          logger.error({ error: coverError }, "Cover upload request failed");
+          toast.warning("Book updated, but cover upload request failed");
+        }
+        
+        setIsCoverUploading(false);
+      }
+
+      // Invalidate caches to refetch book data (includes updated cover)
       await invalidateBookQueries(queryClient, bookId.toString());
 
-      toast.success("Book updated successfully");
+      toast.success(coverChanged && (coverFile || coverUrl.trim()) ? "Book and cover updated successfully" : "Book updated successfully");
       onClose();
     } catch (error) {
       logger.error({ err: error, bookId }, "Error updating book");
@@ -285,6 +348,25 @@ export default function EditBookModal({
           disabled={isSubmitting}
         />
       </div>
+
+      {/* Cover Image */}
+      <CoverUploadField
+        coverFile={coverFile}
+        onCoverFileChange={(file) => {
+          setCoverFile(file);
+          setCoverChanged(true);
+        }}
+        coverUrl={coverUrl}
+        onCoverUrlChange={(url) => {
+          setCoverUrl(url);
+          if (url.trim()) setCoverChanged(true);
+        }}
+        coverPreviewUrl={coverPreviewUrl}
+        onPreviewUrlChange={setCoverPreviewUrl}
+        validationError={coverValidationError || undefined}
+        onValidationError={setCoverValidationError}
+        disabled={isSubmitting || isCoverUploading}
+      />
     </div>
   );
 
@@ -300,9 +382,9 @@ export default function EditBookModal({
       </Button>
       <Button
         onClick={handleSubmit}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isCoverUploading}
       >
-        {isSubmitting ? "Saving..." : "Save Changes"}
+        {isSubmitting ? (isCoverUploading ? "Uploading cover..." : "Saving...") : "Save Changes"}
       </Button>
     </>
   );
