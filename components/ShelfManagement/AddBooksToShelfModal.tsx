@@ -12,7 +12,7 @@ import { getCoverUrl } from "@/lib/utils/cover-url";
 
 interface BookWithStatus {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   coverPath?: string;
@@ -21,7 +21,7 @@ interface BookWithStatus {
   series?: string | null;
   tags: string[];
   totalPages?: number;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface AddBooksToShelfModalProps {
@@ -281,7 +281,7 @@ export function AddBooksToShelfModal({
                       </div>
 
                       {/* Book Cover */}
-                      <BookCoverThumbnail calibreId={book.calibreId} title={book.title} lastSynced={book.lastSynced} />
+                      <BookCoverThumbnail bookId={book.id} title={book.title} updatedAt={book.updatedAt} />
 
                       {/* Book Info */}
                       <div className="flex-1 min-w-0">
@@ -410,14 +410,14 @@ export function AddBooksToShelfModal({
 }
 
 // Book cover thumbnail component
-function BookCoverThumbnail({ calibreId, title, lastSynced }: { calibreId: number; title: string; lastSynced?: Date | string | null }) {
+function BookCoverThumbnail({ bookId, title, updatedAt }: { bookId: number; title: string; updatedAt?: Date | string | null }) {
   const [imageError, setImageError] = useState(false);
 
   return (
     <div className="w-12 h-16 bg-[var(--light-accent)]/30 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
       {!imageError ? (
         <Image
-          src={getCoverUrl(calibreId, lastSynced)}
+          src={getCoverUrl(bookId, updatedAt)}
           alt={title}
           width={48}
           height={64}

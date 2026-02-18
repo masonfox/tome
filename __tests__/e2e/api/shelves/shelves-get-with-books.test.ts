@@ -65,7 +65,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book with To-Read Status",
       authors: ["Author 1"],
       tags: [],
-      path: "/path/1",
       totalPages: 300,
     });
 
@@ -74,7 +73,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book with Read-Next Status",
       authors: ["Author 2"],
       tags: [],
-      path: "/path/2",
       totalPages: 400,
     });
 
@@ -83,7 +81,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book with Reading Status",
       authors: ["Author 3"],
       tags: [],
-      path: "/path/3",
       totalPages: 500,
     });
 
@@ -92,7 +89,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book with Read Status (Inactive)",
       authors: ["Author 4"],
       tags: [],
-      path: "/path/4",
       totalPages: 600,
     });
 
@@ -101,7 +97,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book without Session",
       authors: ["Author 5"],
       tags: [],
-      path: "/path/5",
       totalPages: 700,
     });
 
@@ -230,7 +225,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book with Multiple Sessions",
       authors: ["Author 1"],
       tags: [],
-      path: "/path/1",
       totalPages: 500,
     });
 
@@ -295,7 +289,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Book Read Multiple Times",
       authors: ["Author 1"],
       tags: [],
-      path: "/path/1",
       totalPages: 400,
     });
 
@@ -416,7 +409,6 @@ describe('GET /api/shelves/:id - Status Display Regression', () => {
       title: "Test Book",
       authors: ["Author 1"],
       tags: [],
-      path: "/path/1",
     });
 
     await shelfRepository.addBookToShelf(shelf.id, book!.id);
@@ -458,7 +450,6 @@ describe('GET /api/shelves/:id - Sorting and Ordering', () => {
       title: "First Book",
       authors: ["Author A"],
       tags: [],
-      path: "/path/1",
     });
 
     const book2 = await bookRepository.create({
@@ -466,7 +457,6 @@ describe('GET /api/shelves/:id - Sorting and Ordering', () => {
       title: "Second Book",
       authors: ["Author B"],
       tags: [],
-      path: "/path/2",
     });
 
     const book3 = await bookRepository.create({
@@ -474,7 +464,6 @@ describe('GET /api/shelves/:id - Sorting and Ordering', () => {
       title: "Third Book",
       authors: ["Author C"],
       tags: [],
-      path: "/path/3",
     });
 
     // Add books with specific sort order

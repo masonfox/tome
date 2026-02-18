@@ -29,7 +29,6 @@ describe("Edge Case Tests", () => {
         title: "Anonymous Book",
         authors: [],
         tags: [],
-        path: "/path",
       });
 
       expect(book.authors).toEqual([]);
@@ -45,7 +44,6 @@ describe("Edge Case Tests", () => {
         title: "Untagged Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       expect(book.tags).toEqual([]);
@@ -59,7 +57,6 @@ describe("Edge Case Tests", () => {
         title: "Orphan Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       // Book exists
@@ -79,7 +76,6 @@ describe("Edge Case Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -109,7 +105,6 @@ describe("Edge Case Tests", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path1",
       });
 
       const result = await bookRepository.findWithFilters({}, 10, 1000);
@@ -124,7 +119,6 @@ describe("Edge Case Tests", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path1",
       });
 
       const result = await bookRepository.findWithFilters({}, 0, 0);
@@ -141,7 +135,6 @@ describe("Edge Case Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       // Create session without started date
@@ -200,7 +193,6 @@ describe("Edge Case Tests", () => {
         title: "Minimal Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
         // All optional fields omitted
       });
 
@@ -216,7 +208,6 @@ describe("Edge Case Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -242,7 +233,6 @@ describe("Edge Case Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
         pubDate: specificDate,
       });
 
@@ -256,7 +246,6 @@ describe("Edge Case Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -296,7 +285,6 @@ describe("Edge Case Tests", () => {
         title: "Long Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
         totalPages: 10000,
       });
 
@@ -325,7 +313,6 @@ describe("Edge Case Tests", () => {
         title: "Re-read Many Times",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -346,7 +333,6 @@ describe("Edge Case Tests", () => {
         title: "Book: A Story (Part 1) - \"The Beginning\"",
         authors: ["O'Reilly"],
         tags: ["Sci-Fi", "Action/Adventure"],
-        path: "/path/to/book's/file",
       });
 
       const retrieved = await bookRepository.findById(book.id);

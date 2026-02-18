@@ -43,9 +43,6 @@ export function BottomSheet({
   // Handle opening and closing
   useEffect(() => {
     if (isOpen) {
-      // Lock body scroll
-      document.body.style.overflow = "hidden";
-      
       // Start entering state
       setAnimationState('entering');
       
@@ -61,7 +58,6 @@ export function BottomSheet({
       
       return () => {
         clearTimeout(timeout1);
-        document.body.style.overflow = "";
       };
     } else {
       // Start exit animation if we were open
@@ -75,7 +71,6 @@ export function BottomSheet({
       // Clean up after animation completes
       const timeout = setTimeout(() => {
         setAnimationState(null);
-        document.body.style.overflow = "";
       }, ANIMATION_DURATION);
       
       return () => {
@@ -140,7 +135,12 @@ export function BottomSheet({
         </div>
         
         {/* Content - scrollable */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div 
+          className="flex-1 overflow-y-auto p-4"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
           {children}
         </div>
 

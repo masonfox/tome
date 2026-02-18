@@ -143,7 +143,7 @@ export class TagService {
     await this.syncWithCalibreWriteThrough(
       "UPDATE_TAGS",
       [book],
-      (books: Book[]) => books.map((b: Book) => ({ calibreId: b.calibreId, tags })),
+      (books: Book[]) => books.filter((b: Book) => b.calibreId !== null).map((b: Book) => ({ calibreId: b.calibreId!, tags })),
       async () => {
         const updated = await bookRepository.update(bookId, { tags });
         if (!updated) {
@@ -221,7 +221,7 @@ export class TagService {
       }
 
       // STEP 2: Calculate new tags for each book (merge logic)
-      const calibreUpdates = affectedBooks.map(book => {
+      const calibreUpdates = affectedBooks.filter(book => book.calibreId !== null).map(book => {
         const currentTags = book.tags || [];
         // Remove source tags and add target tag
         let newTags = currentTags.filter(tag => !sourceTags.includes(tag));
@@ -230,7 +230,7 @@ export class TagService {
           newTags.push(targetTag);
         }
         return {
-          calibreId: book.calibreId,
+          calibreId: book.calibreId!,
           tags: newTags
         };
       });
@@ -367,12 +367,12 @@ export class TagService {
       }
 
       // STEP 2: Calculate new tags for each book (rename logic)
-      const calibreUpdates = booksWithTag.books.map(book => {
+      const calibreUpdates = booksWithTag.books.filter(book => book.calibreId !== null).map(book => {
         const currentTags = book.tags || [];
         // Replace old tag with new tag
         const newTags = currentTags.map(tag => tag === oldName ? newName : tag);
         return {
-          calibreId: book.calibreId,
+          calibreId: book.calibreId!,
           tags: newTags
         };
       });
@@ -502,11 +502,11 @@ export class TagService {
       }
 
       // STEP 2: Calculate new tags for each book (remove the tag)
-      const calibreUpdates = booksWithTag.books.map(book => {
+      const calibreUpdates = booksWithTag.books.filter(book => book.calibreId !== null).map(book => {
         const currentTags = book.tags || [];
         const newTags = currentTags.filter(tag => tag !== tagName);
         return {
-          calibreId: book.calibreId,
+          calibreId: book.calibreId!,
           tags: newTags
         };
       });
@@ -651,11 +651,11 @@ export class TagService {
       }
 
       // STEP 2: Calculate new tags for each book (remove all specified tags)
-      const calibreUpdates = affectedBooks.map(book => {
+      const calibreUpdates = affectedBooks.filter(book => book.calibreId !== null).map(book => {
         const currentTags = book.tags || [];
         const newTags = currentTags.filter(tag => !tagNames.includes(tag));
         return {
-          calibreId: book.calibreId,
+          calibreId: book.calibreId!,
           tags: newTags
         };
       });
@@ -789,8 +789,8 @@ export class TagService {
     try {
       const updatedBooks = await bookRepository.findByIds(bookIds);
       
-      const updates = updatedBooks.map(book => ({
-        calibreId: book.calibreId,
+      const updates = updatedBooks.filter(book => book.calibreId !== null).map(book => ({
+        calibreId: book.calibreId!,
         tags: book.tags
       }));
 

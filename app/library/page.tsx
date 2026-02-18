@@ -8,6 +8,8 @@ import { LibraryHeader } from "@/components/Library/LibraryHeader";
 import { LibraryFilters } from "@/components/Library/LibraryFilters";
 import { BookGrid } from "@/components/Books/BookGrid";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
+import LocalBookForm from "@/components/Books/LocalBookForm";
+import FederatedSearchModal from "@/components/Providers/FederatedSearchModal";
 import { toast } from "@/utils/toast";
 
 function LibraryPageContent() {
@@ -15,6 +17,8 @@ function LibraryPageContent() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [showLocalBookForm, setShowLocalBookForm] = useState(false);
+  const [showFederatedSearch, setShowFederatedSearch] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
   const [availableShelves, setAvailableShelves] = useState<Array<{ id: number; name: string; color: string | null }>>([]);
@@ -66,8 +70,11 @@ function LibraryPageContent() {
     if (currentFilters.rating && currentFilters.rating !== 'all') {
       params.set('rating', currentFilters.rating);
     }
-    if (currentFilters.shelf) {
+      if (currentFilters.shelf) {
       params.set('shelf', currentFilters.shelf.toString());
+    }
+    if (currentFilters.sources && currentFilters.sources.length > 0) {
+      params.set('sources', currentFilters.sources.join(',')); // T053: Add sources to URL
     }
     if (currentFilters.sort && currentFilters.sort !== 'created') {
       params.set('sort', currentFilters.sort);
@@ -98,6 +105,7 @@ function LibraryPageContent() {
     setShelf,
     setSortBy,
     setNoTags,
+    setSources, // T052: Add setSources
     filters,
     refresh,
   } = useLibraryData({
@@ -108,6 +116,7 @@ function LibraryPageContent() {
     shelf: searchParams?.get("shelf") ? parseInt(searchParams.get("shelf")!) : undefined,
     sortBy: searchParams?.get("sort") || undefined,
     noTags: searchParams?.get("noTags") === "true" || undefined,
+    sources: searchParams?.get("sources")?.split(",").filter(Boolean) || undefined, // T052: Parse sources from URL
   });
 
   // Performance monitoring - track page load times
@@ -305,10 +314,11 @@ function LibraryPageContent() {
       status: status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       sort: filters.sortBy || 'created',
       noTags: filters.noTags
     });
-  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating, filters.sortBy, filters.noTags]);
+  }, [setStatus, updateURL, filters.search, filters.tags, filters.rating, filters.sources, filters.sortBy, filters.noTags]);
 
   const handleTagsChange = useCallback((tags: string[] | undefined) => {
     setTags(tags);
@@ -317,10 +327,11 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       sort: filters.sortBy || 'created',
       noTags: filters.noTags
     });
-  }, [setTags, updateURL, filters.search, filters.status, filters.rating, filters.sortBy, filters.noTags]);
+  }, [setTags, updateURL, filters.search, filters.status, filters.rating, filters.sources, filters.sortBy, filters.noTags]);
 
   const handleRatingChange = useCallback((rating: string | undefined) => {
     setRating(rating);
@@ -329,10 +340,11 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       sort: filters.sortBy || 'created',
       noTags: filters.noTags
     });
-  }, [setRating, updateURL, filters.search, filters.status, filters.tags, filters.sortBy, filters.noTags]);
+  }, [setRating, updateURL, filters.search, filters.status, filters.tags, filters.sources, filters.sortBy, filters.noTags]);
 
   const handleShelfChange = useCallback((shelfId: number | null) => {
     const shelf = shelfId || undefined;
@@ -342,11 +354,12 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       shelf: shelf,
       sort: filters.sortBy || 'created',
       noTags: filters.noTags
     });
-  }, [setShelf, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags]);
+  }, [setShelf, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sources, filters.sortBy, filters.noTags]);
 
   const handleNoTagsChange = useCallback((noTags: boolean) => {
     setNoTags(noTags || undefined);
@@ -355,11 +368,12 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: noTags ? [] : filters.tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       shelf: filters.shelf,
       sort: filters.sortBy || 'created',
       noTags: noTags
     });
-  }, [setNoTags, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.shelf, filters.sortBy]);
+  }, [setNoTags, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sources, filters.shelf, filters.sortBy]);
 
   // Handle search submission
   const handleSearchSubmit = useCallback(() => {
@@ -372,10 +386,11 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       sort: filters.sortBy || 'created',
       noTags: filters.noTags
     });
-  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags, updateURL]);
+  }, [searchInput, setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sources, filters.sortBy, filters.noTags, updateURL]);
 
   // Handle search clear (X button)
   const handleSearchClear = useCallback(() => {
@@ -388,10 +403,11 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       sort: filters.sortBy || 'created',
       noTags: filters.noTags
     });
-  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags, updateURL]);
+  }, [setSearch, isReady, filters.status, filters.tags, filters.rating, filters.sources, filters.sortBy, filters.noTags, updateURL]);
 
   // Fetch available tags on mount
   useEffect(() => {
@@ -469,6 +485,15 @@ function LibraryPageContent() {
     }
   }
 
+  function handleAddLocalBook() {
+    setShowLocalBookForm(true);
+  }
+
+  async function handleLocalBookSuccess() {
+    setShowLocalBookForm(false);
+    await refresh();
+  }
+
   const handleSortChange = useCallback((sort: string) => {
     setSortBy(sort);
     updateURL({
@@ -476,10 +501,25 @@ function LibraryPageContent() {
       status: filters.status || 'all',
       tags: filters.tags || [],
       rating: filters.rating || 'all',
+      sources: filters.sources || [], // T053: Include sources
       sort: sort,
       noTags: filters.noTags
     });
-  }, [setSortBy, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.noTags]);
+  }, [setSortBy, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sources, filters.noTags]);
+
+  // T053: Handle sources change
+  const handleSourcesChange = useCallback((sources: string[] | undefined) => {
+    setSources(sources);
+    updateURL({
+      search: filters.search,
+      status: filters.status || 'all',
+      tags: filters.tags || [],
+      rating: filters.rating || 'all',
+      sources: sources || [],
+      sort: filters.sortBy || 'created',
+      noTags: filters.noTags
+    });
+  }, [setSources, updateURL, filters.search, filters.status, filters.tags, filters.rating, filters.sortBy, filters.noTags]);
 
   function handleClearAll() {
     setSearchInput("");
@@ -490,6 +530,7 @@ function LibraryPageContent() {
     setShelf(undefined);
     setSortBy(undefined);
     setNoTags(undefined);
+    setSources(undefined); // T053: Clear sources
 
     // Update URL to remove all filter parameters
     router.replace('/library');
@@ -504,6 +545,8 @@ function LibraryPageContent() {
         totalBooks={total}
         syncing={syncing}
         onSync={handleSync}
+        onAddManualBook={handleAddLocalBook}
+        onSearchProviders={() => setShowFederatedSearch(true)}
         loading={isInitialLoading}
       />
 
@@ -524,6 +567,8 @@ function LibraryPageContent() {
         loadingShelves={loadingShelves}
         noTags={filters.noTags || false}
         onNoTagsChange={handleNoTagsChange}
+        selectedSources={filters.sources || []} // T053: Pass sources
+        onSourcesChange={(sources) => handleSourcesChange(sources.length > 0 ? sources : undefined)} // T053: Pass handler
         sortBy={filters.sortBy || "created"}
         onSortChange={handleSortChange}
         availableTags={availableTags}
@@ -549,6 +594,20 @@ function LibraryPageContent() {
 
       {/* Scroll to top button */}
       <ScrollToTopButton />
+
+      {/* Local Book Form Modal */}
+      <LocalBookForm
+        isOpen={showLocalBookForm}
+        onClose={() => setShowLocalBookForm(false)}
+        onSuccess={handleLocalBookSuccess}
+      />
+
+      {/* Federated Search Modal */}
+      <FederatedSearchModal
+        isOpen={showFederatedSearch}
+        onClose={() => setShowFederatedSearch(false)}
+        onSuccess={handleLocalBookSuccess}
+      />
     </div>
   );
 }

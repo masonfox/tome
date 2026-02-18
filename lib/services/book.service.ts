@@ -1,10 +1,16 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import type { Book } from "@/lib/db/schema/books";
+import type { Book, NewBook } from "@/lib/db/schema/books";
 import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
 import type { ICalibreService } from "@/lib/services/calibre.service";
+import { SessionService } from "@/lib/services/session.service";
 import { getLogger } from "@/lib/logger";
+import { validateLocalBookInput, type LocalBookInput } from "@/lib/validation/local-book.schema";
+import { detectDuplicates, type DuplicateDetectionResult } from "@/lib/services/duplicate-detection.service";
+import { generateAuthorSort } from "@/lib/utils/author-sort";
+import { downloadCover } from "@/lib/utils/cover-download";
+import { saveCover } from "@/lib/utils/cover-storage";
 
 /**
  * Book with enriched details (session, progress, read count)
@@ -15,6 +21,14 @@ export interface BookWithDetails extends Book {
   hasCompletedReads: boolean;
   hasFinishedSessions: boolean;
   totalReads: number;
+}
+
+/**
+ * Local book creation result with duplicate warnings
+ */
+export interface LocalBookCreationResult {
+  book: Book;
+  duplicates: DuplicateDetectionResult;
 }
 
 /**
@@ -258,9 +272,182 @@ export class BookService {
   }
 
   /**
+   * Create a local book entry
+   * 
+   * Creates a new book with source='local' and performs duplicate detection.
+   * Validates input and automatically creates an initial reading session.
+   * 
+   * @param input - Local book data (title, authors, optional metadata)
+   * @returns Promise resolving to created book and duplicate detection result
+   * @throws {Error} If validation fails or book creation fails
+   * 
+   * @example
+   * const result = await bookService.createLocalBook({
+   *   title: 'The Great Gatsby',
+   *   authors: ['F. Scott Fitzgerald'],
+   *   totalPages: 180
+   * });
+   * 
+   * if (result.duplicates.hasDuplicates) {
+   *   console.log('Potential duplicates:', result.duplicates.duplicates);
+   * }
+   */
+  async createLocalBook(input: LocalBookInput): Promise<LocalBookCreationResult> {
+    const logger = getLogger();
+
+    // Validate input
+    const validatedInput = validateLocalBookInput(input);
+    logger.debug({ title: validatedInput.title }, "Creating local book");
+
+    // Check for duplicates (warning only, doesn't prevent creation)
+    const duplicates = await detectDuplicates(
+      validatedInput.title,
+      validatedInput.authors
+    );
+
+    if (duplicates.hasDuplicates) {
+      logger.info(
+        {
+          title: validatedInput.title,
+          duplicateCount: duplicates.duplicates.length,
+        },
+        "Local book creation detected potential duplicates"
+      );
+    }
+
+    // Prepare book data
+    const newBook: NewBook = {
+      // Required fields
+      title: validatedInput.title,
+      authors: validatedInput.authors,
+      authorSort: generateAuthorSort(validatedInput.authors),
+
+      // Local books have no source entry (implicit local)
+      calibreId: null,
+
+      // Optional metadata
+      isbn: validatedInput.isbn ?? null,
+      description: validatedInput.description ?? null,
+      publisher: validatedInput.publisher ?? null,
+      pubDate: validatedInput.pubDate ?? null,
+      totalPages: validatedInput.totalPages ?? null,
+      series: validatedInput.series ?? null,
+      seriesIndex: validatedInput.seriesIndex ?? null,
+      // Deduplicate tags to prevent duplicate keys in UI and maintain data quality
+      tags: validatedInput.tags ? [...new Set(validatedInput.tags)] : [],
+
+      // Default values
+      rating: null,
+      orphanedAt: null,
+    };
+
+    // Create book and initial session sequentially
+    // Repository pattern must be maintained per constitution
+    // Note: Not atomic due to better-sqlite3 transaction limitations with async repository methods,
+    // but we handle failures by rolling back the book creation if session creation fails
+    let createdBook: Book;
+    try {
+      createdBook = await bookRepository.create(newBook);
+    } catch (error) {
+      logger.error({ err: error, title: newBook.title }, "Failed to create local book");
+      throw error;
+    }
+
+    try {
+      // Create initial session using SessionService's canonical data structure
+      await sessionRepository.create(
+        SessionService.buildInitialSessionData(createdBook.id)
+      );
+    } catch (error) {
+      // Rollback: Delete the book if session creation fails to prevent orphaned books
+      logger.error(
+        { err: error, bookId: createdBook.id },
+        "Failed to create initial session, rolling back book creation"
+      );
+      try {
+        await bookRepository.delete(createdBook.id);
+      } catch (deleteError) {
+        logger.error(
+          { err: deleteError, bookId: createdBook.id },
+          "Failed to rollback book creation - orphaned book may exist"
+        );
+      }
+      throw error;
+    }
+
+    logger.info(
+      {
+        bookId: createdBook.id,
+        title: createdBook.title,
+        hasDuplicates: duplicates.hasDuplicates,
+      },
+      "Local book created successfully"
+    );
+
+    // Download cover from provider URL (synchronous to prevent race condition)
+    // Blocks until cover is downloaded so browser receives updated timestamp immediately
+    if (validatedInput.coverImageUrl) {
+      const coverUrl = validatedInput.coverImageUrl;
+      const bookId = createdBook.id;
+      
+      try {
+        const result = await downloadCover(coverUrl);
+        
+        if (result) {
+          saveCover(bookId, result.buffer, result.mimeType);
+          
+          // Update book's updatedAt timestamp to invalidate cache-busted cover URLs
+          await bookRepository.update(bookId, { updatedAt: new Date() } as any);
+          
+          logger.info(
+            { bookId, coverUrl, mimeType: result.mimeType, size: result.buffer.length },
+            "[BookService] Cover downloaded from provider URL and book timestamp updated"
+          );
+        } else {
+          logger.warn(
+            { bookId, coverUrl },
+            "[BookService] Failed to download cover from provider URL (non-fatal)"
+          );
+        }
+      } catch (error) {
+        logger.warn(
+          { bookId, coverUrl, err: error },
+          "[BookService] Cover download threw error (non-fatal)"
+        );
+      }
+    }
+
+    return {
+      book: createdBook,
+      duplicates,
+    };
+  }
+
+  /**
+   * Check for duplicate books (preview without creating)
+   * 
+   * Used for real-time duplicate detection in the UI before submission.
+   * 
+   * @param title - Book title to check
+   * @param authors - Book authors to check
+   * @returns Promise resolving to duplicate detection result
+   */
+  async checkForDuplicates(
+    title: string,
+    authors: string[]
+  ): Promise<DuplicateDetectionResult> {
+    return detectDuplicates(title, authors);
+  }
+
+  /**
    * Sync rating to Calibre (best effort)
    */
-  private async syncRatingToCalibre(calibreId: number, rating: number | null): Promise<void> {
+  private async syncRatingToCalibre(calibreId: number | null, rating: number | null): Promise<void> {
+    // Skip sync for non-Calibre books
+    if (calibreId === null) {
+      return;
+    }
+
     try {
       this.getCalibreService().updateRating(calibreId, rating);
       getLogger().info(`[BookService] Synced rating to Calibre (calibreId: ${calibreId}): ${rating ?? 'removed'}`);

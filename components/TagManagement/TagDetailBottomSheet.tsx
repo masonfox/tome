@@ -12,8 +12,8 @@ export interface Book {
   id: number;
   title: string;
   authors?: string[];
-  calibreId: number;
-  lastSynced?: Date | string | null;
+  calibreId: number | null;
+  updatedAt?: Date | string | null;
 }
 
 interface TagDetailBottomSheetProps {
@@ -82,7 +82,7 @@ const BookCardSimple = memo(function BookCardSimple({
             <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
               {!imageError ? (
                 <Image
-                  src={getCoverUrl(book.calibreId, book.lastSynced)}
+                  src={getCoverUrl(book.id, book.updatedAt)}
                   alt={book.title}
                   fill
                   loading="lazy"

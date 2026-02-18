@@ -3,22 +3,22 @@ import { getCoverUrl } from "@/lib/utils/cover-url";
 
 describe("getCoverUrl", () => {
   describe("basic functionality", () => {
-    it("should return base URL when no lastSynced provided", () => {
+    it("should return base URL when no updatedAt provided", () => {
       const url = getCoverUrl(123);
       expect(url).toBe("/api/books/123/cover");
     });
 
-    it("should return base URL when lastSynced is null", () => {
+    it("should return base URL when updatedAt is null", () => {
       const url = getCoverUrl(123, null);
       expect(url).toBe("/api/books/123/cover");
     });
 
-    it("should return base URL when lastSynced is undefined", () => {
+    it("should return base URL when updatedAt is undefined", () => {
       const url = getCoverUrl(123, undefined);
       expect(url).toBe("/api/books/123/cover");
     });
 
-    it("should include calibreId in URL", () => {
+    it("should include bookId in URL", () => {
       const url = getCoverUrl(456);
       expect(url).toContain("456");
       expect(url).toBe("/api/books/456/cover");
@@ -64,12 +64,12 @@ describe("getCoverUrl", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle calibreId of 0", () => {
+    it("should handle bookId of 0", () => {
       const url = getCoverUrl(0);
       expect(url).toBe("/api/books/0/cover");
     });
 
-    it("should handle very large calibreIds", () => {
+    it("should handle very large bookIds", () => {
       const url = getCoverUrl(999999999);
       expect(url).toBe("/api/books/999999999/cover");
     });
@@ -116,12 +116,12 @@ describe("getCoverUrl", () => {
   });
 
   describe("practical usage scenarios", () => {
-    it("should generate different URLs before and after sync", () => {
-      const beforeSync = new Date("2024-01-15T10:00:00.000Z");
-      const afterSync = new Date("2024-01-15T10:30:00.000Z");
+    it("should generate different URLs before and after update", () => {
+      const beforeUpdate = new Date("2024-01-15T10:00:00.000Z");
+      const afterUpdate = new Date("2024-01-15T10:30:00.000Z");
       
-      const urlBefore = getCoverUrl(123, beforeSync);
-      const urlAfter = getCoverUrl(123, afterSync);
+      const urlBefore = getCoverUrl(123, beforeUpdate);
+      const urlAfter = getCoverUrl(123, afterUpdate);
       
       expect(urlBefore).not.toBe(urlAfter);
       expect(urlBefore).toContain("?t=");

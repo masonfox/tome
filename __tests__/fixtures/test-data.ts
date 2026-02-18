@@ -196,6 +196,7 @@ export const mockCalibreBook = {
 export function createTestBook(overrides?: Partial<NewBook>): NewBook {
   return {
     calibreId: 1,
+    source: 'calibre', // Default source for test books
     title: "Test Book",
     authors: ["Test Author"],
     tags: [],

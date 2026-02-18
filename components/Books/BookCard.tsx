@@ -6,6 +6,7 @@ import { BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useState, memo } from "react";
 import { StatusBadge } from "@/components/Utilities/StatusBadge";
+import { ProviderBadge, type SourceProviderId } from "@/components/Providers/ProviderBadge";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
 
@@ -13,22 +14,22 @@ interface BookCardProps {
   id: string;
   title: string;
   authors: string[];
-  calibreId: number;
+  sources?: SourceProviderId[]; // Array of source providers (empty array = local book)
   status?: string | null;
   currentProgress?: number;
   className?: string;
-  lastSynced?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 export const BookCard = memo(function BookCard({
   id,
   title,
   authors,
-  calibreId,
+  sources,
   status,
   currentProgress,
   className,
-  lastSynced,
+  updatedAt,
 }: BookCardProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -43,7 +44,7 @@ export const BookCard = memo(function BookCard({
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
           {!imageError ? (
             <Image
-              src={getCoverUrl(calibreId, lastSynced)}
+              src={getCoverUrl(parseInt(id), updatedAt)}
               alt={title}
               fill
               loading="lazy"
@@ -95,6 +96,7 @@ export const BookCard = memo(function BookCard({
     prevProps.title === nextProps.title &&
     prevProps.status === nextProps.status &&
     prevProps.currentProgress === nextProps.currentProgress &&
-    prevProps.calibreId === nextProps.calibreId
+    prevProps.updatedAt === nextProps.updatedAt &&
+    JSON.stringify(prevProps.sources) === JSON.stringify(nextProps.sources) // Deep comparison for array
   );
 });

@@ -25,8 +25,8 @@ afterEach(async () => {
 function insertBook(opts: { id?: number; title: string; calibreId: number; orphaned?: boolean }) {
   const rawDb = testDb.sqlite;
   rawDb.prepare(`
-    INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
-    VALUES (?, ?, '[]', '[]', '/test', ?)
+    INSERT INTO books (title, calibre_id, authors, tags, orphaned)
+    VALUES (?, ?, '[]', '[]', ?)
   `).run(opts.title, opts.calibreId, opts.orphaned ? 1 : 0);
   
   const row = rawDb.prepare("SELECT last_insert_rowid() as id").get() as { id: number };

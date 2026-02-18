@@ -25,7 +25,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Series A",
         seriesIndex: 1,
       });
@@ -35,7 +34,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/2",
         series: "Series A",
         seriesIndex: 2,
       });
@@ -45,7 +43,6 @@ describe("SeriesRepository", () => {
         title: "Book 3",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/3",
         series: "Series B",
         seriesIndex: 1,
       });
@@ -56,7 +53,6 @@ describe("SeriesRepository", () => {
         title: "Book 4",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/4",
       });
 
       const series = await seriesRepository.getAllSeries();
@@ -74,7 +70,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Series A",
         seriesIndex: 1,
       });
@@ -84,7 +79,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/2",
         series: "Series A",
         seriesIndex: 2,
         orphaned: true,
@@ -108,7 +102,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Series A",
         seriesIndex: 1,
       });
@@ -119,7 +112,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
         series: "",
         seriesIndex: null,
       });
@@ -140,7 +132,6 @@ describe("SeriesRepository", () => {
         title: "Book 3 of Series",
         authors: ["Author 1"],
         tags: ["tag1"],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 3,
         totalPages: 300,
@@ -151,7 +142,6 @@ describe("SeriesRepository", () => {
         title: "Book 1 of Series",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 1,
         totalPages: 200,
@@ -162,7 +152,6 @@ describe("SeriesRepository", () => {
         title: "Book 2 of Series",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/3",
         series: "Test Series",
         seriesIndex: 2,
       });
@@ -182,7 +171,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -211,7 +199,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -221,7 +208,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 2,
         orphaned: true,
@@ -241,7 +227,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -251,7 +236,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 2,
       });
@@ -276,7 +260,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
         series: "Harry Potter & the Philosopher's Stone",
         seriesIndex: 1,
       });
@@ -286,7 +269,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/2",
         series: 'Series with "Quotes"',
         seriesIndex: 1,
       });
@@ -296,7 +278,6 @@ describe("SeriesRepository", () => {
         title: "Book 3",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/3",
         series: "Series: With Colon",
         seriesIndex: 1,
       });
@@ -323,7 +304,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -333,7 +313,6 @@ describe("SeriesRepository", () => {
         title: "Book 1.5",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 1.5,
       });
@@ -343,7 +322,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: [],
-        path: "/path/3",
         series: "Test Series",
         seriesIndex: 2,
       });
@@ -364,7 +342,6 @@ describe("SeriesRepository", () => {
         title: "Book with Index",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -374,7 +351,6 @@ describe("SeriesRepository", () => {
         title: "Book without Index",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: null,
       });
@@ -395,7 +371,6 @@ describe("SeriesRepository", () => {
         title: "Book B",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -405,7 +380,6 @@ describe("SeriesRepository", () => {
         title: "Book A",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -424,7 +398,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "The Foundation",
         seriesIndex: 1,
       });
@@ -434,7 +407,6 @@ describe("SeriesRepository", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "the foundation",
         seriesIndex: 1,
       });
@@ -459,7 +431,6 @@ describe("SeriesRepository", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: longName,
         seriesIndex: 1,
       });

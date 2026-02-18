@@ -35,21 +35,18 @@ describe("sessionRepository.findByStatus - Dashboard Sorting", () => {
         calibreId: 1,
         title: "Book 1",
         authors: ["Author 1"],
-        path: "/test/path1",
       });
 
       const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
         authors: ["Author 2"],
-        path: "/test/path2",
       });
 
       const book3 = await bookRepository.create({
         calibreId: 3,
         title: "Book 3",
         authors: ["Author 3"],
-        path: "/test/path3",
       });
 
       // Create read-next sessions with readNextOrder in non-sequential creation order
@@ -144,21 +141,18 @@ describe("sessionRepository.findByStatus - Dashboard Sorting", () => {
         calibreId: 1,
         title: "Book 0",
         authors: ["Author 0"],
-        path: "/test/path0",
       });
 
       const book2 = await bookRepository.create({
         calibreId: 2,
         title: "Book 2",
         authors: ["Author 2"],
-        path: "/test/path2",
       });
 
       const book5 = await bookRepository.create({
         calibreId: 3,
         title: "Book 5",
         authors: ["Author 5"],
-        path: "/test/path5",
       });
 
       // Create sessions with gaps in readNextOrder (0, 2, 5)

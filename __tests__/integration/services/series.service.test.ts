@@ -28,7 +28,6 @@ describe("SeriesService", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Series A",
         seriesIndex: 1,
       });
@@ -38,7 +37,6 @@ describe("SeriesService", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "Series B",
         seriesIndex: 1,
       });
@@ -88,7 +86,6 @@ describe("SeriesService", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -109,7 +106,6 @@ describe("SeriesService", () => {
         title: "Book 3",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 3,
       });
@@ -119,7 +115,6 @@ describe("SeriesService", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -136,7 +131,6 @@ describe("SeriesService", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Harry Potter & the Philosopher's Stone",
         seriesIndex: 1,
       });
@@ -179,7 +173,6 @@ describe("SeriesService", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });
@@ -189,7 +182,6 @@ describe("SeriesService", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: [],
-        path: "/path/2",
         series: "Test Series",
         seriesIndex: 2,
       });
@@ -206,7 +198,6 @@ describe("SeriesService", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
         series: "Test Series",
         seriesIndex: 1,
       });

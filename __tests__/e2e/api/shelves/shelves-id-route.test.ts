@@ -77,7 +77,6 @@ describe('GET /api/shelves/[id]', () => {
       title: "Book 1",
       authors: ["Author 1"],
       tags: [],
-      path: "/path/1",
     });
 
     const book2 = await bookRepository.create({
@@ -85,7 +84,6 @@ describe('GET /api/shelves/[id]', () => {
       title: "Book 2",
       authors: ["Author 2"],
       tags: [],
-      path: "/path/2",
     });
 
     await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -114,7 +112,6 @@ describe('GET /api/shelves/[id]', () => {
       title: "Zebra Book",
       authors: ["Author Z"],
       tags: [],
-      path: "/path/1",
     });
 
     const bookA = await bookRepository.create({
@@ -122,7 +119,6 @@ describe('GET /api/shelves/[id]', () => {
       title: "Alpha Book",
       authors: ["Author A"],
       tags: [],
-      path: "/path/2",
     });
 
     await shelfRepository.addBookToShelf(shelf.id, bookZ!.id);
@@ -437,7 +433,6 @@ describe('DELETE /api/shelves/[id]', () => {
       title: "Test Book",
       authors: ["Author"],
       tags: [],
-      path: "/path/1",
     });
 
     await shelfRepository.addBookToShelf(shelf.id, book!.id);

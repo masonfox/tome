@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { syncCalibreLibrary, getLastSyncTime, isSyncInProgress, CalibreDataSource } from "@/lib/sync-service";
-import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, bookSourceRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { mockCalibreBook , createTestBook, createTestSession, createTestProgress } from "@/__tests__/fixtures/test-data";
 import { CalibreBook } from "@/lib/db/calibre";
@@ -144,10 +144,19 @@ describe("syncCalibreLibrary", () => {
       calibreId: 1,
       title: "Book Still in Calibre",
       authors: ["Author 1"],
-      tags: [],
+      tags: ["fantasy"],
       path: "Author1/Book1",
       orphaned: false,
     }));
+
+    // Create book_sources entry for book1 (simulates previous sync)
+    await bookSourceRepository.upsert({
+      bookId: book1.id,
+      providerId: "calibre",
+      externalId: "1",
+      isPrimary: true,
+      syncEnabled: true,
+    });
 
     const book2 = await bookRepository.create(createTestBook({
       calibreId: 2,
@@ -158,9 +167,18 @@ describe("syncCalibreLibrary", () => {
       orphaned: false,
     }));
 
+    // Create book_sources entry for book2 (simulates previous sync)
+    await bookSourceRepository.upsert({
+      bookId: book2.id,
+      providerId: "calibre",
+      externalId: "2",
+      isPrimary: true,
+      syncEnabled: true,
+    });
+
     // Create 10 more books to stay under 10% threshold (1/12 = 8.3%)
     for (let i = 3; i <= 12; i++) {
-      await bookRepository.create(createTestBook({
+      const book = await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
@@ -168,6 +186,15 @@ describe("syncCalibreLibrary", () => {
         path: `Author${i}/Book${i}`,
         orphaned: false,
       }));
+
+      // Create book_sources entry for each book (simulates previous sync)
+      await bookSourceRepository.upsert({
+        bookId: book.id,
+        providerId: "calibre",
+        externalId: i.toString(),
+        isPrimary: true,
+        syncEnabled: true,
+      });
     }
 
     // Mock Calibre with all books except book 2
@@ -718,15 +745,24 @@ describe("Sync Service - Orphaning Safety Checks", () => {
   });
 
   test("CRITICAL: Mass orphaning (>10%) aborts sync with error", async () => {
-    // Arrange - Create 100 books in DB
+    // Arrange - Create 100 books in DB with book_sources entries
     for (let i = 1; i <= 100; i++) {
-      await bookRepository.create(createTestBook({
+      const book = await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
         tags: [],
         path: `Author${i}/Book${i}`,
       }));
+
+      // Create book_sources entry (simulates previous sync)
+      await bookSourceRepository.upsert({
+        bookId: book.id,
+        providerId: "calibre",
+        externalId: i.toString(),
+        isPrimary: true,
+        syncEnabled: true,
+      });
     }
 
     // Mock Calibre with only 85 books (15 books would be orphaned = 15%)
@@ -780,13 +816,20 @@ describe("Sync Service - Orphaning Safety Checks", () => {
   test("Allows orphaning under 10% threshold", async () => {
     // Arrange - Create 100 books in DB
     for (let i = 1; i <= 100; i++) {
-      await bookRepository.create(createTestBook({
+      const book = await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
         tags: [],
         path: `Author${i}/Book${i}`,
       }));
+      // Create book_sources entry to simulate previous sync
+      await bookSourceRepository.upsert({
+        bookId: book.id,
+        providerId: "calibre",
+        externalId: String(i),
+        isPrimary: true,
+      });
     }
 
     // Mock Calibre with 95 books (5 books would be orphaned = 5%)
@@ -874,13 +917,20 @@ describe("Sync Service - Orphaning Safety Checks", () => {
   test("findNotInCalibreIds correctly identifies missing books", async () => {
     // Arrange - Create 5 books
     for (let i = 1; i <= 5; i++) {
-      await bookRepository.create(createTestBook({
+      const book = await bookRepository.create(createTestBook({
         calibreId: i,
         title: `Book ${i}`,
         authors: [`Author ${i}`],
         tags: [],
         path: `Author${i}/Book${i}`,
       }));
+      // Create book_sources entry to simulate previous sync
+      await bookSourceRepository.upsert({
+        bookId: book.id,
+        providerId: "calibre",
+        externalId: String(i),
+        isPrimary: true,
+      });
     }
 
     // Act - Call with calibreIds [1, 2, 3] (books 4 and 5 are missing)

@@ -207,7 +207,6 @@ export class ReadingGoalRepository extends BaseRepository<
         series: books.series,
         seriesIndex: books.seriesIndex,
         tags: books.tags,
-        path: books.path,
         description: books.description,
         rating: books.rating,
         orphaned: books.orphaned,

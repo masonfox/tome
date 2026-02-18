@@ -30,7 +30,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "First Book",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add book to top of empty shelf
@@ -62,7 +61,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -70,7 +68,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -78,7 +75,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Add books to end (positions 0, 1, 2)
@@ -102,7 +98,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "New Book",
         authors: ["Author 4"],
         tags: [],
-        path: "/path/4",
       });
 
       // Add new book to top
@@ -185,7 +180,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -193,7 +187,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -201,7 +194,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       // Add books with specific sortOrder to create gaps (0, 5, 10)
@@ -222,7 +214,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "New Book",
         authors: ["Author 4"],
         tags: [],
-        path: "/path/4",
       });
 
       // Add new book to top
@@ -272,7 +263,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "New Book",
         authors: ["Author 101"],
         tags: [],
-        path: "/path/101",
       });
 
       // Measure time for adding to top
@@ -312,7 +302,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -320,7 +309,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Add book1 to shelf
@@ -358,7 +346,6 @@ describe("ShelfRepository - Add to Top", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add book to shelf

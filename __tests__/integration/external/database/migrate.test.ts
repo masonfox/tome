@@ -434,8 +434,8 @@ describe("Migration System", () => {
 
       // Insert test data with all required fields
       testSqlite.prepare(`
-        INSERT INTO books (calibre_id, title, authors, path)
-        VALUES (1, 'Test Book', '["Test Author"]', '/test/path')
+        INSERT INTO books (calibre_id, title, authors)
+        VALUES (1, 'Test Book', '["Test Author"]')
       `).run();
 
       // Verify data exists
@@ -479,8 +479,8 @@ describe("Migration System", () => {
 
       // Insert book and session with all required fields
       const bookResult = testSqlite.prepare(`
-        INSERT INTO books (calibre_id, title, authors, total_pages, path)
-        VALUES (1, 'Test Book', '["Author"]', 300, '/test/path')
+        INSERT INTO books (calibre_id, title, authors, total_pages)
+        VALUES (1, 'Test Book', '["Author"]', 300)
       `).run();
 
       const sessionResult = testSqlite.prepare(`
@@ -655,8 +655,8 @@ describe("Migration System", () => {
 
         // Insert book first
         const bookResult = testSqlite.prepare(`
-          INSERT INTO books (calibre_id, title, authors, path)
-          VALUES (1, 'Test Book', '["Author"]', '/test/path')
+          INSERT INTO books (calibre_id, title, authors)
+          VALUES (1, 'Test Book', '["Author"]')
         `).run();
 
         // Insert session with valid book_id (should succeed)
@@ -712,13 +712,13 @@ describe("Migration System", () => {
 
         // Insert multiple books and sessions
         const book1 = testSqlite.prepare(`
-          INSERT INTO books (calibre_id, title, authors, path)
-          VALUES (1, 'Book 1', '["Author 1"]', '/path1')
+          INSERT INTO books (calibre_id, title, authors)
+          VALUES (1, 'Book 1', '["Author 1"]')
         `).run();
 
         const book2 = testSqlite.prepare(`
-          INSERT INTO books (calibre_id, title, authors, path)
-          VALUES (2, 'Book 2', '["Author 2"]', '/path2')
+          INSERT INTO books (calibre_id, title, authors)
+          VALUES (2, 'Book 2', '["Author 2"]')
         `).run();
 
         testSqlite.prepare(`

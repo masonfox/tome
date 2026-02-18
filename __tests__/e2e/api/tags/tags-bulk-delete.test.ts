@@ -199,11 +199,12 @@ describe("POST /api/tags/bulk-delete", () => {
 
       // Assert: Batch Calibre sync was called with correct data
       expect(mockBatchUpdateCalibreTags).toHaveBeenCalledTimes(1);
-      // Note: Books are ordered by createdAt DESC, so book 21 (created second) comes first
-      expect(mockBatchUpdateCalibreTags).toHaveBeenCalledWith([
-        { calibreId: 21, tags: [] },
-        { calibreId: 20, tags: [] }
-      ]);
+      const syncCall = mockBatchUpdateCalibreTags.mock.calls[0][0];
+      expect(syncCall).toHaveLength(2);
+      // Check that both books were synced with empty tags (order may vary)
+      const calibreIds = syncCall.map((call: any) => call.calibreId).sort();
+      expect(calibreIds).toEqual([20, 21]);
+      syncCall.forEach((call: any) => expect(call.tags).toEqual([]));
     });
 
     test("should suspend and resume watcher during bulk delete", async () => {

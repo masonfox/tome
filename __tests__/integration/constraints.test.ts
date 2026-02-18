@@ -31,7 +31,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/to/book",
       });
 
       // Attempt to create duplicate
@@ -41,7 +40,6 @@ describe("Database Constraints", () => {
           title: "Another Book",
           authors: ["Author 2"],
           tags: [],
-          path: "/path/to/another",
         })
       ).rejects.toThrow();
     });
@@ -55,7 +53,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       // Create first active session
@@ -83,7 +80,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       // Create first inactive session
@@ -111,7 +107,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       // Create session
@@ -145,7 +140,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       // Attempt to create progress log with non-existent sessionId
@@ -167,7 +161,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -204,7 +197,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -269,7 +261,6 @@ describe("Database Constraints", () => {
         title: "Rating Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
         rating: 5, // Valid rating
       });
       expect(book.rating).toBe(5);
@@ -282,7 +273,6 @@ describe("Database Constraints", () => {
           title: "Invalid Rating Book",
           authors: ["Author"],
           tags: [],
-          path: "/path",
           rating: 6, // Out of range
         });
       } catch (e) {
@@ -297,7 +287,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -330,7 +319,6 @@ describe("Database Constraints", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({

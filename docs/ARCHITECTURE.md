@@ -1,14 +1,28 @@
 # Tome Architecture - AI Context
 
-**Last Updated:** November 24, 2025
-**Status:** Current - SQLite + Drizzle ORM + Repository Pattern
+**Last Updated:** February 6, 2026
+**Status:** Current - SQLite + Drizzle ORM + Repository Pattern + Multi-Source Provider Architecture
 **Audience:** AI agents, developers
 
 ---
 
 ## Section 1: System Overview
 
-**Tome** is a self-hosted reading progress tracker that integrates with Calibre digital libraries. It enables users to track reading progress, manage reading status (to-read, reading, read), maintain reading streaks, and view comprehensive reading statistics.
+**Tome** is a self-hosted reading progress tracker that supports multiple book sources: Calibre libraries, local entry, and external metadata providers (Hardcover, OpenLibrary). It enables users to track reading progress, manage reading status (to-read, reading, read), maintain reading streaks, and view comprehensive reading statistics across all book sources.
+
+### Multi-Source Book Tracking
+
+**Supported Book Sources:**
+- **Calibre** (`source='calibre'`): Books synced from Calibre library
+- **Local** (`source='local'`): User-entered books without external metadata
+- **Hardcover** (`source='hardcover'`): Books fetched from Hardcover.app API
+- **OpenLibrary** (`source='openlibrary'`): Books fetched from OpenLibrary.org API
+
+**Key Principles:**
+- **Source Isolation**: Calibre sync only affects Calibre-sourced books
+- **Unified Experience**: All Tome features (sessions, progress, streaks) work identically across all sources
+- **Provider Architecture**: Extensible provider system with circuit breaker protection
+- **Source Migration**: Local books can be upgraded to external provider books (one-way)
 
 ### Integration with Calibre
 
@@ -50,11 +64,51 @@ Tome implements multiple safety mechanisms when writing to the Calibre database:
 ### Core User Flows
 
 1. **Setup**: Point Tome to Calibre library → Initial sync imports all books
-2. **Reading Progress**: Log pages/percentage as reading → Progress tracked per session
-3. **Status Management**: Change book status (to-read → reading → read)
-4. **Re-reading**: Complete a book, then start a new session for same book with full history preserved
-5. **Rating**: Rate books on finish → Syncs to Calibre automatically
-6. **Streaks**: Daily reading activity tracked → Current and longest streak calculated
+2. **Local Book Addition**: Add books locally via UI → Track physical books alongside digital
+3. **External Metadata Search**: Search Hardcover/OpenLibrary → Fetch rich metadata automatically
+4. **Reading Progress**: Log pages/percentage as reading → Progress tracked per session
+5. **Status Management**: Change book status (to-read → reading → read)
+6. **Re-reading**: Complete a book, then start a new session for same book with full history preserved
+7. **Rating**: Rate books on finish → Syncs to Calibre automatically (Calibre books only)
+8. **Streaks**: Daily reading activity tracked → Current and longest streak calculated
+9. **Source Filtering**: Filter library by source → View books from specific providers
+
+### Provider Architecture
+
+**Provider System** (`lib/providers/`):
+- **ProviderRegistry**: Central registry for all metadata providers
+- **IMetadataProvider Interface**: Standard provider contract with capability flags
+- **Circuit Breaker**: Automatic failure detection and recovery (5 failures → 60s cooldown)
+- **Health Monitoring**: Real-time provider health status
+- **Federated Search**: Parallel search across multiple providers (5s timeout per provider)
+
+**Built-in Providers:**
+1. **CalibreProvider** (`lib/providers/calibre.provider.ts`)
+   - Capabilities: hasSync, hasMetadataFetch
+   - Always enabled when `CALIBRE_DB_PATH` configured
+   - Priority: 1 (highest)
+
+2. **LocalProvider** (`lib/providers/local.provider.ts`)
+   - Capabilities: None (user-entered data only)
+   - Always enabled
+   - Priority: 99 (lowest - fallback)
+
+3. **HardcoverProvider** (`lib/providers/hardcover.provider.ts`)
+   - Capabilities: hasSearch, hasMetadataFetch
+   - Optional: Requires API key (configurable via Settings UI)
+   - Priority: 10
+
+4. **OpenLibraryProvider** (`lib/providers/openlibrary.provider.ts`)
+   - Capabilities: hasSearch, hasMetadataFetch
+   - Always enabled (public API, no auth)
+   - Priority: 20
+
+**Provider Configuration:**
+- Settings UI: `/settings/providers` - Enable/disable providers, configure API keys
+- Database: `provider_configs` table stores settings and credentials
+- Runtime updates: Enable/disable without restart
+
+**For details:** See [specs/003-non-calibre-books/](../specs/003-non-calibre-books/)
 
 ---
 

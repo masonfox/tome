@@ -24,7 +24,6 @@ test("deleteSession - should delete archived session and create new to-read sess
     calibreId: 1,
     title: "Test Book",
     authors: ["Test Author"],
-    path: "/test/path",
     totalPages: 300,
   });
 
@@ -91,7 +90,6 @@ test("deleteSession - should delete active session and create new to-read sessio
     calibreId: 2,
     title: "Active Book",
     authors: ["Test Author"],
-    path: "/test/path2",
     totalPages: 400,
   });
 
@@ -143,7 +141,6 @@ test("deleteSession - should throw error if session not found", async () => {
     calibreId: 3,
     title: "Test Book",
     authors: ["Test Author"],
-    path: "/test/path3",
   });
 
   await expect(
@@ -157,14 +154,12 @@ test("deleteSession - should throw error if bookId mismatch", async () => {
     calibreId: 4,
     title: "Book 1",
     authors: ["Author 1"],
-    path: "/path1",
   });
 
   const book2 = await bookRepository.create({
     calibreId: 5,
     title: "Book 2",
     authors: ["Author 2"],
-    path: "/path2",
   });
 
   // Create session for book1
@@ -187,7 +182,6 @@ test("deleteSession - should handle multiple sessions correctly", async () => {
     calibreId: 6,
     title: "Multi-Session Book",
     authors: ["Test Author"],
-    path: "/test/path6",
     totalPages: 500,
   });
 
@@ -248,7 +242,6 @@ test("deleteSession - REGRESSION: should not leave book without session when del
     calibreId: 7,
     title: "It",
     authors: ["Stephen King"],
-    path: "/stephen-king/it",
     totalPages: 1184,
   });
 

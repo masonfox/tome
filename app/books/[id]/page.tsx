@@ -16,9 +16,13 @@ import ProgressEditModal from "@/components/Modals/ProgressEditModal";
 import RereadConfirmModal from "@/components/Modals/RereadConfirmModal";
 import ArchiveSessionModal from "@/components/Modals/ArchiveSessionModal";
 import PageCountEditModal from "@/components/Modals/PageCountEditModal";
+import EditBookModal from "@/components/Modals/EditBookModal";
+import DeleteBookModal from "@/components/Modals/DeleteBookModal";
 import TagEditor from "@/components/BookDetail/TagEditor";
 import ShelfEditor from "@/components/BookDetail/ShelfEditor";
 import BookHeader from "@/components/BookDetail/BookHeader";
+import { BookActionsMenu } from "@/components/BookDetail/BookActionsMenu";
+import { ProviderBadge, type SourceProviderId } from "@/components/Providers/ProviderBadge";
 import { calculatePercentage } from "@/lib/utils/progress-calculations";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 import { getLogger } from "@/lib/logger";
@@ -50,6 +54,21 @@ export default function BookDetailPage() {
     setImageError,
     updateTags,
   } = useBookDetail(bookId);
+
+  // Fetch book sources separately (Phase R1.6)
+  const { data: bookSourcesData } = useQuery<{ sources: Array<{ providerId: string }> }>({
+    queryKey: ['bookSources', bookId],
+    queryFn: async () => {
+      const response = await fetch(`/api/books/${bookId}/sources`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch book sources');
+      }
+      return response.json();
+    },
+    enabled: !!bookId && !!book, // Only fetch if we have a book
+    staleTime: 60000, // Cache for 1 minute
+  });
+  const bookSources = bookSourcesData?.sources?.map(s => s.providerId as SourceProviderId) || [];
 
   const bookProgressHook = useBookProgress(bookId, book, async () => {
     // Invalidate relevant queries to refetch fresh data
@@ -92,7 +111,7 @@ export default function BookDetailPage() {
       }
 
       // Update review to the session if provided and we have a session ID
-      // Check both bookProgressHook.completedSessionId (from auto-completion) and book.activeSession.id (from manual mark as read)
+      // Check both bookProgressHook.completedSessionId (from auto-completion) and book.activeSession.id (from local mark as read)
       const sessionId = bookProgressHook.completedSessionId || book?.activeSession?.id;
       if (review && sessionId) {
         const sessionBody = { review };
@@ -161,6 +180,8 @@ export default function BookDetailPage() {
   const [showPageCountModal, setShowPageCountModal] = useState(false);
   const [showTagEditor, setShowTagEditor] = useState(false);
   const [showShelfEditor, setShowShelfEditor] = useState(false);
+  const [showEditBookModal, setShowEditBookModal] = useState(false);
+  const [showDeleteBookModal, setShowDeleteBookModal] = useState(false);
   const [pendingStatusForPageCount, setPendingStatusForPageCount] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -422,9 +443,18 @@ export default function BookDetailPage() {
                 {book.seriesIndex && ` #${book.seriesIndex}`}
               </Link>
             )}
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight">
-              {book.title}
-            </h1>
+            <div className="flex items-start gap-3">
+              <h1 className="text-3xl md:text-4xl font-serif font-bold text-[var(--heading-text)] md:mb-1 leading-tight flex-1">
+                {book.title}
+              </h1>
+              {/* Book Actions Menu - only show for local books (no sources) */}
+              {bookSources.length === 0 && (
+                <BookActionsMenu
+                  onEdit={() => setShowEditBookModal(true)}
+                  onDelete={() => setShowDeleteBookModal(true)}
+                />
+              )}
+            </div>
             <div className="font-serif text-lg md:text-xl text-[var(--subheading-text)] mb-4 font-medium">
               {book.authors.map((author, index) => (
                 <span key={author}>
@@ -441,6 +471,21 @@ export default function BookDetailPage() {
 
             {/* Metadata */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 text-xs md:text-sm font-medium">
+              {/* Provider Badges - show multiple sources or none for local books */}
+              {bookSources.length > 0 && (
+                <>
+                  {bookSources.map((source, index) => (
+                    <span key={source}>
+                      <ProviderBadge source={source} size="md" />
+                      {index < bookSources.length - 1 && (
+                        <span className="text-[var(--border-color)] ml-2 mr-1">•</span>
+                      )}
+                    </span>
+                  ))}
+                  <span className="text-[var(--border-color)]">•</span>
+                </>
+              )}
+
               {book.totalReads !== undefined && book.totalReads > 0 && (
                 <div className="flex items-center gap-1.5 text-[var(--accent)]">
                   <BookCheck className="w-3 md:w-4 h-3 md:h-4" />
@@ -569,9 +614,9 @@ export default function BookDetailPage() {
             </div>
             {book.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {book.tags.map((tag) => (
+                {book.tags.map((tag, index) => (
                   <Link
-                    key={tag}
+                    key={`${tag}-${index}`}
                     href={`/library?tags=${encodeURIComponent(tag)}`}
                     className="px-3 py-1 bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 rounded text-sm transition-colors font-medium"
                   >
@@ -647,7 +692,7 @@ export default function BookDetailPage() {
       </div>
 
       {/* Modals */}
-      {/* Manual completion from non-reading status (Want to Read / Read Next → Read) */}
+      {/* Local completion from non-reading status (Want to Read / Read Next → Read) */}
       <CompleteBookModal
         isOpen={showCompleteBookModal}
         onClose={() => handleCancelStatusChange()}
@@ -659,7 +704,7 @@ export default function BookDetailPage() {
         defaultStartDate={book.activeSession?.startedDate ?? undefined}
       />
 
-      {/* Manual status change from "reading" to "read" - uses mark-as-read API */}
+      {/* Local status change from "reading" to "read" - uses mark-as-read API */}
       <FinishBookModal
         isOpen={showReadConfirmation}
         onClose={() => handleCancelStatusChange()}
@@ -668,7 +713,7 @@ export default function BookDetailPage() {
         bookId={bookId}
       />
 
-      {/* Manual status change from "reading" to "dnf" - uses mark-as-dnf API */}
+      {/* Local status change from "reading" to "dnf" - uses mark-as-dnf API */}
       <DNFBookModal
         isOpen={showDNFModal}
         onClose={() => handleCancelStatusChange()}
@@ -755,6 +800,30 @@ export default function BookDetailPage() {
         currentShelfIds={currentShelfIds}
         availableShelves={availableShelves}
         isMobile={isMobile}
+      />
+
+      <EditBookModal
+        isOpen={showEditBookModal}
+        onClose={() => setShowEditBookModal(false)}
+        bookId={book.id}
+        currentBook={{
+          title: book.title,
+          authors: book.authors,
+          isbn: (book as any).isbn || null,
+          publisher: (book as any).publisher || null,
+          pubDate: (book as any).pubDate || null,
+          series: (book as any).series || null,
+          seriesIndex: (book as any).seriesIndex || null,
+          description: (book as any).description || null,
+          totalPages: book.totalPages || null,
+        }}
+      />
+
+      <DeleteBookModal
+        isOpen={showDeleteBookModal}
+        onClose={() => setShowDeleteBookModal(false)}
+        bookId={book.id}
+        bookTitle={book.title}
       />
     </div>
   );

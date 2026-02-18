@@ -10,6 +10,7 @@ import {
   parseLocalDateToUtc,
   getCurrentDateInUserTimezone,
   toDateString,
+  parsePublishDate,
 } from '@/utils/dateHelpers.server';
 import { streakRepository } from '@/lib/repositories';
 import { getLogger } from '@/lib/logger';
@@ -466,6 +467,201 @@ describe("Server-Side Date Helpers", () => {
       // Second call (should hit DB again)
       await getCurrentUserTimezone();
       expect(streakRepository.getOrCreate).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("parsePublishDate", () => {
+    describe("ISO date formats", () => {
+      test("should parse full ISO date (YYYY-MM-DD)", () => {
+        const result = parsePublishDate("2022-02-15");
+        
+        expect(result).toBeInstanceOf(Date);
+        expect(result?.getUTCFullYear()).toBe(2022);
+        expect(result?.getUTCMonth()).toBe(1); // February (0-indexed)
+        expect(result?.getUTCDate()).toBe(15);
+        expect(result?.getUTCHours()).toBe(0);
+        expect(result?.getUTCMinutes()).toBe(0);
+      });
+
+      test("should parse partial ISO date (YYYY-MM) as 1st of month", () => {
+        const result = parsePublishDate("1967-07");
+        
+        expect(result).toBeInstanceOf(Date);
+        expect(result?.getUTCFullYear()).toBe(1967);
+        expect(result?.getUTCMonth()).toBe(6); // July
+        expect(result?.getUTCDate()).toBe(1); // Defaults to 1st
+      });
+
+      test("should handle various ISO dates", () => {
+        expect(parsePublishDate("2018-01-18")?.toISOString()).toBe("2018-01-18T00:00:00.000Z");
+        expect(parsePublishDate("2020-12-31")?.toISOString()).toBe("2020-12-31T00:00:00.000Z");
+        expect(parsePublishDate("1994-09")?.toISOString()).toBe("1994-09-01T00:00:00.000Z");
+      });
+    });
+
+    describe("Year-only formats", () => {
+      test("should parse year only as January 1st", () => {
+        const result = parsePublishDate("1996");
+        
+        expect(result).toBeInstanceOf(Date);
+        expect(result?.getUTCFullYear()).toBe(1996);
+        expect(result?.getUTCMonth()).toBe(0); // January
+        expect(result?.getUTCDate()).toBe(1);
+      });
+
+      test("should handle various years", () => {
+        expect(parsePublishDate("2015")?.getUTCFullYear()).toBe(2015);
+        expect(parsePublishDate("1866")?.getUTCFullYear()).toBe(1866);
+        expect(parsePublishDate("2022")?.getUTCFullYear()).toBe(2022);
+      });
+    });
+
+    describe("Full text date formats", () => {
+      test("should parse 'Month Day, Year' format", () => {
+        const result = parsePublishDate("May 16, 2019");
+        
+        expect(result).toBeInstanceOf(Date);
+        expect(result?.getUTCFullYear()).toBe(2019);
+        expect(result?.getUTCMonth()).toBe(4); // May (0-indexed)
+        expect(result?.getUTCDate()).toBe(16);
+      });
+
+      test("should parse 'Month Year' format as 1st of month", () => {
+        const result = parsePublishDate("December 2001");
+        
+        expect(result).toBeInstanceOf(Date);
+        expect(result?.getUTCFullYear()).toBe(2001);
+        expect(result?.getUTCMonth()).toBe(11); // December
+        expect(result?.getUTCDate()).toBe(1); // Defaults to 1st
+      });
+
+      test("should parse 'Day Month Year' format", () => {
+        const result = parsePublishDate("15 January 2020");
+        
+        expect(result).toBeInstanceOf(Date);
+        expect(result?.getUTCFullYear()).toBe(2020);
+        expect(result?.getUTCMonth()).toBe(0); // January
+        expect(result?.getUTCDate()).toBe(15);
+      });
+
+      test("should parse various month names (full and abbreviated)", () => {
+        expect(parsePublishDate("January 2020")?.getUTCMonth()).toBe(0);
+        expect(parsePublishDate("Jan 2020")?.getUTCMonth()).toBe(0);
+        expect(parsePublishDate("February 2020")?.getUTCMonth()).toBe(1);
+        expect(parsePublishDate("Feb 2020")?.getUTCMonth()).toBe(1);
+        expect(parsePublishDate("September 2020")?.getUTCMonth()).toBe(8);
+        expect(parsePublishDate("Sep 2020")?.getUTCMonth()).toBe(8);
+        expect(parsePublishDate("December 2020")?.getUTCMonth()).toBe(11);
+        expect(parsePublishDate("Dec 2020")?.getUTCMonth()).toBe(11);
+      });
+
+      test("should handle dates with and without commas", () => {
+        expect(parsePublishDate("June 30, 1994")?.toISOString()).toBe("1994-06-30T00:00:00.000Z");
+        expect(parsePublishDate("June 30 1994")?.toISOString()).toBe("1994-06-30T00:00:00.000Z");
+        expect(parsePublishDate("October 2007")?.toISOString()).toBe("2007-10-01T00:00:00.000Z");
+      });
+
+      test("should be case-insensitive for month names", () => {
+        expect(parsePublishDate("JANUARY 2020")?.getUTCMonth()).toBe(0);
+        expect(parsePublishDate("january 2020")?.getUTCMonth()).toBe(0);
+        expect(parsePublishDate("January 2020")?.getUTCMonth()).toBe(0);
+      });
+    });
+
+    describe("Edge cases and invalid inputs", () => {
+      test("should return undefined for unparseable formats", () => {
+        expect(parsePublishDate("19xx")).toBeUndefined(); // Placeholder
+        expect(parsePublishDate("196x")).toBeUndefined(); // Placeholder
+        expect(parsePublishDate("1927-1928")).toBeUndefined(); // Range
+        expect(parsePublishDate("[ca. 1960]")).toBeUndefined(); // Bracketed
+        expect(parsePublishDate("not a date")).toBeUndefined();
+        expect(parsePublishDate("")).toBeUndefined();
+        expect(parsePublishDate("   ")).toBeUndefined();
+      });
+
+      test("should return undefined for undefined or null", () => {
+        expect(parsePublishDate(undefined)).toBeUndefined();
+        expect(parsePublishDate(null as any)).toBeUndefined();
+      });
+
+      test("should return undefined for invalid month", () => {
+        expect(parsePublishDate("2022-13-01")).toBeUndefined(); // Month 13
+        expect(parsePublishDate("2022-00-01")).toBeUndefined(); // Month 0
+        expect(parsePublishDate("Octember 2020")).toBeUndefined(); // Invalid month name
+      });
+
+      test("should return undefined for invalid day", () => {
+        expect(parsePublishDate("2022-02-32")).toBeUndefined(); // Day 32
+        expect(parsePublishDate("2022-02-00")).toBeUndefined(); // Day 0
+      });
+
+      test("should handle whitespace gracefully", () => {
+        expect(parsePublishDate("  2022-02-15  ")?.toISOString()).toBe("2022-02-15T00:00:00.000Z");
+        expect(parsePublishDate("  May 16, 2019  ")?.toISOString()).toBe("2019-05-16T00:00:00.000Z");
+      });
+    });
+
+    describe("Real-world examples from OpenLibrary API", () => {
+      test("should parse various formats from OpenLibrary responses", () => {
+        // Samples from actual OpenLibrary API response for "The Great Gatsby"
+        expect(parsePublishDate("May 16, 2019")?.toISOString()).toBe("2019-05-16T00:00:00.000Z");
+        expect(parsePublishDate("2007 October 1")?.toISOString()).toBe("2007-10-01T00:00:00.000Z");
+        expect(parsePublishDate("Oct 31, 2020")?.toISOString()).toBe("2020-10-31T00:00:00.000Z");
+        expect(parsePublishDate("1996")?.toISOString()).toBe("1996-01-01T00:00:00.000Z");
+        expect(parsePublishDate("2022-02-15")?.toISOString()).toBe("2022-02-15T00:00:00.000Z");
+        expect(parsePublishDate("December 2001")?.toISOString()).toBe("2001-12-01T00:00:00.000Z");
+        
+        // Invalid formats that should be skipped
+        expect(parsePublishDate("196x")).toBeUndefined();
+        expect(parsePublishDate("19xx")).toBeUndefined();
+        expect(parsePublishDate("1927-1928")).toBeUndefined();
+        expect(parsePublishDate("[ca. 1960]")).toBeUndefined();
+      });
+
+      test("should handle partial ISO dates from OpenLibrary", () => {
+        expect(parsePublishDate("1967-07")?.toISOString()).toBe("1967-07-01T00:00:00.000Z");
+        expect(parsePublishDate("1962-06")?.toISOString()).toBe("1962-06-01T00:00:00.000Z");
+        expect(parsePublishDate("1994-09")?.toISOString()).toBe("1994-09-01T00:00:00.000Z");
+      });
+    });
+
+    describe("Date precision", () => {
+      test("should preserve full date precision when available", () => {
+        const fullDate = parsePublishDate("2019-05-16");
+        expect(fullDate?.getUTCDate()).toBe(16);
+        expect(fullDate?.getUTCMonth()).toBe(4);
+        expect(fullDate?.getUTCFullYear()).toBe(2019);
+      });
+
+      test("should default to 1st of month when day missing", () => {
+        const monthOnly = parsePublishDate("October 2007");
+        expect(monthOnly?.getUTCDate()).toBe(1);
+        expect(monthOnly?.getUTCMonth()).toBe(9);
+        expect(monthOnly?.getUTCFullYear()).toBe(2007);
+      });
+
+      test("should default to January 1st when only year available", () => {
+        const yearOnly = parsePublishDate("1996");
+        expect(yearOnly?.getUTCDate()).toBe(1);
+        expect(yearOnly?.getUTCMonth()).toBe(0);
+        expect(yearOnly?.getUTCFullYear()).toBe(1996);
+      });
+
+      test("all dates should be at midnight UTC", () => {
+        const dates = [
+          parsePublishDate("2022-02-15"),
+          parsePublishDate("May 16, 2019"),
+          parsePublishDate("October 2007"),
+          parsePublishDate("1996"),
+        ];
+
+        dates.forEach(date => {
+          expect(date?.getUTCHours()).toBe(0);
+          expect(date?.getUTCMinutes()).toBe(0);
+          expect(date?.getUTCSeconds()).toBe(0);
+          expect(date?.getUTCMilliseconds()).toBe(0);
+        });
+      });
     });
   });
 });

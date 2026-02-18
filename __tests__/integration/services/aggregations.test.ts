@@ -28,7 +28,6 @@ describe("Aggregation Query Tests", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -74,7 +73,6 @@ describe("Aggregation Query Tests", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -122,7 +120,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path1",
       });
 
       const book2 = await bookRepository.create({
@@ -130,7 +127,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: [],
-        path: "/path2",
       });
 
       // Completed sessions
@@ -168,7 +164,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const currentYear = new Date().getFullYear();
@@ -207,7 +202,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: [],
-        path: "/path1",
       });
 
       const book2 = await bookRepository.create({
@@ -215,7 +209,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: [],
-        path: "/path2",
       });
 
       // Active reading sessions
@@ -255,7 +248,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({
@@ -317,7 +309,6 @@ describe("Aggregation Query Tests", () => {
         title: "Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const session = await sessionRepository.create({

@@ -60,14 +60,12 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147, // Dune
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/to/dune',
       });
 
       const book2 = await bookRepository.create({
         calibreId: 83, // Children of Dune
         title: 'Children of Dune',
         authors: ['Frank Herbert'],
-        path: '/path/to/children',
       });
       await sessionRepository.create({
         bookId: book1.id,
@@ -97,7 +95,6 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/to/dune',
       });
 
       await sessionRepository.create({
@@ -121,21 +118,18 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/1',
       });
 
       const book2 = await bookRepository.create({
         calibreId: 83,
         title: 'Children of Dune',
         authors: ['Frank Herbert'],
-        path: '/path/2',
       });
 
       const book3 = await bookRepository.create({
         calibreId: 84,
         title: 'Dune Messiah',
         authors: ['Frank Herbert'],
-        path: '/path/3',
       });
 
       await sessionRepository.create({
@@ -216,7 +210,6 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/to/dune',
       });
 
       await sessionRepository.create({
@@ -237,7 +230,6 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/to/dune',
       });
 
       await sessionRepository.create({
@@ -258,7 +250,6 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/to/dune',
       });
 
       // Create an archived "reading" session (should be ignored)
@@ -285,14 +276,12 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/1',
       });
 
       const book2 = await bookRepository.create({
         calibreId: 83,
         title: 'Children of Dune',
         authors: ['Frank Herbert'],
-        path: '/path/2',
       });
 
       // Add books to shelf1
@@ -340,21 +329,18 @@ describe('Tome Integration - OPDS Bridge', () => {
         calibreId: 147,
         title: 'Dune',
         authors: ['Frank Herbert'],
-        path: '/path/1',
       });
 
       const book2 = await bookRepository.create({
         calibreId: 83,
         title: 'Children of Dune',
         authors: ['Frank Herbert'],
-        path: '/path/2',
       });
 
       const book3 = await bookRepository.create({
         calibreId: 84,
         title: 'Dune Messiah',
         authors: ['Frank Herbert'],
-        path: '/path/3',
       });
 
       // Add books with specific sort order (2, 0, 1)

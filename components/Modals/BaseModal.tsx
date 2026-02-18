@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
-import { useEffect, useState, Children } from "react";
+import { useEffect, useState, useRef, Children } from "react";
 import { createPortal } from "react-dom";
 import { Spinner } from "@/components/Utilities/Spinner";
 
@@ -43,6 +43,7 @@ export default function BaseModal({
   // Animation states: null = not rendered, 'entering' = animating in, 'entered' = visible, 'exiting' = animating out
   const [animationState, setAnimationState] = useState<'entering' | 'entered' | 'exiting' | null>(null);
   const [mounted, setMounted] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Check if actions has any children (to handle <></> case)
   const hasActions = Children.count(actions) > 0;
@@ -51,6 +52,31 @@ export default function BaseModal({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      
+      return () => {
+        // Restore body scroll
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
 
   // Handle opening and closing with proper animation states
   useEffect(() => {
@@ -97,6 +123,7 @@ export default function BaseModal({
       style={{
         transition: `opacity ${ANIMATION_DURATION}ms cubic-bezier(0.32, 0.72, 0, 1)`,
         pointerEvents: isExiting ? 'none' : 'auto',
+        touchAction: 'none',
       }}
       onClick={allowBackdropClose ? onClose : undefined}
     >
@@ -134,7 +161,15 @@ export default function BaseModal({
         </div>
 
         {/* Content - Scrollable */}
-        <div className={cn("flex-1 overflow-y-auto px-6", hasActions ? "pb-4" : "pb-6")}>
+        <div 
+          ref={contentRef}
+          className={cn("flex-1 overflow-y-auto px-6", hasActions ? "pb-4" : "pb-6")}
+          style={{ 
+            overscrollBehavior: 'none',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+          }}
+        >
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner size="md" />

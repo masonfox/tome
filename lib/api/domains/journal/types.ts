@@ -25,8 +25,8 @@ export interface GroupedJournalEntry {
     bookId: number;
     bookTitle: string;
     bookAuthors: string[];
-    bookCalibreId: number;
-    bookLastSynced?: Date | string | null;
+    bookCalibreId: number | null;
+    bookUpdatedAt?: Date | string | null;
     entries: JournalEntry[];
   }[];
 }

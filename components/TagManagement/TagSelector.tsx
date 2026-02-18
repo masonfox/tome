@@ -66,9 +66,18 @@ export function TagSelector({
     if (disabled) return;
     
     onTagsChange([...selectedTags, tag]);
-    setFilterInput("");
-    setShowDropdown(false); // Close on click - visual browsing workflow
-    // Don't refocus - let user see the tag pill appear
+    
+    // Context-aware dropdown behavior:
+    // - If user was searching (filterInput has content), close dropdown (they found what they wanted)
+    // - If user was browsing (filterInput empty), keep open for rapid multi-selection
+    const wasSearching = filterInput.trim().length > 0;
+    
+    setFilterInput(""); // Always clear search
+    
+    if (wasSearching) {
+      setShowDropdown(false); // Close if user was searching
+    }
+    // else: keep dropdown open for browsing workflow
   };
 
   // Handle keyboard events
