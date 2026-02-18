@@ -42,15 +42,6 @@ export const BookCard = memo(function BookCard({
         )}
       >
         <div className="aspect-[2/3] bg-[var(--light-accent)]/30 flex items-center justify-center overflow-hidden relative">
-          {/* Provider Badges - show multiple sources or none for manual books */}
-          {sources && sources.length > 0 && (
-            <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
-              {sources.map((source) => (
-                <ProviderBadge key={source} source={source} size="sm" />
-              ))}
-            </div>
-          )}
-
           {!imageError ? (
             <Image
               src={getCoverUrl(parseInt(id), updatedAt)}
