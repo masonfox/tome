@@ -690,6 +690,7 @@ export default function ManualBookForm({
       size="xl"
       loading={isSubmitting}
       actions={modalActions}
+      allowBackdropClose={false}
     >
       {modalContent}
     </BaseModal>

@@ -331,6 +331,7 @@ export default function EditBookModal({
       title="Edit Book"
       size="xl"
       actions={actionButtons}
+      allowBackdropClose={false}
     >
       {formContent}
     </BaseModal>

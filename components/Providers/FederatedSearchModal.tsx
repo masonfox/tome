@@ -754,6 +754,7 @@ export default function FederatedSearchModal({
       size="xl"
       loading={isSubmitting || isFetchingMetadata}
       actions={modalActions}
+      allowBackdropClose={false}
     >
       {modalContent}
     </BaseModal>
