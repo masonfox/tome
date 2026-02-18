@@ -321,6 +321,15 @@ export default function FederatedSearchModal({
             errors[field] = err.message;
           });
           setValidationErrors(errors);
+          
+          // Show toast notification so user knows there's an error
+          const errorCount = Object.keys(errors).length;
+          const fieldNames = Object.keys(errors).join(", ");
+          toast.error(
+            errorCount === 1 
+              ? `Validation error: ${fieldNames}` 
+              : `Validation errors in: ${fieldNames}`
+          );
         } else {
           toast.error(error.error || "Failed to create book");
         }
@@ -647,6 +656,9 @@ export default function FederatedSearchModal({
           className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
           placeholder="e.g., fiction, fantasy (comma-separated)"
         />
+        {validationErrors.tags && (
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.tags}</p>
+        )}
       </div>
 
       {/* Description */}
