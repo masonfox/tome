@@ -2,6 +2,7 @@ import { getAllBooks, getBookTags, getAllBookTags, getBooksCount, CalibreBook, P
 import { bookRepository, sessionRepository, bookSourceRepository } from "@/lib/repositories";
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
+import { SessionService } from "@/lib/services/session.service";
 import { getLogger } from "@/lib/logger";
 import { generateAuthorSort } from "@/lib/utils/author-sort";
 import { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats } from "@/lib/cache/cover-cache";
@@ -279,16 +280,12 @@ export async function syncCalibreLibrary(
         const newCalibreIds = booksToInsert.map(book => book.calibreId!);
         
         const newBooksMap = await bookRepository.findAllByCalibreIds(newCalibreIds);
-        const sessionsToCreate: NewReadingSession[] = [];
         
-        for (const book of Array.from(newBooksMap.values())) {
-          sessionsToCreate.push({
-            bookId: book.id,
-            status: "to-read",
-            sessionNumber: 1,
-            isActive: true,
-          });
-        }
+        // Use SessionService's canonical data structure for consistency
+        // Bulk operation for performance (5000+ books per sync)
+        const sessionsToCreate = Array.from(newBooksMap.values()).map(book =>
+          SessionService.buildInitialSessionData(book.id)
+        );
 
         await sessionRepository.bulkCreate(sessionsToCreate);
         logger.debug({ chunk: chunkNumber }, `[Sync:Chunk] Sessions created`);

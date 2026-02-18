@@ -4,6 +4,7 @@ import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
 import type { ProgressLog } from "@/lib/db/schema/progress-logs";
 import type { BookFilter } from "@/lib/repositories/book.repository";
 import type { ICalibreService } from "@/lib/services/calibre.service";
+import { SessionService } from "@/lib/services/session.service";
 import { getLogger } from "@/lib/logger";
 import { validateManualBookInput, type ManualBookInput } from "@/lib/validation/manual-book.schema";
 import { detectDuplicates, type DuplicateDetectionResult } from "@/lib/services/duplicate-detection.service";
@@ -343,16 +344,39 @@ export class BookService {
       orphanedAt: null,
     };
 
-    // Create book
-    const createdBook = await bookRepository.create(newBook);
+    // Create book and initial session sequentially
+    // Repository pattern must be maintained per constitution
+    // Note: Not atomic due to better-sqlite3 transaction limitations with async repository methods,
+    // but we handle failures by rolling back the book creation if session creation fails
+    let createdBook: Book;
+    try {
+      createdBook = await bookRepository.create(newBook);
+    } catch (error) {
+      logger.error({ err: error, title: newBook.title }, "Failed to create manual book");
+      throw error;
+    }
 
-    // Create initial reading session
-    await sessionRepository.create({
-      bookId: createdBook.id,
-      status: "to-read",
-      startedDate: new Date().toISOString(),
-      sessionNumber: 1,
-    });
+    try {
+      // Create initial session using SessionService's canonical data structure
+      await sessionRepository.create(
+        SessionService.buildInitialSessionData(createdBook.id)
+      );
+    } catch (error) {
+      // Rollback: Delete the book if session creation fails to prevent orphaned books
+      logger.error(
+        { err: error, bookId: createdBook.id },
+        "Failed to create initial session, rolling back book creation"
+      );
+      try {
+        await bookRepository.delete(createdBook.id);
+      } catch (deleteError) {
+        logger.error(
+          { err: deleteError, bookId: createdBook.id },
+          "Failed to rollback book creation - orphaned book may exist"
+        );
+      }
+      throw error;
+    }
 
     logger.info(
       {

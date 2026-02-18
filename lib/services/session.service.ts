@@ -1,5 +1,5 @@
 import { bookRepository, sessionRepository, progressRepository } from "@/lib/repositories";
-import type { ReadingSession } from "@/lib/db/schema/reading-sessions";
+import type { ReadingSession, NewReadingSession } from "@/lib/db/schema/reading-sessions";
 import { streakService } from "@/lib/services/streak.service";
 import { calibreService } from "@/lib/services/calibre.service";
 import { progressService } from "@/lib/services/progress.service";
@@ -117,6 +117,74 @@ type MarkAsReadStrategy = (
  * - Cache invalidation
  */
 export class SessionService {
+  /**
+   * Build initial session data for a newly added book.
+   * 
+   * This is the canonical data structure for new book sessions.
+   * Used by both single and bulk creation paths to ensure consistency.
+   * 
+   * Sessions start with:
+   * - status: "to-read" (not yet started)
+   * - startedDate: null (set when status changes to "reading")
+   * - completedDate: null (set when status changes to "read" or "dnf")
+   * - sessionNumber: 1 (first session for this book)
+   * - isActive: true (this is the active session)
+   * 
+   * @param bookId - The ID of the book to create a session for
+   * @returns NewReadingSession data structure ready for insertion
+   * 
+   * @example
+   * // Single book creation
+   * const sessionData = SessionService.buildInitialSessionData(bookId);
+   * await sessionRepository.create(sessionData);
+   * 
+   * @example
+   * // Bulk book creation (Calibre sync)
+   * const sessionsData = newBooks.map(book => 
+   *   SessionService.buildInitialSessionData(book.id)
+   * );
+   * await sessionRepository.bulkCreate(sessionsData);
+   */
+  static buildInitialSessionData(bookId: number): NewReadingSession {
+    return {
+      bookId,
+      status: 'to-read' as const,
+      sessionNumber: 1,
+      isActive: true,
+      startedDate: null, // NULL until status changes to "reading"
+      completedDate: null,
+    };
+  }
+
+  /**
+   * Create initial session for a newly added book.
+   * 
+   * Convenience method that wraps buildInitialSessionData() and creates the session
+   * in the database. Use this for single-book creation workflows.
+   * 
+   * For bulk operations (e.g., Calibre sync), use buildInitialSessionData() directly
+   * with sessionRepository.bulkCreate() for better performance.
+   * 
+   * @param bookId - The ID of the book to create a session for
+   * @param tx - Optional transaction context for atomic book+session creation
+   * @returns Promise resolving to the created session
+   * @throws {Error} If session creation fails
+   * 
+   * @example
+   * // Create session for manual book (with transaction)
+   * await db.transaction(async (tx) => {
+   *   const book = await bookRepository.create(bookData, tx);
+   *   const session = await sessionService.createInitialSession(book.id, tx);
+   *   return book;
+   * });
+   */
+  async createInitialSession(bookId: number, tx?: any): Promise<ReadingSession> {
+    return sessionRepository.create(
+      SessionService.buildInitialSessionData(bookId),
+      tx
+    );
+  }
+
   /**
    * Get the current date as YYYY-MM-DD string in user's timezone.
    * 
