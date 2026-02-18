@@ -1,7 +1,7 @@
 Just a place to drop todos as we work through 003
 
 **TODO**
-- Ensure that book removal/deletion casecades
+- Ensure that book removal/deletion casecades across all tables
 - Determine if we can entirely remove "orphaned" books and or duplicates between local and Calibre/other future book_sources. Do we merge them? Is this a new UI? If they're orphaned from Calibre, we probably just need to remove the `books_sources` entry.
 - Integrate provider API/credentials UI into the individual provider items (they're separated in the UI right now and it feels weird)
 - Ensure that both Calibre and Manual repository flows are not diverging at all
@@ -10,10 +10,12 @@ Just a place to drop todos as we work through 003
 - Ensure that local books can transition to each status - thoroughly test this
 - Given how the migration strategy refined over time, doublecheck the schema migrations for this shift.
 
-**DOING**
 
+**DOING**
+- Troubleshoot why a duplicated book's cover doesn't show. See book id 736243
 
 **DONE**
+- Upon deleting a book, the /library cache is still not invalidating - the book remains on the /library page upon redirect until your refresh.
 - Improve the tag UI for the "Add Book from Search" modal. It should allow users to see existing tags as tag items and remove them with X. But also add others with the search input... I wonder if we could reuse our logic from the "Edit Tags" modal? If we can make that DRY, that'd be awesome!
 - Remove the "Calibre" source label from BookCards
 - Consolidate the /library filters. E.g., split Sources and Shelves 50/50
