@@ -96,10 +96,10 @@ export function BookActionsDropdown({
         }}
         disabled={isAtTop || isMoving}
         className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        title={isAtTop ? "Already at top" : isMoving ? "Moving..." : "Move to top of list"}
+        title={isAtTop ? "Already at top" : "Move to top of list"}
       >
         <ArrowUp className="w-4 h-4" />
-        {isMoving ? "Moving..." : "Move to Top"}
+        Move to Top
       </button>
 
       {onMoveToBottom && (
@@ -117,10 +117,10 @@ export function BookActionsDropdown({
           }}
           disabled={isAtBottom || isMoving}
           className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          title={isAtBottom ? "Already at bottom" : isMoving ? "Moving..." : "Move to bottom of list"}
+          title={isAtBottom ? "Already at bottom" : "Move to bottom of list"}
         >
           <ArrowDown className="w-4 h-4" />
-          {isMoving ? "Moving..." : "Move to Bottom"}
+          Move to Bottom
         </button>
       )}
 
