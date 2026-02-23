@@ -27,7 +27,7 @@ import { Button } from "@/components/Utilities/Button";
 import type { Book } from "@/lib/db/schema/books";
 
 export default function ReadNextPage() {
-  const { sessions, loading, reorderBooks, removeBooks, moveToTop } = useReadNextBooks();
+  const { sessions, loading, reorderBooks, removeBooks, moveToTop, moveToBottom } = useReadNextBooks();
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
 
@@ -217,8 +217,10 @@ export default function ReadNextPage() {
                     bookId={book.id}
                     bookTitle={book.title}
                     isAtTop={sessionIndex === 0}
+                    isAtBottom={sessionIndex === sessions.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                     onMoveToTop={() => moveToTop(session.id)}
+                    onMoveToBottom={() => moveToBottom(session.id)}
                   />
                 ) : null;
               } : undefined}
@@ -241,8 +243,10 @@ export default function ReadNextPage() {
                           bookId={book.id}
                           bookTitle={book.title}
                           isAtTop={sessionIndex === 0}
+                          isAtBottom={sessionIndex === sessions.length - 1}
                           onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                           onMoveToTop={() => moveToTop(session.id)}
+                          onMoveToBottom={() => moveToBottom(session.id)}
                         />
                       ) : undefined
                     }
@@ -255,13 +259,13 @@ export default function ReadNextPage() {
           // Desktop: Always use draggable table (disable dragging when filtering or selecting)
           !listView.filterText ? (
             <DraggableBookTable
-              books={listView.filteredBooks}
-              onReorder={handleReorder}
+              books={booksWithOrder}
               isDragEnabled={!listView.isSelectMode}
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
               onToggleSelectAll={listView.toggleSelectAll}
+              onReorder={handleReorder}
               renderActions={(book, index) => {
                 const session = sessions.find((s) => s.book.id === book.id);
                 return session && !listView.isSelectMode ? (
@@ -269,8 +273,10 @@ export default function ReadNextPage() {
                     bookId={book.id}
                     bookTitle={book.title}
                     isAtTop={index === 0}
+                    isAtBottom={index === booksWithOrder.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                     onMoveToTop={() => moveToTop(session.id)}
+                    onMoveToBottom={() => moveToBottom(session.id)}
                   />
                 ) : null;
               }}
@@ -289,8 +295,10 @@ export default function ReadNextPage() {
                     bookId={book.id}
                     bookTitle={book.title}
                     isAtTop={index === 0}
+                    isAtBottom={index === listView.filteredBooks.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                     onMoveToTop={() => moveToTop(session.id)}
+                    onMoveToBottom={() => moveToBottom(session.id)}
                   />
                 ) : null;
               }}

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { MoreVertical, ExternalLink, Trash2, ArrowUp } from "lucide-react";
+import { MoreVertical, ExternalLink, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useDropdownPosition } from "@/hooks/useDropdownPosition";
 import Link from "next/link";
 
@@ -10,8 +10,10 @@ interface BookActionsDropdownProps {
   bookId: number;
   bookTitle: string;
   isAtTop: boolean;
+  isAtBottom?: boolean;
   onRemove: () => void;
   onMoveToTop: () => void;
+  onMoveToBottom?: () => void;
   disabled?: boolean;
 }
 
@@ -19,8 +21,10 @@ export function BookActionsDropdown({
   bookId,
   bookTitle,
   isAtTop,
+  isAtBottom = false,
   onRemove,
   onMoveToTop,
+  onMoveToBottom,
   disabled = false,
 }: BookActionsDropdownProps) {
   const [showMenu, setShowMenu] = useState(false);
@@ -97,6 +101,28 @@ export function BookActionsDropdown({
         <ArrowUp className="w-4 h-4" />
         {isMoving ? "Moving..." : "Move to Top"}
       </button>
+
+      {onMoveToBottom && (
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsMoving(true);
+            try {
+              await onMoveToBottom();
+            } finally {
+              setIsMoving(false);
+              setShowMenu(false);
+            }
+          }}
+          disabled={isAtBottom || isMoving}
+          className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={isAtBottom ? "Already at bottom" : isMoving ? "Moving..." : "Move to bottom of list"}
+        >
+          <ArrowDown className="w-4 h-4" />
+          {isMoving ? "Moving..." : "Move to Bottom"}
+        </button>
+      )}
 
       <button
         onClick={(e) => {
