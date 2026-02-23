@@ -86,12 +86,12 @@ export function BookActionsDropdown({
         onClick={async (e) => {
           e.preventDefault();
           e.stopPropagation();
+          setShowMenu(false);
           setIsMoving(true);
           try {
             await onMoveToTop();
           } finally {
             setIsMoving(false);
-            setShowMenu(false);
           }
         }}
         disabled={isAtTop || isMoving}
@@ -107,12 +107,12 @@ export function BookActionsDropdown({
           onClick={async (e) => {
             e.preventDefault();
             e.stopPropagation();
+            setShowMenu(false);
             setIsMoving(true);
             try {
               await onMoveToBottom();
             } finally {
               setIsMoving(false);
-              setShowMenu(false);
             }
           }}
           disabled={isAtBottom || isMoving}
