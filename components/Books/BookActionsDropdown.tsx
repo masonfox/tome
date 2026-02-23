@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MoreVertical, ExternalLink, Trash2, ArrowUp } from "lucide-react";
+import { useDropdownPosition } from "@/hooks/useDropdownPosition";
 import Link from "next/link";
 
 interface BookActionsDropdownProps {
@@ -12,11 +13,6 @@ interface BookActionsDropdownProps {
   onRemove: () => void;
   onMoveToTop: () => void;
   disabled?: boolean;
-}
-
-interface MenuPosition {
-  top: number;
-  left: number;
 }
 
 export function BookActionsDropdown({
@@ -29,28 +25,11 @@ export function BookActionsDropdown({
 }: BookActionsDropdownProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const updateMenuPosition = useCallback(() => {
-    if (!buttonRef.current) return;
-
-    const rect = buttonRef.current.getBoundingClientRect();
-    const menuWidth = 192; // w-48 = 12rem = 192px
-
-    setMenuPosition({
-      top: rect.bottom + 4, // 4px gap below button
-      left: rect.right - menuWidth, // Align right edge with button
-    });
-  }, []);
-
-  // Update position when menu opens
-  useEffect(() => {
-    if (showMenu) {
-      updateMenuPosition();
-    }
-  }, [showMenu, updateMenuPosition]);
+  // Use custom hook for intelligent dropdown positioning
+  const menuPosition = useDropdownPosition(buttonRef, menuRef, showMenu);
 
   // Close menu when clicking outside
   useEffect(() => {
