@@ -919,6 +919,240 @@ describe("SessionRepository - Edge Cases", () => {
       expect(updated[4]?.readNextOrder).toBe(4); // Unchanged
     });
   });
+
+  describe("moveReadNextToBottom", () => {
+    test("should move session to bottom position and shift others up", async () => {
+      // Create 3 books with read-next sessions
+      const book1 = await bookRepository.create({
+        title: "Book 1",
+        calibreId: 1,
+        path: "/test/book1.epub",
+      });
+      const book2 = await bookRepository.create({
+        title: "Book 2",
+        calibreId: 2,
+        path: "/test/book2.epub",
+      });
+      const book3 = await bookRepository.create({
+        title: "Book 3",
+        calibreId: 3,
+        path: "/test/book3.epub",
+      });
+
+      const session1 = await sessionRepository.create({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 0,
+      });
+      const session2 = await sessionRepository.create({
+        bookId: book2.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 1,
+      });
+      const session3 = await sessionRepository.create({
+        bookId: book3.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 2,
+      });
+
+      // Move session1 (currently at position 0) to bottom
+      await sessionRepository.moveReadNextToBottom(session1.id);
+
+      // Verify new positions
+      const updatedSession1 = await sessionRepository.findById(session1.id);
+      const updatedSession2 = await sessionRepository.findById(session2.id);
+      const updatedSession3 = await sessionRepository.findById(session3.id);
+
+      expect(updatedSession1?.readNextOrder).toBe(2); // Moved to bottom
+      expect(updatedSession2?.readNextOrder).toBe(0); // Shifted up
+      expect(updatedSession3?.readNextOrder).toBe(1); // Shifted up
+    });
+
+    test("should handle moving already bottom item (no-op)", async () => {
+      const book1 = await bookRepository.create({
+        title: "Book 1",
+        calibreId: 1,
+        path: "/test/book1.epub",
+      });
+      const book2 = await bookRepository.create({
+        title: "Book 2",
+        calibreId: 2,
+        path: "/test/book2.epub",
+      });
+
+      const session1 = await sessionRepository.create({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 0,
+      });
+      const session2 = await sessionRepository.create({
+        bookId: book2.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 1,
+      });
+
+      // Move session2 (already at bottom position 1) to bottom
+      await sessionRepository.moveReadNextToBottom(session2.id);
+
+      // Verify positions unchanged
+      const updatedSession1 = await sessionRepository.findById(session1.id);
+      const updatedSession2 = await sessionRepository.findById(session2.id);
+
+      expect(updatedSession1?.readNextOrder).toBe(0);
+      expect(updatedSession2?.readNextOrder).toBe(1);
+    });
+
+    test("should only affect read-next sessions", async () => {
+      const book1 = await bookRepository.create({
+        title: "Book 1",
+        calibreId: 1,
+        path: "/test/book1.epub",
+      });
+      const book2 = await bookRepository.create({
+        title: "Book 2",
+        calibreId: 2,
+        path: "/test/book2.epub",
+      });
+      const book3 = await bookRepository.create({
+        title: "Book 3",
+        calibreId: 3,
+        path: "/test/book3.epub",
+      });
+
+      // Create read-next sessions
+      const session1 = await sessionRepository.create({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 0,
+      });
+      const session2 = await sessionRepository.create({
+        bookId: book2.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 1,
+      });
+
+      // Create a non-read-next session (should not be affected)
+      const readingSession = await sessionRepository.create({
+        bookId: book3.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      // Get initial readNextOrder value
+      const initialReadingSession = await sessionRepository.findById(readingSession.id);
+      const initialReadNextOrder = initialReadingSession?.readNextOrder;
+
+      // Move session1 to bottom
+      await sessionRepository.moveReadNextToBottom(session1.id);
+
+      // Verify reading session unaffected (readNextOrder should not change)
+      const updatedReadingSession = await sessionRepository.findById(readingSession.id);
+      expect(updatedReadingSession?.readNextOrder).toBe(initialReadNextOrder);
+      expect(updatedReadingSession?.status).toBe("reading");
+    });
+
+    test("should work with single read-next item", async () => {
+      const book = await bookRepository.create({
+        title: "Book 1",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "read-next",
+        isActive: false,
+        readNextOrder: 0,
+      });
+
+      await sessionRepository.moveReadNextToBottom(session.id);
+
+      const updatedSession = await sessionRepository.findById(session.id);
+      expect(updatedSession?.readNextOrder).toBe(0);
+    });
+
+    test("should handle moving from middle position", async () => {
+      // Create 5 books for a more comprehensive test
+      const books = await Promise.all(
+        Array.from({ length: 5 }, (_, i) =>
+          bookRepository.create({
+            title: `Book ${i + 1}`,
+            calibreId: i + 1,
+            path: `/test/book${i + 1}.epub`,
+          })
+        )
+      );
+
+      const sessions = await Promise.all(
+        books.map((book, i) =>
+          sessionRepository.create({
+            bookId: book.id,
+            sessionNumber: 1,
+            status: "read-next",
+            isActive: false,
+            readNextOrder: i,
+          })
+        )
+      );
+
+      // Move session at position 2 to bottom
+      await sessionRepository.moveReadNextToBottom(sessions[2].id);
+
+      // Verify all positions
+      const updated = await Promise.all(
+        sessions.map((s) => sessionRepository.findById(s.id))
+      );
+
+      expect(updated[0]?.readNextOrder).toBe(0); // Unchanged
+      expect(updated[1]?.readNextOrder).toBe(1); // Unchanged
+      expect(updated[2]?.readNextOrder).toBe(4); // Moved to bottom
+      expect(updated[3]?.readNextOrder).toBe(2); // Shifted up
+      expect(updated[4]?.readNextOrder).toBe(3); // Shifted up
+    });
+
+    test("should throw error if session not found", async () => {
+      await expect(
+        sessionRepository.moveReadNextToBottom(99999)
+      ).rejects.toThrow(/Session with ID 99999 not found/);
+    });
+
+    test("should throw error if session not in read-next status", async () => {
+      const book = await bookRepository.create({
+        title: "Reading Book",
+        calibreId: 1,
+        path: "/test/book.epub",
+      });
+
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+      });
+
+      await expect(
+        sessionRepository.moveReadNextToBottom(session.id)
+      ).rejects.toThrow(/not in read-next status/);
+    });
+
+
+  });
 });
 
 // ---------------------------------------------------------------------------

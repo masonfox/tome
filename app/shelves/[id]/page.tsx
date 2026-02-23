@@ -66,6 +66,7 @@ export default function ShelfDetailPage() {
     moveBooks,
     copyBooks,
     moveToTop,
+    moveToBottom,
   } = useShelfBooks(shelfId, sortBy, sortDirection);
 
   // Use shared book list view hook for filtering and selection
@@ -365,8 +366,10 @@ export default function ShelfDetailPage() {
                   bookId={book.id}
                   bookTitle={book.title}
                   isAtTop={index === 0}
+                  isAtBottom={index === listView.filteredBooks.length - 1}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
+                  onMoveToBottom={() => moveToBottom(book.id)}
                 />
               ) : undefined}
             />
@@ -385,8 +388,10 @@ export default function ShelfDetailPage() {
                         bookId={book.id}
                         bookTitle={book.title}
                         isAtTop={index === 0}
+                        isAtBottom={index === listView.filteredBooks.length - 1}
                         onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                         onMoveToTop={() => moveToTop(book.id)}
+                        onMoveToBottom={() => moveToBottom(book.id)}
                       />
                     ) : undefined
                   }
@@ -413,8 +418,10 @@ export default function ShelfDetailPage() {
                   bookId={book.id}
                   bookTitle={book.title}
                   isAtTop={book.sortOrder === 0}
+                  isAtBottom={index === books.length - 1}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
+                  onMoveToBottom={() => moveToBottom(book.id)}
                 />
               ) : undefined}
             />
@@ -434,8 +441,10 @@ export default function ShelfDetailPage() {
                   bookId={book.id}
                   bookTitle={book.title}
                   isAtTop={book.sortOrder === 0}
+                  isAtBottom={index === listView.filteredBooks.length - 1}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
+                  onMoveToBottom={() => moveToBottom(book.id)}
                 />
               ) : undefined}
             />

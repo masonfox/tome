@@ -536,6 +536,67 @@ export class ShelfRepository extends BaseRepository<
     });
   }
 
+  async moveBookToBottom(shelfId: number, bookId: number): Promise<void> {
+    const db = this.getDatabase();
+    
+    // Check if book is on the shelf
+    const bookOnShelf = await db
+      .select()
+      .from(bookShelves)
+      .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
+      .get();
+    
+    if (!bookOnShelf) {
+      throw new Error(`Book ${bookId} is not on shelf ${shelfId}`);
+    }
+    
+    // Validate sortOrder is not null
+    const currentOrder = bookOnShelf.sortOrder;
+    if (currentOrder === null || currentOrder === undefined) {
+      throw new Error(`Book ${bookId} on shelf ${shelfId} has null sortOrder`);
+    }
+    
+    // Find the maximum sortOrder on this shelf
+    const maxOrderResult = db
+      .select({ maxOrder: sql<number>`MAX(${bookShelves.sortOrder})` })
+      .from(bookShelves)
+      .where(
+        and(
+          eq(bookShelves.shelfId, shelfId),
+          sql`${bookShelves.sortOrder} IS NOT NULL`
+        )
+      )
+      .get();
+    
+    const maxOrder = maxOrderResult?.maxOrder ?? 0;
+    
+    // If already at bottom, no-op
+    if (currentOrder === maxOrder) {
+      return;
+    }
+    
+    // Use transaction to update all books atomically with batch queries
+    db.transaction(() => {
+      // Decrement all books with order > current order (batch update)
+      db.update(bookShelves)
+        .set({ sortOrder: sql`${bookShelves.sortOrder} - 1` })
+        .where(
+          and(
+            eq(bookShelves.shelfId, shelfId),
+            sql`${bookShelves.sortOrder} > ${currentOrder}`,
+            sql`${bookShelves.sortOrder} IS NOT NULL`
+          )
+        )
+        .run();
+      
+      // Set target book to maxOrder
+      db.update(bookShelves)
+        .set({ sortOrder: maxOrder })
+        .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
+        .run();
+    });
+  }
+
   /**
    * Check if a book is on a specific shelf
    */
