@@ -72,7 +72,7 @@ export function BookActionsDropdown({
     >
       <Link
         href={`/books/${bookId}`}
-        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2"
+        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2"
         onClick={(e) => {
           e.stopPropagation();
           setShowMenu(false);
@@ -95,7 +95,7 @@ export function BookActionsDropdown({
           }
         }}
         disabled={isAtTop || isMoving}
-        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         title={isAtTop ? "Already at top" : "Move to top of list"}
       >
         <ArrowUp className="w-4 h-4" />
@@ -116,7 +116,7 @@ export function BookActionsDropdown({
             }
           }}
           disabled={isAtBottom || isMoving}
-          className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           title={isAtBottom ? "Already at bottom" : "Move to bottom of list"}
         >
           <ArrowDown className="w-4 h-4" />

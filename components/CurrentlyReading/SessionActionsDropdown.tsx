@@ -65,7 +65,7 @@ export function SessionActionsDropdown({
           onEdit();
           setShowMenu(false);
         }}
-        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2"
+        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2"
       >
         <Pencil className="w-4 h-4" />
         Edit Session
