@@ -102,11 +102,25 @@ export function useDropdownPosition(
     });
   }, [buttonRef, menuRef, menuWidth, gap]);
 
-  // Update position when menu opens
+  // Update position when menu opens and while window is resized
   useEffect(() => {
-    if (isOpen) {
-      updateMenuPosition();
+    if (!isOpen) {
+      return;
     }
+
+    // Initial position on open
+    updateMenuPosition();
+
+    // Recalculate position on window resize while menu is open
+    const handleResize = () => {
+      updateMenuPosition();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, [isOpen, updateMenuPosition]);
 
   // Recalculate position after menu renders to get accurate height
