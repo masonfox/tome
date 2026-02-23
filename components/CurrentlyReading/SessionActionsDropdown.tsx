@@ -1,18 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { useDropdownPosition } from "@/hooks/useDropdownPosition";
 
 interface SessionActionsDropdownProps {
   onEdit: () => void;
   onDelete: () => void;
   disabled?: boolean;
-}
-
-interface MenuPosition {
-  top: number;
-  left: number;
 }
 
 export function SessionActionsDropdown({
@@ -21,72 +17,11 @@ export function SessionActionsDropdown({
   disabled = false,
 }: SessionActionsDropdownProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const updateMenuPosition = useCallback(() => {
-    if (!buttonRef.current) return;
-
-    const rect = buttonRef.current.getBoundingClientRect();
-    const menuWidth = 192; // w-48 = 12rem = 192px
-    const gap = 4;
-
-    // Get menu height (may be 0 on first render before content is measured)
-    const menuHeight = menuRef.current?.offsetHeight || 0;
-
-    // If we don't have a height yet, position below temporarily
-    // This will be recalculated in useLayoutEffect once menu renders
-    if (menuHeight === 0) {
-      setMenuPosition({
-        top: rect.bottom + gap,
-        left: rect.right - menuWidth,
-      });
-      return;
-    }
-
-    // Calculate available space in viewport
-    const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    let top: number;
-
-    // Smart positioning: choose above or below based on available space
-    if (spaceBelow >= menuHeight + gap) {
-      // Enough space below - position below button (default)
-      top = rect.bottom + gap;
-    } else if (spaceAbove >= menuHeight + gap) {
-      // Not enough space below, but enough above - position above button
-      top = rect.top - menuHeight - gap;
-    } else {
-      // Not enough space either way - use the side with more space
-      // Ensure menu doesn't go above viewport top
-      top = spaceBelow > spaceAbove
-        ? rect.bottom + gap
-        : Math.max(gap, rect.top - menuHeight - gap);
-    }
-
-    setMenuPosition({
-      top,
-      left: rect.right - menuWidth,
-    });
-  }, []);
-
-  // Update position when menu opens
-  useEffect(() => {
-    if (showMenu) {
-      updateMenuPosition();
-    }
-  }, [showMenu, updateMenuPosition]);
-
-  // Recalculate position after menu renders to get accurate height
-  // useLayoutEffect runs synchronously after DOM mutations but before paint
-  useLayoutEffect(() => {
-    if (showMenu && menuRef.current) {
-      updateMenuPosition();
-    }
-  }, [showMenu, updateMenuPosition]);
+  // Use custom hook for intelligent dropdown positioning
+  const menuPosition = useDropdownPosition(buttonRef, menuRef, showMenu);
 
   // Close menu when clicking outside
   useEffect(() => {
