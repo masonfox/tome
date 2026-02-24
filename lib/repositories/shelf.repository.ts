@@ -351,15 +351,15 @@ export class ShelfRepository extends BaseRepository<
     let insertedBook: BookShelf | undefined;
 
     // Use transaction to ensure atomicity of shift + insert
-    db.transaction(() => {
+    await db.transaction((tx) => {
       // Step 1: Shift all existing books down (increment sortOrder by 1)
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: sql`${bookShelves.sortOrder} + 1` })
         .where(eq(bookShelves.shelfId, shelfId))
         .run();
 
       // Step 2: Insert new book at position 0
-      const result = db
+      const result = tx
         .insert(bookShelves)
         .values({
           shelfId,
@@ -403,8 +403,8 @@ export class ShelfRepository extends BaseRepository<
     let removedCount = 0;
 
     // Use a transaction for atomic bulk deletion
-    db.transaction(() => {
-      const result = db
+    await db.transaction((tx) => {
+      const result = tx
         .delete(bookShelves)
         .where(and(eq(bookShelves.shelfId, shelfId), inArray(bookShelves.bookId, bookIds)))
         .run();
@@ -445,9 +445,9 @@ export class ShelfRepository extends BaseRepository<
     const db = this.getDatabase();
 
     // Use a transaction to update all books atomically
-    db.transaction(() => {
+    await db.transaction((tx) => {
       orderedBookIds.forEach((bookId, index) => {
-        db.update(bookShelves)
+        tx.update(bookShelves)
           .set({ sortOrder: index })
           .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
           .run();
@@ -474,9 +474,9 @@ export class ShelfRepository extends BaseRepository<
       .all();
 
     // Use a transaction to update all books atomically
-    db.transaction(() => {
+    await db.transaction((tx) => {
       booksOnShelf.forEach((book, index) => {
-        db.update(bookShelves)
+        tx.update(bookShelves)
           .set({ sortOrder: index })
           .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, book.bookId)))
           .run();
@@ -515,9 +515,9 @@ export class ShelfRepository extends BaseRepository<
     }
     
     // Use transaction to update all books atomically with batch queries
-    db.transaction(() => {
+    await db.transaction((tx) => {
       // Increment all books with order < current order (batch update)
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: sql`${bookShelves.sortOrder} + 1` })
         .where(
           and(
@@ -529,7 +529,7 @@ export class ShelfRepository extends BaseRepository<
         .run();
       
       // Set target book to position 0
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: 0 })
         .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
         .run();
@@ -576,9 +576,9 @@ export class ShelfRepository extends BaseRepository<
     }
     
     // Use transaction to update all books atomically with batch queries
-    db.transaction(() => {
+    await db.transaction((tx) => {
       // Decrement all books with order > current order (batch update)
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: sql`${bookShelves.sortOrder} - 1` })
         .where(
           and(
@@ -590,7 +590,7 @@ export class ShelfRepository extends BaseRepository<
         .run();
       
       // Set target book to maxOrder
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: maxOrder })
         .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
         .run();
