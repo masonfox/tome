@@ -576,9 +576,9 @@ export class ShelfRepository extends BaseRepository<
     }
     
     // Use transaction to update all books atomically with batch queries
-    db.transaction(() => {
+    await db.transaction((tx) => {
       // Decrement all books with order > current order (batch update)
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: sql`${bookShelves.sortOrder} - 1` })
         .where(
           and(
@@ -590,7 +590,7 @@ export class ShelfRepository extends BaseRepository<
         .run();
       
       // Set target book to maxOrder
-      db.update(bookShelves)
+      tx.update(bookShelves)
         .set({ sortOrder: maxOrder })
         .where(and(eq(bookShelves.shelfId, shelfId), eq(bookShelves.bookId, bookId)))
         .run();
