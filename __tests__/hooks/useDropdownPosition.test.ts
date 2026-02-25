@@ -201,8 +201,8 @@ describe("useDropdownPosition", () => {
   });
 
   describe("Edge case: menu doesn't fit either way", () => {
-    test("should position below when more space below than above", () => {
-      // Button in lower-middle of viewport
+    test("should position above when more space above than below", () => {
+      // Button in lower-middle of viewport — more space above
       vi.spyOn(mockButtonElement, "getBoundingClientRect").mockReturnValue({
         top: 700,
         bottom: 740,
@@ -233,8 +233,8 @@ describe("useDropdownPosition", () => {
       expect(result.current.top).toBe(296);
     });
 
-    test("should position above when more space above than below", () => {
-      // Button in upper-middle of viewport
+    test("should position below when more space below than above", () => {
+      // Button in upper-middle of viewport — more space below
       vi.spyOn(mockButtonElement, "getBoundingClientRect").mockReturnValue({
         top: 250,
         bottom: 290,

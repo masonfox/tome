@@ -489,6 +489,12 @@ export class ShelfService {
     logger.info({ shelfId, bookId }, "Book moved to top successfully");
   }
 
+  /**
+   * Move a book to the bottom of a shelf by sortOrder.
+   * Reorders by decrementing books above the current position and setting the
+   * target book to the maximum sortOrder. No-op when the book is already at
+   * the bottom.
+   */
   async moveBookToBottom(shelfId: number, bookId: number): Promise<void> {
     // Validate shelf exists
     const shelf = await shelfRepository.findById(shelfId);

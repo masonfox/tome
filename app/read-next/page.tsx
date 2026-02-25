@@ -38,6 +38,11 @@ export default function ReadNextPage() {
     sortOrder: index,
   }));
 
+  // Pre-compute lookup map to avoid O(n) findIndex per row in renderActions
+  const sessionLookup = new Map(
+    sessions.map((s, i) => [s.book.id, { sessionId: s.id, index: i }])
+  );
+
   // Use shared book list view hook for filtering and selection
   const listView = useBookListView({ books: booksWithOrder });
 
@@ -56,9 +61,9 @@ export default function ReadNextPage() {
   const handleReorder = async (bookIds: number[]) => {
     // Prepare updates for API (session IDs with new order)
     const updates = bookIds.map((bookId, index) => {
-      const session = sessions.find((s) => s.book.id === bookId)!;
+      const entry = sessionLookup.get(bookId)!;
       return {
-        id: session.id, // Session ID, not book ID
+        id: entry.sessionId,
         readNextOrder: index,
       };
     });
@@ -210,17 +215,16 @@ export default function ReadNextPage() {
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
               renderActions={!listView.isSelectMode ? (book) => {
-                const sessionIndex = sessions.findIndex(s => s.book.id === book.id);
-                const session = sessions[sessionIndex];
-                return session ? (
+                const entry = sessionLookup.get(book.id);
+                return entry ? (
                   <BookActionsDropdown
                     bookId={book.id}
                     bookTitle={book.title}
-                    isAtTop={sessionIndex === 0}
-                    isAtBottom={sessionIndex === sessions.length - 1}
+                    isAtTop={entry.index === 0}
+                    isAtBottom={entry.index === sessions.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
-                    onMoveToTop={() => moveToTop(session.id)}
-                    onMoveToBottom={() => moveToBottom(session.id)}
+                    onMoveToTop={() => moveToTop(entry.sessionId)}
+                    onMoveToBottom={() => moveToBottom(entry.sessionId)}
                   />
                 ) : null;
               } : undefined}
@@ -228,8 +232,7 @@ export default function ReadNextPage() {
           ) : (
             <div className="space-y-4">
               {listView.filteredBooks.map((book) => {
-                const sessionIndex = sessions.findIndex(s => s.book.id === book.id);
-                const session = sessions[sessionIndex];
+                const entry = sessionLookup.get(book.id);
                 return (
                   <BookListItem
                     key={book.id}
@@ -238,15 +241,15 @@ export default function ReadNextPage() {
                     isSelected={listView.selectedBookIds.has(book.id)}
                     onToggleSelection={() => listView.toggleBookSelection(book.id)}
                     actions={
-                      !listView.isSelectMode && session ? (
+                      !listView.isSelectMode && entry ? (
                         <BookActionsDropdown
                           bookId={book.id}
                           bookTitle={book.title}
-                          isAtTop={sessionIndex === 0}
-                          isAtBottom={sessionIndex === sessions.length - 1}
+                          isAtTop={entry.index === 0}
+                          isAtBottom={entry.index === sessions.length - 1}
                           onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
-                          onMoveToTop={() => moveToTop(session.id)}
-                          onMoveToBottom={() => moveToBottom(session.id)}
+                          onMoveToTop={() => moveToTop(entry.sessionId)}
+                          onMoveToBottom={() => moveToBottom(entry.sessionId)}
                         />
                       ) : undefined
                     }
@@ -267,16 +270,16 @@ export default function ReadNextPage() {
               onToggleSelectAll={listView.toggleSelectAll}
               onReorder={handleReorder}
               renderActions={(book, index) => {
-                const session = sessions.find((s) => s.book.id === book.id);
-                return session && !listView.isSelectMode ? (
+                const entry = sessionLookup.get(book.id);
+                return entry && !listView.isSelectMode ? (
                   <BookActionsDropdown
                     bookId={book.id}
                     bookTitle={book.title}
                     isAtTop={index === 0}
                     isAtBottom={index === booksWithOrder.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
-                    onMoveToTop={() => moveToTop(session.id)}
-                    onMoveToBottom={() => moveToBottom(session.id)}
+                    onMoveToTop={() => moveToTop(entry.sessionId)}
+                    onMoveToBottom={() => moveToBottom(entry.sessionId)}
                   />
                 ) : null;
               }}
@@ -289,16 +292,16 @@ export default function ReadNextPage() {
               onToggleSelection={listView.toggleBookSelection}
               onToggleSelectAll={listView.toggleSelectAll}
               renderActions={(book, index) => {
-                const session = sessions.find((s) => s.book.id === book.id);
-                return session && !listView.isSelectMode ? (
+                const entry = sessionLookup.get(book.id);
+                return entry && !listView.isSelectMode ? (
                   <BookActionsDropdown
                     bookId={book.id}
                     bookTitle={book.title}
                     isAtTop={index === 0}
                     isAtBottom={index === listView.filteredBooks.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
-                    onMoveToTop={() => moveToTop(session.id)}
-                    onMoveToBottom={() => moveToBottom(session.id)}
+                    onMoveToTop={() => moveToTop(entry.sessionId)}
+                    onMoveToBottom={() => moveToBottom(entry.sessionId)}
                   />
                 ) : null;
               }}
