@@ -365,8 +365,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={index === 0}
-                  isAtBottom={index === listView.filteredBooks.length - 1}
+                  isAtTop={book === books[0]}
+                  isAtBottom={book === books[books.length - 1]}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
@@ -387,8 +387,8 @@ export default function ShelfDetailPage() {
                       <BookActionsDropdown
                         bookId={book.id}
                         bookTitle={book.title}
-                        isAtTop={index === 0}
-                        isAtBottom={index === listView.filteredBooks.length - 1}
+                        isAtTop={book === books[0]}
+                        isAtBottom={book === books[books.length - 1]}
                         onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                         onMoveToTop={() => moveToTop(book.id)}
                         onMoveToBottom={() => moveToBottom(book.id)}
@@ -417,8 +417,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.sortOrder === 0}
-                  isAtBottom={index === books.length - 1}
+                  isAtTop={book === books[0]}
+                  isAtBottom={book === books[books.length - 1]}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
@@ -440,8 +440,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.sortOrder === 0}
-                  isAtBottom={index === listView.filteredBooks.length - 1}
+                  isAtTop={book === books[0]}
+                  isAtBottom={book === books[books.length - 1]}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}

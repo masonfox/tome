@@ -297,8 +297,8 @@ export default function ReadNextPage() {
                   <BookActionsDropdown
                     bookId={book.id}
                     bookTitle={book.title}
-                    isAtTop={index === 0}
-                    isAtBottom={index === listView.filteredBooks.length - 1}
+                    isAtTop={entry.index === 0}
+                    isAtBottom={entry.index === sessions.length - 1}
                     onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                     onMoveToTop={() => moveToTop(entry.sessionId)}
                     onMoveToBottom={() => moveToBottom(entry.sessionId)}
