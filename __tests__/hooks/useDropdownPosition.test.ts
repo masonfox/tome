@@ -488,6 +488,108 @@ describe("useDropdownPosition", () => {
     });
   });
 
+  describe("DOM-derived menu width", () => {
+    test("should use offsetWidth from menuRef instead of default menuWidth", () => {
+      vi.spyOn(mockButtonElement, "getBoundingClientRect").mockReturnValue({
+        top: 100,
+        bottom: 140,
+        left: 100,
+        right: 300,
+        width: 200,
+        height: 40,
+        x: 100,
+        y: 100,
+        toJSON: () => ({}),
+      });
+
+      Object.defineProperty(mockMenuElement, "offsetHeight", {
+        writable: true,
+        configurable: true,
+        value: 100,
+      });
+
+      // Set a DOM-measured width different from the default (192)
+      Object.defineProperty(mockMenuElement, "offsetWidth", {
+        writable: true,
+        configurable: true,
+        value: 220,
+      });
+
+      const { result } = renderHook(() =>
+        useDropdownPosition(mockButtonRef, mockMenuRef, true)
+      );
+
+      // left should be: right (300) - offsetWidth (220) = 80
+      expect(result.current.left).toBe(80);
+    });
+
+    test("should fall back to menuWidth option when offsetWidth is 0", () => {
+      vi.spyOn(mockButtonElement, "getBoundingClientRect").mockReturnValue({
+        top: 100,
+        bottom: 140,
+        left: 100,
+        right: 300,
+        width: 200,
+        height: 40,
+        x: 100,
+        y: 100,
+        toJSON: () => ({}),
+      });
+
+      Object.defineProperty(mockMenuElement, "offsetHeight", {
+        writable: true,
+        configurable: true,
+        value: 100,
+      });
+
+      Object.defineProperty(mockMenuElement, "offsetWidth", {
+        writable: true,
+        configurable: true,
+        value: 0,
+      });
+
+      const { result } = renderHook(() =>
+        useDropdownPosition(mockButtonRef, mockMenuRef, true, { menuWidth: 250 })
+      );
+
+      // left should be: right (300) - fallback menuWidth (250) = 50
+      expect(result.current.left).toBe(50);
+    });
+
+    test("should prefer offsetWidth over explicit menuWidth option", () => {
+      vi.spyOn(mockButtonElement, "getBoundingClientRect").mockReturnValue({
+        top: 100,
+        bottom: 140,
+        left: 100,
+        right: 300,
+        width: 200,
+        height: 40,
+        x: 100,
+        y: 100,
+        toJSON: () => ({}),
+      });
+
+      Object.defineProperty(mockMenuElement, "offsetHeight", {
+        writable: true,
+        configurable: true,
+        value: 100,
+      });
+
+      Object.defineProperty(mockMenuElement, "offsetWidth", {
+        writable: true,
+        configurable: true,
+        value: 180,
+      });
+
+      const { result } = renderHook(() =>
+        useDropdownPosition(mockButtonRef, mockMenuRef, true, { menuWidth: 250 })
+      );
+
+      // left should be: right (300) - offsetWidth (180) = 120, NOT 300 - 250 = 50
+      expect(result.current.left).toBe(120);
+    });
+  });
+
   describe("Edge cases with refs", () => {
     test("should handle null buttonRef gracefully", () => {
       const nullButtonRef: RefObject<HTMLButtonElement | null> = {

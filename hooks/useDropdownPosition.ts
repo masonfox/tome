@@ -6,7 +6,7 @@ interface MenuPosition {
 }
 
 interface UseDropdownPositionOptions {
-  /** Width of the dropdown menu in pixels (default: 192 for w-48) */
+  /** Fallback width of the dropdown menu in pixels when DOM measurement is unavailable (default: 192 for w-48) */
   menuWidth?: number;
   /** Gap between the trigger button and menu in pixels (default: 4) */
   gap?: number;
@@ -61,15 +61,16 @@ export function useDropdownPosition(
 
     const rect = buttonRef.current.getBoundingClientRect();
 
-    // Get menu height (may be 0 on first render before content is measured)
+    // Get menu dimensions (may be 0 on first render before content is measured)
     const menuHeight = menuRef.current?.offsetHeight || 0;
+    const resolvedMenuWidth = menuRef.current?.offsetWidth || menuWidth;
 
     // If we don't have a height yet, position below temporarily
     // This will be recalculated in useLayoutEffect once menu renders
     if (menuHeight === 0) {
       setMenuPosition({
         top: rect.bottom + gap,
-        left: rect.right - menuWidth,
+        left: rect.right - resolvedMenuWidth,
       });
       return;
     }
@@ -98,7 +99,7 @@ export function useDropdownPosition(
 
     setMenuPosition({
       top,
-      left: rect.right - menuWidth,
+      left: rect.right - resolvedMenuWidth,
     });
   }, [buttonRef, menuRef, menuWidth, gap]);
 
