@@ -269,7 +269,16 @@ export function useReadNextBooks(search?: string) {
             return s;
           });
 
-          queryClient.setQueryData(["read-next-books", search], optimisticSessions);
+          const sortedOptimisticSessions = optimisticSessions.slice().sort((a, b) => {
+            const aOrder = a.readNextOrder ?? 0;
+            const bOrder = b.readNextOrder ?? 0;
+            if (aOrder !== bOrder) {
+              return aOrder - bOrder;
+            }
+            return String(a.id).localeCompare(String(b.id));
+          });
+
+          queryClient.setQueryData(["read-next-books", search], sortedOptimisticSessions);
         }
       }
 

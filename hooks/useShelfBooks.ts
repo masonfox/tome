@@ -440,8 +440,8 @@ export function useShelfBooks(
           const maxOrder = Math.max(...previousShelf.books.map(b => b.sortOrder ?? 0), 0);
 
           // Mirror server logic:
-          // - Keep all books "below" the moved book unchanged
-          // - Decrement sortOrder for books "above" the moved book
+          // - Keep books with lower sortOrder than the moved book unchanged
+          // - Decrement sortOrder for books with higher sortOrder than the moved book
           // - Set the moved book's sortOrder to the original maxOrder
           const optimisticBooks = previousShelf.books.map((book) => {
             if (book.id === bookId) {
@@ -450,13 +450,23 @@ export function useShelfBooks(
 
             const bookOrder = book.sortOrder ?? 0;
             if (bookOrder > currentOrder) {
-              // Book is above the moved book in the server's ordering: decrement
               return { ...book, sortOrder: bookOrder - 1 };
             }
 
-            // Books below the moved book keep their sortOrder
             return book;
           }) as BookWithStatus[];
+
+          if (orderBy === "sortOrder") {
+            const directionFactor = direction === "desc" ? -1 : 1;
+            optimisticBooks.sort((a, b) => {
+              const aOrder = a.sortOrder ?? 0;
+              const bOrder = b.sortOrder ?? 0;
+              if (aOrder !== bOrder) {
+                return (aOrder - bOrder) * directionFactor;
+              }
+              return (a.id - b.id) * directionFactor;
+            });
+          }
 
           queryClient.setQueryData(
             ["shelf", shelfId, { orderBy, direction }],
