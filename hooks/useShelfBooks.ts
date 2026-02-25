@@ -436,18 +436,37 @@ export function useShelfBooks(
       if (previousShelf) {
         const bookToMove = previousShelf.books.find((b) => b.id === bookId);
         if (bookToMove) {
-          // Find max order in current list
+          const currentOrder = bookToMove.sortOrder ?? 0;
           const maxOrder = Math.max(...previousShelf.books.map(b => b.sortOrder ?? 0), 0);
-          
-          // Create new array with moved book at bottom
-          const otherBooks = previousShelf.books.filter((b) => b.id !== bookId);
-          const optimisticBooks = [
-            ...otherBooks.map((book, index) => ({
-              ...book,
-              sortOrder: index,
-            })),
-            { ...bookToMove, sortOrder: maxOrder },
-          ] as BookWithStatus[];
+
+          // Mirror server logic:
+          // - Keep books with lower sortOrder than the moved book unchanged
+          // - Decrement sortOrder for books with higher sortOrder than the moved book
+          // - Set the moved book's sortOrder to the original maxOrder
+          const optimisticBooks = previousShelf.books.map((book) => {
+            if (book.id === bookId) {
+              return { ...book, sortOrder: maxOrder };
+            }
+
+            const bookOrder = book.sortOrder ?? 0;
+            if (bookOrder > currentOrder) {
+              return { ...book, sortOrder: bookOrder - 1 };
+            }
+
+            return book;
+          }) as BookWithStatus[];
+
+          if (orderBy === "sortOrder") {
+            const directionFactor = direction === "desc" ? -1 : 1;
+            optimisticBooks.sort((a, b) => {
+              const aOrder = a.sortOrder ?? 0;
+              const bOrder = b.sortOrder ?? 0;
+              if (aOrder !== bOrder) {
+                return (aOrder - bOrder) * directionFactor;
+              }
+              return (a.id - b.id) * directionFactor;
+            });
+          }
 
           queryClient.setQueryData(
             ["shelf", shelfId, { orderBy, direction }],

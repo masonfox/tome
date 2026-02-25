@@ -246,20 +246,39 @@ export function useReadNextBooks(search?: string) {
       if (previousSessions) {
         const sessionToMove = previousSessions.find((s) => s.id === sessionId);
         if (sessionToMove) {
-          // Find max order in current list
-          const maxOrder = Math.max(...previousSessions.map(s => s.readNextOrder ?? 0), 0);
-          
-          // Create new array with moved session at bottom
-          const otherSessions = previousSessions.filter((s) => s.id !== sessionId);
-          const optimisticSessions = [
-            ...otherSessions.map((s, index) => ({
-              ...s,
-              readNextOrder: index,
-            })),
-            { ...sessionToMove, readNextOrder: maxOrder },
-          ];
+          // Find current order of the session and max order in current list
+          const currentOrder = sessionToMove.readNextOrder ?? 0;
+          const maxOrder = Math.max(
+            ...previousSessions.map((s) => s.readNextOrder ?? 0),
+            0
+          );
 
-          queryClient.setQueryData(["read-next-books", search], optimisticSessions);
+          // Mirror server logic:
+          // - decrement sessions that were below (had higher order than) the moved one
+          // - set moved session to the maxOrder
+          const optimisticSessions = previousSessions.map((s) => {
+            if (s.id === sessionId) {
+              return { ...s, readNextOrder: maxOrder };
+            }
+
+            const order = s.readNextOrder ?? 0;
+            if (order > currentOrder) {
+              return { ...s, readNextOrder: order - 1 };
+            }
+
+            return s;
+          });
+
+          const sortedOptimisticSessions = optimisticSessions.slice().sort((a, b) => {
+            const aOrder = a.readNextOrder ?? 0;
+            const bOrder = b.readNextOrder ?? 0;
+            if (aOrder !== bOrder) {
+              return aOrder - bOrder;
+            }
+            return a.id - b.id;
+          });
+
+          queryClient.setQueryData(["read-next-books", search], sortedOptimisticSessions);
         }
       }
 
