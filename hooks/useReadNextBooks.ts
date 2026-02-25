@@ -275,7 +275,7 @@ export function useReadNextBooks(search?: string) {
             if (aOrder !== bOrder) {
               return aOrder - bOrder;
             }
-            return String(a.id).localeCompare(String(b.id));
+            return a.id - b.id;
           });
 
           queryClient.setQueryData(["read-next-books", search], sortedOptimisticSessions);
