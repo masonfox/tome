@@ -13,10 +13,11 @@ interface UseDropdownPositionOptions {
 }
 
 /**
- * Custom hook for intelligent dropdown menu positioning that prevents overflow.
+ * Custom hook for intelligent dropdown menu positioning that prevents viewport overflow.
  * 
  * Automatically positions the menu above or below the trigger button based on
- * available viewport space. Handles edge cases like initial render with zero
+ * available viewport space, and clamps the horizontal position so the menu
+ * stays within the viewport. Handles edge cases like initial render with zero
  * height and menus that don't fit in either direction.
  * 
  * @param buttonRef - Ref to the trigger button element
@@ -70,7 +71,7 @@ export function useDropdownPosition(
     if (menuHeight === 0) {
       setMenuPosition({
         top: rect.bottom + gap,
-        left: rect.right - resolvedMenuWidth,
+        left: Math.max(gap, Math.min(rect.right - resolvedMenuWidth, window.innerWidth - resolvedMenuWidth - gap)),
       });
       return;
     }
@@ -97,9 +98,12 @@ export function useDropdownPosition(
         : Math.max(gap, rect.top - menuHeight - gap);
     }
 
+    // Clamp horizontal position so the menu stays within the viewport
+    const left = Math.max(gap, Math.min(rect.right - resolvedMenuWidth, window.innerWidth - resolvedMenuWidth - gap));
+
     setMenuPosition({
       top,
-      left: rect.right - resolvedMenuWidth,
+      left,
     });
   }, [buttonRef, menuRef, menuWidth, gap]);
 
