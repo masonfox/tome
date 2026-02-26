@@ -1,6 +1,6 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
-import { SessionService } from "@/lib/services/session.service";
+import { SessionService, SessionValidationError } from "@/lib/services/session.service";
 import { validateDateString } from "@/lib/utils/date-validation";
 
 export const dynamic = 'force-dynamic';
@@ -81,21 +81,20 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
   } catch (error) {
     getLogger().error({ err: error }, "Error updating status");
     
-    // Handle specific errors
+    // Handle SessionValidationError with typed error codes
+    if (error instanceof SessionValidationError) {
+      return NextResponse.json({ 
+        error: error.message, 
+        code: error.code 
+      }, { status: error.httpStatus });
+    }
+    
+    // Handle other specific errors
     if (error instanceof Error) {
-      // Check for error code first
-      const errorWithCode = error as any;
-      if (errorWithCode.code === "PAGES_REQUIRED") {
-        return NextResponse.json({ 
-          error: error.message, 
-          code: "PAGES_REQUIRED" 
-        }, { status: 400 });
-      }
-      
       if (error.message.includes("not found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
-      if (error.message.includes("Invalid status") || error.message.includes("Cannot mark")) {
+      if (error.message.includes("Invalid status")) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }

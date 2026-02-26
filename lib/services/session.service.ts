@@ -6,6 +6,21 @@ import { progressService } from "@/lib/services/progress.service";
 import { getLogger } from "@/lib/logger";
 
 /**
+ * Custom error class for session validation errors
+ */
+export class SessionValidationError extends Error {
+  public readonly code: string;
+  public readonly httpStatus: number;
+
+  constructor(message: string, code: string, httpStatus: number = 400) {
+    super(message);
+    this.name = 'SessionValidationError';
+    this.code = code;
+    this.httpStatus = httpStatus;
+  }
+}
+
+/**
  * Status update data structure
  */
 export interface StatusUpdateData {
@@ -259,13 +274,16 @@ export class SessionService {
 
     // Validate page count requirement for reading/read status
     if ((status === "reading" || status === "read") && !book.totalPages) {
-      const error = new Error("Page count required. Please set the total number of pages before starting to read.");
-      (error as any).code = "PAGES_REQUIRED";
-      throw error;
+      throw new SessionValidationError(
+        "Page count required. Please set the total number of pages before starting to read.",
+        "PAGES_REQUIRED",
+        400
+      );
     }
 
     // Find active or most recent session
-    // DNF and read sessions have isActive = false, so we also check latest session
+    // Terminal sessions ("read", "dnf") keep isActive = true (archived only on re-read)
+    // Fall back to latest session for legacy data or edge cases
     let readingSession = await sessionRepository.findActiveByBookId(bookId, tx);
     const mostRecentSession = !readingSession ? await sessionRepository.findLatestByBookId(bookId, tx) : null;
     
@@ -274,7 +292,11 @@ export class SessionService {
     // Block direct DNF → read transition (must go through "reading" with progress)
     const sessionToCheck = readingSession || mostRecentSession;
     if (sessionToCheck?.status === "dnf" && status === "read") {
-      throw new Error("Cannot mark DNF book as read directly. Please restart reading first.");
+      throw new SessionValidationError(
+        "Cannot mark DNF book as read directly. Please restart reading first.",
+        "DNF_TO_READ_BLOCKED",
+        400
+      );
     }
 
     // Detect "backward movement" from terminal states to planning/reading statuses
@@ -305,14 +327,21 @@ export class SessionService {
     if (isBackwardMovement && shouldArchive && sessionForBackwardCheck) {
       getLogger().info(`[SessionService] Archiving session #${sessionForBackwardCheck.sessionNumber} and creating new session for backward movement`);
 
-      // Get last progress date for completedDate
-      // For DNF: preserve existing completedDate
-      // For reading: use last activity or current date
-      const latestProgress = await progressRepository.findLatestBySessionId(sessionForBackwardCheck.id, tx);
-      const archiveCompletedDate = 
-        sessionForBackwardCheck.completedDate || // Preserve existing DNF completedDate
-        latestProgress?.progressDate || 
-        await this.getTodayDateString();
+      // Get completedDate for archiving
+      // DNF sessions: Preserve existing completedDate (already set by markAsDNF)
+      // Reading sessions: Use last progress date or current date
+      let archiveCompletedDate: string;
+      if (sessionForBackwardCheck.completedDate) {
+        // Preserve existing completedDate (e.g., set by markAsDNF)
+        archiveCompletedDate = sessionForBackwardCheck.completedDate;
+      } else if (sessionForBackwardCheck.status === "reading") {
+        // For reading sessions, query progress to get last activity date
+        const latestProgress = await progressRepository.findLatestBySessionId(sessionForBackwardCheck.id, tx);
+        archiveCompletedDate = latestProgress?.progressDate || await this.getTodayDateString();
+      } else {
+        // Fallback for any other status without completedDate
+        archiveCompletedDate = await this.getTodayDateString();
+      }
 
       // Archive current session WITH completedDate
       await sessionRepository.update(sessionForBackwardCheck.id, {
