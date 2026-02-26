@@ -72,6 +72,15 @@ export default function ShelfDetailPage() {
   // Use shared book list view hook for filtering and selection
   const listView = useBookListView({ books });
 
+  // Calculate canonical shelf position (min/max sortOrder) for Move to Top/Bottom buttons
+  // This ensures buttons reflect actual shelf order, not filtered/sorted display order
+  const minSortOrder = books.length > 0 ? Math.min(...books.map(b => b.sortOrder ?? Infinity)) : Infinity;
+  const maxSortOrder = books.length > 0 ? Math.max(...books.map(b => b.sortOrder ?? -Infinity)) : -Infinity;
+
+  // Create lookup map for sortOrder (needed since listView.filteredBooks is typed as Book[])
+  // Mirrors pattern used in read-next page
+  const sortOrderLookup = new Map(books.map(b => [b.id, b.sortOrder ?? Infinity]));
+
   // Single book removal state
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
@@ -365,8 +374,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.id === books[0]?.id}
-                  isAtBottom={book.id === books[books.length - 1]?.id}
+                  isAtTop={sortOrderLookup.get(book.id) === minSortOrder}
+                  isAtBottom={sortOrderLookup.get(book.id) === maxSortOrder}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
@@ -387,8 +396,8 @@ export default function ShelfDetailPage() {
                       <BookActionsDropdown
                         bookId={book.id}
                         bookTitle={book.title}
-                        isAtTop={book.id === books[0]?.id}
-                        isAtBottom={book.id === books[books.length - 1]?.id}
+                        isAtTop={sortOrderLookup.get(book.id) === minSortOrder}
+                        isAtBottom={sortOrderLookup.get(book.id) === maxSortOrder}
                         onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                         onMoveToTop={() => moveToTop(book.id)}
                         onMoveToBottom={() => moveToBottom(book.id)}
@@ -417,8 +426,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.id === books[0]?.id}
-                  isAtBottom={book.id === books[books.length - 1]?.id}
+                  isAtTop={sortOrderLookup.get(book.id) === minSortOrder}
+                  isAtBottom={sortOrderLookup.get(book.id) === maxSortOrder}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
@@ -440,8 +449,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.id === books[0]?.id}
-                  isAtBottom={book.id === books[books.length - 1]?.id}
+                  isAtTop={sortOrderLookup.get(book.id) === minSortOrder}
+                  isAtBottom={sortOrderLookup.get(book.id) === maxSortOrder}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
