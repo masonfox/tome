@@ -1,56 +1,39 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { MoreVertical, ExternalLink, Trash2, ArrowUp } from "lucide-react";
+import { MoreVertical, ExternalLink, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { useDropdownPosition } from "@/hooks/useDropdownPosition";
 import Link from "next/link";
 
 interface BookActionsDropdownProps {
   bookId: number;
   bookTitle: string;
   isAtTop: boolean;
+  isAtBottom?: boolean;
   onRemove: () => void;
   onMoveToTop: () => void;
+  onMoveToBottom?: () => void;
   disabled?: boolean;
-}
-
-interface MenuPosition {
-  top: number;
-  left: number;
 }
 
 export function BookActionsDropdown({
   bookId,
   bookTitle,
   isAtTop,
+  isAtBottom = false,
   onRemove,
   onMoveToTop,
+  onMoveToBottom,
   disabled = false,
 }: BookActionsDropdownProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const updateMenuPosition = useCallback(() => {
-    if (!buttonRef.current) return;
-
-    const rect = buttonRef.current.getBoundingClientRect();
-    const menuWidth = 192; // w-48 = 12rem = 192px
-
-    setMenuPosition({
-      top: rect.bottom + 4, // 4px gap below button
-      left: rect.right - menuWidth, // Align right edge with button
-    });
-  }, []);
-
-  // Update position when menu opens
-  useEffect(() => {
-    if (showMenu) {
-      updateMenuPosition();
-    }
-  }, [showMenu, updateMenuPosition]);
+  // Use custom hook for intelligent dropdown positioning
+  const menuPosition = useDropdownPosition(buttonRef, menuRef, showMenu);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -89,7 +72,7 @@ export function BookActionsDropdown({
     >
       <Link
         href={`/books/${bookId}`}
-        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2"
+        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2"
         onClick={(e) => {
           e.stopPropagation();
           setShowMenu(false);
@@ -103,21 +86,43 @@ export function BookActionsDropdown({
         onClick={async (e) => {
           e.preventDefault();
           e.stopPropagation();
+          setShowMenu(false);
           setIsMoving(true);
           try {
             await onMoveToTop();
           } finally {
             setIsMoving(false);
-            setShowMenu(false);
           }
         }}
         disabled={isAtTop || isMoving}
-        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        title={isAtTop ? "Already at top" : isMoving ? "Moving..." : "Move to top of list"}
+        className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        title={isAtTop ? "Already at top" : "Move to top of list"}
       >
         <ArrowUp className="w-4 h-4" />
-        {isMoving ? "Moving..." : "Move to Top"}
+        Move to Top
       </button>
+
+      {onMoveToBottom && (
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowMenu(false);
+            setIsMoving(true);
+            try {
+              await onMoveToBottom();
+            } finally {
+              setIsMoving(false);
+            }
+          }}
+          disabled={isAtBottom || isMoving}
+          className="w-full px-4 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--card-bg-emphasis)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={isAtBottom ? "Already at bottom" : "Move to bottom of list"}
+        >
+          <ArrowDown className="w-4 h-4" />
+          Move to Bottom
+        </button>
+      )}
 
       <button
         onClick={(e) => {

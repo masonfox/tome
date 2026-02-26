@@ -219,6 +219,92 @@ export function useReadNextBooks(search?: string) {
     },
   });
 
+  const moveToBottomMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      const response = await fetch(`/api/sessions/read-next/${sessionId}/move-to-bottom`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Failed to move to bottom");
+      }
+
+      return true;
+    },
+    onMutate: async (sessionId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["read-next-books"] });
+
+      // Snapshot previous value
+      const previousSessions = queryClient.getQueryData<SessionWithBook[]>([
+        "read-next-books",
+        search,
+      ]);
+
+      // Optimistically update cache
+      if (previousSessions) {
+        const sessionToMove = previousSessions.find((s) => s.id === sessionId);
+        if (sessionToMove) {
+          // Find current order of the session and max order in current list
+          const currentOrder = sessionToMove.readNextOrder ?? 0;
+          const maxOrder = Math.max(
+            ...previousSessions.map((s) => s.readNextOrder ?? 0),
+            0
+          );
+
+          // Mirror server logic:
+          // - decrement sessions that were below (had higher order than) the moved one
+          // - set moved session to the maxOrder
+          const optimisticSessions = previousSessions.map((s) => {
+            if (s.id === sessionId) {
+              return { ...s, readNextOrder: maxOrder };
+            }
+
+            const order = s.readNextOrder ?? 0;
+            if (order > currentOrder) {
+              return { ...s, readNextOrder: order - 1 };
+            }
+
+            return s;
+          });
+
+          const sortedOptimisticSessions = optimisticSessions.slice().sort((a, b) => {
+            const aOrder = a.readNextOrder ?? 0;
+            const bOrder = b.readNextOrder ?? 0;
+            if (aOrder !== bOrder) {
+              return aOrder - bOrder;
+            }
+            return a.id - b.id;
+          });
+
+          queryClient.setQueryData(["read-next-books", search], sortedOptimisticSessions);
+        }
+      }
+
+      // Return context for rollback
+      return { previousSessions };
+    },
+    onError: (err, variables, context) => {
+      // Rollback to previous state
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          ["read-next-books", search],
+          context.previousSessions
+        );
+      }
+      const error = err instanceof Error ? err : new Error("Unknown error");
+      toast.error(`Failed to move to bottom: ${error.message}`);
+    },
+    onSuccess: () => {
+      toast.success("Moved to bottom of queue");
+    },
+    onSettled: () => {
+      // Refetch after error or success to sync with server
+      queryClient.invalidateQueries({ queryKey: ["read-next-books"] });
+    },
+  });
+
   return {
     sessions,
     loading: isLoading || removeMutation.isPending,
@@ -226,6 +312,7 @@ export function useReadNextBooks(search?: string) {
     reorderBooks: reorderMutation.mutateAsync,
     removeBooks: removeMutation.mutateAsync,
     moveToTop: moveToTopMutation.mutateAsync,
+    moveToBottom: moveToBottomMutation.mutateAsync,
     isReordering: reorderMutation.isPending,
     isRemoving: removeMutation.isPending,
     isMovingToTop: moveToTopMutation.isPending,

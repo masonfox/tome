@@ -96,6 +96,7 @@ Contains:
 | `__tests__/README.md` | Testing patterns (99+ tests) |
 | `docs/ADRs/` | Architecture Decision Records |
 | `docs/SPECKIT_WORKFLOW.md` | SpecKit feature development workflow |
+| `docs/REVIEW_LOOP.md` | Automated PR review workflow |
 
 ---
 
@@ -359,12 +360,18 @@ npm run build                      # Build for production
 bunx drizzle-kit generate          # Generate migration from schema changes
 bunx drizzle-kit push              # Apply migrations to database
 
+# Review & Quality
+/review-loop                       # Automated PR review loop (@review + Copilot)
+/review                            # Single-pass @review agent feedback
+/review-status                     # Check PR review status
+
 # View documentation
 cat .specify/memory/constitution.md   # Project principles
 cat .specify/memory/patterns.md       # Code patterns
 cat docs/ARCHITECTURE.md               # System architecture
 cat docs/AI_CODING_PATTERNS.md         # Coding standards
 cat docs/REPOSITORY_PATTERN_GUIDE.md   # Repository guide
+cat docs/REVIEW_LOOP.md                # Automated review workflow
 ```
 
 ---

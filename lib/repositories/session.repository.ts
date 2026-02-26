@@ -652,6 +652,77 @@ export class SessionRepository extends BaseRepository<
     });
   }
 
+  async moveReadNextToBottom(sessionId: number): Promise<void> {
+    const db = this.getDatabase();
+    
+    // Get the session to move
+    const session = db
+      .select()
+      .from(readingSessions)
+      .where(eq(readingSessions.id, sessionId))
+      .get();
+    
+    if (!session) {
+      throw new Error(`Session with ID ${sessionId} not found`);
+    }
+    
+    if (session.status !== 'read-next') {
+      throw new Error(`Session ${sessionId} is not in read-next status`);
+    }
+    
+    // Validate readNextOrder is not null
+    const currentOrder = session.readNextOrder;
+    if (currentOrder === null || currentOrder === undefined) {
+      throw new Error(`Session ${sessionId} has null readNextOrder`);
+    }
+    
+    // Find the maximum readNextOrder in the read-next queue
+    const maxOrderResult = db
+      .select({ maxOrder: sql<number>`MAX(${readingSessions.readNextOrder})` })
+      .from(readingSessions)
+      .where(
+        and(
+          eq(readingSessions.status, 'read-next'),
+          sql`${readingSessions.readNextOrder} IS NOT NULL`
+        )
+      )
+      .get();
+    
+    const maxOrder = maxOrderResult?.maxOrder ?? 0;
+    
+    // If already at bottom, no-op
+    if (currentOrder === maxOrder) {
+      return;
+    }
+    
+    // Use transaction to update all sessions atomically with batch queries
+    await db.transaction((tx) => {
+      // Decrement all sessions with order > current order (batch update)
+      tx.update(readingSessions)
+        .set({ 
+          readNextOrder: sql`${readingSessions.readNextOrder} - 1`,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(readingSessions.status, 'read-next'),
+            sql`${readingSessions.readNextOrder} > ${currentOrder}`,
+            sql`${readingSessions.readNextOrder} IS NOT NULL`
+          )
+        )
+        .run();
+      
+      // Set target session to maxOrder
+      tx.update(readingSessions)
+        .set({ 
+          readNextOrder: maxOrder,
+          updatedAt: new Date()
+        })
+        .where(eq(readingSessions.id, sessionId))
+        .run();
+    });
+  }
+
    /**
     * Find all read-next sessions with joined book data
     * Returns sessions sorted by readNextOrder ascending

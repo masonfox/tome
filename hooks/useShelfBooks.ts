@@ -404,6 +404,100 @@ export function useShelfBooks(
     },
   });
 
+  const moveToBottomMutation = useMutation({
+    mutationFn: async (bookId: number) => {
+      if (!shelfId) {
+        throw new Error("No shelf ID provided");
+      }
+
+      const response = await fetch(`/api/shelves/${shelfId}/books/${bookId}/move-to-bottom`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Failed to move to bottom");
+      }
+
+      return true;
+    },
+    onMutate: async (bookId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+
+      // Snapshot previous value
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
+        "shelf",
+        shelfId,
+        { orderBy, direction },
+      ]);
+
+      // Optimistically update: move book to bottom
+      if (previousShelf) {
+        const bookToMove = previousShelf.books.find((b) => b.id === bookId);
+        if (bookToMove) {
+          const currentOrder = bookToMove.sortOrder ?? 0;
+          const maxOrder = Math.max(...previousShelf.books.map(b => b.sortOrder ?? 0), 0);
+
+          // Mirror server logic:
+          // - Keep books with lower sortOrder than the moved book unchanged
+          // - Decrement sortOrder for books with higher sortOrder than the moved book
+          // - Set the moved book's sortOrder to the original maxOrder
+          const optimisticBooks = previousShelf.books.map((book) => {
+            if (book.id === bookId) {
+              return { ...book, sortOrder: maxOrder };
+            }
+
+            const bookOrder = book.sortOrder ?? 0;
+            if (bookOrder > currentOrder) {
+              return { ...book, sortOrder: bookOrder - 1 };
+            }
+
+            return book;
+          }) as BookWithStatus[];
+
+          if (orderBy === "sortOrder") {
+            const directionFactor = direction === "desc" ? -1 : 1;
+            optimisticBooks.sort((a, b) => {
+              const aOrder = a.sortOrder ?? 0;
+              const bOrder = b.sortOrder ?? 0;
+              if (aOrder !== bOrder) {
+                return (aOrder - bOrder) * directionFactor;
+              }
+              return (a.id - b.id) * directionFactor;
+            });
+          }
+
+          queryClient.setQueryData(
+            ["shelf", shelfId, { orderBy, direction }],
+            {
+              ...previousShelf,
+              books: optimisticBooks,
+            }
+          );
+        }
+      }
+
+      return { previousShelf };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousShelf) {
+        queryClient.setQueryData(
+          ["shelf", shelfId, { orderBy, direction }],
+          context.previousShelf
+        );
+      }
+      toast.error(`Failed to move to bottom: ${getErrorMessage(err)}`);
+    },
+    onSuccess: () => {
+      toast.success("Moved to bottom of shelf");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+    },
+  });
+
   return {
     shelf,
     books: shelf?.books || [],
@@ -415,6 +509,7 @@ export function useShelfBooks(
     removeBooksFromShelf: removeBooksMutation.mutateAsync,
     reorderBooks: reorderBooksMutation.mutateAsync,
     moveToTop: moveToTopMutation.mutateAsync,
+    moveToBottom: moveToBottomMutation.mutateAsync,
     moveBooks: async (targetShelfId: number, bookIds: number[], targetShelfName?: string) => {
       return moveBooksMutation.mutateAsync({ targetShelfId, bookIds, targetShelfName });
     },

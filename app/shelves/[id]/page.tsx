@@ -66,6 +66,7 @@ export default function ShelfDetailPage() {
     moveBooks,
     copyBooks,
     moveToTop,
+    moveToBottom,
   } = useShelfBooks(shelfId, sortBy, sortDirection);
 
   // Use shared book list view hook for filtering and selection
@@ -364,9 +365,11 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={index === 0}
+                  isAtTop={book === books[0]}
+                  isAtBottom={book === books[books.length - 1]}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
+                  onMoveToBottom={() => moveToBottom(book.id)}
                 />
               ) : undefined}
             />
@@ -384,9 +387,11 @@ export default function ShelfDetailPage() {
                       <BookActionsDropdown
                         bookId={book.id}
                         bookTitle={book.title}
-                        isAtTop={index === 0}
+                        isAtTop={book === books[0]}
+                        isAtBottom={book === books[books.length - 1]}
                         onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                         onMoveToTop={() => moveToTop(book.id)}
+                        onMoveToBottom={() => moveToBottom(book.id)}
                       />
                     ) : undefined
                   }
@@ -412,9 +417,11 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.sortOrder === 0}
+                  isAtTop={book === books[0]}
+                  isAtBottom={book === books[books.length - 1]}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
+                  onMoveToBottom={() => moveToBottom(book.id)}
                 />
               ) : undefined}
             />
@@ -433,9 +440,11 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book.sortOrder === 0}
+                  isAtTop={book === books[0]}
+                  isAtBottom={book === books[books.length - 1]}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
+                  onMoveToBottom={() => moveToBottom(book.id)}
                 />
               ) : undefined}
             />
