@@ -1,8 +1,17 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
-import { createTestBook, createTestSession } from "@/__tests__/fixtures/test-data";
+import { createTestBook, createTestSession, createMockRequest } from "@/__tests__/fixtures/test-data";
+import { POST } from "@/app/api/books/[id]/status/route";
 import type { Book } from "@/lib/db/schema/books";
+import type { NextRequest } from "next/server";
+
+/**
+ * Mock Rationale: Prevent Next.js cache revalidation side effects during tests.
+ */
+vi.mock("next/cache", () => ({
+  revalidatePath: () => {},
+}));
 
 describe("DNF Status Transitions (E2E API)", () => {
   let testBook: Book;
@@ -40,19 +49,18 @@ describe("DNF Status Transitions (E2E API)", () => {
     }));
 
     // ACT: Call status update API
-    const response = await fetch(`http://localhost:3000/api/books/${testBook.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "read-next" }),
-    });
+    const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+      status: "read-next"
+    }) as NextRequest;
+    const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
 
-    // ASSERT: API response
+    // ASSERT: API response (session properties spread at top level when archived)
     expect(response.status).toBe(200);
     const data = await response.json();
     
-    expect(data.session.id).not.toBe(dnfSession.id);
-    expect(data.session.sessionNumber).toBe(2);
-    expect(data.session.status).toBe("read-next");
+    expect(data.id).not.toBe(dnfSession.id);
+    expect(data.sessionNumber).toBe(2);
+    expect(data.status).toBe("read-next");
     expect(data.sessionArchived).toBe(true);
     expect(data.archivedSessionNumber).toBe(1);
 
@@ -81,19 +89,18 @@ describe("DNF Status Transitions (E2E API)", () => {
     }));
 
     // ACT: Call status update API
-    const response = await fetch(`http://localhost:3000/api/books/${testBook.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "to-read" }),
-    });
+    const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+      status: "to-read"
+    }) as NextRequest;
+    const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
 
-    // ASSERT: API response
+    // ASSERT: API response (session properties spread at top level when archived)
     expect(response.status).toBe(200);
     const data = await response.json();
     
-    expect(data.session.id).not.toBe(dnfSession.id);
-    expect(data.session.sessionNumber).toBe(2);
-    expect(data.session.status).toBe("to-read");
+    expect(data.id).not.toBe(dnfSession.id);
+    expect(data.sessionNumber).toBe(2);
+    expect(data.status).toBe("to-read");
     expect(data.sessionArchived).toBe(true);
 
     // Verify database state
@@ -113,20 +120,19 @@ describe("DNF Status Transitions (E2E API)", () => {
     }));
 
     // ACT: Call status update API
-    const response = await fetch(`http://localhost:3000/api/books/${testBook.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "reading" }),
-    });
+    const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+      status: "reading"
+    }) as NextRequest;
+    const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
 
-    // ASSERT: API response
+    // ASSERT: API response (session properties spread at top level when archived)
     expect(response.status).toBe(200);
     const data = await response.json();
     
-    expect(data.session.id).not.toBe(dnfSession.id);
-    expect(data.session.sessionNumber).toBe(2);
-    expect(data.session.status).toBe("reading");
-    expect(data.session.startedDate).toBeTruthy(); // Auto-set today
+    expect(data.id).not.toBe(dnfSession.id);
+    expect(data.sessionNumber).toBe(2);
+    expect(data.status).toBe("reading");
+    expect(data.startedDate).toBeTruthy(); // Auto-set today
     expect(data.sessionArchived).toBe(true);
 
     // Verify DNF session preserved
@@ -148,11 +154,10 @@ describe("DNF Status Transitions (E2E API)", () => {
     }));
 
     // ACT: Try to mark as read
-    const response = await fetch(`http://localhost:3000/api/books/${testBook.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "read" }),
-    });
+    const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+      status: "read"
+    }) as NextRequest;
+    const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
 
     // ASSERT: Should return 400 error
     expect(response.status).toBe(400);
@@ -173,11 +178,10 @@ describe("DNF Status Transitions (E2E API)", () => {
     }));
 
     // ACT: Transition to read-next via API
-    const response = await fetch(`http://localhost:3000/api/books/${testBook.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "read-next" }),
-    });
+    const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+      status: "read-next"
+    }) as NextRequest;
+    const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
 
     // ASSERT: Success response
     expect(response.status).toBe(200);

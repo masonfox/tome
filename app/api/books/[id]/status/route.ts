@@ -95,7 +95,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       if (error.message.includes("not found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
-      if (error.message.includes("Invalid status")) {
+      if (error.message.includes("Invalid status") || error.message.includes("Cannot mark")) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
