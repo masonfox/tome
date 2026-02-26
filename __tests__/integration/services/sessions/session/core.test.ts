@@ -331,6 +331,137 @@ describe("SessionService", () => {
     });
   });
 
+  describe("updateStatus - DNF transitions", () => {
+    test("should archive DNF session when transitioning to read-next", async () => {
+      // ARRANGE: Book with DNF session
+      const dnfSession = await sessionRepository.create(createTestSession({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-01",
+        completedDate: "2026-01-15",
+      }));
+
+      // ACT: Transition to read-next
+      const result = await sessionService.updateStatus(book1.id, {
+        status: "read-next",
+      });
+
+      // ASSERT: New session created
+      expect(result.session.id).not.toBe(dnfSession.id);
+      expect(result.session.sessionNumber).toBe(2);
+      expect(result.session.status).toBe("read-next");
+      expect(result.session.isActive).toBe(true);
+      expect(result.sessionArchived).toBe(true);
+      expect(result.archivedSessionNumber).toBe(1);
+
+      // Verify DNF session preserved
+      const archived = await sessionRepository.findById(dnfSession.id);
+      expect(archived?.status).toBe("dnf");
+      expect(archived?.completedDate).toBe("2026-01-15");
+      expect(archived?.isActive).toBe(false);
+    });
+
+    test("should archive DNF session when transitioning to to-read", async () => {
+      // ARRANGE: Book with DNF session
+      const dnfSession = await sessionRepository.create(createTestSession({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-01",
+        completedDate: "2026-01-15",
+      }));
+
+      // ACT: Transition to to-read
+      const result = await sessionService.updateStatus(book1.id, {
+        status: "to-read",
+      });
+
+      // ASSERT: New session created
+      expect(result.session.id).not.toBe(dnfSession.id);
+      expect(result.session.sessionNumber).toBe(2);
+      expect(result.session.status).toBe("to-read");
+      expect(result.session.isActive).toBe(true);
+      expect(result.sessionArchived).toBe(true);
+      expect(result.archivedSessionNumber).toBe(1);
+
+      // Verify DNF session preserved
+      const archived = await sessionRepository.findById(dnfSession.id);
+      expect(archived?.status).toBe("dnf");
+      expect(archived?.isActive).toBe(false);
+    });
+
+    test("should archive DNF session when transitioning to reading (like re-read)", async () => {
+      // ARRANGE: Book with DNF session
+      const dnfSession = await sessionRepository.create(createTestSession({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-01",
+        completedDate: "2026-01-10",
+      }));
+
+      // ACT: Transition to reading
+      const result = await sessionService.updateStatus(book1.id, {
+        status: "reading",
+      });
+
+      // ASSERT: New session created (like re-read)
+      expect(result.session.id).not.toBe(dnfSession.id);
+      expect(result.session.sessionNumber).toBe(2);
+      expect(result.session.status).toBe("reading");
+      expect(result.session.isActive).toBe(true);
+      expect(result.session.startedDate).toBeTruthy(); // Auto-set today
+      expect(result.sessionArchived).toBe(true);
+
+      // Verify DNF session preserved
+      const archived = await sessionRepository.findById(dnfSession.id);
+      expect(archived?.status).toBe("dnf");
+      expect(archived?.isActive).toBe(false);
+    });
+
+    test("should throw error when transitioning DNF to read directly", async () => {
+      // ARRANGE: Book with DNF session
+      await sessionRepository.create(createTestSession({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-01",
+        completedDate: "2026-01-15",
+      }));
+
+      // ACT & ASSERT: Should throw validation error
+      await expect(
+        sessionService.updateStatus(book1.id, { status: "read" })
+      ).rejects.toThrow("Cannot mark DNF book as read directly");
+    });
+
+    test("should preserve DNF completedDate when archiving", async () => {
+      // ARRANGE: Book with DNF session with specific completedDate
+      const originalCompletedDate = "2026-01-20";
+      const dnfSession = await sessionRepository.create(createTestSession({
+        bookId: book1.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-10",
+        completedDate: originalCompletedDate,
+      }));
+
+      // ACT: Transition to read-next
+      await sessionService.updateStatus(book1.id, { status: "read-next" });
+
+      // ASSERT: Original completedDate preserved
+      const archived = await sessionRepository.findById(dnfSession.id);
+      expect(archived?.completedDate).toBe(originalCompletedDate);
+      expect(archived?.status).toBe("dnf");
+    });
+  });
+
   describe("updateStatus - with rating", () => {
     test("should update book rating when provided", async () => {
       await sessionRepository.create(createTestSession({

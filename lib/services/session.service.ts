@@ -264,45 +264,78 @@ export class SessionService {
       throw error;
     }
 
-    // Find active reading session or prepare to create new one
+    // Find active or most recent session
+    // DNF and read sessions have isActive = false, so we also check latest session
     let readingSession = await sessionRepository.findActiveByBookId(bookId, tx);
+    const mostRecentSession = !readingSession ? await sessionRepository.findLatestByBookId(bookId, tx) : null;
+    
     const oldStatus = readingSession?.status;
 
-    // Detect "backward movement" from "reading" to planning statuses
-    const isBackwardMovement =
-      readingSession &&
-      readingSession.status === "reading" &&
-      (status === "read-next" || status === "to-read");
-
-    // Check if current session has progress
-    let hasProgress = false;
-    if (isBackwardMovement && readingSession) {
-      hasProgress = await progressRepository.hasProgressForSession(readingSession.id, tx);
+    // Block direct DNF → read transition (must go through "reading" with progress)
+    const sessionToCheck = readingSession || mostRecentSession;
+    if (sessionToCheck?.status === "dnf" && status === "read") {
+      throw new Error("Cannot mark DNF book as read directly. Please restart reading first.");
     }
 
-    // If moving backward with progress, archive current session and create new one
-    if (isBackwardMovement && hasProgress && readingSession) {
-      getLogger().info(`[SessionService] Archiving session #${readingSession.sessionNumber} and creating new session for backward movement`);
+    // Detect "backward movement" from terminal states to planning/reading statuses
+    // Case 1: From "reading" to planning statuses (existing logic)
+    // Case 2: From "dnf" to any non-DNF status (new logic - DNF is terminal)
+    // Use mostRecentSession for DNF since it has isActive = false
+    const sessionForBackwardCheck = readingSession || mostRecentSession;
+    const isBackwardMovement =
+      sessionForBackwardCheck &&
+      (
+        (sessionForBackwardCheck.status === "reading" && (status === "read-next" || status === "to-read")) ||
+        (sessionForBackwardCheck.status === "dnf" && status !== "dnf")
+      );
 
-      // Get last progress date for completedDate (use last activity or current date)
-      const latestProgress = await progressRepository.findLatestBySessionId(readingSession.id, tx);
-      const archiveCompletedDate = latestProgress?.progressDate || await this.getTodayDateString();
+    // Check if current session should be archived
+    // DNF sessions: Always archive (already terminal)
+    // Reading sessions: Only archive if they have progress
+    let shouldArchive = false;
+    if (isBackwardMovement && sessionForBackwardCheck) {
+      if (sessionForBackwardCheck.status === "dnf") {
+        shouldArchive = true;
+      } else if (sessionForBackwardCheck.status === "reading") {
+        shouldArchive = await progressRepository.hasProgressForSession(sessionForBackwardCheck.id, tx);
+      }
+    }
+
+    // If moving backward with progress (or from DNF), archive current session and create new one
+    if (isBackwardMovement && shouldArchive && sessionForBackwardCheck) {
+      getLogger().info(`[SessionService] Archiving session #${sessionForBackwardCheck.sessionNumber} and creating new session for backward movement`);
+
+      // Get last progress date for completedDate
+      // For DNF: preserve existing completedDate
+      // For reading: use last activity or current date
+      const latestProgress = await progressRepository.findLatestBySessionId(sessionForBackwardCheck.id, tx);
+      const archiveCompletedDate = 
+        sessionForBackwardCheck.completedDate || // Preserve existing DNF completedDate
+        latestProgress?.progressDate || 
+        await this.getTodayDateString();
 
       // Archive current session WITH completedDate
-      await sessionRepository.update(readingSession.id, {
+      await sessionRepository.update(sessionForBackwardCheck.id, {
         isActive: false,
         completedDate: archiveCompletedDate,
       } as any, tx);
 
       // Create new session with new status
-      const newSessionNumber = readingSession.sessionNumber + 1;
-      const newSession = await sessionRepository.create({
-        userId: readingSession.userId,
+      const newSessionNumber = sessionForBackwardCheck.sessionNumber + 1;
+      const newSessionData: any = {
+        userId: sessionForBackwardCheck.userId,
         bookId,
         sessionNumber: newSessionNumber,
         status: status as any,
         isActive: true,
-      }, tx);
+      };
+      
+      // Auto-set startedDate for "reading" status
+      if (status === "reading") {
+        newSessionData.startedDate = startedDate || await this.getTodayDateString();
+      }
+      
+      const newSession = await sessionRepository.create(newSessionData, tx);
 
       // Rebuild streak to ensure consistency (only if not in transaction)
       if (!tx) {
@@ -317,7 +350,7 @@ export class SessionService {
       return {
         session: newSession,
         sessionArchived: true,
-        archivedSessionNumber: readingSession.sessionNumber,
+        archivedSessionNumber: sessionForBackwardCheck.sessionNumber,
       };
     }
 
