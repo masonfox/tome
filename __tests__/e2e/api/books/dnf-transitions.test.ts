@@ -13,6 +13,28 @@ vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }));
 
+/**
+ * Mock Rationale: Prevent Calibre sync during tests (file system I/O).
+ */
+vi.mock("@/lib/services/calibre.service", () => ({
+  calibreService: {
+    updateRating: () => {},
+    readRating: () => null,
+    updateTags: () => {},
+    readTags: () => [],
+  },
+  CalibreService: class {},
+}));
+
+/**
+ * Mock Rationale: Prevent streak rebuilding side effects during tests.
+ */
+vi.mock("@/lib/services/streak.service", () => ({
+  streakService: {
+    rebuildStreak: vi.fn(() => Promise.resolve()),
+  },
+}));
+
 describe("DNF Status Transitions (E2E API)", () => {
   let testBook: Book;
 
