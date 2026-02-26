@@ -58,10 +58,8 @@ export default function SessionEditModal({
       // Dates are already in YYYY-MM-DD format from API
       setStartedDate(currentStartedDate || "");
       setCompletedDate(currentCompletedDate || "");
-      // Set review to current value if it exists (editing existing review)
-      if (currentReview) {
-        setReview(currentReview);
-      }
+      // Set review to current value (or empty string to clear previous state)
+      setReview(currentReview || "");
     }
   }, [isOpen, currentStartedDate, currentCompletedDate, currentReview]);
 
