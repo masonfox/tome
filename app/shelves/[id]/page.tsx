@@ -365,8 +365,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book === books[0]}
-                  isAtBottom={book === books[books.length - 1]}
+                  isAtTop={book.id === books[0]?.id}
+                  isAtBottom={book.id === books[books.length - 1]?.id}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
@@ -387,8 +387,8 @@ export default function ShelfDetailPage() {
                       <BookActionsDropdown
                         bookId={book.id}
                         bookTitle={book.title}
-                        isAtTop={book === books[0]}
-                        isAtBottom={book === books[books.length - 1]}
+                        isAtTop={book.id === books[0]?.id}
+                        isAtBottom={book.id === books[books.length - 1]?.id}
                         onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                         onMoveToTop={() => moveToTop(book.id)}
                         onMoveToBottom={() => moveToBottom(book.id)}
@@ -417,8 +417,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book === books[0]}
-                  isAtBottom={book === books[books.length - 1]}
+                  isAtTop={book.id === books[0]?.id}
+                  isAtBottom={book.id === books[books.length - 1]?.id}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
@@ -440,8 +440,8 @@ export default function ShelfDetailPage() {
                 <BookActionsDropdown
                   bookId={book.id}
                   bookTitle={book.title}
-                  isAtTop={book === books[0]}
-                  isAtBottom={book === books[books.length - 1]}
+                  isAtTop={book.id === books[0]?.id}
+                  isAtBottom={book.id === books[books.length - 1]?.id}
                   onRemove={() => setRemovingBook({ id: book.id, title: book.title })}
                   onMoveToTop={() => moveToTop(book.id)}
                   onMoveToBottom={() => moveToBottom(book.id)}
