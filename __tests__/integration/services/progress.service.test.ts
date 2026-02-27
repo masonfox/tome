@@ -600,7 +600,6 @@ describe("ProgressService", () => {
         calibreId: 9999,
         title: "No Pages Book",
         authors: ["Author"],
-        path: "/test/no-pages",
         totalPages: null as any,
       }));
       const sessionNoPages = await sessionRepository.create(createTestSession({

@@ -8,13 +8,13 @@ import { getLogger } from "@/lib/logger";
 export interface SeriesInfo {
   name: string;
   bookCount: number;
-  bookCoverIds: number[]; // Calibre IDs for cover display (up to 12)
+  bookCoverIds: number[]; // Tome book IDs for cover display (up to 12)
   totalBooks?: number;
 }
 
 export interface SeriesBook {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   seriesIndex: number;
@@ -61,6 +61,7 @@ export class SeriesRepository extends BaseRepository<
     // Fetch all books with series in a single query, ordered by series and seriesIndex
     const allBooks = await db
       .select({
+        id: books.id,
         series: books.series,
         calibreId: books.calibreId,
         seriesIndex: books.seriesIndex,
@@ -96,7 +97,7 @@ export class SeriesRepository extends BaseRepository<
       
       // Keep first 12 cover IDs (matches FannedBookCovers maxCovers default)
       if (seriesData.bookCoverIds.length < 12) {
-        seriesData.bookCoverIds.push(book.calibreId);
+        seriesData.bookCoverIds.push(book.id);
       }
     }
 
@@ -210,10 +211,10 @@ export class SeriesRepository extends BaseRepository<
       return null;
     }
 
-    // Get the first 12 calibre IDs for cover display (matches FannedBookCovers maxCovers default)
+    // Get the first 12 book IDs for cover display (matches FannedBookCovers maxCovers default)
     const covers = await db
       .select({
-        calibreId: books.calibreId,
+        bookId: books.id,
       })
       .from(books)
       .where(
@@ -228,7 +229,7 @@ export class SeriesRepository extends BaseRepository<
     return {
       name: result[0].name!,
       bookCount: result[0].bookCount,
-      bookCoverIds: covers.map(c => c.calibreId),
+      bookCoverIds: covers.map(c => c.bookId),
     };
   }
 }

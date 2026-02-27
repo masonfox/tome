@@ -206,7 +206,7 @@ export interface CompleteBookResponse {
  */
 export interface BookDetail {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   totalPages?: number;
@@ -305,7 +305,7 @@ export interface UpdateBookShelvesResponse {
  */
 export interface BookWithStatusMinimal {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   status?: string | null;

@@ -1,6 +1,7 @@
 import { getLogger } from "@/lib/logger";
 import { existsSync, statSync, accessSync, constants } from "fs";
 import { dirname } from "path";
+import { ensureCoverDirectory, getCoversDir } from "@/lib/utils/cover-storage";
 
 const DATABASE_PATH = process.env.DATABASE_PATH || "./data/tome.db";
 const DATA_DIR = dirname(DATABASE_PATH);
@@ -111,7 +112,25 @@ export function runPreflightChecks(): PreflightCheckResult {
     });
   }
 
-  // Check 6: Test write to data directory
+  // Check 6: Covers directory exists and is writable
+  try {
+    ensureCoverDirectory(); // Creates if missing
+    const coversDir = getCoversDir();
+    accessSync(coversDir, constants.W_OK);
+    checks.push({
+      name: "Covers directory",
+      passed: true,
+      message: `Covers directory is writable: ${coversDir}`,
+    });
+  } catch (err: any) {
+    checks.push({
+      name: "Covers directory",
+      passed: false,
+      message: `Covers directory is not writable: ${err.message}`,
+    });
+  }
+
+  // Check 7: Test write to data directory
   try {
     const testFile = `${DATA_DIR}/.preflight-test-${Date.now()}`;
     const { writeFileSync, unlinkSync } = require("fs");

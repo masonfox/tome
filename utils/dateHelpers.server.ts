@@ -183,3 +183,137 @@ export function toDateString(date: Date): string {
   const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Parse various publication date string formats into Date objects.
+ * 
+ * Handles multiple formats from external metadata providers (OpenLibrary, Hardcover):
+ * - ISO: "2022-02-15" → Feb 15, 2022 00:00:00 UTC
+ * - Full text: "May 16, 2019" → May 16, 2019 00:00:00 UTC
+ * - Month/Year: "October 2007" → Oct 1, 2007 00:00:00 UTC (defaults to 1st of month)
+ * - Year only: "1996" → Jan 1, 1996 00:00:00 UTC (defaults to Jan 1st)
+ * - Partial ISO: "1967-07" → Jul 1, 1967 00:00:00 UTC (defaults to 1st of month)
+ * 
+ * Skips unparseable formats:
+ * - Date ranges: "1927-1928"
+ * - Placeholders: "19xx", "196x", "[ca. 1960]"
+ * 
+ * @param dateStr - Date string in various formats (or undefined)
+ * @returns Parsed Date object in UTC, or undefined if unparseable or invalid
+ * 
+ * @example
+ * parsePublishDate("2022-02-15")        // Date(2022-02-15T00:00:00.000Z)
+ * parsePublishDate("May 16, 2019")      // Date(2019-05-16T00:00:00.000Z)
+ * parsePublishDate("October 2007")      // Date(2007-10-01T00:00:00.000Z)
+ * parsePublishDate("1996")              // Date(1996-01-01T00:00:00.000Z)
+ * parsePublishDate("1967-07")           // Date(1967-07-01T00:00:00.000Z)
+ * parsePublishDate("19xx")              // undefined (placeholder)
+ * parsePublishDate("1927-1928")         // undefined (range)
+ * parsePublishDate(undefined)           // undefined
+ */
+export function parsePublishDate(dateStr: string | undefined): Date | undefined {
+  if (!dateStr || typeof dateStr !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = dateStr.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // Skip placeholders and ranges
+  if (
+    trimmed.includes('x') ||           // "19xx", "196x"
+    trimmed.includes('[') ||           // "[ca. 1960]"
+    /^\d{4}-\d{4}$/.test(trimmed)      // "1927-1928" (range)
+  ) {
+    return undefined;
+  }
+
+  // Try ISO format: "2022-02-15" or "1967-07"
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10);
+    const day = isoMatch[3] ? parseInt(isoMatch[3], 10) : 1; // Default to 1st if no day
+    
+    // Validate ranges
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return undefined;
+    }
+    
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return isNaN(date.getTime()) ? undefined : date;
+  }
+
+  // Try year only: "1996", "2015"
+  const yearMatch = trimmed.match(/^(\d{4})$/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1], 10);
+    if (year < 1000 || year > 9999) {
+      return undefined;
+    }
+    return new Date(Date.UTC(year, 0, 1)); // January 1st
+  }
+
+  // Try full text date: "May 16, 2019", "June 30, 1994", "December 2001", "2007 October 1"
+  const months: Record<string, number> = {
+    january: 0, february: 1, march: 2, april: 3,
+    may: 4, june: 5, july: 6, august: 7,
+    september: 8, october: 9, november: 10, december: 11,
+    jan: 0, feb: 1, mar: 2, apr: 3, jun: 5, jul: 6,
+    aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+
+  // Pattern 1: "Year Month Day" (e.g., "2007 October 1")
+  const yearFirstMatch = trimmed.match(/^(\d{4})\s+([a-z]+)(?:\s+(\d{1,2}))?$/i);
+  if (yearFirstMatch) {
+    const year = parseInt(yearFirstMatch[1], 10);
+    const monthStr = yearFirstMatch[2].toLowerCase();
+    const day = yearFirstMatch[3] ? parseInt(yearFirstMatch[3], 10) : 1;
+    
+    const monthIndex = months[monthStr];
+    if (monthIndex === undefined) {
+      return undefined; // Unknown month name
+    }
+    
+    // Validate day range
+    if (day < 1 || day > 31) {
+      return undefined;
+    }
+    
+    const date = new Date(Date.UTC(year, monthIndex, day));
+    return isNaN(date.getTime()) ? undefined : date;
+  }
+
+  // Pattern 2: "Month Day, Year" or "Month Year" or "Day Month Year"
+  const textDateMatch = trimmed.match(
+    /^(?:(\d{1,2})\s+)?([a-z]+)(?:\s+(\d{1,2}),?)?\s+(\d{4})$/i
+  );
+  
+  if (textDateMatch) {
+    const dayBefore = textDateMatch[1] ? parseInt(textDateMatch[1], 10) : null;
+    const monthStr = textDateMatch[2].toLowerCase();
+    const dayAfter = textDateMatch[3] ? parseInt(textDateMatch[3], 10) : null;
+    const year = parseInt(textDateMatch[4], 10);
+    
+    const monthIndex = months[monthStr];
+    if (monthIndex === undefined) {
+      return undefined; // Unknown month name
+    }
+    
+    // Use day from either position, or default to 1st
+    const day = dayAfter || dayBefore || 1;
+    
+    // Validate day range
+    if (day < 1 || day > 31) {
+      return undefined;
+    }
+    
+    const date = new Date(Date.UTC(year, monthIndex, day));
+    return isNaN(date.getTime()) ? undefined : date;
+  }
+
+  // Unable to parse
+  return undefined;
+}

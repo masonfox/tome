@@ -55,7 +55,6 @@ describe("StreakService - Asia/* Timezone Handling (ADR-014 Compliance)", () => 
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
-      path: "/test/path",
     });
 
     const session = await sessionRepository.create({
@@ -102,7 +101,6 @@ describe("StreakService - Asia/* Timezone Handling (ADR-014 Compliance)", () => 
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
-      path: "/test/path",
     });
 
     const session = await sessionRepository.create({
@@ -156,7 +154,6 @@ describe("StreakService - Asia/* Timezone Handling (ADR-014 Compliance)", () => 
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
-      path: "/test/path",
     });
 
     const session = await sessionRepository.create({
@@ -198,7 +195,6 @@ describe("StreakService - Asia/* Timezone Handling (ADR-014 Compliance)", () => 
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
-      path: "/test/path",
     });
 
     const session = await sessionRepository.create({
@@ -265,7 +261,6 @@ describe("StreakService - Asia/* Timezone Handling (ADR-014 Compliance)", () => 
       calibreId: 1,
       title: "Test Book",
       authors: ["Test Author"],
-      path: "/test/path",
     });
 
     const session = await sessionRepository.create({

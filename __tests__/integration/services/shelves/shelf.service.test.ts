@@ -76,7 +76,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -84,7 +83,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Add books to shelves
@@ -130,7 +128,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -138,7 +135,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -148,7 +144,8 @@ describe("ShelfService", () => {
       
       expect(shelves).toHaveLength(1);
       expect(shelves[0].bookCount).toBe(2);
-      expect(shelves[0].bookCoverIds).toEqual([101, 102]);
+      // bookCoverIds now contains Tome book IDs (not Calibre IDs)
+      expect(shelves[0].bookCoverIds).toEqual([book1!.id, book2!.id]);
     });
 
     test("should limit cover IDs to 12 books", async () => {
@@ -194,7 +191,6 @@ describe("ShelfService", () => {
         title: "Zulu Book",
         authors: ["Author A"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -202,7 +198,6 @@ describe("ShelfService", () => {
         title: "Alpha Book",
         authors: ["Author B"],
         tags: [],
-        path: "/path/2",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -228,7 +223,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -236,7 +230,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id, 5);
@@ -491,7 +484,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
@@ -523,7 +515,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       const shelves = await shelfService.getShelvesForBook(book!.id);
@@ -552,7 +543,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add book to shelf1 and shelf2, but not shelf3
@@ -580,7 +570,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfService.addBookToShelf(shelf.id, book!.id);
@@ -600,7 +589,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfService.addBookToShelf(shelf.id, book!.id, 5);
@@ -620,7 +608,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -628,7 +615,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       await shelfService.addBookToShelf(shelf.id, book1!.id);
@@ -647,7 +633,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await expect(shelfService.addBookToShelf(999, book!.id)).rejects.toThrow(
@@ -677,7 +662,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfService.addBookToShelf(shelf.id, book!.id);
@@ -700,7 +684,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
@@ -724,7 +707,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       const removed = await shelfService.removeBookFromShelf(shelf.id, book!.id);
@@ -751,7 +733,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id, 0);
@@ -779,7 +760,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await expect(shelfService.updateBookOrder(shelf.id, book!.id, 0)).rejects.toThrow(
@@ -805,7 +785,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfService.manageBookShelves(book!.id, [shelf1.id, shelf2.id]);
@@ -832,7 +811,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Add to both shelves
@@ -858,7 +836,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
@@ -886,7 +863,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Try to add to shelf1 and non-existent shelf 999
@@ -911,7 +887,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -919,7 +894,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -927,7 +901,6 @@ describe("ShelfService", () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -961,7 +934,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -969,7 +941,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -990,7 +961,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -998,7 +968,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -1006,7 +975,6 @@ describe("ShelfService", () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       await shelfRepository.addBookToShelf(shelf.id, book1!.id);
@@ -1036,7 +1004,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -1044,7 +1011,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const book3 = await bookRepository.create({
@@ -1052,7 +1018,6 @@ describe("ShelfService", () => {
         title: "Book 3",
         authors: ["Author 3"],
         tags: [],
-        path: "/path/3",
       });
 
       const result = await shelfService.addBooksToShelf(shelf.id, [
@@ -1083,7 +1048,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -1091,7 +1055,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const result = await shelfService.addBooksToShelf(shelf.id, [book1!.id, book2!.id]);
@@ -1119,7 +1082,6 @@ describe("ShelfService", () => {
         title: "Valid Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       // Include valid and non-existent book IDs
@@ -1149,7 +1111,6 @@ describe("ShelfService", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -1157,7 +1118,6 @@ describe("ShelfService", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Add book1 beforehand
@@ -1217,7 +1177,6 @@ describe("ShelfService", () => {
         title: "Valid 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -1225,7 +1184,6 @@ describe("ShelfService", () => {
         title: "Valid 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       const result = await shelfService.addBooksToShelf(shelf.id, [
@@ -1262,7 +1220,6 @@ describe("ShelfService", () => {
         title: "Valid Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -1270,7 +1227,6 @@ describe("ShelfService", () => {
         title: "Valid Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Mix valid books with non-existent IDs
@@ -1313,7 +1269,6 @@ describe("ShelfService", () => {
         title: "Existing Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
       await shelfRepository.addBookToShelf(shelf.id, existingBook!.id, 5);
 
@@ -1368,7 +1323,6 @@ describe("ShelfService", () => {
         title: "Test Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
 
       await expect(
@@ -1399,7 +1353,6 @@ describe("ShelfService", () => {
         title: "Real Book",
         authors: ["Author"],
         tags: [],
-        path: "/path/1",
       });
       await shelfRepository.addBookToShelf(shelf.id, book!.id);
 
@@ -1534,7 +1487,6 @@ describe("ShelfService", () => {
         title: "Book On Shelf",
         authors: ["Author 1"],
         tags: [],
-        path: "/path/1",
       });
 
       const book2 = await bookRepository.create({
@@ -1542,7 +1494,6 @@ describe("ShelfService", () => {
         title: "Book Not On Shelf",
         authors: ["Author 2"],
         tags: [],
-        path: "/path/2",
       });
 
       // Only add book1 to shelf

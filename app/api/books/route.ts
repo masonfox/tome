@@ -1,6 +1,8 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository } from "@/lib/repositories";
+import { bookService } from "@/lib/services/book.service";
+import { ZodError } from "zod";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +12,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || undefined;
     const search = searchParams.get("search")?.trim() || undefined;
     const tagsParam = searchParams.get("tags");
+    const sourcesParam = searchParams.get("sources"); // T048: Add source filtering
     const rating = searchParams.get("rating") || undefined;
     const shelfParam = searchParams.get("shelf");
     const excludeShelfParam = searchParams.get("excludeShelfId");
@@ -21,6 +24,11 @@ export async function GET(request: NextRequest) {
 
     // Parse tags
     const tags = tagsParam ? tagsParam.split(",").map((t) => t.trim()) : undefined;
+    
+    // Parse sources (T048: Multi-source filtering)
+    const source = sourcesParam 
+      ? sourcesParam.split(",").map((s) => s.trim()) as Array<"calibre" | "local">
+      : undefined;
 
     // Parse shelf ID
     const shelfIds = shelfParam ? [parseInt(shelfParam)] : undefined;
@@ -39,6 +47,7 @@ export async function GET(request: NextRequest) {
         status,
         search,
         tags,
+        source, // T048: Pass source filter to repository
         rating,
         shelfIds,
         excludeShelfId,
@@ -66,10 +75,44 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Check if this is a local book creation (has title field)
+    if (body.title && body.authors) {
+      // Local book creation
+      try {
+        const result = await bookService.createLocalBook(body);
+        
+        return NextResponse.json({
+          book: result.book,
+          duplicates: result.duplicates,
+        }, { status: 201 });
+      } catch (error) {
+        if (error instanceof ZodError) {
+          return NextResponse.json(
+            {
+              error: "Validation failed",
+              details: error.issues,
+            },
+            { status: 400 }
+          );
+        }
+        
+        getLogger().error({ err: error }, "Error creating local book");
+        return NextResponse.json(
+          { error: "Failed to create local book" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Legacy: Update book by calibreId
     const { calibreId, totalPages } = body;
 
     if (!calibreId) {
-      return NextResponse.json({ error: "calibreId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Either (title + authors) or calibreId is required" },
+        { status: 400 }
+      );
     }
 
     const book = await bookRepository.findByCalibreId(calibreId);
@@ -85,7 +128,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(book);
   } catch (error) {
-    getLogger().error({ err: error }, "Error updating book");
-    return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
+    getLogger().error({ err: error }, "Error in POST /api/books");
+    return NextResponse.json(
+      { error: "Failed to process request" },
+      { status: 500 }
+    );
   }
 }

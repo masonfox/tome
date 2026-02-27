@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { getCoverUrl } from '@/lib/utils/cover-url';
 
 interface FannedBookCoversProps {
-  /** Calibre IDs for book covers */
+  /** Tome book IDs for book covers */
   coverIds: number[];
   /** Maximum number of covers to display (default: 12) */
   maxCovers?: number;
@@ -124,8 +124,8 @@ export default function FannedBookCovers({
     };
   };
 
-  const handleImageError = (calibreId: number) => {
-    setImageErrors(prev => ({ ...prev, [calibreId]: true }));
+  const handleImageError = (bookId: number) => {
+    setImageErrors(prev => ({ ...prev, [bookId]: true }));
   };
 
   return (
@@ -137,12 +137,12 @@ export default function FannedBookCovers({
     >
       <div className="absolute inset-0 flex items-center justify-center">
         {visibleCovers.map((item, index) => {
-          const calibreId = typeof item === 'number' && !isLoading ? item : null;
+          const bookId = typeof item === 'number' && !isLoading ? item : null;
           const style = calculateCoverStyle(index);
           
           return (
             <div
-              key={calibreId || `skeleton-${index}`}
+              key={bookId || `skeleton-${index}`}
               className={`absolute transition-all duration-300 ${isHovered ? 'scale-105' : ''}`}
               style={{
                 left: '50%',
@@ -165,15 +165,15 @@ export default function FannedBookCovers({
                       height: `${dimensions.height}px` 
                     }}
                   />
-                ) : calibreId && !imageErrors[calibreId] ? (
+                ) : bookId && !imageErrors[bookId] ? (
                   // Actual cover image
                   <Image
-                    src={getCoverUrl(calibreId)}
+                    src={getCoverUrl(bookId)}
                     alt={`Cover ${index + 1}`}
                     width={dimensions.width}
                     height={dimensions.height}
                     className="rounded shadow-xl border-2 border-[var(--card-bg)]"
-                    onError={() => handleImageError(calibreId)}
+                    onError={() => handleImageError(bookId)}
                     unoptimized
                   />
                 ) : (

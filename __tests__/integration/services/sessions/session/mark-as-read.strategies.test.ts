@@ -71,7 +71,7 @@ describe("SessionService - Mark as Read Strategies", () => {
       expect(result.strategy).toBeDefined();
     });
 
-    test("selects ManualSessionUpdateStrategy when no totalPages", () => {
+    test("selects LocalSessionUpdateStrategy when no totalPages", () => {
       const book = { id: 1, totalPages: null };
       const isAlreadyRead = false;
       const has100Progress = false;
@@ -82,7 +82,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         has100Progress
       );
 
-      expect(result.name).toBe("ManualSessionUpdate");
+      expect(result.name).toBe("LocalSessionUpdate");
       expect(result.strategy).toBeDefined();
     });
 
@@ -101,7 +101,7 @@ describe("SessionService - Mark as Read Strategies", () => {
       expect(result.name).toBe("AlreadyRead");
     });
 
-    test("selects ManualSessionUpdateStrategy when totalPages is 0", () => {
+    test("selects LocalSessionUpdateStrategy when totalPages is 0", () => {
       const book = { id: 1, totalPages: 0 };
       const isAlreadyRead = false;
       const has100Progress = false;
@@ -112,7 +112,8 @@ describe("SessionService - Mark as Read Strategies", () => {
         has100Progress
       );
 
-      expect(result.name).toBe("ManualSessionUpdate");
+      expect(result.name).toBe("LocalSessionUpdate");
+      expect(result.strategy).toBeDefined();
     });
   });
 
@@ -275,7 +276,7 @@ describe("SessionService - Mark as Read Strategies", () => {
     });
   });
 
-  describe("manualSessionUpdateStrategy", () => {
+  describe("localSessionUpdateStrategy", () => {
     test("updates existing active session to read", async () => {
       const book = await bookRepository.create(createTestBook({ totalPages: null }));
 
@@ -306,7 +307,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         logger,
       };
 
-      const result = await (sessionService as any).manualSessionUpdateStrategy(context);
+      const result = await (sessionService as any).localSessionUpdateStrategy(context);
 
       expect(result.progressCreated).toBe(false);
       expect(result.sessionId).toBeDefined();
@@ -338,7 +339,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         logger,
       };
 
-      const result = await (sessionService as any).manualSessionUpdateStrategy(context);
+      const result = await (sessionService as any).localSessionUpdateStrategy(context);
 
       expect(result.progressCreated).toBe(false);
       expect(result.sessionId).toBeDefined();
@@ -373,7 +374,7 @@ describe("SessionService - Mark as Read Strategies", () => {
         logger,
       };
 
-      const result = await (sessionService as any).manualSessionUpdateStrategy(context);
+      const result = await (sessionService as any).localSessionUpdateStrategy(context);
 
       const newSession = await sessionRepository.findById(result.sessionId!);
       expect(newSession?.completedDate).toEqual(customDate);

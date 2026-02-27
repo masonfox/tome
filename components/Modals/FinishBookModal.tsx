@@ -77,7 +77,7 @@ export default function FinishBookModal({
   };
 
   const handleClose = async () => {
-    // If this is a manual mark-as-read flow (no sessionId), we should still mark the book as read
+    // If this is a local mark-as-read flow (no sessionId), we should still mark the book as read
     // Otherwise, clicking Skip cancels the entire status change
     if (!sessionId) {
       await onConfirm(undefined, undefined); // Mark as read without rating/review

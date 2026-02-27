@@ -38,7 +38,7 @@ export interface ShelfWithBookCountAndCovers extends ShelfWithBookCount {
  */
 export interface BookInShelf {
   id: number;
-  calibreId: number;
+  calibreId: number | null;
   title: string;
   authors: string[];
   sortOrder: number;

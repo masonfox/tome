@@ -12,7 +12,8 @@ export interface JournalEntry {
   bookId: number;
   bookTitle: string;
   bookAuthors: string[];
-  bookCalibreId: number;
+  bookCalibreId: number | null;
+  bookUpdatedAt: Date | string | null;
   sessionId: number | null;
   currentPage: number;
   currentPercentage: number;
@@ -27,7 +28,8 @@ export interface GroupedJournalEntry {
     bookId: number;
     bookTitle: string;
     bookAuthors: string[];
-    bookCalibreId: number;
+    bookCalibreId: number | null;
+    bookUpdatedAt: Date | string | null;
     entries: JournalEntry[];
   }[];
 }
@@ -71,6 +73,7 @@ export class JournalService {
         bookTitle: books.title,
         bookAuthors: books.authors,
         bookCalibreId: books.calibreId,
+        bookUpdatedAt: books.updatedAt,
         sessionId: progressLogs.sessionId,
         currentPage: progressLogs.currentPage,
         currentPercentage: progressLogs.currentPercentage,
@@ -113,6 +116,7 @@ export class JournalService {
         bookTitle: entry.bookTitle,
         bookAuthors: entry.bookAuthors as string[],
         bookCalibreId: entry.bookCalibreId,
+        bookUpdatedAt: entry.bookUpdatedAt,
         sessionId: entry.sessionId,
         currentPage: entry.currentPage,
         currentPercentage: entry.currentPercentage,
@@ -141,6 +145,7 @@ export class JournalService {
           bookTitle: entries[0].bookTitle,
           bookAuthors: entries[0].bookAuthors,
           bookCalibreId: entries[0].bookCalibreId,
+          bookUpdatedAt: entries[0].bookUpdatedAt,
           entries: entries.sort((a: JournalEntry, b: JournalEntry) => b.progressDate.localeCompare(a.progressDate)),
         });
       }

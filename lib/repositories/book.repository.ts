@@ -1,12 +1,15 @@
 import { eq, and, or, sql, like, inArray, desc, asc, SQL } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
 import { books, Book, NewBook } from "@/lib/db/schema/books";
+import { bookSources } from "@/lib/db/schema/book-sources";
 import { readingSessions } from "@/lib/db/schema/reading-sessions";
 import { progressLogs } from "@/lib/db/schema/progress-logs";
 import { bookShelves } from "@/lib/db/schema/shelves";
 import { db } from "@/lib/db/sqlite";
 import { getLogger } from "@/lib/logger";
 import { isNotOrphaned } from "@/lib/db/sql-helpers";
+import { deleteCover } from "@/lib/utils/cover-storage";
+import { coverCache } from "@/lib/cache/cover-cache";
 
 export interface BookFilter {
   status?: string;
@@ -18,6 +21,7 @@ export interface BookFilter {
   shelfIds?: number[]; // Filter by books on specific shelves (OR logic - book must be on ANY shelf)
   excludeShelfId?: number; // Exclude books on this shelf (used for "Add Books to Shelf" modal)
   noTags?: boolean; // Filter for books without any tags
+  source?: string | string[]; // Filter by provider ID(s) - queries book_sources table
 }
 
 export interface BookWithStatus extends Book {
@@ -31,6 +35,22 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
 
   protected getTable() {
     return books;
+  }
+
+  /**
+   * Delete a book by ID.
+   * Also cleans up the associated cover file and invalidates the cover cache.
+   */
+  async delete(id: number): Promise<boolean> {
+    // Clean up cover file before deleting the book record
+    try {
+      deleteCover(id);
+      coverCache.clear(); // Invalidate cache entry for this book
+    } catch (error) {
+      getLogger().warn({ err: error, bookId: id }, "[BookRepository] Failed to clean up cover during delete");
+    }
+
+    return super.delete(id);
   }
 
   /**
@@ -68,6 +88,59 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       .from(books)
       .where(eq(books.calibreId, calibreId))
       .get();
+  }
+
+  /**
+   * Find all books from a specific source provider
+   * 
+   * @param providerId - Provider ID (e.g., 'calibre', 'audiobookshelf')
+   * @returns Array of books from the specified provider
+   */
+  async findBySource(providerId: string): Promise<Book[]> {
+    return this.getDatabase()
+      .select({
+        id: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        authorSort: books.authorSort,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+      })
+      .from(books)
+      .innerJoin(bookSources, eq(books.id, bookSources.bookId))
+      .where(eq(bookSources.providerId, providerId))
+      .all();
+  }
+
+  /**
+   * Count books by source provider
+   * 
+   * @param providerId - Provider ID to count
+   * @returns Number of books from the specified provider
+   */
+  async countBySource(providerId: string): Promise<number> {
+    const result = this.getDatabase()
+      .select({ count: sql<number>`COUNT(DISTINCT ${books.id})` })
+      .from(books)
+      .innerJoin(bookSources, eq(books.id, bookSources.bookId))
+      .where(eq(bookSources.providerId, providerId))
+      .get();
+
+    return result?.count ?? 0;
   }
 
   /**
@@ -109,7 +182,9 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     // Build map: calibreId -> Book
     const booksMap = new Map<number, Book>();
     for (const book of results) {
-      booksMap.set(book.calibreId, book);
+      if (book.calibreId !== null) {
+        booksMap.set(book.calibreId, book);
+      }
     }
 
     return booksMap;
@@ -152,7 +227,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         series: books.series,
         seriesIndex: books.seriesIndex,
         tags: books.tags,
-        path: books.path,
         description: books.description,
         rating: books.rating,
         orphaned: books.orphaned,
@@ -271,7 +345,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       series: result.series,
       seriesIndex: result.seriesIndex,
       tags: result.tags,
-      path: result.path,
       description: result.description,
       rating: result.rating,
       orphaned: result.orphaned,
@@ -331,6 +404,44 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       conditions.push(eq(books.orphaned, true));
     } else if (!filters.showOrphaned) {
       conditions.push(isNotOrphaned());
+    }
+
+    // Source filter (single provider or array of providers)
+    // - 'calibre' and other providers: books IN book_sources table
+    // - 'local': books NOT IN book_sources table (no external source)
+    // - Multiple sources: OR logic (book matches ANY source)
+    if (filters.source) {
+      const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
+      if (providerIds.length > 0) {
+        const sourceConditions: SQL[] = [];
+        
+        // Check for external providers (calibre, etc.)
+        const externalProviders = providerIds.filter(p => p !== 'local');
+        if (externalProviders.length > 0) {
+          sourceConditions.push(
+            sql`${books.id} IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources} 
+              WHERE ${bookSources.providerId} IN (${sql.join(externalProviders.map(p => sql`${p}`), sql`, `)})
+            )`
+          );
+        }
+        
+        // Check for local books (no entry in book_sources)
+        if (providerIds.includes('local')) {
+          sourceConditions.push(
+            sql`${books.id} NOT IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources}
+            )`
+          );
+        }
+        
+        // Combine with OR logic (book matches ANY source)
+        if (sourceConditions.length > 0) {
+          conditions.push(or(...sourceConditions)!);
+        }
+      }
     }
 
     // Search filter
@@ -605,20 +716,40 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
   }
 
   /**
-   * Find books not in a list of calibreIds (for orphaning)
+   * Find books that are NOT in the given Calibre IDs (for orphan detection during sync)
+   * 
+   * CRITICAL: Only returns Calibre-sourced books to prevent orphaning local/external books
    */
   async findNotInCalibreIds(calibreIds: number[]): Promise<Book[]> {
-    // SAFETY: If calibreIds is empty, return empty array to prevent mass orphaning
-    // This prevents a catastrophic bug where an empty Calibre result would orphan ALL books
-    if (calibreIds.length === 0) {
-      return [];
-    }
-
+    if (calibreIds.length === 0) return [];
     return this.getDatabase()
-      .select()
+      .select({
+        id: books.id,
+        calibreId: books.calibreId,
+        title: books.title,
+        authors: books.authors,
+        authorSort: books.authorSort,
+        isbn: books.isbn,
+        totalPages: books.totalPages,
+        addedToLibrary: books.addedToLibrary,
+        lastSynced: books.lastSynced,
+        publisher: books.publisher,
+        pubDate: books.pubDate,
+        series: books.series,
+        seriesIndex: books.seriesIndex,
+        tags: books.tags,
+        description: books.description,
+        rating: books.rating,
+        orphaned: books.orphaned,
+        orphanedAt: books.orphanedAt,
+        createdAt: books.createdAt,
+        updatedAt: books.updatedAt,
+      })
       .from(books)
+      .innerJoin(bookSources, eq(books.id, bookSources.bookId))
       .where(
         and(
+          eq(bookSources.providerId, "calibre"), // CRITICAL: Only check Calibre books
           sql`${books.calibreId} NOT IN ${sql.raw(`(${calibreIds.join(",")})`)}`,
           isNotOrphaned()
         )
@@ -746,6 +877,44 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         conditions.push(ratingCondition);
       }
     }
+    // Source filter (T049: Multi-source filtering with OR logic)
+    // - 'calibre' and other providers: books IN book_sources table
+    // - 'local': books NOT IN book_sources table (no external source)
+    // - Multiple sources: OR logic (book matches ANY source)
+    if (filters.source) {
+      const providerIds = Array.isArray(filters.source) ? filters.source : [filters.source];
+      if (providerIds.length > 0) {
+        const sourceConditions: SQL[] = [];
+        
+        // Check for external providers (calibre, etc.)
+        const externalProviders = providerIds.filter(p => p !== 'local');
+        if (externalProviders.length > 0) {
+          sourceConditions.push(
+            sql`${books.id} IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources} 
+              WHERE ${bookSources.providerId} IN (${sql.join(externalProviders.map(p => sql`${p}`), sql`, `)})
+            )`
+          );
+        }
+        
+        // Check for local books (no entry in book_sources)
+        if (providerIds.includes('local')) {
+          sourceConditions.push(
+            sql`${books.id} NOT IN (
+              SELECT ${bookSources.bookId} 
+              FROM ${bookSources}
+            )`
+          );
+        }
+        
+        // Combine with OR logic (book matches ANY source)
+        if (sourceConditions.length > 0) {
+          conditions.push(or(...sourceConditions)!);
+        }
+      }
+    }
+
 
     // Status filter (requires join with sessions)
     let bookIds: number[] | undefined;
@@ -909,7 +1078,6 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
         series: books.series,
         seriesIndex: books.seriesIndex,
         tags: books.tags,
-        path: books.path,
         description: books.description,
         rating: books.rating,
         orphaned: books.orphaned,
@@ -985,6 +1153,13 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
           ORDER BY pl.progress_date DESC
           LIMIT 1
         )`.as('progressCreatedAt'),
+
+        // Book sources (aggregate provider IDs from book_sources table)
+        sources: sql`(
+          SELECT GROUP_CONCAT(bs.provider_id)
+          FROM ${bookSources} bs
+          WHERE bs.book_id = ${books.id}
+        )`.as('sources'),
       })
       .from(books)
       .leftJoin(
@@ -1002,6 +1177,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     const booksWithRelations = results.map((row: any) => ({
       id: row.bookId,
       calibreId: row.calibreId,
+      sources: row.sources ? row.sources.split(',') : [], // Parse comma-separated sources into array
       title: row.title,
       authors: row.authors,
       tags: row.tags,
@@ -1009,6 +1185,7 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
       rating: row.rating,
       status: row.sessionStatus,
       lastSynced: row.lastSynced,
+      updatedAt: row.updatedAt,
       // Only include minimal progress info needed for display
       latestProgress: row.progressId ? {
         currentPage: row.progressCurrentPage,

@@ -677,7 +677,6 @@ describe("ProgressRepository.recalculatePercentagesForBook()", () => {
       calibreId: 1,
       title: "Test Book",
       authors: ["Author"],
-      path: "/test/path",
       totalPages: 300,
     });
 
@@ -693,7 +692,6 @@ describe("ProgressRepository.recalculatePercentagesForBook()", () => {
       calibreId: 1,
       title: "Test Book",
       authors: ["Author"],
-      path: "/test/path",
       totalPages: 300,
     });
 
@@ -746,7 +744,6 @@ describe("ProgressRepository.recalculatePercentagesForBook()", () => {
       calibreId: 1,
       title: "Test Book",
       authors: ["Author"],
-      path: "/test/path",
       totalPages: 300,
     });
 
@@ -784,7 +781,6 @@ describe("ProgressRepository.recalculatePercentagesForBook()", () => {
       calibreId: 1,
       title: "Book 1",
       authors: ["Author"],
-      path: "/test/path1",
       totalPages: 300,
     });
 
@@ -792,7 +788,6 @@ describe("ProgressRepository.recalculatePercentagesForBook()", () => {
       calibreId: 2,
       title: "Book 2",
       authors: ["Author"],
-      path: "/test/path2",
       totalPages: 300,
     });
 
@@ -860,8 +855,8 @@ describe("Malformed date defense (isValidDateFormat guard)", () => {
     const rawDb = testDb.sqlite;
     rawDb
       .prepare(
-        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
-         VALUES (?, ?, '[]', '[]', '/test', 0)`
+        `INSERT INTO books (title, calibre_id, authors, tags, orphaned)
+         VALUES (?, ?, '[]', '[]', 0)`
       )
       .run(title, calibreId);
 

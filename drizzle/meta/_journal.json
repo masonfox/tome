@@ -155,6 +155,27 @@
       "when": 1770212841932,
       "tag": "0021_windy_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1771026506480,
+      "tag": "0022_sad_archangel",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1771365797967,
+      "tag": "0023_breezy_earthquake",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1772454600000,
+      "tag": "0024_restore_rating_triggers",
+      "breakpoints": true
     }
   ]
 }

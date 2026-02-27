@@ -1369,7 +1369,6 @@ describe("Reading Streak Tracking - Spec 001", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -1458,7 +1457,6 @@ describe("Reading Streak Tracking - Spec 001", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -1501,7 +1499,6 @@ describe("Reading Streak Tracking - Spec 001", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 
@@ -1566,7 +1563,6 @@ describe("Reading Streak Tracking - Spec 001", () => {
         calibreId: 1,
         title: "Test Book",
         authors: ["Author"],
-        path: "/test/path",
         totalPages: 300,
       });
 

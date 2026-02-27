@@ -26,6 +26,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     filters.tags,
     filters.rating,
     filters.shelf,
+    filters.sources, // T052: Add sources to query key
     filters.sortBy,
     filters.showOrphaned,
     filters.noTags,
@@ -36,6 +37,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     filters.tags,
     filters.rating,
     filters.shelf,
+    filters.sources, // T052: Add sources to query key
     filters.sortBy,
     filters.showOrphaned,
     filters.noTags,
@@ -99,6 +101,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
         newFilters.tags !== undefined ||
         newFilters.rating !== undefined ||
         newFilters.shelf !== undefined ||
+        newFilters.sources !== undefined || // T052: Reset pagination when sources change
         newFilters.sortBy !== undefined ||
         newFilters.noTags !== undefined
       ) {
@@ -169,6 +172,11 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     updateFilters({ noTags });
   }, [updateFilters]);
 
+  // Sources filter function - T052
+  const setSources = useCallback((sources: string[] | undefined) => {
+    updateFilters({ sources });
+  }, [updateFilters]);
+
   // Pagination functions
   const setLimit = useCallback((limit: number) => {
     updateFilters({ pagination: { limit, skip: filters.pagination.skip } });
@@ -201,6 +209,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
     setShelf,
     setSortBy,
     setNoTags,
+    setSources, // T052: Export setSources
     setLimit,
     setSkip,
 

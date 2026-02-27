@@ -5,7 +5,10 @@ export const books = sqliteTable(
   "books",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    calibreId: integer("calibre_id").notNull().unique(),
+    // DEPRECATED: Will be removed in future migration after transition to book_sources
+    // Use bookSourceRepository to query book sources instead
+    // Multi-source support: calibreId is now nullable for non-Calibre books
+    calibreId: integer("calibre_id").unique(),
     title: text("title").notNull(),
     // Store authors as JSON array
     authors: text("authors", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
@@ -14,16 +17,15 @@ export const books = sqliteTable(
     isbn: text("isbn"),
     totalPages: integer("total_pages"),
     addedToLibrary: integer("added_to_library", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-    lastSynced: integer("last_synced", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    lastSynced: integer("last_synced", { mode: "timestamp" }),
     publisher: text("publisher"),
     pubDate: integer("pub_date", { mode: "timestamp" }),
     series: text("series"),
     seriesIndex: real("series_index"),
     // Store tags as JSON array
     tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
-    path: text("path").notNull(),
     description: text("description"),
-    rating: integer("rating"), // 1-5 stars, synced from Calibre
+    rating: integer("rating"), // 1-5 stars, synced from Calibre or set manually
     orphaned: integer("orphaned", { mode: "boolean" }).notNull().default(false),
     orphanedAt: integer("orphaned_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

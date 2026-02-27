@@ -22,7 +22,6 @@ describe("Book Search Functionality", () => {
         title: "The Hobbit",
         authors: ["J.R.R. Tolkien"],
         tags: [],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -30,7 +29,6 @@ describe("Book Search Functionality", () => {
         title: "HARRY POTTER",
         authors: ["J.K. Rowling"],
         tags: [],
-        path: "/path2",
       });
 
       // Search lowercase
@@ -54,7 +52,6 @@ describe("Book Search Functionality", () => {
         title: "Book",
         authors: ["Brandon Sanderson"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "sanderson" });
@@ -70,7 +67,6 @@ describe("Book Search Functionality", () => {
         title: "The Way of Kings",
         authors: ["Brandon Sanderson"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "Way" });
@@ -83,7 +79,6 @@ describe("Book Search Functionality", () => {
         title: "Book",
         authors: ["Patrick Rothfuss"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "Roth" });
@@ -98,7 +93,6 @@ describe("Book Search Functionality", () => {
         title: "O'Reilly's Book",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "O'Reilly" });
@@ -111,7 +105,6 @@ describe("Book Search Functionality", () => {
         title: "Spider-Man",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "Spider-Man" });
@@ -124,7 +117,6 @@ describe("Book Search Functionality", () => {
         title: "Book (Special Edition)",
         authors: ["Author"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "(Special" });
@@ -139,7 +131,6 @@ describe("Book Search Functionality", () => {
         title: "Harry Potter and the Philosopher's Stone",
         authors: ["J.K. Rowling"],
         tags: [],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -147,7 +138,6 @@ describe("Book Search Functionality", () => {
         title: "Harry Potter and the Chamber of Secrets",
         authors: ["J.K. Rowling"],
         tags: [],
-        path: "/path2",
       });
 
       await bookRepository.create({
@@ -155,7 +145,6 @@ describe("Book Search Functionality", () => {
         title: "The Hobbit",
         authors: ["J.R.R. Tolkien"],
         tags: [],
-        path: "/path3",
       });
 
       const result = await bookRepository.findWithFilters({ search: "Harry Potter" });
@@ -186,7 +175,6 @@ describe("Book Search Functionality", () => {
         title: "The Hobbit",
         authors: ["J.R.R. Tolkien"],
         tags: [],
-        path: "/path",
       });
 
       const result = await bookRepository.findWithFilters({ search: "Nonexistent" });
@@ -202,7 +190,6 @@ describe("Book Search Functionality", () => {
         title: "Book 1",
         authors: ["Author 1"],
         tags: [],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -210,7 +197,6 @@ describe("Book Search Functionality", () => {
         title: "Book 2",
         authors: ["Author 2"],
         tags: [],
-        path: "/path2",
       });
 
       const result = await bookRepository.findWithFilters({ search: "" });
@@ -225,7 +211,6 @@ describe("Book Search Functionality", () => {
         title: "Fantasy Book",
         authors: ["Author"],
         tags: ["Fantasy", "Adventure"],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -233,7 +218,6 @@ describe("Book Search Functionality", () => {
         title: "Sci-Fi Book",
         authors: ["Author"],
         tags: ["Sci-Fi"],
-        path: "/path2",
       });
 
       const result = await bookRepository.findWithFilters({ tags: ["Fantasy"] });
@@ -248,7 +232,6 @@ describe("Book Search Functionality", () => {
         title: "Fantasy Book",
         authors: ["Author"],
         tags: ["Fantasy"],
-        path: "/path1",
       });
 
       // Book with Sci-Fi only
@@ -257,7 +240,6 @@ describe("Book Search Functionality", () => {
         title: "Sci-Fi Book",
         authors: ["Author"],
         tags: ["Sci-Fi"],
-        path: "/path2",
       });
 
       // Book with both Fantasy AND Sci-Fi
@@ -266,7 +248,6 @@ describe("Book Search Functionality", () => {
         title: "Fantasy Sci-Fi Hybrid",
         authors: ["Author"],
         tags: ["Fantasy", "Sci-Fi"],
-        path: "/path3",
       });
 
       // Book with Romance only
@@ -275,7 +256,6 @@ describe("Book Search Functionality", () => {
         title: "Romance Book",
         authors: ["Author"],
         tags: ["Romance"],
-        path: "/path4",
       });
 
       // When filtering by multiple tags, only books with ALL tags should be returned
@@ -291,7 +271,6 @@ describe("Book Search Functionality", () => {
         title: "Epic Fantasy",
         authors: ["Author"],
         tags: ["fantasy", "magic", "adventure", "dragons"],
-        path: "/path1",
       });
 
       // Book B: has fantasy, adventure (exact match)
@@ -300,7 +279,6 @@ describe("Book Search Functionality", () => {
         title: "Simple Fantasy",
         authors: ["Author"],
         tags: ["fantasy", "adventure"],
-        path: "/path2",
       });
 
       // Book C: has only fantasy (subset)
@@ -309,7 +287,6 @@ describe("Book Search Functionality", () => {
         title: "Pure Fantasy",
         authors: ["Author"],
         tags: ["fantasy"],
-        path: "/path3",
       });
 
       // Query for fantasy AND adventure - should return Books A and B
@@ -325,7 +302,6 @@ describe("Book Search Functionality", () => {
         title: "Complete Book",
         authors: ["Author"],
         tags: ["fantasy", "magic", "adventure"],
-        path: "/path1",
       });
 
       // Book with only two tags
@@ -334,7 +310,6 @@ describe("Book Search Functionality", () => {
         title: "Incomplete Book",
         authors: ["Author"],
         tags: ["fantasy", "magic"],
-        path: "/path2",
       });
 
       const result = await bookRepository.findWithFilters({
@@ -350,7 +325,6 @@ describe("Book Search Functionality", () => {
         title: "Fantasy Book",
         authors: ["Author"],
         tags: ["fantasy"],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -358,7 +332,6 @@ describe("Book Search Functionality", () => {
         title: "Sci-Fi Book",
         authors: ["Author"],
         tags: ["sci-fi"],
-        path: "/path2",
       });
 
       // Query for tags that no book has together
@@ -373,7 +346,6 @@ describe("Book Search Functionality", () => {
         title: "Book 1",
         authors: ["Author"],
         tags: ["fantasy"],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -381,7 +353,6 @@ describe("Book Search Functionality", () => {
         title: "Book 2",
         authors: ["Author"],
         tags: ["sci-fi"],
-        path: "/path2",
       });
 
       // Empty tags array should return all books
@@ -397,7 +368,6 @@ describe("Book Search Functionality", () => {
         title: "Harry Potter Fantasy",
         authors: ["J.K. Rowling"],
         tags: ["Fantasy"],
-        path: "/path1",
       });
 
       await bookRepository.create({
@@ -405,7 +375,6 @@ describe("Book Search Functionality", () => {
         title: "Harry Potter Sci-Fi",
         authors: ["J.K. Rowling"],
         tags: ["Sci-Fi"],
-        path: "/path2",
       });
 
       const result = await bookRepository.findWithFilters({

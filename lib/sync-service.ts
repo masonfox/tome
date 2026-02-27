@@ -1,7 +1,8 @@
 import { getAllBooks, getBookTags, getAllBookTags, getBooksCount, CalibreBook, PaginationOptions } from "@/lib/db/calibre";
-import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { bookRepository, sessionRepository, bookSourceRepository } from "@/lib/repositories";
 import type { NewBook } from "@/lib/db/schema/books";
 import type { NewReadingSession } from "@/lib/db/schema/reading-sessions";
+import { SessionService } from "@/lib/services/session.service";
 import { getLogger } from "@/lib/logger";
 import { generateAuthorSort } from "@/lib/utils/author-sort";
 import { clearCoverCache, clearBookPathCache, getCoverCacheStats, getBookPathCacheStats } from "@/lib/cache/cover-cache";
@@ -130,8 +131,8 @@ export async function syncCalibreLibrary(
 
     const numChunks = Math.ceil(totalBooks / chunkSize);
     logger.info(
-      { totalBooks, chunkSize, numChunks, detectOrphans },
-      `[Sync] Starting: ${totalBooks} books, ${numChunks} chunk(s), orphan detection ${detectOrphans ? 'enabled' : 'disabled'}`
+      { totalBooks, chunkSize, numChunks, detectOrphans, source: 'calibre' }, // T047: Log source filtering
+      `[Sync] Starting: ${totalBooks} books (source=calibre), ${numChunks} chunk(s), orphan detection ${detectOrphans ? 'enabled' : 'disabled'}`
     );
 
     // ========================================
@@ -232,7 +233,6 @@ export async function syncCalibreLibrary(
           series: calibreBook.series || null,
           seriesIndex: calibreBook.series_index || null,
           tags,
-          path: calibreBook.path,
           description: calibreBook.description || undefined,
           lastSynced: new Date(),
           addedToLibrary: calibreBook.timestamp ? new Date(calibreBook.timestamp) : new Date(),
@@ -279,20 +279,51 @@ export async function syncCalibreLibrary(
         const newCalibreIds = booksToInsert.map(book => book.calibreId!);
         
         const newBooksMap = await bookRepository.findAllByCalibreIds(newCalibreIds);
-        const sessionsToCreate: NewReadingSession[] = [];
         
-        for (const book of Array.from(newBooksMap.values())) {
-          sessionsToCreate.push({
-            bookId: book.id,
-            status: "to-read",
-            sessionNumber: 1,
-            isActive: true,
-          });
-        }
+        // Use SessionService's canonical data structure for consistency
+        // Bulk operation for performance (5000+ books per sync)
+        const sessionsToCreate = Array.from(newBooksMap.values()).map(book =>
+          SessionService.buildInitialSessionData(book.id)
+        );
 
         await sessionRepository.bulkCreate(sessionsToCreate);
         logger.debug({ chunk: chunkNumber }, `[Sync:Chunk] Sessions created`);
       }
+
+      // Step 7: Upsert book_sources entries for all books in this chunk
+      logger.debug(
+        { chunk: chunkNumber, booksToLink: calibreBooks.length },
+        `[Sync:Chunk] Upserting book_sources entries`
+      );
+      
+      // Get all books from this chunk to ensure we have their IDs
+      const calibreIdsInChunk = calibreBooks
+        .map(book => book.id)
+        .filter((id): id is number => id !== null && id !== undefined);
+      
+      const booksInChunk = await bookRepository.findAllByCalibreIds(calibreIdsInChunk);
+      
+      // Create a map of calibreId -> calibreBook for easy lookup
+      const calibreBooksMap = new Map(calibreBooks.map(cb => [cb.id, cb]));
+      
+      // Upsert book_sources entries for each book
+      for (const [calibreId, book] of booksInChunk.entries()) {
+        const calibreBook = calibreBooksMap.get(calibreId);
+        
+        await bookSourceRepository.upsert({
+          bookId: book.id,
+          providerId: 'calibre',
+          externalId: calibreId.toString(),
+          isPrimary: true,
+          lastSynced: new Date(),
+          syncEnabled: true,
+        });
+      }
+      
+      logger.debug(
+        { chunk: chunkNumber, sourcesUpserted: booksInChunk.size },
+        `[Sync:Chunk] Book sources upserted`
+      );
 
       // Update totals
       syncedCount += chunkSyncedCount;
@@ -329,18 +360,21 @@ export async function syncCalibreLibrary(
         totalBooks, 
         durationSec: bookProcessingDuration, 
         newBooks: syncedCount, 
-        updatedBooks: updatedCount 
+        updatedBooks: updatedCount,
+        source: 'calibre' // T047: Log source filtering
       },
-      `[Sync:Books] Processed ${syncedCount + updatedCount}/${totalBooks} books in ${bookProcessingDuration}s (${syncedCount} new, ${updatedCount} updated)`
+      `[Sync:Books] Processed ${syncedCount + updatedCount}/${totalBooks} books (source=calibre) in ${bookProcessingDuration}s (${syncedCount} new, ${updatedCount} updated)`
     );
 
     // ========================================
     // PHASE 2: Orphan Detection (Optional)
+    // T040: Only detect orphaned books from Calibre source (handled in repository)
     // ========================================
     let removedCount = 0;
     const orphanedBooks: string[] = [];
 
     if (detectOrphans) {
+      // Repository already filters by source='calibre' - see book.repository.ts:658
       const removedBooks = await bookRepository.findNotInCalibreIds(allCalibreIds);
 
       // SAFETY CHECK: Prevent mass orphaning (>10% of library)
@@ -380,11 +414,11 @@ export async function syncCalibreLibrary(
         const totalBooksInDb = await bookRepository.count();
         const orphanPercentage = ((removedCount / totalBooksInDb) * 100).toFixed(2);
         logger.info(
-          { removedCount, orphanPercentage },
-          `[Sync:Orphans] Marked ${removedCount} book(s) as orphaned (${orphanPercentage}% of library)`
+          { removedCount, orphanPercentage, source: 'calibre' }, // T047: Log source filtering
+          `[Sync:Orphans] Marked ${removedCount} Calibre book(s) as orphaned (${orphanPercentage}% of library)`
         );
       } else {
-        logger.info({ potentialOrphans: 0, removedCount: 0 }, `[Sync:Orphans] No orphaned books found`);
+        logger.info({ potentialOrphans: 0, removedCount: 0, source: 'calibre' }, `[Sync:Orphans] No orphaned Calibre books found`);
       }
     } else {
       // Orphan detection disabled - skip this phase

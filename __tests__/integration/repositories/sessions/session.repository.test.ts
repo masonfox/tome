@@ -36,7 +36,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       const session = await sessionRepository.create({
@@ -63,7 +62,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       const session = await sessionRepository.create({
@@ -114,7 +112,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       // First session with progress
@@ -182,7 +179,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       const sessions = await sessionRepository.findAllByBookIdWithProgress(book.id);
@@ -196,14 +192,12 @@ describe("SessionRepository - Edge Cases", () => {
       const normalBook = await bookRepository.create({
         title: "Normal Book",
         calibreId: 1,
-        path: "/test/normal.epub",
         orphaned: false,
       });
 
       const orphanedBook = await bookRepository.create({
         title: "Orphaned Book",
         calibreId: 2,
-        path: "/test/orphaned.epub",
         orphaned: true,
       });
 
@@ -231,7 +225,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Book Without Orphaned Field",
         calibreId: 1,
-        path: "/test/book.epub",
         // orphaned field not set (defaults to null)
       });
 
@@ -252,14 +245,12 @@ describe("SessionRepository - Edge Cases", () => {
       const normalBook = await bookRepository.create({
         title: "Normal Book",
         calibreId: 1,
-        path: "/test/normal.epub",
         orphaned: false,
       });
 
       const orphanedBook = await bookRepository.create({
         title: "Orphaned Book",
         calibreId: 2,
-        path: "/test/orphaned.epub",
         orphaned: true,
       });
 
@@ -288,7 +279,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -341,14 +331,12 @@ describe("SessionRepository - Edge Cases", () => {
       const normalBook = await bookRepository.create({
         title: "Normal Book",
         calibreId: 1,
-        path: "/test/normal.epub",
         orphaned: false,
       });
 
       const orphanedBook = await bookRepository.create({
         title: "Orphaned Book",
         calibreId: 2,
-        path: "/test/orphaned.epub",
         orphaned: true,
       });
 
@@ -377,14 +365,12 @@ describe("SessionRepository - Edge Cases", () => {
       const normalBook = await bookRepository.create({
         title: "Normal Book",
         calibreId: 1,
-        path: "/test/normal.epub",
         orphaned: false,
       });
 
       const orphanedBook = await bookRepository.create({
         title: "Orphaned Book",
         calibreId: 2,
-        path: "/test/orphaned.epub",
         orphaned: true,
       });
 
@@ -412,7 +398,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -433,7 +418,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -456,7 +440,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       // Active + reading (should match)
@@ -487,7 +470,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       const sessions = await sessionRepository.findActiveSessionsByBookId(book.id);
@@ -501,7 +483,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -539,7 +520,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -568,7 +548,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -589,7 +568,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -623,7 +601,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       const session = await sessionRepository.findLatestByBookId(book.id);
@@ -637,7 +614,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -665,7 +641,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -686,7 +661,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Test Book",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       await sessionRepository.create({
@@ -719,17 +693,14 @@ describe("SessionRepository - Edge Cases", () => {
       const book1 = await bookRepository.create({
         title: "Book 1",
         calibreId: 1,
-        path: "/test/book1.epub",
       });
       const book2 = await bookRepository.create({
         title: "Book 2",
         calibreId: 2,
-        path: "/test/book2.epub",
       });
       const book3 = await bookRepository.create({
         title: "Book 3",
         calibreId: 3,
-        path: "/test/book3.epub",
       });
 
       const session1 = await sessionRepository.create({
@@ -771,12 +742,10 @@ describe("SessionRepository - Edge Cases", () => {
       const book1 = await bookRepository.create({
         title: "Book 1",
         calibreId: 1,
-        path: "/test/book1.epub",
       });
       const book2 = await bookRepository.create({
         title: "Book 2",
         calibreId: 2,
-        path: "/test/book2.epub",
       });
 
       const session1 = await sessionRepository.create({
@@ -809,17 +778,14 @@ describe("SessionRepository - Edge Cases", () => {
       const book1 = await bookRepository.create({
         title: "Book 1",
         calibreId: 1,
-        path: "/test/book1.epub",
       });
       const book2 = await bookRepository.create({
         title: "Book 2",
         calibreId: 2,
-        path: "/test/book2.epub",
       });
       const book3 = await bookRepository.create({
         title: "Book 3",
         calibreId: 3,
-        path: "/test/book3.epub",
       });
 
       // Create read-next sessions
@@ -863,7 +829,6 @@ describe("SessionRepository - Edge Cases", () => {
       const book = await bookRepository.create({
         title: "Book 1",
         calibreId: 1,
-        path: "/test/book.epub",
       });
 
       const session = await sessionRepository.create({
@@ -1187,8 +1152,8 @@ describe("Malformed date defense (isValidDateFormat guard)", () => {
     const rawDb = getRawDb();
     rawDb
       .prepare(
-        `INSERT INTO books (title, calibre_id, authors, tags, path, orphaned)
-         VALUES (?, ?, '[]', '[]', '/test', 0)`
+        `INSERT INTO books (title, calibre_id, authors, tags, orphaned)
+         VALUES (?, ?, '[]', '[]', 0)`
       )
       .run(title, calibreId);
 

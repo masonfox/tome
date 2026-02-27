@@ -10,7 +10,7 @@ interface CompletedBooksSectionProps {
   books: Array<{
     id: number;
     sessionId: number;
-    calibreId: number;
+    calibreId: number | null;
     title: string;
     authors: string[];
     coverPath?: string;
@@ -105,7 +105,6 @@ export function CompletedBooksSection({
               id={book.id.toString()}
               title={book.title}
               authors={book.authors}
-              calibreId={book.calibreId}
               status={book.status}
             />
           ))}

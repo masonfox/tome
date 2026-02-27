@@ -149,7 +149,6 @@ describe("POST /api/shelves/[id]/books/[bookId]/move-to-top", () => {
     const book = await bookRepository.create({
       title: "Book 1",
       calibreId: 1,
-      path: "/test/book.epub",
     });
 
     const request = new Request(`http://localhost/api/shelves/99999/books/${book.id}/move-to-top`, {
@@ -174,7 +173,6 @@ describe("POST /api/shelves/[id]/books/[bookId]/move-to-top", () => {
     const book = await bookRepository.create({
       title: "Book Not On Shelf",
       calibreId: 1,
-      path: "/test/book.epub",
     });
 
     const request = new Request(
@@ -248,7 +246,6 @@ describe("POST /api/shelves/[id]/books/[bookId]/move-to-top", () => {
     const book = await bookRepository.create({
       title: "Only Book",
       calibreId: 1,
-      path: "/test/book.epub",
     });
 
     await shelfRepository.addBookToShelf(shelf.id, book.id);
