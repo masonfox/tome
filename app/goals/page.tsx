@@ -1,26 +1,17 @@
+"use client";
+
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { GoalsPagePanel } from "@/components/ReadingGoals/GoalsPagePanel";
 import { Target } from "lucide-react";
-import { readingGoalsService } from "@/lib/services";
-import type { Metadata } from "next";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
+import { useReadingGoals } from "@/hooks/useReadingGoals";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0; // Disable all caching including router cache
-
-export const metadata: Metadata = {
-  title: "Tome - Reading Goals",
-};
-
-export default async function GoalsPage() {
-  // Get the most appropriate goal for initial display (most recent year with a goal)
-  // Falls back to null if no goals exist (triggers onboarding)
-  const defaultGoal = await readingGoalsService.getDefaultGoal(null);
-  
-  // Get all goals for year selector
-  const allGoals = await readingGoalsService.getAllGoals(null);
+export default function GoalsPage() {
+  usePageTitle("Reading Goals");
+  const { goals, isLoading } = useReadingGoals();
 
   // Check if user has any goals at all
-  const hasNoGoals = allGoals.length === 0;
+  const hasNoGoals = !isLoading && goals.length === 0;
 
   return (
     <div className="space-y-10">
@@ -32,10 +23,7 @@ export default async function GoalsPage() {
         />
       )}
 
-      <GoalsPagePanel 
-        initialGoalData={defaultGoal}
-        allGoals={allGoals}
-      />
+      <GoalsPagePanel />
     </div>
   );
 }
