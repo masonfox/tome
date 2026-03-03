@@ -3,11 +3,16 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { getLogger } from "@/lib/logger";
 import { Flame } from "lucide-react";
 import { streakService } from "@/lib/services/streak.service";
+import type { Metadata } from "next";
 
 const logger = getLogger();
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Tome - Reading Streak",
+};
 
 export default async function StreakPage() {
   // Check if streak tracking is enabled

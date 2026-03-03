@@ -9,8 +9,10 @@ import { LibraryFilters } from "@/components/Library/LibraryFilters";
 import { BookGrid } from "@/components/Books/BookGrid";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
 import { toast } from "@/utils/toast";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 function LibraryPageContent() {
+  usePageTitle("Library");
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);

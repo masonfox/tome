@@ -11,8 +11,10 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useStats } from "@/hooks/useStats";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function StatsPage() {
+  usePageTitle("Reading Statistics");
   const { stats, streak, isLoading } = useStats();
 
   return (

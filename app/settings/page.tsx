@@ -4,8 +4,13 @@ import { TimezoneSettings } from "@/components/Settings/TimezoneSettings";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { VersionSettings } from "@/components/Settings/VersionSettings";
 import { streakService } from "@/lib/services/streak.service";
+import type { Metadata } from "next";
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: "Tome - Settings",
+};
 
 export default async function SettingsPage() {
   // Get current streak to fetch timezone (auto-creates if doesn't exist)

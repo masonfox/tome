@@ -2,9 +2,14 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { GoalsPagePanel } from "@/components/ReadingGoals/GoalsPagePanel";
 import { Target } from "lucide-react";
 import { readingGoalsService } from "@/lib/services";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0; // Disable all caching including router cache
+
+export const metadata: Metadata = {
+  title: "Tome - Reading Goals",
+};
 
 export default async function GoalsPage() {
   // Get the most appropriate goal for initial display (most recent year with a goal)

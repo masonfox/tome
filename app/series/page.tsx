@@ -7,6 +7,7 @@ import SeriesCard from "@/components/Books/SeriesCard";
 import SeriesCardSkeleton from "@/components/Books/SeriesCardSkeleton";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 interface SeriesInfo {
   name: string;
@@ -15,6 +16,7 @@ interface SeriesInfo {
 }
 
 export default function SeriesPage() {
+  usePageTitle("Series");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: series = [], isLoading, error } = useQuery({

@@ -11,8 +11,10 @@ import CurrentlyReadingSection from "@/components/CurrentlyReading/CurrentlyRead
 import Link from "next/link";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Button } from "@/components/Utilities/Button";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function Dashboard() {
+  usePageTitle("Dashboard");
   const { stats, streak, currentlyReading, currentlyReadingTotal, readNext, readNextTotal, isLoading } = useDashboard();
 
   return (

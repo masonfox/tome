@@ -16,8 +16,10 @@ import type { ArchiveNode } from "@/lib/utils/archive-builder";
 import { matchesDateKey } from "@/lib/utils/archive-builder";
 import { journalApi, type GroupedJournalEntry, type JournalEntry } from "@/lib/api";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function JournalPage() {
+  usePageTitle("Reading Journal");
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const observerTarget = useRef<HTMLDivElement>(null);
 
