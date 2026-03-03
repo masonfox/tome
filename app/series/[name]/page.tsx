@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 interface SeriesBook {
   id: number;
@@ -59,6 +60,9 @@ export default function SeriesDetailPage() {
     staleTime: 30000, // 30 seconds
     enabled: !!seriesName,
   });
+
+  // Set dynamic page title
+  usePageTitle(data?.series.name);
 
   const handleImageError = (calibreId: number) => {
     setImageErrors(prev => ({ ...prev, [calibreId]: true }));

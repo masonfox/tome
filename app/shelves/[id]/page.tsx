@@ -32,6 +32,7 @@ import { cn } from "@/utils/cn";
 import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 import { Button } from "@/components/Utilities/Button";
 import type { ShelfOrderBy, ShelfSortDirection } from "@/lib/repositories/shelf.repository";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 type SortOption = ShelfOrderBy;
 type SortDirection = ShelfSortDirection;
@@ -71,6 +72,9 @@ export default function ShelfDetailPage() {
 
   // Use shared book list view hook for filtering and selection
   const listView = useBookListView({ books });
+
+  // Set dynamic page title
+  usePageTitle(shelf?.name);
 
   // Calculate canonical shelf position (min/max sortOrder) for Move to Top/Bottom buttons
   // This ensures buttons reflect actual shelf order, not filtered/sorted display order

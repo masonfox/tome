@@ -34,6 +34,7 @@ import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
 import { Spinner } from "@/components/Utilities/Spinner";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
@@ -71,6 +72,12 @@ export default function BookDetailPage() {
     handleStartReread,
     handleMarkAsDNF,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
+
+  // Set dynamic page title
+  const bookTitle = book 
+    ? `${book.title}${book.authors.length > 0 ? ` by ${book.authors.join(", ")}` : ""}`
+    : undefined;
+  usePageTitle(bookTitle);
 
   // Handle finishing book from auto-completion modal (when progress reaches 100%)
   // Note: Book status is already "read" at this point (auto-completed by progress service)
