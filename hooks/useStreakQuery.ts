@@ -62,7 +62,7 @@ export function useStreakQuery() {
 
   // Query: Fetch streak analytics (only if streak is enabled)
   const analyticsQuery = useQuery({
-    queryKey: ['streak-analytics', 7],
+    queryKey: ['streak-analytics-full', 7],
     queryFn: async () => {
       const response = await fetch('/api/streak/analytics?days=7');
       if (!response.ok) throw new Error('Failed to fetch analytics');
