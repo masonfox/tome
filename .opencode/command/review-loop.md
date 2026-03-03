@@ -31,12 +31,12 @@ You are orchestrating an automated PR review loop that alternates between the @r
    🔄 Starting review loop for PR #<number>
    📋 Title: <title>
    🔗 URL: <url>
-   ⚙️  Max iterations: 3
+   ⚙️  Max iterations: 5
    ```
 
 ## Review Loop
 
-Execute up to **3 iterations**. Each iteration:
+Execute up to **5 iterations**. Each iteration:
 
 ### Step 1: @review Agent Review
 
@@ -83,24 +83,37 @@ End your review with EXACTLY one of:
 **If** `review_approved = true`:
 - Skip to Step 3
 
-### Step 3: GitHub Copilot Review
+### Step 3: Wait for GitHub Copilot Review
 
-Request Copilot review of the PR:
+**Note**: Copilot automatically reviews on push. We just need to wait for it to complete.
 
-```bash
-# Get Copilot's review
-gh pr review <number> --comment --body "Please review this PR for code quality, best practices, and potential issues."
-```
+1. **Initial wait**: Sleep for 60 seconds (Copilot reviews typically take several minutes)
 
-Wait 5 seconds, then check for Copilot comments:
+2. **Poll for completion**: Check every 5 seconds for up to 24 polls (2 minutes):
+   ```bash
+   gh pr checks <number> --json name,status,conclusion
+   ```
 
-```bash
-gh pr view <number> --comments --json comments -q '.comments[] | select(.author.login == "github-copilot") | {body: .body, createdAt: .createdAt}' | tail -1
-```
+3. **Look for Copilot check**:
+   - Filter checks for name containing "copilot" (case-insensitive)
+   - Wait until `status == "completed"`
+   - Total timeout: 3 minutes (1 min initial + 2 min polling)
+
+4. **Extract feedback**:
+   ```bash
+   # Get Copilot's review comments
+   gh pr view <number> --json comments -q '.comments[] | select(.author.login == "github-copilot" or .author.login == "copilot") | {body: .body, createdAt: .createdAt}' | tail -1
+   ```
 
 **Parse Copilot's response**:
-- If no new comments or contains "LGTM" or "looks good" → `copilot_approved = true`
+- If check doesn't complete in 3 minutes → `copilot_approved = true` (continue anyway, treat as no issues)
+- If no comments or contains "LGTM" or "looks good" → `copilot_approved = true`
 - Otherwise → `copilot_approved = false`, extract suggestions
+
+**Progress indicators**:
+- Announce: "⏳ Waiting for GitHub Copilot review (this may take 2-3 minutes)..."
+- After initial wait: "🔍 Polling for Copilot check completion..."
+- On timeout: "⚠️  Copilot review timeout - continuing without feedback"
 
 ### Step 4: @review Re-evaluates Copilot Suggestions
 
@@ -132,7 +145,7 @@ If response contains "IMPLEMENT:":
 
 **Exit loop if ANY of**:
 - ✅ `review_approved = true` AND `copilot_approved = true`
-- ⚠️  Iteration count >= 3
+- ⚠️  Iteration count >= 5
 - ❌ Tests failed and cannot be fixed
 
 Otherwise, continue to next iteration.
