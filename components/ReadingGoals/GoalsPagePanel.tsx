@@ -65,6 +65,7 @@ export function GoalsPagePanel() {
       const data = await response.json();
       return data.success ? data.data.monthlyData as MonthlyBreakdown[] : [];
     },
+    placeholderData: (previousData) => previousData, // Keep previous data visible while fetching
     staleTime: 30000, // 30 seconds
   });
 
