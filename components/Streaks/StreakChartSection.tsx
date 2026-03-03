@@ -46,10 +46,11 @@ export function StreakChartSection({
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
 
   // Use TanStack Query for fetching analytics (for area chart)
-  const { data, isLoading, error } = useQuery<DailyReading[]>({
+  const { data, isLoading, isFetching, error } = useQuery<DailyReading[]>({
     queryKey: ['streak-analytics', selectedPeriod],
     queryFn: () => fetchAnalytics(selectedPeriod),
     initialData: selectedPeriod === 7 ? initialData : undefined,
+    placeholderData: (previousData) => previousData, // Keep previous data visible while fetching
     staleTime: 60000, // 1 minute - streak data changes slowly
     refetchOnWindowFocus: true,
   });
