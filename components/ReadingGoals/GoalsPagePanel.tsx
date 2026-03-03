@@ -20,17 +20,12 @@ import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
-interface GoalsPagePanelProps {
-  initialGoalData: ReadingGoalWithProgress | null;
-  allGoals: ReadingGoal[];
-}
-
-export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProps) {
+export function GoalsPagePanel() {
   const queryClient = useQueryClient();
-  const { createGoalAsync, updateGoalAsync } = useReadingGoals();
+  const { goals: allGoals, createGoalAsync, updateGoalAsync } = useReadingGoals();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [booksGoal, setBooksGoal] = useState<number | "">(""); 
   const [saving, setSaving] = useState(false);
@@ -56,7 +51,6 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       const data = await response.json();
       return data.success ? data.data as ReadingGoalWithProgress : null;
     },
-    initialData: selectedYear === initialGoalData?.goal.year ? initialGoalData : undefined,
     staleTime: 30000, // 30 seconds
   });
 
