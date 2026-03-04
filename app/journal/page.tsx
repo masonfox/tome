@@ -20,7 +20,7 @@ import { getCoverUrl } from "@/lib/utils/cover-url";
 import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function JournalPage() {
-  usePageTitle("Reading Journal");
+  usePageTitle("Journal");
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const observerTarget = useRef<HTMLDivElement>(null);
 
