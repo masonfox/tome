@@ -6,7 +6,7 @@ import { Flame } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function StreakPage() {
-  usePageTitle("Reading Streak");
+  usePageTitle("Streak");
 
   return (
     <div className="space-y-10">
