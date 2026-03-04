@@ -69,6 +69,11 @@
  * @see {@link https://tkdodo.eu/blog/effective-react-query-keys} - TanStack Query key best practices
  */
 
+/**
+ * Valid time periods for analytics queries
+ */
+export type AnalyticsDays = 7 | 30 | 90 | 180 | 365 | "this-year" | "all-time";
+
 export const queryKeys = {
   // ============================================================================
   // BOOKS
@@ -126,14 +131,14 @@ export const queryKeys = {
     /** Base key for all streak queries: ['streak'] */
     base: () => ['streak'] as const,
     
-    /** Streak settings and status: ['streak'] */
-    settings: () => ['streak'] as const,
+    /** Streak settings and status: ['streak', 'settings'] */
+    settings: () => ['streak', 'settings'] as const,
     
     /** Streak analytics for daily chart: ['streak', 'analytics', days] */
-    analytics: (days: number | 7 | 30 | 90 | 180 | 365 | "this-year" | "all-time") => ['streak', 'analytics', days] as const,
+    analytics: (days: AnalyticsDays) => ['streak', 'analytics', days] as const,
     
     /** Streak heatmap data: ['streak', 'analytics', 'heatmap', days] */
-    heatmap: (days: number | 7 | 30 | 90 | 180 | 365) => ['streak', 'analytics', 'heatmap', days] as const,
+    heatmap: (days: 7 | 30 | 90 | 180 | 365) => ['streak', 'analytics', 'heatmap', days] as const,
     
     /** Legacy key for backwards compatibility: ['streaks'] */
     legacy: () => ['streaks'] as const,

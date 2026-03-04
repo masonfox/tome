@@ -73,9 +73,9 @@ export default function ShelfDetailPage() {
   // Use shared book list view hook for filtering and selection
   const listView = useBookListView({ books });
 
-  // Set dynamic page title
-  let title = shelf?.name ?? "...";
-  usePageTitle(`Shelf / ${title}`);
+  // Set dynamic page title (show just "Tome" during loading for clean UX)
+  const pageTitle = shelf?.name ? `Shelf / ${shelf.name}` : undefined;
+  usePageTitle(pageTitle);
 
   // Calculate canonical shelf position (min/max sortOrder) for Move to Top/Bottom buttons
   // This ensures buttons reflect actual shelf order, not filtered/sorted display order

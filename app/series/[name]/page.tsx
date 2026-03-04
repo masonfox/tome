@@ -62,9 +62,9 @@ export default function SeriesDetailPage() {
     enabled: !!seriesName,
   });
 
-  // Set dynamic page title
-  let title = data?.series?.name ?? "...";
-  usePageTitle(`Series / ${title}`);
+  // Set dynamic page title (show just "Tome" during loading for clean UX)
+  const pageTitle = data?.series?.name ? `Series / ${data.series.name}` : undefined;
+  usePageTitle(pageTitle);
 
   const handleImageError = (calibreId: number) => {
     setImageErrors(prev => ({ ...prev, [calibreId]: true }));

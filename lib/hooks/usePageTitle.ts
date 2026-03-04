@@ -11,25 +11,21 @@ import { useLayoutEffect } from "react";
  *                If undefined or empty string, shows just "Tome"
  */
 export function usePageTitle(title?: string) {
+  // Compute title once to avoid duplication
+  const newTitle = title ? `Tome - ${title}` : "Tome";
+  
   // Set title immediately on client-side to handle initial load
-  if (typeof window !== 'undefined') {
-    const newTitle = title ? `Tome - ${title}` : "Tome";
-    if (document.title !== newTitle) {
-      document.title = newTitle;
-    }
+  if (typeof window !== 'undefined' && document.title !== newTitle) {
+    document.title = newTitle;
   }
 
   // Also use useLayoutEffect to handle updates and ensure it persists
   useLayoutEffect(() => {
-    if (title) {
-      document.title = `Tome - ${title}`;
-    } else {
-      document.title = "Tome";
-    }
+    document.title = newTitle;
 
     // Cleanup: reset to default on unmount
     return () => {
       document.title = "Tome";
     };
-  }, [title]);
+  }, [newTitle]);
 }
