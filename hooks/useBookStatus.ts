@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
@@ -39,12 +40,12 @@ function requiresArchiveConfirmation(
  * Exported to allow reuse in components that make direct API calls
  */
 export function invalidateBookQueries(queryClient: any, bookId: string): void {
-  queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-  queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
-  queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-  queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-  queryClient.invalidateQueries({ queryKey: ['library-books'] });
-  queryClient.invalidateQueries({ queryKey: ['read-next-books'] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(parseInt(bookId)) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.readNext.base() });
 
   // Clear entire LibraryService cache to ensure status changes reflect across all filters
   libraryService.clearCache();
@@ -131,7 +132,7 @@ export function useBookStatus(
     },
     onMutate: async ({ status }) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       // Snapshot previous value
       const previousOptimistic = optimisticStatus;
@@ -188,7 +189,7 @@ export function useBookStatus(
     },
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
       const previousOptimistic = optimisticStatus;
 
       // Optimistic update
@@ -251,7 +252,7 @@ export function useBookStatus(
     },
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
       const previousOptimistic = optimisticStatus;
 
       // Optimistic update
@@ -309,7 +310,7 @@ export function useBookStatus(
     },
     onMutate: async () => {
       // Cancel outgoing queries and snapshot state
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
       const previousOptimistic = optimisticStatus;
 
       // Optimistic update

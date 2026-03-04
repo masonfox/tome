@@ -385,4 +385,94 @@ describe("useBookDetail", () => {
       });
     });
   });
+
+  describe("updateBookPartial", () => {
+    test("should optimistically update book data with partial updates", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: ["old-tag"],
+        totalPages: 300,
+      };
+
+      vi.mocked(bookApi.getDetail).mockResolvedValue(mockBook);
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.book?.title).toBe("Test Book");
+      expect(result.current.book?.totalPages).toBe(300);
+
+      // Update partial fields
+      act(() => {
+        result.current.updateBookPartial({ totalPages: 400, title: "Updated Book" });
+      });
+
+      // Check optimistic update applied
+      await waitFor(() => {
+        expect(result.current.book?.totalPages).toBe(400);
+        expect(result.current.book?.title).toBe("Updated Book");
+      });
+      
+      // Other fields should remain unchanged
+      expect(result.current.book?.authors).toEqual(["Test Author"]);
+      expect(result.current.book?.tags).toEqual(["old-tag"]);
+    });
+
+    test("should handle updates when book is null", async () => {
+      // Set up to never resolve the book fetch
+      vi.mocked(bookApi.getDetail).mockImplementation(() => new Promise(() => {}));
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      // Book is still loading/null
+      expect(result.current.book).toBeNull();
+
+      // updateBookPartial should not crash when book is null
+      act(() => {
+        result.current.updateBookPartial({ totalPages: 400 });
+      });
+
+      // Book should still be null
+      expect(result.current.book).toBeNull();
+    });
+
+    test("should apply multiple fields in a single partial update", async () => {
+      const mockBook = {
+        id: 123,
+        calibreId: 1,
+        title: "Test Book",
+        authors: ["Test Author"],
+        tags: [],
+        totalPages: 300,
+      };
+
+      vi.mocked(bookApi.getDetail).mockResolvedValue(mockBook);
+
+      const { result } = renderHook(() => useBookDetail("123"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Update multiple fields at once
+      act(() => {
+        result.current.updateBookPartial({ totalPages: 350, title: "Updated Title" });
+      });
+
+      // Both updates should be present
+      await waitFor(() => {
+        expect(result.current.book?.totalPages).toBe(350);
+        expect(result.current.book?.title).toBe("Updated Title");
+      });
+      
+      // Other fields should remain unchanged
+      expect(result.current.book?.authors).toEqual(["Test Author"]);
+    });
+  });
 });

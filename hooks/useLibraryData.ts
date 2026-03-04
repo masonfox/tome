@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { libraryService, LibraryFilters } from "@/lib/library-service";
 
 const BOOKS_PER_PAGE = 50;
@@ -131,7 +132,7 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
   // Clear cache and refresh
   const refresh = useCallback(async () => {
     service.clearCache();
-    await queryClient.refetchQueries({ queryKey: ['library-books'] });
+    await queryClient.refetchQueries({ queryKey: queryKeys.library.books() });
   }, [service, queryClient]);
 
   // Search function with debouncing logic

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { bookApi } from "@/lib/api";
@@ -46,13 +47,13 @@ export function useBookRating(
     },
     onMutate: async (newRating) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       // Snapshot previous value
-      const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
+      const previousBook = queryClient.getQueryData<Book>(queryKeys.book.detail(parseInt(bookId)));
 
       // Optimistic update
-      queryClient.setQueryData<Book>(['book', bookId], (old) =>
+      queryClient.setQueryData<Book>(queryKeys.book.detail(parseInt(bookId)), (old) =>
         old ? { ...old, rating: newRating } : old
       );
 
@@ -64,7 +65,7 @@ export function useBookRating(
     onError: (_err, _newRating, context) => {
       // Rollback on error
       if (context?.previousBook) {
-        queryClient.setQueryData(['book', bookId], context.previousBook);
+        queryClient.setQueryData(queryKeys.book.detail(parseInt(bookId)), context.previousBook);
         // Legacy support
         updateBookPartial?.({ rating: context.previousBook.rating });
       }
@@ -72,7 +73,7 @@ export function useBookRating(
     },
     onSuccess: (data) => {
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       // Show success message
       if (data.rating === null) {

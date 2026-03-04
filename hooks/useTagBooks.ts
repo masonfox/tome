@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "@/lib/db/schema/books";
 import { tagApi } from "@/lib/api";
 
@@ -150,8 +151,8 @@ export function useTagBooks(tagName: string | null) {
       await fetchInitialBooks();
       
       // Invalidate tags cache since book count changed
-      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to remove tag");
     }
@@ -167,8 +168,8 @@ export function useTagBooks(tagName: string | null) {
       await fetchInitialBooks();
       
       // Invalidate tags cache since book count changed
-      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Failed to add tag");
     }
@@ -184,8 +185,8 @@ export function useTagBooks(tagName: string | null) {
       await fetchInitialBooks();
       
       // Invalidate tags cache since book count changed
-      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
       
       return data;
     } catch (err) {

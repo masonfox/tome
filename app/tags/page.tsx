@@ -15,8 +15,10 @@ import { useTagBooks } from "@/hooks/useTagBooks";
 import { useTagModals } from "@/hooks/useTagModals";
 import { toast } from "@/utils/toast";
 import type { TagOperationResult } from "@/types/tag-operations";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 function TagsPageContent() {
+  usePageTitle("Tags");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const tagListRef = useRef<TagListRef>(null);
 

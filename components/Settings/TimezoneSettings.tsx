@@ -1,25 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Globe } from "lucide-react";
 import { useStreak } from "@/hooks/useStreak";
+import { useStreakQuery } from "@/hooks/useStreakQuery";
 
-interface TimezoneSettingsProps {
-  initialTimezone: string;
-}
+export function TimezoneSettings() {
+  const { streak, isLoadingStreak } = useStreakQuery();
+  const [timezone, setTimezone] = useState<string | null>(null);
+  const { updateTimezoneAsync, isUpdatingTimezone } = useStreak();
 
-export function TimezoneSettings({ initialTimezone }: TimezoneSettingsProps) {
-  const [timezone, setTimezone] = useState(initialTimezone);
-  const { updateTimezone, isUpdatingTimezone } = useStreak();
+  // Initialize local state when streak data loads
+  useEffect(() => {
+    if (streak?.userTimezone && timezone === null) {
+      setTimezone(streak.userTimezone);
+    }
+  }, [streak?.userTimezone, timezone]);
 
   async function handleTimezoneChange(newTimezone: string) {
     try {
-      await updateTimezone(newTimezone);
+      await updateTimezoneAsync(newTimezone);
       setTimezone(newTimezone);
     } catch (error) {
       // Error handling is done in the hook, reset timezone on failure
       setTimezone(timezone);
     }
+  }
+
+  // Show skeleton loader while loading or timezone not yet set
+  if (isLoadingStreak || timezone === null) {
+    return (
+      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-md p-6">
+        <div className="animate-pulse">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-6 h-6 bg-[var(--border-color)] rounded" />
+            <div className="h-6 w-32 bg-[var(--border-color)] rounded" />
+          </div>
+          <div className="h-4 w-full bg-[var(--border-color)] rounded mb-4" />
+          <div className="h-12 w-full bg-[var(--border-color)] rounded" />
+        </div>
+      </div>
+    );
   }
 
   return (

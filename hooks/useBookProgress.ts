@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getTodayLocalDate } from '@/utils/dateHelpers';
@@ -79,7 +80,7 @@ export function useBookProgress(
 
   // Fetch progress entries with TanStack Query
   const { data: progress = [], isLoading } = useQuery({
-    queryKey: ['progress', bookId],
+    queryKey: queryKeys.progress.byBook(parseInt(bookId)),
     queryFn: async () => {
       return bookApi.listProgress(bookId);
     },
@@ -98,12 +99,13 @@ export function useBookProgress(
     },
     onSuccess: () => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      const bookIdNum = parseInt(bookId);
+      queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(bookIdNum) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(bookIdNum) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(bookIdNum) }); // Refresh reading history
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() }); // Invalidates all streak queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats.all() });
       
       // Clear form state
       setNotes("");
@@ -135,12 +137,13 @@ export function useBookProgress(
     },
     onSuccess: () => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      const bookIdNum = parseInt(bookId);
+      queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(bookIdNum) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(bookIdNum) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(bookIdNum) }); // Refresh reading history
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() }); // Invalidates all streak queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats.all() });
       
       // Close modal
       setShowEditProgressModal(false);
@@ -163,12 +166,13 @@ export function useBookProgress(
     },
     onSuccess: () => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-      queryClient.invalidateQueries({ queryKey: ['sessions', bookId] }); // Refresh reading history
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      const bookIdNum = parseInt(bookId);
+      queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(bookIdNum) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(bookIdNum) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(bookIdNum) }); // Refresh reading history
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() }); // Invalidates all streak queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats.all() });
       
       // Close modal
       setShowEditProgressModal(false);
@@ -351,7 +355,7 @@ export function useBookProgress(
   }, []);
 
   const refetchProgress = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['progress', bookId] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(parseInt(bookId)) });
   }, [queryClient, bookId]);
 
   const clearFormState = useCallback(() => {
