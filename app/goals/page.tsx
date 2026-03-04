@@ -7,7 +7,7 @@ import { usePageTitle } from "@/lib/hooks/usePageTitle";
 import { useReadingGoals } from "@/hooks/useReadingGoals";
 
 export default function GoalsPage() {
-  usePageTitle("Reading Goals");
+  usePageTitle("Goals");
   const { goals, isLoading } = useReadingGoals();
 
   // Check if user has any goals at all

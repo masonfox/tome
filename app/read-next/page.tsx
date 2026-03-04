@@ -28,7 +28,7 @@ import type { Book } from "@/lib/db/schema/books";
 import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function ReadNextPage() {
-  usePageTitle("Read Next Queue");
+  usePageTitle("Read Next");
   const { sessions, loading, reorderBooks, removeBooks, moveToTop, moveToBottom } = useReadNextBooks();
   const [removingBook, setRemovingBook] = useState<{ id: number; title: string } | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
