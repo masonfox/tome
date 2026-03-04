@@ -130,7 +130,7 @@ export const queryKeys = {
     settings: () => ['streak'] as const,
     
     /** Streak analytics for daily chart: ['streak', 'analytics', days] */
-    analytics: (days: number | 7 | 30 | 90 | 180 | 365) => ['streak', 'analytics', days] as const,
+    analytics: (days: number | 7 | 30 | 90 | 180 | 365 | "this-year" | "all-time") => ['streak', 'analytics', days] as const,
     
     /** Streak heatmap data: ['streak', 'analytics', 'heatmap', days] */
     heatmap: (days: number | 7 | 30 | 90 | 180 | 365) => ['streak', 'analytics', 'heatmap', days] as const,

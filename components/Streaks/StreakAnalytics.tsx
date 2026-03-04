@@ -26,11 +26,6 @@ export function StreakAnalytics({
   // Show encouraging message for new users with < 7 days of data
   const showEncouragingMessage = daysOfData < 7;
 
-  const handleEditSuccess = () => {
-    // Refresh the page to get updated data
-    window.location.reload();
-  };
-
   return (
     <div className="space-y-6">
       {/* Encouraging message for new users */}
@@ -185,7 +180,7 @@ export function StreakAnalytics({
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         initialThreshold={dailyThreshold}
-        onSuccess={handleEditSuccess}
+        onSuccess={() => setIsEditModalOpen(false)}
       />
     </div>
   );

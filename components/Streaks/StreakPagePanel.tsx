@@ -1,13 +1,55 @@
 "use client";
 
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { StreakAnalytics } from "./StreakAnalytics";
 import { StreakChartSection } from "./StreakChartSection";
 import { StreakRebuildSection } from "./StreakRebuildSection";
 import { StreakOnboarding } from "./StreakOnboarding";
 import { useStreakQuery } from "@/hooks/useStreakQuery";
+import type { TimePeriod } from "@/components/Utilities/TimePeriodFilter";
+
+interface StreakAnalyticsData {
+  streak: {
+    currentStreak: number;
+    longestStreak: number;
+    dailyThreshold: number;
+    totalDaysActive: number;
+  };
+  dailyReadingHistory: {
+    date: string;
+    pagesRead: number;
+    thresholdMet: boolean;
+  }[];
+  booksAheadOrBehind?: number;
+}
 
 export function StreakPagePanel() {
   const { streak, analytics, isLoading, streakError, analyticsError } = useStreakQuery();
+  
+  // Manage selected period state
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
+
+  // Query for selected period analytics (for chart)
+  const { 
+    data: selectedPeriodAnalytics, 
+    isLoading: isSelectedPeriodLoading,
+    error: selectedPeriodError,
+  } = useQuery<StreakAnalyticsData>({
+    queryKey: queryKeys.streak.analytics(selectedPeriod),
+    queryFn: async () => {
+      const response = await fetch(`/api/streak/analytics?days=${String(selectedPeriod)}`);
+      if (!response.ok) throw new Error('Failed to fetch analytics');
+      const json = await response.json();
+      if (!json.success) throw new Error(json.error?.message || 'Failed to load analytics');
+      return json.data;
+    },
+    placeholderData: (previousData) => previousData, // Keep previous data visible while fetching
+    staleTime: 60000,
+    refetchOnWindowFocus: true,
+    enabled: streak?.streakEnabled ?? false, // Only fetch if streak is enabled
+  });
 
   // Loading state - Match the actual page layout
   if (isLoading) {
@@ -96,6 +138,9 @@ export function StreakPagePanel() {
 
   const { streak: streakData, dailyReadingHistory, booksAheadOrBehind } = analytics;
 
+  // Use selected period analytics for chart, or fall back to 7-day analytics
+  const chartData = selectedPeriodAnalytics?.dailyReadingHistory || dailyReadingHistory;
+
   return (
     <div className="space-y-10">
       {/* Analytics Stats */}
@@ -110,8 +155,12 @@ export function StreakPagePanel() {
 
       {/* Chart Section */}
       <StreakChartSection
-        initialData={dailyReadingHistory}
+        data={chartData}
         threshold={streakData.dailyThreshold}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={setSelectedPeriod}
+        isLoading={isSelectedPeriodLoading}
+        error={selectedPeriodError}
       />
 
       {/* Rebuild Section */}
