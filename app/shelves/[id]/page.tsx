@@ -74,7 +74,8 @@ export default function ShelfDetailPage() {
   const listView = useBookListView({ books });
 
   // Set dynamic page title
-  usePageTitle(`Shelf / ${shelf?.name}`);
+  let title = shelf?.name ?? "...";
+  usePageTitle(`Shelf / ${title}`);
 
   // Calculate canonical shelf position (min/max sortOrder) for Move to Top/Bottom buttons
   // This ensures buttons reflect actual shelf order, not filtered/sorted display order
