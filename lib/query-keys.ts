@@ -106,8 +106,6 @@ export const queryKeys = {
   // ============================================================================
   // SESSIONS
   // ============================================================================
-  // SESSIONS
-  // ============================================================================
   sessions: {
     /** Sessions for a specific book: ['sessions', bookId] */
     byBook: (bookId: number) => ['sessions', bookId] as const,
@@ -139,9 +137,6 @@ export const queryKeys = {
     
     /** Streak heatmap data: ['streak', 'analytics', 'heatmap', days] */
     heatmap: (days: 7 | 30 | 90 | 180 | 365) => ['streak', 'analytics', 'heatmap', days] as const,
-    
-    /** Legacy key for backwards compatibility: ['streaks'] */
-    legacy: () => ['streaks'] as const,
   },
 
   // ============================================================================
@@ -168,9 +163,12 @@ export const queryKeys = {
     /** Base key for all shelf queries: ['shelf'] */
     base: () => ['shelf'] as const,
     
-    /** Shelf detail with optional sorting: ['shelf', id, options] */
-    detail: (id: number, options?: { orderBy?: string; direction?: string }) => 
-      ['shelf', id, options] as const,
+    /** Shelf by ID (for invalidation/cancellation): ['shelf', id] */
+    byId: (id: number) => ['shelf', id] as const,
+    
+    /** Shelf detail with books and sorting: ['shelf', id, 'books', options] */
+    detail: (id: number, options: { orderBy?: string; direction?: string }) => 
+      ['shelf', id, 'books', options] as const,
   },
 
   // ============================================================================
@@ -231,5 +229,13 @@ export const queryKeys = {
   stats: {
     /** Stats page data: ['stats'] */
     all: () => ['stats'] as const,
+  },
+
+  // ============================================================================
+  // VERSION
+  // ============================================================================
+  version: {
+    /** App version and update info: ['version'] */
+    info: () => ['version'] as const,
   },
 } as const;

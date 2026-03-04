@@ -25,7 +25,7 @@ export interface VersionData {
  */
 export function useVersion() {
   return useQuery<VersionData>({
-    queryKey: ['version'],
+    queryKey: queryKeys.version.info(),
     queryFn: async () => {
       const response = await fetch('/api/version');
       if (!response.ok) {

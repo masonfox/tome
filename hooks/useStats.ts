@@ -19,7 +19,7 @@ export function useStats() {
   });
 
   const { data: streak, isLoading: isLoadingStreak, error: streakError } = useQuery<StreakData>({
-    queryKey: queryKeys.streak.legacy(),
+    queryKey: queryKeys.streak.settings(),
     queryFn: fetchStreak,
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,

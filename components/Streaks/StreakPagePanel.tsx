@@ -26,7 +26,7 @@ interface StreakAnalyticsData {
 }
 
 export function StreakPagePanel() {
-  const { streak, analytics, isLoading, streakError, analyticsError } = useStreakQuery();
+  const { streak, analytics, isLoading, streakError } = useStreakQuery();
   
   // Manage selected period state
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);

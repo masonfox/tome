@@ -241,9 +241,9 @@ export default function BookDetailPage() {
       const affectedShelfIds = [...new Set([...addedShelfIds, ...removedShelfIds])];
 
       // Invalidate all affected shelf queries
-      // Use broad invalidation without orderBy/direction to catch all variants
+      // Use byId() to invalidate all variants (different orderBy/direction)
       affectedShelfIds.forEach(shelfId => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
       });
 
       // Refetch book's shelf data
