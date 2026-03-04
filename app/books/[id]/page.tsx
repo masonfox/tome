@@ -75,7 +75,7 @@ export default function BookDetailPage() {
   } = useBookStatus(book, bookProgressHook.progress, bookId);
 
   // Set dynamic page title
-  const bookTitle = book 
+  const bookTitle = book
     ? `${book.title}${book.authors.length > 0 ? ` by ${book.authors.join(", ")}` : ""}`
     : undefined;
   usePageTitle(bookTitle);

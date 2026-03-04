@@ -2,7 +2,8 @@ import { useEffect } from "react";
 
 /**
  * Custom hook to set the page title
- * @param title - The title to display after "Tome - ". If undefined, shows just "Tome"
+ * @param title - The title to display after "Tome - ". 
+ *                If undefined or empty string, shows just "Tome"
  */
 export function usePageTitle(title?: string) {
   useEffect(() => {

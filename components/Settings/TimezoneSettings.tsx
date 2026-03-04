@@ -8,7 +8,7 @@ import { useStreakQuery } from "@/hooks/useStreakQuery";
 export function TimezoneSettings() {
   const { streak, isLoadingStreak } = useStreakQuery();
   const [timezone, setTimezone] = useState<string | null>(null);
-  const { updateTimezone, isUpdatingTimezone } = useStreak();
+  const { updateTimezoneAsync, isUpdatingTimezone } = useStreak();
 
   // Initialize local state when streak data loads
   useEffect(() => {
@@ -19,7 +19,7 @@ export function TimezoneSettings() {
 
   async function handleTimezoneChange(newTimezone: string) {
     try {
-      await updateTimezone(newTimezone);
+      await updateTimezoneAsync(newTimezone);
       setTimezone(newTimezone);
     } catch (error) {
       // Error handling is done in the hook, reset timezone on failure

@@ -58,7 +58,7 @@ export function useStreakQuery() {
       return json.data as StreakData;
     },
     staleTime: 60000, // 1 minute
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disabled: /api/streak performs writes (checkAndResetStreakIfNeeded)
   });
 
   // Query: Fetch streak analytics (only if streak is enabled)
@@ -72,7 +72,7 @@ export function useStreakQuery() {
       return json.data as StreakAnalyticsData;
     },
     staleTime: 60000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Consistent with streak query; staleTime provides sufficient freshness
     enabled: streakQuery.data?.streakEnabled ?? false, // Only fetch if streak is enabled
   });
 
