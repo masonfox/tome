@@ -63,10 +63,9 @@ export function useReadNextBooks(search?: string) {
       await queryClient.cancelQueries({ queryKey: queryKeys.readNext.base() });
 
       // Snapshot previous value
-      const previousSessions = queryClient.getQueryData<SessionWithBook[]>([
-        "read-next-books",
-        search,
-      ]);
+      const previousSessions = queryClient.getQueryData<SessionWithBook[]>(
+        queryKeys.readNext.books(search)
+      );
 
       // Optimistically update cache
       if (previousSessions) {
@@ -82,7 +81,7 @@ export function useReadNextBooks(search?: string) {
           })
           .sort((a, b) => (a.readNextOrder || 0) - (b.readNextOrder || 0));
 
-        queryClient.setQueryData(["read-next-books", search], optimisticSessions);
+        queryClient.setQueryData(queryKeys.readNext.books(search), optimisticSessions);
       }
 
       // Return context for rollback
@@ -92,7 +91,7 @@ export function useReadNextBooks(search?: string) {
       // Rollback to previous state
       if (context?.previousSessions) {
         queryClient.setQueryData(
-          ["read-next-books", search],
+          queryKeys.readNext.books(search),
           context.previousSessions
         );
       }
@@ -174,10 +173,9 @@ export function useReadNextBooks(search?: string) {
       await queryClient.cancelQueries({ queryKey: queryKeys.readNext.base() });
 
       // Snapshot previous value
-      const previousSessions = queryClient.getQueryData<SessionWithBook[]>([
-        "read-next-books",
-        search,
-      ]);
+      const previousSessions = queryClient.getQueryData<SessionWithBook[]>(
+        queryKeys.readNext.books(search)
+      );
 
       // Optimistically update cache
       if (previousSessions) {
@@ -193,7 +191,7 @@ export function useReadNextBooks(search?: string) {
             })),
           ];
 
-          queryClient.setQueryData(["read-next-books", search], optimisticSessions);
+          queryClient.setQueryData(queryKeys.readNext.books(search), optimisticSessions);
         }
       }
 
@@ -204,7 +202,7 @@ export function useReadNextBooks(search?: string) {
       // Rollback to previous state
       if (context?.previousSessions) {
         queryClient.setQueryData(
-          ["read-next-books", search],
+          queryKeys.readNext.books(search),
           context.previousSessions
         );
       }
@@ -238,10 +236,9 @@ export function useReadNextBooks(search?: string) {
       await queryClient.cancelQueries({ queryKey: queryKeys.readNext.base() });
 
       // Snapshot previous value
-      const previousSessions = queryClient.getQueryData<SessionWithBook[]>([
-        "read-next-books",
-        search,
-      ]);
+      const previousSessions = queryClient.getQueryData<SessionWithBook[]>(
+        queryKeys.readNext.books(search)
+      );
 
       // Optimistically update cache
       if (previousSessions) {
@@ -279,7 +276,7 @@ export function useReadNextBooks(search?: string) {
             return a.id - b.id;
           });
 
-          queryClient.setQueryData(["read-next-books", search], sortedOptimisticSessions);
+          queryClient.setQueryData(queryKeys.readNext.books(search), sortedOptimisticSessions);
         }
       }
 
@@ -290,7 +287,7 @@ export function useReadNextBooks(search?: string) {
       // Rollback to previous state
       if (context?.previousSessions) {
         queryClient.setQueryData(
-          ["read-next-books", search],
+          queryKeys.readNext.books(search),
           context.previousSessions
         );
       }

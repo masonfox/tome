@@ -50,10 +50,10 @@ export function useBookRating(
       await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       // Snapshot previous value
-      const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
+      const previousBook = queryClient.getQueryData<Book>(queryKeys.book.detail(parseInt(bookId)));
 
       // Optimistic update
-      queryClient.setQueryData<Book>(['book', bookId], (old) =>
+      queryClient.setQueryData<Book>(queryKeys.book.detail(parseInt(bookId)), (old) =>
         old ? { ...old, rating: newRating } : old
       );
 
@@ -65,7 +65,7 @@ export function useBookRating(
     onError: (_err, _newRating, context) => {
       // Rollback on error
       if (context?.previousBook) {
-        queryClient.setQueryData(['book', bookId], context.previousBook);
+        queryClient.setQueryData(queryKeys.book.detail(parseInt(bookId)), context.previousBook);
         // Legacy support
         updateBookPartial?.({ rating: context.previousBook.rating });
       }

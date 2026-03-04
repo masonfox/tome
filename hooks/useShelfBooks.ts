@@ -83,12 +83,9 @@ export function useShelfBooks(
       if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        "books",
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: filter out removed book and reindex sortOrder
       if (previousShelf) {
@@ -97,7 +94,7 @@ export function useShelfBooks(
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
 
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: remainingBooks,
@@ -114,7 +111,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -140,12 +137,9 @@ export function useShelfBooks(
       if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        "books",
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: remove books from local state and reindex
       if (previousShelf) {
@@ -154,7 +148,7 @@ export function useShelfBooks(
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
 
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: remainingBooks,
@@ -172,7 +166,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -198,12 +192,9 @@ export function useShelfBooks(
       if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        "books",
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: reorder books and update sortOrder
       if (previousShelf) {
@@ -216,7 +207,7 @@ export function useShelfBooks(
           .filter((book): book is BookWithStatus => book !== undefined);
 
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: reorderedBooks,
@@ -230,7 +221,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -264,12 +255,9 @@ export function useShelfBooks(
       if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        "books",
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: remove books from local state
       if (previousShelf) {
@@ -278,7 +266,7 @@ export function useShelfBooks(
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
 
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: remainingBooks,
@@ -297,7 +285,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -361,12 +349,9 @@ export function useShelfBooks(
       if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        "books",
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: move book to top
       if (previousShelf) {
@@ -383,7 +368,7 @@ export function useShelfBooks(
           ] as BookWithStatus[];
 
           queryClient.setQueryData(
-            ["shelf", shelfId, "books", { orderBy, direction }],
+            queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
             {
               ...previousShelf,
               books: optimisticBooks,
@@ -398,7 +383,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -434,12 +419,9 @@ export function useShelfBooks(
       if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        "books",
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: move book to bottom
       if (previousShelf) {
@@ -478,7 +460,7 @@ export function useShelfBooks(
           }
 
           queryClient.setQueryData(
-            ["shelf", shelfId, "books", { orderBy, direction }],
+            queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
             {
               ...previousShelf,
               books: optimisticBooks,
@@ -493,7 +475,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, "books", { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
