@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { toast } from "sonner";
 import type { ReadingGoal } from "@/lib/db/schema";
 import { goalsApi } from "@/lib/api";
@@ -22,7 +23,7 @@ export function useReadingGoals() {
 
   // Query: Fetch all reading goals
   const { data: goals = [], isLoading, error } = useQuery({
-    queryKey: ['reading-goals'],
+    queryKey: queryKeys.goals.base(),
     queryFn: async () => {
       const response = await goalsApi.list();
       return response.success ? response.data : [];
@@ -36,7 +37,7 @@ export function useReadingGoals() {
       return goalsApi.create(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reading-goals'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.base() });
       toast.success('Reading goal created!');
     },
     onError: (error: Error) => {
@@ -50,7 +51,7 @@ export function useReadingGoals() {
       return goalsApi.update(params.id, params.data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reading-goals'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.base() });
       toast.success('Reading goal updated!');
     },
     onError: (error: Error) => {
@@ -64,7 +65,7 @@ export function useReadingGoals() {
       return goalsApi.delete(goalId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reading-goals'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.base() });
       toast.success('Reading goal deleted!');
     },
     onError: (error: Error) => {

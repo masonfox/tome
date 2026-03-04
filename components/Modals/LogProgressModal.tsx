@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { useRouter } from "next/navigation";
 import { BottomSheet } from "@/components/Layout/BottomSheet";
 import BaseModal from "./BaseModal";
@@ -58,8 +59,8 @@ export default function LogProgressModal({
 
   const bookProgressHook = useBookProgress(book.id.toString(), book as any, async () => {
     // Invalidate dashboard queries to refresh data
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    await queryClient.invalidateQueries({ queryKey: ['book', book.id] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(book.id) });
     // Refresh server components (dashboard page)
     router.refresh();
   });
@@ -164,10 +165,10 @@ export default function LogProgressModal({
       onClose();
 
       // Refresh data
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      await queryClient.invalidateQueries({ queryKey: ['book', book.id] });
-      await queryClient.invalidateQueries({ queryKey: ['sessions', book.id] });
-      await queryClient.invalidateQueries({ queryKey: ['library-books'] }); // Invalidate library
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(book.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(book.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.library.books() }); // Invalidate library
       router.refresh(); // Refresh server components
       
       toast.success("Book completed!");

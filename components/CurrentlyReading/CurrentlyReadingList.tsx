@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Pencil } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { useRouter } from "next/navigation";
 import LogProgressModal from "@/components/Modals/LogProgressModal";
 import FinishBookModal from "@/components/Modals/FinishBookModal";
@@ -97,10 +98,10 @@ export default function CurrentlyReadingList({
       }
 
       setShowCompletionModal(false);
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      await queryClient.invalidateQueries({ queryKey: ['book', completedBookId] });
-      await queryClient.invalidateQueries({ queryKey: ['sessions', completedBookId] });
-      await queryClient.invalidateQueries({ queryKey: ['library-books'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(completedBookId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(completedBookId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
       router.refresh();
       toast.success("Book completed!");
     } catch (error) {

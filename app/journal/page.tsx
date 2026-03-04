@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { BookOpen, Calendar, ChevronRight, Archive } from "lucide-react";
 import { formatDate, formatDayOfWeek } from '@/utils/dateHelpers';
@@ -16,8 +17,10 @@ import type { ArchiveNode } from "@/lib/utils/archive-builder";
 import { matchesDateKey } from "@/lib/utils/archive-builder";
 import { journalApi, type GroupedJournalEntry, type JournalEntry } from "@/lib/api";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function JournalPage() {
+  usePageTitle("Journal");
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -48,7 +51,7 @@ export default function JournalPage() {
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ['journal-entries', timezone],
+    queryKey: queryKeys.journal.entries(timezone),
     queryFn: async ({ pageParam = 0 }) => {
       return journalApi.listEntries({
         timezone,
@@ -67,7 +70,7 @@ export default function JournalPage() {
 
   // Fetch archive data
   const { data: archiveData = [], isLoading: archiveLoading } = useQuery({
-    queryKey: ['journal-archive', timezone],
+    queryKey: queryKeys.journal.archive(timezone),
     queryFn: () => journalApi.getArchive({ timezone }),
     staleTime: 60000, // 1 minute
   });

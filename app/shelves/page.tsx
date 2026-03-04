@@ -11,8 +11,10 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import BaseModal from "@/components/Modals/BaseModal";
 import { NewShelfFAB } from "@/components/ShelfManagement/NewShelfFAB";
 import { Button } from "@/components/Utilities/Button";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function ShelvesPage() {
+  usePageTitle("Shelves");
   const {
     shelves,
     loading,

@@ -1,16 +1,14 @@
+"use client";
+
 import { Settings as SettingsIcon, Github, Bug, BookOpen } from "lucide-react";
 import { ThemeSettings } from "@/components/Settings/ThemeSettings";
 import { TimezoneSettings } from "@/components/Settings/TimezoneSettings";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { VersionSettings } from "@/components/Settings/VersionSettings";
-import { streakService } from "@/lib/services/streak.service";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
-export const dynamic = 'force-dynamic';
-
-export default async function SettingsPage() {
-  // Get current streak to fetch timezone (auto-creates if doesn't exist)
-  const streak = await streakService.getStreak(null);
-  const initialTimezone = streak.userTimezone;
+export default function SettingsPage() {
+  usePageTitle("Settings");
 
   return (
     <div className="space-y-10">
@@ -24,7 +22,7 @@ export default async function SettingsPage() {
       <ThemeSettings />
 
       {/* Timezone Settings */}
-      <TimezoneSettings initialTimezone={initialTimezone} />
+      <TimezoneSettings />
 
       {/* Version Information */}
       <VersionSettings />
