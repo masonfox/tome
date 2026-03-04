@@ -63,7 +63,8 @@ export default function SeriesDetailPage() {
   });
 
   // Set dynamic page title
-  usePageTitle(data?.series.name);
+  let title = data?.series?.name ?? "...";
+  usePageTitle(`Series / ${title}`);
 
   const handleImageError = (calibreId: number) => {
     setImageErrors(prev => ({ ...prev, [calibreId]: true }));
