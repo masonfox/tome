@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import Link from "next/link";
 import { BookOpen, BookCheck, Pencil } from "lucide-react";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
@@ -54,7 +55,7 @@ export default function BookDetailPage() {
 
   const bookProgressHook = useBookProgress(bookId, book, async () => {
     // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
   });
 
   const {
@@ -119,10 +120,10 @@ export default function BookDetailPage() {
       clearDraft();
 
       // Refresh data
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
-      await queryClient.invalidateQueries({ queryKey: ['library-books'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
     } catch (error) {
       logger.error({ error }, "Failed to finish book");
       throw error;
@@ -138,7 +139,7 @@ export default function BookDetailPage() {
 
   const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, async () => {
     // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
   });
 
   // Draft note management with localStorage autosave
@@ -181,7 +182,7 @@ export default function BookDetailPage() {
 
   // Fetch available tags for the tag editor
   const { data: availableTagsData } = useQuery<{ tags: string[] }>({
-    queryKey: ['availableTags'],
+    queryKey: queryKeys.book.availableTags(),
     queryFn: async () => {
       const response = await fetch('/api/tags');
       if (!response.ok) {
@@ -198,7 +199,7 @@ export default function BookDetailPage() {
 
   // Fetch available shelves for the shelf editor
   const { data: availableShelvesData } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
-    queryKey: ['availableShelves'],
+    queryKey: queryKeys.book.availableShelves(),
     queryFn: async () => {
       const response = await fetch('/api/shelves');
       if (!response.ok) {
@@ -212,7 +213,7 @@ export default function BookDetailPage() {
 
   // Fetch current shelves for this book
   const { data: bookShelvesData, refetch: refetchBookShelves } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
-    queryKey: ['bookShelves', bookId],
+    queryKey: queryKeys.book.shelves(parseInt(bookId)),
     queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}/shelves`);
       if (!response.ok) {
@@ -242,7 +243,7 @@ export default function BookDetailPage() {
       // Invalidate all affected shelf queries
       // Use broad invalidation without orderBy/direction to catch all variants
       affectedShelfIds.forEach(shelfId => {
-        queryClient.invalidateQueries({ queryKey: ['shelf', shelfId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
       });
 
       // Refetch book's shelf data

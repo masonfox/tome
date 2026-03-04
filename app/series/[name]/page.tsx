@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -44,7 +45,7 @@ export default function SeriesDetailPage() {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['series', seriesName],
+    queryKey: queryKeys.series.detail(seriesName),
     queryFn: async () => {
       const response = await fetch(`/api/series/${encodeURIComponent(seriesName)}`);
       

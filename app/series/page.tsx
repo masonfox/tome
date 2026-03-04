@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { Library, BookMarked, Search, X } from "lucide-react";
 import SeriesCard from "@/components/Books/SeriesCard";
 import SeriesCardSkeleton from "@/components/Books/SeriesCardSkeleton";
@@ -20,7 +21,7 @@ export default function SeriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: series = [], isLoading, error } = useQuery({
-    queryKey: ['series'],
+    queryKey: queryKeys.series.all(),
     queryFn: async () => {
       const response = await fetch("/api/series");
       

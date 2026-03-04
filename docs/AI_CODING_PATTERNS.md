@@ -427,6 +427,189 @@ test("should handle pagination correctly", async () => {
 
 ---
 
+## 🔑 Query Key Factory Pattern
+
+**Location:** `lib/query-keys.ts`
+
+### The Pattern
+
+Use a **centralized query key factory** for all TanStack Query (React Query) keys to prevent collisions and enable type-safe invalidations.
+
+**Why This Matters:**
+- **Prevents key collisions**: PR #395 found two components using `'streak-analytics'` with different data structures
+- **Fixes invalidation bugs**: `useStreak.ts` was invalidating `['streak-analytics']` but actual key was `['streak-analytics-full', 7]`
+- **Type safety**: Catch typos at compile time
+- **Easier refactoring**: Change key structure in one place
+- **Consistent patterns**: Hierarchical keys enable wildcard invalidation
+
+### Rules
+
+✅ **DO: Use the query key factory for ALL queries:**
+
+```typescript
+import { queryKeys } from '@/lib/query-keys';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// In queries
+const { data } = useQuery({
+  queryKey: queryKeys.book.detail(bookId),
+  queryFn: () => bookApi.get(bookId)
+});
+
+// In queries with parameters
+const { data } = useQuery({
+  queryKey: queryKeys.streak.analytics(7),
+  queryFn: () => fetch('/api/streak/analytics?days=7')
+});
+
+// In mutations - invalidate specific query
+const queryClient = useQueryClient();
+const mutation = useMutation({
+  mutationFn: updateBook,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.book.detail(bookId) 
+    });
+  }
+});
+
+// Wildcard invalidation - invalidate ALL book queries
+queryClient.invalidateQueries({ 
+  queryKey: queryKeys.book.base() 
+});
+
+// Wildcard invalidation - invalidate ALL streak queries
+queryClient.invalidateQueries({ 
+  queryKey: queryKeys.streak.base() 
+});
+```
+
+❌ **DON'T: Use hardcoded query key strings:**
+
+```typescript
+// ❌ WRONG - Hardcoded strings (collision risk, no type safety)
+useQuery({
+  queryKey: ['book', bookId],
+  queryFn: () => bookApi.get(bookId)
+});
+
+// ❌ WRONG - Will cause invalidation bugs
+queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
+// Actual key might be ['streak-analytics-full', 7] - invalidation fails!
+
+// ❌ WRONG - Collision risk (two components, different data structures)
+useQuery({ queryKey: ['streak-analytics', 7], ... });
+useQuery({ queryKey: ['streak-analytics', 365], ... });
+```
+
+### Key Structure
+
+Keys follow a **hierarchical pattern** for collision avoidance:
+
+```typescript
+// Base keys (for wildcard invalidation)
+queryKeys.book.base()           // ['book']
+queryKeys.streak.base()         // ['streak']
+
+// Specific queries
+queryKeys.book.detail(123)      // ['book', 123]
+queryKeys.sessions.byBook(456)  // ['sessions', 456]
+
+// Nested hierarchies (prevents collisions)
+queryKeys.streak.analytics(7)   // ['streak', 'analytics', 7]
+queryKeys.streak.heatmap(365)   // ['streak', 'analytics', 'heatmap', 365]
+```
+
+### When to Add New Keys
+
+When adding new TanStack Query queries:
+
+1. **Check if key exists** in `lib/query-keys.ts`
+2. **Add to appropriate domain** (book, streak, session, etc.)
+3. **Use hierarchical structure** to avoid collisions
+4. **Add JSDoc comments** describing what the key represents
+5. **Use `as const`** for type safety
+
+**Example - Adding a new key:**
+
+```typescript
+export const queryKeys = {
+  // ... existing keys ...
+  
+  book: {
+    base: () => ['book'] as const,
+    detail: (id: number) => ['book', id] as const,
+    
+    // NEW: Add book reviews key
+    /** Book reviews: ['book', bookId, 'reviews'] */
+    reviews: (bookId: number) => ['book', bookId, 'reviews'] as const,
+  },
+};
+```
+
+### Handling Nullable IDs
+
+When query parameters can be `null` (disabled queries), use conditional keys:
+
+```typescript
+// Handle nullable sessionId
+export function useSessionProgress(sessionId: number | null) {
+  return useQuery({
+    queryKey: sessionId 
+      ? queryKeys.sessions.progress(sessionId)
+      : ['session-progress-empty'], // Placeholder when disabled
+    queryFn: async () => {
+      if (!sessionId) return [];
+      return fetchProgress(sessionId);
+    },
+    enabled: !!sessionId, // Only fetch when sessionId exists
+  });
+}
+
+// For mutations with nullable IDs, guard invalidations
+const mutation = useMutation({
+  onSuccess: () => {
+    if (shelfId !== null) {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.shelf.detail(shelfId) 
+      });
+    }
+  }
+});
+```
+
+### Critical Bugs Fixed
+
+This pattern fixes two critical bugs found during implementation:
+
+**Bug 1: Invalidation Failure** (`hooks/useStreak.ts`)
+```typescript
+// ❌ BEFORE: Invalidation did nothing
+queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
+// Actual key was ['streak-analytics-full', 7] - mismatch!
+
+// ✅ AFTER: Correct wildcard invalidation
+queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() });
+// Invalidates ALL streak queries: analytics, heatmap, settings
+```
+
+**Bug 2: Key Collision** (PR #395)
+```typescript
+// ❌ BEFORE: Two components, same key, different data
+// Component A: useStreakQuery.ts
+queryKey: ['streak-analytics', 7]  // Returns full analytics
+
+// Component B: StreakChartSection.tsx  
+queryKey: ['streak-analytics', 365]  // Returns heatmap data
+// Collision! Same prefix, different data structures
+
+// ✅ AFTER: Hierarchical keys prevent collision
+queryKey: queryKeys.streak.analytics(7)    // ['streak', 'analytics', 7]
+queryKey: queryKeys.streak.heatmap(365)    // ['streak', 'analytics', 'heatmap', 365]
+```
+
+---
+
 ## 🗄️ Database Patterns
 
 ### Repository Pattern (PRIMARY PATTERN)

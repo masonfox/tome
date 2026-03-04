@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { statsApi, type StatsOverview, type StreakData } from "@/lib/api";
 
 async function fetchStatsOverview(): Promise<StatsOverview> {
@@ -11,14 +12,14 @@ async function fetchStreak(): Promise<StreakData> {
 
 export function useStats() {
   const { data: stats, isLoading: isLoadingStats, error: statsError } = useQuery<StatsOverview>({
-    queryKey: ['stats'],
+    queryKey: queryKeys.stats.all(),
     queryFn: fetchStatsOverview,
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
   });
 
   const { data: streak, isLoading: isLoadingStreak, error: streakError } = useQuery<StreakData>({
-    queryKey: ['streaks'],
+    queryKey: queryKeys.streak.legacy(),
     queryFn: fetchStreak,
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { toast } from "@/utils/toast";
 import { shelfApi, ApiError } from "@/lib/api";
 import type { ShelfWithBooks } from "@/lib/api";
@@ -21,7 +22,9 @@ export function useShelfBooks(
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["shelf", shelfId, { orderBy, direction }],
+    queryKey: shelfId !== null 
+      ? queryKeys.shelf.detail(shelfId, { orderBy, direction })
+      : ['shelf-empty'],
     queryFn: async () => {
       if (!shelfId) return null;
 
@@ -56,7 +59,7 @@ export function useShelfBooks(
       return shelfApi.addBooks(shelfId, { bookIds });
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
       const bookWord = result.count === 1 ? 'book' : 'books';
       toast.success(`${result.count} ${bookWord} added to shelf`);
     },
@@ -77,7 +80,7 @@ export function useShelfBooks(
     },
     onMutate: async (bookId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
 
       // Snapshot previous value
       const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
@@ -117,7 +120,7 @@ export function useShelfBooks(
       toast.error(`Failed to remove book from shelf: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
     },
   });
 
@@ -133,7 +136,7 @@ export function useShelfBooks(
     },
     onMutate: async (bookIds) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
 
       // Snapshot previous value
       const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
@@ -174,7 +177,7 @@ export function useShelfBooks(
       toast.error(`Failed to remove books: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
     },
   });
 
@@ -190,7 +193,7 @@ export function useShelfBooks(
     },
     onMutate: async (bookIds) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
 
       // Snapshot previous value
       const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
@@ -231,7 +234,7 @@ export function useShelfBooks(
       toast.error(`Failed to reorder books: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
     },
     // No success toast - visual feedback of reordering is confirmation enough
   });
@@ -255,7 +258,7 @@ export function useShelfBooks(
     },
     onMutate: async ({ bookIds }) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
 
       // Snapshot previous value
       const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
@@ -297,7 +300,7 @@ export function useShelfBooks(
       toast.error(`Failed to move books: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
     },
   });
 
@@ -351,7 +354,7 @@ export function useShelfBooks(
     },
     onMutate: async (bookId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
 
       // Snapshot previous value
       const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
@@ -400,7 +403,7 @@ export function useShelfBooks(
       toast.success("Moved to top of shelf");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
     },
   });
 
@@ -423,7 +426,7 @@ export function useShelfBooks(
     },
     onMutate: async (bookId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
 
       // Snapshot previous value
       const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
@@ -494,7 +497,7 @@ export function useShelfBooks(
       toast.success("Moved to bottom of shelf");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.detail(shelfId) });
     },
   });
 

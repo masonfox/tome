@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
@@ -38,7 +39,7 @@ export function GoalsPagePanel() {
 
   // Goal data query
   const { data: currentGoalData, isPending: goalLoading, error: goalError } = useQuery({
-    queryKey: ['reading-goal', selectedYear],
+    queryKey: queryKeys.goals.byYear(selectedYear),
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
       // 404 is expected when no goal exists for the year - return null instead of throwing
@@ -56,7 +57,7 @@ export function GoalsPagePanel() {
 
   // Monthly breakdown query
   const { data: monthlyData = [], isPending: monthlyLoading } = useQuery({
-    queryKey: ['monthly-breakdown', selectedYear],
+    queryKey: queryKeys.goals.monthlyBreakdown(selectedYear),
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
       if (!response.ok) {
@@ -74,7 +75,7 @@ export function GoalsPagePanel() {
     data: booksData, 
     isPending: booksLoading 
   } = useQuery({
-    queryKey: ['completed-books', selectedYear],
+    queryKey: queryKeys.goals.completedBooks(selectedYear),
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/books?year=${selectedYear}`);
       if (!response.ok) {
@@ -115,9 +116,9 @@ export function GoalsPagePanel() {
       return data.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['reading-goal', variables.year] });
-      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', variables.year] });
-      queryClient.invalidateQueries({ queryKey: ['completed-books', variables.year] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.byYear(variables.year) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.monthlyBreakdown(variables.year) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.completedBooks(variables.year) });
       setSelectedYear(variables.year);
     },
   });
@@ -175,9 +176,9 @@ export function GoalsPagePanel() {
         await updateGoalAsync({ id: currentGoalData.goal.id, data: { booksGoal } });
       }
       // Invalidate all queries for the current year
-      queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
-      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
-      queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.byYear(selectedYear) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.monthlyBreakdown(selectedYear) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.completedBooks(selectedYear) });
       setIsModalOpen(false);
       setBooksGoal("");
     } catch (error) {

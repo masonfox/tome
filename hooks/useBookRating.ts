@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { bookApi } from "@/lib/api";
@@ -46,7 +47,7 @@ export function useBookRating(
     },
     onMutate: async (newRating) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       // Snapshot previous value
       const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
@@ -72,7 +73,7 @@ export function useBookRating(
     },
     onSuccess: (data) => {
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       // Show success message
       if (data.rating === null) {

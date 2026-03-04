@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 
 interface StreakData {
   id: number;
@@ -48,7 +49,7 @@ interface StreakAnalyticsData {
 export function useStreakQuery() {
   // Query: Fetch streak status and settings
   const streakQuery = useQuery({
-    queryKey: ['streak'],
+    queryKey: queryKeys.streak.settings(),
     queryFn: async () => {
       const response = await fetch('/api/streak');
       if (!response.ok) throw new Error('Failed to fetch streak');
@@ -62,7 +63,7 @@ export function useStreakQuery() {
 
   // Query: Fetch streak analytics (only if streak is enabled)
   const analyticsQuery = useQuery({
-    queryKey: ['streak-analytics-full', 7],
+    queryKey: queryKeys.streak.analytics(7),
     queryFn: async () => {
       const response = await fetch('/api/streak/analytics?days=7');
       if (!response.ok) throw new Error('Failed to fetch analytics');

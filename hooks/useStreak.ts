@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { streakApi } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 
 /**
  * Custom hook for managing streak operations
@@ -15,10 +16,9 @@ export function useStreak() {
       return streakApi.rebuild();
     },
     onSuccess: () => {
-      // Invalidate all streak-related queries
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['streaks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate all streak-related queries (base key invalidates all children)
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
       toast.success("Streak recalculated successfully!");
     },
     onError: (error) => {
@@ -34,9 +34,8 @@ export function useStreak() {
     },
     onSuccess: () => {
       // Invalidate streak-related queries
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['streaks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
       toast.success("Daily reading goal updated!");
     },
     onError: (error: any) => {
@@ -52,10 +51,9 @@ export function useStreak() {
     },
     onSuccess: () => {
       // Invalidate all queries since timezone affects date boundaries
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['streaks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] }); // Stats page also uses timezone
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats.all() }); // Stats page also uses timezone
       toast.success("Timezone updated! Streak recalculated with new day boundaries.");
     },
     onError: (error: any) => {
@@ -71,9 +69,8 @@ export function useStreak() {
     },
     onSuccess: (data) => {
       // Invalidate streak-related queries
-      queryClient.invalidateQueries({ queryKey: ['streak-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['streaks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streak.base() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
       
       const message = data.data.streakEnabled
         ? "Streak tracking enabled!"

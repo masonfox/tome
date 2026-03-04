@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from '@/lib/query-keys';
 
 import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +10,9 @@ import { TrendingUp } from "lucide-react";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger();
+
+// Numeric-only period type for streak analytics (strings not supported by API)
+type NumericPeriod = Extract<TimePeriod, number>;
 
 interface DailyReading {
   date: string;
@@ -21,7 +25,7 @@ interface StreakChartSectionProps {
   threshold: number;
 }
 
-async function fetchAnalytics(days: TimePeriod): Promise<DailyReading[]> {
+async function fetchAnalytics(days: number): Promise<DailyReading[]> {
   const response = await fetch(`/api/streak/analytics?days=${days}`, {
     cache: "no-store",
   });
@@ -43,11 +47,11 @@ export function StreakChartSection({
   initialData,
   threshold,
 }: StreakChartSectionProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
+  const [selectedPeriod, setSelectedPeriod] = useState<NumericPeriod>(7);
 
   // Use TanStack Query for fetching analytics (for area chart)
   const { data, isLoading, isFetching, error } = useQuery<DailyReading[]>({
-    queryKey: ['streak-analytics', selectedPeriod],
+    queryKey: queryKeys.streak.analytics(selectedPeriod),
     queryFn: () => fetchAnalytics(selectedPeriod),
     initialData: selectedPeriod === 7 ? initialData : undefined,
     placeholderData: (previousData) => previousData, // Keep previous data visible while fetching
@@ -57,15 +61,18 @@ export function StreakChartSection({
 
   // Always fetch 365 days for heatmap (like GitHub's contribution graph)
   const { data: heatmapData, isLoading: isHeatmapLoading } = useQuery<DailyReading[]>({
-    queryKey: ['streak-analytics-heatmap', 365],
-    queryFn: () => fetchAnalytics(365 as TimePeriod),
+    queryKey: queryKeys.streak.heatmap(365),
+    queryFn: () => fetchAnalytics(365),
     staleTime: 60000,
     refetchOnWindowFocus: true,
   });
 
   const handlePeriodChange = useCallback(
     (period: TimePeriod) => {
-      setSelectedPeriod(period);
+      // Only numeric periods are supported for streak analytics
+      if (typeof period === 'number') {
+        setSelectedPeriod(period);
+      }
     },
     []
   );
