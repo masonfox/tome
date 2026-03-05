@@ -282,7 +282,8 @@ export class SessionService {
     }
 
     // Find active or most recent session
-    // Terminal sessions ("read", "dnf") keep isActive = true (archived only on re-read)
+    // Terminal sessions ("read", "dnf") are archived (isActive = false per ADR-004/008)
+    // Re-reading a book reactivates via startReread() which creates a new active session
     // Fall back to latest session for legacy data or edge cases
     let readingSession = await sessionRepository.findActiveByBookId(bookId, tx);
     const mostRecentSession = !readingSession ? await sessionRepository.findLatestByBookId(bookId, tx) : null;
@@ -302,7 +303,8 @@ export class SessionService {
     // Detect "backward movement" from terminal states to planning/reading statuses
     // Case 1: From "reading" to planning statuses (existing logic)
     // Case 2: From "dnf" to any non-DNF status (new logic - DNF is terminal)
-    // Use mostRecentSession for DNF since it has isActive = false
+    // Use mostRecentSession as fallback for edge cases where no active session exists
+    // After terminal state changes, both "read" and "dnf" sessions have isActive=false
     const sessionForBackwardCheck = readingSession || mostRecentSession;
     const isBackwardMovement =
       sessionForBackwardCheck &&
@@ -363,6 +365,11 @@ export class SessionService {
       if (status === "reading") {
         newSessionData.startedDate = startedDate || await this.getTodayDateString();
       }
+
+      // Ensure proper ordering for "read-next" status (prevents duplicate order=0)
+      if (status === "read-next") {
+        newSessionData.readNextOrder = await sessionRepository.getNextReadNextOrder(tx);
+      }
       
       const newSession = await sessionRepository.create(newSessionData, tx);
 
@@ -407,7 +414,7 @@ export class SessionService {
         updateData.startedDate = startedDate || await this.getTodayDateString();
       }
       updateData.completedDate = completedDate || await this.getTodayDateString();
-      // Keep session active for terminal "read" state (archived only on re-read)
+      updateData.isActive = false; // Archive read session (terminal state per ADR-004/008)
     }
 
     if (review !== undefined) {
@@ -1140,7 +1147,7 @@ export class SessionService {
       };
     }
 
-    // Mark session as DNF (keep active - archived only on re-read)
+    // Mark session as DNF (archives session with isActive=false per ADR-004/008)
     const finalCompletedDate = completedDate || lastProgress?.progressDate || await this.getTodayDateString();
     
     logger.info({ bookId, sessionId: activeSession.id, completedDate: finalCompletedDate }, "Marking session as DNF");
@@ -1148,6 +1155,7 @@ export class SessionService {
     await sessionRepository.update(activeSession.id, {
       status: "dnf",
       completedDate: finalCompletedDate,
+      isActive: false, // Archive DNF session (terminal state)
     } as any);
 
     // Best-effort: Update rating

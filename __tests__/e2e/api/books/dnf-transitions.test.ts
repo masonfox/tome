@@ -213,4 +213,97 @@ describe("DNF Status Transitions (E2E API)", () => {
     expect(archived?.completedDate).toBe(originalCompletedDate);
     expect(archived?.status).toBe("dnf");
   });
+
+  describe("terminal state behavior (E2E)", () => {
+    test("should set isActive=false when transitioning to 'read' status", async () => {
+      // ARRANGE: Active reading session
+      const activeSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        startedDate: "2026-01-01",
+      }));
+
+      // ACT: Mark as read via API
+      const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+        status: "read",
+        completedDate: "2026-01-15",
+      }) as NextRequest;
+      const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
+      const data = await response.json();
+
+      // ASSERT: Response successful
+      expect(response.status).toBe(200);
+      expect(data.status).toBe("read");
+      expect(data.isActive).toBe(false); // Terminal "read" status archives session (ADR-004/008)
+
+      // ASSERT: Database reflects change
+      const updated = await sessionRepository.findById(activeSession.id);
+      expect(updated?.isActive).toBe(false);
+      expect(updated?.status).toBe("read");
+      expect(updated?.completedDate).toBe("2026-01-15");
+    });
+
+    test("should handle DNF → reading transition with archived DNF session", async () => {
+      // ARRANGE: Archived DNF session (correct post-terminal-state state)
+      const dnfSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-01",
+        completedDate: "2026-01-10",
+      }));
+
+      // ACT: Restart reading via API
+      const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+        status: "reading",
+      }) as NextRequest;
+      const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
+      const data = await response.json();
+
+      // ASSERT: New session created
+      expect(response.status).toBe(200);
+      expect(data.sessionArchived).toBe(true);
+      expect(data.id).toBeDefined(); // Flattened response structure
+      expect(data.sessionNumber).toBe(2);
+      expect(data.status).toBe("reading");
+      expect(data.isActive).toBe(true);
+
+      // ASSERT: DNF session still archived
+      const archived = await sessionRepository.findById(dnfSession.id);
+      expect(archived?.isActive).toBe(false);
+    });
+
+    test("should assign proper readNextOrder for DNF → read-next transition", async () => {
+      // ARRANGE: Archived DNF session
+      const dnfSession = await sessionRepository.create(createTestSession({
+        bookId: testBook.id,
+        sessionNumber: 1,
+        status: "dnf",
+        isActive: false,
+        startedDate: "2026-01-01",
+        completedDate: "2026-01-10",
+      }));
+
+      // ACT: Transition to read-next via API
+      const request = createMockRequest("POST", `/api/books/${testBook.id}/status`, {
+        status: "read-next",
+      }) as NextRequest;
+      const response = await POST(request, { params: Promise.resolve({ id: testBook.id.toString() }) });
+      const data = await response.json();
+
+      // ASSERT: New session created with proper ordering
+      expect(response.status).toBe(200);
+      expect(data.sessionArchived).toBe(true);
+      expect(data.sessionNumber).toBe(2);
+      expect(data.status).toBe("read-next");
+      expect(data.readNextOrder).toBeGreaterThanOrEqual(0); // Verifies readNextOrder is assigned (0 for first read-next book)
+
+      // ASSERT: DNF session still archived
+      const archived = await sessionRepository.findById(dnfSession.id);
+      expect(archived?.isActive).toBe(false);
+    });
+  });
 });
