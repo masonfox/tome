@@ -306,12 +306,17 @@ export class SessionService {
     // Use mostRecentSession as fallback for edge cases where no active session exists
     // After terminal state changes, both "read" and "dnf" sessions have isActive=false
     const sessionForBackwardCheck = readingSession || mostRecentSession;
-    const isBackwardMovement =
-      sessionForBackwardCheck &&
-      (
-        (sessionForBackwardCheck.status === "reading" && (status === "read-next" || status === "to-read")) ||
-        (sessionForBackwardCheck.status === "dnf" && status !== "dnf")
-      );
+    
+    const isReadingToPlanning = 
+      sessionForBackwardCheck?.status === "reading" && 
+      (status === "read-next" || status === "to-read");
+    
+    const isDnfToAnyOther = 
+      sessionForBackwardCheck?.status === "dnf" && 
+      status !== "dnf";
+    
+    const isBackwardMovement = 
+      sessionForBackwardCheck && (isReadingToPlanning || isDnfToAnyOther);
 
     // Check if current session should be archived
     // DNF sessions: Always archive (already terminal)
@@ -329,21 +334,21 @@ export class SessionService {
     if (isBackwardMovement && shouldArchive && sessionForBackwardCheck) {
       getLogger().info(`[SessionService] Archiving session #${sessionForBackwardCheck.sessionNumber} and creating new session for backward movement`);
 
-      // Get completedDate for archiving
+      // Helper to determine completedDate for archiving
       // DNF sessions: Preserve existing completedDate (already set by markAsDNF)
       // Reading sessions: Use last progress date or current date
-      let archiveCompletedDate: string;
-      if (sessionForBackwardCheck.completedDate) {
-        // Preserve existing completedDate (e.g., set by markAsDNF)
-        archiveCompletedDate = sessionForBackwardCheck.completedDate;
-      } else if (sessionForBackwardCheck.status === "reading") {
-        // For reading sessions, query progress to get last activity date
-        const latestProgress = await progressRepository.findLatestBySessionId(sessionForBackwardCheck.id, tx);
-        archiveCompletedDate = latestProgress?.progressDate || await this.getTodayDateString();
-      } else {
-        // Fallback for any other status without completedDate
-        archiveCompletedDate = await this.getTodayDateString();
-      }
+      const getArchiveCompletedDate = async (session: ReadingSession): Promise<string> => {
+        if (session.completedDate) return session.completedDate;
+        
+        if (session.status === "reading") {
+          const latestProgress = await progressRepository.findLatestBySessionId(session.id, tx);
+          return latestProgress?.progressDate || await this.getTodayDateString();
+        }
+        
+        return await this.getTodayDateString();
+      };
+
+      const archiveCompletedDate = await getArchiveCompletedDate(sessionForBackwardCheck);
 
       // Archive current session WITH completedDate
       await sessionRepository.update(sessionForBackwardCheck.id, {
