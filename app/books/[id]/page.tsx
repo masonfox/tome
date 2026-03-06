@@ -181,14 +181,14 @@ export default function BookDetailPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Back button logic: Show on mobile when user navigated from another page
-  const [hasNavigationHistory, setHasNavigationHistory] = useState(false);
+  // Back button logic: Show on mobile when user has navigation history
+  const [hasHistory, setHasHistory] = useState(false);
+  
   useEffect(() => {
-    // Check if there's navigation history (user didn't land directly on this page)
-    setHasNavigationHistory(window.history.length > 1);
+    setHasHistory(window.history.length > 1);
   }, []);
 
-  const shouldShowBackButton = isMobile && hasNavigationHistory;
+  const shouldShowBackButton = isMobile && hasHistory;
 
   const handleBack = () => {
     router.back();
