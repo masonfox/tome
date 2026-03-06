@@ -25,7 +25,7 @@ An automated review system that uses two AI agents to iteratively review and imp
 **What it does**:
 1. @review agent reviews the PR
 2. Implements recommended changes (if any)
-3. Requests GitHub Copilot review
+3. Waits for GitHub Copilot review (auto-triggered on push)
 4. @review re-evaluates Copilot suggestions
 5. Implements agreed-upon changes
 6. Repeats until both approve or max iterations reached
@@ -80,7 +80,7 @@ gh pr create --base develop --title "Add new feature"
 # The system will:
 # - @review checks constitution, patterns, code quality
 # - Fixes issues automatically
-# - Gets Copilot's perspective  
+# - Waits for Copilot review (auto-triggered on push)
 # - Iterates until both approve
 
 # 3. Check final status
@@ -155,8 +155,9 @@ The @review agent structures feedback as:
 - ❌ Changes requested: Response contains "CHANGES REQUESTED:"
 
 ### GitHub Copilot
-- ✅ Approved: No critical suggestions or contains "LGTM"/"looks good"
-- ❌ Changes requested: Provides specific suggestions
+- ✅ Approved: Check completes with no issues, or contains "LGTM"/"looks good"
+- ❌ Changes requested: Provides specific suggestions in PR comments
+- ⚠️  Timeout: If check doesn't complete in 3 minutes, treated as approved (continue anyway)
 
 ## Safety Features
 
@@ -165,6 +166,7 @@ The @review agent structures feedback as:
 3. **Read-only @review**: Agent cannot directly modify code
 4. **Explicit approval**: Both agents must explicitly approve
 5. **Push after commit**: Changes immediately pushed to remote
+6. **Copilot timeout**: 3-minute limit prevents indefinite waiting (60s initial + 2min polling)
 
 ## Troubleshooting
 
@@ -175,6 +177,11 @@ The @review agent structures feedback as:
 ### "Tests failed"
 - Fix test failures manually
 - Re-run `/review-loop` to continue
+
+### "Copilot review timeout"
+- Copilot may still be processing
+- Check PR manually for Copilot feedback
+- Loop continues anyway (treats as approved)
 
 ### "Max iterations reached"
 - Review the suggested changes
