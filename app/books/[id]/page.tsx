@@ -414,12 +414,12 @@ export default function BookDetailPage() {
       {shouldShowBackButton && (
         <button
           onClick={handleBack}
-          className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-4 font-medium transition-colors"
+          className="flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-4 font-medium transition-colors"
         >
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--card-bg)] transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--card-bg)] transition-colors flex-shrink-0">
+            <ArrowLeft strokeWidth={3} className="w-4 h-4" />
           </span>
-          Back
+          <span className="relative top-0.5">Back</span>
         </button>
       )}
       
