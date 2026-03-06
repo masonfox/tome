@@ -419,7 +419,7 @@ export default function BookDetailPage() {
           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--card-bg)] transition-colors flex-shrink-0">
             <ArrowLeft strokeWidth={3} className="w-4 h-4" />
           </span>
-          <span className="relative top-0.5">Back</span>
+          <span>Back</span>
         </button>
       )}
       
