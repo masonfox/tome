@@ -446,7 +446,7 @@ export default function BookDetailPage() {
         {/* Main Content Area */}
         <div className="space-y-6 min-w-0">
           {/* Title and Author */}
-          <div className="mt-3 md:mt-0 text-center md:text-left">
+          <div className="text-center md:text-left">
             {/* Series Information */}
             {book.series && (
               <Link
