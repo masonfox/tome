@@ -2,8 +2,8 @@
 
 import { ReadingGoalWithProgress } from "@/lib/services/reading-goals.service";
 import { Target, TrendingUp, TrendingDown, CheckCircle2, Trophy } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
 import { getGoalStatusColors, type PaceStatus } from "@/lib/utils/reading-goal-styles";
+import { ProgressBar } from "@/components/Utilities/ProgressBar";
 
 interface PaceIndicatorProps {
   paceStatus: PaceStatus;
@@ -68,29 +68,12 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
   const isExceeded = booksCompleted > goal.booksGoal;
   const isGoalMet = booksCompleted === goal.booksGoal;
   const displayPercentage = Math.min(completionPercentage, 100);
-  
-  const progressBarRef = useRef<HTMLDivElement>(null);
-  const [barWidth, setBarWidth] = useState(0);
-
-  useEffect(() => {
-    if (progressBarRef.current) {
-      setBarWidth(progressBarRef.current.offsetWidth);
-    }
-  }, []);
 
   // Get colors based on current status
   const statusColors = getGoalStatusColors(paceStatus, isGoalMet, isExceeded, isPastYear);
 
   // Helper function to get banner gradient
   const getBannerGradient = () => statusColors.banner;
-
-  // Helper function to get progress bar gradient and animation
-  const getProgressBarClasses = () => {
-    const shouldPulse = isExceeded || isGoalMet;
-    const baseClasses = "h-12 transition-all duration-500 ease-out flex items-center justify-center relative";
-    const pulseClasses = shouldPulse ? "animate-pulse-subtle" : "";
-    return `${baseClasses} ${statusColors.gradient} ${pulseClasses}`;
-  };
 
   // Helper function to get color for the books completed number based on pacing
   const getBooksCompletedColor = () => statusColors.text;
@@ -140,35 +123,12 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
           {/* Hero Progress Bar */}
           <div className="mb-6">
-            <div ref={progressBarRef} className="relative w-full bg-[var(--card-bg-emphasis)] rounded-lg h-12 overflow-hidden">
-              {/* Progress bar fill */}
-              <div
-                className={getProgressBarClasses()}
-                style={{ width: `${displayPercentage}%` }}
-              />
-              {/* Background text layer (shows on unfilled portion) */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <span className="text-2xl font-bold font-serif text-[var(--foreground)]">
-                  {displayPercentage}%
-                </span>
-              </div>
-              {/* Overlay text layer (white text on colored progress bar) */}
-              {barWidth > 0 && (
-                <div 
-                  className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none z-20"
-                  style={{ width: `${displayPercentage}%` }}
-                >
-                  <div 
-                    className="h-full flex items-center justify-center" 
-                    style={{ width: `${barWidth}px` }}
-                  >
-                    <span className="text-2xl font-bold font-serif text-white whitespace-nowrap">
-                      {displayPercentage}%
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ProgressBar
+              percentage={displayPercentage}
+              variant="hero"
+              textDisplay="percentage"
+              shouldPulse={isExceeded || isGoalMet}
+            />
           </div>
 
           {/* Stats Grid */}
@@ -270,46 +230,12 @@ export function ReadingGoalWidget({ goalData, onEditClick }: ReadingGoalWidgetPr
 
         {/* Hero Progress Bar */}
         <div className="mb-6">
-          <div 
-            ref={progressBarRef}
-            className="relative w-full bg-[var(--card-bg-emphasis)] rounded-lg h-12 overflow-hidden"
-            role="progressbar"
-            aria-valuenow={displayPercentage}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Reading progress: ${displayPercentage}% complete`}
-          >
-            {/* Progress bar fill */}
-            <div
-              className={getProgressBarClasses()}
-              style={{ width: `${displayPercentage}%` }}
-            />
-            {/* Background text layer (shows on unfilled portion) */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <span className="text-2xl font-bold font-serif text-[var(--foreground)]">
-                {displayPercentage}%
-              </span>
-            </div>
-            {/* Overlay text layer (white text on colored progress bar) */}
-            {barWidth > 0 && (
-              <div 
-                className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none z-20"
-                style={{ width: `${displayPercentage}%` }}
-              >
-                <div 
-                  className="h-full flex items-center justify-center" 
-                  style={{ width: `${barWidth}px` }}
-                >
-                  <span 
-                    className="text-2xl font-bold font-serif text-white whitespace-nowrap"
-                    aria-hidden="true"
-                  >
-                    {displayPercentage}%
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+          <ProgressBar
+            percentage={displayPercentage}
+            variant="hero"
+            textDisplay="percentage"
+            shouldPulse={isExceeded || isGoalMet}
+          />
         </div>
 
         {/* Stats Grid */}
