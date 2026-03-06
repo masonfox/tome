@@ -416,7 +416,9 @@ export default function BookDetailPage() {
           onClick={handleBack}
           className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-4 font-medium transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--card-bg)] transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </span>
           Back
         </button>
       )}
