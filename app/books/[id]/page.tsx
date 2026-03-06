@@ -36,6 +36,7 @@ import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
 import { Spinner } from "@/components/Utilities/Spinner";
 import { usePageTitle } from "@/lib/hooks/usePageTitle";
+import { ProgressBar } from "@/components/Utilities/ProgressBar";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
@@ -536,21 +537,15 @@ export default function BookDetailPage() {
                     )}
                   </span>
                 </div>
-                <div className="relative w-full h-8 bg-[var(--card-bg)] border border-[var(--border-color)] rounded overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-[var(--accent)] transition-all duration-300"
-                    style={{
-                      width: bookProgressHook.progress.length > 0
-                        ? `${calculatePercentage(bookProgressHook.progress[0].currentPage, book.totalPages || 1)}%`
-                        : "0%",
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-semibold font-mono text-[var(--foreground)] mix-blend-difference">
-                      Page {bookProgressHook.progress.length > 0 ? bookProgressHook.progress[0].currentPage : 0} of {book.totalPages}
-                    </span>
-                  </div>
-                </div>
+                <ProgressBar
+                  percentage={bookProgressHook.progress.length > 0 
+                    ? calculatePercentage(bookProgressHook.progress[0].currentPage, book.totalPages || 1) 
+                    : 0}
+                  variant="hero"
+                  textDisplay="page-count"
+                  currentPage={bookProgressHook.progress.length > 0 ? bookProgressHook.progress[0].currentPage : 0}
+                  totalPages={book.totalPages || 0}
+                />
               </div>
 
               {/* Log Progress Form */}
