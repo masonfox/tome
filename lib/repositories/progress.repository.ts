@@ -541,12 +541,17 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Get all progress logs ordered by date
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async getAllProgressOrdered(): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
-      .orderBy(asc(progressLogs.progressDate))
+      .orderBy(
+        asc(progressLogs.progressDate),
+        asc(progressLogs.createdAt),
+        asc(progressLogs.id)
+      )
       .all();
   }
 
