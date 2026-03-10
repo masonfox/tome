@@ -674,4 +674,115 @@ describe("ProgressService", () => {
       expect(result).toBe(false);
     });
   });
+
+  describe("updateProgress - stable sort with same-date entries (issue #399)", () => {
+    test("should calculate pagesRead correctly with multiple entries on same date", async () => {
+      // Setup: Create 3 entries, 2 on the same date (Mar 8) and 1 on the next day (Mar 9)
+      // This reproduces the bug from issue #399
+      const mar8 = "2026-03-08";
+      const mar9 = "2026-03-09";
+      
+      // Entry 1: Mar 8, page 43
+      const entry1 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 43,
+        progressDate: mar8,
+        pagesRead: 43,
+      }));
+      
+      // Wait 1ms to ensure different createdAt timestamps
+      await new Promise(resolve => setTimeout(resolve, 1));
+      
+      // Entry 2: Mar 8, page 57 (later in the day)
+      const entry2 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 57,
+        progressDate: mar8,
+        pagesRead: 14, // 57 - 43
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 1));
+      
+      // Entry 3: Mar 9, page 122 (next day)
+      const entry3 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 122,
+        progressDate: mar9,
+        pagesRead: 65, // 122 - 57 (should use page 57, not page 43)
+      }));
+      
+      // The bug: when we move entry3 to mar8, then back to mar9,
+      // it should still calculate 122 - 57 = 65 pages
+      // But without stable sort, it might use page 43 instead (122 - 43 = 79)
+      
+      // Action 1: Move entry3 from Mar 9 to Mar 8
+      const updated1 = await progressService.updateProgress(entry3.id, {
+        progressDate: mar8,
+      });
+      
+      // Should be 122 - 57 = 65 (using the most recent entry on mar8)
+      // OR 122 - 0 = 122 if it considers itself the first entry
+      // Either way, pagesRead should be calculated consistently
+      expect(updated1.currentPage).toBe(122);
+      expect(updated1.progressDate).toBe(mar8);
+      
+      // Action 2: Move entry3 back from Mar 8 to Mar 9
+      const updated2 = await progressService.updateProgress(entry3.id, {
+        progressDate: mar9,
+      });
+      
+      // Critical assertion: Should be 122 - 57 = 65 pages (idempotent operation)
+      // Without stable sort, it might incorrectly calculate 122 - 43 = 79
+      expect(updated2.currentPage).toBe(122);
+      expect(updated2.progressDate).toBe(mar9);
+      expect(updated2.pagesRead).toBe(65); // Must use page 57, not page 43!
+    });
+
+    test("should maintain stable order when creating new entries on same date", async () => {
+      // Test that logProgress also respects stable sort
+      const today = "2026-03-10";
+      
+      // Create two entries on the same date
+      await progressService.logProgress(book1.id, {
+        currentPage: 50,
+        progressDate: today,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1));
+      
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 100,
+        progressDate: today,
+      });
+      
+      // Should calculate from the most recent entry (page 50)
+      expect(result.progressLog.pagesRead).toBe(50); // 100 - 50
+    });
+
+    test("should use stable sort with 5+ entries on same date", async () => {
+      const testDate = "2026-03-11";
+      const pages = [10, 25, 40, 60, 85, 100];
+      
+      // Create multiple entries on the same date
+      for (const page of pages) {
+        await progressService.logProgress(book1.id, {
+          currentPage: page,
+          progressDate: testDate,
+        });
+        await new Promise(resolve => setTimeout(resolve, 1));
+      }
+      
+      // Now create an entry the next day
+      const result = await progressService.logProgress(book1.id, {
+        currentPage: 150,
+        progressDate: "2026-03-12",
+      });
+      
+      // Should calculate from the last entry on testDate (page 100)
+      expect(result.progressLog.pagesRead).toBe(50); // 150 - 100
+    });
+  });
 });

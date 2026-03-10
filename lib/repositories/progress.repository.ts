@@ -19,18 +19,24 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Find all progress logs for a book, sorted by date (descending)
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findByBookId(bookId: number): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.bookId, bookId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find progress logs for a specific session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findBySessionId(sessionId: number, tx?: any): Promise<ProgressLog[]> {
     const database = tx || this.getDatabase();
@@ -38,25 +44,35 @@ export class ProgressRepository extends BaseRepository<
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find latest progress for a book
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findLatestByBookId(bookId: number): Promise<ProgressLog | undefined> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.bookId, bookId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
 
   /**
    * Find latest progress for a session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findLatestBySessionId(sessionId: number, tx?: any): Promise<ProgressLog | undefined> {
     const database = tx || this.getDatabase();
@@ -64,13 +80,18 @@ export class ProgressRepository extends BaseRepository<
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
 
   /**
    * Find progress logs for a book and session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findByBookIdAndSessionId(bookId: number, sessionId: number): Promise<ProgressLog[]> {
     return this.getDatabase()
@@ -79,12 +100,17 @@ export class ProgressRepository extends BaseRepository<
       .where(
         and(eq(progressLogs.bookId, bookId), eq(progressLogs.sessionId, sessionId))
       )
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find latest progress for a book and session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findLatestByBookIdAndSessionId(
     bookId: number,
@@ -96,7 +122,11 @@ export class ProgressRepository extends BaseRepository<
       .where(
         and(eq(progressLogs.bookId, bookId), eq(progressLogs.sessionId, sessionId))
       )
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }

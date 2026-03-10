@@ -349,7 +349,21 @@ export class ProgressService {
     const allProgress = await progressRepository.findBySessionId(session.id);
     const sortedProgress = allProgress
       .filter(p => p.id !== progressId) // Exclude the entry being edited
-      .sort((a, b) => a.progressDate.localeCompare(b.progressDate)); // ADR-014: Lexicographic string comparison
+      .sort((a, b) => {
+        // Stable multi-column sort to handle multiple entries on same date (fix for #399)
+        // Primary: Sort by progressDate (YYYY-MM-DD string)
+        const dateCompare = a.progressDate.localeCompare(b.progressDate);
+        if (dateCompare !== 0) return dateCompare;
+        
+        // Secondary: Sort by createdAt timestamp (chronological order within same date)
+        if (a.createdAt && b.createdAt) {
+          const timeCompare = a.createdAt.getTime() - b.createdAt.getTime();
+          if (timeCompare !== 0) return timeCompare;
+        }
+        
+        // Tertiary: Sort by ID (database insertion order as final tiebreaker)
+        return a.id - b.id;
+      });
     
     // Find the entry immediately before this one by date (use findLast to get the closest previous entry)
     // ADR-014: Use lexicographic string comparison for dates

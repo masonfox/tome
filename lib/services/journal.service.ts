@@ -81,7 +81,11 @@ export class JournalService {
       })
       .from(progressLogs)
       .innerJoin(books, eq(progressLogs.bookId, books.id))
-      .orderBy(desc(progressLogs.progressDate), desc(progressLogs.createdAt))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(limit)
       .offset(skip)
       .all();
