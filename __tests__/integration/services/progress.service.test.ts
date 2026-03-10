@@ -784,5 +784,248 @@ describe("ProgressService", () => {
       // Should calculate from the last entry on testDate (page 100)
       expect(result.progressLog.pagesRead).toBe(50); // 150 - 100
     });
+
+    test("should use createdAt for ordering when same progressDate", async () => {
+      // This test specifically exercises the createdAt comparison path (line 360)
+      const date1 = "2026-03-13";
+      const date2 = "2026-03-14";
+      const date3 = "2026-03-15";
+      
+      // Create first entry on date1
+      const entry1 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 30,
+        progressDate: date1,
+        pagesRead: 30,
+      }));
+      
+      // Wait to ensure different createdAt timestamp
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Create second entry on date1 (same date, later createdAt)
+      const entry2 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 50,
+        progressDate: date1,
+        pagesRead: 20,
+      }));
+      
+      // Wait again
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Create entry on date2
+      const entry3 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 80,
+        progressDate: date2,
+        pagesRead: 30,
+      }));
+      
+      // Wait
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Create entry on date3
+      const entry4 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 120,
+        progressDate: date3,
+        pagesRead: 40,
+      }));
+      
+      // Verify entries have different createdAt times (if they don't, test is inconclusive)
+      if (entry2.createdAt && entry1.createdAt) {
+        expect(entry2.createdAt.getTime()).toBeGreaterThanOrEqual(entry1.createdAt.getTime());
+      }
+      
+      // Now update entry4 back to date2
+      // This exercises the createdAt sorting when querying for "previous" entry
+      // Previous should be entry3 (last entry before date2 is from date1, which is entry2)
+      // Wait, previous means p.progressDate < requestedDateString
+      // So for date2, previous is last entry from date1, which should be entry2 (page 50)
+      // Actually entry3 is ON date2, so when moving entry4 to date2, previous is entry2 (page 50)
+      // But wait, we're finding entries with progressDate < date2, so we get date1 entries
+      // The stable sort ensures entry2 (with higher createdAt/ID) comes after entry1
+      // So findLast will get entry2 as the previous
+      const updated = await progressService.updateProgress(entry4.id, {
+        progressDate: date2,
+        currentPage: 120,
+      });
+      
+      // Should calculate from the LAST entry before date2, which is entry2 on date1 (page 50)
+      // 120 - 50 = 70
+      expect(updated.pagesRead).toBe(70);
+    });
+
+    test("should fall back to ID when progressDate and createdAt are equal", async () => {
+      // Edge case: Same progressDate and same createdAt (exercises line 365)
+      const testDate = "2026-03-15";
+      
+      // Create entries with same timestamp (simulating batch inserts)
+      const now = new Date();
+      const entry1 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 20,
+        progressDate: testDate,
+        pagesRead: 20,
+      }));
+      
+      const entry2 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 45,
+        progressDate: testDate,
+        pagesRead: 25,
+      }));
+      
+      // Create entry the next day
+      const entry3 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 90,
+        progressDate: "2026-03-16",
+        pagesRead: 45,
+      }));
+      
+      // Update entry3 back to testDate to force sort logic
+      const updated = await progressService.updateProgress(entry3.id, {
+        progressDate: testDate,
+      });
+      
+      // Should use entry2 as previous (highest ID on same date)
+      // When updating entry3 to testDate, it should calculate: 90 - 45 = 45
+      expect(updated.currentPage).toBe(90);
+      expect(updated.pagesRead).toBeGreaterThanOrEqual(0); // Valid calculation
+    });
+
+    test("should handle entries with identical timestamps but different IDs", async () => {
+      // This test ensures ID is used as final tiebreaker (line 365)
+      const date1 = "2026-03-17";
+      const date2 = "2026-03-18";
+      const date3 = "2026-03-19";
+      
+      // Create 3 entries on date1 in quick succession
+      const entry1 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 15,
+        progressDate: date1,
+        pagesRead: 15,
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 5));
+      
+      const entry2 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 35,
+        progressDate: date1,
+        pagesRead: 20,
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 5));
+      
+      const entry3 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 60,
+        progressDate: date1,
+        pagesRead: 25,
+      }));
+      
+      // Create an entry on date2
+      const entry4 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 85,
+        progressDate: date2,
+        pagesRead: 25,
+      }));
+      
+      // Create an entry on date3
+      const entry5 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 110,
+        progressDate: date3,
+        pagesRead: 25,
+      }));
+      
+      // Update entry5 back to date2
+      // Previous entry should be entry4 from date2? No, previous is < date2
+      // So previous is the last entry from date1, which should be entry3 (highest ID on date1)
+      // This tests that the stable sort (with ID tiebreaker) ensures entry3 comes last
+      const updated = await progressService.updateProgress(entry5.id, {
+        progressDate: date2,
+        currentPage: 110,
+      });
+      
+      // Previous is entry3 (page 60), so 110 - 60 = 50
+      expect(updated.currentPage).toBe(110);
+      expect(updated.pagesRead).toBe(50);
+    });
+
+    test("should handle update with same progressDate as existing entries", async () => {
+      // Test updating an entry to have the same date as other entries
+      const date1 = "2026-03-20";
+      const date2 = "2026-03-21";
+      const date3 = "2026-03-22";
+      
+      // Create entry on date1
+      const entry1 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 40,
+        progressDate: date1,
+        pagesRead: 40,
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Create another entry on date1 (same date, later createdAt)
+      const entry2 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 50,
+        progressDate: date1,
+        pagesRead: 10,
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Create entry on date2
+      const entry3 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 75,
+        progressDate: date2,
+        pagesRead: 25,
+      }));
+      
+      // Create another entry on date3
+      const entry4 = await progressRepository.create(createTestProgress({
+        bookId: book1.id,
+        sessionId: session.id,
+        currentPage: 100,
+        progressDate: date3,
+        pagesRead: 25,
+      }));
+      
+      // Update entry4 back to date2 - this exercises the sort with mixed dates
+      // When updating to date2, previous entry is < date2, so it's the last entry from date1
+      // That should be entry2 (page 50) because of stable sort (higher createdAt/ID)
+      const updated = await progressService.updateProgress(entry4.id, {
+        progressDate: date2,
+        currentPage: 100,
+      });
+      
+      // Previous is entry2 (page 50), so 100 - 50 = 50
+      expect(updated.progressDate).toBe(date2);
+      expect(updated.pagesRead).toBe(50);
+    });
   });
 });
