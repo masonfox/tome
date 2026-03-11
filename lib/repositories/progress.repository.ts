@@ -19,18 +19,24 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Find all progress logs for a book, sorted by date (descending)
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findByBookId(bookId: number): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.bookId, bookId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find progress logs for a specific session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findBySessionId(sessionId: number, tx?: any): Promise<ProgressLog[]> {
     const database = tx || this.getDatabase();
@@ -38,25 +44,35 @@ export class ProgressRepository extends BaseRepository<
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find latest progress for a book
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findLatestByBookId(bookId: number): Promise<ProgressLog | undefined> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.bookId, bookId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
 
   /**
    * Find latest progress for a session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findLatestBySessionId(sessionId: number, tx?: any): Promise<ProgressLog | undefined> {
     const database = tx || this.getDatabase();
@@ -64,13 +80,18 @@ export class ProgressRepository extends BaseRepository<
       .select()
       .from(progressLogs)
       .where(eq(progressLogs.sessionId, sessionId))
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
 
   /**
    * Find progress logs for a book and session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findByBookIdAndSessionId(bookId: number, sessionId: number): Promise<ProgressLog[]> {
     return this.getDatabase()
@@ -79,12 +100,17 @@ export class ProgressRepository extends BaseRepository<
       .where(
         and(eq(progressLogs.bookId, bookId), eq(progressLogs.sessionId, sessionId))
       )
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find latest progress for a book and session
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async findLatestByBookIdAndSessionId(
     bookId: number,
@@ -96,13 +122,18 @@ export class ProgressRepository extends BaseRepository<
       .where(
         and(eq(progressLogs.bookId, bookId), eq(progressLogs.sessionId, sessionId))
       )
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
 
   /**
    * Find progress logs after a certain date
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    * 
    * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
    * @returns Progress logs on or after the specified date
@@ -117,13 +148,18 @@ export class ProgressRepository extends BaseRepository<
       .select()
       .from(progressLogs)
       .where(gte(progressLogs.progressDate, dateString))
-      .orderBy(asc(progressLogs.progressDate))
+      .orderBy(
+        asc(progressLogs.progressDate),
+        asc(progressLogs.createdAt),
+        asc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find progress entries BEFORE a specific date for a session
    * Used to validate that new entry has progress ≥ all previous entries
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    * @param date - Date string in YYYY-MM-DD format
    */
   async findBeforeDateForSession(
@@ -139,13 +175,18 @@ export class ProgressRepository extends BaseRepository<
           lt(progressLogs.progressDate, date)
         )
       )
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find progress entries AFTER a specific date for a session
    * Used to validate that new entry has progress ≤ all future entries
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    * @param date - Date string in YYYY-MM-DD format
    */
   async findAfterDateForSession(
@@ -161,12 +202,17 @@ export class ProgressRepository extends BaseRepository<
           gt(progressLogs.progressDate, date)
         )
       )
-      .orderBy(asc(progressLogs.progressDate))
+      .orderBy(
+        asc(progressLogs.progressDate),
+        asc(progressLogs.createdAt),
+        asc(progressLogs.id)
+      )
       .all();
   }
 
   /**
    * Find the closest progress entry before a date
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    * 
    * @param sessionId - Reading session ID
    * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
@@ -190,13 +236,18 @@ export class ProgressRepository extends BaseRepository<
           lt(progressLogs.progressDate, dateString)
         )
       )
-      .orderBy(desc(progressLogs.progressDate))
+      .orderBy(
+        desc(progressLogs.progressDate),
+        desc(progressLogs.createdAt),
+        desc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
 
   /**
    * Find the closest progress entry after a date
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    * 
    * @param sessionId - Reading session ID
    * @param dateString - Date in YYYY-MM-DD format (UTC calendar day)
@@ -220,7 +271,11 @@ export class ProgressRepository extends BaseRepository<
           gt(progressLogs.progressDate, dateString)
         )
       )
-      .orderBy(asc(progressLogs.progressDate))
+      .orderBy(
+        asc(progressLogs.progressDate),
+        asc(progressLogs.createdAt),
+        asc(progressLogs.id)
+      )
       .limit(1)
       .get();
   }
@@ -511,12 +566,17 @@ export class ProgressRepository extends BaseRepository<
 
   /**
    * Get all progress logs ordered by date
+   * Uses stable multi-column sort to handle multiple entries on same date (fix for #399)
    */
   async getAllProgressOrdered(): Promise<ProgressLog[]> {
     return this.getDatabase()
       .select()
       .from(progressLogs)
-      .orderBy(asc(progressLogs.progressDate))
+      .orderBy(
+        asc(progressLogs.progressDate),
+        asc(progressLogs.createdAt),
+        asc(progressLogs.id)
+      )
       .all();
   }
 

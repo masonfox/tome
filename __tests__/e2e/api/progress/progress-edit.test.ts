@@ -444,4 +444,84 @@ describe("Progress Edit API", () => {
       expect(data.error).toBe("Progress entry does not belong to this book");
     });
   });
+
+  describe("PATCH - stable sort with same-date entries (issue #399)", () => {
+    test("should calculate pagesRead correctly when moving entry with same-date siblings", async () => {
+      // Reproduce the exact scenario from issue #399
+      const book = await bookRepository.create(testBook);
+      const session = await sessionRepository.create({
+        bookId: book.id,
+        sessionNumber: 1,
+        status: "reading",
+        isActive: true,
+        startedDate: "2026-03-08",
+      });
+
+      // Create the exact entries from the bug report
+      // Entry 1: Mar 8, page 43
+      const entry1 = await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 43,
+        currentPercentage: 9,
+        pagesRead: 43,
+        progressDate: "2026-03-08",
+      });
+
+      // Entry 2: Mar 8, page 57 (stable sort uses ID as tiebreaker)
+      const entry2 = await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 57,
+        currentPercentage: 13,
+        pagesRead: 14,
+        progressDate: "2026-03-08",
+      });
+
+      // Entry 3: Mar 9, page 122 (should read 65 pages: 122 - 57)
+      const entry3 = await progressRepository.create({
+        bookId: book.id,
+        sessionId: session.id,
+        currentPage: 122,
+        currentPercentage: 28,
+        pagesRead: 65,
+        progressDate: "2026-03-09",
+      });
+
+      // Step 1: Move entry3 from Mar 9 to Mar 8
+      const request1 = createMockRequest(
+        "PATCH",
+        `/api/books/${book.id}/progress/${entry3.id}`,
+        { progressDate: "2026-03-08" }
+      ) as any;
+
+      const response1 = await PATCH(request1, {
+        params: { id: book.id.toString(), progressId: entry3.id.toString() },
+      });
+
+      expect(response1.status).toBe(200);
+      const data1 = await response1.json();
+      expect(data1.progressDate).toBe("2026-03-08");
+      // pagesRead should be calculated consistently
+      
+      // Step 2: Move entry3 back from Mar 8 to Mar 9
+      const request2 = createMockRequest(
+        "PATCH",
+        `/api/books/${book.id}/progress/${entry3.id}`,
+        { progressDate: "2026-03-09" }
+      ) as any;
+
+      const response2 = await PATCH(request2, {
+        params: { id: book.id.toString(), progressId: entry3.id.toString() },
+      });
+
+      expect(response2.status).toBe(200);
+      const data2 = await response2.json();
+      
+      // Critical assertion: Should be 65 pages (122 - 57), not 79 (122 - 43)
+      expect(data2.progressDate).toBe("2026-03-09");
+      expect(data2.currentPage).toBe(122);
+      expect(data2.pagesRead).toBe(65); // This was the bug - it returned 79
+    });
+  });
 });
