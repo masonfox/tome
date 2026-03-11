@@ -468,9 +468,7 @@ describe("Progress Edit API", () => {
         progressDate: "2026-03-08",
       });
 
-      await new Promise(resolve => setTimeout(resolve, 2));
-
-      // Entry 2: Mar 8, page 57 (later in the day)
+      // Entry 2: Mar 8, page 57 (stable sort uses ID as tiebreaker)
       const entry2 = await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
@@ -479,8 +477,6 @@ describe("Progress Edit API", () => {
         pagesRead: 14,
         progressDate: "2026-03-08",
       });
-
-      await new Promise(resolve => setTimeout(resolve, 2));
 
       // Entry 3: Mar 9, page 122 (should read 65 pages: 122 - 57)
       const entry3 = await progressRepository.create({

@@ -691,10 +691,8 @@ describe("ProgressService", () => {
         pagesRead: 43,
       }));
       
-      // Wait 1ms to ensure different createdAt timestamps
-      await new Promise(resolve => setTimeout(resolve, 1));
-      
       // Entry 2: Mar 8, page 57 (later in the day)
+      // Stable sort uses ID as tiebreaker for same-date entries
       const entry2 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
@@ -702,8 +700,6 @@ describe("ProgressService", () => {
         progressDate: mar8,
         pagesRead: 14, // 57 - 43
       }));
-      
-      await new Promise(resolve => setTimeout(resolve, 1));
       
       // Entry 3: Mar 9, page 122 (next day)
       const entry3 = await progressRepository.create(createTestProgress({
@@ -751,8 +747,6 @@ describe("ProgressService", () => {
         progressDate: today,
       });
       
-      await new Promise(resolve => setTimeout(resolve, 1));
-      
       const result = await progressService.logProgress(book1.id, {
         currentPage: 100,
         progressDate: today,
@@ -767,12 +761,12 @@ describe("ProgressService", () => {
       const pages = [10, 25, 40, 60, 85, 100];
       
       // Create multiple entries on the same date
+      // Stable sort uses ID as tiebreaker for same-date entries
       for (const page of pages) {
         await progressService.logProgress(book1.id, {
           currentPage: page,
           progressDate: testDate,
         });
-        await new Promise(resolve => setTimeout(resolve, 1));
       }
       
       // Now create an entry the next day
@@ -800,10 +794,7 @@ describe("ProgressService", () => {
         pagesRead: 30,
       }));
       
-      // Wait to ensure different createdAt timestamp
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      // Create second entry on date1 (same date, later createdAt)
+      // Create second entry on date1 (same date, higher ID due to insertion order)
       const entry2 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
@@ -811,9 +802,6 @@ describe("ProgressService", () => {
         progressDate: date1,
         pagesRead: 20,
       }));
-      
-      // Wait again
-      await new Promise(resolve => setTimeout(resolve, 10));
       
       // Create entry on date2
       const entry3 = await progressRepository.create(createTestProgress({
@@ -824,9 +812,6 @@ describe("ProgressService", () => {
         pagesRead: 30,
       }));
       
-      // Wait
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
       // Create entry on date3
       const entry4 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
@@ -835,11 +820,6 @@ describe("ProgressService", () => {
         progressDate: date3,
         pagesRead: 40,
       }));
-      
-      // Verify entries have different createdAt times (if they don't, test is inconclusive)
-      if (entry2.createdAt && entry1.createdAt) {
-        expect(entry2.createdAt.getTime()).toBeGreaterThanOrEqual(entry1.createdAt.getTime());
-      }
       
       // Now update entry4 back to date2
       // This exercises the createdAt sorting when querying for "previous" entry
@@ -908,7 +888,8 @@ describe("ProgressService", () => {
       const date2 = "2026-03-18";
       const date3 = "2026-03-19";
       
-      // Create 3 entries on date1 in quick succession
+      // Create 3 entries on date1 in succession
+      // Stable sort uses ID as tiebreaker when timestamps are identical
       const entry1 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
@@ -917,8 +898,6 @@ describe("ProgressService", () => {
         pagesRead: 15,
       }));
       
-      await new Promise(resolve => setTimeout(resolve, 5));
-      
       const entry2 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
@@ -926,8 +905,6 @@ describe("ProgressService", () => {
         progressDate: date1,
         pagesRead: 20,
       }));
-      
-      await new Promise(resolve => setTimeout(resolve, 5));
       
       const entry3 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
@@ -984,9 +961,7 @@ describe("ProgressService", () => {
         pagesRead: 40,
       }));
       
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      // Create another entry on date1 (same date, later createdAt)
+      // Create another entry on date1 (same date, higher ID)
       const entry2 = await progressRepository.create(createTestProgress({
         bookId: book1.id,
         sessionId: session.id,
@@ -994,8 +969,6 @@ describe("ProgressService", () => {
         progressDate: date1,
         pagesRead: 10,
       }));
-      
-      await new Promise(resolve => setTimeout(resolve, 10));
       
       // Create entry on date2
       const entry3 = await progressRepository.create(createTestProgress({
