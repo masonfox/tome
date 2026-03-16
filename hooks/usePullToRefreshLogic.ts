@@ -44,6 +44,8 @@ export function usePullToRefreshLogic() {
         "/streak": queryKeys.streak.base(),
         "/shelves": queryKeys.shelf.base(),
         "/tags": queryKeys.tags.base(),
+        "/journal": ["journal-entries", "journal-archive"], // Invalidate both entries and archive
+        "/settings": ["user-preferences"], // Settings page data
       };
 
       const queryKey = invalidationsByPath[pathname];

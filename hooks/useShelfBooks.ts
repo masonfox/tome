@@ -26,7 +26,7 @@ export function useShelfBooks(
       ? queryKeys.shelf.detail(shelfId, { orderBy, direction })
       : ['shelf-empty'],
     queryFn: async () => {
-      if (!shelfId) return null;
+      if (shelfId === null) return null;
 
       const shelf = await shelfApi.get(shelfId, {
         withBooks: true,
