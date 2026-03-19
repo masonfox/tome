@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
 import { getLogger } from "@/lib/logger";
 import { bookApi, ApiError } from "@/lib/api";
 import { libraryService } from "@/lib/library-service";
+
+const logger = getLogger().child({ hook: 'useBookStatus' });
 
 interface ProgressEntry {
   id: number;
@@ -38,14 +40,58 @@ function requiresArchiveConfirmation(
 /**
  * Invalidates all queries related to a book
  * Exported to allow reuse in components that make direct API calls
+ * 
+ * Also invalidates shelf caches for shelves containing this book to ensure
+ * shelf pages reflect updated book status immediately.
  */
-export function invalidateBookQueries(queryClient: any, bookId: string): void {
-  queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
-  queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
-  queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(parseInt(bookId)) });
+export function invalidateBookQueries(queryClient: QueryClient, bookId: string): void {
+  const numericBookId = parseInt(bookId);
+  
+  // Invalidate book-related queries
+  queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(numericBookId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(numericBookId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(numericBookId) });
   queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
   queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
   queryClient.invalidateQueries({ queryKey: queryKeys.readNext.base() });
+
+  // Invalidate shelves containing this book
+  // Try to get shelves from cache; if available, invalidate only those shelves (surgical)
+  // If not cached, invalidate all shelves (nuclear) to ensure correctness
+  const bookShelvesKey = queryKeys.book.shelves(numericBookId);
+  const cachedShelves = queryClient.getQueryData(bookShelvesKey);
+  
+  // Type guard to validate cached shelves structure
+  const isValidShelvesData = (data: unknown): data is { success: boolean; data: Array<{ id: number }> } => {
+    return (
+      data !== null &&
+      typeof data === 'object' &&
+      'data' in data &&
+      Array.isArray((data as any).data)
+    );
+  };
+  
+  if (isValidShelvesData(cachedShelves)) {
+    // Cache is valid - use surgical approach
+    if (cachedShelves.data.length > 0) {
+      // Book is on some shelves - invalidate only those
+      logger.debug(
+        { bookId: numericBookId, shelfIds: cachedShelves.data.map(s => s.id) },
+        'Surgical shelf invalidation'
+      );
+      cachedShelves.data.forEach((shelf: { id: number }) => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelf.id) });
+      });
+    }
+    // else: Book is on zero shelves (data.length === 0) - no-op, nothing to invalidate
+  } else {
+    // Cache unavailable or invalid - invalidate all shelves to be safe
+    logger.debug(
+      { bookId: numericBookId, cacheState: cachedShelves === null ? 'null' : 'invalid' },
+      'Nuclear shelf invalidation (cache unavailable)'
+    );
+    queryClient.invalidateQueries({ queryKey: queryKeys.shelf.base() });
+  }
 
   // Clear entire LibraryService cache to ensure status changes reflect across all filters
   libraryService.clearCache();
