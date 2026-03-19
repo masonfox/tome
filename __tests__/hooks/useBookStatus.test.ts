@@ -449,18 +449,21 @@ describe("useBookStatus", () => {
       // Verify nuclear invalidation
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
       
-      // Verify surgical invalidation was NOT called
-      expect(invalidateSpy).not.toHaveBeenCalledWith(
-        expect.objectContaining({ 
-          queryKey: expect.arrayContaining([expect.stringContaining('shelf'), 'byId'])
-        })
+      // Verify no surgical (specific shelf ID) invalidations occurred
+      const surgicalCalls = invalidateSpy.mock.calls.filter(
+        (call: any) => 
+          Array.isArray(call[0]?.queryKey) &&
+          call[0].queryKey[0] === 'shelf' &&
+          call[0].queryKey.length === 2 &&
+          typeof call[0].queryKey[1] === 'number'
       );
+      expect(surgicalCalls).toHaveLength(0);
     });
 
-    test("should invalidate all shelves when cache has no shelves", () => {
+    test("should NOT invalidate shelves when book is on no shelves", () => {
       const bookId = '123';
       
-      // Mock cached shelves with empty array
+      // Mock cached shelves with empty array (book on zero shelves)
       queryClient.setQueryData(queryKeys.book.shelves(123), {
         success: true,
         data: []
@@ -468,8 +471,17 @@ describe("useBookStatus", () => {
       
       invalidateBookQueries(queryClient, bookId);
       
-      // Verify nuclear invalidation (fallback for empty shelves)
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
+      // Should NOT trigger nuclear invalidation (performance optimization)
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
+      
+      // Should NOT invalidate any specific shelves (none exist)
+      const surgicalCalls = invalidateSpy.mock.calls.filter(
+        (call: any) => 
+          Array.isArray(call[0]?.queryKey) &&
+          call[0].queryKey[0] === 'shelf' &&
+          call[0].queryKey.length === 2
+      );
+      expect(surgicalCalls).toHaveLength(0);
     });
 
     test("should handle invalid cache data gracefully", () => {

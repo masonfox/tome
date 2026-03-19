@@ -7,6 +7,8 @@ import { getLogger } from "@/lib/logger";
 import { bookApi, ApiError } from "@/lib/api";
 import { libraryService } from "@/lib/library-service";
 
+const logger = getLogger().child({ hook: 'useBookStatus' });
+
 interface ProgressEntry {
   id: number;
   currentPage: number;
@@ -69,25 +71,25 @@ export function invalidateBookQueries(queryClient: any, bookId: string): void {
     );
   };
   
-  if (isValidShelvesData(cachedShelves) && cachedShelves.data.length > 0) {
-    // Surgical: Invalidate only affected shelves
-    if (typeof console !== 'undefined' && console.debug) {
-      console.debug(
-        `[useBookStatus] Surgical shelf invalidation for book ${numericBookId}:`,
-        cachedShelves.data.map(s => s.id).join(', ')
+  if (isValidShelvesData(cachedShelves)) {
+    // Cache is valid - use surgical approach
+    if (cachedShelves.data.length > 0) {
+      // Book is on some shelves - invalidate only those
+      logger.debug(
+        { bookId: numericBookId, shelfIds: cachedShelves.data.map(s => s.id) },
+        'Surgical shelf invalidation'
       );
+      cachedShelves.data.forEach((shelf: { id: number }) => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelf.id) });
+      });
     }
-    cachedShelves.data.forEach((shelf: { id: number }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelf.id) });
-    });
+    // else: Book is on zero shelves (data.length === 0) - no-op, nothing to invalidate
   } else {
-    // Nuclear: Invalidate all shelves to be safe
-    if (typeof console !== 'undefined' && console.debug) {
-      console.debug(
-        `[useBookStatus] Nuclear shelf invalidation for book ${numericBookId}`,
-        cachedShelves ? '(no shelves in cache)' : '(cache unavailable)'
-      );
-    }
+    // Cache unavailable or invalid - invalidate all shelves to be safe
+    logger.debug(
+      { bookId: numericBookId, cacheState: cachedShelves === null ? 'null' : 'invalid' },
+      'Nuclear shelf invalidation (cache unavailable)'
+    );
     queryClient.invalidateQueries({ queryKey: queryKeys.shelf.base() });
   }
 
