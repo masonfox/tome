@@ -44,14 +44,18 @@ export function usePullToRefreshLogic() {
         "/streak": queryKeys.streak.base(),
         "/shelves": queryKeys.shelf.base(),
         "/tags": queryKeys.tags.base(),
-        "/journal": ["journal-entries", "journal-archive"], // Invalidate both entries and archive
-        "/settings": ["user-preferences"], // Settings page data
       };
 
       const queryKey = invalidationsByPath[pathname];
       
       if (queryKey) {
         await queryClient.invalidateQueries({ queryKey });
+      } else if (pathname === "/journal") {
+        // Special case: Invalidate both journal entries and archive using prefix matching
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['journal-entries'] }),
+          queryClient.invalidateQueries({ queryKey: ['journal-archive'] }),
+        ]);
       } else {
         // Fallback: invalidate all queries if we don't have specific keys
         await queryClient.invalidateQueries();
