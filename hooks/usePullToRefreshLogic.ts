@@ -50,6 +50,12 @@ export function usePullToRefreshLogic() {
       
       if (queryKey) {
         await queryClient.invalidateQueries({ queryKey });
+      } else if (pathname === "/journal") {
+        // Special case: Invalidate both journal entries and archive using prefix matching
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.journal.entriesBase() }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.journal.archiveBase() }),
+        ]);
       } else {
         // Fallback: invalidate all queries if we don't have specific keys
         await queryClient.invalidateQueries();

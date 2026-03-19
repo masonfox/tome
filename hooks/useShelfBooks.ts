@@ -26,7 +26,7 @@ export function useShelfBooks(
       ? queryKeys.shelf.detail(shelfId, { orderBy, direction })
       : ['shelf-empty'],
     queryFn: async () => {
-      if (!shelfId) return null;
+      if (shelfId === null) return null;
 
       const shelf = await shelfApi.get(shelfId, {
         withBooks: true,
@@ -53,7 +53,7 @@ export function useShelfBooks(
    */
   const addBooksMutation = useMutation({
     mutationFn: async (bookIds: number[]) => {
-      if (!shelfId || bookIds.length === 0) {
+      if (shelfId === null || bookIds.length === 0) {
         throw new Error("No shelf ID or book IDs provided");
       }
       return shelfApi.addBooks(shelfId, { bookIds });
@@ -73,7 +73,7 @@ export function useShelfBooks(
    */
   const removeBookMutation = useMutation({
     mutationFn: async (bookId: number) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
       return shelfApi.removeBook(shelfId, bookId);
@@ -127,7 +127,7 @@ export function useShelfBooks(
    */
   const removeBooksMutation = useMutation({
     mutationFn: async (bookIds: number[]) => {
-      if (!shelfId || bookIds.length === 0) {
+      if (shelfId === null || bookIds.length === 0) {
         throw new Error("No shelf ID or book IDs provided");
       }
       return shelfApi.removeBooks(shelfId, { bookIds });
@@ -182,7 +182,7 @@ export function useShelfBooks(
    */
   const reorderBooksMutation = useMutation({
     mutationFn: async (bookIds: number[]) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
       return shelfApi.reorderBooks(shelfId, { bookIds });
@@ -245,7 +245,7 @@ export function useShelfBooks(
       bookIds: number[];
       targetShelfName?: string;
     }) => {
-      if (!shelfId || bookIds.length === 0) {
+      if (shelfId === null || bookIds.length === 0) {
         throw new Error("No shelf ID or book IDs provided");
       }
       return shelfApi.moveBooks(shelfId, targetShelfId, { bookIds });
@@ -329,7 +329,7 @@ export function useShelfBooks(
    */
   const moveToTopMutation = useMutation({
     mutationFn: async (bookId: number) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
 
@@ -399,7 +399,7 @@ export function useShelfBooks(
 
   const moveToBottomMutation = useMutation({
     mutationFn: async (bookId: number) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
 

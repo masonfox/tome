@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useEffect } from "react";
+import { useLayoutEffect, useEffect } from "react";
 
 /**
  * Custom hook to set the page title

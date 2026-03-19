@@ -20,8 +20,9 @@ export function useLibraryData(initialFilters?: Partial<LibraryFilters>) {
   const service = useMemo(() => libraryService, []);
 
   // Create a stable query key based on filter values (excluding pagination.skip)
+  // Use queryKeys.library.books() as base to ensure consistency with refresh/invalidation
   const queryKey = useMemo(() => [
-    'library-books',
+    ...queryKeys.library.books(),
     filters.status,
     filters.search,
     filters.tags,
