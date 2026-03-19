@@ -57,15 +57,37 @@ export function invalidateBookQueries(queryClient: any, bookId: string): void {
   // Try to get shelves from cache; if available, invalidate only those shelves (surgical)
   // If not cached, invalidate all shelves (nuclear) to ensure correctness
   const bookShelvesKey = queryKeys.book.shelves(numericBookId);
-  const cachedShelves = queryClient.getQueryData(bookShelvesKey) as { success: boolean; data: Array<{ id: number }> } | undefined;
+  const cachedShelves = queryClient.getQueryData(bookShelvesKey);
   
-  if (cachedShelves?.data && cachedShelves.data.length > 0) {
+  // Type guard to validate cached shelves structure
+  const isValidShelvesData = (data: unknown): data is { success: boolean; data: Array<{ id: number }> } => {
+    return (
+      data !== null &&
+      typeof data === 'object' &&
+      'data' in data &&
+      Array.isArray((data as any).data)
+    );
+  };
+  
+  if (isValidShelvesData(cachedShelves) && cachedShelves.data.length > 0) {
     // Surgical: Invalidate only affected shelves
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug(
+        `[useBookStatus] Surgical shelf invalidation for book ${numericBookId}:`,
+        cachedShelves.data.map(s => s.id).join(', ')
+      );
+    }
     cachedShelves.data.forEach((shelf: { id: number }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelf.id) });
     });
   } else {
     // Nuclear: Invalidate all shelves to be safe
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug(
+        `[useBookStatus] Nuclear shelf invalidation for book ${numericBookId}`,
+        cachedShelves ? '(no shelves in cache)' : '(cache unavailable)'
+      );
+    }
     queryClient.invalidateQueries({ queryKey: queryKeys.shelf.base() });
   }
 
