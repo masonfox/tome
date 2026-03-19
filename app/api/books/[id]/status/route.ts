@@ -66,8 +66,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     const result = await sessionService.updateStatus(bookId, statusData);
 
-    // Note: Cache invalidation handled by SessionService.invalidateCache()
-
     // Return full result if session was archived, otherwise just the session
     if (result.sessionArchived) {
       return NextResponse.json({

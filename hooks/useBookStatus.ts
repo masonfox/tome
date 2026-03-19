@@ -38,14 +38,36 @@ function requiresArchiveConfirmation(
 /**
  * Invalidates all queries related to a book
  * Exported to allow reuse in components that make direct API calls
+ * 
+ * Also invalidates shelf caches for shelves containing this book to ensure
+ * shelf pages reflect updated book status immediately.
  */
 export function invalidateBookQueries(queryClient: any, bookId: string): void {
-  queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
-  queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
-  queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(parseInt(bookId)) });
+  const numericBookId = parseInt(bookId);
+  
+  // Invalidate book-related queries
+  queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(numericBookId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(numericBookId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.progress.byBook(numericBookId) });
   queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
   queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
   queryClient.invalidateQueries({ queryKey: queryKeys.readNext.base() });
+
+  // Invalidate shelves containing this book
+  // Try to get shelves from cache; if available, invalidate only those shelves (surgical)
+  // If not cached, invalidate all shelves (nuclear) to ensure correctness
+  const bookShelvesKey = queryKeys.book.shelves(numericBookId);
+  const cachedShelves = queryClient.getQueryData(bookShelvesKey) as { success: boolean; data: Array<{ id: number }> } | undefined;
+  
+  if (cachedShelves?.data && cachedShelves.data.length > 0) {
+    // Surgical: Invalidate only affected shelves
+    cachedShelves.data.forEach((shelf: { id: number }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelf.id) });
+    });
+  } else {
+    // Nuclear: Invalidate all shelves to be safe
+    queryClient.invalidateQueries({ queryKey: queryKeys.shelf.base() });
+  }
 
   // Clear entire LibraryService cache to ensure status changes reflect across all filters
   libraryService.clearCache();
