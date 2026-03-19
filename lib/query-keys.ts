@@ -197,6 +197,12 @@ export const queryKeys = {
   // JOURNAL
   // ============================================================================
   journal: {
+    /** Base key for journal entries (prefix matching): ['journal-entries'] */
+    entriesBase: () => ['journal-entries'] as const,
+    
+    /** Base key for journal archive (prefix matching): ['journal-archive'] */
+    archiveBase: () => ['journal-archive'] as const,
+    
     /** Journal entries for timezone: ['journal-entries', timezone] */
     entries: (timezone: string) => ['journal-entries', timezone] as const,
     
