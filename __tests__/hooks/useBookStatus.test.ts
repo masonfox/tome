@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, waitFor, act } from "../test-utils";
+import { renderHook, waitFor, act, createTestQueryClient } from "../test-utils";
 import { useBookStatus, invalidateBookQueries } from "@/hooks/useBookStatus";
 import type { Book } from "@/hooks/useBookDetail";
 import { QueryClient } from '@tanstack/react-query';
@@ -395,11 +395,7 @@ describe("useBookStatus", () => {
     let invalidateSpy: any;
 
     beforeEach(() => {
-      queryClient = new QueryClient({
-        defaultOptions: {
-          queries: { retry: false },
-        },
-      });
+      queryClient = createTestQueryClient();
       invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     });
 

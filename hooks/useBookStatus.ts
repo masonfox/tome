@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import type { Book } from "./useBookDetail";
 import { toast } from "@/utils/toast";
@@ -44,7 +44,7 @@ function requiresArchiveConfirmation(
  * Also invalidates shelf caches for shelves containing this book to ensure
  * shelf pages reflect updated book status immediately.
  */
-export function invalidateBookQueries(queryClient: any, bookId: string): void {
+export function invalidateBookQueries(queryClient: QueryClient, bookId: string): void {
   const numericBookId = parseInt(bookId);
   
   // Invalidate book-related queries
