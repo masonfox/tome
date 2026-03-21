@@ -231,6 +231,7 @@ export async function syncCalibreLibrary(
           pubDate: calibreBook.pubdate ? new Date(calibreBook.pubdate) : undefined,
           series: calibreBook.series || null,
           seriesIndex: calibreBook.series_index || null,
+          totalPages: calibreBook.total_pages || null,
           tags,
           path: calibreBook.path,
           description: calibreBook.description || undefined,
