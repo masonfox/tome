@@ -54,6 +54,9 @@ export function invalidateBookQueries(queryClient: QueryClient, bookId: string):
   queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
   queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
   queryClient.invalidateQueries({ queryKey: queryKeys.readNext.base() });
+  
+  // Invalidate series pages (if book belongs to a series)
+  queryClient.invalidateQueries({ queryKey: queryKeys.series.all() });
 
   // Invalidate shelves containing this book
   // Try to get shelves from cache; if available, invalidate only those shelves (surgical)
