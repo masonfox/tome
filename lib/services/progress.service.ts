@@ -521,6 +521,7 @@ export class ProgressService {
       revalidatePath("/stats"); // Stats page
       revalidatePath("/journal"); // Journal page
       revalidatePath(`/books/${bookId}`); // Book detail page
+      revalidatePath("/series"); // Series pages (list and detail)
     } catch (error) {
       getLogger().error({ err: error }, "[ProgressService] Failed to invalidate cache");
       // Don't fail the request if cache invalidation fails
