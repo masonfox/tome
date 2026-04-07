@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,6 +13,7 @@ import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 interface SeriesBook {
   id: number;
@@ -43,7 +45,7 @@ export default function SeriesDetailPage() {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['series', seriesName],
+    queryKey: queryKeys.series.detail(seriesName),
     queryFn: async () => {
       const response = await fetch(`/api/series/${encodeURIComponent(seriesName)}`);
       
@@ -59,6 +61,10 @@ export default function SeriesDetailPage() {
     staleTime: 30000, // 30 seconds
     enabled: !!seriesName,
   });
+
+  // Set dynamic page title (show just "Tome" during loading for clean UX)
+  const pageTitle = data?.series?.name ? `Series / ${data.series.name}` : undefined;
+  usePageTitle(pageTitle);
 
   const handleImageError = (calibreId: number) => {
     setImageErrors(prev => ({ ...prev, [calibreId]: true }));

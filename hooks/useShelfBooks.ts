@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { toast } from "@/utils/toast";
 import { shelfApi, ApiError } from "@/lib/api";
 import type { ShelfWithBooks } from "@/lib/api";
@@ -21,9 +22,11 @@ export function useShelfBooks(
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["shelf", shelfId, { orderBy, direction }],
+    queryKey: shelfId !== null 
+      ? queryKeys.shelf.detail(shelfId, { orderBy, direction })
+      : ['shelf-empty'],
     queryFn: async () => {
-      if (!shelfId) return null;
+      if (shelfId === null) return null;
 
       const shelf = await shelfApi.get(shelfId, {
         withBooks: true,
@@ -50,13 +53,13 @@ export function useShelfBooks(
    */
   const addBooksMutation = useMutation({
     mutationFn: async (bookIds: number[]) => {
-      if (!shelfId || bookIds.length === 0) {
+      if (shelfId === null || bookIds.length === 0) {
         throw new Error("No shelf ID or book IDs provided");
       }
       return shelfApi.addBooks(shelfId, { bookIds });
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
       const bookWord = result.count === 1 ? 'book' : 'books';
       toast.success(`${result.count} ${bookWord} added to shelf`);
     },
@@ -70,21 +73,19 @@ export function useShelfBooks(
    */
   const removeBookMutation = useMutation({
     mutationFn: async (bookId: number) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
       return shelfApi.removeBook(shelfId, bookId);
     },
     onMutate: async (bookId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: filter out removed book and reindex sortOrder
       if (previousShelf) {
@@ -93,7 +94,7 @@ export function useShelfBooks(
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
 
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: remainingBooks,
@@ -110,14 +111,14 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
       toast.error(`Failed to remove book from shelf: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
     },
   });
 
@@ -126,21 +127,19 @@ export function useShelfBooks(
    */
   const removeBooksMutation = useMutation({
     mutationFn: async (bookIds: number[]) => {
-      if (!shelfId || bookIds.length === 0) {
+      if (shelfId === null || bookIds.length === 0) {
         throw new Error("No shelf ID or book IDs provided");
       }
       return shelfApi.removeBooks(shelfId, { bookIds });
     },
     onMutate: async (bookIds) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: remove books from local state and reindex
       if (previousShelf) {
@@ -149,7 +148,7 @@ export function useShelfBooks(
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
 
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: remainingBooks,
@@ -167,14 +166,14 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
       toast.error(`Failed to remove books: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
     },
   });
 
@@ -183,21 +182,19 @@ export function useShelfBooks(
    */
   const reorderBooksMutation = useMutation({
     mutationFn: async (bookIds: number[]) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
       return shelfApi.reorderBooks(shelfId, { bookIds });
     },
     onMutate: async (bookIds) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: reorder books and update sortOrder
       if (previousShelf) {
@@ -210,7 +207,7 @@ export function useShelfBooks(
           .filter((book): book is BookWithStatus => book !== undefined);
 
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: reorderedBooks,
@@ -224,14 +221,14 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
       toast.error(`Failed to reorder books: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
     },
     // No success toast - visual feedback of reordering is confirmation enough
   });
@@ -248,21 +245,19 @@ export function useShelfBooks(
       bookIds: number[];
       targetShelfName?: string;
     }) => {
-      if (!shelfId || bookIds.length === 0) {
+      if (shelfId === null || bookIds.length === 0) {
         throw new Error("No shelf ID or book IDs provided");
       }
       return shelfApi.moveBooks(shelfId, targetShelfId, { bookIds });
     },
     onMutate: async ({ bookIds }) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: remove books from local state
       if (previousShelf) {
@@ -271,7 +266,7 @@ export function useShelfBooks(
           .map((book, index) => ({ ...book, sortOrder: index } as BookWithStatus));
 
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           {
             ...previousShelf,
             books: remainingBooks,
@@ -290,14 +285,14 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
       toast.error(`Failed to move books: ${getErrorMessage(err)}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
     },
   });
 
@@ -334,7 +329,7 @@ export function useShelfBooks(
    */
   const moveToTopMutation = useMutation({
     mutationFn: async (bookId: number) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
 
@@ -351,14 +346,12 @@ export function useShelfBooks(
     },
     onMutate: async (bookId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: move book to top
       if (previousShelf) {
@@ -375,7 +368,7 @@ export function useShelfBooks(
           ] as BookWithStatus[];
 
           queryClient.setQueryData(
-            ["shelf", shelfId, { orderBy, direction }],
+            queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
             {
               ...previousShelf,
               books: optimisticBooks,
@@ -390,7 +383,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -400,13 +393,13 @@ export function useShelfBooks(
       toast.success("Moved to top of shelf");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
     },
   });
 
   const moveToBottomMutation = useMutation({
     mutationFn: async (bookId: number) => {
-      if (!shelfId) {
+      if (shelfId === null) {
         throw new Error("No shelf ID provided");
       }
 
@@ -423,14 +416,12 @@ export function useShelfBooks(
     },
     onMutate: async (bookId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) await queryClient.cancelQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
 
       // Snapshot previous value
-      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>([
-        "shelf",
-        shelfId,
-        { orderBy, direction },
-      ]);
+      const previousShelf = queryClient.getQueryData<ShelfWithBooksExtended>(
+        queryKeys.shelf.detail(shelfId!, { orderBy, direction })
+      );
 
       // Optimistically update: move book to bottom
       if (previousShelf) {
@@ -469,7 +460,7 @@ export function useShelfBooks(
           }
 
           queryClient.setQueryData(
-            ["shelf", shelfId, { orderBy, direction }],
+            queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
             {
               ...previousShelf,
               books: optimisticBooks,
@@ -484,7 +475,7 @@ export function useShelfBooks(
       // Rollback on error
       if (context?.previousShelf) {
         queryClient.setQueryData(
-          ["shelf", shelfId, { orderBy, direction }],
+          queryKeys.shelf.detail(shelfId!, { orderBy, direction }),
           context.previousShelf
         );
       }
@@ -494,7 +485,7 @@ export function useShelfBooks(
       toast.success("Moved to bottom of shelf");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelf", shelfId] });
+      if (shelfId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
     },
   });
 

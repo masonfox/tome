@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { Calendar, BookOpen, ChevronRight } from "lucide-react";
 import SessionEditModal from "@/components/Modals/SessionEditModal";
 import SessionProgressModal from "@/components/Modals/SessionProgressModal";
@@ -50,7 +51,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
 
   // Fetch sessions using TanStack Query - automatic caching and background refetching
   const { data: allSessions = [], isLoading: loading } = useQuery<ReadingSession[]>({
-    queryKey: ['sessions', bookId],
+    queryKey: queryKeys.sessions.byBook(parseInt(bookId)),
     queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}/sessions`, {
         cache: 'no-store',
@@ -112,8 +113,8 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
       }
 
       // Invalidate queries to refetch fresh data
-      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
-      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
       
       handleCloseEditModal();
       toast.success("Session updated successfully");
@@ -136,8 +137,8 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
       }
 
       // Invalidate queries to refetch fresh data
-      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
-      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
 
       handleCloseDeleteModal();
       toast.success("Session deleted");

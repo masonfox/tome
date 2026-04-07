@@ -2,11 +2,13 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { Library, BookMarked, Search, X } from "lucide-react";
 import SeriesCard from "@/components/Books/SeriesCard";
 import SeriesCardSkeleton from "@/components/Books/SeriesCardSkeleton";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { ScrollToTopButton } from "@/components/Layout/ScrollToTopButton";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 interface SeriesInfo {
   name: string;
@@ -15,10 +17,11 @@ interface SeriesInfo {
 }
 
 export default function SeriesPage() {
+  usePageTitle("Series");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: series = [], isLoading, error } = useQuery({
-    queryKey: ['series'],
+    queryKey: queryKeys.series.all(),
     queryFn: async () => {
       const response = await fetch("/api/series");
       

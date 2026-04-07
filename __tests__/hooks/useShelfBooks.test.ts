@@ -719,4 +719,370 @@ describe('useShelfBooks', () => {
       // Should not crash when previousShelf is undefined
     });
   });
+
+  describe('moveToTop mutation', () => {
+    test('should call the correct API endpoint', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await result.current.moveToTop(10);
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/shelves/1/books/10/move-to-top', {
+        method: 'POST',
+      });
+    });
+
+    test('should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.moveToTop(10)).rejects.toThrow('No shelf ID provided');
+    });
+
+    test('should handle API error response', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: 'Book not found' } }),
+      });
+
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await expect(result.current.moveToTop(10)).rejects.toThrow('Book not found');
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to move to top'));
+    });
+
+    test('should handle API error response without message', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await expect(result.current.moveToTop(10)).rejects.toThrow('Failed to move to top');
+    });
+
+    test('should optimistically move book to top', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockImplementation(() => 
+        new Promise(resolve => setTimeout(() => resolve({ ok: true, json: async () => ({}) }), 100))
+      );
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.books.length).toBe(2));
+
+      // Book 20 should be at index 1
+      expect(result.current.books[1].id).toBe(20);
+
+      // Start mutation (don't await)
+      result.current.moveToTop(20);
+
+      // Should optimistically move book 20 to top
+      await waitFor(() => {
+        expect(result.current.books[0].id).toBe(20);
+        expect(result.current.books[0].sortOrder).toBe(0);
+        expect(result.current.books[1].id).toBe(10);
+        expect(result.current.books[1].sortOrder).toBe(1);
+      });
+    });
+
+    test('should show success toast', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await result.current.moveToTop(10);
+
+      expect(toast.success).toHaveBeenCalledWith('Moved to top of shelf');
+    });
+
+    test('should rollback on error', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: 'Failed' } }),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.books.length).toBe(2));
+
+      const originalOrder = result.current.books.map(b => b.id);
+
+      await expect(result.current.moveToTop(20)).rejects.toThrow();
+
+      // Should rollback to original order
+      await waitFor(() => {
+        expect(result.current.books.map(b => b.id)).toEqual(originalOrder);
+      });
+    });
+
+    test('should handle book not found in shelf', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      // Try to move a book that doesn't exist
+      await result.current.moveToTop(999);
+
+      // Should not crash - optimistic update just won't find the book
+      expect(result.current.books.length).toBe(2);
+    });
+
+    test('should track isMovingToTop state', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve({ ok: true, json: async () => ({}) }), 100))
+      );
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      expect(result.current.isMovingToTop).toBe(false);
+
+      // Start mutation
+      result.current.moveToTop(10);
+
+      await waitFor(() => {
+        expect(result.current.isMovingToTop).toBe(true);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isMovingToTop).toBe(false);
+      });
+    });
+  });
+
+  describe('moveToBottom mutation', () => {
+    test('should call the correct API endpoint', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await result.current.moveToBottom(10);
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/shelves/1/books/10/move-to-bottom', {
+        method: 'POST',
+      });
+    });
+
+    test('should throw when shelfId is null', async () => {
+      const { result } = renderHook(() => useShelfBooks(null), { wrapper: createWrapper() });
+      
+      await expect(result.current.moveToBottom(10)).rejects.toThrow('No shelf ID provided');
+    });
+
+    test('should handle API error response', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: 'Book not found' } }),
+      });
+
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await expect(result.current.moveToBottom(10)).rejects.toThrow('Book not found');
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to move to bottom'));
+    });
+
+    test('should handle API error response without message', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await expect(result.current.moveToBottom(10)).rejects.toThrow('Failed to move to bottom');
+    });
+
+    test('should optimistically move book to bottom', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve({ ok: true, json: async () => ({}) }), 100))
+      );
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.books.length).toBe(2));
+
+      // Book 10 should be at index 0
+      expect(result.current.books[0].id).toBe(10);
+
+      // Start mutation (don't await)
+      result.current.moveToBottom(10);
+
+      // Should optimistically move book 10 to bottom
+      await waitFor(() => {
+        expect(result.current.books[1].id).toBe(10);
+        expect(result.current.books[1].sortOrder).toBe(1);
+        expect(result.current.books[0].id).toBe(20);
+      });
+    });
+
+    test('should handle sortOrder sorting with asc direction', async () => {
+      const shelfWithSortOrder = {
+        ...mockShelf,
+        books: [
+          { ...mockShelf.books[0], sortOrder: 0 },
+          { ...mockShelf.books[1], sortOrder: 1 },
+        ],
+      };
+
+      (shelfApi.get as any).mockResolvedValue(shelfWithSortOrder);
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve({ ok: true, json: async () => ({}) }), 100))
+      );
+
+      const { result } = renderHook(() => useShelfBooks(1, 'sortOrder', 'asc'), { 
+        wrapper: createWrapper() 
+      });
+      
+      await waitFor(() => expect(result.current.books.length).toBe(2));
+
+      // Start mutation
+      result.current.moveToBottom(10);
+
+      await waitFor(() => {
+        // Should sort by sortOrder ascending
+        const sortOrders = result.current.books.map(b => b.sortOrder);
+        expect(sortOrders[0]).toBeLessThanOrEqual(sortOrders[1]!);
+      });
+    });
+
+    test('should handle sortOrder sorting with desc direction', async () => {
+      const shelfWithSortOrder = {
+        ...mockShelf,
+        books: [
+          { ...mockShelf.books[0], sortOrder: 1 },
+          { ...mockShelf.books[1], sortOrder: 0 },
+        ],
+      };
+
+      (shelfApi.get as any).mockResolvedValue(shelfWithSortOrder);
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve({ ok: true, json: async () => ({}) }), 100))
+      );
+
+      const { result } = renderHook(() => useShelfBooks(1, 'sortOrder', 'desc'), { 
+        wrapper: createWrapper() 
+      });
+      
+      await waitFor(() => expect(result.current.books.length).toBe(2));
+
+      // Start mutation
+      result.current.moveToBottom(20);
+
+      await waitFor(() => {
+        // Should sort by sortOrder descending
+        const sortOrders = result.current.books.map(b => b.sortOrder);
+        expect(sortOrders[0]).toBeGreaterThanOrEqual(sortOrders[1]!);
+      });
+    });
+
+    test('should show success toast', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { toast } = await import('@/utils/toast');
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      await result.current.moveToBottom(10);
+
+      expect(toast.success).toHaveBeenCalledWith('Moved to bottom of shelf');
+    });
+
+    test('should rollback on error', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: 'Failed' } }),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.books.length).toBe(2));
+
+      const originalOrder = result.current.books.map(b => b.id);
+
+      await expect(result.current.moveToBottom(10)).rejects.toThrow();
+
+      // Should rollback to original order
+      await waitFor(() => {
+        expect(result.current.books.map(b => b.id)).toEqual(originalOrder);
+      });
+    });
+
+    test('should handle book not found in shelf', async () => {
+      (shelfApi.get as any).mockResolvedValue(mockShelf);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(mockShelf));
+
+      // Try to move a book that doesn't exist
+      await result.current.moveToBottom(999);
+
+      // Should not crash - optimistic update just won't find the book
+      expect(result.current.books.length).toBe(2);
+    });
+
+    test('should handle books with undefined sortOrder', async () => {
+      const shelfWithUndefinedSort = {
+        ...mockShelf,
+        books: [
+          { ...mockShelf.books[0], sortOrder: undefined },
+          { ...mockShelf.books[1], sortOrder: undefined },
+        ],
+      };
+
+      (shelfApi.get as any).mockResolvedValue(shelfWithUndefinedSort);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const { result } = renderHook(() => useShelfBooks(1), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.shelf).toEqual(shelfWithUndefinedSort));
+
+      // Should not crash when sortOrder is undefined
+      await result.current.moveToBottom(10);
+
+      expect(result.current.books.length).toBe(2);
+    });
+  });
 });

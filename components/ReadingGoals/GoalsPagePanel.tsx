@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { ReadingGoalWidget } from "./ReadingGoalWidget";
 import { ReadingGoalWidgetSkeleton } from "./ReadingGoalWidgetSkeleton";
 import { ReadingGoalForm } from "./ReadingGoalForm";
@@ -20,17 +21,12 @@ import { useReadingGoals } from "@/hooks/useReadingGoals";
 import type { ReadingGoalWithProgress, MonthlyBreakdown } from "@/lib/services/reading-goals.service";
 import type { ReadingGoal } from "@/lib/db/schema";
 
-interface GoalsPagePanelProps {
-  initialGoalData: ReadingGoalWithProgress | null;
-  allGoals: ReadingGoal[];
-}
-
-export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProps) {
+export function GoalsPagePanel() {
   const queryClient = useQueryClient();
-  const { createGoalAsync, updateGoalAsync } = useReadingGoals();
+  const { goals: allGoals, createGoalAsync, updateGoalAsync } = useReadingGoals();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [selectedYear, setSelectedYear] = useState(initialGoalData?.goal.year || new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [booksGoal, setBooksGoal] = useState<number | "">(""); 
   const [saving, setSaving] = useState(false);
@@ -43,7 +39,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
 
   // Goal data query
   const { data: currentGoalData, isPending: goalLoading, error: goalError } = useQuery({
-    queryKey: ['reading-goal', selectedYear],
+    queryKey: queryKeys.goals.byYear(selectedYear),
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals?year=${selectedYear}`);
       // 404 is expected when no goal exists for the year - return null instead of throwing
@@ -56,13 +52,12 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       const data = await response.json();
       return data.success ? data.data as ReadingGoalWithProgress : null;
     },
-    initialData: selectedYear === initialGoalData?.goal.year ? initialGoalData : undefined,
     staleTime: 30000, // 30 seconds
   });
 
   // Monthly breakdown query
   const { data: monthlyData = [], isPending: monthlyLoading } = useQuery({
-    queryKey: ['monthly-breakdown', selectedYear],
+    queryKey: queryKeys.goals.monthlyBreakdown(selectedYear),
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/monthly?year=${selectedYear}`);
       if (!response.ok) {
@@ -71,6 +66,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       const data = await response.json();
       return data.success ? data.data.monthlyData as MonthlyBreakdown[] : [];
     },
+    placeholderData: (previousData) => previousData, // Keep previous data visible while fetching
     staleTime: 30000, // 30 seconds
   });
 
@@ -79,7 +75,7 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
     data: booksData, 
     isPending: booksLoading 
   } = useQuery({
-    queryKey: ['completed-books', selectedYear],
+    queryKey: queryKeys.goals.completedBooks(selectedYear),
     queryFn: async () => {
       const response = await fetch(`/api/reading-goals/books?year=${selectedYear}`);
       if (!response.ok) {
@@ -120,9 +116,9 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
       return data.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['reading-goal', variables.year] });
-      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', variables.year] });
-      queryClient.invalidateQueries({ queryKey: ['completed-books', variables.year] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.byYear(variables.year) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.monthlyBreakdown(variables.year) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.completedBooks(variables.year) });
       setSelectedYear(variables.year);
     },
   });
@@ -180,9 +176,9 @@ export function GoalsPagePanel({ initialGoalData, allGoals }: GoalsPagePanelProp
         await updateGoalAsync({ id: currentGoalData.goal.id, data: { booksGoal } });
       }
       // Invalidate all queries for the current year
-      queryClient.invalidateQueries({ queryKey: ['reading-goal', selectedYear] });
-      queryClient.invalidateQueries({ queryKey: ['monthly-breakdown', selectedYear] });
-      queryClient.invalidateQueries({ queryKey: ['completed-books', selectedYear] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.byYear(selectedYear) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.monthlyBreakdown(selectedYear) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.completedBooks(selectedYear) });
       setIsModalOpen(false);
       setBooksGoal("");
     } catch (error) {

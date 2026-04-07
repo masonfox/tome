@@ -532,8 +532,9 @@ export class SessionRepository extends BaseRepository<
     * Get the next available read_next_order value
     * Returns max(read_next_order) + 1, or 0 if no read-next books exist
     */
-   async getNextReadNextOrder(): Promise<number> {
-     const result = this.getDatabase()
+   async getNextReadNextOrder(tx?: any): Promise<number> {
+     const database = tx || this.getDatabase();
+     const result = database
        .select({ maxOrder: sql<number>`COALESCE(MAX(${readingSessions.readNextOrder}), -1)` })
        .from(readingSessions)
        .where(eq(readingSessions.status, 'read-next'))

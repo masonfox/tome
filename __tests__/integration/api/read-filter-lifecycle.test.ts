@@ -107,7 +107,7 @@ describe("Integration: Read Filter Lifecycle", () => {
     const sessions = await sessionRepository.findAllByBookId(book.id);
     const archivedSession = sessions.find(s => s.status === "read");
     expect(archivedSession).not.toBeNull();
-    expect(archivedSession?.isActive).toBe(true); // Terminal states stay active
+    expect(archivedSession?.isActive).toBe(false); // Terminal "read" status archives session (ADR-004/008)
     expect(archivedSession?.completedDate).not.toBeNull();
     
     // Verify rating is on the book (not the session)
@@ -229,18 +229,14 @@ describe("Integration: Read Filter Lifecycle", () => {
 
     // ========================================================================
     // ========================================================================
-    // STEP 5: Verify sessions - 1 archived, 1 active (both "read" status)
+    // STEP 5: Verify sessions - BOTH archived (terminal "read" state per ADR-004/008)
     // ========================================================================
     const allSessions = await sessionRepository.findAllByBookId(book.id);
     const readSessions = allSessions.filter(s => s.status === "read");
     expect(readSessions).toHaveLength(2); // Both completed reads
     
     const archivedReadSessions = readSessions.filter(s => s.isActive === false);
-    expect(archivedReadSessions).toHaveLength(1); // First read (archived when re-read started)
-    
-    const currentActiveReadSession = readSessions.find(s => s.isActive === true);
-    expect(currentActiveReadSession).not.toBeNull(); // Second read (currently active)
-    expect(archivedReadSessions).toHaveLength(1); // First read (archived when re-read started)
+    expect(archivedReadSessions).toHaveLength(2); // Both reads archived (terminal state per ADR-004/008)
     
 
     // ========================================================================

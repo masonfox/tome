@@ -3,8 +3,10 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 export default function LoginPage() {
+  usePageTitle("Login");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

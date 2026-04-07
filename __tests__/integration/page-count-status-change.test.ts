@@ -145,7 +145,7 @@ describe("Integration: Page Count Update + Status Change", () => {
       const completedSession = await sessionRepository.findById(session.id);
       expect(completedSession?.status).toBe("read");
       expect(completedSession?.completedDate).toBeTruthy();
-      expect(completedSession?.isActive).toBe(true); // Terminal states stay active
+      expect(completedSession?.isActive).toBe(false); // Terminal "read" status archives session (ADR-004/008)
 
       // Assert: Rating synced to Tome DB
       const updatedBook = await bookRepository.findById(book.id);

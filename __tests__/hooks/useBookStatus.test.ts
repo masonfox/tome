@@ -1,7 +1,9 @@
 import { test, expect, describe, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, waitFor, act } from "../test-utils";
-import { useBookStatus } from "@/hooks/useBookStatus";
+import { renderHook, waitFor, act, createTestQueryClient } from "../test-utils";
+import { useBookStatus, invalidateBookQueries } from "@/hooks/useBookStatus";
 import type { Book } from "@/hooks/useBookDetail";
+import { QueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
 
 const originalFetch = global.fetch;
 
@@ -385,6 +387,123 @@ describe("useBookStatus", () => {
       rerender({ book: updatedBook });
 
       expect(result.current.selectedStatus).toBe("reading");
+    });
+  });
+
+  describe("invalidateBookQueries", () => {
+    let queryClient: QueryClient;
+    let invalidateSpy: any;
+
+    beforeEach(() => {
+      queryClient = createTestQueryClient();
+      invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    });
+
+    afterEach(() => {
+      invalidateSpy.mockRestore();
+    });
+
+    test("should invalidate all book-related queries", () => {
+      const bookId = '123';
+      
+      invalidateBookQueries(queryClient, bookId);
+      
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.book.detail(123) });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.sessions.byBook(123) });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.progress.byBook(123) });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.dashboard.all() });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.library.books() });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.readNext.base() });
+    });
+
+    test("should invalidate shelf caches surgically when cached shelves available", () => {
+      const bookId = '123';
+      
+      // Mock cached shelves
+      queryClient.setQueryData(queryKeys.book.shelves(123), {
+        success: true,
+        data: [{ id: 1 }, { id: 2 }, { id: 3 }]
+      });
+      
+      invalidateBookQueries(queryClient, bookId);
+      
+      // Verify surgical invalidation for each shelf
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.byId(1) });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.byId(2) });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.byId(3) });
+      
+      // Verify nuclear invalidation was NOT called
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
+    });
+
+    test("should invalidate all shelves when cache unavailable", () => {
+      const bookId = '123';
+      
+      // No cached shelves - cache unavailable
+      invalidateBookQueries(queryClient, bookId);
+      
+      // Verify nuclear invalidation
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
+      
+      // Verify no surgical (specific shelf ID) invalidations occurred
+      const surgicalCalls = invalidateSpy.mock.calls.filter(
+        (call: any) => 
+          Array.isArray(call[0]?.queryKey) &&
+          call[0].queryKey[0] === 'shelf' &&
+          call[0].queryKey.length === 2 &&
+          typeof call[0].queryKey[1] === 'number'
+      );
+      expect(surgicalCalls).toHaveLength(0);
+    });
+
+    test("should NOT invalidate shelves when book is on no shelves", () => {
+      const bookId = '123';
+      
+      // Mock cached shelves with empty array (book on zero shelves)
+      queryClient.setQueryData(queryKeys.book.shelves(123), {
+        success: true,
+        data: []
+      });
+      
+      invalidateBookQueries(queryClient, bookId);
+      
+      // Should NOT trigger nuclear invalidation (performance optimization)
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
+      
+      // Should NOT invalidate any specific shelves (none exist)
+      const surgicalCalls = invalidateSpy.mock.calls.filter(
+        (call: any) => 
+          Array.isArray(call[0]?.queryKey) &&
+          call[0].queryKey[0] === 'shelf' &&
+          call[0].queryKey.length === 2
+      );
+      expect(surgicalCalls).toHaveLength(0);
+    });
+
+    test("should handle invalid cache data gracefully", () => {
+      const bookId = '123';
+      
+      // Mock invalid cache structure
+      queryClient.setQueryData(queryKeys.book.shelves(123), {
+        invalid: 'structure'
+      });
+      
+      invalidateBookQueries(queryClient, bookId);
+      
+      // Verify nuclear invalidation (fallback for invalid data)
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
+    });
+
+    test("should handle null cache data gracefully", () => {
+      const bookId = '123';
+      
+      // Mock null cache
+      queryClient.setQueryData(queryKeys.book.shelves(123), null);
+      
+      invalidateBookQueries(queryClient, bookId);
+      
+      // Verify nuclear invalidation
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.shelf.base() });
     });
   });
 });

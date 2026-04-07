@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type { TagOperationResult } from "@/types/tag-operations";
 import { tagApi } from "@/lib/api";
 
@@ -20,7 +21,7 @@ export function useTagManagement() {
     error: queryError,
     refetch: refetchQuery 
   } = useQuery({
-    queryKey: ['tags-stats'],
+    queryKey: queryKeys.tags.base(),
     queryFn: () => tagApi.getStats(),
     staleTime: 30000, // 30 seconds - data stays fresh for 30s
     gcTime: 300000, // 5 minutes - cache stays in memory for 5 min
@@ -44,9 +45,9 @@ export function useTagManagement() {
       tagApi.rename(oldName, newName),
     onSuccess: () => {
       // Invalidate tags query to refetch
-      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.base() });
       // Invalidate available tags cache for book detail pages
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
     },
   });
 
@@ -55,9 +56,9 @@ export function useTagManagement() {
     mutationFn: (tagName: string) => tagApi.delete(tagName),
     onSuccess: () => {
       // Invalidate tags query to refetch
-      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.base() });
       // Invalidate available tags cache for book detail pages
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
     },
   });
 
@@ -67,9 +68,9 @@ export function useTagManagement() {
       tagApi.merge(sourceTags, targetTag),
     onSuccess: () => {
       // Invalidate tags query to refetch
-      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.base() });
       // Invalidate available tags cache for book detail pages
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
     },
   });
 

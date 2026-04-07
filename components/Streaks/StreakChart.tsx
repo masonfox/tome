@@ -113,7 +113,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={dataWithAverage}
-          margin={{ top: 20, right: 10, left: 0, bottom: 40 }}
+          margin={{ top: 20, right: 10, left: 0, bottom: 5 }}
         >
           <defs>
             <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
@@ -128,7 +128,7 @@ export function StreakChart({ data, threshold }: StreakChartProps) {
             angle={-45}
             textAnchor="end"
             interval={tickInterval}
-            height={60}
+            height={50}
             tick={{ fontSize: 10 }}
           />
           <YAxis

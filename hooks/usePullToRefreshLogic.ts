@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { usePathname } from "next/navigation";
 
 /**
@@ -13,52 +14,52 @@ export function usePullToRefreshLogic() {
   const pathname = usePathname();
 
   const handleRefresh = useCallback(async () => {
-    // Map pages to their query keys
-    const pageQueryMap: Record<string, string[]> = {
-      "/": ["dashboard"],
-      "/library": ["library", "libraryStats"],
-      "/read-next": ["readNext"],
-      "/series": ["series"],
-      "/stats": ["stats"],
-      "/goals": ["goals"],
-      "/streak": ["streak"],
-      "/journal": ["sessions"],
-      "/shelves": ["shelves"],
-      "/tags": ["tags"],
-      "/settings": ["settings"],
-    };
-
-    // Check if we're on a book detail page
+    // Check if we're on a specific detail page
     const isBookDetail = pathname.startsWith("/books/");
     const isSeriesDetail = pathname.startsWith("/series/") && pathname !== "/series";
     const isShelfDetail = pathname.startsWith("/shelves/") && pathname !== "/shelves";
 
-    let queryKeys: string[] = [];
-
     if (isBookDetail) {
-      // For book details, invalidate book-related queries
-      queryKeys = ["book", "bookProgress", "bookSessions", "bookTags", "bookShelves"];
+      // For book details, invalidate all book-related queries using base keys
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.book.base() }),
+        // Note: Can't invalidate specific book progress/sessions without bookId
+        // These will be invalidated by the specific mutations that need them
+      ]);
     } else if (isSeriesDetail) {
       // For series detail pages
-      queryKeys = ["series", "seriesBooks"];
+      await queryClient.invalidateQueries({ queryKey: queryKeys.series.all() });
     } else if (isShelfDetail) {
       // For shelf detail pages
-      queryKeys = ["shelf", "shelfBooks"];
+      await queryClient.invalidateQueries({ queryKey: queryKeys.shelf.base() });
     } else {
-      // Find matching page in the map
-      queryKeys = pageQueryMap[pathname] || [];
-    }
+      // Map pages to their query key invalidation
+      const invalidationsByPath: Record<string, readonly unknown[]> = {
+        "/": queryKeys.dashboard.all(),
+        "/library": queryKeys.library.books(),
+        "/read-next": queryKeys.readNext.base(),
+        "/series": queryKeys.series.all(),
+        "/stats": queryKeys.stats.all(),
+        "/goals": queryKeys.goals.base(),
+        "/streak": queryKeys.streak.base(),
+        "/shelves": queryKeys.shelf.base(),
+        "/tags": queryKeys.tags.base(),
+      };
 
-    // Invalidate queries
-    if (queryKeys.length > 0) {
-      await Promise.all(
-        queryKeys.map((key) =>
-          queryClient.invalidateQueries({ queryKey: [key] })
-        )
-      );
-    } else {
-      // Fallback: invalidate all queries if we don't have specific keys
-      await queryClient.invalidateQueries();
+      const queryKey = invalidationsByPath[pathname];
+      
+      if (queryKey) {
+        await queryClient.invalidateQueries({ queryKey });
+      } else if (pathname === "/journal") {
+        // Special case: Invalidate both journal entries and archive using prefix matching
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.journal.entriesBase() }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.journal.archiveBase() }),
+        ]);
+      } else {
+        // Fallback: invalidate all queries if we don't have specific keys
+        await queryClient.invalidateQueries();
+      }
     }
 
     // Return a promise that resolves after invalidation

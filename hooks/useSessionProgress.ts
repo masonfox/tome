@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { bookApi } from "@/lib/api";
 
 export interface SessionProgressEntry {
@@ -20,7 +21,7 @@ export interface SessionProgressEntry {
  */
 export function useSessionProgress(bookId: string, sessionId: number | null) {
   return useQuery<SessionProgressEntry[]>({
-    queryKey: ['session-progress', sessionId],
+    queryKey: sessionId ? queryKeys.sessions.progress(sessionId) : ['session-progress-empty'],
     queryFn: async () => {
       if (!sessionId) return [];
       

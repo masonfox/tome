@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { StreakChart } from "@/components/Streaks/StreakChart";
 import { StreakHeatmap } from "@/components/Streaks/StreakHeatmap";
 import { TimePeriodFilter, TimePeriod } from "@/components/Utilities/TimePeriodFilter";
 import { TrendingUp } from "lucide-react";
-import { getLogger } from "@/lib/logger";
-
-const logger = getLogger();
 
 interface DailyReading {
   date: string;
@@ -17,11 +15,15 @@ interface DailyReading {
 }
 
 interface StreakChartSectionProps {
-  initialData: DailyReading[];
+  data: DailyReading[];
   threshold: number;
+  selectedPeriod: TimePeriod;
+  onPeriodChange: (period: TimePeriod) => void;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
-async function fetchAnalytics(days: TimePeriod): Promise<DailyReading[]> {
+async function fetchHeatmapAnalytics(days: number): Promise<DailyReading[]> {
   const response = await fetch(`/api/streak/analytics?days=${days}`, {
     cache: "no-store",
   });
@@ -40,33 +42,26 @@ async function fetchAnalytics(days: TimePeriod): Promise<DailyReading[]> {
 }
 
 export function StreakChartSection({
-  initialData,
+  data,
   threshold,
+  selectedPeriod,
+  onPeriodChange,
+  isLoading = false,
+  error = null,
 }: StreakChartSectionProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(7);
-
-  // Use TanStack Query for fetching analytics (for area chart)
-  const { data, isLoading, error } = useQuery<DailyReading[]>({
-    queryKey: ['streak-analytics', selectedPeriod],
-    queryFn: () => fetchAnalytics(selectedPeriod),
-    initialData: selectedPeriod === 7 ? initialData : undefined,
-    staleTime: 60000, // 1 minute - streak data changes slowly
-    refetchOnWindowFocus: true,
-  });
-
   // Always fetch 365 days for heatmap (like GitHub's contribution graph)
   const { data: heatmapData, isLoading: isHeatmapLoading } = useQuery<DailyReading[]>({
-    queryKey: ['streak-analytics-heatmap', 365],
-    queryFn: () => fetchAnalytics(365 as TimePeriod),
+    queryKey: queryKeys.streak.heatmap(365),
+    queryFn: () => fetchHeatmapAnalytics(365),
     staleTime: 60000,
     refetchOnWindowFocus: true,
   });
 
   const handlePeriodChange = useCallback(
     (period: TimePeriod) => {
-      setSelectedPeriod(period);
+      onPeriodChange(period);
     },
-    []
+    [onPeriodChange]
   );
 
   return (

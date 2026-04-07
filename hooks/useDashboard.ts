@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { dashboardApi, type DashboardData } from "@/lib/api";
 
 export type {
@@ -14,7 +15,7 @@ async function fetchDashboardData(): Promise<DashboardData> {
 
 export function useDashboard() {
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
-    queryKey: ["dashboard"],
+    queryKey: queryKeys.dashboard.all(),
     queryFn: fetchDashboardData,
     staleTime: 30000, // 30 seconds - dashboard updates fairly frequently
     refetchOnWindowFocus: true, // Refetch when user returns to tab

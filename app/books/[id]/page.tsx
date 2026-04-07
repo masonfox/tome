@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import Link from "next/link";
-import { BookOpen, BookCheck, Pencil } from "lucide-react";
+import { BookOpen, BookCheck, Pencil, ArrowLeft } from "lucide-react";
 import { getShelfIcon } from "@/components/ShelfManagement/ShelfIconPicker";
 import { ShelfAvatar } from "@/components/ShelfManagement/ShelfAvatar";
 import ReadingHistoryTab from "@/components/CurrentlyReading/ReadingHistoryTab";
@@ -34,6 +35,7 @@ import { useBookRating } from "@/hooks/useBookRating";
 import { useSessionDetails } from "@/hooks/useSessionDetails";
 import { useDraftNote } from "@/hooks/useDraftNote";
 import { Spinner } from "@/components/Utilities/Spinner";
+import { usePageTitle } from "@/lib/hooks/usePageTitle";
 
 const logger = getLogger().child({ component: "BookDetailPage" });
 
@@ -41,6 +43,7 @@ export default function BookDetailPage() {
   const params = useParams();
   const bookId = params?.id as string;
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Custom hooks encapsulate all business logic
   const {
@@ -53,7 +56,7 @@ export default function BookDetailPage() {
 
   const bookProgressHook = useBookProgress(bookId, book, async () => {
     // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
   });
 
   const {
@@ -71,6 +74,12 @@ export default function BookDetailPage() {
     handleStartReread,
     handleMarkAsDNF,
   } = useBookStatus(book, bookProgressHook.progress, bookId);
+
+  // Set dynamic page title
+  const bookTitle = book
+    ? `${book.title}${book.authors.length > 0 ? ` by ${book.authors.join(", ")}` : ""}`
+    : undefined;
+  usePageTitle(bookTitle);
 
   // Handle finishing book from auto-completion modal (when progress reaches 100%)
   // Note: Book status is already "read" at this point (auto-completed by progress service)
@@ -112,10 +121,10 @@ export default function BookDetailPage() {
       clearDraft();
 
       // Refresh data
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-      await queryClient.invalidateQueries({ queryKey: ['sessions', bookId] });
-      await queryClient.invalidateQueries({ queryKey: ['library-books'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byBook(parseInt(bookId)) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.library.books() });
     } catch (error) {
       logger.error({ error }, "Failed to finish book");
       throw error;
@@ -131,7 +140,7 @@ export default function BookDetailPage() {
 
   const sessionDetailsHook = useSessionDetails(bookId, book?.activeSession, async () => {
     // Invalidate relevant queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
   });
 
   // Draft note management with localStorage autosave
@@ -172,9 +181,22 @@ export default function BookDetailPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Back button logic: Show on mobile when user has navigation history
+  const [hasHistory, setHasHistory] = useState(false);
+  
+  useEffect(() => {
+    setHasHistory(window.history.length > 1);
+  }, []);
+
+  const shouldShowBackButton = isMobile && hasHistory;
+
+  const handleBack = () => {
+    router.back();
+  };
+
   // Fetch available tags for the tag editor
   const { data: availableTagsData } = useQuery<{ tags: string[] }>({
-    queryKey: ['availableTags'],
+    queryKey: queryKeys.book.availableTags(),
     queryFn: async () => {
       const response = await fetch('/api/tags');
       if (!response.ok) {
@@ -191,7 +213,7 @@ export default function BookDetailPage() {
 
   // Fetch available shelves for the shelf editor
   const { data: availableShelvesData } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
-    queryKey: ['availableShelves'],
+    queryKey: queryKeys.book.availableShelves(),
     queryFn: async () => {
       const response = await fetch('/api/shelves');
       if (!response.ok) {
@@ -205,7 +227,7 @@ export default function BookDetailPage() {
 
   // Fetch current shelves for this book
   const { data: bookShelvesData, refetch: refetchBookShelves } = useQuery<{ success: boolean; data: Array<{ id: number; name: string; description: string | null; color: string | null; icon: string | null }> }>({
-    queryKey: ['bookShelves', bookId],
+    queryKey: queryKeys.book.shelves(parseInt(bookId)),
     queryFn: async () => {
       const response = await fetch(`/api/books/${bookId}/shelves`);
       if (!response.ok) {
@@ -233,9 +255,9 @@ export default function BookDetailPage() {
       const affectedShelfIds = [...new Set([...addedShelfIds, ...removedShelfIds])];
 
       // Invalidate all affected shelf queries
-      // Use broad invalidation without orderBy/direction to catch all variants
+      // Use byId() to invalidate all variants (different orderBy/direction)
       affectedShelfIds.forEach(shelfId => {
-        queryClient.invalidateQueries({ queryKey: ['shelf', shelfId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shelf.byId(shelfId) });
       });
 
       // Refetch book's shelf data
@@ -388,6 +410,19 @@ export default function BookDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Mobile back button - only shown when navigating from another page */}
+      {shouldShowBackButton && (
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-[var(--accent)] hover:text-[var(--light-accent)] mb-4 font-medium transition-colors"
+        >
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--card-bg)] transition-colors flex-shrink-0">
+            <ArrowLeft strokeWidth={3} className="w-4 h-4" />
+          </span>
+          <span>Back</span>
+        </button>
+      )}
+      
       {/* Single responsive grid - no duplicates! */}
       <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6 md:gap-8">
         {/* Sidebar: Cover, Status, Rating, Re-read - responsive width */}
@@ -411,7 +446,7 @@ export default function BookDetailPage() {
         {/* Main Content Area */}
         <div className="space-y-6 min-w-0">
           {/* Title and Author */}
-          <div className="mt-3 md:mt-0 text-center md:text-left">
+          <div className="text-center md:text-left">
             {/* Series Information */}
             {book.series && (
               <Link

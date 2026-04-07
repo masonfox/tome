@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/utils/toast";
 import { bookApi } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 
 export interface Book {
   id: number;
@@ -63,7 +64,7 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     error,
     refetch,
   } = useQuery<Book>({
-    queryKey: ['book', bookId],
+    queryKey: queryKeys.book.detail(parseInt(bookId)),
     queryFn: () => bookApi.getDetail(bookId),
     staleTime: 5000, // Data is fresh for 5 seconds
   });
@@ -78,13 +79,14 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
       bookApi.updateBook(bookId, { totalPages }),
     onMutate: async (totalPages) => {
       // Cancel outgoing queries to prevent them from overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      const bookKey = queryKeys.book.detail(parseInt(bookId));
+      await queryClient.cancelQueries({ queryKey: bookKey });
 
       // Snapshot the previous value
-      const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
+      const previousBook = queryClient.getQueryData<Book>(bookKey);
 
       // Optimistically update to the new value
-      queryClient.setQueryData<Book>(['book', bookId], (old) => 
+      queryClient.setQueryData<Book>(bookKey, (old) => 
         old ? { ...old, totalPages } : old
       );
 
@@ -94,13 +96,13 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     onError: (_err, _totalPages, context) => {
       // Rollback on error
       if (context?.previousBook) {
-        queryClient.setQueryData(['book', bookId], context.previousBook);
+        queryClient.setQueryData(queryKeys.book.detail(parseInt(bookId)), context.previousBook);
       }
       toast.error('Failed to update page count');
     },
     onSuccess: () => {
       // Invalidate and refetch book data
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
       toast.success('Page count updated');
     },
   });
@@ -111,13 +113,14 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
       bookApi.updateTags(bookId, { tags }),
     onMutate: async (tags) => {
       // Cancel outgoing queries to prevent them from overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ['book', bookId] });
+      const bookKey = queryKeys.book.detail(parseInt(bookId));
+      await queryClient.cancelQueries({ queryKey: bookKey });
 
       // Snapshot the previous value
-      const previousBook = queryClient.getQueryData<Book>(['book', bookId]);
+      const previousBook = queryClient.getQueryData<Book>(bookKey);
 
       // Optimistically update to the new value
-      queryClient.setQueryData<Book>(['book', bookId], (old) => 
+      queryClient.setQueryData<Book>(bookKey, (old) => 
         old ? { ...old, tags } : old
       );
 
@@ -127,15 +130,15 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
     onError: (_err, _tags, context) => {
       // Rollback on error
       if (context?.previousBook) {
-        queryClient.setQueryData(['book', bookId], context.previousBook);
+        queryClient.setQueryData(queryKeys.book.detail(parseInt(bookId)), context.previousBook);
       }
       toast.error('Failed to update tags');
     },
     onSuccess: () => {
       // Invalidate and refetch book data
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.detail(parseInt(bookId)) });
       // Invalidate available tags cache since tags may have been added/removed
-      queryClient.invalidateQueries({ queryKey: ['availableTags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.book.availableTags() });
       toast.success('Tags updated');
     },
   });
@@ -155,7 +158,7 @@ export function useBookDetail(bookId: string): UseBookDetailReturn {
 
   // Partial update method for optimistic updates from other hooks
   const updateBookPartial = (updates: Partial<Book>) => {
-    queryClient.setQueryData<Book>(['book', bookId], (old) =>
+    queryClient.setQueryData<Book>(queryKeys.book.detail(parseInt(bookId)), (old) =>
       old ? { ...old, ...updates } : old
     );
   };
