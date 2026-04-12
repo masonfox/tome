@@ -9,7 +9,7 @@
  * @returns Event handlers to spread onto target element
  */
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 interface UseLongPressOptions {
   /** Delay in milliseconds before triggering long-press (default: 500) */
@@ -120,6 +120,15 @@ export function useLongPress(
     },
     [checkMovement]
   );
+
+  // Cleanup timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     onMouseDown,

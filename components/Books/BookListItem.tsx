@@ -63,6 +63,14 @@ export const BookListItem = memo(function BookListItem({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Allow Space key to trigger long-press selection when not in select mode
+    if (e.key === ' ' && !isSelectMode && onLongPress) {
+      e.preventDefault();
+      onLongPress();
+    }
+  };
+
   // Long-press handlers (only active when NOT in select mode)
   const longPressHandlers = useLongPress(
     () => {
@@ -75,6 +83,9 @@ export const BookListItem = memo(function BookListItem({
 
   return (
     <div
+      role={onLongPress && !isSelectMode ? "button" : undefined}
+      aria-label={onLongPress && !isSelectMode ? `${book.title}. Press Space or long-press to select.` : undefined}
+      tabIndex={onLongPress && !isSelectMode ? 0 : undefined}
       className={cn(
         "bg-[var(--card-bg)] border rounded-lg p-4 transition-all",
         isSelectMode && "cursor-pointer hover:shadow-md",
@@ -84,6 +95,7 @@ export const BookListItem = memo(function BookListItem({
         className
       )}
       onClick={isSelectMode ? handleClick : onClick}
+      onKeyDown={handleKeyDown}
       {...(!isSelectMode && onLongPress ? longPressHandlers : {})}
     >
       <div className="flex gap-4 items-start">
