@@ -23,6 +23,7 @@ describe("useLongPress", () => {
       expect(result.current).toHaveProperty("onMouseMove");
       expect(result.current).toHaveProperty("onTouchStart");
       expect(result.current).toHaveProperty("onTouchEnd");
+      expect(result.current).toHaveProperty("onTouchCancel");
       expect(result.current).toHaveProperty("onTouchMove");
     });
 
@@ -308,6 +309,33 @@ describe("useLongPress", () => {
 
       act(() => {
         result.current.onTouchEnd();
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(250);
+      });
+
+      expect(onLongPress).not.toHaveBeenCalled();
+    });
+
+    it("should cancel on touch cancel (browser-interrupted touch)", () => {
+      const onLongPress = vi.fn();
+      const { result } = renderHook(() => useLongPress(onLongPress, { delay: 500 }));
+
+      const mockEvent = {
+        touches: [{ clientX: 100, clientY: 100 }],
+      } as unknown as React.TouchEvent;
+
+      act(() => {
+        result.current.onTouchStart(mockEvent);
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(250);
+      });
+
+      act(() => {
+        result.current.onTouchCancel();
       });
 
       act(() => {

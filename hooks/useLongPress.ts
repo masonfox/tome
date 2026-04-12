@@ -112,6 +112,10 @@ export function useLongPress(
     cancel();
   }, [cancel]);
 
+  const onTouchCancel = useCallback(() => {
+    cancel();
+  }, [cancel]);
+
   const onTouchMove = useCallback(
     (e: React.TouchEvent) => {
       if (e.touches.length !== 1) return;
@@ -137,6 +141,7 @@ export function useLongPress(
     onMouseMove,
     onTouchStart,
     onTouchEnd,
+    onTouchCancel,
     onTouchMove,
   };
 }

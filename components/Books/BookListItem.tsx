@@ -64,8 +64,9 @@ export const BookListItem = memo(function BookListItem({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Allow Space key to trigger long-press selection when not in select mode
-    if (e.key === ' ' && !isSelectMode && onLongPress) {
+    // Allow Space and Enter keys to trigger long-press selection when not in select mode
+    // role="button" per ARIA spec requires both Space and Enter to activate
+    if ((e.key === ' ' || e.key === 'Enter') && !isSelectMode && onLongPress) {
       e.preventDefault();
       onLongPress();
     }
@@ -84,7 +85,7 @@ export const BookListItem = memo(function BookListItem({
   return (
     <div
       role={onLongPress && !isSelectMode ? "button" : undefined}
-      aria-label={onLongPress && !isSelectMode ? `${book.title}. Press Space or long-press to select.` : undefined}
+      aria-label={onLongPress && !isSelectMode ? `${book.title}. Press Enter or Space to select.` : undefined}
       tabIndex={onLongPress && !isSelectMode ? 0 : undefined}
       className={cn(
         "bg-[var(--card-bg)] border rounded-lg p-4 transition-all",
