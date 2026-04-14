@@ -86,6 +86,25 @@ export class SessionRepository extends BaseRepository<
   }
 
   /**
+   * Find all sessions for a book ordered chronologically for display
+   * Sorts by startedDate (with createdAt fallback) to show sessions in reading order
+   * Used for calculating display numbers (1st read, 2nd read, etc.)
+   */
+  async findAllByBookIdOrdered(bookId: number, tx?: any): Promise<ReadingSession[]> {
+    const database = tx || this.getDatabase();
+    return database
+      .select()
+      .from(readingSessions)
+      .where(eq(readingSessions.bookId, bookId))
+      .orderBy(
+        asc(
+          sql`COALESCE(${readingSessions.startedDate}, ${readingSessions.createdAt})`
+        )
+      )
+      .all();
+  }
+
+  /**
    * Find all sessions for a book with progress summaries - OPTIMIZED
    * Uses a single query with aggregations instead of N+1 queries
    */

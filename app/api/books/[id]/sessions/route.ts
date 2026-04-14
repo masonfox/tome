@@ -22,7 +22,21 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // OPTIMIZED: Get all reading sessions with progress summaries in a single query
     const sessionsWithProgress = await sessionRepository.findAllByBookIdWithProgress(bookId);
 
-    return NextResponse.json(sessionsWithProgress, {
+    // Get chronologically ordered sessions to calculate display numbers
+    const orderedSessions = await sessionRepository.findAllByBookIdOrdered(bookId);
+    
+    // Create a map of sessionId -> displayNumber
+    const displayNumberMap = new Map(
+      orderedSessions.map((session, index) => [session.id, index + 1])
+    );
+
+    // Add displayNumber to each session
+    const sessionsWithDisplayNumbers = sessionsWithProgress.map(session => ({
+      ...session,
+      displayNumber: displayNumberMap.get(session.id) ?? session.sessionNumber,
+    }));
+
+    return NextResponse.json(sessionsWithDisplayNumbers, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',

@@ -196,6 +196,27 @@ export class SessionService {
   }
 
   /**
+   * Get all sessions for a book with calculated display numbers
+   * Display numbers represent sequential read position (1st read, 2nd read, etc.)
+   * Sessions are ordered chronologically by startedDate (or createdAt if no startedDate)
+   * 
+   * @param bookId - The book ID
+   * @returns Sessions with displayNumber field added
+   */
+  async getSessionsWithDisplayNumbers(
+    bookId: number
+  ): Promise<Array<ReadingSession & { displayNumber: number }>> {
+    // Get sessions ordered chronologically
+    const sessions = await sessionRepository.findAllByBookIdOrdered(bookId);
+
+    // Add displayNumber based on array position (1-indexed)
+    return sessions.map((session, index) => ({
+      ...session,
+      displayNumber: index + 1,
+    }));
+  }
+
+  /**
    * Update book reading status (primary workflow for status changes)
    * 
    * Handles complex status transitions with validation, backward movement detection,
@@ -1294,16 +1315,19 @@ export class SessionService {
     if (!remainingActiveSession) {
       logger.info({ bookId }, "Creating new 'to-read' session - no active session remains");
 
+      // Calculate next session number to avoid numbering conflicts (fix for issue #413)
+      const nextSessionNumber = await sessionRepository.getNextSessionNumber(bookId);
+
       await sessionRepository.create({
         bookId,
-        sessionNumber: 1,
+        sessionNumber: nextSessionNumber,
         status: "to-read",
         isActive: true,
         userId: session.userId,
       });
 
       newSessionCreated = true;
-      logger.info({ bookId }, "New 'to-read' session created");
+      logger.info({ bookId, sessionNumber: nextSessionNumber }, "New 'to-read' session created");
     } else {
       logger.info({ bookId }, "Book still has active session - no new session needed");
     }
