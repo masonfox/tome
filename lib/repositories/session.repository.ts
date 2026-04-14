@@ -89,6 +89,9 @@ export class SessionRepository extends BaseRepository<
    * Find all sessions for a book ordered chronologically for display
    * Sorts by startedDate (with createdAt fallback) to show sessions in reading order
    * Used for calculating display numbers (1st read, 2nd read, etc.)
+   * 
+   * Note: Uses strftime to convert createdAt (INTEGER unix timestamp) to YYYY-MM-DD TEXT
+   * format before COALESCE to ensure consistent sorting with startedDate (TEXT).
    */
   async findAllByBookIdOrdered(bookId: number, tx?: any): Promise<ReadingSession[]> {
     const database = tx || this.getDatabase();
@@ -98,7 +101,10 @@ export class SessionRepository extends BaseRepository<
       .where(eq(readingSessions.bookId, bookId))
       .orderBy(
         asc(
-          sql`COALESCE(${readingSessions.startedDate}, ${readingSessions.createdAt})`
+          sql`COALESCE(
+            ${readingSessions.startedDate}, 
+            strftime('%Y-%m-%d', ${readingSessions.createdAt}, 'unixepoch')
+          )`
         )
       )
       .all();

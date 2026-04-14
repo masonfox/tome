@@ -1,6 +1,7 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { sessionService } from "@/lib/services/session.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,27 +23,21 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // OPTIMIZED: Get all reading sessions with progress summaries in a single query
     const sessionsWithProgress = await sessionRepository.findAllByBookIdWithProgress(bookId);
 
-    // Get chronologically ordered sessions to calculate display numbers
-    const orderedSessions = await sessionRepository.findAllByBookIdOrdered(bookId);
+    // Get display numbers using service layer (single source of truth)
+    const sessionsWithDisplayNumbers = await sessionService.getSessionsWithDisplayNumbers(bookId);
     
-    // Filter to only sessions that will be displayed in Reading History
-    // Matches filter in ReadingHistoryTab.tsx:77-79
-    const displayedSessions = orderedSessions.filter(
-      session => !session.isActive || session.status === 'read' || session.status === 'dnf'
-    );
-    
-    // Create a map of sessionId -> displayNumber (only for displayed sessions)
+    // Create a map of sessionId -> displayNumber
     const displayNumberMap = new Map(
-      displayedSessions.map((session, index) => [session.id, index + 1])
+      sessionsWithDisplayNumbers.map(s => [s.id, s.displayNumber])
     );
 
-    // Add displayNumber to each session
-    const sessionsWithDisplayNumbers = sessionsWithProgress.map(session => ({
+    // Add displayNumber to sessions (preserving original sort order from findAllByBookIdWithProgress)
+    const result = sessionsWithProgress.map(session => ({
       ...session,
       displayNumber: displayNumberMap.get(session.id),
     }));
 
-    return NextResponse.json(sessionsWithDisplayNumbers, {
+    return NextResponse.json(result, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',

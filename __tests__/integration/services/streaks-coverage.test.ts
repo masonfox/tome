@@ -2,8 +2,6 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { startOfDay, addDays } from "date-fns";
-import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { toProgressDate, toSessionDate } from "../../test-utils";
 import { toDateString } from "@/utils/dateHelpers.server";
 
@@ -20,16 +18,6 @@ function getStreakDate(daysOffset: number = 0): Date {
   date.setDate(date.getDate() + daysOffset);
   date.setHours(0, 0, 0, 0);
   return date;
-}
-
-/**
- * Get today's date string in user timezone (America/New_York) to match streak service behavior
- * This prevents timezone-based test failures when UTC and local dates differ
- */
-function getTodayInUserTimezone(): string {
-  const userTimezone = "America/New_York";
-  const now = new Date();
-  return formatInTimeZone(now, userTimezone, "yyyy-MM-dd");
 }
 
 beforeAll(async () => {
@@ -604,14 +592,14 @@ describe("StreakService - Coverage Improvement", () => {
         isActive: true,
       });
 
-      // Create progress with 10 pages (use user timezone date to match updateStreaks behavior)
+      // Create progress with 10 pages
       await progressRepository.create({
         bookId: book.id,
         sessionId: session.id,
         currentPage: 10,
         currentPercentage: 3.33,
         pagesRead: 10,
-        progressDate: getTodayInUserTimezone(),
+        progressDate: toProgressDate(getStreakDate(0)),
       });
 
       // Set threshold to 10 (exactly met)

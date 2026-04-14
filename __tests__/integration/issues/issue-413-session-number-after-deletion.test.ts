@@ -90,6 +90,45 @@ describe("Issue #413 - Session Number After Deletion", () => {
     expect(session2.sessionNumber).toBe(2);
   });
 
+  test("should assign next session number correctly when other sessions exist after deletion", async () => {
+    // Create multiple sessions
+    const session1 = await sessionRepository.create({
+      bookId,
+      sessionNumber: 1,
+      status: "read",
+      isActive: false,
+      startedDate: "2024-01-01",
+      completedDate: "2024-01-15",
+    });
+
+    const session2 = await sessionRepository.create({
+      bookId,
+      sessionNumber: 2,
+      status: "read",
+      isActive: false,
+      startedDate: "2024-02-01",
+      completedDate: "2024-02-15",
+    });
+
+    // Verify both exist
+    let sessions = await sessionRepository.findAllByBookId(bookId);
+    expect(sessions).toHaveLength(2);
+
+    // Delete session #1
+    await sessionService.deleteSession(bookId, session1.id);
+
+    // Verify to-read session was created with sessionNumber=3 (not 1!)
+    // This proves getNextSessionNumber() is being used, not hardcoded 1
+    sessions = await sessionRepository.findAllByBookId(bookId);
+    const toReadSession = sessions.find(s => s.status === "to-read");
+    expect(toReadSession).toBeDefined();
+    expect(toReadSession!.sessionNumber).toBe(3); // CRITICAL: Must be 3, not 1
+
+    // Should still have session2 with sessionNumber=2
+    const readSession = sessions.find(s => s.sessionNumber === 2);
+    expect(readSession).toBeDefined();
+  });
+
   test("should calculate display numbers based on chronological order", async () => {
     // Create 3 sessions at different times
     const session1 = await sessionRepository.create({
@@ -213,38 +252,36 @@ describe("Issue #413 - Session Number After Deletion", () => {
     const orderedSessions = await sessionRepository.findAllByBookIdOrdered(bookId);
     expect(orderedSessions).toHaveLength(2);
 
-    // Verify displayNumbers are calculated
+    // Verify displayNumbers are calculated AND ordering is correct
+    // Session2 (null startedDate) was created second, so createdAt is later
+    // Therefore session1 should be first chronologically
     const sessionsWithDisplay = await sessionService.getSessionsWithDisplayNumbers(bookId);
     expect(sessionsWithDisplay).toHaveLength(2);
+    expect(sessionsWithDisplay[0].sessionNumber).toBe(1); // session1 comes first
     expect(sessionsWithDisplay[0].displayNumber).toBe(1);
+    expect(sessionsWithDisplay[1].sessionNumber).toBe(2); // session2 comes second
     expect(sessionsWithDisplay[1].displayNumber).toBe(2);
   });
 
   test("should only assign displayNumber to sessions that match display filter", async () => {
-    // Create an active "to-read" session (should NOT get displayNumber - active and not read/dnf)
+    // Create an archived "to-read" session without startedDate (will use createdAt ~ today)
     const toReadSession = await sessionRepository.create({
       bookId,
       sessionNumber: 1,
       status: "to-read",
-      isActive: true,
+      isActive: false, // Archived immediately
     });
-
-    // Archive the to-read session (WILL get displayNumber=1 - archived sessions shown)
-    await sessionRepository.update(toReadSession.id, { isActive: false });
     
-    // Create an active "reading" session (should NOT get displayNumber - active and not read/dnf)
+    // Create an archived "reading" session with startedDate in 2024
     const readingSession = await sessionRepository.create({
       bookId,
       sessionNumber: 2,
       status: "reading",
-      isActive: true,
+      isActive: false, // Archived immediately
       startedDate: "2024-02-01",
     });
-
-    // Archive the reading session (WILL get displayNumber=2 - archived sessions shown)
-    await sessionRepository.update(readingSession.id, { isActive: false });
     
-    // Create a completed "read" session (SHOULD get displayNumber=3)
+    // Create a completed "read" session
     const readSession1 = await sessionRepository.create({
       bookId,
       sessionNumber: 3,
@@ -254,7 +291,7 @@ describe("Issue #413 - Session Number After Deletion", () => {
       completedDate: "2024-03-15",
     });
 
-    // Create a "dnf" session (SHOULD get displayNumber=4)
+    // Create a "dnf" session
     const dnfSession = await sessionRepository.create({
       bookId,
       sessionNumber: 4,
@@ -264,7 +301,7 @@ describe("Issue #413 - Session Number After Deletion", () => {
       completedDate: "2024-04-10",
     });
 
-    // Create another completed "read" session that's active (SHOULD get displayNumber=5 - status=read)
+    // Create another completed "read" session that's active
     const readSession2 = await sessionRepository.create({
       bookId,
       sessionNumber: 5,
@@ -287,13 +324,18 @@ describe("Issue #413 - Session Number After Deletion", () => {
     const dnf = sessionsWithDisplay.find(s => s.sessionNumber === 4);
     const read2 = sessionsWithDisplay.find(s => s.sessionNumber === 5);
 
-    // Archived sessions should have displayNumbers (filter: !isActive = true)
-    expect(toRead?.displayNumber).toBe(1);
-    expect(reading?.displayNumber).toBe(2);
+    // Expected chronological order based on startedDate (or createdAt fallback):
+    // 1. reading: 2024-02-01
+    // 2. read1: 2024-03-01  
+    // 3. dnf: 2024-04-01
+    // 4. read2: 2024-05-01
+    // 5. toRead: ~2026-04-14 (createdAt converted to YYYY-MM-DD, created today)
     
-    // Completed/DNF sessions should have displayNumbers
-    expect(read1?.displayNumber).toBe(3);
-    expect(dnf?.displayNumber).toBe(4);
-    expect(read2?.displayNumber).toBe(5);
+    // All sessions match the display filter (!isActive || status=='read' || status=='dnf')
+    expect(reading?.displayNumber).toBe(1);
+    expect(read1?.displayNumber).toBe(2);
+    expect(dnf?.displayNumber).toBe(3);
+    expect(read2?.displayNumber).toBe(4);
+    expect(toRead?.displayNumber).toBe(5);
   });
 });
