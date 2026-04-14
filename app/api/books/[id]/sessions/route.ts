@@ -25,15 +25,21 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Get chronologically ordered sessions to calculate display numbers
     const orderedSessions = await sessionRepository.findAllByBookIdOrdered(bookId);
     
-    // Create a map of sessionId -> displayNumber
+    // Filter to only sessions that will be displayed in Reading History
+    // Matches filter in ReadingHistoryTab.tsx:77-79
+    const displayedSessions = orderedSessions.filter(
+      session => !session.isActive || session.status === 'read' || session.status === 'dnf'
+    );
+    
+    // Create a map of sessionId -> displayNumber (only for displayed sessions)
     const displayNumberMap = new Map(
-      orderedSessions.map((session, index) => [session.id, index + 1])
+      displayedSessions.map((session, index) => [session.id, index + 1])
     );
 
     // Add displayNumber to each session
     const sessionsWithDisplayNumbers = sessionsWithProgress.map(session => ({
       ...session,
-      displayNumber: displayNumberMap.get(session.id) ?? session.sessionNumber,
+      displayNumber: displayNumberMap.get(session.id),
     }));
 
     return NextResponse.json(sessionsWithDisplayNumbers, {

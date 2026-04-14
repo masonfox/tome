@@ -205,14 +205,25 @@ export class SessionService {
    */
   async getSessionsWithDisplayNumbers(
     bookId: number
-  ): Promise<Array<ReadingSession & { displayNumber: number }>> {
+  ): Promise<Array<ReadingSession & { displayNumber?: number }>> {
     // Get sessions ordered chronologically
     const sessions = await sessionRepository.findAllByBookIdOrdered(bookId);
 
-    // Add displayNumber based on array position (1-indexed)
-    return sessions.map((session, index) => ({
+    // Filter to only sessions that will be displayed in Reading History
+    // Matches filter in ReadingHistoryTab.tsx:77-79
+    const displayedSessions = sessions.filter(
+      session => !session.isActive || session.status === 'read' || session.status === 'dnf'
+    );
+
+    // Create a map of sessionId -> displayNumber (only for displayed sessions)
+    const displayNumberMap = new Map(
+      displayedSessions.map((session, index) => [session.id, index + 1])
+    );
+
+    // Add displayNumber to sessions (only displayed sessions get a number)
+    return sessions.map((session) => ({
       ...session,
-      displayNumber: index + 1,
+      displayNumber: displayNumberMap.get(session.id),
     }));
   }
 

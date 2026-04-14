@@ -219,4 +219,81 @@ describe("Issue #413 - Session Number After Deletion", () => {
     expect(sessionsWithDisplay[0].displayNumber).toBe(1);
     expect(sessionsWithDisplay[1].displayNumber).toBe(2);
   });
+
+  test("should only assign displayNumber to sessions that match display filter", async () => {
+    // Create an active "to-read" session (should NOT get displayNumber - active and not read/dnf)
+    const toReadSession = await sessionRepository.create({
+      bookId,
+      sessionNumber: 1,
+      status: "to-read",
+      isActive: true,
+    });
+
+    // Archive the to-read session (WILL get displayNumber=1 - archived sessions shown)
+    await sessionRepository.update(toReadSession.id, { isActive: false });
+    
+    // Create an active "reading" session (should NOT get displayNumber - active and not read/dnf)
+    const readingSession = await sessionRepository.create({
+      bookId,
+      sessionNumber: 2,
+      status: "reading",
+      isActive: true,
+      startedDate: "2024-02-01",
+    });
+
+    // Archive the reading session (WILL get displayNumber=2 - archived sessions shown)
+    await sessionRepository.update(readingSession.id, { isActive: false });
+    
+    // Create a completed "read" session (SHOULD get displayNumber=3)
+    const readSession1 = await sessionRepository.create({
+      bookId,
+      sessionNumber: 3,
+      status: "read",
+      isActive: false,
+      startedDate: "2024-03-01",
+      completedDate: "2024-03-15",
+    });
+
+    // Create a "dnf" session (SHOULD get displayNumber=4)
+    const dnfSession = await sessionRepository.create({
+      bookId,
+      sessionNumber: 4,
+      status: "dnf",
+      isActive: false,
+      startedDate: "2024-04-01",
+      completedDate: "2024-04-10",
+    });
+
+    // Create another completed "read" session that's active (SHOULD get displayNumber=5 - status=read)
+    const readSession2 = await sessionRepository.create({
+      bookId,
+      sessionNumber: 5,
+      status: "read",
+      isActive: true,
+      startedDate: "2024-05-01",
+      completedDate: "2024-05-15",
+    });
+
+    // Get sessions with display numbers
+    const sessionsWithDisplay = await sessionService.getSessionsWithDisplayNumbers(bookId);
+    
+    // Should have 5 total sessions
+    expect(sessionsWithDisplay).toHaveLength(5);
+
+    // Find each session by sessionNumber
+    const toRead = sessionsWithDisplay.find(s => s.sessionNumber === 1);
+    const reading = sessionsWithDisplay.find(s => s.sessionNumber === 2);
+    const read1 = sessionsWithDisplay.find(s => s.sessionNumber === 3);
+    const dnf = sessionsWithDisplay.find(s => s.sessionNumber === 4);
+    const read2 = sessionsWithDisplay.find(s => s.sessionNumber === 5);
+
+    // Archived sessions should have displayNumbers (filter: !isActive = true)
+    expect(toRead?.displayNumber).toBe(1);
+    expect(reading?.displayNumber).toBe(2);
+    
+    // Completed/DNF sessions should have displayNumbers
+    expect(read1?.displayNumber).toBe(3);
+    expect(dnf?.displayNumber).toBe(4);
+    expect(read2?.displayNumber).toBe(5);
+  });
 });
