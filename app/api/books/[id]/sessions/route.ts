@@ -1,6 +1,7 @@
 import { getLogger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { bookRepository, sessionRepository } from "@/lib/repositories";
+import { sessionService } from "@/lib/services/session.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,21 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // OPTIMIZED: Get all reading sessions with progress summaries in a single query
     const sessionsWithProgress = await sessionRepository.findAllByBookIdWithProgress(bookId);
 
-    return NextResponse.json(sessionsWithProgress, {
+    // Get display numbers using service layer (single source of truth)
+    const sessionsWithDisplayNumbers = await sessionService.getSessionsWithDisplayNumbers(bookId);
+    
+    // Create a map of sessionId -> displayNumber
+    const displayNumberMap = new Map(
+      sessionsWithDisplayNumbers.map(s => [s.id, s.displayNumber])
+    );
+
+    // Add displayNumber to sessions (preserving original sort order from findAllByBookIdWithProgress)
+    const result = sessionsWithProgress.map(session => ({
+      ...session,
+      displayNumber: displayNumberMap.get(session.id),
+    }));
+
+    return NextResponse.json(result, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',

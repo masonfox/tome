@@ -9,6 +9,7 @@ interface DeleteSessionModalProps {
   onClose: () => void;
   onConfirm: () => Promise<void>;
   sessionNumber: number;
+  displayNumber?: number;  // Calculated display number (optional for backward compat)
   progressCount: number;
   bookTitle: string;
   isActive: boolean;
@@ -19,6 +20,7 @@ export default function DeleteSessionModal({
   onClose,
   onConfirm,
   sessionNumber,
+  displayNumber,
   progressCount,
   bookTitle,
   isActive,
@@ -49,7 +51,7 @@ export default function DeleteSessionModal({
             </div>
             <div>
               <h2 className="text-xl font-serif font-bold text-[var(--heading-text)]">
-                Delete Read #{sessionNumber}?
+                Delete Read #{displayNumber ?? sessionNumber}?
               </h2>
             </div>
           </div>
