@@ -2,7 +2,7 @@
 
 import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/Utilities/Button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface DeleteSessionModalProps {
   isOpen: boolean;
@@ -26,6 +26,13 @@ export default function DeleteSessionModal({
   isActive,
 }: DeleteSessionModalProps) {
   const [submitting, setSubmitting] = useState(false);
+
+  // Reset submitting state when modal closes to prevent stuck "Deleting..." button
+  useEffect(() => {
+    if (!isOpen) {
+      setSubmitting(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
