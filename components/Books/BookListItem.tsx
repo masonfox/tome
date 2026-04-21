@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/Utilities/StatusBadge";
 import { StarRating } from "@/components/Utilities/StarRating";
 import { type BookStatus } from "@/utils/statusConfig";
 import { getCoverUrl } from "@/lib/utils/cover-url";
+import { useLongPress } from "@/hooks/useLongPress";
 
 interface BookListItemProps {
   book: {
@@ -30,6 +31,7 @@ interface BookListItemProps {
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: () => void;
+  onLongPress?: () => void;
 }
 
 export const BookListItem = memo(function BookListItem({
@@ -41,6 +43,7 @@ export const BookListItem = memo(function BookListItem({
   isSelectMode = false,
   isSelected = false,
   onToggleSelection,
+  onLongPress,
 }: BookListItemProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -60,8 +63,30 @@ export const BookListItem = memo(function BookListItem({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Allow Space and Enter keys to trigger long-press selection when not in select mode
+    // role="button" per ARIA spec requires both Space and Enter to activate
+    if ((e.key === ' ' || e.key === 'Enter') && !isSelectMode && onLongPress) {
+      e.preventDefault();
+      onLongPress();
+    }
+  };
+
+  // Long-press handlers (only active when NOT in select mode)
+  const longPressHandlers = useLongPress(
+    () => {
+      if (!isSelectMode && onLongPress) {
+        onLongPress();
+      }
+    },
+    { delay: 500, tolerance: 10 }
+  );
+
   return (
     <div
+      role={onLongPress && !isSelectMode ? "button" : undefined}
+      aria-label={onLongPress && !isSelectMode ? `${book.title}. Press Enter or Space to select.` : undefined}
+      tabIndex={onLongPress && !isSelectMode ? 0 : undefined}
       className={cn(
         "bg-[var(--card-bg)] border rounded-lg p-4 transition-all",
         isSelectMode && "cursor-pointer hover:shadow-md",
@@ -71,6 +96,8 @@ export const BookListItem = memo(function BookListItem({
         className
       )}
       onClick={isSelectMode ? handleClick : onClick}
+      onKeyDown={handleKeyDown}
+      {...(!isSelectMode && onLongPress ? longPressHandlers : {})}
     >
       <div className="flex gap-4 items-start">
         {/* Checkbox for select mode */}

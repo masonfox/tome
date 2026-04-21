@@ -46,6 +46,7 @@ interface DraggableBookListProps {
   isSelectMode?: boolean;
   selectedBookIds?: Set<number>;
   onToggleSelection?: (bookId: number) => void;
+  onEnterSelectModeWithSelection?: (bookId: number) => void;
 }
 
 interface SortableBookItemProps {
@@ -54,9 +55,10 @@ interface SortableBookItemProps {
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: () => void;
+  onLongPress?: () => void;
 }
 
-function SortableBookItem({ book, actions, isSelectMode = false, isSelected = false, onToggleSelection }: SortableBookItemProps) {
+function SortableBookItem({ book, actions, isSelectMode = false, isSelected = false, onToggleSelection, onLongPress }: SortableBookItemProps) {
   const {
     attributes,
     listeners,
@@ -101,6 +103,7 @@ function SortableBookItem({ book, actions, isSelectMode = false, isSelected = fa
             isSelectMode={isSelectMode}
             isSelected={isSelected}
             onToggleSelection={onToggleSelection}
+            onLongPress={onLongPress}
           />
         </div>
       </div>
@@ -116,6 +119,7 @@ export function DraggableBookList({
   isSelectMode = false,
   selectedBookIds = new Set(),
   onToggleSelection,
+  onEnterSelectModeWithSelection,
 }: DraggableBookListProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [localBooks, setLocalBooks] = useState(books);
@@ -190,6 +194,7 @@ export function DraggableBookList({
             isSelectMode={isSelectMode}
             isSelected={selectedBookIds.has(book.id)}
             onToggleSelection={() => onToggleSelection?.(book.id)}
+            onLongPress={() => onEnterSelectModeWithSelection?.(book.id)}
           />
         ))}
       </div>
@@ -214,6 +219,7 @@ export function DraggableBookList({
               isSelectMode={isSelectMode}
               isSelected={selectedBookIds.has(book.id)}
               onToggleSelection={() => onToggleSelection?.(book.id)}
+              onLongPress={() => onEnterSelectModeWithSelection?.(book.id)}
             />
           ))}
         </div>
