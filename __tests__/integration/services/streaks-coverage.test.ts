@@ -2,8 +2,6 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { streakService } from "@/lib/services/streak.service";
 import { bookRepository, sessionRepository, progressRepository, streakRepository } from "@/lib/repositories";
 import { setupTestDatabase, teardownTestDatabase, clearTestDatabase } from "@/__tests__/helpers/db-setup";
-import { startOfDay } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { toProgressDate, toSessionDate } from "../../test-utils";
 import { toDateString } from "@/utils/dateHelpers.server";
 
