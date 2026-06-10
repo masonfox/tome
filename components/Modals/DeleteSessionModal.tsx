@@ -2,13 +2,14 @@
 
 import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/Utilities/Button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface DeleteSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
   sessionNumber: number;
+  displayNumber?: number;  // Calculated display number (optional for backward compat)
   progressCount: number;
   bookTitle: string;
   isActive: boolean;
@@ -19,11 +20,19 @@ export default function DeleteSessionModal({
   onClose,
   onConfirm,
   sessionNumber,
+  displayNumber,
   progressCount,
   bookTitle,
   isActive,
 }: DeleteSessionModalProps) {
   const [submitting, setSubmitting] = useState(false);
+
+  // Reset submitting state when modal closes to prevent stuck "Deleting..." button
+  useEffect(() => {
+    if (!isOpen) {
+      setSubmitting(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -49,7 +58,7 @@ export default function DeleteSessionModal({
             </div>
             <div>
               <h2 className="text-xl font-serif font-bold text-[var(--heading-text)]">
-                Delete Read #{sessionNumber}?
+                Delete Read #{displayNumber ?? sessionNumber}?
               </h2>
             </div>
           </div>

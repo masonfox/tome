@@ -17,6 +17,7 @@ interface SessionEditModalProps {
   }) => void;
   bookTitle: string;
   sessionNumber: number;
+  displayNumber?: number;  // Calculated display number (optional for backward compat)
   sessionId: number;
   bookId: string;
   currentStartedDate?: string | null;
@@ -30,6 +31,7 @@ export default function SessionEditModal({
   onConfirm,
   bookTitle,
   sessionNumber,
+  displayNumber,
   sessionId,
   bookId,
   currentStartedDate,
@@ -108,7 +110,7 @@ export default function SessionEditModal({
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Edit Session - ${bookTitle} (Read #${sessionNumber})`}
+      title={`Edit Session - ${bookTitle} (Read #${displayNumber ?? sessionNumber})`}
       size="2xl"
       allowBackdropClose={false}
       actions={

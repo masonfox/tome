@@ -15,6 +15,7 @@ interface SessionProgressModalProps {
   bookId: string;
   bookTitle: string;
   sessionNumber: number;
+  displayNumber?: number;  // Calculated display number (optional for backward compat)
 }
 
 export default function SessionProgressModal({
@@ -24,6 +25,7 @@ export default function SessionProgressModal({
   bookId,
   bookTitle,
   sessionNumber,
+  displayNumber,
 }: SessionProgressModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const { data: progressLogs = [], isLoading, error } = useSessionProgress(bookId, isOpen ? sessionId : null);
@@ -122,7 +124,7 @@ export default function SessionProgressModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Progress Logs"
-      subtitle={`${bookTitle} - Read #${sessionNumber}`}
+      subtitle={`${bookTitle} - Read #${displayNumber ?? sessionNumber}`}
       size="2xl"
       actions={
         <Button
