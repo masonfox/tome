@@ -455,3 +455,10 @@ If unsure about:
 **Project:** Tome (Book Tracker with Calibre Integration)  
 **Tech Stack:** SQLite + Drizzle ORM + Repository Pattern  
 **Architecture:** Routes → Services → Repositories (3-layer pattern)
+
+## Active Technologies
+- TypeScript 5.x / Node.js 18+ (dev) / Bun 1.x (production) + Next.js 14 (App Router), Drizzle ORM, SQLite (better-sqlite3 / bun:sqlite), Zod (validation), Pino (logging) (003-koreader-sync)
+- SQLite (Tome database: `data/tome.db`) + Calibre SQLite (read-only: `calibre/metadata.db`) (003-koreader-sync)
+
+## Recent Changes
+- 003-koreader-sync: Added TypeScript 5.x / Node.js 18+ (dev) / Bun 1.x (production) + Next.js 14 (App Router), Drizzle ORM, SQLite (better-sqlite3 / bun:sqlite), Zod (validation), Pino (logging)
