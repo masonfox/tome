@@ -12,6 +12,18 @@ import {
  */
 class KoReaderMappingRepository {
   /**
+   * Find a mapping by ID
+   */
+  async findById(id: number): Promise<KoReaderDocumentMapping | null> {
+    const db = getDatabase();
+    const result = db.select()
+      .from(koreaderDocumentMappings)
+      .where(eq(koreaderDocumentMappings.id, id))
+      .get();
+    return result || null;
+  }
+
+  /**
    * Find a mapping by KoReader document hash
    */
   async findByDocumentHash(documentHash: string): Promise<KoReaderDocumentMapping | null> {
