@@ -139,9 +139,12 @@ export async function clearTestDatabase(dbInstanceOrPath: TestDatabaseInstance |
     const sessionsResult = rawDb.prepare("DELETE FROM reading_sessions").run();
     const bookShelvesResult = rawDb.prepare("DELETE FROM book_shelves").run();
     const shelvesResult = rawDb.prepare("DELETE FROM shelves").run();
+    const koreaderMappingsResult = rawDb.prepare("DELETE FROM koreader_document_mappings").run();
+    const koreaderEventsResult = rawDb.prepare("DELETE FROM koreader_sync_events").run();
     const booksResult = rawDb.prepare("DELETE FROM books").run();
     const streaksResult = rawDb.prepare("DELETE FROM streaks").run();
     const goalsResult = rawDb.prepare("DELETE FROM reading_goals").run();
+    const settingsResult = rawDb.prepare("DELETE FROM application_settings").run();
 
     // console.log(
     //   `[clearTestDatabase] Deleted: ${progressResult.changes} progress, ` +
