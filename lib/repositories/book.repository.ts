@@ -375,8 +375,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     if (filters.status) {
       const statusCondition = eq(readingSessions.status, filters.status as any);
       const activeCondition =
-        filters.status === "read"
-          ? undefined // For "read", include all sessions
+        filters.status === "read" || filters.status === "dnf"
+          ? undefined // For terminal states (read, dnf), include all sessions
           : eq(readingSessions.isActive, true);
 
       const sessionQuery = this.getDatabase()
@@ -752,8 +752,8 @@ export class BookRepository extends BaseRepository<Book, NewBook, typeof books> 
     if (filters.status) {
       const statusCondition = eq(readingSessions.status, filters.status as any);
       const activeCondition =
-        filters.status === "read"
-          ? undefined // For "read", include all sessions
+        filters.status === "read" || filters.status === "dnf"
+          ? undefined // For terminal states (read, dnf), include all sessions
           : eq(readingSessions.isActive, true);
 
       const sessionQuery = this.getDatabase()

@@ -15,6 +15,7 @@ import MarkdownRenderer from "@/components/Markdown/MarkdownRenderer";
 interface ReadingSession {
   id: number;
   sessionNumber: number;
+  displayNumber?: number;  // Calculated display number (1st read, 2nd read, etc.)
   status: string;
   startedDate?: string;
   completedDate?: string;
@@ -47,6 +48,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
   const [viewProgressModal, setViewProgressModal] = useState<{
     sessionId: number;
     sessionNumber: number;
+    displayNumber?: number;
   } | null>(null);
 
   // Fetch sessions using TanStack Query - automatic caching and background refetching
@@ -165,11 +167,11 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
             key={session.id}
             className="p-5 bg-[var(--background)] border border-[var(--border-color)] rounded-lg"
           >
-            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-[var(--accent)]/60" />
                 <h3 className="text-lg font-semibold text-[var(--heading-text)]">
-                  Read #{session.sessionNumber}
+                  Read #{session.displayNumber ?? session.sessionNumber}
                 </h3>
                 {session.status === 'dnf' ? (
                   <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-600 dark:text-red-400 rounded-full border border-red-500/30">
@@ -221,9 +223,10 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
                 onClick={() => setViewProgressModal({
                   sessionId: session.id,
                   sessionNumber: session.sessionNumber,
+                  displayNumber: session.displayNumber,
                 })}
                 className="w-full grid grid-cols-2 gap-4 mb-4 p-3 bg-[var(--card-bg)] rounded border border-[var(--border-color)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors duration-200 cursor-pointer group"
-                aria-label={`View progress logs for Read #${session.sessionNumber}`}
+                aria-label={`View progress logs for Read #${session.displayNumber ?? session.sessionNumber}`}
               >
                 <div className="text-left">
                   <p className="text-xs text-[var(--foreground)]/60 font-semibold uppercase tracking-wide mb-1">
@@ -275,6 +278,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         onConfirm={handleSaveSession}
         bookTitle={bookTitle}
         sessionNumber={editingSession?.sessionNumber ?? 0}
+        displayNumber={editingSession?.displayNumber}
         sessionId={editingSession?.id ?? 0}
         bookId={bookId}
         currentStartedDate={editingSession?.startedDate ?? null}
@@ -287,6 +291,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
         onClose={handleCloseDeleteModal}
         onConfirm={handleConfirmDelete}
         sessionNumber={deletingSession?.sessionNumber ?? 0}
+        displayNumber={deletingSession?.displayNumber}
         progressCount={deletingSession?.progressSummary.totalEntries ?? 0}
         bookTitle={bookTitle}
         isActive={deletingSession?.isActive ?? false}
@@ -300,6 +305,7 @@ export default function ReadingHistoryTab({ bookId, bookTitle = "this book" }: R
           bookId={bookId}
           bookTitle={bookTitle}
           sessionNumber={viewProgressModal.sessionNumber}
+          displayNumber={viewProgressModal.displayNumber}
         />
       )}
     </div>
