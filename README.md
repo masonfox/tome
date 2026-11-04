@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **Maintainers wanted**
+>
+> Active development on Tome has stalled, and the current maintainer does not anticipate returning to active feature development. If you're passionate about Tome and interested in taking on maintainer responsibilities, please [join the discussion in issue #423](https://github.com/masonfox/tome/issues/423) and introduce yourself. See [the maintainer's update](https://github.com/masonfox/tome/issues/423#issuecomment-6633065779) for context and discuss the project's future and a possible handover in that issue.
+
 <div align="center">
 
 # 📚 Tome
