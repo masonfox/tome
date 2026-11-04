@@ -375,6 +375,7 @@ export default function ShelfDetailPage() {
               isSelectMode={listView.isSelectMode}
               selectedBookIds={listView.selectedBookIds}
               onToggleSelection={listView.toggleBookSelection}
+              onEnterSelectModeWithSelection={listView.enterSelectModeWithSelection}
               renderActions={!listView.isSelectMode ? (book, index) => (
                 <BookActionsDropdown
                   bookId={book.id}
@@ -396,6 +397,7 @@ export default function ShelfDetailPage() {
                   isSelectMode={listView.isSelectMode}
                   isSelected={listView.selectedBookIds.has(book.id)}
                   onToggleSelection={() => listView.toggleBookSelection(book.id)}
+                  onLongPress={() => listView.enterSelectModeWithSelection(book.id)}
                   actions={
                     !listView.isSelectMode ? (
                       <BookActionsDropdown

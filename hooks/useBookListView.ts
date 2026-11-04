@@ -94,6 +94,12 @@ export function useBookListView({ books, initialFilter = "" }: UseBookListViewOp
     setSelectedBookIds(new Set());
   }, []);
 
+  // Enter select mode and select a specific book (for long-press to select)
+  const enterSelectModeWithSelection = useCallback((bookId: number) => {
+    setIsSelectMode(true);
+    setSelectedBookIds(new Set([bookId]));
+  }, []);
+
   return {
     // Mobile detection
     isMobile,
@@ -111,5 +117,6 @@ export function useBookListView({ books, initialFilter = "" }: UseBookListViewOp
     toggleSelectAll,
     clearSelection,
     exitSelectMode,
+    enterSelectModeWithSelection,
   };
 }
