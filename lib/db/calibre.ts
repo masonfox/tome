@@ -71,6 +71,7 @@ export interface CalibreBook {
   has_cover: number;
   description: string | null;
   rating: number | null; // 1-5 stars (converted from Calibre's 0-10 scale)
+  total_pages: number | null;
 }
 
 export interface PaginationOptions {
@@ -111,6 +112,8 @@ export function getAllBooks(options?: PaginationOptions): CalibreBook[] {
 
   const hasSeries = hasSeriesColumn || hasSeriesLinkTable;
 
+  const hasPagesLinkTable = tableNames.includes("books_pages_link");
+
   const query = `
     SELECT
       b.id,
@@ -123,6 +126,7 @@ export function getAllBooks(options?: PaginationOptions): CalibreBook[] {
       GROUP_CONCAT(DISTINCT a.name) as authors,
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
+      ${hasPagesLinkTable ? "bpl.pages" : "NULL"} as total_pages,
       GROUP_CONCAT(DISTINCT i.val) as isbn,
       c.text as description,
       r.rating as rating
@@ -136,6 +140,7 @@ export function getAllBooks(options?: PaginationOptions): CalibreBook[] {
         ? 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id'
         : ''
     }
+    ${hasPagesLinkTable ? 'LEFT JOIN books_pages_link bpl ON b.id = bpl.book' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
@@ -174,6 +179,8 @@ export function getBookById(id: number): CalibreBook | undefined {
 
   const hasSeries = hasSeriesColumn || hasSeriesLinkTable;
 
+  const hasPagesLinkTable = tableNames.includes("books_pages_link");
+
   const query = `
     SELECT
       b.id,
@@ -186,6 +193,7 @@ export function getBookById(id: number): CalibreBook | undefined {
       GROUP_CONCAT(DISTINCT a.name) as authors,
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
+      ${hasPagesLinkTable ? "bpl.pages" : "NULL"} as total_pages,
       GROUP_CONCAT(DISTINCT i.val) as isbn,
       c.text as description,
       r.rating as rating
@@ -199,6 +207,7 @@ export function getBookById(id: number): CalibreBook | undefined {
         ? 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id'
         : ''
     }
+    ${hasPagesLinkTable ? 'LEFT JOIN books_pages_link bpl ON b.id = bpl.book' : ''}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
@@ -239,6 +248,8 @@ export function searchBooks(query: string): CalibreBook[] {
 
   const hasSeries = hasSeriesColumn || hasSeriesLinkTable;
 
+  const hasPagesLinkTable = tableNames.includes("books_pages_link");
+
   const searchQuery = `
     SELECT
       b.id,
@@ -251,6 +262,7 @@ export function searchBooks(query: string): CalibreBook[] {
       GROUP_CONCAT(DISTINCT a.name) as authors,
       ${hasPublisher ? 'p.name' : 'NULL'} as publisher,
       ${hasSeries ? 's.name' : 'NULL'} as series,
+      ${hasPagesLinkTable ? "bpl.pages" : "NULL"} as total_pages,
       GROUP_CONCAT(DISTINCT i.val) as isbn,
       c.text as description,
       r.rating as rating
@@ -264,6 +276,7 @@ export function searchBooks(query: string): CalibreBook[] {
         ? 'LEFT JOIN books_series_link bsl ON b.id = bsl.book LEFT JOIN series s ON bsl.series = s.id'
         : ''
     }
+    ${hasPagesLinkTable ? "LEFT JOIN books_pages_link bpl ON b.id = bpl.book" : ""}
     LEFT JOIN identifiers i ON b.id = i.book AND i.type = 'isbn'
     LEFT JOIN comments c ON b.id = c.book
     LEFT JOIN books_ratings_link brl ON b.id = brl.book
